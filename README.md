@@ -2,7 +2,8 @@
 
 Reusable TypeScript packages for Effect-based applications.
 
-This repository is under construction. No packages are published yet.
+This repository is under construction. Published packages may change quickly
+before 1.0.
 
 ## Packages
 
