@@ -8,4 +8,6 @@ trustPolicy: no-downgrade
 trustLockfile: false
 blockExoticSubdeps: true
 strictDepBuilds: true
-allowBuilds: {}
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: false

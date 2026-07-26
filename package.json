@@ -10,7 +10,10 @@
 	"scripts": {
 		"check": "biome check .",
 		"format": "biome check --write .",
-		"ready": "pnpm check"
+		"test": "pnpm --recursive --if-present test",
+		"typecheck": "pnpm --recursive --if-present typecheck",
+		"typecheck:compat": "pnpm --recursive --if-present typecheck:compat",
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.1"

@@ -13,6 +13,22 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_effect_prisma
+    services:
+      postgres:
+        image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
+        env:
+          POSTGRES_DB: platform_effect_prisma
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -34,5 +50,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify repository
-        run: pnpm ready
+      - name: Initialize PostgreSQL
+        run: >-
+          docker exec -i "${{ job.services.postgres.id }}"
+          psql --set ON_ERROR_STOP=1
+          --username postgres
+          --dbname platform_effect_prisma
+          < packages/effect-prisma/test/schema.sql
+
+      - name: Check formatting and lint
+        run: pnpm check
+
+      - name: Type-check with TypeScript 7
+        run: pnpm typecheck
+
+      - name: Type-check with TypeScript 6
+        run: pnpm typecheck:compat
+
+      - name: Test
+        run: pnpm test
