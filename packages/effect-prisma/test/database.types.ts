@@ -11,6 +11,13 @@ type User = {
 	name: string;
 };
 
+type Post = {
+	id: string;
+	reviewerId: string | null;
+	title: string;
+	userId: string;
+};
+
 type ContractEmail =
 	ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];
 expectTypeOf<ContractEmail>().toEqualTypeOf<string>();
@@ -113,6 +120,10 @@ const program = Effect.gen(function* () {
 	expectTypeOf(exists).not.toBeAny();
 	expectTypeOf(exists).toEqualTypeOf<boolean>();
 
+	const count = yield* byObject.count();
+	expectTypeOf(count).not.toBeAny();
+	expectTypeOf(count).toEqualTypeOf<number>();
+
 	const selected = yield* db.User.select("id", "email");
 	expectTypeOf(selected).not.toBeAny();
 	expectTypeOf(selected).toEqualTypeOf<
@@ -128,6 +139,92 @@ const program = Effect.gen(function* () {
 		// @ts-expect-error A selected row must not silently retain omitted fields.
 		selectedRow.name;
 	}
+
+	const withPosts = db.User.include("posts");
+	expectTypeOf(withPosts).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPosts>>().not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPosts>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			email: string;
+			name: string;
+			posts: Array<Post>;
+		}>
+	>();
+	expectTypeOf<
+		Array<{ id: string; email: string; name: string; posts: Array<Post> }>
+	>().toMatchTypeOf<Effect.Success<typeof withPosts>>();
+
+	const postTitles = db.Post.select("title");
+	const withPostTitles = db.User.include("posts", postTitles);
+	expectTypeOf(withPostTitles).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPostTitles>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			email: string;
+			name: string;
+			posts: Array<{ title: string }>;
+		}>
+	>();
+
+	const withPostAuthors = db.User.include("posts", db.Post.include("user"));
+	expectTypeOf(withPostAuthors).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPostAuthors>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			email: string;
+			name: string;
+			posts: Array<Post & { user: User }>;
+		}>
+	>();
+
+	const withAuthor = db.Post.include("user");
+	expectTypeOf(withAuthor).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withAuthor>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			reviewerId: string | null;
+			title: string;
+			userId: string;
+			user: User;
+		}>
+	>();
+
+	const withReviewer = db.Post.include("reviewer");
+	expectTypeOf(withReviewer).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withReviewer>>().toMatchTypeOf<
+		Array<Post & { reviewer: User | null }>
+	>();
+
+	const withPostCount = db.User.include("posts", db.Post.count());
+	expectTypeOf(withPostCount).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPostCount>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			email: string;
+			name: string;
+			posts: number;
+		}>
+	>();
+
+	const withPostOverview = db.User.include("posts", {
+		fullCount: db.Post.count(),
+		items: postTitles,
+		pageCount: postTitles.count(),
+	});
+	expectTypeOf(withPostOverview).not.toBeAny();
+	expectTypeOf<Effect.Success<typeof withPostOverview>>().toMatchTypeOf<
+		Array<{
+			id: string;
+			email: string;
+			name: string;
+			posts: {
+				fullCount: number;
+				items: Array<{ title: string }>;
+				pageCount: number;
+			};
+		}>
+	>();
 
 	const create = db.User.create({
 		id: crypto.randomUUID(),
@@ -198,8 +295,18 @@ const program = Effect.gen(function* () {
 	db.User.where((user) => user.email.eq(123));
 	// @ts-expect-error Selections are constrained to actual model fields.
 	db.User.select("missing");
-	// @ts-expect-error The inferred contract requires an id during creation.
-	db.User.create({ email: "missing-id@example.com", name: "Missing id" });
+	// @ts-expect-error Includes are constrained to actual model relations.
+	db.User.include("missing");
+	// @ts-expect-error Included queries must use the related model.
+	db.User.include("posts", db.User);
+	// @ts-expect-error Every named query must use the related model.
+	db.User.include("posts", { items: db.Post, wrong: db.User });
+	// @ts-expect-error Named query records must include at least one query.
+	db.User.include("posts", {});
+	// @ts-expect-error Named query records require a to-many relation.
+	db.Post.include("user", { item: db.User });
+	// @ts-expect-error Create input fields retain their database field types.
+	db.User.create({ id: 123, email: "wrong-id@example.com", name: "Wrong id" });
 	// @ts-expect-error Unsafe whole-collection updates are rejected by Prisma state typing.
 	db.User.update({ name: "Unsafe" });
 	// @ts-expect-error Cursors require an explicit stable ordering.

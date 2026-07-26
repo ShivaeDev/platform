@@ -10,7 +10,8 @@ import type {
 } from "@prisma-next/sql-orm-client";
 import type { Effect, Stream } from "effect";
 import type { PrismaError } from "../error.js";
-import type { CollectionResult, Relation } from "../relation.js";
+import type { CollectionResult, Relation, RelationQuery } from "../relation.js";
+import type { IncludeMethod } from "./include.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
 type AnyPostgresContract = PrismaContract<SqlStorage>;
@@ -171,12 +172,14 @@ type CollectionConveniences<
 		>
 		? {
 				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
+				count(): RelationQuery<number, Requirement, Contract, Model>;
 				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
 			}
 		: Record<never, never>
 	: CollectionResult<Collection> extends ReadonlyArray<infer Row>
 		? {
 				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
+				count(): Effect.Effect<number, PrismaError, Requirement>;
 				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
 			}
 		: Record<never, never>;
@@ -187,6 +190,7 @@ export type PrismaRelationMethods<
 	Contract,
 	Model extends string,
 > = SelectMethod<Collection, Requirement, Contract, Model> &
+	IncludeMethod<Collection, Requirement, Contract, Model> &
 	AggregateMethod<Collection, Requirement, Contract, Model> &
 	CollectionMethods<Collection, Requirement, Contract, Model> &
 	CollectionConveniences<Collection, Requirement, Contract, Model>;

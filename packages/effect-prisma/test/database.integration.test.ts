@@ -263,3 +263,100 @@ integrationEffect(
 			),
 		),
 );
+
+integrationEffect("loads related rows without changing the base relation", () =>
+	withDatabase(
+		withTestTransaction(
+			Database,
+			Effect.gen(function* () {
+				const db = yield* Database;
+				const userId = crypto.randomUUID();
+				const firstPostId = crypto.randomUUID();
+				yield* db.User.create({
+					id: userId,
+					email: uniqueEmail("include"),
+					name: "Relation owner",
+				});
+				yield* db.Post.createAll([
+					{
+						id: firstPostId,
+						title: "First post",
+						userId,
+					},
+					{
+						id: crypto.randomUUID(),
+						title: "Second post",
+						userId,
+					},
+				]);
+
+				const base = db.User.where({ id: userId });
+				const postTitles = db.Post.orderBy((post) => post.title.asc()).select(
+					"title",
+				);
+				const withPosts = yield* base.include("posts", postTitles);
+				const withPostCount = yield* base.include("posts", db.Post.count());
+				const firstPostTitle = postTitles.take(1);
+				const withPostOverview = yield* base.include("posts", {
+					fullCount: db.Post.count(),
+					items: firstPostTitle,
+					pageCount: firstPostTitle.count(),
+				});
+				const withPostAuthors = yield* base.include(
+					"posts",
+					db.Post.include("user"),
+				);
+				const standaloneTitles = yield* postTitles;
+				const wrongModel = db.User as unknown as typeof db.Post;
+				const wrongModelExit = yield* Effect.exit(
+					base.include("posts", wrongModel),
+				);
+				const postWithAuthor = yield* db.Post.where({
+					id: firstPostId,
+				})
+					.include("user")
+					.include("reviewer")
+					.first();
+				const withoutPosts = yield* base;
+
+				expect(withPosts).toEqual([
+					{
+						email: expect.any(String),
+						id: userId,
+						name: "Relation owner",
+						posts: [{ title: "First post" }, { title: "Second post" }],
+					},
+				]);
+				expect(withPostCount[0]?.posts).toBe(2);
+				expect(withPostOverview[0]?.posts).toEqual({
+					fullCount: 2,
+					items: [{ title: "First post" }],
+					pageCount: 1,
+				});
+				expect(
+					withPostAuthors[0]?.posts.every((post) => post.user.id === userId),
+				).toBe(true);
+				expect(standaloneTitles).toEqual([
+					{ title: "First post" },
+					{ title: "Second post" },
+				]);
+				expect(Exit.isFailure(wrongModelExit)).toBe(true);
+				if (Exit.isFailure(wrongModelExit)) {
+					expect(Cause.pretty(wrongModelExit.cause)).toContain(
+						"Included relation expects Post, received User",
+					);
+				}
+				expect(Option.getOrThrow(postWithAuthor).user.id).toBe(userId);
+				expect(Option.getOrThrow(postWithAuthor).reviewer).toBeNull();
+				expect(yield* db.Post.where({ userId }).count()).toBe(2);
+				expect(withoutPosts).toEqual([
+					{
+						email: expect.any(String),
+						id: userId,
+						name: "Relation owner",
+					},
+				]);
+			}),
+		),
+	),
+);

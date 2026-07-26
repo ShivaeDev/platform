@@ -46,13 +46,43 @@ const program = Effect.gen(function* () {
   const users = yield* newest.take(20)
   const first = yield* active.first()
   const exists = yield* active.exists()
+  const count = yield* active.count()
 
-  return { users, first, exists }
+  return { users, first, exists, count }
 })
 ```
 
 Relations are lazy and immutable. Reusing or branching a Relation never changes
 the original, and each execution resolves the active database context again.
+
+Relations can be loaded directly or refined with another immutable Relation:
+
+```ts
+const recentPosts = db.Post
+  .orderBy((post) => post.createdAt.desc())
+  .take(5)
+
+const usersWithPosts = yield* db.User.include("posts", recentPosts)
+
+const usersWithPostCounts = yield* db.User.include("posts", db.Post.count())
+```
+
+Includes can be chained and nested. Loaded to-many relations are arrays, and
+nullable to-one relations remain nullable in the result type.
+
+Named query records return several projections of the same relation:
+
+```ts
+const publishedPosts = db.Post.where({ published: true })
+const recentPublishedPosts = publishedPosts
+  .orderBy((post) => post.createdAt.desc())
+  .take(5)
+
+const usersWithPostOverview = yield* db.User.include("posts", {
+  items: recentPublishedPosts,
+  fullCount: publishedPosts.count(),
+})
+```
 
 Collections are also cold Effect Streams:
 
@@ -60,10 +90,10 @@ Collections are also cold Effect Streams:
 const stream = db.User.where({ active: true }).stream
 ```
 
-The initial package covers scalar models, filtering, selection, ordering,
-pagination, distinct queries, aggregates, grouping, and create/update/delete
-terminals. Relation includes and model variants are deliberately deferred
-rather than exposed with weakened types.
+The package covers scalar models, filtering, selection, relation loading,
+ordering, pagination, distinct queries, aggregates, grouping, and
+create/update/delete terminals. Model variants are deliberately deferred rather
+than exposed with weakened types.
 
 ## Transactions
 

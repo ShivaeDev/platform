@@ -14,6 +14,7 @@ import {
 	replayRecipe,
 	rootRecipe,
 } from "./recipe.js";
+import { RelationPlanTypeId } from "./relation-plan.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
 
@@ -33,6 +34,22 @@ const evaluateResult = (
 	value: unknown,
 	terminal: PropertyKey | undefined,
 ): Effect.Effect<unknown, PrismaError> => {
+	if (
+		terminal === "count" &&
+		typeof value === "object" &&
+		value !== null &&
+		typeof Reflect.get(value, "aggregate") === "function"
+	) {
+		const aggregate = Reflect.apply(
+			Reflect.get(value, "aggregate") as AnyFunction,
+			value,
+			[(summary: { count(): unknown }) => ({ count: summary.count() })],
+		);
+		return fromPrismaPromise(
+			() => aggregate as PromiseLike<{ count: number }>,
+		).pipe(Effect.map((result) => result.count));
+	}
+
 	if (
 		terminal === "exists" &&
 		typeof value === "object" &&
@@ -75,6 +92,10 @@ interface RelationValue<
 	Models extends object,
 	Contract extends AnyPostgresContract,
 > extends Effect.Effect<unknown, PrismaError, ExecutorIdentifier<Models>> {
+	readonly [RelationPlanTypeId]: {
+		readonly recipe: RelationRecipe;
+		readonly terminal?: PropertyKey;
+	};
 	readonly runtime: RelationRuntime<Models, Contract>;
 	readonly stream: Stream.Stream<
 		unknown,
@@ -172,6 +193,10 @@ const makeRelationProxy = <
 	runtime: RelationRuntime<Models, Contract>,
 ): unknown => {
 	const target = Object.assign(Object.create(RelationPrototype), {
+		[RelationPlanTypeId]: {
+			recipe: runtime.recipe,
+			...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
+		},
 		runtime,
 	}) as RelationValue<Models, Contract>;
 
@@ -188,6 +213,13 @@ const makeRelationProxy = <
 					makeRelationProxy({
 						...runtime,
 						terminal: "exists",
+					});
+			}
+			if (property === "count") {
+				return () =>
+					makeRelationProxy({
+						...runtime,
+						terminal: "count",
 					});
 			}
 			return (...arguments_: ReadonlyArray<unknown>) =>
