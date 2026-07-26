@@ -94,11 +94,25 @@ type RelationMethods<
 	>]: WrapFunction<Key, Collection[Key], Requirement, Contract, Model>;
 };
 
+declare const RelationQueryTypeId: unique symbol;
+
+export type RelationQuery<
+	Value,
+	Requirement,
+	Contract,
+	Model extends string,
+> = Effect.Effect<Value, PrismaError, Requirement> & {
+	readonly [RelationQueryTypeId]: {
+		readonly contract: Contract;
+		readonly model: Model;
+	};
+};
+
 export type Relation<
 	Collection,
 	Requirement,
 	Contract = undefined,
 	Model extends string = string,
-> = Effect.Effect<CollectionResult<Collection>, PrismaError, Requirement> &
+> = RelationQuery<CollectionResult<Collection>, Requirement, Contract, Model> &
 	RelationMethods<Collection, Requirement, Contract, Model> &
 	PrismaRelationMethods<Collection, Requirement, Contract, Model>;

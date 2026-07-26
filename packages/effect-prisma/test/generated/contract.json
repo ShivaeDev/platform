@@ -4,6 +4,10 @@
   "target": "postgres",
   "profileHash": "sha256:9c8aa3114e84ed3b7ea2bd57526d9c2e1bf7c5292be694e9d3801f566fda7ccb",
   "roots": {
+    "post": {
+      "model": "Post",
+      "namespace": "public"
+    },
     "user": {
       "model": "User",
       "namespace": "public"
@@ -13,6 +17,88 @@
     "namespaces": {
       "public": {
         "models": {
+          "Post": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "reviewerId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "reviewer": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "reviewerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "reviewerId": {
+                  "column": "reviewer_id"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "userId": {
+                  "column": "user_id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "post"
+            }
+          },
           "User": {
             "fields": {
               "email": {
@@ -37,7 +123,38 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "posts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "public"
+                }
+              },
+              "reviewedPosts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "reviewerId"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "email": {
@@ -63,6 +180,92 @@
       "public": {
         "entries": {
           "table": {
+            "post": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false,
+                  "typeRef": "Id"
+                },
+                "reviewer_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true,
+                  "typeRef": "Id"
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false,
+                  "typeRef": "Id"
+                }
+              },
+              "foreignKeys": [
+                {
+                  "constraint": true,
+                  "index": true,
+                  "source": {
+                    "columns": [
+                      "user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "post"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                },
+                {
+                  "constraint": true,
+                  "index": true,
+                  "source": {
+                    "columns": [
+                      "reviewer_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "post"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "reviewer_id"
+                  ],
+                  "name": "Post_reviewer_id_idx"
+                },
+                {
+                  "columns": [
+                    "user_id"
+                  ],
+                  "name": "Post_user_id_idx"
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "Post_pkey"
+              },
+              "uniques": []
+            },
             "user": {
               "columns": {
                 "email": {
@@ -105,7 +308,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "sha256:c28a01c863ab27f88700d5aae6d9e7ef0060050ee0424dd031d0c35d7b0af759",
+    "storageHash": "sha256:346a900558c34971b260a86dc54d10be9a9cb62bf52e58a998c59b5148e23d03",
     "types": {
       "Id": {
         "codecId": "pg/uuid@1",
