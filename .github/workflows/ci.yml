@@ -69,3 +69,9 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Test packed packages
+        run: pnpm test:package

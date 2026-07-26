@@ -1,6 +1,25 @@
 packages:
   - packages/*
 
+catalog:
+  "@biomejs/biome": 2.5.1
+  "@effect/vitest": 4.0.0-beta.99
+  "@prisma-next/adapter-postgres": 0.15.0
+  "@prisma-next/cli": 0.15.0
+  "@prisma-next/contract": 0.15.0
+  "@prisma-next/postgres": 0.15.0
+  "@prisma-next/sql-contract": 0.15.0
+  "@prisma-next/sql-orm-client": 0.15.0
+  "@prisma-next/sql-relational-core": 0.15.0
+  "@prisma-next/sql-runtime": 0.15.0
+  "@prisma-next/target-postgres": 0.15.0
+  "@types/node": 24.10.1
+  "@types/pg": 8.20.0
+  "@typescript/native": npm:typescript@7.0.2
+  effect: 4.0.0-beta.99
+  typescript: npm:@typescript/typescript6@6.0.2
+  vitest: 4.1.9
+
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true

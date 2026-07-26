@@ -65,6 +65,27 @@ export const releaseTransaction = <
 >(
 	resource: TransactionResource<Models, Contract>,
 	exit: Exit.Exit<A, E>,
+): Effect.Effect<void, PrismaError> => settleTransaction(resource, exit, true);
+
+export const releaseTestTransaction = <
+	Models extends object,
+	Contract extends AnyPostgresContract,
+	A,
+	E,
+>(
+	resource: TransactionResource<Models, Contract>,
+	exit: Exit.Exit<A, E>,
+): Effect.Effect<void, PrismaError> => settleTransaction(resource, exit, false);
+
+const settleTransaction = <
+	Models extends object,
+	Contract extends AnyPostgresContract,
+	A,
+	E,
+>(
+	resource: TransactionResource<Models, Contract>,
+	exit: Exit.Exit<A, E>,
+	commitOnSuccess: boolean,
 ): Effect.Effect<void, PrismaError> =>
 	Effect.uninterruptible(
 		fromPrismaPromise(async () => {
@@ -79,7 +100,7 @@ export const releaseTransaction = <
 				await resource.connection.destroy(reason).catch(() => undefined);
 			};
 
-			if (Exit.isSuccess(exit)) {
+			if (commitOnSuccess && Exit.isSuccess(exit)) {
 				try {
 					await resource.transaction.commit();
 				} catch (commitError) {

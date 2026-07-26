@@ -8,14 +8,16 @@
 		"node": ">=24"
 	},
 	"scripts": {
+		"build": "pnpm --recursive --if-present build",
 		"check": "biome check .",
 		"format": "biome check --write .",
 		"test": "pnpm --recursive --if-present test",
+		"test:package": "pnpm --recursive --if-present test:package",
 		"typecheck": "pnpm --recursive --if-present typecheck",
 		"typecheck:compat": "pnpm --recursive --if-present typecheck:compat",
-		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test"
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.1"
+		"@biomejs/biome": "catalog:"
 	}
 }
