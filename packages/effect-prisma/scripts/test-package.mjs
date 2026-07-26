@@ -31,6 +31,7 @@ try {
 		"package/dist/testing.d.ts.map",
 		"package/src/index.ts",
 		"package/src/testing.ts",
+		"package/CHANGELOG.md",
 		"package/README.md",
 	]) {
 		if (!contents.includes(required)) {
