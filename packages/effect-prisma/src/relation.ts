@@ -1,0 +1,130 @@
+import type { Contract as PrismaContract } from "@prisma-next/contract/types";
+import type { SqlStorage } from "@prisma-next/sql-contract/types";
+import type { Collection as PrismaCollection } from "@prisma-next/sql-orm-client";
+import type { Effect, Option, Stream } from "effect";
+import type { PrismaError } from "./error.js";
+
+type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
+
+type CollectionResult<Collection> = Collection extends {
+	all(): infer Result;
+}
+	? Awaited<Result>
+	: never;
+
+type NormalizeTerminal<Name, Result> = Name extends "first"
+	? Option.Option<Exclude<Result, null>>
+	: Result;
+
+type AnyPostgresContract = PrismaContract<SqlStorage>;
+
+type WrapReturn<Name, Result, Requirement, Contract, Model extends string> =
+	Result extends PromiseLike<infer Value>
+		? Effect.Effect<
+				NormalizeTerminal<Name, Awaited<Value>>,
+				PrismaError,
+				Requirement
+			>
+		: Result extends object
+			? Relation<Result, Requirement, Contract, Model>
+			: never;
+
+type WrapFunction<
+	Name,
+	Function_,
+	Requirement,
+	Contract,
+	Model extends string,
+> = Function_ extends {
+	(...arguments_: infer Arguments1): infer Result1;
+	(...arguments_: infer Arguments2): infer Result2;
+	(...arguments_: infer Arguments3): infer Result3;
+	(...arguments_: infer Arguments4): infer Result4;
+	(...arguments_: infer Arguments5): infer Result5;
+	(...arguments_: infer Arguments6): infer Result6;
+}
+	? ((
+			...arguments_: Arguments1
+		) => WrapReturn<Name, Result1, Requirement, Contract, Model>) &
+			((
+				...arguments_: Arguments2
+			) => WrapReturn<Name, Result2, Requirement, Contract, Model>) &
+			((
+				...arguments_: Arguments3
+			) => WrapReturn<Name, Result3, Requirement, Contract, Model>) &
+			((
+				...arguments_: Arguments4
+			) => WrapReturn<Name, Result4, Requirement, Contract, Model>) &
+			((
+				...arguments_: Arguments5
+			) => WrapReturn<Name, Result5, Requirement, Contract, Model>) &
+			((
+				...arguments_: Arguments6
+			) => WrapReturn<Name, Result6, Requirement, Contract, Model>)
+	: never;
+
+type FunctionKeys<Value> = {
+	[Key in keyof Value]-?: Value[Key] extends AnyFunction ? Key : never;
+}[keyof Value];
+
+type RelationMethods<
+	Collection,
+	Requirement,
+	Contract,
+	Model extends string,
+> = {
+	readonly [Key in Exclude<FunctionKeys<Collection>, "select">]: WrapFunction<
+		Key,
+		Collection[Key],
+		Requirement,
+		Contract,
+		Model
+	>;
+};
+
+type SelectMethod<
+	Collection,
+	Requirement,
+	Contract,
+	Model extends string,
+> = Contract extends AnyPostgresContract
+	? Collection extends PrismaCollection<Contract, Model, infer Row, infer State>
+		? {
+				select<
+					Fields extends readonly [
+						keyof Row & string,
+						...(keyof Row & string)[],
+					],
+				>(
+					...fields: Fields
+				): Relation<
+					PrismaCollection<Contract, Model, Pick<Row, Fields[number]>, State>,
+					Requirement,
+					Contract,
+					Model
+				>;
+			}
+		: Record<never, never>
+	: Collection extends { select: infer Select }
+		? {
+				select: WrapFunction<"select", Select, Requirement, Contract, Model>;
+			}
+		: Record<never, never>;
+
+export type Relation<
+	Collection,
+	Requirement,
+	Contract = undefined,
+	Model extends string = string,
+> = Effect.Effect<CollectionResult<Collection>, PrismaError, Requirement> &
+	RelationMethods<Collection, Requirement, Contract, Model> &
+	SelectMethod<Collection, Requirement, Contract, Model> & {
+		readonly stream: Stream.Stream<
+			CollectionResult<Collection> extends ReadonlyArray<infer Row>
+				? Row
+				: never,
+			PrismaError,
+			Requirement
+		>;
+		exists(): Effect.Effect<boolean, PrismaError, Requirement>;
+	};
