@@ -15,8 +15,10 @@ import type {
 } from "./internal/executor.js";
 import { fromPrismaPromise } from "./internal/promise.js";
 import { makeModelRelation } from "./internal/relation-runtime.js";
+import { DatabaseTestingTypeId } from "./internal/testing.js";
 import {
 	acquireTransaction,
+	releaseTestTransaction,
 	releaseTransaction,
 } from "./internal/transaction.js";
 import type { Relation } from "./relation.js";
@@ -72,17 +74,16 @@ type DatabaseFactoryOptions<Contract extends AnyPostgresContract> =
 			readonly contract?: never;
 	  };
 
-export interface DatabaseDefinition<Contract extends AnyPostgresContract>
-	extends Context.Service<
+export interface DatabaseDefinition<
+	Contract extends AnyPostgresContract,
+	Requirement = ExecutorIdentifier<DefaultModels<Contract>>,
+> extends Context.Service<
 		DatabaseIdentifier<Contract>,
-		DatabaseService<Contract, ExecutorIdentifier<DefaultModels<Contract>>>
+		DatabaseService<Contract, Requirement>
 	> {
 	readonly layer: (
 		options: DatabaseLayerOptions,
-	) => Layer.Layer<
-		DatabaseIdentifier<Contract> | ExecutorIdentifier<DefaultModels<Contract>>,
-		PrismaError
-	>;
+	) => Layer.Layer<DatabaseIdentifier<Contract> | Requirement, PrismaError>;
 }
 
 const defaultModels = <
@@ -139,6 +140,27 @@ export const makeDatabase = <const Contract extends AnyPostgresContract>(
 					program.pipe(Effect.provideService(Executor, resource.executor)),
 				releaseTransaction,
 			).pipe(Effect.withSpan("prisma.transaction", { kind: "client" }));
+		});
+
+	const withTestTransaction = <A, E, R>(
+		program: Effect.Effect<A, E, R>,
+	): Effect.Effect<A, E | PrismaError, R | ExecutorId> =>
+		Effect.flatMap(Executor, (current) => {
+			if (current.transactional) {
+				return program;
+			}
+
+			return Effect.acquireUseRelease(
+				acquireTransaction(current, (transactionOrm) =>
+					defaultModels<Contract, Models>({
+						contract: current.client.contract,
+						orm: transactionOrm,
+					}),
+				),
+				(resource) =>
+					program.pipe(Effect.provideService(Executor, resource.executor)),
+				releaseTestTransaction,
+			).pipe(Effect.withSpan("prisma.testTransaction", { kind: "client" }));
 		});
 
 	const facade = new Proxy(
@@ -203,5 +225,8 @@ export const makeDatabase = <const Contract extends AnyPostgresContract>(
 		);
 	};
 
-	return Object.assign(Service, { layer }) as DatabaseDefinition<Contract>;
+	return Object.assign(Service, {
+		layer,
+		[DatabaseTestingTypeId]: { withTestTransaction },
+	}) as DatabaseDefinition<Contract>;
 };

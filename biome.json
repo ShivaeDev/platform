@@ -1,7 +1,13 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
 	"files": {
-		"includes": ["**", "!**/dist", "!**/coverage", "!**/test/generated"]
+		"includes": [
+			"**",
+			"!**/.pnpm-store",
+			"!**/dist",
+			"!**/coverage",
+			"!**/test/generated"
+		]
 	},
 	"formatter": {
 		"enabled": true,

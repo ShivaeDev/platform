@@ -1,22 +1,18 @@
-import type { Contract as PrismaContract } from "@prisma-next/contract/types";
-import type { SqlStorage } from "@prisma-next/sql-contract/types";
-import type { Collection as PrismaCollection } from "@prisma-next/sql-orm-client";
-import type { Effect, Option, Stream } from "effect";
+import type { Effect } from "effect";
 import type { PrismaError } from "./error.js";
+import type { PrismaRelationMethods } from "./relation/prisma-methods.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
 
-type CollectionResult<Collection> = Collection extends {
+export type CollectionResult<Collection> = Collection extends {
 	all(): infer Result;
 }
 	? Awaited<Result>
 	: never;
 
 type NormalizeTerminal<Name, Result> = Name extends "first"
-	? Option.Option<Exclude<Result, null>>
+	? import("effect").Option.Option<Exclude<Result, null>>
 	: Result;
-
-type AnyPostgresContract = PrismaContract<SqlStorage>;
 
 type WrapReturn<Name, Result, Requirement, Contract, Model extends string> =
 	Result extends PromiseLike<infer Value>
@@ -67,49 +63,36 @@ type FunctionKeys<Value> = {
 	[Key in keyof Value]-?: Value[Key] extends AnyFunction ? Key : never;
 }[keyof Value];
 
+type ExplicitPrismaMethod =
+	| "aggregate"
+	| "avg"
+	| "combine"
+	| "count"
+	| "cursor"
+	| "delete"
+	| "deleteAll"
+	| "deleteCount"
+	| "distinct"
+	| "distinctOn"
+	| "groupBy"
+	| "include"
+	| "max"
+	| "min"
+	| "select"
+	| "sum"
+	| "variant";
+
 type RelationMethods<
 	Collection,
 	Requirement,
 	Contract,
 	Model extends string,
 > = {
-	readonly [Key in Exclude<FunctionKeys<Collection>, "select">]: WrapFunction<
-		Key,
-		Collection[Key],
-		Requirement,
-		Contract,
-		Model
-	>;
+	readonly [Key in Exclude<
+		FunctionKeys<Collection>,
+		ExplicitPrismaMethod
+	>]: WrapFunction<Key, Collection[Key], Requirement, Contract, Model>;
 };
-
-type SelectMethod<
-	Collection,
-	Requirement,
-	Contract,
-	Model extends string,
-> = Contract extends AnyPostgresContract
-	? Collection extends PrismaCollection<Contract, Model, infer Row, infer State>
-		? {
-				select<
-					Fields extends readonly [
-						keyof Row & string,
-						...(keyof Row & string)[],
-					],
-				>(
-					...fields: Fields
-				): Relation<
-					PrismaCollection<Contract, Model, Pick<Row, Fields[number]>, State>,
-					Requirement,
-					Contract,
-					Model
-				>;
-			}
-		: Record<never, never>
-	: Collection extends { select: infer Select }
-		? {
-				select: WrapFunction<"select", Select, Requirement, Contract, Model>;
-			}
-		: Record<never, never>;
 
 export type Relation<
 	Collection,
@@ -118,13 +101,4 @@ export type Relation<
 	Model extends string = string,
 > = Effect.Effect<CollectionResult<Collection>, PrismaError, Requirement> &
 	RelationMethods<Collection, Requirement, Contract, Model> &
-	SelectMethod<Collection, Requirement, Contract, Model> & {
-		readonly stream: Stream.Stream<
-			CollectionResult<Collection> extends ReadonlyArray<infer Row>
-				? Row
-				: never,
-			PrismaError,
-			Requirement
-		>;
-		exists(): Effect.Effect<boolean, PrismaError, Requirement>;
-	};
+	PrismaRelationMethods<Collection, Requirement, Contract, Model>;

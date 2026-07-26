@@ -2,6 +2,7 @@ import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
 import { Effect, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase, type PrismaError } from "../src/index.js";
+import { makeDatabaseIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
 type User = {
@@ -23,6 +24,26 @@ type _ContractEmailIsString = Assert<
 >;
 
 const Database = makeDatabase<Contract>("@test/Database", { contractJson });
+const databaseIt = makeDatabaseIt({
+	database: Database,
+	layer: Database.layer({
+		url: "postgresql://compile-only",
+	}),
+});
+
+databaseIt.effectDB("retains generated model types", function* (db, context) {
+	expectTypeOf(db).not.toBeAny();
+	expectTypeOf(db.User).not.toBeAny();
+	expectTypeOf(context).not.toBeAny();
+
+	const user = yield* db.User.where({ email: "typed@example.test" }).first();
+	expectTypeOf(user).toEqualTypeOf<Option.Option<User>>();
+
+	// @ts-expect-error The test facade must reject models absent from the contract.
+	db.Movie;
+	// @ts-expect-error The test facade must preserve field input types.
+	db.User.where({ email: 123 });
+});
 
 const program = Effect.gen(function* () {
 	const db = yield* Database;
@@ -117,6 +138,49 @@ const program = Effect.gen(function* () {
 	expectTypeOf<Effect.Success<typeof create>>().toEqualTypeOf<User>();
 	expectTypeOf<Effect.Error<typeof create>>().toEqualTypeOf<PrismaError>();
 
+	const createAll = db.User.createAll([
+		{
+			id: crypto.randomUUID(),
+			email: "many@example.com",
+			name: "Many",
+		},
+	]);
+	expectTypeOf<Effect.Success<typeof createAll>>().toEqualTypeOf<Array<User>>();
+
+	const aggregate = db.User.aggregate((summary) => ({
+		total: summary.count(),
+	}));
+	expectTypeOf<Effect.Success<typeof aggregate>>().toEqualTypeOf<{
+		total: number;
+	}>();
+
+	const grouped = db.User.groupBy("name").aggregate((summary) => ({
+		total: summary.count(),
+	}));
+	expectTypeOf<Effect.Success<typeof grouped>>().toEqualTypeOf<
+		Array<{ name: string; total: number }>
+	>();
+
+	const ordered = db.User.orderBy((user) => user.id.asc());
+	const cursor = ordered.cursor({ id: crypto.randomUUID() });
+	expectTypeOf<Effect.Success<typeof cursor>>().toEqualTypeOf<Array<User>>();
+	const distinct = db.User.distinct("email");
+	expectTypeOf<Effect.Success<typeof distinct>>().toEqualTypeOf<Array<User>>();
+	const distinctOn = ordered.distinctOn("id");
+	expectTypeOf<Effect.Success<typeof distinctOn>>().toEqualTypeOf<
+		Array<User>
+	>();
+
+	const filtered = db.User.where({ email: "existing@example.com" });
+	const update = filtered.update({ name: "Updated" });
+	expectTypeOf<Effect.Success<typeof update>>().toEqualTypeOf<User | null>();
+	const updateAll = filtered.updateAll({ name: "Updated" });
+	expectTypeOf<Effect.Success<typeof updateAll>>().toEqualTypeOf<Array<User>>();
+	const deleted = filtered.delete();
+	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<User | null>();
+	const deleteAll = filtered.deleteAll();
+	expectTypeOf<Effect.Success<typeof deleteAll>>().toEqualTypeOf<Array<User>>();
+
 	expectTypeOf(db.User.stream).not.toBeAny();
 	expectTypeOf<Stream.Success<typeof db.User.stream>>().toEqualTypeOf<User>();
 	expectTypeOf<
@@ -138,6 +202,16 @@ const program = Effect.gen(function* () {
 	db.User.create({ email: "missing-id@example.com", name: "Missing id" });
 	// @ts-expect-error Unsafe whole-collection updates are rejected by Prisma state typing.
 	db.User.update({ name: "Unsafe" });
+	// @ts-expect-error Cursors require an explicit stable ordering.
+	db.User.cursor({ id: crypto.randomUUID() });
+	// @ts-expect-error Distinct-on requires an explicit stable ordering.
+	db.User.distinctOn("id");
+	// @ts-expect-error Unsafe whole-collection deletes are rejected by Prisma state typing.
+	db.User.delete();
+	// @ts-expect-error Bulk deletes also require an explicit filter.
+	db.User.deleteAll();
+	// @ts-expect-error Count-only deletes also require an explicit filter.
+	db.User.deleteCount();
 });
 
 expectTypeOf(program).not.toBeAny();
