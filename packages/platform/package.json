@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.2.3",
+	"version": "0.3.0",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
@@ -35,6 +35,12 @@
 			"source": "./src/runtime.ts",
 			"import": "./dist/runtime.js",
 			"default": "./dist/runtime.js"
+		},
+		"./node-http": {
+			"types": "./dist/node-http.d.ts",
+			"source": "./src/node-http.ts",
+			"import": "./dist/node-http.js",
+			"default": "./dist/node-http.js"
 		},
 		"./testing": {
 			"types": "./dist/testing.d.ts",
