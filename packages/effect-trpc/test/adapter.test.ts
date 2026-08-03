@@ -7,6 +7,7 @@ import {
 	ManagedRuntime,
 	Option,
 	Schema,
+	Stream,
 } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
 import {
@@ -14,6 +15,7 @@ import {
 	makeEffectTRPC,
 	makeRequestServices,
 	notFound,
+	RequestSignal,
 } from "../src/index.js";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()(
@@ -52,7 +54,13 @@ const runtime = ManagedRuntime.make(
 	),
 );
 const instrumented: Array<{ path: string; type: string }> = [];
+const instrumentedStreams: Array<{ path: string; type: string }> = [];
 const instrumentedRequestValues: Array<string> = [];
+const finalizedStreams: string[] = [];
+let markInterruptibleStarted: () => void = () => undefined;
+const interruptibleStarted = new Promise<void>((resolve) => {
+	markInterruptibleStarted = resolve;
+});
 const mapped: Array<{ origin: string; path: string }> = [];
 const adapter = makeEffectTRPC({
 	runtime,
@@ -65,6 +73,10 @@ const adapter = makeEffectTRPC({
 			}
 			return yield* effect;
 		}),
+	instrumentStream: (stream, procedure) => {
+		instrumentedStreams.push({ path: procedure.path, type: procedure.type });
+		return stream;
+	},
 	mapError: (error, context) => {
 		mapped.push({ origin: context.origin, path: context.path });
 		return error instanceof DomainFailure
@@ -145,12 +157,42 @@ const router = t.router({
 		yield* Effect.void;
 		return input.toUpperCase();
 	}),
+	interruptible: effectProcedure.subscription(function* () {
+		return Stream.scoped(
+			Stream.fromEffect(
+				Effect.acquireRelease(Effect.sync(markInterruptibleStarted), () =>
+					Effect.sync(() => finalizedStreams.push("interruptible")),
+				),
+			),
+		).pipe(Stream.flatMap(() => Stream.never));
+	}),
 	services: effectProcedure.query(function* () {
 		const runtimeValue = yield* RuntimeValue;
 		const runtimeOnlyValue = yield* RuntimeOnlyValue;
 		const requestValue = yield* RequestValue;
 		return { requestValue, runtimeOnlyValue, runtimeValue };
 	}),
+	stream: effectProcedure.subscription(function* () {
+		const requestValue = yield* RequestValue;
+		const requestSignal = yield* RequestSignal;
+		return Stream.scoped(
+			Stream.fromEffect(
+				Effect.acquireRelease(Effect.succeed(requestValue), (value) =>
+					Effect.sync(() => finalizedStreams.push(value)),
+				),
+			),
+		).pipe(
+			Stream.flatMap((value) =>
+				Stream.make(`${value}:one`, `${value}:two`, String(requestSignal)),
+			),
+		);
+	}),
+	transformedStream: effectProcedure
+		.output(Schema.NumberFromString)
+		.subscription(function* () {
+			yield* Effect.void;
+			return Stream.make("42", "43");
+		}),
 	transformedOutput: effectProcedure
 		.output(Schema.NumberFromString)
 		.query(function* () {
@@ -194,6 +236,49 @@ describe("makeEffectTRPC", () => {
 		const caller = router.createCaller({ requestId: "mutation" });
 
 		await expect(caller.mutation("changed")).resolves.toBe("CHANGED");
+	});
+
+	it("runs subscriptions as scoped Effect streams", async () => {
+		const caller = router.createCaller({ requestId: "stream" });
+		const values: string[] = [];
+
+		for await (const value of await caller.stream(undefined))
+			values.push(value);
+
+		expect(values).toEqual(["stream:one", "stream:two", "undefined"]);
+		expect(finalizedStreams).toContain("stream");
+		expect(instrumentedStreams).toContainEqual({
+			path: "stream",
+			type: "subscription",
+		});
+	});
+
+	it("preserves output schema transformations for subscription values", async () => {
+		const caller = router.createCaller({ requestId: "stream-schema" });
+		const values: number[] = [];
+
+		for await (const value of await caller.transformedStream(undefined)) {
+			values.push(value);
+		}
+
+		expect(values).toEqual([42, 43]);
+	});
+
+	it("interrupts subscriptions and runs finalizers on transport abort", async () => {
+		const controller = new AbortController();
+		const caller = router.createCaller(
+			{ requestId: "interrupt" },
+			{ signal: controller.signal },
+		);
+		const stream = await caller.interruptible(undefined);
+		const iterator = stream[Symbol.asyncIterator]();
+		const next = iterator.next();
+
+		await interruptibleStarted;
+		controller.abort();
+
+		await expect(next).resolves.toEqual({ done: true, value: undefined });
+		expect(finalizedStreams).toContain("interruptible");
 	});
 
 	it("passes explicit TRPCError failures through", async () => {

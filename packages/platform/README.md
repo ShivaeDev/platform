@@ -4,9 +4,43 @@ Opinionated shared setup for ShivaeDev Effect applications. This package favors
 one consistent application shape over supporting every possible combination of
 database, transport, and test framework.
 
-The first public surface is the combined integration test harness. Generic
-Prisma and tRPC integrations remain available separately from
+Generic Prisma and tRPC integrations remain available separately from
 `@shivaedev/effect-prisma` and `@shivaedev/effect-trpc`.
+
+## Runtime
+
+Build one managed runtime for the application and share it with integrations:
+
+```ts
+import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+
+export const runtime = makePlatformRuntime(ApplicationLive, {
+  developmentCacheKey: "application",
+})
+```
+
+The optional cache key keeps one runtime across development module reloads.
+The runtime also carries transaction- and request-scoped service overrides
+across promise boundaries.
+
+## Better Auth
+
+`effectPrismaAdapter` stores Better Auth data through the application's Effect
+Prisma database and runtime, including Better Auth transactions:
+
+```ts
+import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
+import { betterAuth } from "better-auth"
+
+const auth = betterAuth({
+  database: effectPrismaAdapter(Database, runtime),
+})
+```
+
+The adapter owns database translation only. Providers, plugins, cookies,
+session policy, and authorization remain application configuration. Native
+experimental Better Auth joins are not supported; the standard adapter join
+fallback remains available.
 
 ## Testing
 
@@ -33,7 +67,7 @@ database calls, factories, and fixtures share that transaction, which is rolled
 back after both successful and failed tests:
 
 ```ts
-it.effectApp("creates a movie", function* ({ trpc, db, factories }) {
+it.effectApp("creates a movie", function* ({ trpc, db, factories, promise }) {
   const input = factories.movie()
   const movie = yield* trpc.movie.create(input)
   const stored = yield* db.Movie.where({ id: movie.id }).first()
@@ -41,6 +75,9 @@ it.effectApp("creates a movie", function* ({ trpc, db, factories }) {
   expect(stored?.title).toBe(input.title)
 })
 ```
+
+`promise(() => ...)` runs a promise-based application boundary, such as Better
+Auth or an HTTP handler, with the same transaction-scoped Effect services.
 
 Calling `trpc(options)` creates a caller for another application actor without
 rebuilding the worker-scoped test Layer. `effectApp` also supports `skip`,

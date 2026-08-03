@@ -2,12 +2,13 @@ import { expect } from "@effect/vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
-import { Context, Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema } from "effect";
 import { afterAll } from "vitest";
 import {
 	type Contract,
 	contractJson,
 } from "../../effect-prisma/test/contract.js";
+import { makePlatformRuntime } from "../src/runtime.js";
 import { makePlatformIt } from "../src/testing.js";
 
 const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
@@ -24,7 +25,7 @@ interface CallerOptions {
 
 class Actor extends Context.Service<Actor, string>()("@test/PlatformActor") {}
 
-const runtime = ManagedRuntime.make(DatabaseLive);
+const runtime = makePlatformRuntime(DatabaseLive);
 const adapter = makeEffectTRPC({ runtime });
 const t = initTRPC.context<CallerOptions>().create();
 const procedure = adapter.procedure(

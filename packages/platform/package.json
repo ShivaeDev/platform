@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/platform",
 	"version": "0.1.0",
-	"description": "Opinionated Effect application testing for ShivaeDev services",
+	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
 	"repository": {
@@ -24,6 +24,18 @@
 		"README.md"
 	],
 	"exports": {
+		"./better-auth": {
+			"types": "./dist/better-auth.d.ts",
+			"source": "./src/better-auth.ts",
+			"import": "./dist/better-auth.js",
+			"default": "./dist/better-auth.js"
+		},
+		"./runtime": {
+			"types": "./dist/runtime.d.ts",
+			"source": "./src/runtime.ts",
+			"import": "./dist/runtime.js",
+			"default": "./dist/runtime.js"
+		},
 		"./testing": {
 			"types": "./dist/testing.d.ts",
 			"source": "./src/testing.ts",
@@ -50,12 +62,19 @@
 		"@shivaedev/effect-prisma": "0.3.0",
 		"@shivaedev/effect-trpc": "0.2.0",
 		"@trpc/server": "catalog:",
+		"better-auth": "catalog:",
 		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"better-auth": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
 		"@prisma-next/adapter-postgres": "catalog:",
 		"@prisma-next/contract": "catalog:",
+		"@prisma-next/postgres": "catalog:",
 		"@prisma-next/sql-contract": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:0.3.0",
@@ -63,6 +82,7 @@
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
+		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

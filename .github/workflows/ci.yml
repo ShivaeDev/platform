@@ -58,6 +58,14 @@ jobs:
           --dbname platform_effect_prisma
           < packages/effect-prisma/test/schema.sql
 
+      - name: Initialize Platform auth schema
+        run: >-
+          docker exec -i "${{ job.services.postgres.id }}"
+          psql --set ON_ERROR_STOP=1
+          --username postgres
+          --dbname platform_effect_prisma
+          < packages/platform/test/auth/schema.sql
+
       - name: Check formatting and lint
         run: pnpm check
 

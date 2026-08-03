@@ -1,7 +1,7 @@
 import type { TRPCError } from "@trpc/server";
-import type { Effect } from "effect";
+import type { Effect, Stream } from "effect";
 
-export type ProcedureKind = "mutation" | "query";
+export type ProcedureKind = "mutation" | "query" | "subscription";
 
 export interface ProcedureInfo {
 	readonly captureStackTrace: () => string | undefined;
@@ -22,3 +22,8 @@ export type EffectTRPCInstrument = <A, E, R>(
 	effect: Effect.Effect<A, E, R>,
 	procedure: ProcedureInfo,
 ) => Effect.Effect<A, E, R>;
+
+export type EffectTRPCStreamInstrument = <A, E, R>(
+	stream: Stream.Stream<A, E, R>,
+	procedure: ProcedureInfo,
+) => Stream.Stream<A, E, R>;

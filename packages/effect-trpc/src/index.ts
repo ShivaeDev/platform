@@ -1,5 +1,6 @@
 export {
 	type EffectTRPCAdapter,
+	type EffectTRPCRuntime,
 	type MakeEffectTRPCOptions,
 	makeEffectTRPC,
 } from "./adapter.js";
@@ -19,10 +20,12 @@ export {
 	extendRequestServices,
 	makeRequestServices,
 } from "./request-services.js";
+export { RequestSignal } from "./request-signal.js";
 export type {
 	EffectTRPCErrorContext,
 	EffectTRPCErrorMapper,
 	EffectTRPCInstrument,
+	EffectTRPCStreamInstrument,
 	ProcedureInfo,
 	ProcedureKind,
 } from "./types.js";

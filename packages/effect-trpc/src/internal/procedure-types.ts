@@ -3,7 +3,7 @@ import type {
 	TRPCProcedureBuilder,
 	TRPCUnsetMarker,
 } from "@trpc/server";
-import type { Effect } from "effect";
+import type { Effect, Stream } from "effect";
 
 export type AnyProcedureBuilder = TRPCProcedureBuilder<
 	// biome-ignore lint/suspicious/noExplicitAny: tRPC phantom slot extraction
@@ -47,3 +47,11 @@ export type ProcedureEffect<Requirements> = Effect.Effect<
 export type EffectProcedureResolver<Input, Requirements, Output> = (
 	input: Input,
 ) => Generator<ProcedureEffect<Requirements>, Output, never>;
+
+export type EffectSubscriptionResolver<Input, Requirements, Output> = (
+	input: Input,
+) => Generator<
+	ProcedureEffect<Requirements>,
+	Stream.Stream<Output, unknown, Requirements>,
+	never
+>;

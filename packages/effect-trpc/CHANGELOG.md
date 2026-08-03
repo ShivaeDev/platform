@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Add Effect Stream subscriptions with request-scoped Layers, transport
+  cancellation, finalizers, tracing, and stream instrumentation.
+- Accept a shared application runtime so tRPC calls and other promise-based
+  adapters use the same ambient Effect services.
+
 ## 0.2.0 - 2026-08-03
 
 ### Added

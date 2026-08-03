@@ -6,7 +6,8 @@
 			"!**/.pnpm-store",
 			"!**/dist",
 			"!**/coverage",
-			"!**/test/generated"
+			"!**/test/generated",
+			"!**/test/*/generated"
 		]
 	},
 	"formatter": {

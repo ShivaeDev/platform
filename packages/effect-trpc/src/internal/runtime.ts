@@ -1,13 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import {
-	Cause,
-	Context,
-	Effect,
-	Exit,
-	type ManagedRuntime,
-	Option,
-	Result,
-} from "effect";
+import { Cause, Context, Effect, Exit, Option, Result, Stream } from "effect";
+import type { EffectTRPCRuntime } from "../adapter.js";
 import type {
 	EffectTRPCErrorMapper,
 	EffectTRPCInstrument,
@@ -26,6 +19,10 @@ export interface RuntimeBridge<Requirements> {
 		effect: Effect.Effect<Value, unknown, Requirements>,
 		options: RunEffectOptions,
 	) => Promise<Value>;
+	readonly runStream: <Value>(
+		stream: Stream.Stream<Value, unknown, Requirements>,
+		options: RunEffectOptions,
+	) => Promise<AsyncIterable<Value>>;
 }
 
 const internalError = (cause?: unknown): TRPCError =>
@@ -54,11 +51,50 @@ const mapError = (
 	}
 };
 
+const mapCause = (
+	cause: Cause.Cause<unknown>,
+	procedure: ProcedureInfo,
+	consumerMapper: EffectTRPCErrorMapper | undefined,
+): TRPCError => {
+	if (Cause.hasInterruptsOnly(cause)) {
+		return new TRPCError({
+			code: "CLIENT_CLOSED_REQUEST",
+			message: "Request cancelled",
+		});
+	}
+
+	const failure = Cause.findErrorOption(cause);
+	if (Option.isSome(failure)) {
+		return mapError(failure.value, "failure", procedure, consumerMapper);
+	}
+
+	const defect = Cause.findDefect(cause);
+	if (Result.isSuccess(defect)) {
+		return mapError(defect.success, "defect", procedure, consumerMapper);
+	}
+
+	return internalError();
+};
+
+const interruptOn = (signal: AbortSignal | undefined): Effect.Effect<void> => {
+	if (signal === undefined) return Effect.never;
+	return Effect.callback<void>((resume) => {
+		if (signal.aborted) {
+			resume(Effect.void);
+			return;
+		}
+		const abort = () => resume(Effect.void);
+		signal.addEventListener("abort", abort, { once: true });
+		return Effect.sync(() => signal.removeEventListener("abort", abort));
+	});
+};
+
 export const makeRuntimeBridge = <Requirements, RuntimeError>(
-	runtime: ManagedRuntime.ManagedRuntime<Requirements, RuntimeError>,
+	runtime: EffectTRPCRuntime<Requirements, RuntimeError>,
 	contextBridge: ContextBridge,
 	options: {
 		readonly instrument?: EffectTRPCInstrument;
+		readonly instrumentStream?: import("../types.js").EffectTRPCStreamInstrument;
 		readonly mapError?: EffectTRPCErrorMapper;
 	},
 ): RuntimeBridge<Requirements> => ({
@@ -68,6 +104,31 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 				? effect
 				: options.instrument(effect, procedure),
 		),
+	runStream: async (stream, runOptions) => {
+		const instrumented = Stream.suspend(() =>
+			options.instrumentStream === undefined
+				? stream
+				: options.instrumentStream(stream, runOptions.procedure),
+		).pipe(
+			Stream.withSpan(runOptions.procedure.path, {
+				attributes: {
+					"rpc.method": runOptions.procedure.path,
+					"rpc.system": "trpc",
+					"trpc.type": runOptions.procedure.type,
+				},
+				captureStackTrace: runOptions.procedure.captureStackTrace,
+			}),
+			Stream.interruptWhen(interruptOn(runOptions.signal)),
+			Stream.catchCause((cause) =>
+				Stream.fail(mapCause(cause, runOptions.procedure, options.mapError)),
+			),
+		);
+		const context = await runtime.runPromise(Effect.context<Requirements>());
+		const ambient = contextBridge.current();
+		const provided =
+			ambient === undefined ? context : Context.merge(context, ambient);
+		return Stream.toAsyncIterableWith(instrumented, provided);
+	},
 	runEffect: async (effect, runOptions) => {
 		const traced = effect.pipe(
 			Effect.withSpan(
@@ -101,33 +162,6 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 		if (Exit.isSuccess(exit)) {
 			return exit.value;
 		}
-		if (Cause.hasInterruptsOnly(exit.cause)) {
-			throw new TRPCError({
-				code: "CLIENT_CLOSED_REQUEST",
-				message: "Request cancelled",
-			});
-		}
-
-		const failure = Cause.findErrorOption(exit.cause);
-		if (Option.isSome(failure)) {
-			throw mapError(
-				failure.value,
-				"failure",
-				runOptions.procedure,
-				options.mapError,
-			);
-		}
-
-		const defect = Cause.findDefect(exit.cause);
-		if (Result.isSuccess(defect)) {
-			throw mapError(
-				defect.success,
-				"defect",
-				runOptions.procedure,
-				options.mapError,
-			);
-		}
-
-		throw internalError();
+		throw mapCause(exit.cause, runOptions.procedure, options.mapError);
 	},
 });

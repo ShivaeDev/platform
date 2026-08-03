@@ -1,22 +1,10 @@
 import type { TestContext, TestOptions, Vitest } from "@effect/vitest";
-import type { Contract as PrismaContract } from "@prisma-next/contract/types";
-import type { SqlStorage } from "@prisma-next/sql-contract/types";
 import type { Effect, Layer } from "effect";
-import type { DatabaseDefinition } from "../database.js";
+import type { AnyDatabase, DatabaseServiceOf } from "../database.js";
 
-type AnyPostgresContract = PrismaContract<SqlStorage>;
-
-export type AnyDatabase = Effect.Effect<unknown, never, unknown> & {
-	readonly layer: (...arguments_: ReadonlyArray<never>) => Layer.Any;
-};
-
-export type DatabaseRequirement<Database> =
-	Database extends DatabaseDefinition<AnyPostgresContract, infer Requirement>
-		? Requirement
-		: never;
-
+export type { AnyDatabase, DatabaseRequirement } from "../database.js";
 export type DatabaseService<Database extends AnyDatabase> =
-	Effect.Success<Database>;
+	DatabaseServiceOf<Database>;
 
 export type DatabaseTest<Database extends AnyDatabase, Provided> = <
 	A,
