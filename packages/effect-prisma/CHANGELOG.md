@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Expose PostgreSQL timestamp and timestamp-with-time-zone fields as `Date`,
+  matching Prisma Next's runtime codecs even when its generated contract renders
+  those fields as branded strings.
+
 ## 0.4.0 - 2026-08-03
 
 ### Added

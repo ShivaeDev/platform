@@ -73,6 +73,34 @@ integrationEffect("returns structured query failures", () =>
 	),
 );
 
+integrationEffect("uses Date values for PostgreSQL timestamps", () =>
+	withDatabase(
+		withTestTransaction(
+			Database,
+			Effect.gen(function* () {
+				const db = yield* Database;
+				const createdAt = new Date("2026-08-03T12:34:56.789Z");
+				const verifiedAt = new Date("2026-08-03T14:00:00.123Z");
+				const user = yield* db.User.create({
+					createdAt,
+					email: uniqueEmail("timestamp"),
+					id: crypto.randomUUID(),
+					name: "Timestamp",
+					verifiedAt,
+				});
+
+				expect(user.createdAt).toBeInstanceOf(Date);
+				expect(user.createdAt.getTime()).toBe(createdAt.getTime());
+				expect(user.verifiedAt).toBeInstanceOf(Date);
+				expect(user.verifiedAt?.getTime()).toBe(verifiedAt.getTime());
+				expect(
+					yield* db.User.where((row) => row.createdAt.eq(createdAt)).exists(),
+				).toBe(true);
+			}),
+		),
+	),
+);
+
 integrationEffect("reuses the active transaction for nested boundaries", () =>
 	withDatabase(
 		Effect.gen(function* () {
@@ -376,10 +404,12 @@ integrationEffect("loads related rows without changing the base relation", () =>
 
 				expect(withPosts).toEqual([
 					{
+						createdAt: expect.any(Date),
 						email: expect.any(String),
 						id: userId,
 						name: "Relation owner",
 						posts: [{ title: "First post" }, { title: "Second post" }],
+						verifiedAt: null,
 					},
 				]);
 				expect(withPostCount[0]?.posts).toBe(2);
@@ -406,9 +436,11 @@ integrationEffect("loads related rows without changing the base relation", () =>
 				expect(yield* db.Post.where({ userId }).count()).toBe(2);
 				expect(withoutPosts).toEqual([
 					{
+						createdAt: expect.any(Date),
 						email: expect.any(String),
 						id: userId,
 						name: "Relation owner",
+						verifiedAt: null,
 					},
 				]);
 			}),

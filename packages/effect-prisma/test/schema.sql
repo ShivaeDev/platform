@@ -2,6 +2,8 @@ CREATE TABLE "user" (
 	id uuid NOT NULL,
 	email text NOT NULL,
 	name text NOT NULL,
+	created_at timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	verified_at timestamptz(6),
 	CONSTRAINT "User_pkey" PRIMARY KEY (id),
 	CONSTRAINT "User_email_key" UNIQUE (email)
 );

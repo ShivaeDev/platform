@@ -3,12 +3,16 @@
 
 types {
   Id = String @db.Uuid
+  CreatedAt = DateTime @db.Timestamp(6)
+  VerifiedAt = DateTime @db.Timestamptz(6)
 }
 
 model User {
   id            Id     @id(map: "User_pkey")
   email         String @unique(map: "User_email_key")
   name          String
+  createdAt     CreatedAt @default(now()) @map("created_at")
+  verifiedAt    VerifiedAt? @map("verified_at")
   posts         Post[] @relation("PostAuthor")
   reviewedPosts Post[] @relation("PostReviewer")
 }

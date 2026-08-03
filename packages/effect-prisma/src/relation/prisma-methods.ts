@@ -10,6 +10,10 @@ import type {
 } from "@prisma-next/sql-orm-client";
 import type { Effect, Stream } from "effect";
 import type { PrismaError } from "../error.js";
+import type {
+	NormalizePrismaArguments,
+	NormalizePrismaValue,
+} from "../internal/type-normalization.js";
 import type { CollectionResult, Relation, RelationQuery } from "../relation.js";
 import type { IncludeMethod } from "./include.js";
 
@@ -22,8 +26,12 @@ type TerminalMethod<Method, Requirement> = Method extends (
 	...arguments_: infer Arguments
 ) => PromiseLike<infer Value>
 	? (
-			...arguments_: Arguments
-		) => Effect.Effect<Awaited<Value>, PrismaError, Requirement>
+			...arguments_: NormalizePrismaArguments<Arguments>
+		) => Effect.Effect<
+			NormalizePrismaValue<Awaited<Value>>,
+			PrismaError,
+			Requirement
+		>
 	: never;
 
 type SelectMethod<
@@ -103,7 +111,9 @@ type AggregateMethod<
 					make: (aggregate: AggregateBuilder<Contract, Model>) => Spec,
 					configure?: AggregateConfigure<Collection>,
 				): Effect.Effect<
-					AggregateSuccess<Collection, Contract, Model, Spec>,
+					NormalizePrismaValue<
+						AggregateSuccess<Collection, Contract, Model, Spec>
+					>,
 					PrismaError,
 					Requirement
 				>;
@@ -171,14 +181,22 @@ type CollectionConveniences<
 			infer _State
 		>
 		? {
-				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
+				readonly stream: Stream.Stream<
+					NormalizePrismaValue<Row>,
+					PrismaError,
+					Requirement
+				>;
 				count(): RelationQuery<number, Requirement, Contract, Model>;
 				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
 			}
 		: Record<never, never>
 	: CollectionResult<Collection> extends ReadonlyArray<infer Row>
 		? {
-				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
+				readonly stream: Stream.Stream<
+					NormalizePrismaValue<Row>,
+					PrismaError,
+					Requirement
+				>;
 				count(): Effect.Effect<number, PrismaError, Requirement>;
 				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
 			}

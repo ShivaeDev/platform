@@ -2,6 +2,7 @@ import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
 import { Effect, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase, type PrismaError } from "../src/index.js";
+import type { NormalizePrismaValue } from "../src/internal/type-normalization.js";
 import { makeDatabaseIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -9,6 +10,8 @@ type User = {
 	id: string;
 	email: string;
 	name: string;
+	createdAt: Date;
+	verifiedAt: Date | null;
 };
 
 type Post = {
@@ -17,6 +20,10 @@ type Post = {
 	title: string;
 	userId: string;
 };
+
+type Varchar = string & { readonly __varcharLength: 64 };
+expectTypeOf<NormalizePrismaValue<Varchar>>().toEqualTypeOf<Varchar>();
+expectTypeOf<NormalizePrismaValue<Uint8Array>>().toEqualTypeOf<Uint8Array>();
 
 type ContractEmail =
 	ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];
@@ -76,6 +83,12 @@ const program = Effect.gen(function* () {
 		return user.email.eq("hello@example.com");
 	});
 	expectTypeOf(byCallback).not.toBeAny();
+	const byTimestamp = db.User.where({ createdAt: new Date() });
+	expectTypeOf<Effect.Success<typeof byTimestamp>>().toEqualTypeOf<
+		Array<User>
+	>();
+	db.User.where((user) => user.createdAt.gte(new Date()));
+	db.User.where({ verifiedAt: new Date() });
 
 	const deeplyComposed = db.User.where({ name: "Ada" })
 		.where((user) => user.email.eq("ada@example.com"))
@@ -152,7 +165,14 @@ const program = Effect.gen(function* () {
 		}>
 	>();
 	expectTypeOf<
-		Array<{ id: string; email: string; name: string; posts: Array<Post> }>
+		Array<{
+			createdAt: Date;
+			verifiedAt: Date | null;
+			id: string;
+			email: string;
+			name: string;
+			posts: Array<Post>;
+		}>
 	>().toMatchTypeOf<Effect.Success<typeof withPosts>>();
 
 	const postTitles = db.Post.select("title");
@@ -234,6 +254,16 @@ const program = Effect.gen(function* () {
 	expectTypeOf(create).not.toBeAny();
 	expectTypeOf<Effect.Success<typeof create>>().toEqualTypeOf<User>();
 	expectTypeOf<Effect.Error<typeof create>>().toEqualTypeOf<PrismaError>();
+	const createWithTimestamp = db.User.create({
+		id: crypto.randomUUID(),
+		email: "timestamped@example.com",
+		name: "Timestamped user",
+		createdAt: new Date(),
+		verifiedAt: new Date(),
+	});
+	expectTypeOf<
+		Effect.Success<typeof createWithTimestamp>
+	>().toEqualTypeOf<User>();
 
 	const createAll = db.User.createAll([
 		{
@@ -291,6 +321,10 @@ const program = Effect.gen(function* () {
 	db.User.where({ missing: true });
 	// @ts-expect-error Filter values retain their database field types.
 	db.User.where({ email: 123 });
+	// @ts-expect-error Timestamp filters use the Date values accepted by the runtime codec.
+	db.User.where({ createdAt: "2026-08-03T00:00:00.000Z" });
+	// @ts-expect-error Timestamp-with-time-zone filters also use Date values.
+	db.User.where({ verifiedAt: "2026-08-03T00:00:00.000Z" });
 	// @ts-expect-error Callback accessors retain their database field types.
 	db.User.where((user) => user.email.eq(123));
 	// @ts-expect-error Selections are constrained to actual model fields.
@@ -307,6 +341,13 @@ const program = Effect.gen(function* () {
 	db.Post.include("user", { item: db.User });
 	// @ts-expect-error Create input fields retain their database field types.
 	db.User.create({ id: 123, email: "wrong-id@example.com", name: "Wrong id" });
+	db.User.create({
+		id: crypto.randomUUID(),
+		email: "wrong-timestamp@example.com",
+		name: "Wrong timestamp",
+		// @ts-expect-error Timestamp writes use the Date values accepted by the runtime codec.
+		createdAt: "2026-08-03T00:00:00.000Z",
+	});
 	// @ts-expect-error Unsafe whole-collection updates are rejected by Prisma state typing.
 	db.User.update({ name: "Unsafe" });
 	// @ts-expect-error Cursors require an explicit stable ordering.
