@@ -2,11 +2,19 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-03
+
+### Added
+
+- Export database service and requirement types from the testing entrypoint for
+  higher-level test harnesses.
+
 ### Changed
 
 - Serialize queries sharing a transaction connection, and buffer
   transaction-scoped Streams before downstream processing. Queries and Streams
   outside transactions remain parallel and incremental.
+- Target Effect 4.0.0-beta.102 across the runtime and optional Vitest helpers.
 
 ## 0.2.0 - 2026-07-26
 

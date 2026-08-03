@@ -11,6 +11,8 @@ before 1.0.
   PostgreSQL queries and transactions for Prisma Next.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
+- [`@shivaedev/platform`](./packages/platform): Opinionated application test
+  setup combining the shared Prisma and tRPC integrations.
 
 ## Development
 

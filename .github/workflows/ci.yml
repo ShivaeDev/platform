@@ -61,6 +61,9 @@ jobs:
       - name: Check formatting and lint
         run: pnpm check
 
+      - name: Build packages
+        run: pnpm build
+
       - name: Type-check with TypeScript 7
         run: pnpm typecheck
 
@@ -69,9 +72,6 @@ jobs:
 
       - name: Test
         run: pnpm test
-
-      - name: Build packages
-        run: pnpm build
 
       - name: Test packed packages
         run: pnpm test:package

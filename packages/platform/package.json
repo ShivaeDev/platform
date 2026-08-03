@@ -1,15 +1,15 @@
 {
-	"name": "@shivaedev/effect-trpc",
-	"version": "0.2.0",
-	"description": "Effect-native procedures and testing for tRPC",
+	"name": "@shivaedev/platform",
+	"version": "0.1.0",
+	"description": "Opinionated Effect application testing for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
-		"directory": "packages/effect-trpc"
+		"directory": "packages/platform"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
 	},
@@ -24,12 +24,6 @@
 		"README.md"
 	],
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
-		},
 		"./testing": {
 			"types": "./dist/testing.d.ts",
 			"source": "./src/testing.ts",
@@ -53,16 +47,19 @@
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-prisma": "0.3.0",
+		"@shivaedev/effect-trpc": "0.2.0",
 		"@trpc/server": "catalog:",
 		"effect": "catalog:"
 	},
-	"peerDependenciesMeta": {
-		"@effect/vitest": {
-			"optional": true
-		}
-	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
+		"@prisma-next/adapter-postgres": "catalog:",
+		"@prisma-next/contract": "catalog:",
+		"@prisma-next/sql-contract": "catalog:",
+		"@prisma-next/target-postgres": "catalog:",
+		"@shivaedev/effect-prisma": "workspace:0.3.0",
+		"@shivaedev/effect-trpc": "workspace:0.2.0",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",

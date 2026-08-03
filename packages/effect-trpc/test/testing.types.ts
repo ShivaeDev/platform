@@ -1,8 +1,8 @@
 import { initTRPC } from "@trpc/server";
-import { Context, Layer, ManagedRuntime } from "effect";
+import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeEffectTRPC, makeRequestServices } from "../src/index.js";
-import { makeTrpcIt } from "../src/testing.js";
+import { makeTrpcHarnessIt, makeTrpcIt } from "../src/testing.js";
 
 class RuntimeService extends Context.Service<RuntimeService, number>()(
 	"@testing-types/RuntimeService",
@@ -44,4 +44,23 @@ it.effectTRPC("retains caller types", function* (trpc) {
 	yield* trpc.missing();
 	// @ts-expect-error Caller options preserve their application type.
 	yield* trpc({ actor: 1 }).read();
+});
+
+const harnessIt = makeTrpcHarnessIt({
+	adapter,
+	createCaller: (options = { actor: "default" }) =>
+		router.createCaller(options),
+	layer: Layer.succeed(RuntimeService, 2),
+	makeHarness: (trpc) =>
+		Effect.map(RuntimeService, (value) => ({ trpc, value })),
+});
+
+harnessIt.effectTRPC("retains custom harness types", function* (harness) {
+	expectTypeOf(harness).not.toBeAny();
+	expectTypeOf(harness.value).toEqualTypeOf<number>();
+	const result = yield* harness.trpc.read();
+	expectTypeOf(result).toEqualTypeOf<number>();
+
+	// @ts-expect-error Custom harnesses do not widen unknown properties.
+	harness.missing;
 });

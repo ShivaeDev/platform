@@ -15,7 +15,7 @@
 		"test:package": "pnpm --recursive --if-present test:package",
 		"typecheck": "pnpm --recursive --if-present typecheck",
 		"typecheck:compat": "pnpm --recursive --if-present typecheck:compat",
-		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
+		"ready": "pnpm check && pnpm build && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm test:package"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:"

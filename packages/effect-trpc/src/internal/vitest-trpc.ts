@@ -4,7 +4,9 @@ import * as TestClock from "effect/testing/TestClock";
 import * as TestConsole from "effect/testing/TestConsole";
 import { makeEffectCallerFactory } from "../testing/caller.js";
 import type {
-	TrpcTest,
+	TrpcHarnessTest,
+	TrpcHarnessTester,
+	TrpcHarnessTestRuntimeOptions,
 	TrpcTester,
 	TrpcTestRuntimeOptions,
 } from "../testing/types.js";
@@ -69,22 +71,24 @@ const runEffectTest = <A, E>(
 		{ signal: context.signal },
 	);
 
-export const makeTrpcTester = <
+export const makeTrpcHarnessTester = <
 	Options,
 	Caller extends object,
+	Harness,
 	Provided,
 	LayerError,
 >(
 	fixtureIt: FixtureTestApi<Provided>,
-	options: TrpcTestRuntimeOptions<Options, Caller, Provided, LayerError>,
-): TrpcTester<Options, Caller, Provided> => {
+	options: TrpcHarnessTestRuntimeOptions<
+		Options,
+		Caller,
+		Harness,
+		Provided,
+		LayerError
+	>,
+): TrpcHarnessTester<Harness, Provided> => {
 	const run = <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
-		body: (
-			trpc: ReturnType<
-				typeof makeEffectCallerFactory<Options, Caller, Provided>
-			>,
-			context: TestContext,
-		) => Generator<Eff, A, never>,
+		body: (harness: Harness, context: TestContext) => Generator<Eff, A, never>,
 		context: TestContext,
 	): Effect.Effect<A, unknown, Scope.Scope> => {
 		const program = Effect.gen(function* () {
@@ -94,7 +98,8 @@ export const makeTrpcTester = <
 				options.createCaller,
 				services,
 			);
-			return yield* Effect.gen(() => body(trpc, context));
+			const harness = yield* options.makeHarness(trpc, context);
+			return yield* Effect.gen(() => body(harness, context));
 		});
 		// The body constraint proves every yielded service is part of Provided.
 		// TypeScript cannot reduce that generic generator requirement here.
@@ -106,7 +111,7 @@ export const makeTrpcTester = <
 	};
 
 	const register =
-		(current: FixtureTestApi<Provided>): TrpcTest<Options, Caller, Provided> =>
+		(current: FixtureTestApi<Provided>): TrpcHarnessTest<Harness, Provided> =>
 		(name, body, testOptions) =>
 			current(
 				name,
@@ -138,7 +143,7 @@ export const makeTrpcTester = <
 
 	const make = (
 		current: FixtureTestApi<Provided>,
-	): TrpcTester<Options, Caller, Provided> => {
+	): TrpcHarnessTester<Harness, Provided> => {
 		const test = register(current);
 		return Object.assign(test, {
 			skip: register(current.skip),
@@ -151,9 +156,7 @@ export const makeTrpcTester = <
 					name: string,
 					body: (
 						item: Item,
-						trpc: ReturnType<
-							typeof makeEffectCallerFactory<Options, Caller, Provided>
-						>,
+						harness: Harness,
 						context: TestContext,
 					) => Generator<Eff, A, never>,
 					testOptions?: number | TestOptions,
@@ -187,7 +190,7 @@ export const makeTrpcTester = <
 							});
 							return runEffectTest(
 								run(
-									(trpc, testContext) => body(item, trpc, testContext),
+									(harness, testContext) => body(item, harness, testContext),
 									context,
 								),
 								context,
@@ -200,3 +203,17 @@ export const makeTrpcTester = <
 
 	return make(fixtureIt);
 };
+
+export const makeTrpcTester = <
+	Options,
+	Caller extends object,
+	Provided,
+	LayerError,
+>(
+	fixtureIt: FixtureTestApi<Provided>,
+	options: TrpcTestRuntimeOptions<Options, Caller, Provided, LayerError>,
+): TrpcTester<Options, Caller, Provided> =>
+	makeTrpcHarnessTester(fixtureIt, {
+		...options,
+		makeHarness: (trpc) => Effect.succeed(trpc),
+	}) as TrpcTester<Options, Caller, Provided>;

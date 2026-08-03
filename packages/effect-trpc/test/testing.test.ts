@@ -3,7 +3,7 @@ import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { afterAll } from "vitest";
 import { makeEffectTRPC, makeRequestServices } from "../src/index.js";
-import { makeTrpcIt } from "../src/testing.js";
+import { makeTrpcHarnessIt, makeTrpcIt } from "../src/testing.js";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()(
 	"@test/RuntimeValue",
@@ -56,6 +56,21 @@ const it = makeTrpcIt({
 	around: (effect) => Effect.withSpan(effect, "test.effect-trpc"),
 });
 
+const harnessIt = makeTrpcHarnessIt({
+	adapter,
+	createCaller: (options = { requestId: "default" }) =>
+		router.createCaller(options),
+	layer: Layer.succeed(RuntimeValue, "test-override"),
+	makeHarness: (trpc, context) =>
+		Effect.gen(function* () {
+			return {
+				contextName: context.task.name,
+				runtime: yield* RuntimeValue,
+				trpc,
+			};
+		}),
+});
+
 afterAll(() => runtime.dispose());
 
 it.effectTRPC(
@@ -97,5 +112,14 @@ it.effectTRPC.each(["first", "second"])(
 	function* (requestId, trpc) {
 		const result = yield* trpc({ requestId }).read("table");
 		expect(result.request).toBe(requestId);
+	},
+);
+
+harnessIt.effectTRPC(
+	"builds an Effectful application harness inside the test Layer",
+	function* (harness) {
+		expect(harness.contextName).toContain("Effectful application harness");
+		expect(harness.runtime).toBe("test-override");
+		expect((yield* harness.trpc.read("harness")).input).toBe("harness");
 	},
 );

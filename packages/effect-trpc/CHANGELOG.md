@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-08-03
+
+### Added
+
+- Build an application-defined Effectful test harness around a typed tRPC
+  caller while retaining worker-scoped Layers and standard Vitest variants.
+
 ## 0.1.1 - 2026-08-03
 
 ### Fixed

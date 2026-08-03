@@ -5,9 +5,15 @@ export {
 	makeEffectCallerFactory,
 } from "./testing/caller.js";
 export type {
+	CallerOptions,
+	CallerResult,
+	MakeTrpcHarnessItOptions,
 	MakeTrpcItOptions,
+	TrpcHarnessIt,
+	TrpcHarnessTest,
+	TrpcHarnessTester,
 	TrpcIt,
 	TrpcTest,
 	TrpcTester,
 } from "./testing/types.js";
-export { makeTrpcIt } from "./testing/vitest.js";
+export { makeTrpcHarnessIt, makeTrpcIt } from "./testing/vitest.js";
