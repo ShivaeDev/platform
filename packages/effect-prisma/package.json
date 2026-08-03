@@ -17,6 +17,9 @@
 		"node": ">=24"
 	},
 	"sideEffects": false,
+	"bin": {
+		"effect-prisma-normalize": "./dist/bin/normalize-contract.js"
+	},
 	"files": [
 		"dist",
 		"src",
