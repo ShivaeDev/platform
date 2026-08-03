@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-08-03
+
 ### Fixed
 
 - Expose PostgreSQL timestamp and timestamp-with-time-zone fields as `Date`,
