@@ -86,6 +86,18 @@ export interface DatabaseDefinition<
 	) => Layer.Layer<DatabaseIdentifier<Contract> | Requirement, PrismaError>;
 }
 
+export type AnyDatabase = Effect.Effect<unknown, never, unknown> & {
+	readonly layer: (...arguments_: ReadonlyArray<never>) => Layer.Any;
+};
+
+export type DatabaseRequirement<Database> =
+	Database extends DatabaseDefinition<AnyPostgresContract, infer Requirement>
+		? Requirement
+		: never;
+
+export type DatabaseServiceOf<Database extends AnyDatabase> =
+	Effect.Success<Database>;
+
 const defaultModels = <
 	Contract extends AnyPostgresContract,
 	Models extends object,

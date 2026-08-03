@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Export database definition helpers and Prisma Next boolean filter
+  combinators for higher-level integrations.
+
 ## 0.3.0 - 2026-08-03
 
 ### Added

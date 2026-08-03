@@ -1,6 +1,6 @@
 # `@shivaedev/effect-trpc`
 
-Effect-native query and mutation procedures for tRPC, with an optional Vitest
+Effect-native query, mutation, and subscription procedures for tRPC, with an optional Vitest
 harness for calling routers as Effects.
 
 This package currently targets exact early-access versions of Effect v4 and
@@ -55,9 +55,21 @@ uses the schema's encoded type at the caller and decoded type in the generator;
 output uses the schema's encoded type in the generator and decoded type at the
 caller.
 
-Build middleware, metadata, and other tRPC configuration on the ordinary tRPC
-procedure builder before passing it to `adapter.procedure`. This release wraps
-queries and mutations; subscriptions are not yet supported.
+Subscriptions return an Effect Stream. The request Layer remains open for the
+stream's lifetime, transport cancellation interrupts the stream, and scoped
+finalizers run when it ends:
+
+```ts
+const updates = procedure.subscription(function* () {
+  const movies = yield* Movies
+  return movies.updates
+})
+```
+
+`RequestSignal` exposes tRPC's transport signal when application code needs to
+combine it with another disconnect signal. Build middleware, metadata, and
+other tRPC configuration on the ordinary tRPC procedure builder before passing
+it to `adapter.procedure`.
 
 ## Request services
 
@@ -96,9 +108,9 @@ const adapter = makeEffectTRPC({
 })
 ```
 
-Each procedure runs in a span named after its tRPC path. `instrument` can add
-application-specific Effect logging, metrics, or tracing without changing
-procedure definitions.
+Each procedure runs in a span named after its tRPC path. `instrument` and
+`instrumentStream` can add application-specific Effect logging, metrics, or
+tracing without changing procedure definitions.
 
 ## Vitest
 

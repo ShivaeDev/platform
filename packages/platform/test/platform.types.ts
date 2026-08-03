@@ -1,12 +1,15 @@
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import type { BetterAuthOptions } from "better-auth";
+import { Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
 import {
 	type Contract,
 	contractJson,
 } from "../../effect-prisma/test/contract.js";
+import { effectPrismaAdapter } from "../src/better-auth.js";
+import { makePlatformRuntime } from "../src/runtime.js";
 import { makePlatformIt } from "../src/testing.js";
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
@@ -15,7 +18,11 @@ const Database = makeDatabase<Contract>("@types/PlatformDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({ url: "postgresql://compile-only" });
-const runtime = ManagedRuntime.make(DatabaseLive);
+const runtime = makePlatformRuntime(DatabaseLive);
+const authDatabase = effectPrismaAdapter(
+	Database,
+	runtime,
+)({} as BetterAuthOptions);
 const adapter = makeEffectTRPC({ runtime });
 const t = initTRPC.context<{ readonly actor: string }>().create();
 const procedure = adapter.procedure(
@@ -45,11 +52,18 @@ it.effectApp(
 		expectTypeOf(app).not.toBeAny();
 		expectTypeOf(app.db).not.toBeAny();
 		expectTypeOf(app.trpc).not.toBeAny();
+		expectTypeOf(app.promise).not.toBeAny();
 		expectTypeOf(app.fixtureName).toEqualTypeOf<"typed">();
 
 		const count = yield* app.trpc.userCount();
 		expectTypeOf(count).toEqualTypeOf<number>();
 		expectTypeOf(count).not.toBeAny();
+		const promised = yield* app.promise(() =>
+			Promise.resolve("typed" as const),
+		);
+		expectTypeOf(promised).toEqualTypeOf<"typed">();
+		expectTypeOf(authDatabase).not.toBeAny();
+		expectTypeOf(runtime.runPromise(Database)).not.toBeAny();
 
 		const users = yield* app.db.User.where({ name: "Ada" });
 		expectTypeOf(users).not.toBeAny();

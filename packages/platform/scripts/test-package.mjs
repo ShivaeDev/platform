@@ -37,10 +37,16 @@ try {
 		.trim()
 		.split("\n");
 	for (const required of [
+		"package/dist/better-auth.js",
+		"package/dist/better-auth.d.ts",
+		"package/dist/runtime.js",
+		"package/dist/runtime.d.ts",
 		"package/dist/testing.js",
 		"package/dist/testing.d.ts",
 		"package/dist/testing.d.ts.map",
 		"package/src/testing.ts",
+		"package/src/better-auth.ts",
+		"package/src/runtime.ts",
 		"package/CHANGELOG.md",
 		"package/README.md",
 	]) {
@@ -77,6 +83,7 @@ try {
 					"@shivaedev/platform": `file:${tarballs.platform}`,
 					"@trpc/server": manifest.devDependencies["@trpc/server"],
 					"@types/node": manifest.devDependencies["@types/node"],
+					"better-auth": manifest.devDependencies["better-auth"],
 					effect: manifest.devDependencies.effect,
 					vitest: manifest.devDependencies.vitest,
 				},
@@ -137,22 +144,30 @@ try {
 		join(temporaryDirectory, "index.ts"),
 		`import { makeDatabase } from "@shivaedev/effect-prisma"
 import { initTRPC } from "@trpc/server"
-import { Effect, Layer, ManagedRuntime } from "effect"
+import type { BetterAuthOptions } from "better-auth"
+import { Effect, Layer, Stream } from "effect"
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc"
+import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime"
 import { makePlatformIt } from "@shivaedev/platform/testing"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
 
 const Database = makeDatabase<Contract>("@consumer/Database", { contractJson })
 const DatabaseLive = Database.layer({ url: "postgresql://compile-only" })
-const runtime = ManagedRuntime.make(DatabaseLive)
+const runtime = makePlatformRuntime(DatabaseLive)
 const adapter = makeEffectTRPC({ runtime })
+const authDatabase = effectPrismaAdapter(Database, runtime)({} as BetterAuthOptions)
 const t = initTRPC.context<{ readonly actor: string }>().create()
 const procedure = adapter.procedure(t.procedure, makeRequestServices(() => Layer.empty))
 const router = t.router({
   count: procedure.query(function* () {
     const db = yield* Database
     return yield* db.User.count()
+  }),
+  counts: procedure.subscription(function* () {
+    const db = yield* Database
+    return Stream.fromEffect(db.User.count())
   }),
 })
 
@@ -165,7 +180,7 @@ const it = makePlatformIt(Database)({
 
 type IsAny<Value> = 0 extends (1 & Value) ? true : false
 
-it.effectApp("retains packed harness types", function* ({ db, fixture, trpc }) {
+it.effectApp("retains packed harness types", function* ({ db, fixture, promise, trpc }) {
 	const databaseIsAny: IsAny<typeof db> = false
 	const fixtureIsAny: IsAny<typeof fixture> = false
 	const count: number = yield* trpc.count()
@@ -175,6 +190,7 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, trpc }) {
 	void databaseIsAny
 	void fixtureIsAny
 	void count
+	void promise(() => authDatabase.count({ model: "user" }))
 
   // @ts-expect-error Unknown procedures remain rejected through the packed package.
   yield* trpc.missing()

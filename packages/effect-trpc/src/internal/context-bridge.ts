@@ -9,7 +9,20 @@ export interface ContextBridge {
 	) => Value;
 }
 
-export const makeContextBridge = (): ContextBridge => {
+export const makeContextBridge = (shared?: {
+	readonly currentServices?: ContextBridge["current"];
+	readonly runWithServices?: ContextBridge["run"];
+}): ContextBridge => {
+	if (
+		shared?.currentServices !== undefined &&
+		shared.runWithServices !== undefined
+	) {
+		return {
+			current: shared.currentServices,
+			run: shared.runWithServices,
+		};
+	}
+
 	const storage = new AsyncLocalStorage<Context.Context<never>>();
 
 	return {

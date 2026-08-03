@@ -107,7 +107,7 @@ try {
 	await writeFile(
 		join(temporaryDirectory, "index.ts"),
 		`import { initTRPC } from "@trpc/server"
-import { Context, Layer, ManagedRuntime, Schema } from "effect"
+import { Context, Layer, ManagedRuntime, Schema, Stream } from "effect"
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc"
 import { makeTrpcIt } from "@shivaedev/effect-trpc/testing"
 
@@ -126,6 +126,10 @@ const requestServices = makeRequestServices((context: RequestContext) =>
 )
 const procedure = adapter.procedure(t.procedure, requestServices)
 const router = t.router({
+	streamed: procedure.subscription(function* () {
+		const runtimeValue = yield* RuntimeValue
+		return Stream.make(runtimeValue)
+	}),
   transformed: procedure
     .input(Schema.Struct({ value: Schema.NumberFromString }))
     .output(Schema.NumberFromString)
@@ -138,7 +142,9 @@ const router = t.router({
 
 const caller = router.createCaller({ requestId: "typed" })
 const result: Promise<number> = caller.transformed({ value: "2" })
+const streamed: Promise<AsyncIterable<number>> = caller.streamed(undefined)
 void result
+void streamed
 
 const it = makeTrpcIt({
   adapter,

@@ -69,6 +69,7 @@ export const makePlatformIt =
 				context,
 			): Effect.Effect<Harness, unknown, Services> =>
 				Effect.gen(function* () {
+					const services = yield* Effect.context<Services>();
 					const databaseEffect = database as unknown as Effect.Effect<
 						DatabaseService<Database>,
 						never,
@@ -78,7 +79,11 @@ export const makePlatformIt =
 					const extension = options.extend
 						? yield* options.extend({ db, trpc }, context)
 						: ({} as Extension);
-					return { ...extension, db, trpc } as Harness;
+					const promise = <Value>(evaluate: () => Promise<Value>) =>
+						Effect.tryPromise(() =>
+							options.adapter.runWithServices(services, evaluate),
+						);
+					return { ...extension, db, promise, trpc } as Harness;
 				}) as Effect.Effect<Harness, unknown, Services>,
 		});
 

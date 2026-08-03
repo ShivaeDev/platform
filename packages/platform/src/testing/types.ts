@@ -23,7 +23,12 @@ export type PlatformHarness<
 	db: DatabaseService<Database>;
 	trpc: EffectCallerFactory<Options, Caller>;
 }> &
-	Omit<Extension, "db" | "trpc">;
+	Readonly<{
+		promise: <Value>(
+			evaluate: () => Promise<Value>,
+		) => Effect.Effect<Value, unknown>;
+	}> &
+	Omit<Extension, "db" | "promise" | "trpc">;
 
 export type PlatformTest<Harness, Provided> = TrpcHarnessTest<
 	Harness,
