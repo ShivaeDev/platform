@@ -9,6 +9,8 @@ before 1.0.
 
 - [`@shivaedev/effect-prisma`](./packages/effect-prisma): Effect-native
   PostgreSQL queries and transactions for Prisma Next.
+- [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
+  procedures and testing.
 
 ## Development
 
