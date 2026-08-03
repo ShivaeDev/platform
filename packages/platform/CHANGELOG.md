@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-08-03
+
 ### Added
 
 - Add a shared application runtime that carries Effect services across tRPC,

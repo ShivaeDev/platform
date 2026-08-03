@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-03
+
 ### Added
 
 - Add Effect Stream subscriptions with request-scoped Layers, transport

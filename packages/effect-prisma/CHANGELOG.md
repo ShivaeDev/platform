@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-08-03
+
 ### Added
 
 - Export database definition helpers and Prisma Next boolean filter
