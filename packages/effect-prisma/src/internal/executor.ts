@@ -1,7 +1,7 @@
 import type { Contract as PrismaContract } from "@prisma-next/contract/types";
 import type { PostgresClient } from "@prisma-next/postgres/runtime";
 import type { SqlStorage } from "@prisma-next/sql-contract/types";
-import type { Context } from "effect";
+import type { Context, Semaphore } from "effect";
 
 export type AnyPostgresContract = PrismaContract<SqlStorage>;
 
@@ -11,6 +11,7 @@ export interface DatabaseExecutor<
 > {
 	readonly client: PostgresClient<Contract>;
 	readonly models: Models;
+	readonly querySemaphore: Semaphore.Semaphore | undefined;
 	readonly transactional: boolean;
 }
 

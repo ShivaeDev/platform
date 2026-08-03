@@ -93,6 +93,7 @@ const executor: DatabaseExecutor<Models> = {
 	models: {
 		User: new FakeCollection(rows),
 	},
+	querySemaphore: undefined,
 	transactional: false,
 };
 

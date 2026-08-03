@@ -1,6 +1,6 @@
 import type { Context } from "effect";
-import { Effect, Effectable, Option, Stream } from "effect";
-import { isPrismaFailure, type PrismaError, toPrismaError } from "../error.js";
+import { Effect, Effectable, Option, type Stream } from "effect";
+import type { PrismaError } from "../error.js";
 import type { Relation } from "../relation.js";
 import type {
 	AnyPostgresContract,
@@ -8,6 +8,7 @@ import type {
 	ExecutorIdentifier,
 } from "./executor.js";
 import { fromPrismaPromise } from "./promise.js";
+import { executeQuery } from "./query-execution.js";
 import {
 	appendOperation,
 	type RelationRecipe,
@@ -15,6 +16,7 @@ import {
 	rootRecipe,
 } from "./recipe.js";
 import { RelationPlanTypeId } from "./relation-plan.js";
+import { makeRelationStream } from "./relation-stream.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
 
@@ -111,10 +113,13 @@ const relationEffect = <
 	self: RelationValue<Models, Contract>,
 ): Effect.Effect<unknown, PrismaError, ExecutorIdentifier<Models>> =>
 	Effect.flatMap(self.runtime.executor, (executor) =>
-		Effect.suspend(() =>
-			evaluateResult(
-				replayRecipe(executor.models, self.runtime.recipe),
-				self.runtime.terminal,
+		executeQuery(
+			executor,
+			Effect.suspend(() =>
+				evaluateResult(
+					replayRecipe(executor.models, self.runtime.recipe),
+					self.runtime.terminal,
+				),
 			),
 		),
 	).pipe(
@@ -131,41 +136,6 @@ const relationEffect = <
 		),
 	);
 
-const relationStream = <
-	Models extends object,
-	Contract extends AnyPostgresContract,
->(
-	self: RelationValue<Models, Contract>,
-): Stream.Stream<unknown, PrismaError, ExecutorIdentifier<Models>> => {
-	const result = Effect.map(self.runtime.executor, (executor) => {
-		const collection = replayRecipe(executor.models, self.runtime.recipe);
-		if (
-			typeof collection !== "object" ||
-			collection === null ||
-			typeof Reflect.get(collection, "all") !== "function"
-		) {
-			throw new TypeError("Only collection Relations can be streamed");
-		}
-		return Reflect.apply(
-			Reflect.get(collection, "all") as AnyFunction,
-			collection,
-			[],
-		) as AsyncIterable<unknown>;
-	});
-
-	return Stream.unwrap(
-		Effect.map(result, (iterable) =>
-			Stream.fromAsyncIterable(iterable, (error) => error).pipe(
-				Stream.catch((error) =>
-					isPrismaFailure(error)
-						? Stream.fail(toPrismaError(error))
-						: Stream.die(error),
-				),
-			),
-		),
-	);
-};
-
 const RelationPrototype = {
 	...Effectable.Prototype<
 		RelationValue<Record<string, unknown>, AnyPostgresContract>
@@ -180,8 +150,13 @@ const RelationPrototype = {
 		PrismaError,
 		ExecutorIdentifier<Record<string, unknown>>
 	> {
-		return relationStream(
-			this as RelationValue<Record<string, unknown>, AnyPostgresContract>,
+		const relation = this as RelationValue<
+			Record<string, unknown>,
+			AnyPostgresContract
+		>;
+		return makeRelationStream(
+			relation.runtime.executor,
+			relation.runtime.recipe,
 		);
 	},
 };

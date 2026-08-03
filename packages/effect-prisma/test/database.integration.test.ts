@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest";
-import { Cause, Deferred, Effect, Exit, Fiber, Option } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
 import { expect } from "vitest";
 import { makeDatabase } from "../src/index.js";
 import { withTestTransaction } from "../src/testing.js";
@@ -93,6 +93,61 @@ integrationEffect("reuses the active transaction for nested boundaries", () =>
 			expect(yield* relation.exists()).toBe(true);
 		}),
 	),
+);
+
+integrationEffect("serializes concurrent queries inside a transaction", () =>
+	withDatabase(
+		withTestTransaction(
+			Database,
+			Effect.gen(function* () {
+				const db = yield* Database;
+				const marker = crypto.randomUUID();
+				const users = ["one", "two", "three"].map((suffix) => ({
+					id: crypto.randomUUID(),
+					email: `${marker}-${suffix}@example.test`,
+					name: marker,
+				}));
+
+				yield* Effect.all(
+					users.map((user) => db.User.create(user)),
+					{ concurrency: "unbounded" },
+				);
+
+				expect(yield* db.User.where({ name: marker }).count()).toBe(3);
+			}),
+		),
+	),
+);
+
+integrationEffect(
+	"buffers transaction streams before downstream database effects",
+	() =>
+		withDatabase(
+			withTestTransaction(
+				Database,
+				Effect.gen(function* () {
+					const db = yield* Database;
+					const marker = crypto.randomUUID();
+					yield* db.User.createAll(
+						["one", "two", "three"].map((suffix) => ({
+							id: crypto.randomUUID(),
+							email: `${marker}-${suffix}@example.test`,
+							name: marker,
+						})),
+					);
+
+					const exists = yield* Stream.runCollect(
+						db.User.where({ name: marker }).stream.pipe(
+							Stream.mapEffect((user) =>
+								db.User.where({ id: user.id }).exists(),
+							),
+						),
+					);
+
+					expect(exists).toEqual([true, true, true]);
+				}),
+			),
+		),
 );
 
 integrationEffect(

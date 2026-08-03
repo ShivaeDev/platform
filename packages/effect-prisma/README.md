@@ -115,6 +115,15 @@ yield* db.transaction(
 Nested package transactions reuse the active transaction. Successful programs
 commit; failure, defect, and interruption roll back.
 
+Queries composed concurrently inside a transaction are executed one at a time
+on its single connection. Once a transaction query starts, interruption waits
+for it to settle before releasing that connection. Query effects outside
+transactions remain parallel.
+
+Transaction-scoped Streams are read into memory before emitting rows. This
+releases the connection before downstream Stream effects run database queries.
+Streams outside transactions retain incremental fetching.
+
 ## Vitest
 
 Install `@effect/vitest` to use the optional testing entrypoint:
