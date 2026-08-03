@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-08-03
+
+### Fixed
+
+- Require Effect Prisma 0.4.1 so PostgreSQL timestamp fields use their runtime
+  `Date` types throughout the shared application setup.
+
 ## 0.2.0 - 2026-08-03
 
 ### Added
