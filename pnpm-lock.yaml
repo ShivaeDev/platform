@@ -10,8 +10,8 @@ catalogs:
       specifier: 2.5.1
       version: 2.5.1
     '@effect/vitest':
-      specifier: 4.0.0-beta.99
-      version: 4.0.0-beta.99
+      specifier: 4.0.0-beta.102
+      version: 4.0.0-beta.102
     '@prisma-next/adapter-postgres':
       specifier: 0.15.0
       version: 0.15.0
@@ -39,6 +39,9 @@ catalogs:
     '@prisma-next/target-postgres':
       specifier: 0.15.0
       version: 0.15.0
+    '@trpc/server':
+      specifier: 11.18.0
+      version: 11.18.0
     '@types/node':
       specifier: 24.10.1
       version: 24.10.1
@@ -49,8 +52,8 @@ catalogs:
       specifier: npm:typescript@7.0.2
       version: 7.0.2
     effect:
-      specifier: 4.0.0-beta.99
-      version: 4.0.0-beta.99
+      specifier: 4.0.0-beta.102
+      version: 4.0.0-beta.102
     typescript:
       specifier: npm:@typescript/typescript6@6.0.2
       version: 6.0.2
@@ -89,7 +92,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.0-beta.99(effect@4.0.0-beta.99)(vitest@4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+        version: 4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
       '@prisma-next/adapter-postgres':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
@@ -110,7 +113,31 @@ importers:
         version: typescript@7.0.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.99
+        version: 4.0.0-beta.102
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/effect-trpc:
+    devDependencies:
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@trpc/server':
+        specifier: 'catalog:'
+        version: 11.18.0(@typescript/typescript6@6.0.2)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.10.1
+      '@typescript/native':
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.102
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -191,10 +218,10 @@ packages:
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
 
-  '@effect/vitest@4.0.0-beta.99':
-    resolution: {integrity: sha512-SiZo3UGTsG2itbqLU1SJVmFraK+0AkrEU7ZLRpQALx3lFRBaohzB/7UQKVsRjCHHjDg0kNkGitZusGRN3mVAhg==}
+  '@effect/vitest@4.0.0-beta.102':
+    resolution: {integrity: sha512-4dipFAYG6imOzrY3zy3BgzCJkbb9xESyzUef0WSx8bsK0/SpITqbJpdwKeOyDWLZ+rimjua8IbTFMAde865pIQ==}
     peerDependencies:
-      effect: ^4.0.0-beta.99
+      effect: ^4.0.0-beta.102
       vitest: ^3.0.0 || ^4.0.0
 
   '@emnapi/core@1.11.1':
@@ -807,6 +834,12 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
+  '@trpc/server@11.18.0':
+    resolution: {integrity: sha512-JAvXOuNTxgXjIDfQaOvDq1j66LMNfDJUH1IU7Slfn8EvRv2EkH6ehu3A7zpYhjO0syHHiYg77v2lG2JFJgvw7Q==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.7.2'
+
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
 
@@ -1055,8 +1088,8 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  effect@4.0.0-beta.99:
-    resolution: {integrity: sha512-hP1C61uzINfLl/4kKMwcqksxd34s4sQ3VSjsWjhGrkx9CRlXaqnfOK9dpTEKynQ6rA7wU9rb3c+48eDYw7uzxA==}
+  effect@4.0.0-beta.102:
+    resolution: {integrity: sha512-z8Y+Q76Hh/kjLFZrXu8tGn6e+tDsg45R+UHhxd190pXxD53OGwf/G/zDxXTkse4HJ5mobNZfitLfUCp4fMvu6w==}
 
   es-module-lexer@2.3.1:
     resolution: {integrity: sha512-shc1dbU90Yl/xq1QrC7QRtfcwURZuVRfPhZbDoldJ1cn1gzDvBaBWlv0eFolj5+0znnPJz5TXLxsN77X/12KTA==}
@@ -1580,9 +1613,9 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@effect/vitest@4.0.0-beta.99(effect@4.0.0-beta.99)(vitest@4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))':
+  '@effect/vitest@4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))':
     dependencies:
-      effect: 4.0.0-beta.99
+      effect: 4.0.0-beta.102
       vitest: 4.1.9(@types/node@24.10.1)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   '@emnapi/core@1.11.1':
@@ -2174,6 +2207,10 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@trpc/server@11.18.0(@typescript/typescript6@6.0.2)':
+    dependencies:
+      typescript: '@typescript/typescript6@6.0.2'
+
   '@tybys/wasm-util@0.10.3':
     dependencies:
       tslib: 2.8.1
@@ -2366,7 +2403,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  effect@4.0.0-beta.99:
+  effect@4.0.0-beta.102:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.9.0
