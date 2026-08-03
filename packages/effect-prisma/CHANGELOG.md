@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-08-03
+
 ### Fixed
 
 - Provide a contract-normalization command that corrects Prisma Next's
