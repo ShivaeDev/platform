@@ -140,3 +140,8 @@ The test Layer is built once per worker. Its services override matching
 application runtime services while all other runtime services remain available.
 Use `around` to add application-wide test behavior such as a rollback wrapper.
 `effectTRPC` supports `skip`, `skipIf`, `runIf`, `only`, `each`, and `fails`.
+
+`makeTrpcHarnessIt` builds an application-defined Effectful harness around the
+caller when tests need additional services or fixtures. The harness is created
+inside both the test Layer and the `around` wrapper, so setup participates in
+the same scoped lifecycle as the test body.

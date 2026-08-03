@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"resolveJsonModule": true,
+		"strict": true,
+		"stableTypeOrdering": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"types": ["node"],
+		"verbatimModuleSyntax": true
+	},
+	"include": ["src", "test"]
+}
