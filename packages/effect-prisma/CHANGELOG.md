@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- Serialize queries sharing a transaction connection, and buffer
+  transaction-scoped Streams before downstream processing. Queries and Streams
+  outside transactions remain parallel and incremental.
+
 ## 0.2.0 - 2026-07-26
 
 ### Added

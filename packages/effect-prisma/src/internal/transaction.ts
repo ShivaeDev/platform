@@ -4,7 +4,7 @@ import type {
 	RuntimeConnection,
 	RuntimeTransaction,
 } from "@prisma-next/sql-runtime";
-import { Effect, Exit } from "effect";
+import { Effect, Exit, Semaphore } from "effect";
 import type { PrismaError } from "../error.js";
 import type { AnyPostgresContract, DatabaseExecutor } from "./executor.js";
 import { fromPrismaPromise } from "./promise.js";
@@ -48,6 +48,7 @@ export const acquireTransaction = <
 				executor: {
 					client: current.client,
 					models: models(transactionOrm),
+					querySemaphore: Semaphore.makeUnsafe(1),
 					transactional: true,
 				},
 			};

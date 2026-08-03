@@ -210,6 +210,7 @@ export const makeDatabase = <const Contract extends AnyPostgresContract>(
 					acquireConnectedClient(client, () => ({
 						client,
 						models: defaultModels<Contract, Models>(client),
+						querySemaphore: undefined,
 						transactional: false,
 					})),
 				);
