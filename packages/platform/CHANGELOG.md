@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-08-03
+
+### Fixed
+
+- Require Effect Prisma 0.4.3 so generated timestamp codec references normalize
+  to `Date`.
+
 ## 0.2.2 - 2026-08-03
 
 ### Fixed
