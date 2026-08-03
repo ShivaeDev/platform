@@ -2,7 +2,6 @@ import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
 import { Effect, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase, type PrismaError } from "../src/index.js";
-import type { NormalizePrismaValue } from "../src/internal/type-normalization.js";
 import { makeDatabaseIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -20,10 +19,6 @@ type Post = {
 	title: string;
 	userId: string;
 };
-
-type Varchar = string & { readonly __varcharLength: 64 };
-expectTypeOf<NormalizePrismaValue<Varchar>>().toEqualTypeOf<Varchar>();
-expectTypeOf<NormalizePrismaValue<Uint8Array>>().toEqualTypeOf<Uint8Array>();
 
 type ContractEmail =
 	ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];

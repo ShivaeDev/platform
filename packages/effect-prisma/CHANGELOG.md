@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-08-03
+
+### Fixed
+
+- Provide a contract-normalization command that corrects Prisma Next's
+  PostgreSQL timestamp declarations without recursively expanding large client
+  types.
+
 ## 0.4.1 - 2026-08-03
 
 ### Fixed

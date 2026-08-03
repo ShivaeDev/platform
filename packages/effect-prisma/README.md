@@ -15,6 +15,16 @@ pnpm add @shivaedev/effect-prisma effect
 Generate a Prisma Next contract in the application, then create its database
 service:
 
+```sh
+prisma-next contract emit
+effect-prisma-normalize path/to/generated/contract.d.ts
+```
+
+The normalization step is idempotent and currently required because Prisma
+Next's generated PostgreSQL timestamp output declarations do not match its
+runtime `Date` codecs. It fails when Prisma emits an unfamiliar timestamp shape
+instead of silently producing weakened types.
+
 ```ts
 import { makeDatabase } from "@shivaedev/effect-prisma"
 import { contractJson, type Contract } from "./generated/contract.js"
@@ -96,9 +106,8 @@ create/update/delete terminals. Model variants are deliberately deferred rather
 than exposed with weakened types.
 
 PostgreSQL timestamp and timestamp-with-time-zone fields use JavaScript `Date`
-values for reads, writes, filters, selections, includes, and Streams. The facade
-normalizes Prisma Next's current branded-string contract declarations to the
-`Date` values its runtime codecs actually accept and return.
+values for reads, writes, filters, selections, includes, and Streams after the
+generated contract is normalized.
 
 ## Transactions
 

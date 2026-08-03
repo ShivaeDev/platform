@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.4.1",
+	"version": "0.4.2",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"type": "module",
 	"license": "MIT",
@@ -17,6 +17,9 @@
 		"node": ">=24"
 	},
 	"sideEffects": false,
+	"bin": {
+		"effect-prisma-normalize": "./dist/bin/normalize-contract.js"
+	},
 	"files": [
 		"dist",
 		"src",

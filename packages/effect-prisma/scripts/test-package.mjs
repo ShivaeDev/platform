@@ -23,6 +23,7 @@ try {
 
 	const contents = execute("tar", ["-tzf", tarball]).trim().split("\n");
 	for (const required of [
+		"package/dist/bin/normalize-contract.js",
 		"package/dist/index.js",
 		"package/dist/index.d.ts",
 		"package/dist/index.d.ts.map",
@@ -30,6 +31,7 @@ try {
 		"package/dist/testing.d.ts",
 		"package/dist/testing.d.ts.map",
 		"package/src/index.ts",
+		"package/src/bin/normalize-contract.ts",
 		"package/src/testing.ts",
 		"package/CHANGELOG.md",
 		"package/README.md",
@@ -159,6 +161,21 @@ void program
 		"--store-dir",
 		join(repositoryRoot, ".pnpm-store"),
 	]);
+	const rawContract = join(temporaryDirectory, "raw-contract.d.ts");
+	await writeFile(
+		rawContract,
+		"export type Row = { readonly createdAt: Timestamp<6> };\n",
+	);
+	execute(
+		join(temporaryDirectory, "node_modules/.bin/effect-prisma-normalize"),
+		[rawContract],
+	);
+	if (
+		(await readFile(rawContract, "utf8")) !==
+		"export type Row = { readonly createdAt: Date };\n"
+	) {
+		throw new Error("Packed contract normalizer did not replace Timestamp");
+	}
 	execute(join(packageRoot, "node_modules/.bin/tsc"), [
 		"--project",
 		"tsconfig.json",

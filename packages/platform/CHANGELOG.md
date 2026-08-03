@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-08-03
+
+### Fixed
+
+- Require Effect Prisma 0.4.2 so applications can normalize generated
+  timestamp declarations without recursively expanding client types.
+
 ## 0.2.1 - 2026-08-03
 
 ### Fixed

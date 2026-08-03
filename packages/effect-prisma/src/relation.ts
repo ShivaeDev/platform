@@ -1,9 +1,5 @@
 import type { Effect } from "effect";
 import type { PrismaError } from "./error.js";
-import type {
-	NormalizePrismaArguments,
-	NormalizePrismaValue,
-} from "./internal/type-normalization.js";
 import type { PrismaRelationMethods } from "./relation/prisma-methods.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
@@ -11,7 +7,7 @@ type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
 export type CollectionResult<Collection> = Collection extends {
 	all(): infer Result;
 }
-	? NormalizePrismaValue<Awaited<Result>>
+	? Awaited<Result>
 	: never;
 
 type NormalizeTerminal<Name, Result> = Name extends "first"
@@ -21,7 +17,7 @@ type NormalizeTerminal<Name, Result> = Name extends "first"
 type WrapReturn<Name, Result, Requirement, Contract, Model extends string> =
 	Result extends PromiseLike<infer Value>
 		? Effect.Effect<
-				NormalizeTerminal<Name, NormalizePrismaValue<Awaited<Value>>>,
+				NormalizeTerminal<Name, Awaited<Value>>,
 				PrismaError,
 				Requirement
 			>
@@ -44,22 +40,22 @@ type WrapFunction<
 	(...arguments_: infer Arguments6): infer Result6;
 }
 	? ((
-			...arguments_: NormalizePrismaArguments<Arguments1>
+			...arguments_: Arguments1
 		) => WrapReturn<Name, Result1, Requirement, Contract, Model>) &
 			((
-				...arguments_: NormalizePrismaArguments<Arguments2>
+				...arguments_: Arguments2
 			) => WrapReturn<Name, Result2, Requirement, Contract, Model>) &
 			((
-				...arguments_: NormalizePrismaArguments<Arguments3>
+				...arguments_: Arguments3
 			) => WrapReturn<Name, Result3, Requirement, Contract, Model>) &
 			((
-				...arguments_: NormalizePrismaArguments<Arguments4>
+				...arguments_: Arguments4
 			) => WrapReturn<Name, Result4, Requirement, Contract, Model>) &
 			((
-				...arguments_: NormalizePrismaArguments<Arguments5>
+				...arguments_: Arguments5
 			) => WrapReturn<Name, Result5, Requirement, Contract, Model>) &
 			((
-				...arguments_: NormalizePrismaArguments<Arguments6>
+				...arguments_: Arguments6
 			) => WrapReturn<Name, Result6, Requirement, Contract, Model>)
 	: never;
 

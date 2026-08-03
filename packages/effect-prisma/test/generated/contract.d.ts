@@ -54,8 +54,8 @@ export type FieldOutputTypes = {
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
-      readonly createdAt: Timestamp<6>;
-      readonly verifiedAt: Timestamptz<6> | null;
+      readonly createdAt: Date;
+      readonly verifiedAt: Date | null;
     };
   };
 };
@@ -85,11 +85,11 @@ export type StorageColumnTypes = {
       readonly user_id: CodecTypes['pg/uuid@1']['output'];
     };
     readonly user: {
-      readonly created_at: Timestamp<6>;
+      readonly created_at: Date;
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
-      readonly verified_at: Timestamptz<6> | null;
+      readonly verified_at: Date | null;
     };
   };
 };
