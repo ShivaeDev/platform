@@ -23,6 +23,32 @@ The optional cache key keeps one runtime across development module reloads.
 The runtime also carries transaction- and request-scoped service overrides
 across promise boundaries.
 
+## Node HTTP
+
+Long-lived responses under Bun's `node:http` compatibility layer may not abort
+their Web request signal when the underlying socket disappears. Combine the
+available Web, procedure, request, and socket signals at the subscription
+boundary:
+
+```ts
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+
+const subscription = nodeSubscriptionSignal({
+  request,
+  nodeRequest,
+  signals: [procedureSignal],
+})
+
+try {
+  await consume(subscription.signal)
+} finally {
+  subscription.dispose()
+}
+```
+
+The node request may be supplied directly or carried by an srvx Web request.
+Applications still own subscription limits, event buses, and transport policy.
+
 ## Better Auth
 
 `effectPrismaAdapter` stores Better Auth data through the application's Effect

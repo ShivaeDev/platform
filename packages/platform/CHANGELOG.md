@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-03
+
+### Added
+
+- Add a Node/Bun subscription signal that combines Web and procedure aborts
+  with request and socket close events for reliable long-lived response cleanup.
+
 ## 0.2.3 - 2026-08-03
 
 ### Fixed

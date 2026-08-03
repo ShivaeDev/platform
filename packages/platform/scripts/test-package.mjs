@@ -41,12 +41,15 @@ try {
 		"package/dist/better-auth.d.ts",
 		"package/dist/runtime.js",
 		"package/dist/runtime.d.ts",
+		"package/dist/node-http.js",
+		"package/dist/node-http.d.ts",
 		"package/dist/testing.js",
 		"package/dist/testing.d.ts",
 		"package/dist/testing.d.ts.map",
 		"package/src/testing.ts",
 		"package/src/better-auth.ts",
 		"package/src/runtime.ts",
+		"package/src/node-http.ts",
 		"package/CHANGELOG.md",
 		"package/README.md",
 	]) {
@@ -149,6 +152,7 @@ import { Effect, Layer, Stream } from "effect"
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc"
 import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
 import { makePlatformIt } from "@shivaedev/platform/testing"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
@@ -156,6 +160,8 @@ import contractJson from "./contract.json" with { type: "json" }
 const Database = makeDatabase<Contract>("@consumer/Database", { contractJson })
 const DatabaseLive = Database.layer({ url: "postgresql://compile-only" })
 const runtime = makePlatformRuntime(DatabaseLive)
+const disconnect = nodeSubscriptionSignal({ signals: [new AbortController().signal] })
+disconnect.dispose()
 const adapter = makeEffectTRPC({ runtime })
 const authDatabase = effectPrismaAdapter(Database, runtime)({} as BetterAuthOptions)
 const t = initTRPC.context<{ readonly actor: string }>().create()
