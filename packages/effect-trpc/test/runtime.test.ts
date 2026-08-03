@@ -43,7 +43,10 @@ it("redacts defects thrown by consumer instrumentation", async () => {
 	});
 
 	await expect(
-		unsafeBridge.runEffect(Effect.succeed("unreachable"), { procedure }),
+		unsafeBridge.runEffect(
+			unsafeBridge.instrument(Effect.succeed("unreachable"), procedure),
+			{ procedure },
+		),
 	).rejects.toMatchObject({
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",

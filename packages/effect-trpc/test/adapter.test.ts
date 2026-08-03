@@ -1,5 +1,13 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import { Context, Data, Effect, Layer, ManagedRuntime, Schema } from "effect";
+import {
+	Context,
+	Data,
+	Effect,
+	Layer,
+	ManagedRuntime,
+	Option,
+	Schema,
+} from "effect";
 import { afterAll, describe, expect, it } from "vitest";
 import {
 	extendRequestServices,
@@ -44,13 +52,19 @@ const runtime = ManagedRuntime.make(
 	),
 );
 const instrumented: Array<{ path: string; type: string }> = [];
+const instrumentedRequestValues: Array<string> = [];
 const mapped: Array<{ origin: string; path: string }> = [];
 const adapter = makeEffectTRPC({
 	runtime,
-	instrument: (effect, procedure) => {
-		instrumented.push({ path: procedure.path, type: procedure.type });
-		return effect;
-	},
+	instrument: (effect, procedure) =>
+		Effect.gen(function* () {
+			instrumented.push({ path: procedure.path, type: procedure.type });
+			const requestValue = yield* Effect.serviceOption(RequestValue);
+			if (Option.isSome(requestValue)) {
+				instrumentedRequestValues.push(requestValue.value);
+			}
+			return yield* effect;
+		}),
 	mapError: (error, context) => {
 		mapped.push({ origin: context.origin, path: context.path });
 		return error instanceof DomainFailure
@@ -166,6 +180,7 @@ describe("makeEffectTRPC", () => {
 			runtimeValue: "runtime",
 		});
 		expect(instrumented).toContainEqual({ path: "services", type: "query" });
+		expect(instrumentedRequestValues).toContain("request-1");
 	});
 
 	it("preserves encoded and decoded Effect Schema types at runtime", async () => {

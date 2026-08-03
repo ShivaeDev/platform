@@ -35,13 +35,14 @@ export const makeProcedureHandler = <
 	const tracedResolver = Effect.fnUntraced(resolver);
 
 	return async (invocation: ProcedureInvocation<Context, Input>) => {
+		const info = { ...procedure, path: invocation.path };
 		const provided = Effect.suspend(() =>
-			tracedResolver(invocation.input).pipe(
-				Effect.provide(requestServices.layer(invocation.ctx)),
-			),
+			runtime
+				.instrument(tracedResolver(invocation.input), info)
+				.pipe(Effect.provide(requestServices.layer(invocation.ctx))),
 		);
 		return await runtime.runEffect(provided, {
-			procedure: { ...procedure, path: invocation.path },
+			procedure: info,
 			...(invocation.signal === undefined ? {} : { signal: invocation.signal }),
 		});
 	};
