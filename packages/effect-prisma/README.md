@@ -95,6 +95,11 @@ ordering, pagination, distinct queries, aggregates, grouping, and
 create/update/delete terminals. Model variants are deliberately deferred rather
 than exposed with weakened types.
 
+PostgreSQL timestamp and timestamp-with-time-zone fields use JavaScript `Date`
+values for reads, writes, filters, selections, includes, and Streams. The facade
+normalizes Prisma Next's current branded-string contract declarations to the
+`Date` values its runtime codecs actually accept and return.
+
 ## Transactions
 
 Transactions keep the same database API and are implicitly scoped:
