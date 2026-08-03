@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"type": "module",
 	"license": "MIT",
