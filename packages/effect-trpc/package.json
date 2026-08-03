@@ -1,0 +1,73 @@
+{
+	"name": "@shivaedev/effect-trpc",
+	"version": "0.0.0",
+	"description": "Effect-native procedures and testing for tRPC",
+	"type": "module",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/effect-trpc"
+	},
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"source": "./src/index.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./testing": {
+			"types": "./dist/testing.d.ts",
+			"source": "./src/testing.ts",
+			"import": "./dist/testing.js",
+			"default": "./dist/testing.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"check": "biome check .",
+		"test": "vitest run",
+		"test:package": "node scripts/test-package.mjs",
+		"typecheck": "tsc --noEmit",
+		"typecheck:compat": "tsc6 --noEmit",
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
+	},
+	"peerDependencies": {
+		"@effect/vitest": "catalog:",
+		"@trpc/server": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/vitest": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@effect/vitest": "catalog:",
+		"@trpc/server": "catalog:",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}
