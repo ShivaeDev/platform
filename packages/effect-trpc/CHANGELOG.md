@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-08-03
+
 ### Fixed
 
 - Run consumer instrumentation inside request-scoped Layers so logging and
