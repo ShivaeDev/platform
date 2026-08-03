@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.4.3 - 2026-08-03
+
+### Fixed
+
+- Normalize PostgreSQL timestamp types emitted through Prisma Next's codec
+  references to `Date`.
+
 ## 0.4.2 - 2026-08-03
 
 ### Fixed

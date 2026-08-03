@@ -28,6 +28,17 @@ describe("Prisma Next contract normalization", () => {
 		).toBe("readonly createdAt: Date;");
 	});
 
+	it("replaces timestamp codec input and output references with Date", () => {
+		const source = [
+			"readonly createdAt: CodecTypes['pg/timestamp@1']['output'];",
+			"readonly updatedAt: CodecTypes['pg/timestamptz@1']['input'];",
+		].join("\n");
+
+		expect(normalizePrismaNextContractTypes(source)).toBe(
+			["readonly createdAt: Date;", "readonly updatedAt: Date;"].join("\n"),
+		);
+	});
+
 	it("fails when Prisma emits an unsupported timestamp type shape", () => {
 		expect(() =>
 			normalizePrismaNextContractTypes(

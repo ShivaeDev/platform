@@ -1,4 +1,6 @@
 const timestampReference = /\b(?:Timestamp|Timestamptz)<(?:\d+|undefined)>/g;
+const timestampCodecReference =
+	/\bCodecTypes\['pg\/(?:timestamp|timestamptz)@1'\]\['(?:input|output)'\]/g;
 const unsupportedTimestampReference = /\b(?:Timestamp|Timestamptz)\s*</;
 
 /**
@@ -6,7 +8,9 @@ const unsupportedTimestampReference = /\b(?:Timestamp|Timestamptz)\s*</;
  * JavaScript Dates accepted and returned by its runtime codecs.
  */
 export const normalizePrismaNextContractTypes = (source: string): string => {
-	const normalized = source.replaceAll(timestampReference, "Date");
+	const normalized = source
+		.replaceAll(timestampReference, "Date")
+		.replaceAll(timestampCodecReference, "Date");
 
 	if (unsupportedTimestampReference.test(normalized)) {
 		throw new Error(
