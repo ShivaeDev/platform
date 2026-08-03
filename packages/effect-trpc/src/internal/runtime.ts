@@ -21,6 +21,7 @@ interface RunEffectOptions {
 }
 
 export interface RuntimeBridge<Requirements> {
+	readonly instrument: EffectTRPCInstrument;
 	readonly runEffect: <Value>(
 		effect: Effect.Effect<Value, unknown, Requirements>,
 		options: RunEffectOptions,
@@ -61,6 +62,12 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 		readonly mapError?: EffectTRPCErrorMapper;
 	},
 ): RuntimeBridge<Requirements> => ({
+	instrument: (effect, procedure) =>
+		Effect.suspend(() =>
+			options.instrument === undefined
+				? effect
+				: options.instrument(effect, procedure),
+		),
 	runEffect: async (effect, runOptions) => {
 		const traced = effect.pipe(
 			Effect.withSpan(
@@ -77,17 +84,12 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 				},
 			),
 		);
-		const instrumented = Effect.suspend(() =>
-			options.instrument === undefined
-				? traced
-				: options.instrument(traced, runOptions.procedure),
-		);
 		const ambient = contextBridge.current();
 		const runnable =
 			ambient === undefined
-				? instrumented
+				? traced
 				: Effect.flatMap(runtime.contextEffect, (base) =>
-						Effect.provideContext(instrumented, Context.merge(base, ambient)),
+						Effect.provideContext(traced, Context.merge(base, ambient)),
 					);
 		const exit = await runtime.runPromiseExit(
 			runnable,
