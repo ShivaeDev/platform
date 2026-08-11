@@ -1,6 +1,12 @@
 packages:
   - packages/*
 
+overrides:
+  # `@prisma-next/cli-telemetry` asks for `^1.2.3`; 1.2.4 and 1.2.5 dropped the
+  # provenance attestation earlier versions carried, which `trustPolicy:
+  # no-downgrade` rejects. Drop the pin once an attested release lands.
+  "@vercel/detect-agent": 1.2.3
+
 catalog:
   "@biomejs/biome": 2.5.1
   "@effect/vitest": 4.0.0-beta.102

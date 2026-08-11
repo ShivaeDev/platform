@@ -76,6 +76,9 @@ catalogs:
       specifier: 4.1.9
       version: 4.1.9
 
+overrides:
+  '@vercel/detect-agent': 1.2.3
+
 importers:
 
   .:
