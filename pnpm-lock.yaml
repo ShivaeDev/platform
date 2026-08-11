@@ -15,6 +15,9 @@ catalogs:
     '@prisma-next/adapter-postgres':
       specifier: 0.15.0
       version: 0.15.0
+    '@prisma-next/adapter-sqlite':
+      specifier: 0.15.0
+      version: 0.15.0
     '@prisma-next/cli':
       specifier: 0.15.0
       version: 0.15.0
@@ -36,7 +39,13 @@ catalogs:
     '@prisma-next/sql-runtime':
       specifier: 0.15.0
       version: 0.15.0
+    '@prisma-next/sqlite':
+      specifier: 0.15.0
+      version: 0.15.0
     '@prisma-next/target-postgres':
+      specifier: 0.15.0
+      version: 0.15.0
+    '@prisma-next/target-sqlite':
       specifier: 0.15.0
       version: 0.15.0
     '@trpc/server':
@@ -116,6 +125,9 @@ importers:
       '@prisma-next/sql-runtime':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sqlite':
+        specifier: 'catalog:'
+        version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
@@ -123,10 +135,16 @@ importers:
       '@prisma-next/adapter-postgres':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/adapter-sqlite':
+        specifier: 'catalog:'
+        version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
       '@prisma-next/cli':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
       '@prisma-next/target-postgres':
+        specifier: 'catalog:'
+        version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/target-sqlite':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
       '@types/node':
@@ -606,6 +624,15 @@ packages:
       typescript:
         optional: true
 
+  '@prisma-next/adapter-sqlite@0.15.0':
+    resolution: {integrity: sha512-/G0kCdq8Xn8VkIfgkPujDIWQKKcJPaYH5Y3oRtFQLcM+PQGGVCBa/55Fz6pjT1TDddhujoPmg7wHaXvbAzAfug==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@prisma-next/cli-telemetry@0.15.0':
     resolution: {integrity: sha512-hZu9VlzIt8HjbDLwSJ1ZchIg+9jp5qoZsfpSBMMqYQcTSDUQBlRdjnuBaP8AIWynso49ZS7gxj2lkGOm9xCwXw==}
     engines: {node: '>=24'}
@@ -663,6 +690,15 @@ packages:
 
   '@prisma-next/driver-postgres@0.15.0':
     resolution: {integrity: sha512-Ceb8L609rCkXk97QFsYmVmrifJoYETeU24gWWAdGRXbP2O3MRx1ZFtQGQxs5yfQstzpLu4auMgVQzqYEdEl+KQ==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/driver-sqlite@0.15.0':
+    resolution: {integrity: sha512-o5oObDvLVzK407i3T7IUT8ABzMVBJeNeJrF3d5mZ2h808BRJluxfs/D5sX0CHy4siXVSOTNppX1NB172c6hyEQ==}
     engines: {node: '>=24'}
     peerDependencies:
       typescript: '>=5.9'
@@ -868,8 +904,26 @@ packages:
       typescript:
         optional: true
 
+  '@prisma-next/sqlite@0.15.0':
+    resolution: {integrity: sha512-ouNFXyGFo2n0XmCmmKGp1VH9IkuLqvR37FKxgaWB41kVK9b7ull7LEDOzv+BteTI0YqiH6OsCq9zMy7+2BFaaw==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@prisma-next/target-postgres@0.15.0':
     resolution: {integrity: sha512-5TmXqfxle3AAErtTSxJMykJC5tNlLMOltzrwdHC2whHYxkFZX27vNj72e8LAPfWTMGvSLRx6nPwSnswWA1k4dQ==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      typescript: '>=5.9'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@prisma-next/target-sqlite@0.15.0':
+    resolution: {integrity: sha512-pUmg2gzOtQItKeNMz02XQh+5r4+WO5f2/yaIKBo79vm0m2Nfoi+DmawEHk3nzjAWCYoDueM5fVN8Z4mixfVwbA==}
     engines: {node: '>=24'}
     peerDependencies:
       typescript: '>=5.9'
@@ -2104,6 +2158,32 @@ snapshots:
       - magicast
       - typanion
 
+  '@prisma-next/adapter-sqlite@0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)':
+    dependencies:
+      '@prisma-next/cli': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/contract-authoring': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/errors': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/family-sql': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/framework-components': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/ids': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/psl-parser': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract-psl': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-operations': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-relational-core': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-runtime': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/target-sqlite': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/utils': 0.15.0(@typescript/typescript6@6.0.2)
+      arktype: 2.2.3
+    optionalDependencies:
+      typescript: '@typescript/typescript6@6.0.2'
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
   '@prisma-next/cli-telemetry@0.15.0(@typescript/typescript6@6.0.2)':
     dependencies:
       '@prisma-next/config': 0.15.0(@typescript/typescript6@6.0.2)
@@ -2206,6 +2286,19 @@ snapshots:
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
       - pg-native
+
+  '@prisma-next/driver-sqlite@0.15.0(@typescript/typescript6@6.0.2)':
+    dependencies:
+      '@prisma-next/contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/errors': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/framework-components': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-errors': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-operations': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-relational-core': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/utils': 0.15.0(@typescript/typescript6@6.0.2)
+    optionalDependencies:
+      typescript: '@typescript/typescript6@6.0.2'
 
   '@prisma-next/emitter@0.15.0(@typescript/typescript6@6.0.2)':
     dependencies:
@@ -2457,6 +2550,31 @@ snapshots:
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
 
+  '@prisma-next/sqlite@0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)':
+    dependencies:
+      '@prisma-next/adapter-sqlite': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/cli': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/config': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/driver-sqlite': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/family-sql': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/framework-components': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-builder': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract-psl': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract-ts': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-orm-client': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-relational-core': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-runtime': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/target-sqlite': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/utils': 0.15.0(@typescript/typescript6@6.0.2)
+      pathe: 2.0.3
+    optionalDependencies:
+      typescript: '@typescript/typescript6@6.0.2'
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
   '@prisma-next/target-postgres@0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)':
     dependencies:
       '@prisma-next/cli': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
@@ -2476,6 +2594,28 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       arktype: 2.2.3
       pathe: 2.0.3
+    optionalDependencies:
+      typescript: '@typescript/typescript6@6.0.2'
+    transitivePeerDependencies:
+      - magicast
+      - typanion
+
+  '@prisma-next/target-sqlite@0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)':
+    dependencies:
+      '@prisma-next/cli': 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@prisma-next/contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/errors': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/family-sql': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/framework-components': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/migration-tools': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-contract': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-errors': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-relational-core': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-runtime': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-schema-ir': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/ts-render': 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/utils': 0.15.0(@typescript/typescript6@6.0.2)
+      '@standard-schema/spec': 1.1.0
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:

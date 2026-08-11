@@ -5,6 +5,7 @@ catalog:
   "@biomejs/biome": 2.5.1
   "@effect/vitest": 4.0.0-beta.102
   "@prisma-next/adapter-postgres": 0.15.0
+  "@prisma-next/adapter-sqlite": 0.15.0
   "@prisma-next/cli": 0.15.0
   "@prisma-next/contract": 0.15.0
   "@prisma-next/postgres": 0.15.0
@@ -12,7 +13,9 @@ catalog:
   "@prisma-next/sql-orm-client": 0.15.0
   "@prisma-next/sql-relational-core": 0.15.0
   "@prisma-next/sql-runtime": 0.15.0
+  "@prisma-next/sqlite": 0.15.0
   "@prisma-next/target-postgres": 0.15.0
+  "@prisma-next/target-sqlite": 0.15.0
   "@types/node": 24.10.1
   "@types/pg": 8.20.0
   "@trpc/server": 11.18.0

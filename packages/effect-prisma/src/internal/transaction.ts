@@ -1,4 +1,3 @@
-import type { PostgresClient } from "@prisma-next/postgres/runtime";
 import { orm } from "@prisma-next/sql-orm-client";
 import type {
 	RuntimeConnection,
@@ -6,12 +5,16 @@ import type {
 } from "@prisma-next/sql-runtime";
 import { Effect, Exit, Semaphore } from "effect";
 import type { PrismaError } from "../error.js";
-import type { AnyPostgresContract, DatabaseExecutor } from "./executor.js";
+import type { AnySqlContract, DatabaseExecutor } from "./executor.js";
 import { fromPrismaPromise } from "./promise.js";
+
+export type TransactionOrm<Contract extends AnySqlContract> = ReturnType<
+	typeof orm<Contract>
+>;
 
 export interface TransactionResource<
 	Models extends object,
-	Contract extends AnyPostgresContract,
+	Contract extends AnySqlContract,
 > {
 	readonly connection: RuntimeConnection;
 	readonly transaction: RuntimeTransaction;
@@ -27,10 +30,10 @@ const runtimeFailure = (
 
 export const acquireTransaction = <
 	Models extends object,
-	Contract extends AnyPostgresContract,
+	Contract extends AnySqlContract,
 >(
 	current: DatabaseExecutor<Models, Contract>,
-	models: (orm: PostgresClient<Contract>["orm"]) => Models,
+	models: (orm: TransactionOrm<Contract>) => Models,
 ): Effect.Effect<TransactionResource<Models, Contract>, PrismaError> =>
 	fromPrismaPromise(async () => {
 		const connection = await current.client.runtime().connection();
@@ -60,7 +63,7 @@ export const acquireTransaction = <
 
 export const releaseTransaction = <
 	Models extends object,
-	Contract extends AnyPostgresContract,
+	Contract extends AnySqlContract,
 	A,
 	E,
 >(
@@ -70,7 +73,7 @@ export const releaseTransaction = <
 
 export const releaseTestTransaction = <
 	Models extends object,
-	Contract extends AnyPostgresContract,
+	Contract extends AnySqlContract,
 	A,
 	E,
 >(
@@ -80,7 +83,7 @@ export const releaseTestTransaction = <
 
 const settleTransaction = <
 	Models extends object,
-	Contract extends AnyPostgresContract,
+	Contract extends AnySqlContract,
 	A,
 	E,
 >(
