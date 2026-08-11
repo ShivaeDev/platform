@@ -10,6 +10,9 @@
   implicitly scoped transactions, Streams, and always-rollback test harness as
   the PostgreSQL entrypoint. In-memory databases are rejected because
   transactions run on their own connection.
+- SQLite `DateTime` values stored without a zone designator — the form
+  `datetime('now')` column defaults write — now decode as UTC instead of local
+  time, so generated defaults read back as the instant SQLite wrote.
 
 ## 0.4.3 - 2026-08-03
 

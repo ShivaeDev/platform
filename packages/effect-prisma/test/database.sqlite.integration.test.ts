@@ -28,6 +28,19 @@ const journalMode = (path: string): unknown => {
 	}
 };
 
+/** The text SQLite actually stored, before any codec sees it. */
+const storedCreatedAt = (path: string, id: string): string => {
+	const database = new DatabaseSync(path);
+	try {
+		const row = database
+			.prepare('SELECT "created_at" FROM "user" WHERE "id" = ?')
+			.get(id);
+		return String(row?.created_at);
+	} finally {
+		database.close();
+	}
+};
+
 it.effect("applies connect-time pragmas to the database file", () =>
 	withDatabase(
 		Effect.gen(function* () {
@@ -119,24 +132,28 @@ it.effect("uses Date values for SQLite datetime columns", () =>
 	),
 );
 
-it.effect("generates a UTC timestamp when the column default applies", () =>
+it.effect("decodes the zone-less column default as UTC", () =>
 	withDatabase(
-		withTestTransaction(
-			Database,
-			Effect.gen(function* () {
-				const db = yield* Database;
-				const before = Date.now();
-				const user = yield* db.User.create({
-					email: uniqueEmail("default-timestamp"),
-					id: crypto.randomUUID(),
-					name: "Default timestamp",
-				});
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const id = crypto.randomUUID();
+			const before = Date.now();
+			const user = yield* db.User.create({
+				email: uniqueEmail("default-timestamp"),
+				id,
+				name: "Default timestamp",
+			});
 
-				expect(user.createdAt).toBeInstanceOf(Date);
-				expect(user.createdAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
-				expect(user.createdAt.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
-			}),
-		),
+			const stored = storedCreatedAt(temporary.path, id);
+			expect(stored).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+			expect(user.createdAt).toBeInstanceOf(Date);
+			expect(user.createdAt.toISOString()).toBe(
+				`${stored.replace(" ", "T")}.000Z`,
+			);
+			expect(user.createdAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
+			expect(user.createdAt.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+		}),
 	),
 );
 

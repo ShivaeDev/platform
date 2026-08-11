@@ -19,6 +19,7 @@ import type {
 	ExecutorIdentifier,
 } from "./internal/executor.js";
 import { fromPrismaPromise } from "./internal/promise.js";
+import { decodeSqliteDatetimesAsUtc } from "./internal/sqlite-datetime.js";
 import {
 	applySqlitePragmas,
 	assertFileBackedPath,
@@ -86,6 +87,8 @@ export const makeSqliteDatabase = <const Contract extends AnySqlContract>(
 							...clientOptions,
 							contract: options.contract,
 						});
+
+			decodeSqliteDatetimesAsUtc(client.context);
 
 			return fromPrismaPromise(() =>
 				acquireConnectedClient(client, () => {

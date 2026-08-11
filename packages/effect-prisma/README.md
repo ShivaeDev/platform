@@ -69,9 +69,13 @@ because SQLite allows a single writer, overlapping write transactions wait for
 `busy_timeout` before failing with a transient `PrismaConnectionFailure`.
 Serialize write transactions in the application.
 
-Column defaults for `DateTime` must be written as ISO-8601, for example
-`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`. SQLite's `datetime('now')` produces a
-zone-less string that the codec decodes as local time.
+SQLite stores `DateTime` as text, and `prisma-next db init` generates
+`DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
+designator. The entrypoint decodes zone-less datetime text as UTC, so generated
+column defaults round-trip to the instant SQLite wrote without hand-editing the
+DDL. Values that already carry `Z` or a numeric offset decode unchanged.
+`datetime('now')` itself stores whole seconds; write
+`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')` where a default needs milliseconds.
 
 ## Queries
 

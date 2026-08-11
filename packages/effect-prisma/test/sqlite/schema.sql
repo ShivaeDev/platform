@@ -1,12 +1,11 @@
--- Mirrors `prisma-next db init` for the SQLite contract, except for the
--- `created_at` default: the generated `datetime('now')` writes a zone-less
--- `YYYY-MM-DD HH:MM:SS` string that the `sqlite/datetime@1` codec decodes as
--- local time, so column defaults must be written in ISO-8601 instead.
+-- Mirrors `prisma-next db init` for the SQLite contract, including the
+-- generated `datetime('now')` default. That default writes a zone-less
+-- `YYYY-MM-DD HH:MM:SS` string, which the SQLite entrypoint decodes as UTC.
 CREATE TABLE "user" (
 	"id" TEXT NOT NULL,
 	"email" TEXT NOT NULL,
 	"name" TEXT NOT NULL,
-	"created_at" TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	"created_at" TEXT NOT NULL DEFAULT (datetime('now')),
 	"verified_at" TEXT,
 	PRIMARY KEY ("id"),
 	CONSTRAINT "User_email_key" UNIQUE ("email")
