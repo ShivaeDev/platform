@@ -40,6 +40,39 @@ export const DatabaseLive = Database.layer({
 
 The Layer owns the PostgreSQL client and closes it with its Effect scope.
 
+## SQLite (experimental)
+
+A SQLite contract emitted with `@prisma-next/sqlite` uses the same API through a
+separate entrypoint. Its `DateTime` fields already declare `Date`, so the
+normalization step above is PostgreSQL-only.
+
+```ts
+import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
+import { contractJson, type Contract } from "./generated/contract.js"
+
+export const Database = makeSqliteDatabase<Contract>("@app/Database", {
+  contractJson,
+})
+
+export const DatabaseLive = Database.layer({
+  path: "app.db",
+})
+```
+
+The Layer applies `journal_mode=WAL` when it connects; pass `pragmas` to change
+that list. Prisma Next's SQLite driver already sets `foreign_keys` and
+`busy_timeout` on every connection it opens, and it opens a separate connection
+per transaction, so in-memory databases are rejected.
+
+That driver is synchronous. Queries block the event loop while they run, and
+because SQLite allows a single writer, overlapping write transactions wait for
+`busy_timeout` before failing with a transient `PrismaConnectionFailure`.
+Serialize write transactions in the application.
+
+Column defaults for `DateTime` must be written as ISO-8601, for example
+`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`. SQLite's `datetime('now')` produces a
+zone-less string that the codec decodes as local time.
+
 ## Queries
 
 Yield the database service once and use generated models directly:

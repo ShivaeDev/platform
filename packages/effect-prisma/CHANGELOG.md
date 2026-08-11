@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Experimental SQLite support through `@shivaedev/effect-prisma/sqlite`.
+  `makeSqliteDatabase` owns a Prisma Next SQLite client, applies connect-time
+  pragmas (`journal_mode=WAL` by default), and serves the same queries,
+  implicitly scoped transactions, Streams, and always-rollback test harness as
+  the PostgreSQL entrypoint. In-memory databases are rejected because
+  transactions run on their own connection.
+
 ## 0.4.3 - 2026-08-03
 
 ### Fixed
