@@ -62,6 +62,8 @@ try {
 					"@effect/vitest": manifest.devDependencies["@effect/vitest"],
 					"@prisma-next/adapter-postgres":
 						manifest.devDependencies["@prisma-next/adapter-postgres"],
+					"@prisma-next/adapter-sqlite":
+						manifest.devDependencies["@prisma-next/adapter-sqlite"],
 					"@prisma-next/contract":
 						manifest.dependencies["@prisma-next/contract"],
 					"@prisma-next/target-postgres":
@@ -118,6 +120,21 @@ try {
 			2,
 		)}\n`,
 	);
+	await writeFile(
+		join(temporaryDirectory, "tsconfig.strict.json"),
+		`${JSON.stringify(
+			{
+				extends: "./tsconfig.json",
+				compilerOptions: {
+					exactOptionalPropertyTypes: true,
+					noUncheckedIndexedAccess: true,
+				},
+				include: ["dist-types.ts", "sqlite-contract.d.ts"],
+			},
+			null,
+			2,
+		)}\n`,
+	);
 	await copyFile(
 		join(packageRoot, "test/generated/contract.d.ts"),
 		join(temporaryDirectory, "contract.d.ts"),
@@ -125,6 +142,14 @@ try {
 	await copyFile(
 		join(packageRoot, "test/generated/contract.json"),
 		join(temporaryDirectory, "contract.json"),
+	);
+	await copyFile(
+		join(packageRoot, "test/sqlite/generated/contract.d.ts"),
+		join(temporaryDirectory, "sqlite-contract.d.ts"),
+	);
+	await copyFile(
+		join(packageRoot, "test/sqlite/generated/contract.json"),
+		join(temporaryDirectory, "sqlite-contract.json"),
 	);
 	await writeFile(
 		join(temporaryDirectory, "index.ts"),
@@ -155,6 +180,43 @@ const program = Effect.gen(function* () {
   return yield* db.User.where({ name: "Ada" })
 })
 void program
+`,
+	);
+	await writeFile(
+		join(temporaryDirectory, "dist-types.ts"),
+		`import type { DatabaseRequirement, DatabaseServiceOf, PrismaError } from "@shivaedev/effect-prisma"
+import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
+import type { Effect } from "effect"
+import type { Contract } from "./sqlite-contract.js"
+import contractJson from "./sqlite-contract.json" with { type: "json" }
+
+const Database = makeSqliteDatabase<Contract>("@consumer/SqliteDatabase", {
+  contractJson,
+})
+type Service = DatabaseServiceOf<typeof Database>
+declare const service: Service
+
+// Model keys survive declaration emit as a literal union. If the emitted
+// declarations degrade to an index signature this widens to \`string\`.
+declare const modelKey: keyof Service
+export const exactModelKeys: "Post" | "User" | "transaction" = modelKey
+
+// Consequence of the above for consumers on \`noUncheckedIndexedAccess\`: a model
+// is the relation itself, never \`Relation | undefined\`.
+export const postRelation: Service["Post"] = service.Post
+
+// The executor requirement stays recoverable from the definition.
+declare const requirement: [DatabaseRequirement<typeof Database>] extends [never]
+  ? "never"
+  : "resolved"
+export const resolvedRequirement: "resolved" = requirement
+
+// ... and it is exactly the requirement \`transaction\` adds, which is what lets
+// consumers annotate their own write lanes against the database.
+export const lane = <A, E, R>(
+  program: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E | PrismaError, R | DatabaseRequirement<typeof Database>> =>
+  service.transaction(program)
 `,
 	);
 
@@ -191,6 +253,14 @@ void program
 	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
 		"--project",
 		"tsconfig.json",
+	]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), [
+		"--project",
+		"tsconfig.strict.json",
+	]);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
+		"--project",
+		"tsconfig.strict.json",
 	]);
 	execute("node", [
 		"--input-type=module",
