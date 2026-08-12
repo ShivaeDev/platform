@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"description": "Effect-native procedures and testing for tRPC",
 	"type": "module",
 	"license": "MIT",
