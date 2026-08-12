@@ -9,7 +9,7 @@ overrides:
 
 catalog:
   "@biomejs/biome": 2.5.1
-  "@effect/vitest": 4.0.0-beta.102
+  "@effect/vitest": 4.0.0-beta.107
   "@prisma-next/adapter-postgres": 0.15.0
   "@prisma-next/adapter-sqlite": 0.15.0
   "@prisma-next/cli": 0.15.0
@@ -26,7 +26,7 @@ catalog:
   "@types/pg": 8.20.0
   "@trpc/server": 11.18.0
   "@typescript/native": npm:typescript@7.0.2
-  effect: 4.0.0-beta.102
+  effect: 4.0.0-beta.107
   better-auth: 1.6.25
   pg-boss: 12.23.1
   typescript: npm:@typescript/typescript6@6.0.2
@@ -35,6 +35,13 @@ catalog:
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  # The Effect v4 beta ships faster than the seven-day quarantine, so tracking it
+  # always means accepting a release inside the window. These entries are pinned
+  # to the exact versions reviewed here, which keeps the quarantine in force for
+  # every other package and for the next Effect bump.
+  - effect@4.0.0-beta.107
+  - "@effect/vitest@4.0.0-beta.107"
 trustPolicy: no-downgrade
 trustLockfile: false
 blockExoticSubdeps: true

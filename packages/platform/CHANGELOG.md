@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.3 - 2026-08-12
+
+### Changed
+
+- Require Effect 4.0.0-beta.107, so applications can depend on packages such as
+  `@effect/platform-node` that are only published against the current beta line.
+- Require Effect Prisma 0.5.2 and Effect tRPC 0.3.1, which move to the same
+  Effect release.
+
 ## 0.3.2 - 2026-08-12
 
 ### Changed
