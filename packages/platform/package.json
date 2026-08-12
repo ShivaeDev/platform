@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
@@ -65,7 +65,7 @@
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
-		"@shivaedev/effect-prisma": "0.4.3",
+		"@shivaedev/effect-prisma": "0.5.0",
 		"@shivaedev/effect-trpc": "0.3.0",
 		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
@@ -83,7 +83,7 @@
 		"@prisma-next/postgres": "catalog:",
 		"@prisma-next/sql-contract": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
-		"@shivaedev/effect-prisma": "workspace:0.4.3",
+		"@shivaedev/effect-prisma": "workspace:0.5.0",
 		"@shivaedev/effect-trpc": "workspace:0.3.0",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

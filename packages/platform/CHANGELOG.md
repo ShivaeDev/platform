@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-08-12
+
+### Changed
+
+- Require Effect Prisma 0.5.0, which adds the experimental SQLite entrypoint
+  and UTC decoding for zone-less SQLite datetime values.
+
 ## 0.3.0 - 2026-08-03
 
 ### Added
