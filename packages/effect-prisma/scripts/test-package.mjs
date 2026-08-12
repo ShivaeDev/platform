@@ -27,11 +27,15 @@ try {
 		"package/dist/index.js",
 		"package/dist/index.d.ts",
 		"package/dist/index.d.ts.map",
+		"package/dist/sqlite.js",
+		"package/dist/sqlite.d.ts",
+		"package/dist/sqlite.d.ts.map",
 		"package/dist/testing.js",
 		"package/dist/testing.d.ts",
 		"package/dist/testing.d.ts.map",
 		"package/src/index.ts",
 		"package/src/bin/normalize-contract.ts",
+		"package/src/sqlite.ts",
 		"package/src/testing.ts",
 		"package/CHANGELOG.md",
 		"package/README.md",
@@ -191,7 +195,7 @@ void program
 	execute("node", [
 		"--input-type=module",
 		"--eval",
-		"await import('@shivaedev/effect-prisma'); await import('@shivaedev/effect-prisma/testing')",
+		"await import('@shivaedev/effect-prisma'); await import('@shivaedev/effect-prisma/sqlite'); await import('@shivaedev/effect-prisma/testing')",
 	]);
 } finally {
 	await rm(temporaryDirectory, { force: true, recursive: true });

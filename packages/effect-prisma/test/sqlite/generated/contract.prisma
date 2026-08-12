@@ -1,0 +1,24 @@
+// use prisma-next
+// SQLite mirror of the PostgreSQL test contract.
+
+model User {
+  id            String    @id(map: "User_pkey")
+  email         String    @unique(map: "User_email_key")
+  name          String
+  createdAt     DateTime  @default(now()) @map("created_at")
+  verifiedAt    DateTime? @map("verified_at")
+  posts         Post[]    @relation("PostAuthor")
+  reviewedPosts Post[]    @relation("PostReviewer")
+}
+
+model Post {
+  id         String @id(map: "Post_pkey")
+  title      String
+  userId     String @map("user_id")
+  user       User   @relation("PostAuthor", fields: [userId], references: [id])
+  reviewerId String? @map("reviewer_id")
+  reviewer   User?  @relation("PostReviewer", fields: [reviewerId], references: [id])
+
+  @@index([userId], map: "Post_user_id_idx")
+  @@index([reviewerId], map: "Post_reviewer_id_idx")
+}

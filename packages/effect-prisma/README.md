@@ -40,6 +40,43 @@ export const DatabaseLive = Database.layer({
 
 The Layer owns the PostgreSQL client and closes it with its Effect scope.
 
+## SQLite (experimental)
+
+A SQLite contract emitted with `@prisma-next/sqlite` uses the same API through a
+separate entrypoint. Its `DateTime` fields already declare `Date`, so the
+normalization step above is PostgreSQL-only.
+
+```ts
+import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
+import { contractJson, type Contract } from "./generated/contract.js"
+
+export const Database = makeSqliteDatabase<Contract>("@app/Database", {
+  contractJson,
+})
+
+export const DatabaseLive = Database.layer({
+  path: "app.db",
+})
+```
+
+The Layer applies `journal_mode=WAL` when it connects; pass `pragmas` to change
+that list. Prisma Next's SQLite driver already sets `foreign_keys` and
+`busy_timeout` on every connection it opens, and it opens a separate connection
+per transaction, so in-memory databases are rejected.
+
+That driver is synchronous. Queries block the event loop while they run, and
+because SQLite allows a single writer, overlapping write transactions wait for
+`busy_timeout` before failing with a transient `PrismaConnectionFailure`.
+Serialize write transactions in the application.
+
+SQLite stores `DateTime` as text, and `prisma-next db init` generates
+`DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
+designator. The entrypoint decodes zone-less datetime text as UTC, so generated
+column defaults round-trip to the instant SQLite wrote without hand-editing the
+DDL. Values that already carry `Z` or a numeric offset decode unchanged.
+`datetime('now')` itself stores whole seconds; write
+`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')` where a default needs milliseconds.
+
 ## Queries
 
 Yield the database service once and use generated models directly:
