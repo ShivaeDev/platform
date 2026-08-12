@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.5.1 - 2026-08-12
+
+### Fixed
+
+- `DatabaseRequirement<typeof Database>` resolved to `never` for every real
+  database, so consumers annotating their own effects with it silently dropped
+  the executor requirement and only found out when providing the Layer failed.
+  `Context.Service` is invariant in both parameters, which meant a holder built
+  for a concrete contract never matched the `AnySqlContract` pattern the
+  conditional tested; the contract is now inferred alongside the requirement.
+
 ## 0.5.0 - 2026-08-12
 
 ### Added

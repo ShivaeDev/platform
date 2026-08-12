@@ -69,8 +69,17 @@ export type AnyDatabase = Effect.Effect<unknown, never, unknown> & {
 	readonly layer: (...arguments_: ReadonlyArray<never>) => Layer.Any;
 };
 
+/**
+ * `Context.Service` is invariant in both of its parameters, so a holder built
+ * for a concrete contract never matches `DatabaseServiceHolder<AnySqlContract,
+ * …>`. The contract has to be inferred alongside the requirement, or the
+ * conditional falls through to `never` for every real database.
+ */
 export type DatabaseRequirement<Database> =
-	Database extends DatabaseServiceHolder<AnySqlContract, infer Requirement>
+	Database extends DatabaseServiceHolder<
+		infer _Contract extends AnySqlContract,
+		infer Requirement
+	>
 		? Requirement
 		: never;
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.2 - 2026-08-12
+
+### Changed
+
+- Require Effect Prisma 0.5.1, so the test harness requirement channel names
+  the database executor service again instead of collapsing to `never`.
+
 ## 0.3.1 - 2026-08-12
 
 ### Changed
