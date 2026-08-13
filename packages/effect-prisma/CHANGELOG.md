@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.5.3 - 2026-08-12
+
+### Changed
+
+- Require Effect 4.0.0-rc.108. The 4.0 release candidate starts the stable line,
+  so consumers pick up the compatibility promise the betas did not carry.
+
 ## 0.5.2 - 2026-08-12
 
 ### Changed

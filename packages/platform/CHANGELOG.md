@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.4 - 2026-08-12
+
+### Changed
+
+- Require Effect 4.0.0-rc.108. The 4.0 release candidate starts the stable line,
+  so consumers pick up the compatibility promise the betas did not carry.
+- Require Effect Prisma 0.5.3 and Effect tRPC 0.3.2, which move to the same
+  Effect release.
+
 ## 0.3.3 - 2026-08-12
 
 ### Changed
