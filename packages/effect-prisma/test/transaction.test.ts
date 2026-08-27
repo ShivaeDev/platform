@@ -7,6 +7,7 @@ import {
 	releaseTestTransaction,
 	releaseTransaction,
 	type TransactionResource,
+	withTransactionSemaphore,
 } from "../src/internal/transaction.js";
 
 interface ResourceOptions {
@@ -71,6 +72,7 @@ it.effect("commits and releases a successful transaction", () =>
 		yield* releaseTransaction(resource, Exit.succeed(undefined));
 
 		expect(calls).toEqual(["commit", "release"]);
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -81,6 +83,7 @@ it.effect("rolls back and releases a failed transaction", () =>
 		yield* releaseTransaction(resource, Exit.fail("expected"));
 
 		expect(calls).toEqual(["rollback", "release"]);
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -91,6 +94,7 @@ it.effect("forces rollback for a successful test transaction", () =>
 		yield* releaseTestTransaction(resource, Exit.succeed(undefined));
 
 		expect(calls).toEqual(["rollback", "release"]);
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -109,6 +113,7 @@ it.effect("reports commit failure after attempting rollback and release", () =>
 			_tag: "PrismaRuntimeFailure",
 			code: "RUNTIME.TRANSACTION_COMMIT_FAILED",
 		});
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -127,6 +132,7 @@ it.effect("destroys the connection when rollback fails", () =>
 			_tag: "PrismaRuntimeFailure",
 			code: "RUNTIME.TRANSACTION_ROLLBACK_FAILED",
 		});
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -146,6 +152,7 @@ it.effect("destroys the connection when release fails", () =>
 			_tag: "PrismaRuntimeFailure",
 			code: releaseFailure.code,
 		});
+		expect(resource.executor.liveness.open).toBe(false);
 	}),
 );
 
@@ -172,6 +179,14 @@ it.effect(
 				executeQuery(
 					resource.executor,
 					Effect.sync(() => calls.push("query2")),
+				).pipe(
+					Effect.tapError((error) =>
+						Effect.sync(() => {
+							if (error.reason._tag === "PrismaRuntimeFailure") {
+								calls.push(`queued:${error.reason.code}`);
+							}
+						}),
+					),
 				),
 				{ startImmediately: true },
 			);
@@ -184,10 +199,65 @@ it.effect(
 			expect(calls).toEqual(["query1"]);
 			yield* Deferred.succeed(releaseQuery, undefined);
 			yield* Fiber.join(active);
+			const queuedError = yield* Effect.flip(Fiber.join(queued));
 			yield* Fiber.join(settlement);
-			const queuedExit = yield* Fiber.await(queued);
 
-			expect(Exit.isFailure(queuedExit)).toBe(true);
-			expect(calls).toEqual(["query1", "commit", "release"]);
+			expect(queuedError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
+			expect(calls).toEqual([
+				"query1",
+				"queued:RUNTIME.TRANSACTION_CLOSED",
+				"commit",
+				"release",
+			]);
 		}),
+);
+
+it.effect("holds the transaction permit through interrupted settlement", () =>
+	Effect.gen(function* () {
+		const semaphore = Semaphore.makeUnsafe(1);
+		const firstEntered = yield* Deferred.make<void>();
+		const settlementStarted = yield* Deferred.make<void>();
+		const releaseSettlement = yield* Deferred.make<void>();
+		const secondEntered = yield* Deferred.make<void>();
+		const firstScope = Effect.acquireUseRelease(
+			Effect.void,
+			() =>
+				Effect.gen(function* () {
+					yield* Deferred.succeed(firstEntered, undefined);
+					yield* Effect.never;
+				}),
+			() =>
+				Effect.gen(function* () {
+					yield* Deferred.succeed(settlementStarted, undefined);
+					yield* Deferred.await(releaseSettlement);
+				}),
+		);
+		const first = yield* Effect.forkChild(
+			withTransactionSemaphore(semaphore, firstScope),
+			{ startImmediately: true },
+		);
+		yield* Deferred.await(firstEntered);
+		const second = yield* Effect.forkChild(
+			withTransactionSemaphore(
+				semaphore,
+				Deferred.succeed(secondEntered, undefined),
+			),
+			{ startImmediately: true },
+		);
+		yield* Effect.yieldNow;
+		expect(yield* Deferred.isDone(secondEntered)).toBe(false);
+		const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {
+			startImmediately: true,
+		});
+		yield* Deferred.await(settlementStarted);
+		expect(yield* Deferred.isDone(secondEntered)).toBe(false);
+
+		yield* Deferred.succeed(releaseSettlement, undefined);
+		yield* Fiber.join(interruption);
+		yield* Fiber.join(second);
+		expect(yield* Deferred.isDone(secondEntered)).toBe(true);
+	}),
 );

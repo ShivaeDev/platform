@@ -11,6 +11,7 @@ import {
 	releaseTestTransaction,
 	releaseTransaction,
 	type TransactionOrm,
+	withTransactionSemaphore,
 } from "./transaction.js";
 
 type OrmFor<Contract extends AnySqlContract> = ReturnType<typeof orm<Contract>>;
@@ -238,9 +239,7 @@ export const makeSqlDatabase = <
 			release,
 		).pipe(Effect.withSpan(span, { kind: "client" }));
 
-		return current.transactionSemaphore === undefined
-			? transaction
-			: current.transactionSemaphore.withPermit(transaction);
+		return withTransactionSemaphore(current.transactionSemaphore, transaction);
 	};
 
 	function makeFacade(

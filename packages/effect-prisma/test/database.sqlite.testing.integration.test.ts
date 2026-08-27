@@ -22,6 +22,7 @@ it.afterAll(temporary.remove);
 const ids = {
 	each: crypto.randomUUID(),
 	failed: crypto.randomUUID(),
+	ordinaryNested: crypto.randomUUID(),
 	rolledBack: crypto.randomUUID(),
 };
 
@@ -95,5 +96,38 @@ effectDB(
 		);
 
 		expect(yield* db.User.where({ id: nestedId }).exists()).toBe(true);
+	},
+);
+
+effectDB(
+	"reuses the forced-rollback scope for an ordinary transaction",
+	function* (db) {
+		const outer = yield* Database;
+		expect(outer).toBe(db);
+
+		yield* db.transaction(
+			Effect.gen(function* () {
+				const inner = yield* Database;
+				expect(inner).toBe(outer);
+				yield* inner.User.create({
+					id: ids.ordinaryNested,
+					email: `${ids.ordinaryNested}@example.test`,
+					name: "Ordinary nested transaction",
+				});
+			}),
+		);
+
+		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
+			true,
+		);
+	},
+);
+
+effectDB(
+	"rolls back an ordinary transaction nested in the previous test scope",
+	function* (db) {
+		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
+			false,
+		);
 	},
 );

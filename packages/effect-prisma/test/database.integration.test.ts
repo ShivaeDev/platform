@@ -162,6 +162,20 @@ integrationEffect("refuses values from a concurrent sibling transaction", () =>
 				{ startImmediately: true },
 			);
 			const fromA = yield* Deferred.await(valuesFromA);
+			const rootRelationError = yield* Effect.flip(fromA.relation.exists());
+			const rootStreamError = yield* Effect.flip(
+				Stream.runCollect(fromA.stream),
+			);
+			const rootDatabaseError = yield* Effect.flip(
+				fromA.db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				),
+			);
+			const rootIncludeExit = yield* Effect.exit(
+				db.User.include("posts", fromA.posts),
+			);
 
 			const mismatches = yield* db
 				.transaction(
@@ -191,17 +205,22 @@ integrationEffect("refuses values from a concurrent sibling transaction", () =>
 				mismatches.databaseError,
 				mismatches.relationError,
 				mismatches.streamError,
+				rootDatabaseError,
+				rootRelationError,
+				rootStreamError,
 			]) {
 				expect(error.reason).toMatchObject({
 					_tag: "PrismaRuntimeFailure",
 					code: "RUNTIME.TRANSACTION_CONTEXT_MISMATCH",
 				});
 			}
-			expect(Exit.isFailure(mismatches.includeExit)).toBe(true);
-			if (Exit.isFailure(mismatches.includeExit)) {
-				expect(Cause.pretty(mismatches.includeExit.cause)).toContain(
-					"Included Relation belongs to another transaction",
-				);
+			for (const includeExit of [mismatches.includeExit, rootIncludeExit]) {
+				expect(Exit.isFailure(includeExit)).toBe(true);
+				if (Exit.isFailure(includeExit)) {
+					expect(Cause.pretty(includeExit.cause)).toContain(
+						"Included Relation belongs to another transaction",
+					);
+				}
 			}
 		}),
 	),

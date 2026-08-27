@@ -12,6 +12,12 @@ export type TransactionOrm<Contract extends AnySqlContract> = ReturnType<
 	typeof orm<Contract>
 >;
 
+export const withTransactionSemaphore = <A, E, R>(
+	semaphore: Semaphore.Semaphore | undefined,
+	transaction: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+	semaphore === undefined ? transaction : semaphore.withPermit(transaction);
+
 export interface TransactionResource<
 	Models extends object,
 	Contract extends AnySqlContract,
