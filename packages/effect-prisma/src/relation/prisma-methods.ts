@@ -28,6 +28,7 @@ type SelectMethod<
 	Collection,
 	Contract,
 	Model extends string,
+	DatabaseId,
 > = Contract extends AnyPostgresContract
 	? Collection extends PrismaCollection<
 			Contract,
@@ -46,7 +47,8 @@ type SelectMethod<
 						State
 					>,
 					Contract,
-					Model
+					Model,
+					DatabaseId
 				>;
 			}
 		: Record<never, never>
@@ -56,7 +58,7 @@ type SelectMethod<
 					? (
 							...arguments_: Arguments
 						) => Result extends object
-							? Relation<Result, Contract, Model>
+							? Relation<Result, Contract, Model, DatabaseId>
 							: never
 					: never;
 			}
@@ -109,6 +111,7 @@ type CollectionMethods<
 	Collection,
 	Contract,
 	Model extends string,
+	DatabaseId,
 > = Contract extends AnyPostgresContract
 	? Collection extends PrismaCollection<
 			Contract,
@@ -122,7 +125,8 @@ type CollectionMethods<
 				): Relation<
 					GroupedCollection<Contract, Model, Fields>,
 					Contract,
-					Model
+					Model,
+					DatabaseId
 				>;
 				cursor(
 					values: State extends { readonly hasOrderBy: true }
@@ -130,15 +134,15 @@ type CollectionMethods<
 								Record<keyof DefaultModelRow<Contract, Model> & string, unknown>
 							>
 						: never,
-				): Relation<Collection, Contract, Model>;
+				): Relation<Collection, Contract, Model, DatabaseId>;
 				distinct<Fields extends FieldTuple<DefaultModelRow<Contract, Model>>>(
 					...fields: Fields
-				): Relation<Collection, Contract, Model>;
+				): Relation<Collection, Contract, Model, DatabaseId>;
 				distinctOn<Fields extends FieldTuple<DefaultModelRow<Contract, Model>>>(
 					...fields: State extends { readonly hasOrderBy: true }
 						? Fields
 						: never
-				): Relation<Collection, Contract, Model>;
+				): Relation<Collection, Contract, Model, DatabaseId>;
 			} & (State extends { readonly hasWhere: true }
 				? {
 						readonly [Key in
@@ -154,6 +158,7 @@ type CollectionConveniences<
 	Collection,
 	Contract,
 	Model extends string,
+	DatabaseId,
 > = Contract extends AnyPostgresContract
 	? Collection extends PrismaCollection<
 			Contract,
@@ -163,7 +168,7 @@ type CollectionConveniences<
 		>
 		? {
 				readonly stream: Stream.Stream<Row, PrismaError>;
-				count(): RelationQuery<number, Contract, Model>;
+				count(): RelationQuery<number, Contract, Model, DatabaseId>;
 				exists(): Effect.Effect<boolean, PrismaError>;
 			}
 		: Record<never, never>
@@ -179,8 +184,9 @@ export type PrismaRelationMethods<
 	Collection,
 	Contract,
 	Model extends string,
-> = SelectMethod<Collection, Contract, Model> &
-	IncludeMethod<Collection, Contract, Model> &
+	DatabaseId,
+> = SelectMethod<Collection, Contract, Model, DatabaseId> &
+	IncludeMethod<Collection, Contract, Model, DatabaseId> &
 	AggregateMethod<Collection, Contract, Model> &
-	CollectionMethods<Collection, Contract, Model> &
-	CollectionConveniences<Collection, Contract, Model>;
+	CollectionMethods<Collection, Contract, Model, DatabaseId> &
+	CollectionConveniences<Collection, Contract, Model, DatabaseId>;

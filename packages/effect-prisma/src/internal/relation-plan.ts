@@ -1,22 +1,20 @@
 import type { RelationRecipe } from "./recipe.js";
 
-export const RelationPlanTypeId = Symbol.for(
-	"@shivaedev/effect-prisma/RelationPlan",
-);
-
 export interface RelationPlan {
+	readonly owner: object;
 	readonly recipe: RelationRecipe;
 	readonly terminal?: PropertyKey;
 }
 
+const plans = new WeakMap<object, RelationPlan>();
+
+export const setRelationPlan = (value: object, plan: RelationPlan): void => {
+	plans.set(value, plan);
+};
+
 export const getRelationPlan = (value: unknown): RelationPlan | undefined => {
-	if (
-		typeof value !== "object" ||
-		value === null ||
-		!Reflect.has(value, RelationPlanTypeId)
-	) {
+	if (typeof value !== "object" || value === null) {
 		return undefined;
 	}
-
-	return Reflect.get(value, RelationPlanTypeId) as RelationPlan;
+	return plans.get(value);
 };

@@ -114,9 +114,11 @@ integrationEffect("reuses the active transaction for nested boundaries", () =>
 			yield* db.transaction(
 				Effect.gen(function* () {
 					const outer = yield* Database;
-					yield* outer.transaction(
+					expect(outer).not.toBe(db);
+					yield* db.transaction(
 						Effect.gen(function* () {
 							const inner = yield* Database;
+							expect(inner).toBe(outer);
 							yield* inner.User.create({
 								id: crypto.randomUUID(),
 								email,

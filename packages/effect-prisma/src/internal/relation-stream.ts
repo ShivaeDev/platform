@@ -18,7 +18,11 @@ export const makeRelationStream = <
 		executeQuery(
 			executor,
 			Effect.sync(() => {
-				const collection = replayRecipe(executor.models, recipe);
+				const collection = replayRecipe(
+					executor.models,
+					recipe,
+					executor.identity,
+				);
 				if (
 					typeof collection !== "object" ||
 					collection === null ||

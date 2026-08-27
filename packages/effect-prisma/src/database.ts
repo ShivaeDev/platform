@@ -7,6 +7,7 @@ import type { PrismaError } from "./error.js";
 import { acquireConnectedClient } from "./internal/client-lifecycle.js";
 import {
 	type DatabaseIdentifier,
+	type DatabaseIdentifierLiteral,
 	type DatabaseServiceHolder,
 	type DefaultModels,
 	makeSqlDatabase,
@@ -51,7 +52,7 @@ const defaultModels = <Contract extends AnySqlContract, Models extends object>(
 export const makeDatabase =
 	<const Contract extends AnySqlContract>() =>
 	<const Identifier extends string>(
-		identifier: Identifier,
+		identifier: DatabaseIdentifierLiteral<Identifier>,
 		options: DatabaseFactoryOptions<Contract>,
 	): DatabaseDefinition<Contract, Identifier> => {
 		type Models = DefaultModels<Contract>;
@@ -83,6 +84,7 @@ export const makeDatabase =
 				return fromPrismaPromise(() =>
 					acquireConnectedClient(client, () => ({
 						client,
+						identity: {},
 						liveness: {
 							closedCode: "RUNTIME.DATABASE_CLOSED",
 							open: true,

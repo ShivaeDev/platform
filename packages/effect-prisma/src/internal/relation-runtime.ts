@@ -10,7 +10,7 @@ import {
 	replayRecipe,
 	rootRecipe,
 } from "./recipe.js";
-import { RelationPlanTypeId } from "./relation-plan.js";
+import { setRelationPlan } from "./relation-plan.js";
 import { makeRelationStream } from "./relation-stream.js";
 
 type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
@@ -82,64 +82,69 @@ const evaluateResult = (
 	return Effect.succeed(executable);
 };
 
-interface RelationValue<
-	Models extends object,
-	Contract extends AnyPostgresContract,
-> extends Effect.Effect<unknown, PrismaError> {
-	readonly [RelationPlanTypeId]: {
-		readonly recipe: RelationRecipe;
-		readonly terminal?: PropertyKey;
-	};
-	readonly runtime: RelationRuntime<Models, Contract>;
+interface RelationValue extends Effect.Effect<unknown, PrismaError> {
 	readonly stream: Stream.Stream<unknown, PrismaError>;
 }
+
+const runtimes = new WeakMap<object, unknown>();
+
+const runtimeOf = <Models extends object, Contract extends AnyPostgresContract>(
+	self: object,
+): RelationRuntime<Models, Contract> => {
+	const runtime = runtimes.get(self);
+	if (runtime === undefined) {
+		throw new TypeError("Relation runtime is unavailable");
+	}
+	return runtime as RelationRuntime<Models, Contract>;
+};
 
 const relationEffect = <
 	Models extends object,
 	Contract extends AnyPostgresContract,
 >(
-	self: RelationValue<Models, Contract>,
-): Effect.Effect<unknown, PrismaError> =>
-	executeQuery(
-		self.runtime.executor,
+	self: RelationValue,
+): Effect.Effect<unknown, PrismaError> => {
+	const runtime = runtimeOf<Models, Contract>(self);
+	return executeQuery(
+		runtime.executor,
 		Effect.suspend(() =>
 			evaluateResult(
-				replayRecipe(self.runtime.executor.models, self.runtime.recipe),
-				self.runtime.terminal,
+				replayRecipe(
+					runtime.executor.models,
+					runtime.recipe,
+					runtime.executor.identity,
+				),
+				runtime.terminal,
 			),
 		),
 	).pipe(
 		Effect.withSpan(
-			`prisma.${self.runtime.recipe.model}.${String(self.runtime.terminal ?? "all")}`,
+			`prisma.${runtime.recipe.model}.${String(runtime.terminal ?? "all")}`,
 			{
 				kind: "client",
 				attributes: {
 					"db.system": "postgresql",
-					"db.model": self.runtime.recipe.model,
-					"db.operation": String(self.runtime.terminal ?? "all"),
+					"db.model": runtime.recipe.model,
+					"db.operation": String(runtime.terminal ?? "all"),
 				},
 			},
 		),
 	);
+};
 
 const RelationPrototype = {
-	...Effectable.Prototype<
-		RelationValue<Record<string, unknown>, AnyPostgresContract>
-	>({
+	...Effectable.Prototype<RelationValue>({
 		label: "EffectPrismaRelation",
 		evaluate() {
 			return relationEffect(this);
 		},
 	}),
 	get stream(): Stream.Stream<unknown, PrismaError> {
-		const relation = this as RelationValue<
-			Record<string, unknown>,
-			AnyPostgresContract
-		>;
-		return makeRelationStream(
-			relation.runtime.executor,
-			relation.runtime.recipe,
+		const relation = this as RelationValue;
+		const runtime = runtimeOf<Record<string, unknown>, AnyPostgresContract>(
+			relation,
 		);
+		return makeRelationStream(runtime.executor, runtime.recipe);
 	},
 };
 
@@ -149,15 +154,8 @@ const makeRelationProxy = <
 >(
 	runtime: RelationRuntime<Models, Contract>,
 ): unknown => {
-	const target = Object.assign(Object.create(RelationPrototype), {
-		[RelationPlanTypeId]: {
-			recipe: runtime.recipe,
-			...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
-		},
-		runtime,
-	}) as RelationValue<Models, Contract>;
-
-	return new Proxy(target, {
+	const target = Object.create(RelationPrototype) as RelationValue;
+	const proxy = new Proxy(target, {
 		get(self, property, receiver) {
 			if (property === "then") {
 				return undefined;
@@ -187,6 +185,16 @@ const makeRelationProxy = <
 				});
 		},
 	});
+	const plan = {
+		owner: runtime.executor.identity,
+		recipe: runtime.recipe,
+		...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
+	};
+	for (const value of [target, proxy]) {
+		runtimes.set(value, runtime);
+		setRelationPlan(value, plan);
+	}
+	return proxy;
 };
 
 export const makeModelRelation = <

@@ -26,33 +26,51 @@ export type DefaultModels<Contract extends AnySqlContract> =
 		? Models
 		: never;
 
+type IsUnion<Value, Whole = Value> = Value extends unknown
+	? [Whole] extends [Value]
+		? false
+		: true
+	: never;
+
+export type DatabaseIdentifierLiteral<Identifier extends string> =
+	string extends Identifier
+		? never
+		: true extends IsUnion<Identifier>
+			? never
+			: Identifier;
+
 export interface DatabaseIdentifier<
 	Contract extends AnySqlContract,
 	Identifier extends string,
 > {
-	readonly _contract: Contract;
-	readonly _databaseIdentifier: Identifier;
+	readonly _contract: (contract: Contract) => Contract;
+	readonly _databaseIdentifier: (identifier: Identifier) => Identifier;
 }
 
-type DatabaseModels<Contract extends AnySqlContract> = {
+type DatabaseModels<
+	Contract extends AnySqlContract,
+	Identifier extends string,
+> = {
 	readonly [Model in keyof DefaultModels<Contract>]: Relation<
 		DefaultModels<Contract>[Model],
 		Contract,
-		Model & string
+		Model & string,
+		DatabaseIdentifier<Contract, Identifier>
 	>;
 };
 
 export type DatabaseService<
 	Contract extends AnySqlContract,
 	Identifier extends string,
-> = DatabaseModels<Contract> & {
+> = DatabaseModels<Contract, Identifier> & {
 	transaction<A, E, R>(
 		program: Effect.Effect<A, E, R> &
 			(DatabaseIdentifier<Contract, Identifier> extends R ? unknown : never),
 	): Effect.Effect<
 		A,
 		E | PrismaError,
-		Exclude<R, DatabaseIdentifier<Contract, Identifier>>
+		| DatabaseIdentifier<Contract, Identifier>
+		| Exclude<R, DatabaseIdentifier<Contract, Identifier>>
 	>;
 };
 
@@ -118,7 +136,7 @@ export const makeSqlDatabase = <
 	const Identifier extends string,
 	Options,
 >(
-	identifier: Identifier,
+	identifier: DatabaseIdentifierLiteral<Identifier>,
 	acquireExecutor: (
 		options: Options,
 	) => Effect.Effect<
@@ -137,6 +155,18 @@ export const makeSqlDatabase = <
 		DatabaseService<Contract, Identifier>,
 		DatabaseExecutor<Models, Contract>
 	>();
+	const executorOf = (
+		facade: DatabaseService<Contract, Identifier>,
+	): Effect.Effect<DatabaseExecutor<Models, Contract>> => {
+		const executor = executors.get(facade);
+		return executor === undefined
+			? Effect.die(
+					new TypeError(
+						"The database service was not created by its database Layer",
+					),
+				)
+			: Effect.succeed(executor);
+	};
 	const runTransaction = <A, E, R>(
 		current: DatabaseExecutor<Models, Contract>,
 		currentFacade: DatabaseService<Contract, Identifier>,
@@ -145,6 +175,9 @@ export const makeSqlDatabase = <
 		mode: "test" | "transaction",
 		span: string,
 	): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseId>> => {
+		if (!current.liveness.open) {
+			return Effect.fail(toPrismaError({ code: current.liveness.closedCode }));
+		}
 		if (
 			current.mode === "test" ||
 			(current.mode === "transaction" && mode === "transaction")
@@ -182,22 +215,32 @@ export const makeSqlDatabase = <
 	function makeFacade(
 		current: DatabaseExecutor<Models, Contract>,
 	): DatabaseService<Contract, Identifier> {
-		let facade: DatabaseService<Contract, Identifier>;
 		const target = Object.assign(Object.create(null), {
 			transaction: <A, E, R>(
 				program: Effect.Effect<A, E, R> &
 					(DatabaseId extends R ? unknown : never),
 			) =>
-				runTransaction(
-					current,
-					facade,
-					program,
-					releaseTransaction,
-					"transaction",
-					"prisma.transaction",
-				),
+				Effect.suspend(() => {
+					if (!current.liveness.open) {
+						return Effect.fail(
+							toPrismaError({ code: current.liveness.closedCode }),
+						);
+					}
+					return Effect.flatMap(Service, (activeFacade) =>
+						Effect.flatMap(executorOf(activeFacade), (active) =>
+							runTransaction(
+								active,
+								activeFacade,
+								program,
+								releaseTransaction,
+								"transaction",
+								"prisma.transaction",
+							),
+						),
+					);
+				}),
 		}) as DatabaseService<Contract, Identifier>;
-		facade = new Proxy(target, {
+		const facade = new Proxy(target, {
 			get(target, property, receiver) {
 				if (Reflect.has(target, property)) {
 					return Reflect.get(target, property, receiver);
@@ -216,21 +259,15 @@ export const makeSqlDatabase = <
 		program: Effect.Effect<A, E, R> & (DatabaseId extends R ? unknown : never),
 	): Effect.Effect<A, E | PrismaError, DatabaseId | Exclude<R, DatabaseId>> =>
 		Effect.flatMap(Service, (facade) => {
-			const current = executors.get(facade);
-			if (current === undefined) {
-				return Effect.die(
-					new TypeError(
-						"The database service was not created by its database Layer",
-					),
-				);
-			}
-			return runTransaction(
-				current,
-				facade,
-				program,
-				releaseTestTransaction,
-				"test",
-				"prisma.testTransaction",
+			return Effect.flatMap(executorOf(facade), (current) =>
+				runTransaction(
+					current,
+					facade,
+					program,
+					releaseTestTransaction,
+					"test",
+					"prisma.testTransaction",
+				),
 			);
 		});
 

@@ -62,7 +62,14 @@ const applyMethod = (
 	return Reflect.apply(method, current, arguments_);
 };
 
-const replayPlan = (collection: unknown, plan: RelationPlan): unknown => {
+const replayPlan = (
+	collection: unknown,
+	plan: RelationPlan,
+	owner: object,
+): unknown => {
+	if (plan.owner !== owner) {
+		throw new TypeError("Included Relations must use the same Database");
+	}
 	const relatedModel =
 		typeof collection === "object" && collection !== null
 			? Reflect.get(collection, "modelName")
@@ -73,7 +80,7 @@ const replayPlan = (collection: unknown, plan: RelationPlan): unknown => {
 		);
 	}
 
-	const refined = replayRecipeFrom(collection, plan.recipe);
+	const refined = replayRecipeFrom(collection, plan.recipe, owner);
 	if (plan.terminal !== "count") {
 		return refined;
 	}
@@ -82,10 +89,11 @@ const replayPlan = (collection: unknown, plan: RelationPlan): unknown => {
 
 const includeRefinement = (
 	value: unknown,
+	owner: object,
 ): ((collection: unknown) => unknown) => {
 	const plan = getRelationPlan(value);
 	if (plan !== undefined) {
-		return (collection) => replayPlan(collection, plan);
+		return (collection) => replayPlan(collection, plan, owner);
 	}
 
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -115,19 +123,26 @@ const includeRefinement = (
 		const branches = Object.fromEntries(
 			plans.map(([name, queryPlan]) => [
 				name,
-				replayPlan(collection, queryPlan),
+				replayPlan(collection, queryPlan, owner),
 			]),
 		);
 		return applyMethod(collection, "combine", [branches], model ?? "relation");
 	};
 };
 
-const replayRecipeFrom = (root: unknown, recipe: RelationRecipe): unknown => {
+const replayRecipeFrom = (
+	root: unknown,
+	recipe: RelationRecipe,
+	owner: object,
+): unknown => {
 	let current = root;
 	for (const operation of operations(recipe)) {
 		const arguments_ =
 			operation.name === "include" && operation.arguments.length === 2
-				? [operation.arguments[0], includeRefinement(operation.arguments[1])]
+				? [
+						operation.arguments[0],
+						includeRefinement(operation.arguments[1], owner),
+					]
 				: operation.arguments;
 		current = applyMethod(current, operation.name, arguments_, recipe.model);
 	}
@@ -137,6 +152,7 @@ const replayRecipeFrom = (root: unknown, recipe: RelationRecipe): unknown => {
 export const replayRecipe = (
 	models: object,
 	recipe: RelationRecipe,
+	owner: object,
 ): unknown => {
 	const current: unknown = Reflect.get(models, recipe.model);
 
@@ -144,5 +160,5 @@ export const replayRecipe = (
 		throw new TypeError(`Unknown Prisma model: ${recipe.model}`);
 	}
 
-	return replayRecipeFrom(current, recipe);
+	return replayRecipeFrom(current, recipe, owner);
 };

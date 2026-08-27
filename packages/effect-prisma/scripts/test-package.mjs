@@ -218,7 +218,8 @@ export const lane = <A, E, R>(
 ): Effect.Effect<
   A,
   E | PrismaError,
-  Exclude<R, Effect.Services<typeof Database>>
+  Effect.Services<typeof Database> |
+    Exclude<R, Effect.Services<typeof Database>>
 > =>
   service.transaction(program)
 `,

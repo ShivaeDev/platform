@@ -1,7 +1,8 @@
 import { it } from "@effect/vitest";
-import { Effect, Exit } from "effect";
+import { Deferred, Effect, Exit, Fiber, Semaphore } from "effect";
 import { expect } from "vitest";
 import type { AnyPostgresContract } from "../src/internal/executor.js";
+import { executeQuery } from "../src/internal/query-execution.js";
 import {
 	releaseTestTransaction,
 	releaseTransaction,
@@ -29,10 +30,16 @@ const makeResource = (options: ResourceOptions = {}) => {
 			},
 		},
 		executor: {
+			client: {},
+			identity: {},
 			liveness: {
 				closedCode: "RUNTIME.TRANSACTION_CLOSED",
 				open: true,
 			},
+			mode: "transaction",
+			models: {},
+			querySemaphore: Semaphore.makeUnsafe(1),
+			transactionSemaphore: undefined,
 		},
 		transaction: {
 			commit: async () => {
@@ -139,4 +146,47 @@ it.effect("destroys the connection when release fails", () =>
 			code: releaseFailure.code,
 		});
 	}),
+);
+
+it.effect(
+	"drains the active query and refuses queued work before settlement",
+	() =>
+		Effect.gen(function* () {
+			const { calls, resource } = makeResource();
+			const queryStarted = yield* Deferred.make<void>();
+			const releaseQuery = yield* Deferred.make<void>();
+			const active = yield* Effect.forkChild(
+				executeQuery(
+					resource.executor,
+					Effect.gen(function* () {
+						calls.push("query1");
+						yield* Deferred.succeed(queryStarted, undefined);
+						yield* Deferred.await(releaseQuery);
+					}),
+				),
+				{ startImmediately: true },
+			);
+			yield* Deferred.await(queryStarted);
+			const queued = yield* Effect.forkChild(
+				executeQuery(
+					resource.executor,
+					Effect.sync(() => calls.push("query2")),
+				),
+				{ startImmediately: true },
+			);
+			const settlement = yield* Effect.forkChild(
+				releaseTransaction(resource, Exit.succeed(undefined)),
+				{ startImmediately: true },
+			);
+
+			yield* Effect.yieldNow;
+			expect(calls).toEqual(["query1"]);
+			yield* Deferred.succeed(releaseQuery, undefined);
+			yield* Fiber.join(active);
+			yield* Fiber.join(settlement);
+			const queuedExit = yield* Fiber.await(queued);
+
+			expect(Exit.isFailure(queuedExit)).toBe(true);
+			expect(calls).toEqual(["query1", "commit", "release"]);
+		}),
 );

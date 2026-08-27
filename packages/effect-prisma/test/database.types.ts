@@ -1,7 +1,11 @@
 import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
 import { Effect, type Layer, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
-import { makeDatabase, type PrismaError } from "../src/index.js";
+import {
+	type DatabaseServiceOf,
+	makeDatabase,
+	type PrismaError,
+} from "../src/index.js";
 import { makeDatabaseIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -36,6 +40,20 @@ const Database = makeDatabase<Contract>()("@test/Database", { contractJson });
 const AuditDatabase = makeDatabase<Contract>()("@test/AuditDatabase", {
 	contractJson,
 });
+declare const databaseService: DatabaseServiceOf<typeof Database>;
+declare const auditDatabaseService: DatabaseServiceOf<typeof AuditDatabase>;
+// @ts-expect-error Same-contract Database services retain distinct nominal identities.
+const mislabeledDatabaseService: DatabaseServiceOf<typeof Database> =
+	auditDatabaseService;
+void databaseService;
+void mislabeledDatabaseService;
+
+declare const widenedIdentifier: string;
+// @ts-expect-error A widened identifier cannot provide a stable Database identity.
+makeDatabase<Contract>()(widenedIdentifier, { contractJson });
+declare const unionIdentifier: "@test/One" | "@test/Two";
+// @ts-expect-error A union identifier cannot name one Database identity.
+makeDatabase<Contract>()(unionIdentifier, { contractJson });
 expectTypeOf<Layer.Success<ReturnType<typeof Database.layer>>>().toEqualTypeOf<
 	Effect.Services<typeof Database>
 >();
@@ -84,18 +102,27 @@ const program = Effect.gen(function* () {
 		}),
 	);
 	expectTypeOf<Effect.Success<typeof transaction>>().toEqualTypeOf<number>();
-	expectTypeOf<Effect.Services<typeof transaction>>().toBeNever();
+	expectTypeOf<Effect.Services<typeof transaction>>().toEqualTypeOf<
+		Effect.Services<typeof Database>
+	>();
 
 	const crossDatabaseTransaction = db.transaction(
 		Effect.gen(function* () {
 			yield* Database;
 			const auditDb = yield* AuditDatabase;
+			db.User.include(
+				"posts",
+				// @ts-expect-error Included Relations must come from this Database identity.
+				auditDb.Post,
+			);
 			return yield* auditDb.User.count();
 		}),
 	);
 	expectTypeOf<
 		Effect.Services<typeof crossDatabaseTransaction>
-	>().toEqualTypeOf<Effect.Services<typeof AuditDatabase>>();
+	>().toEqualTypeOf<
+		Effect.Services<typeof Database> | Effect.Services<typeof AuditDatabase>
+	>();
 
 	const byCallback = db.User.where((user) => {
 		expectTypeOf(user).not.toBeAny();

@@ -22,6 +22,7 @@ export interface DatabaseExecutor<
 	Contract extends AnySqlContract = AnySqlContract,
 > {
 	readonly client: SqlDatabaseClient<Contract>;
+	readonly identity: object;
 	readonly liveness: {
 		readonly closedCode: string;
 		open: boolean;

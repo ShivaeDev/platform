@@ -1,6 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
 import { it } from "@effect/vitest";
-import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
+import {
+	Cause,
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Layer,
+	Option,
+	Stream,
+} from "effect";
 import { afterAll, expect } from "vitest";
 import { makeSqliteDatabase } from "../src/sqlite.js";
 import { withTestTransaction } from "../src/testing.js";
@@ -13,8 +22,18 @@ afterAll(temporary.remove);
 const Database = makeSqliteDatabase<Contract>()("@test/SqliteDatabase", {
 	contractJson,
 });
+const AuditDatabase = makeSqliteDatabase<Contract>()(
+	"@test/SqliteAuditDatabase",
+	{
+		contractJson,
+	},
+);
 const DatabaseLive = Database.layer({ path: temporary.path });
+const AuditDatabaseLive = AuditDatabase.layer({ path: temporary.path });
 const withDatabase = Effect.provide(DatabaseLive);
+const withDatabases = Effect.provide(
+	Layer.merge(DatabaseLive, AuditDatabaseLive),
+);
 
 const uniqueEmail = (scenario: string): string =>
 	`${scenario}-${crypto.randomUUID()}@example.test`;
@@ -107,6 +126,24 @@ it.effect("returns structured query failures", () =>
 	),
 );
 
+it.effect("refuses an included Relation from another Database", () =>
+	withDatabases(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const auditDb = yield* AuditDatabase;
+			const foreignPost = auditDb.Post as unknown as typeof db.Post;
+			const exit = yield* Effect.exit(db.User.include("posts", foreignPost));
+
+			expect(Exit.isFailure(exit)).toBe(true);
+			if (Exit.isFailure(exit)) {
+				expect(Cause.pretty(exit.cause)).toContain(
+					"Included Relations must use the same Database",
+				);
+			}
+		}),
+	),
+);
+
 it.effect("uses Date values for SQLite datetime columns", () =>
 	withDatabase(
 		withTestTransaction(
@@ -171,7 +208,7 @@ it.effect("reuses the active transaction for nested boundaries", () =>
 				Effect.gen(function* () {
 					const outer = yield* Database;
 					expect(outer).not.toBe(db);
-					yield* outer.transaction(
+					yield* db.transaction(
 						Effect.gen(function* () {
 							const inner = yield* Database;
 							expect(inner).toBe(outer);
@@ -280,17 +317,59 @@ it.effect("fails closed when a transaction Relation escapes settlement", () =>
 			const escaped = yield* db.transaction(
 				Effect.gen(function* () {
 					const transactionDb = yield* Database;
-					return transactionDb.User.where({ id: crypto.randomUUID() });
+					return {
+						db: transactionDb,
+						relation: transactionDb.User.where({ id: crypto.randomUUID() }),
+						stream: transactionDb.User.stream,
+					};
 				}),
 			);
-			const error = yield* Effect.flip(escaped.exists());
+			const relationError = yield* Effect.flip(escaped.relation.exists());
+			const streamExit = yield* Effect.exit(Stream.runCollect(escaped.stream));
+			const transactionError = yield* Effect.flip(
+				escaped.db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				),
+			);
 
-			expect(error.reason).toMatchObject({
+			expect(relationError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
+			expect(Exit.isFailure(streamExit)).toBe(true);
+			expect(transactionError.reason).toMatchObject({
 				_tag: "PrismaRuntimeFailure",
 				code: "RUNTIME.TRANSACTION_CLOSED",
 			});
 		}),
 	),
+);
+
+it.effect("fails closed when Database values escape their Layer", () =>
+	Effect.gen(function* () {
+		const escaped = yield* Effect.gen(function* () {
+			const db = yield* Database;
+			return { db, stream: db.User.stream };
+		}).pipe(Effect.provide(DatabaseLive));
+		const streamExit = yield* Effect.exit(Stream.runCollect(escaped.stream));
+		const transactionError = yield* Effect.flip(
+			escaped.db
+				.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				)
+				.pipe(Effect.provide(DatabaseLive)),
+		);
+
+		expect(Exit.isFailure(streamExit)).toBe(true);
+		expect(transactionError.reason).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.DATABASE_CLOSED",
+		});
+	}),
 );
 
 it.effect("serializes SQLite transaction scopes for one Database Layer", () =>

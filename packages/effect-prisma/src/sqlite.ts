@@ -10,6 +10,7 @@ import {
 } from "./internal/client-lifecycle.js";
 import {
 	type DatabaseIdentifier,
+	type DatabaseIdentifierLiteral,
 	type DatabaseServiceHolder,
 	type DefaultModels,
 	makeSqlDatabase,
@@ -56,7 +57,7 @@ export interface SqliteDatabaseDefinition<
 export const makeSqliteDatabase =
 	<const Contract extends AnySqlContract>() =>
 	<const Identifier extends string>(
-		identifier: Identifier,
+		identifier: DatabaseIdentifierLiteral<Identifier>,
 		options: SqliteFactoryOptions<Contract>,
 	): SqliteDatabaseDefinition<Contract, Identifier> => {
 		type Models = DefaultModels<Contract>;
@@ -96,6 +97,7 @@ export const makeSqliteDatabase =
 						assertAvailableModelNames(Object.keys(models));
 						return {
 							client,
+							identity: {},
 							liveness: {
 								closedCode: "RUNTIME.DATABASE_CLOSED",
 								open: true,
