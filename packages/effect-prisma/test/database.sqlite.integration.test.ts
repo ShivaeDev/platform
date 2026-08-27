@@ -17,7 +17,9 @@ import { type Contract, contractJson } from "./sqlite/contract.js";
 import { makeTemporaryDatabase } from "./sqlite/support.js";
 
 const temporary = makeTemporaryDatabase();
+const otherTemporary = makeTemporaryDatabase();
 afterAll(temporary.remove);
+afterAll(otherTemporary.remove);
 
 const Database = makeSqliteDatabase<Contract>()("@test/SqliteDatabase", {
 	contractJson,
@@ -29,6 +31,7 @@ const AuditDatabase = makeSqliteDatabase<Contract>()(
 	},
 );
 const DatabaseLive = Database.layer({ path: temporary.path });
+const OtherDatabaseLive = Database.layer({ path: otherTemporary.path });
 const AuditDatabaseLive = AuditDatabase.layer({ path: temporary.path });
 const withDatabase = Effect.provide(DatabaseLive);
 const withDatabases = Effect.provide(
@@ -223,6 +226,53 @@ it.effect("reuses the active transaction for nested boundaries", () =>
 			);
 
 			expect(yield* relation.exists()).toBe(true);
+		}),
+	),
+);
+
+it.effect("keeps nested transactions within their originating Layer", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const primaryDb = yield* Database;
+			const primaryEmail = uniqueEmail("primary-layer");
+			const otherEmail = uniqueEmail("other-layer");
+
+			const otherCounts = yield* Effect.gen(function* () {
+				const otherDb = yield* Database;
+				yield* otherDb.transaction(
+					Effect.gen(function* () {
+						const transactionOtherDb = yield* Database;
+						yield* transactionOtherDb.User.create({
+							id: crypto.randomUUID(),
+							email: otherEmail,
+							name: "Other Layer",
+						});
+						yield* primaryDb.transaction(
+							Effect.gen(function* () {
+								const transactionPrimaryDb = yield* Database;
+								yield* transactionPrimaryDb.User.create({
+									id: crypto.randomUUID(),
+									email: primaryEmail,
+									name: "Primary Layer",
+								});
+							}),
+						);
+					}),
+				);
+
+				return {
+					other: yield* otherDb.User.where({ email: otherEmail }).count(),
+					primary: yield* otherDb.User.where({ email: primaryEmail }).count(),
+				};
+			}).pipe(Effect.provide(OtherDatabaseLive));
+
+			expect(otherCounts).toEqual({ other: 1, primary: 0 });
+			expect(yield* primaryDb.User.where({ email: primaryEmail }).count()).toBe(
+				1,
+			);
+			expect(yield* primaryDb.User.where({ email: otherEmail }).count()).toBe(
+				0,
+			);
 		}),
 	),
 );

@@ -54,6 +54,7 @@ export const acquireTransaction = <
 				executor: {
 					client: current.client,
 					identity: {},
+					scopeIdentity: current.scopeIdentity,
 					liveness: {
 						closedCode: "RUNTIME.TRANSACTION_CLOSED",
 						open: true,

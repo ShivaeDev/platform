@@ -23,6 +23,7 @@ export interface DatabaseExecutor<
 > {
 	readonly client: SqlDatabaseClient<Contract>;
 	readonly identity: object;
+	readonly scopeIdentity: object;
 	readonly liveness: {
 		readonly closedCode: string;
 		open: boolean;

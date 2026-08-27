@@ -193,8 +193,21 @@ import contractJson from "./sqlite-contract.json" with { type: "json" }
 const Database = makeSqliteDatabase<Contract>()("@consumer/SqliteDatabase", {
   contractJson,
 })
+const AuditDatabase = makeSqliteDatabase<Contract>()("@consumer/SqliteAuditDatabase", {
+  contractJson,
+})
 type Service = DatabaseServiceOf<typeof Database>
+type AuditService = DatabaseServiceOf<typeof AuditDatabase>
 declare const service: Service
+declare const auditService: AuditService
+
+// Same-contract services retain their literal Database identity after emit.
+// @ts-expect-error Distinct Database identities are not interchangeable.
+export const mislabeledService: Service = auditService
+
+declare const patternedIdentifier: \`@tenant/\${string}\`
+// @ts-expect-error A template pattern can name multiple runtime Database keys.
+makeSqliteDatabase<Contract>()(patternedIdentifier, { contractJson })
 
 // Model keys survive declaration emit as a literal union. If the emitted
 // declarations degrade to an index signature this widens to \`string\`.
@@ -204,6 +217,10 @@ export const exactModelKeys: "Post" | "User" | "transaction" = modelKey
 // Consequence of the above for consumers on \`noUncheckedIndexedAccess\`: a model
 // is the relation itself, never \`Relation | undefined\`.
 export const postRelation: Service["Post"] = service.Post
+
+const maybeForeignPost = Math.random() > 0.5 ? service.Post : auditService.Post
+// @ts-expect-error A union cannot hide a Relation from another Database.
+service.User.include("posts", maybeForeignPost)
 
 // Relations close over their Database implementation and leak no service.
 declare const relationServices: [Effect.Services<Service["User"]>] extends [never]
@@ -218,8 +235,7 @@ export const lane = <A, E, R>(
 ): Effect.Effect<
   A,
   E | PrismaError,
-  Effect.Services<typeof Database> |
-    Exclude<R, Effect.Services<typeof Database>>
+  Exclude<R, Effect.Services<typeof Database>>
 > =>
   service.transaction(program)
 `,

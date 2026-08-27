@@ -32,12 +32,23 @@ type IsUnion<Value, Whole = Value> = Value extends unknown
 		: true
 	: never;
 
-export type DatabaseIdentifierLiteral<Identifier extends string> =
-	string extends Identifier
+type IsSingletonString<Value extends string> =
+	Record<never, never> extends Record<Value, never> ? false : true;
+
+const internalContextIdentifierPrefix = "\0@shivaedev/effect-prisma/internal/";
+let activeTransactionReferenceSequence = 0;
+
+export type DatabaseIdentifierLiteral<Identifier extends string> = [
+	Identifier,
+] extends [`\0@shivaedev/effect-prisma/internal/${string}`]
+	? never
+	: string extends Identifier
 		? never
 		: true extends IsUnion<Identifier>
 			? never
-			: Identifier;
+			: IsSingletonString<Identifier> extends true
+				? Identifier
+				: never;
 
 export interface DatabaseIdentifier<
 	Contract extends AnySqlContract,
@@ -69,8 +80,7 @@ export type DatabaseService<
 	): Effect.Effect<
 		A,
 		E | PrismaError,
-		| DatabaseIdentifier<Contract, Identifier>
-		| Exclude<R, DatabaseIdentifier<Contract, Identifier>>
+		Exclude<R, DatabaseIdentifier<Contract, Identifier>>
 	>;
 };
 
@@ -144,6 +154,12 @@ export const makeSqlDatabase = <
 		PrismaError
 	>,
 ): SqlDatabase<Contract, Identifier, Options> => {
+	if (identifier.startsWith(internalContextIdentifierPrefix)) {
+		throw new TypeError(
+			"Database identifier uses a reserved internal namespace",
+		);
+	}
+
 	type Models = DefaultModels<Contract>;
 	type DatabaseId = DatabaseIdentifier<Contract, Identifier>;
 
@@ -155,6 +171,14 @@ export const makeSqlDatabase = <
 		DatabaseService<Contract, Identifier>,
 		DatabaseExecutor<Models, Contract>
 	>();
+	type ActiveTransaction = {
+		readonly executor: DatabaseExecutor<Models, Contract>;
+		readonly facade: DatabaseService<Contract, Identifier>;
+	};
+	const ActiveTransaction = Context.Reference<ActiveTransaction | undefined>(
+		`${internalContextIdentifierPrefix}ActiveTransaction/${activeTransactionReferenceSequence++}`,
+		{ defaultValue: () => undefined },
+	);
 	const executorOf = (
 		facade: DatabaseService<Contract, Identifier>,
 	): Effect.Effect<DatabaseExecutor<Models, Contract>> => {
@@ -202,8 +226,16 @@ export const makeSqlDatabase = <
 					),
 				mode,
 			),
-			(resource) =>
-				Effect.provideService(program, Service, makeFacade(resource.executor)),
+			(resource) => {
+				const transactionFacade = makeFacade(resource.executor);
+				return program.pipe(
+					Effect.provideService(Service, transactionFacade),
+					Effect.provideService(ActiveTransaction, {
+						executor: resource.executor,
+						facade: transactionFacade,
+					}),
+				);
+			},
 			release,
 		).pipe(Effect.withSpan(span, { kind: "client" }));
 
@@ -215,6 +247,7 @@ export const makeSqlDatabase = <
 	function makeFacade(
 		current: DatabaseExecutor<Models, Contract>,
 	): DatabaseService<Contract, Identifier> {
+		let facade: DatabaseService<Contract, Identifier>;
 		const target = Object.assign(Object.create(null), {
 			transaction: <A, E, R>(
 				program: Effect.Effect<A, E, R> &
@@ -226,21 +259,24 @@ export const makeSqlDatabase = <
 							toPrismaError({ code: current.liveness.closedCode }),
 						);
 					}
-					return Effect.flatMap(Service, (activeFacade) =>
-						Effect.flatMap(executorOf(activeFacade), (active) =>
-							runTransaction(
-								active,
-								activeFacade,
-								program,
-								releaseTransaction,
-								"transaction",
-								"prisma.transaction",
-							),
-						),
-					);
+					return Effect.flatMap(ActiveTransaction, (active) => {
+						const selected =
+							active !== undefined &&
+							active.executor.scopeIdentity === current.scopeIdentity
+								? active
+								: { executor: current, facade };
+						return runTransaction(
+							selected.executor,
+							selected.facade,
+							program,
+							releaseTransaction,
+							"transaction",
+							"prisma.transaction",
+						);
+					});
 				}),
 		}) as DatabaseService<Contract, Identifier>;
-		const facade = new Proxy(target, {
+		facade = new Proxy(target, {
 			get(target, property, receiver) {
 				if (Reflect.has(target, property)) {
 					return Reflect.get(target, property, receiver);

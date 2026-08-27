@@ -28,25 +28,26 @@ type AcceptRelatedQuery<
 	Contract extends AnyPostgresContract,
 	Model extends string,
 	DatabaseId,
-> =
-	Query extends RelationQuery<
+> = [Query] extends [
+	RelationQuery<
 		infer _Value,
 		infer QueryContract,
 		infer QueryModel,
 		infer QueryDatabaseId
-	>
-		? [QueryContract] extends [Contract]
-			? [Contract] extends [QueryContract]
-				? [QueryDatabaseId] extends [DatabaseId]
-					? [DatabaseId] extends [QueryDatabaseId]
-						? QueryModel extends Model
-							? unknown
-							: never
+	>,
+]
+	? [QueryContract] extends [Contract]
+		? [Contract] extends [QueryContract]
+			? [QueryDatabaseId] extends [DatabaseId]
+				? [DatabaseId] extends [QueryDatabaseId]
+					? QueryModel extends Model
+						? unknown
 						: never
 					: never
 				: never
 			: never
-		: never;
+		: never
+	: never;
 
 type IncludedQueryValue<
 	Query,

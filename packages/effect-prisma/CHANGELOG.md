@@ -8,8 +8,8 @@
 
 - **Breaking:** Make Database the only public persistence service. Relations
   and Streams no longer expose an executor requirement, and transaction bodies
-  must yield Database inside the boundary so every query uses the
-  transaction-bound implementation.
+  must build their queries from the Database yielded inside the boundary to use
+  the transaction-bound implementation.
 - **Breaking:** Construct database definitions with `makeDatabase<Contract>()`
   or `makeSqliteDatabase<Contract>()` so two databases sharing one contract
   retain distinct service identities.

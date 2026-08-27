@@ -83,6 +83,7 @@ const rows: ReadonlyArray<User> = [
 const executor: DatabaseExecutor<Models> = {
 	client: {} as DatabaseExecutor<Models>["client"],
 	identity: {},
+	scopeIdentity: {},
 	models: {
 		User: new FakeCollection(rows),
 	},
