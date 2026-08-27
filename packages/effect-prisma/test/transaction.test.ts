@@ -39,6 +39,7 @@ const makeResource = (options: ResourceOptions = {}) => {
 			mode: "transaction",
 			models: {},
 			querySemaphore: Semaphore.makeUnsafe(1),
+			transactionIdentity: {},
 			transactionSemaphore: undefined,
 		},
 		transaction: {

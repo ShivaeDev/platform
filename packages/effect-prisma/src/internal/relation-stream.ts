@@ -11,7 +11,10 @@ export const makeRelationStream = <
 	Models extends object,
 	Contract extends AnyPostgresContract,
 >(
-	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>>,
+	resolveExecutor: Effect.Effect<
+		DatabaseExecutor<Models, Contract>,
+		PrismaError
+	>,
 	recipe: RelationRecipe,
 ): Stream.Stream<unknown, PrismaError> => {
 	return Stream.unwrap(
@@ -23,6 +26,7 @@ export const makeRelationStream = <
 						executor.models,
 						recipe,
 						executor.identity,
+						executor.transactionIdentity,
 					);
 					if (
 						typeof collection !== "object" ||

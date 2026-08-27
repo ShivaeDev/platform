@@ -28,6 +28,7 @@ const makeExecutor = (
 	mode: querySemaphore === undefined ? "root" : "transaction",
 	models: { User: new ControlledCollection(execute) },
 	querySemaphore,
+	transactionIdentity: querySemaphore === undefined ? undefined : {},
 	transactionSemaphore: undefined,
 });
 
@@ -200,6 +201,7 @@ it.effect(
 					Source: new EventStreamCollection(rows, events),
 				},
 				querySemaphore: Semaphore.makeUnsafe(1),
+				transactionIdentity: {},
 				transactionSemaphore: undefined,
 			};
 			const source = makeModelRelation<

@@ -21,7 +21,10 @@ interface RelationRuntime<
 > {
 	readonly executor: DatabaseExecutor<Models, Contract>;
 	readonly recipe: RelationRecipe;
-	readonly resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>>;
+	readonly resolveExecutor: Effect.Effect<
+		DatabaseExecutor<Models, Contract>,
+		PrismaError
+	>;
 	readonly terminal?: PropertyKey;
 }
 
@@ -111,7 +114,12 @@ const relationEffect = <
 			executor,
 			Effect.suspend(() =>
 				evaluateResult(
-					replayRecipe(executor.models, runtime.recipe, executor.identity),
+					replayRecipe(
+						executor.models,
+						runtime.recipe,
+						executor.identity,
+						executor.transactionIdentity,
+					),
 					runtime.terminal,
 				),
 			),
@@ -189,6 +197,7 @@ const makeRelationProxy = <
 		owner: runtime.executor.identity,
 		recipe: runtime.recipe,
 		...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
+		transactionIdentity: runtime.executor.transactionIdentity,
 	};
 	for (const value of [target, proxy]) {
 		runtimes.set(value, runtime);
@@ -206,7 +215,8 @@ export const makeModelRelation = <
 	executor: DatabaseExecutor<Models, ExecutorContract>,
 	model: Model,
 	resolveExecutor: Effect.Effect<
-		DatabaseExecutor<Models, ExecutorContract>
+		DatabaseExecutor<Models, ExecutorContract>,
+		PrismaError
 	> = Effect.succeed(executor),
 ): Relation<Collection, undefined, Model> =>
 	makeRelationProxy({

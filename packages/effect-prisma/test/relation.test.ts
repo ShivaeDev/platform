@@ -89,6 +89,7 @@ const executor: DatabaseExecutor<Models> = {
 	liveness: { closedCode: "RUNTIME.DATABASE_CLOSED", open: true },
 	mode: "root",
 	querySemaphore: undefined,
+	transactionIdentity: undefined,
 	transactionSemaphore: undefined,
 };
 

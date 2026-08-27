@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { makeDatabase } from "../src/index.js";
+import { type DatabaseServiceOf, makeDatabase } from "../src/index.js";
 import { withTestTransaction } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -11,6 +11,13 @@ const integrationEffect =
 
 const Database = makeDatabase<Contract>()("@test/IntegrationDatabase", {
 	contractJson,
+});
+type DatabaseService = DatabaseServiceOf<typeof Database>;
+const scopedValues = (db: DatabaseService, email: string) => ({
+	db,
+	posts: db.Post,
+	relation: db.User.where({ email }),
+	stream: db.User.where({ email }).stream,
 });
 const DatabaseLive = Database.layer({
 	url: databaseUrl ?? "postgresql://integration-tests-disabled",
@@ -130,6 +137,72 @@ integrationEffect("reuses the active transaction for nested boundaries", () =>
 			);
 
 			expect(yield* relation.exists()).toBe(true);
+		}),
+	),
+);
+
+integrationEffect("refuses values from a concurrent sibling transaction", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const valuesFromA =
+				yield* Deferred.make<ReturnType<typeof scopedValues>>();
+			const releaseA = yield* Deferred.make<void>();
+			const transactionA = yield* Effect.forkChild(
+				db.transaction(
+					Effect.gen(function* () {
+						const databaseA = yield* Database;
+						yield* Deferred.succeed(
+							valuesFromA,
+							scopedValues(databaseA, uniqueEmail("transaction-a")),
+						);
+						yield* Deferred.await(releaseA);
+					}),
+				),
+				{ startImmediately: true },
+			);
+			const fromA = yield* Deferred.await(valuesFromA);
+
+			const mismatches = yield* db
+				.transaction(
+					Effect.gen(function* () {
+						const databaseB = yield* Database;
+						const relationError = yield* Effect.flip(fromA.relation.exists());
+						const streamError = yield* Effect.flip(
+							Stream.runCollect(fromA.stream),
+						);
+						const databaseError = yield* Effect.flip(
+							fromA.db.transaction(
+								Effect.gen(function* () {
+									yield* Database;
+								}),
+							),
+						);
+						const includeExit = yield* Effect.exit(
+							databaseB.User.include("posts", fromA.posts),
+						);
+						return { databaseError, includeExit, relationError, streamError };
+					}),
+				)
+				.pipe(Effect.ensuring(Deferred.succeed(releaseA, undefined)));
+			yield* Fiber.join(transactionA);
+
+			for (const error of [
+				mismatches.databaseError,
+				mismatches.relationError,
+				mismatches.streamError,
+			]) {
+				expect(error.reason).toMatchObject({
+					_tag: "PrismaRuntimeFailure",
+					code: "RUNTIME.TRANSACTION_CONTEXT_MISMATCH",
+				});
+			}
+			expect(Exit.isFailure(mismatches.includeExit)).toBe(true);
+			if (Exit.isFailure(mismatches.includeExit)) {
+				expect(Cause.pretty(mismatches.includeExit.cause)).toContain(
+					"Included Relation belongs to another transaction",
+				);
+			}
 		}),
 	),
 );

@@ -30,5 +30,6 @@ export interface DatabaseExecutor<
 	readonly mode: "root" | "test" | "transaction";
 	readonly models: Models;
 	readonly querySemaphore: Semaphore.Semaphore | undefined;
+	readonly transactionIdentity: object | undefined;
 	readonly transactionSemaphore: Semaphore.Semaphore | undefined;
 }

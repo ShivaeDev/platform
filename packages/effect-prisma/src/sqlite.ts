@@ -105,6 +105,7 @@ export const makeSqliteDatabase =
 							mode: "root",
 							models,
 							querySemaphore: undefined,
+							transactionIdentity: undefined,
 							transactionSemaphore: Semaphore.makeUnsafe(1),
 						};
 					}),

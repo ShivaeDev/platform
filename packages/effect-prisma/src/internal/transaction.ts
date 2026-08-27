@@ -61,6 +61,7 @@ export const acquireTransaction = <
 					mode,
 					models: models(transactionOrm),
 					querySemaphore: Semaphore.makeUnsafe(1),
+					transactionIdentity: {},
 					transactionSemaphore: current.transactionSemaphore,
 				},
 			};

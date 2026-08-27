@@ -92,6 +92,7 @@ export const makeDatabase =
 						mode: "root",
 						models: defaultModels<Contract, Models>(client),
 						querySemaphore: undefined,
+						transactionIdentity: undefined,
 						transactionSemaphore: undefined,
 					})),
 				);

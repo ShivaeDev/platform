@@ -15,8 +15,8 @@
   retain distinct service identities. Composition uses one unique definition
   identifier and one live Layer per definition.
 - Refuse forced-rollback test transactions nested inside ordinary commit
-  transactions, and fail closed when transaction-bound queries escape their
-  settled boundary.
+  transactions, and fail closed when transaction-bound values escape their
+  settled boundary or cross into a concurrent sibling transaction.
 - Serialize SQLite transaction scopes inside the supported singleton Database
   Layer while leaving ordinary queries and writes unsynchronized.
 

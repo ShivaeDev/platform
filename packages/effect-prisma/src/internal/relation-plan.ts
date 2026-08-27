@@ -5,6 +5,7 @@ export interface RelationPlan {
 	readonly owner: object;
 	readonly recipe: RelationRecipe;
 	readonly terminal?: PropertyKey;
+	readonly transactionIdentity: object | undefined;
 }
 
 const plans = new WeakMap<object, RelationPlan>();

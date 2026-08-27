@@ -247,9 +247,24 @@ export const makeSqlDatabase = <
 		current: DatabaseExecutor<Models, Contract>,
 	): DatabaseService<Contract, Identifier> {
 		let facade: DatabaseService<Contract, Identifier>;
+		const resolveActiveTransaction = Effect.flatMap(
+			ActiveTransaction,
+			(active) => {
+				if (current.mode === "root") {
+					return Effect.succeed(active ?? { executor: current, facade });
+				}
+				return active?.executor === current
+					? Effect.succeed(active)
+					: Effect.fail(
+							toPrismaError({
+								code: "RUNTIME.TRANSACTION_CONTEXT_MISMATCH",
+							}),
+						);
+			},
+		);
 		const resolveExecutor = Effect.suspend(() =>
 			current.liveness.open
-				? Effect.map(ActiveTransaction, (active) => active?.executor ?? current)
+				? Effect.map(resolveActiveTransaction, ({ executor }) => executor)
 				: Effect.succeed(current),
 		);
 		const target = Object.assign(Object.create(null), {
@@ -263,8 +278,7 @@ export const makeSqlDatabase = <
 							toPrismaError({ code: current.liveness.closedCode }),
 						);
 					}
-					return Effect.flatMap(ActiveTransaction, (active) => {
-						const selected = active ?? { executor: current, facade };
+					return Effect.flatMap(resolveActiveTransaction, (selected) => {
 						return runTransaction(
 							selected.executor,
 							selected.facade,
