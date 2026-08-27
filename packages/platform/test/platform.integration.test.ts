@@ -12,7 +12,7 @@ import { makePlatformRuntime } from "../src/runtime.js";
 import { makePlatformIt } from "../src/testing.js";
 
 const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
-const Database = makeDatabase<Contract>("@test/PlatformDatabase", {
+const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({

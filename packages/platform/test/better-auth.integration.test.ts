@@ -11,7 +11,7 @@ import { makePlatformIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./auth/contract.js";
 
 const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
-const Database = makeDatabase<Contract>("@test/PlatformAuthDatabase", {
+const Database = makeDatabase<Contract>()("@test/PlatformAuthDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({

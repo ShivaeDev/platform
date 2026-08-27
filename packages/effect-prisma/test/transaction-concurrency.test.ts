@@ -1,10 +1,7 @@
 import { it } from "@effect/vitest";
-import { Context, Effect, Exit, Fiber, Semaphore, Stream } from "effect";
+import { Effect, Exit, Fiber, Semaphore, Stream } from "effect";
 import { expect } from "vitest";
-import type {
-	DatabaseExecutor,
-	ExecutorIdentifier,
-} from "../src/internal/executor.js";
+import type { DatabaseExecutor } from "../src/internal/executor.js";
 import { makeModelRelation } from "../src/internal/relation-runtime.js";
 import {
 	ControlledCollection,
@@ -21,25 +18,20 @@ interface Models {
 	readonly User: ControlledCollection<User>;
 }
 
-const Executor = Context.Service<
-	ExecutorIdentifier<Models>,
-	DatabaseExecutor<Models>
->("@test/TransactionConcurrencyExecutor");
+const makeExecutor = (
+	execute: () => Promise<Array<User>>,
+	querySemaphore?: Semaphore.Semaphore,
+): DatabaseExecutor<Models> => ({
+	client: {} as DatabaseExecutor<Models>["client"],
+	liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
+	mode: querySemaphore === undefined ? "root" : "transaction",
+	models: { User: new ControlledCollection(execute) },
+	querySemaphore,
+	transactionSemaphore: undefined,
+});
 
-const relation = () =>
-	makeModelRelation<ControlledCollection<User>, Models>(Executor, "User");
-
-const provideExecutor =
-	(execute: () => Promise<Array<User>>, querySemaphore?: Semaphore.Semaphore) =>
-	<A, E>(
-		effect: Effect.Effect<A, E, ExecutorIdentifier<Models>>,
-	): Effect.Effect<A, E> =>
-		Effect.provideService(effect, Executor, {
-			client: {} as DatabaseExecutor<Models>["client"],
-			models: { User: new ControlledCollection(execute) },
-			querySemaphore,
-			transactional: querySemaphore !== undefined,
-		});
+const relation = (executor: DatabaseExecutor<Models>) =>
+	makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
 
 it.effect("does not serialize queries outside a transaction", () => {
 	let active = 0;
@@ -68,8 +60,9 @@ it.effect("does not serialize queries outside a transaction", () => {
 		}
 	};
 
+	const executor = makeExecutor(execute);
 	return Effect.gen(function* () {
-		const query = relation();
+		const query = relation(executor);
 		const fiber = yield* Effect.forkChild(
 			Effect.all([query, query], { concurrency: "unbounded" }),
 			{ startImmediately: true },
@@ -79,7 +72,7 @@ it.effect("does not serialize queries outside a transaction", () => {
 		expect(maximumActive).toBe(2);
 		releaseQueries();
 		expect(yield* Fiber.join(fiber)).toEqual([rows, rows]);
-	}).pipe(provideExecutor(execute));
+	});
 });
 
 it.effect("serializes queries that share a transaction executor", () => {
@@ -106,8 +99,9 @@ it.effect("serializes queries that share a transaction executor", () => {
 		return [...rows];
 	};
 
+	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {
-		const query = relation();
+		const query = relation(executor);
 		const fiber = yield* Effect.forkChild(
 			Effect.all([query, query], { concurrency: "unbounded" }),
 			{ startImmediately: true },
@@ -119,7 +113,7 @@ it.effect("serializes queries that share a transaction executor", () => {
 		releaseFirst();
 		expect(yield* Fiber.join(fiber)).toEqual([rows, rows]);
 		expect(maximumActive).toBe(1);
-	}).pipe(provideExecutor(execute, Semaphore.makeUnsafe(1)));
+	});
 });
 
 it.effect("releases a transaction query permit after failure", () => {
@@ -132,11 +126,12 @@ it.effect("releases a transaction query permit after failure", () => {
 		return [...rows];
 	};
 
+	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {
-		const query = relation();
+		const query = relation(executor);
 		expect(Exit.isFailure(yield* Effect.exit(query))).toBe(true);
 		expect(yield* query).toEqual(rows);
-	}).pipe(provideExecutor(execute, Semaphore.makeUnsafe(1)));
+	});
 });
 
 it.effect(
@@ -160,8 +155,9 @@ it.effect(
 			return [...rows];
 		};
 
+		const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 		return Effect.gen(function* () {
-			const query = relation();
+			const query = relation(executor);
 			const first = yield* Effect.forkChild(query, { startImmediately: true });
 			yield* Effect.promise(() => started);
 			const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {
@@ -174,7 +170,7 @@ it.effect(
 			releaseFirst();
 			yield* Fiber.join(interruption);
 			expect(yield* Fiber.join(second)).toEqual(rows);
-		}).pipe(provideExecutor(execute, Semaphore.makeUnsafe(1)));
+		});
 	},
 );
 
@@ -187,20 +183,13 @@ it.effect(
 				readonly Lookup: ControlledCollection<User>;
 				readonly Source: EventStreamCollection<User>;
 			}
-			const StreamExecutor = Context.Service<
-				ExecutorIdentifier<StreamModels>,
-				DatabaseExecutor<StreamModels>
-			>("@test/TransactionStreamExecutor");
-			const source = makeModelRelation<
-				EventStreamCollection<User>,
-				StreamModels
-			>(StreamExecutor, "Source");
-			const lookup = makeModelRelation<
-				ControlledCollection<User>,
-				StreamModels
-			>(StreamExecutor, "Lookup");
 			const executor: DatabaseExecutor<StreamModels> = {
 				client: {} as DatabaseExecutor<StreamModels>["client"],
+				liveness: {
+					closedCode: "RUNTIME.TRANSACTION_CLOSED",
+					open: true,
+				},
+				mode: "transaction",
 				models: {
 					Lookup: new ControlledCollection(async () => {
 						events.push("lookup");
@@ -209,12 +198,20 @@ it.effect(
 					Source: new EventStreamCollection(rows, events),
 				},
 				querySemaphore: Semaphore.makeUnsafe(1),
-				transactional: true,
+				transactionSemaphore: undefined,
 			};
+			const source = makeModelRelation<
+				EventStreamCollection<User>,
+				StreamModels
+			>(executor, "Source");
+			const lookup = makeModelRelation<
+				ControlledCollection<User>,
+				StreamModels
+			>(executor, "Lookup");
 
 			const result = yield* Stream.runCollect(
 				source.stream.pipe(Stream.mapEffect(() => lookup.exists())),
-			).pipe(Effect.provideService(StreamExecutor, executor));
+			);
 
 			expect(result).toEqual([true, true, true]);
 			expect(events).toEqual([

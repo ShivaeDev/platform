@@ -34,6 +34,7 @@ export const acquireTransaction = <
 >(
 	current: DatabaseExecutor<Models, Contract>,
 	models: (orm: TransactionOrm<Contract>) => Models,
+	mode: "test" | "transaction",
 ): Effect.Effect<TransactionResource<Models, Contract>, PrismaError> =>
 	fromPrismaPromise(async () => {
 		const connection = await current.client.runtime().connection();
@@ -50,9 +51,14 @@ export const acquireTransaction = <
 				transaction,
 				executor: {
 					client: current.client,
+					liveness: {
+						closedCode: "RUNTIME.TRANSACTION_CLOSED",
+						open: true,
+					},
+					mode,
 					models: models(transactionOrm),
 					querySemaphore: Semaphore.makeUnsafe(1),
-					transactional: true,
+					transactionSemaphore: current.transactionSemaphore,
 				},
 			};
 		} catch (error) {
@@ -93,6 +99,7 @@ const settleTransaction = <
 ): Effect.Effect<void, PrismaError> =>
 	Effect.uninterruptible(
 		fromPrismaPromise(async () => {
+			resource.executor.liveness.open = false;
 			let disposed = false;
 			let failure: unknown;
 

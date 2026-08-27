@@ -1,5 +1,5 @@
 import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
-import { Effect, type Option, type Stream } from "effect";
+import { Effect, type Layer, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase, type PrismaError } from "../src/index.js";
 import { makeDatabaseIt } from "../src/testing.js";
@@ -32,7 +32,13 @@ type _ContractEmailIsString = Assert<
 	ContractEmail extends string ? true : false
 >;
 
-const Database = makeDatabase<Contract>("@test/Database", { contractJson });
+const Database = makeDatabase<Contract>()("@test/Database", { contractJson });
+const AuditDatabase = makeDatabase<Contract>()("@test/AuditDatabase", {
+	contractJson,
+});
+expectTypeOf<Layer.Success<ReturnType<typeof Database.layer>>>().toEqualTypeOf<
+	Effect.Services<typeof Database>
+>();
 const databaseIt = makeDatabaseIt({
 	database: Database,
 	layer: Database.layer({
@@ -69,8 +75,27 @@ const program = Effect.gen(function* () {
 	expectTypeOf<Effect.Success<typeof byObject>>().not.toBeAny();
 	expectTypeOf<Effect.Success<typeof byObject>>().toEqualTypeOf<Array<User>>();
 	expectTypeOf<Effect.Error<typeof byObject>>().toEqualTypeOf<PrismaError>();
-	expectTypeOf<Effect.Services<typeof byObject>>().not.toBeAny();
-	expectTypeOf<Effect.Services<typeof byObject>>().not.toBeNever();
+	expectTypeOf<Effect.Services<typeof byObject>>().toBeNever();
+
+	const transaction = db.transaction(
+		Effect.gen(function* () {
+			const transactionDb = yield* Database;
+			return yield* transactionDb.User.count();
+		}),
+	);
+	expectTypeOf<Effect.Success<typeof transaction>>().toEqualTypeOf<number>();
+	expectTypeOf<Effect.Services<typeof transaction>>().toBeNever();
+
+	const crossDatabaseTransaction = db.transaction(
+		Effect.gen(function* () {
+			yield* Database;
+			const auditDb = yield* AuditDatabase;
+			return yield* auditDb.User.count();
+		}),
+	);
+	expectTypeOf<
+		Effect.Services<typeof crossDatabaseTransaction>
+	>().toEqualTypeOf<Effect.Services<typeof AuditDatabase>>();
 
 	const byCallback = db.User.where((user) => {
 		expectTypeOf(user).not.toBeAny();
@@ -308,7 +333,16 @@ const program = Effect.gen(function* () {
 	expectTypeOf<
 		Stream.Error<typeof db.User.stream>
 	>().toEqualTypeOf<PrismaError>();
-	expectTypeOf<Stream.Services<typeof db.User.stream>>().not.toBeAny();
+	expectTypeOf<Stream.Services<typeof db.User.stream>>().toBeNever();
+
+	db.transaction(
+		// @ts-expect-error A transaction body must yield Database so queries bind to its transaction implementation.
+		db.User.create({
+			id: crypto.randomUUID(),
+			email: "prebuilt@example.com",
+			name: "Prebuilt",
+		}),
+	);
 
 	// @ts-expect-error Models are generated from the contract.
 	db.Movie;

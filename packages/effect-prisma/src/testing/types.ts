@@ -2,7 +2,7 @@ import type { TestContext, TestOptions, Vitest } from "@effect/vitest";
 import type { Effect, Layer } from "effect";
 import type { AnyDatabase, DatabaseServiceOf } from "../database.js";
 
-export type { AnyDatabase, DatabaseRequirement } from "../database.js";
+export type { AnyDatabase } from "../database.js";
 export type DatabaseService<Database extends AnyDatabase> =
 	DatabaseServiceOf<Database>;
 

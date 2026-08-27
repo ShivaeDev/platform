@@ -14,12 +14,7 @@ import type {
 type Simplify<Value> = { [Key in keyof Value]: Value[Key] };
 
 type QueryValue<Query> =
-	Query extends RelationQuery<
-		infer Value,
-		infer _Requirement,
-		infer _Contract,
-		infer _Model
-	>
+	Query extends RelationQuery<infer Value, infer _Contract, infer _Model>
 		? Value
 		: never;
 
@@ -30,7 +25,6 @@ type AcceptRelatedQuery<
 > =
 	Query extends RelationQuery<
 		infer _Value,
-		infer _Requirement,
 		infer QueryContract,
 		infer QueryModel
 	>
@@ -84,7 +78,6 @@ type WithIncludedRelation<
 
 export type IncludeMethod<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
 > = Contract extends AnyPostgresContract
@@ -113,7 +106,6 @@ export type IncludeMethod<
 							>
 						>
 					>,
-					Requirement,
 					Contract,
 					Model
 				>;
@@ -133,7 +125,6 @@ export type IncludeMethod<
 						RelationName,
 						IncludedQueryValue<Query, Contract, Model, RelationName>
 					>,
-					Requirement,
 					Contract,
 					Model
 				>;
@@ -160,7 +151,6 @@ export type IncludeMethod<
 						RelationName,
 						QueryShapeValue<Shape>
 					>,
-					Requirement,
 					Contract,
 					Model
 				>;

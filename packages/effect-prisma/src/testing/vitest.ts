@@ -8,7 +8,6 @@ import {
 import type {
 	AnyDatabase,
 	DatabaseIt,
-	DatabaseRequirement,
 	MakeDatabaseItOptions,
 } from "./types.js";
 
@@ -19,18 +18,12 @@ export const makeDatabaseIt = <
 >(
 	options: MakeDatabaseItOptions<Database, Provided, LayerError> & {
 		readonly layer: Layer.Layer<
-			Provided | DatabaseRequirement<Database> | Effect.Services<Database>,
+			Provided | Effect.Services<Database>,
 			LayerError
 		>;
 	},
-): DatabaseIt<
-	Database,
-	Provided | DatabaseRequirement<Database> | Effect.Services<Database>
-> => {
-	type Services =
-		| Provided
-		| DatabaseRequirement<Database>
-		| Effect.Services<Database>;
+): DatabaseIt<Database, Provided | Effect.Services<Database>> => {
+	type Services = Provided | Effect.Services<Database>;
 
 	const fixtureIt = effectIt.extend(
 		fixtureName,

@@ -28,6 +28,12 @@ const makeResource = (options: ResourceOptions = {}) => {
 				}
 			},
 		},
+		executor: {
+			liveness: {
+				closedCode: "RUNTIME.TRANSACTION_CLOSED",
+				open: true,
+			},
+		},
 		transaction: {
 			commit: async () => {
 				calls.push("commit");

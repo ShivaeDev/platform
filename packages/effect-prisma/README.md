@@ -29,7 +29,7 @@ instead of silently producing weakened types.
 import { makeDatabase } from "@shivaedev/effect-prisma"
 import { contractJson, type Contract } from "./generated/contract.js"
 
-export const Database = makeDatabase<Contract>("@app/Database", {
+export const Database = makeDatabase<Contract>()("@app/Database", {
   contractJson,
 })
 
@@ -50,7 +50,7 @@ normalization step above is PostgreSQL-only.
 import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
 import { contractJson, type Contract } from "./generated/contract.js"
 
-export const Database = makeSqliteDatabase<Contract>("@app/Database", {
+export const Database = makeSqliteDatabase<Contract>()("@app/Database", {
   contractJson,
 })
 
@@ -66,8 +66,9 @@ per transaction, so in-memory databases are rejected.
 
 That driver is synchronous. Queries block the event loop while they run, and
 because SQLite allows a single writer, overlapping write transactions wait for
-`busy_timeout` before failing with a transient `PrismaConnectionFailure`.
-Serialize write transactions in the application.
+`busy_timeout` while blocking that event loop. The Database Layer therefore
+serializes transaction scopes for its SQLite file; ordinary queries and writes
+remain direct and unsynchronized.
 
 SQLite stores `DateTime` as text, and `prisma-next db init` generates
 `DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
@@ -100,7 +101,8 @@ const program = Effect.gen(function* () {
 ```
 
 Relations are lazy and immutable. Reusing or branching a Relation never changes
-the original, and each execution resolves the active database context again.
+the original, and each Relation closes over the Database implementation that
+created it.
 
 Relations can be loaded directly or refined with another immutable Relation:
 
@@ -163,8 +165,15 @@ yield* db.transaction(
 )
 ```
 
+Build every transactional query from the Database yielded inside the
+transaction body. A Relation created before the boundary remains attached to
+the outer Database by design. A transaction-bound Database or Relation is valid
+only inside that boundary and fails closed if used after settlement.
+
 Nested package transactions reuse the active transaction. Successful programs
-commit; failure, defect, and interruption roll back.
+commit; failure, defect, and interruption roll back. A forced-rollback test
+transaction inside an ordinary commit transaction is refused because the
+drivers do not provide the savepoint semantics that promise would require.
 
 Queries composed concurrently inside a transaction are executed one at a time
 on its single connection. Once a transaction query starts, interruption waits

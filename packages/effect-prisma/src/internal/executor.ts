@@ -1,7 +1,7 @@
 import type { Contract as PrismaContract } from "@prisma-next/contract/types";
 import type { SqlStorage } from "@prisma-next/sql-contract/types";
 import type { ExecutionContext, Runtime } from "@prisma-next/sql-runtime";
-import type { Context, Semaphore } from "effect";
+import type { Semaphore } from "effect";
 
 export type AnySqlContract = PrismaContract<SqlStorage>;
 export type AnyPostgresContract = AnySqlContract;
@@ -22,20 +22,12 @@ export interface DatabaseExecutor<
 	Contract extends AnySqlContract = AnySqlContract,
 > {
 	readonly client: SqlDatabaseClient<Contract>;
+	readonly liveness: {
+		readonly closedCode: string;
+		open: boolean;
+	};
+	readonly mode: "root" | "test" | "transaction";
 	readonly models: Models;
 	readonly querySemaphore: Semaphore.Semaphore | undefined;
-	readonly transactional: boolean;
-}
-
-export type ExecutorService<
-	Models extends object,
-	Contract extends AnySqlContract = AnySqlContract,
-> = Context.Service<
-	ExecutorIdentifier<Models>,
-	DatabaseExecutor<Models, Contract>
->;
-
-export interface ExecutorIdentifier<Models extends object> {
-	readonly _models: Models;
-	readonly _executorIdentifier: unique symbol;
+	readonly transactionSemaphore: Semaphore.Semaphore | undefined;
 }

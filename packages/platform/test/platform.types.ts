@@ -14,7 +14,7 @@ import { makePlatformIt } from "../src/testing.js";
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
 
-const Database = makeDatabase<Contract>("@types/PlatformDatabase", {
+const Database = makeDatabase<Contract>()("@types/PlatformDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({ url: "postgresql://compile-only" });

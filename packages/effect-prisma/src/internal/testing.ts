@@ -5,21 +5,21 @@ export const DatabaseTestingTypeId: unique symbol = Symbol.for(
 	"@shivaedev/effect-prisma/DatabaseTesting",
 );
 
-export interface DatabaseTesting<Requirement> {
+export interface DatabaseTesting<DatabaseId> {
 	readonly withTestTransaction: <A, E, R>(
-		program: Effect.Effect<A, E, R>,
-	) => Effect.Effect<A, E | PrismaError, R | Requirement>;
+		program: Effect.Effect<A, E, R> & (DatabaseId extends R ? unknown : never),
+	) => Effect.Effect<A, E | PrismaError, DatabaseId | Exclude<R, DatabaseId>>;
 }
 
-export interface DatabaseWithTesting<Requirement> {
-	readonly [DatabaseTestingTypeId]: DatabaseTesting<Requirement>;
+export interface DatabaseWithTesting<DatabaseId> {
+	readonly [DatabaseTestingTypeId]: DatabaseTesting<DatabaseId>;
 }
 
-export const getDatabaseTesting = <Requirement>(
+export const getDatabaseTesting = <DatabaseId>(
 	database: object,
-): DatabaseTesting<Requirement> => {
+): DatabaseTesting<DatabaseId> => {
 	const testing = Reflect.get(database, DatabaseTestingTypeId) as
-		| DatabaseTesting<Requirement>
+		| DatabaseTesting<DatabaseId>
 		| undefined;
 
 	if (testing === undefined) {

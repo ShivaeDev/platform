@@ -2,7 +2,6 @@ export { withTestTransaction } from "./testing/transaction.js";
 export type {
 	AnyDatabase,
 	DatabaseIt,
-	DatabaseRequirement,
 	DatabaseService,
 	DatabaseTest,
 	DatabaseTester,

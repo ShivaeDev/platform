@@ -157,7 +157,7 @@ import { makePlatformIt } from "@shivaedev/platform/testing"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
 
-const Database = makeDatabase<Contract>("@consumer/Database", { contractJson })
+const Database = makeDatabase<Contract>()("@consumer/Database", { contractJson })
 const DatabaseLive = Database.layer({ url: "postgresql://compile-only" })
 const runtime = makePlatformRuntime(DatabaseLive)
 const disconnect = nodeSubscriptionSignal({ signals: [new AbortController().signal] })

@@ -18,17 +18,14 @@ type AnyPostgresContract = PrismaContract<SqlStorage>;
 type FieldTuple<Row> = readonly [keyof Row & string, ...(keyof Row & string)[]];
 type Simplify<Value> = { [Key in keyof Value]: Value[Key] };
 
-type TerminalMethod<Method, Requirement> = Method extends (
+type TerminalMethod<Method> = Method extends (
 	...arguments_: infer Arguments
 ) => PromiseLike<infer Value>
-	? (
-			...arguments_: Arguments
-		) => Effect.Effect<Awaited<Value>, PrismaError, Requirement>
+	? (...arguments_: Arguments) => Effect.Effect<Awaited<Value>, PrismaError>
 	: never;
 
 type SelectMethod<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
 > = Contract extends AnyPostgresContract
@@ -48,7 +45,6 @@ type SelectMethod<
 						Pick<DefaultModelRow<Contract, Model>, Fields[number]>,
 						State
 					>,
-					Requirement,
 					Contract,
 					Model
 				>;
@@ -60,7 +56,7 @@ type SelectMethod<
 					? (
 							...arguments_: Arguments
 						) => Result extends object
-							? Relation<Result, Requirement, Contract, Model>
+							? Relation<Result, Contract, Model>
 							: never
 					: never;
 			}
@@ -93,7 +89,6 @@ type AggregateSuccess<
 
 type AggregateMethod<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
 > = Contract extends AnyPostgresContract
@@ -104,8 +99,7 @@ type AggregateMethod<
 					configure?: AggregateConfigure<Collection>,
 				): Effect.Effect<
 					AggregateSuccess<Collection, Contract, Model, Spec>,
-					PrismaError,
-					Requirement
+					PrismaError
 				>;
 			}
 		: Record<never, never>
@@ -113,7 +107,6 @@ type AggregateMethod<
 
 type CollectionMethods<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
 > = Contract extends AnyPostgresContract
@@ -128,7 +121,6 @@ type CollectionMethods<
 					...fields: Fields
 				): Relation<
 					GroupedCollection<Contract, Model, Fields>,
-					Requirement,
 					Contract,
 					Model
 				>;
@@ -138,21 +130,21 @@ type CollectionMethods<
 								Record<keyof DefaultModelRow<Contract, Model> & string, unknown>
 							>
 						: never,
-				): Relation<Collection, Requirement, Contract, Model>;
+				): Relation<Collection, Contract, Model>;
 				distinct<Fields extends FieldTuple<DefaultModelRow<Contract, Model>>>(
 					...fields: Fields
-				): Relation<Collection, Requirement, Contract, Model>;
+				): Relation<Collection, Contract, Model>;
 				distinctOn<Fields extends FieldTuple<DefaultModelRow<Contract, Model>>>(
 					...fields: State extends { readonly hasOrderBy: true }
 						? Fields
 						: never
-				): Relation<Collection, Requirement, Contract, Model>;
+				): Relation<Collection, Contract, Model>;
 			} & (State extends { readonly hasWhere: true }
 				? {
 						readonly [Key in
 							| "delete"
 							| "deleteAll"
-							| "deleteCount"]: TerminalMethod<Collection[Key], Requirement>;
+							| "deleteCount"]: TerminalMethod<Collection[Key]>;
 					}
 				: Record<never, never>)
 		: Record<never, never>
@@ -160,7 +152,6 @@ type CollectionMethods<
 
 type CollectionConveniences<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
 > = Contract extends AnyPostgresContract
@@ -171,26 +162,25 @@ type CollectionConveniences<
 			infer _State
 		>
 		? {
-				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
-				count(): RelationQuery<number, Requirement, Contract, Model>;
-				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
+				readonly stream: Stream.Stream<Row, PrismaError>;
+				count(): RelationQuery<number, Contract, Model>;
+				exists(): Effect.Effect<boolean, PrismaError>;
 			}
 		: Record<never, never>
 	: CollectionResult<Collection> extends ReadonlyArray<infer Row>
 		? {
-				readonly stream: Stream.Stream<Row, PrismaError, Requirement>;
-				count(): Effect.Effect<number, PrismaError, Requirement>;
-				exists(): Effect.Effect<boolean, PrismaError, Requirement>;
+				readonly stream: Stream.Stream<Row, PrismaError>;
+				count(): Effect.Effect<number, PrismaError>;
+				exists(): Effect.Effect<boolean, PrismaError>;
 			}
 		: Record<never, never>;
 
 export type PrismaRelationMethods<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
-> = SelectMethod<Collection, Requirement, Contract, Model> &
-	IncludeMethod<Collection, Requirement, Contract, Model> &
-	AggregateMethod<Collection, Requirement, Contract, Model> &
-	CollectionMethods<Collection, Requirement, Contract, Model> &
-	CollectionConveniences<Collection, Requirement, Contract, Model>;
+> = SelectMethod<Collection, Contract, Model> &
+	IncludeMethod<Collection, Contract, Model> &
+	AggregateMethod<Collection, Contract, Model> &
+	CollectionMethods<Collection, Contract, Model> &
+	CollectionConveniences<Collection, Contract, Model>;

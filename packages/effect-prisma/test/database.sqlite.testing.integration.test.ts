@@ -7,7 +7,7 @@ import { makeTemporaryDatabase } from "./sqlite/support.js";
 
 const temporary = makeTemporaryDatabase();
 
-const Database = makeSqliteDatabase<Contract>("@test/SqliteTestingDatabase", {
+const Database = makeSqliteDatabase<Contract>()("@test/SqliteTestingDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({ path: temporary.path });
@@ -84,10 +84,13 @@ effectDB(
 
 		yield* withTestTransaction(
 			Database,
-			db.User.create({
-				id: nestedId,
-				email: `${nestedId}@example.test`,
-				name: "Nested",
+			Effect.gen(function* () {
+				const transactionDb = yield* Database;
+				yield* transactionDb.User.create({
+					id: nestedId,
+					email: `${nestedId}@example.test`,
+					name: "Nested",
+				});
 			}),
 		);
 

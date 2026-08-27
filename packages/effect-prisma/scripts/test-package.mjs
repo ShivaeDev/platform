@@ -159,7 +159,7 @@ import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
 
-const Database = makeDatabase<Contract>("@consumer/Database", { contractJson })
+const Database = makeDatabase<Contract>()("@consumer/Database", { contractJson })
 const it = makeDatabaseIt({
   database: Database,
   layer: Database.layer({ url: "postgresql://compile-only" }),
@@ -184,13 +184,13 @@ void program
 	);
 	await writeFile(
 		join(temporaryDirectory, "dist-types.ts"),
-		`import type { DatabaseRequirement, DatabaseServiceOf, PrismaError } from "@shivaedev/effect-prisma"
+		`import type { DatabaseServiceOf, PrismaError } from "@shivaedev/effect-prisma"
 import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
 import type { Effect } from "effect"
 import type { Contract } from "./sqlite-contract.js"
 import contractJson from "./sqlite-contract.json" with { type: "json" }
 
-const Database = makeSqliteDatabase<Contract>("@consumer/SqliteDatabase", {
+const Database = makeSqliteDatabase<Contract>()("@consumer/SqliteDatabase", {
   contractJson,
 })
 type Service = DatabaseServiceOf<typeof Database>
@@ -205,17 +205,21 @@ export const exactModelKeys: "Post" | "User" | "transaction" = modelKey
 // is the relation itself, never \`Relation | undefined\`.
 export const postRelation: Service["Post"] = service.Post
 
-// The executor requirement stays recoverable from the definition.
-declare const requirement: [DatabaseRequirement<typeof Database>] extends [never]
-  ? "never"
-  : "resolved"
-export const resolvedRequirement: "resolved" = requirement
+// Relations close over their Database implementation and leak no service.
+declare const relationServices: [Effect.Services<Service["User"]>] extends [never]
+  ? "closed"
+  : "leaked"
+export const closedRelation: "closed" = relationServices
 
-// ... and it is exactly the requirement \`transaction\` adds, which is what lets
-// consumers annotate their own write lanes against the database.
+// Transactions provide Database to their body while preserving other services.
 export const lane = <A, E, R>(
-  program: Effect.Effect<A, E, R>,
-): Effect.Effect<A, E | PrismaError, R | DatabaseRequirement<typeof Database>> =>
+  program: Effect.Effect<A, E, R> &
+    (Effect.Services<typeof Database> extends R ? unknown : never),
+): Effect.Effect<
+  A,
+  E | PrismaError,
+  Exclude<R, Effect.Services<typeof Database>>
+> =>
   service.transaction(program)
 `,
 	);

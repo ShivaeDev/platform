@@ -5,7 +5,7 @@ import { makeDatabaseIt, withTestTransaction } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
 const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
-const Database = makeDatabase<Contract>("@test/TestingDatabase", {
+const Database = makeDatabase<Contract>()("@test/TestingDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({
@@ -97,10 +97,13 @@ effectDB(
 
 		yield* withTestTransaction(
 			Database,
-			db.User.create({
-				id: nestedId,
-				email: `${nestedId}@example.test`,
-				name: "Nested",
+			Effect.gen(function* () {
+				const transactionDb = yield* Database;
+				yield* transactionDb.User.create({
+					id: nestedId,
+					email: `${nestedId}@example.test`,
+					name: "Nested",
+				});
 			}),
 		);
 

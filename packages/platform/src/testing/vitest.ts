@@ -1,7 +1,6 @@
 import type { Vitest } from "@effect/vitest";
 import {
 	type AnyDatabase,
-	type DatabaseRequirement,
 	type DatabaseService,
 	withTestTransaction,
 } from "@shivaedev/effect-prisma/testing";
@@ -34,7 +33,7 @@ export const makePlatformIt =
 			Extension
 		> & {
 			readonly layer: Layer.Layer<
-				Provided | DatabaseRequirement<Database> | Effect.Services<Database>,
+				Provided | Effect.Services<Database>,
 				LayerError
 			>;
 		},
@@ -45,14 +44,11 @@ export const makePlatformIt =
 			CallerResult<CreateCaller>,
 			Extension
 		>,
-		Provided | DatabaseRequirement<Database> | Effect.Services<Database>
+		Provided | Effect.Services<Database>
 	> => {
 		type Options = CallerOptions<CreateCaller>;
 		type Caller = CallerResult<CreateCaller>;
-		type Services =
-			| Provided
-			| DatabaseRequirement<Database>
-			| Effect.Services<Database>;
+		type Services = Provided | Effect.Services<Database>;
 		type Harness = PlatformHarness<Database, Options, Caller, Extension>;
 
 		const trpcIt = makeTrpcHarnessIt<

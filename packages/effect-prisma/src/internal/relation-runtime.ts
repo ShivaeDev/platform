@@ -1,12 +1,7 @@
-import type { Context } from "effect";
 import { Effect, Effectable, Option, type Stream } from "effect";
 import type { PrismaError } from "../error.js";
 import type { Relation } from "../relation.js";
-import type {
-	AnyPostgresContract,
-	DatabaseExecutor,
-	ExecutorIdentifier,
-} from "./executor.js";
+import type { AnyPostgresContract, DatabaseExecutor } from "./executor.js";
 import { fromPrismaPromise } from "./promise.js";
 import { executeQuery } from "./query-execution.js";
 import {
@@ -24,10 +19,7 @@ interface RelationRuntime<
 	Models extends object,
 	Contract extends AnyPostgresContract,
 > {
-	readonly executor: Context.Service<
-		ExecutorIdentifier<Models>,
-		DatabaseExecutor<Models, Contract>
-	>;
+	readonly executor: DatabaseExecutor<Models, Contract>;
 	readonly recipe: RelationRecipe;
 	readonly terminal?: PropertyKey;
 }
@@ -93,17 +85,13 @@ const evaluateResult = (
 interface RelationValue<
 	Models extends object,
 	Contract extends AnyPostgresContract,
-> extends Effect.Effect<unknown, PrismaError, ExecutorIdentifier<Models>> {
+> extends Effect.Effect<unknown, PrismaError> {
 	readonly [RelationPlanTypeId]: {
 		readonly recipe: RelationRecipe;
 		readonly terminal?: PropertyKey;
 	};
 	readonly runtime: RelationRuntime<Models, Contract>;
-	readonly stream: Stream.Stream<
-		unknown,
-		PrismaError,
-		ExecutorIdentifier<Models>
-	>;
+	readonly stream: Stream.Stream<unknown, PrismaError>;
 }
 
 const relationEffect = <
@@ -111,15 +99,13 @@ const relationEffect = <
 	Contract extends AnyPostgresContract,
 >(
 	self: RelationValue<Models, Contract>,
-): Effect.Effect<unknown, PrismaError, ExecutorIdentifier<Models>> =>
-	Effect.flatMap(self.runtime.executor, (executor) =>
-		executeQuery(
-			executor,
-			Effect.suspend(() =>
-				evaluateResult(
-					replayRecipe(executor.models, self.runtime.recipe),
-					self.runtime.terminal,
-				),
+): Effect.Effect<unknown, PrismaError> =>
+	executeQuery(
+		self.runtime.executor,
+		Effect.suspend(() =>
+			evaluateResult(
+				replayRecipe(self.runtime.executor.models, self.runtime.recipe),
+				self.runtime.terminal,
 			),
 		),
 	).pipe(
@@ -145,11 +131,7 @@ const RelationPrototype = {
 			return relationEffect(this);
 		},
 	}),
-	get stream(): Stream.Stream<
-		unknown,
-		PrismaError,
-		ExecutorIdentifier<Record<string, unknown>>
-	> {
+	get stream(): Stream.Stream<unknown, PrismaError> {
 		const relation = this as RelationValue<
 			Record<string, unknown>,
 			AnyPostgresContract
@@ -210,15 +192,13 @@ const makeRelationProxy = <
 export const makeModelRelation = <
 	Collection,
 	Models extends object,
-	Contract extends AnyPostgresContract = AnyPostgresContract,
+	ExecutorContract extends AnyPostgresContract = AnyPostgresContract,
+	Model extends string = string,
 >(
-	executor: Context.Service<
-		ExecutorIdentifier<Models>,
-		DatabaseExecutor<Models, Contract>
-	>,
-	model: string,
-): Relation<Collection, ExecutorIdentifier<Models>> =>
+	executor: DatabaseExecutor<Models, ExecutorContract>,
+	model: Model,
+): Relation<Collection, undefined, Model> =>
 	makeRelationProxy({
 		executor,
 		recipe: rootRecipe(model),
-	}) as Relation<Collection, ExecutorIdentifier<Models>>;
+	}) as Relation<Collection, undefined, Model>;

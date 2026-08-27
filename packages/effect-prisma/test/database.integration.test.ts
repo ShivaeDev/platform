@@ -9,7 +9,7 @@ const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
 const integrationEffect =
 	databaseUrl === undefined ? it.effect.skip : it.effect;
 
-const Database = makeDatabase<Contract>("@test/IntegrationDatabase", {
+const Database = makeDatabase<Contract>()("@test/IntegrationDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({
@@ -31,10 +31,13 @@ integrationEffect("owns the client and commits successful transactions", () =>
 			expect(exists).toBe(false);
 
 			yield* db.transaction(
-				db.User.create({
-					id: crypto.randomUUID(),
-					email,
-					name: "Committed",
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					yield* transactionDb.User.create({
+						id: crypto.randomUUID(),
+						email,
+						name: "Committed",
+					});
 				}),
 			);
 
@@ -109,13 +112,19 @@ integrationEffect("reuses the active transaction for nested boundaries", () =>
 			const relation = db.User.where({ email });
 
 			yield* db.transaction(
-				db.transaction(
-					db.User.create({
-						id: crypto.randomUUID(),
-						email,
-						name: "Nested",
-					}),
-				),
+				Effect.gen(function* () {
+					const outer = yield* Database;
+					yield* outer.transaction(
+						Effect.gen(function* () {
+							const inner = yield* Database;
+							yield* inner.User.create({
+								id: crypto.randomUUID(),
+								email,
+								name: "Nested",
+							});
+						}),
+					);
+				}),
 			);
 
 			expect(yield* relation.exists()).toBe(true);
@@ -178,33 +187,34 @@ integrationEffect(
 		),
 );
 
-integrationEffect(
-	"replays an existing Relation in the transaction and rolls back failures",
-	() =>
-		withDatabase(
-			Effect.gen(function* () {
-				const db = yield* Database;
-				const email = uniqueEmail("failure");
-				const relation = db.User.where({ email });
+integrationEffect("uses the transaction Database and rolls back failures", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const email = uniqueEmail("failure");
+			const relation = db.User.where({ email });
 
-				const exit = yield* Effect.exit(
-					db.transaction(
-						Effect.gen(function* () {
-							yield* db.User.create({
-								id: crypto.randomUUID(),
-								email,
-								name: "Rolled back",
-							});
-							expect(yield* relation.exists()).toBe(true);
-							return yield* Effect.fail("expected failure");
-						}),
-					),
-				);
+			const exit = yield* Effect.exit(
+				db.transaction(
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id: crypto.randomUUID(),
+							email,
+							name: "Rolled back",
+						});
+						expect(yield* transactionDb.User.where({ email }).exists()).toBe(
+							true,
+						);
+						return yield* Effect.fail("expected failure");
+					}),
+				),
+			);
 
-				expect(Exit.isFailure(exit)).toBe(true);
-				expect(yield* relation.exists()).toBe(false);
-			}),
-		),
+			expect(Exit.isFailure(exit)).toBe(true);
+			expect(yield* relation.exists()).toBe(false);
+		}),
+	),
 );
 
 integrationEffect("rolls back interrupted transactions before returning", () =>
@@ -218,7 +228,8 @@ integrationEffect("rolls back interrupted transactions before returning", () =>
 			const fiber = yield* Effect.forkDetach(
 				db.transaction(
 					Effect.gen(function* () {
-						yield* db.User.create({
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
 							id: crypto.randomUUID(),
 							email,
 							name: "Interrupted",
@@ -249,11 +260,15 @@ integrationEffect(
 
 				const value = yield* withTestTransaction(
 					Database,
-					db.User.create({
-						id,
-						email: `${id}@example.test`,
-						name: "Test transaction",
-					}).pipe(Effect.as(42)),
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id,
+							email: `${id}@example.test`,
+							name: "Test transaction",
+						});
+						return 42;
+					}),
 				);
 
 				expect(value).toBe(42);
@@ -275,7 +290,8 @@ integrationEffect(
 					withTestTransaction(
 						Database,
 						Effect.gen(function* () {
-							yield* db.User.create({
+							const transactionDb = yield* Database;
+							yield* transactionDb.User.create({
 								id,
 								email: `${id}@example.test`,
 								name: "Failed test transaction",
