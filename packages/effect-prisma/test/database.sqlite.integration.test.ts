@@ -17,9 +17,9 @@ import { type Contract, contractJson } from "./sqlite/contract.js";
 import { makeTemporaryDatabase } from "./sqlite/support.js";
 
 const temporary = makeTemporaryDatabase();
-const otherTemporary = makeTemporaryDatabase();
+const auditTemporary = makeTemporaryDatabase();
 afterAll(temporary.remove);
-afterAll(otherTemporary.remove);
+afterAll(auditTemporary.remove);
 
 const Database = makeSqliteDatabase<Contract>()("@test/SqliteDatabase", {
 	contractJson,
@@ -31,8 +31,7 @@ const AuditDatabase = makeSqliteDatabase<Contract>()(
 	},
 );
 const DatabaseLive = Database.layer({ path: temporary.path });
-const OtherDatabaseLive = Database.layer({ path: otherTemporary.path });
-const AuditDatabaseLive = AuditDatabase.layer({ path: temporary.path });
+const AuditDatabaseLive = AuditDatabase.layer({ path: auditTemporary.path });
 const withDatabase = Effect.provide(DatabaseLive);
 const withDatabases = Effect.provide(
 	Layer.merge(DatabaseLive, AuditDatabaseLive),
@@ -95,6 +94,33 @@ it.effect("owns the client and commits successful transactions", () =>
 			);
 
 			expect(yield* relation.exists()).toBe(true);
+		}),
+	),
+);
+
+it.effect("runs a captured Relation in the active transaction", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const email = uniqueEmail("captured-relation");
+			const create = db.User.create({
+				id: crypto.randomUUID(),
+				email,
+				name: "Captured",
+			});
+
+			const failure = yield* Effect.flip(
+				db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+						yield* create;
+						return yield* Effect.fail("rollback");
+					}),
+				),
+			);
+
+			expect(failure).toBe("rollback");
+			expect(yield* db.User.where({ email }).exists()).toBe(false);
 		}),
 	),
 );
@@ -230,53 +256,6 @@ it.effect("reuses the active transaction for nested boundaries", () =>
 	),
 );
 
-it.effect("keeps nested transactions within their originating Layer", () =>
-	withDatabase(
-		Effect.gen(function* () {
-			const primaryDb = yield* Database;
-			const primaryEmail = uniqueEmail("primary-layer");
-			const otherEmail = uniqueEmail("other-layer");
-
-			const otherCounts = yield* Effect.gen(function* () {
-				const otherDb = yield* Database;
-				yield* otherDb.transaction(
-					Effect.gen(function* () {
-						const transactionOtherDb = yield* Database;
-						yield* transactionOtherDb.User.create({
-							id: crypto.randomUUID(),
-							email: otherEmail,
-							name: "Other Layer",
-						});
-						yield* primaryDb.transaction(
-							Effect.gen(function* () {
-								const transactionPrimaryDb = yield* Database;
-								yield* transactionPrimaryDb.User.create({
-									id: crypto.randomUUID(),
-									email: primaryEmail,
-									name: "Primary Layer",
-								});
-							}),
-						);
-					}),
-				);
-
-				return {
-					other: yield* otherDb.User.where({ email: otherEmail }).count(),
-					primary: yield* otherDb.User.where({ email: primaryEmail }).count(),
-				};
-			}).pipe(Effect.provide(OtherDatabaseLive));
-
-			expect(otherCounts).toEqual({ other: 1, primary: 0 });
-			expect(yield* primaryDb.User.where({ email: primaryEmail }).count()).toBe(
-				1,
-			);
-			expect(yield* primaryDb.User.where({ email: otherEmail }).count()).toBe(
-				0,
-			);
-		}),
-	),
-);
-
 it.effect("serializes concurrent queries inside a transaction", () =>
 	withDatabase(
 		withTestTransaction(
@@ -375,7 +354,7 @@ it.effect("fails closed when a transaction Relation escapes settlement", () =>
 				}),
 			);
 			const relationError = yield* Effect.flip(escaped.relation.exists());
-			const streamExit = yield* Effect.exit(Stream.runCollect(escaped.stream));
+			const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
 			const transactionError = yield* Effect.flip(
 				escaped.db.transaction(
 					Effect.gen(function* () {
@@ -388,11 +367,36 @@ it.effect("fails closed when a transaction Relation escapes settlement", () =>
 				_tag: "PrismaRuntimeFailure",
 				code: "RUNTIME.TRANSACTION_CLOSED",
 			});
-			expect(Exit.isFailure(streamExit)).toBe(true);
+			expect(streamError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
 			expect(transactionError.reason).toMatchObject({
 				_tag: "PrismaRuntimeFailure",
 				code: "RUNTIME.TRANSACTION_CLOSED",
 			});
+		}),
+	),
+);
+
+it.effect("refuses an escaped transaction Relation used as an include", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const escapedPost = yield* db.transaction(
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					return transactionDb.Post;
+				}),
+			);
+			const exit = yield* Effect.exit(db.User.include("posts", escapedPost));
+
+			expect(Exit.isFailure(exit)).toBe(true);
+			if (Exit.isFailure(exit)) {
+				expect(Cause.pretty(exit.cause)).toContain(
+					"Included Relation is closed",
+				);
+			}
 		}),
 	),
 );
@@ -403,7 +407,7 @@ it.effect("fails closed when Database values escape their Layer", () =>
 			const db = yield* Database;
 			return { db, stream: db.User.stream };
 		}).pipe(Effect.provide(DatabaseLive));
-		const streamExit = yield* Effect.exit(Stream.runCollect(escaped.stream));
+		const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
 		const transactionError = yield* Effect.flip(
 			escaped.db
 				.transaction(
@@ -414,7 +418,10 @@ it.effect("fails closed when Database values escape their Layer", () =>
 				.pipe(Effect.provide(DatabaseLive)),
 		);
 
-		expect(Exit.isFailure(streamExit)).toBe(true);
+		expect(streamError.reason).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.DATABASE_CLOSED",
+		});
 		expect(transactionError.reason).toMatchObject({
 			_tag: "PrismaRuntimeFailure",
 			code: "RUNTIME.DATABASE_CLOSED",

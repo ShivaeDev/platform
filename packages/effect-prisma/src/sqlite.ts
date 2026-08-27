@@ -98,7 +98,6 @@ export const makeSqliteDatabase =
 						return {
 							client,
 							identity: {},
-							scopeIdentity: {},
 							liveness: {
 								closedCode: "RUNTIME.DATABASE_CLOSED",
 								open: true,

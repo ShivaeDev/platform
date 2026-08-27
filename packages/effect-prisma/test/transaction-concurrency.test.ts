@@ -24,7 +24,6 @@ const makeExecutor = (
 ): DatabaseExecutor<Models> => ({
 	client: {} as DatabaseExecutor<Models>["client"],
 	identity: {},
-	scopeIdentity: {},
 	liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
 	mode: querySemaphore === undefined ? "root" : "transaction",
 	models: { User: new ControlledCollection(execute) },
@@ -188,7 +187,6 @@ it.effect(
 			const executor: DatabaseExecutor<StreamModels> = {
 				client: {} as DatabaseExecutor<StreamModels>["client"],
 				identity: {},
-				scopeIdentity: {},
 				liveness: {
 					closedCode: "RUNTIME.TRANSACTION_CLOSED",
 					open: true,

@@ -1,6 +1,7 @@
 import type { RelationRecipe } from "./recipe.js";
 
 export interface RelationPlan {
+	readonly liveness: { readonly open: boolean };
 	readonly owner: object;
 	readonly recipe: RelationRecipe;
 	readonly terminal?: PropertyKey;

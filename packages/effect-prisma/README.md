@@ -38,7 +38,13 @@ export const DatabaseLive = Database.layer({
 })
 ```
 
-The Layer owns the PostgreSQL client and closes it with its Effect scope.
+Each identifier names one exported Database definition, and each composed
+runtime provides one live Layer for that definition. Reuse that singleton;
+duplicate identifiers and multiple simultaneous Layers for one definition are
+outside the supported composition.
+
+The Layer owns the PostgreSQL client and closes it with its structured Effect
+scope. Database values do not outlive that scope.
 
 ## SQLite (experimental)
 
@@ -66,9 +72,10 @@ per transaction, so in-memory databases are rejected.
 
 That driver is synchronous. Queries block the event loop while they run, and
 because SQLite allows a single writer, overlapping write transactions wait for
-`busy_timeout` while blocking that event loop. The Database Layer therefore
-serializes transaction scopes for its SQLite file; ordinary queries and writes
-remain direct and unsynchronized.
+`busy_timeout` while blocking that event loop. The supported Database Layer
+therefore serializes its transaction scopes; ordinary queries and writes remain
+direct and unsynchronized. Do not coordinate multiple Database Layers against
+the same SQLite file.
 
 SQLite stores `DateTime` as text, and `prisma-next db init` generates
 `DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
@@ -165,10 +172,12 @@ yield* db.transaction(
 )
 ```
 
-Build every transactional query from the Database yielded inside the
-transaction body. A Relation created before the boundary remains attached to
-the outer Database by design. A transaction-bound Database or Relation is valid
-only inside that boundary and fails closed if used after settlement.
+Relations from the singleton Database resolve its active transaction when they
+execute, so a Relation created before the boundary still participates when used
+inside it. The Database yielded inside the body is the transaction-bound
+implementation for methods constructed there. A transaction-bound Database or
+Relation is valid only inside that boundary and fails closed if used after
+settlement.
 
 Nested package transactions reuse the active transaction. Successful programs
 commit; failure, defect, and interruption roll back. A forced-rollback test

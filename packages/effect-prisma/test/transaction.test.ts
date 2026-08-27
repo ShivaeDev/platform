@@ -32,7 +32,6 @@ const makeResource = (options: ResourceOptions = {}) => {
 		executor: {
 			client: {},
 			identity: {},
-			scopeIdentity: {},
 			liveness: {
 				closedCode: "RUNTIME.TRANSACTION_CLOSED",
 				open: true,

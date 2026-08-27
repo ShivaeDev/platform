@@ -67,6 +67,9 @@ const replayPlan = (
 	plan: RelationPlan,
 	owner: object,
 ): unknown => {
+	if (!plan.liveness.open) {
+		throw new TypeError("Included Relation is closed");
+	}
 	if (plan.owner !== owner) {
 		throw new TypeError("Included Relations must use the same Database");
 	}

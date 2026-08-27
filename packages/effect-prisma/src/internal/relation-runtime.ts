@@ -21,6 +21,7 @@ interface RelationRuntime<
 > {
 	readonly executor: DatabaseExecutor<Models, Contract>;
 	readonly recipe: RelationRecipe;
+	readonly resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>>;
 	readonly terminal?: PropertyKey;
 }
 
@@ -105,16 +106,14 @@ const relationEffect = <
 	self: RelationValue,
 ): Effect.Effect<unknown, PrismaError> => {
 	const runtime = runtimeOf<Models, Contract>(self);
-	return executeQuery(
-		runtime.executor,
-		Effect.suspend(() =>
-			evaluateResult(
-				replayRecipe(
-					runtime.executor.models,
-					runtime.recipe,
-					runtime.executor.identity,
+	return Effect.flatMap(runtime.resolveExecutor, (executor) =>
+		executeQuery(
+			executor,
+			Effect.suspend(() =>
+				evaluateResult(
+					replayRecipe(executor.models, runtime.recipe, executor.identity),
+					runtime.terminal,
 				),
-				runtime.terminal,
 			),
 		),
 	).pipe(
@@ -144,7 +143,7 @@ const RelationPrototype = {
 		const runtime = runtimeOf<Record<string, unknown>, AnyPostgresContract>(
 			relation,
 		);
-		return makeRelationStream(runtime.executor, runtime.recipe);
+		return makeRelationStream(runtime.resolveExecutor, runtime.recipe);
 	},
 };
 
@@ -186,6 +185,7 @@ const makeRelationProxy = <
 		},
 	});
 	const plan = {
+		liveness: runtime.executor.liveness,
 		owner: runtime.executor.identity,
 		recipe: runtime.recipe,
 		...(runtime.terminal === undefined ? {} : { terminal: runtime.terminal }),
@@ -205,8 +205,12 @@ export const makeModelRelation = <
 >(
 	executor: DatabaseExecutor<Models, ExecutorContract>,
 	model: Model,
+	resolveExecutor: Effect.Effect<
+		DatabaseExecutor<Models, ExecutorContract>
+	> = Effect.succeed(executor),
 ): Relation<Collection, undefined, Model> =>
 	makeRelationProxy({
 		executor,
 		recipe: rootRecipe(model),
+		resolveExecutor,
 	}) as Relation<Collection, undefined, Model>;

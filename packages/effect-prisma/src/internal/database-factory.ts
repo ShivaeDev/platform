@@ -159,7 +159,6 @@ export const makeSqlDatabase = <
 			"Database identifier uses a reserved internal namespace",
 		);
 	}
-
 	type Models = DefaultModels<Contract>;
 	type DatabaseId = DatabaseIdentifier<Contract, Identifier>;
 
@@ -248,6 +247,11 @@ export const makeSqlDatabase = <
 		current: DatabaseExecutor<Models, Contract>,
 	): DatabaseService<Contract, Identifier> {
 		let facade: DatabaseService<Contract, Identifier>;
+		const resolveExecutor = Effect.suspend(() =>
+			current.liveness.open
+				? Effect.map(ActiveTransaction, (active) => active?.executor ?? current)
+				: Effect.succeed(current),
+		);
 		const target = Object.assign(Object.create(null), {
 			transaction: <A, E, R>(
 				program: Effect.Effect<A, E, R> &
@@ -260,11 +264,7 @@ export const makeSqlDatabase = <
 						);
 					}
 					return Effect.flatMap(ActiveTransaction, (active) => {
-						const selected =
-							active !== undefined &&
-							active.executor.scopeIdentity === current.scopeIdentity
-								? active
-								: { executor: current, facade };
+						const selected = active ?? { executor: current, facade };
 						return runTransaction(
 							selected.executor,
 							selected.facade,
@@ -284,7 +284,7 @@ export const makeSqlDatabase = <
 				if (typeof property !== "string") {
 					return undefined;
 				}
-				return makeModelRelation(current, property);
+				return makeModelRelation(current, property, resolveExecutor);
 			},
 		});
 		executors.set(facade, current);
