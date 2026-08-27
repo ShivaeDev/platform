@@ -12,13 +12,21 @@ export type TransactionOrm<Contract extends AnySqlContract> = ReturnType<
 	typeof orm<Contract>
 >;
 
+export const withTransactionSemaphore = <A, E, R>(
+	semaphore: Semaphore.Semaphore | undefined,
+	transaction: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+	semaphore === undefined ? transaction : semaphore.withPermit(transaction);
+
 export interface TransactionResource<
 	Models extends object,
 	Contract extends AnySqlContract,
 > {
 	readonly connection: RuntimeConnection;
 	readonly transaction: RuntimeTransaction;
-	readonly executor: DatabaseExecutor<Models, Contract>;
+	readonly executor: DatabaseExecutor<Models, Contract> & {
+		readonly querySemaphore: Semaphore.Semaphore;
+	};
 }
 
 const runtimeFailure = (
@@ -34,6 +42,7 @@ export const acquireTransaction = <
 >(
 	current: DatabaseExecutor<Models, Contract>,
 	models: (orm: TransactionOrm<Contract>) => Models,
+	mode: "test" | "transaction",
 ): Effect.Effect<TransactionResource<Models, Contract>, PrismaError> =>
 	fromPrismaPromise(async () => {
 		const connection = await current.client.runtime().connection();
@@ -50,9 +59,16 @@ export const acquireTransaction = <
 				transaction,
 				executor: {
 					client: current.client,
+					identity: current.identity,
+					liveness: {
+						closedCode: "RUNTIME.TRANSACTION_CLOSED",
+						open: true,
+					},
+					mode,
 					models: models(transactionOrm),
 					querySemaphore: Semaphore.makeUnsafe(1),
-					transactional: true,
+					transactionIdentity: {},
+					transactionSemaphore: current.transactionSemaphore,
 				},
 			};
 		} catch (error) {
@@ -92,62 +108,70 @@ const settleTransaction = <
 	commitOnSuccess: boolean,
 ): Effect.Effect<void, PrismaError> =>
 	Effect.uninterruptible(
-		fromPrismaPromise(async () => {
-			let disposed = false;
-			let failure: unknown;
+		Effect.sync(() => {
+			resource.executor.liveness.open = false;
+		}).pipe(
+			Effect.andThen(
+				resource.executor.querySemaphore.withPermit(
+					fromPrismaPromise(async () => {
+						let disposed = false;
+						let failure: unknown;
 
-			const destroy = async (reason: unknown): Promise<void> => {
-				if (disposed) {
-					return;
-				}
-				disposed = true;
-				await resource.connection.destroy(reason).catch(() => undefined);
-			};
+						const destroy = async (reason: unknown): Promise<void> => {
+							if (disposed) {
+								return;
+							}
+							disposed = true;
+							await resource.connection.destroy(reason).catch(() => undefined);
+						};
 
-			if (commitOnSuccess && Exit.isSuccess(exit)) {
-				try {
-					await resource.transaction.commit();
-				} catch (commitError) {
-					try {
-						await resource.transaction.rollback();
-					} catch {
-						await destroy(commitError);
-					}
-					failure = runtimeFailure(
-						"RUNTIME.TRANSACTION_COMMIT_FAILED",
-						commitError,
-					);
-				}
-			} else {
-				try {
-					await resource.transaction.rollback();
-				} catch (rollbackError) {
-					await destroy(rollbackError);
-					failure = runtimeFailure(
-						"RUNTIME.TRANSACTION_ROLLBACK_FAILED",
-						rollbackError,
-					);
-				}
-			}
+						if (commitOnSuccess && Exit.isSuccess(exit)) {
+							try {
+								await resource.transaction.commit();
+							} catch (commitError) {
+								try {
+									await resource.transaction.rollback();
+								} catch {
+									await destroy(commitError);
+								}
+								failure = runtimeFailure(
+									"RUNTIME.TRANSACTION_COMMIT_FAILED",
+									commitError,
+								);
+							}
+						} else {
+							try {
+								await resource.transaction.rollback();
+							} catch (rollbackError) {
+								await destroy(rollbackError);
+								failure = runtimeFailure(
+									"RUNTIME.TRANSACTION_ROLLBACK_FAILED",
+									rollbackError,
+								);
+							}
+						}
 
-			if (!disposed) {
-				try {
-					await resource.connection.release();
-				} catch (releaseError) {
-					await destroy(releaseError);
-					if (failure !== undefined) {
-						throw runtimeFailure(
-							"RUNTIME.TRANSACTION_RELEASE_FAILED",
-							failure,
-							{ releaseError },
-						);
-					}
-					throw releaseError;
-				}
-			}
+						if (!disposed) {
+							try {
+								await resource.connection.release();
+							} catch (releaseError) {
+								await destroy(releaseError);
+								if (failure !== undefined) {
+									throw runtimeFailure(
+										"RUNTIME.TRANSACTION_RELEASE_FAILED",
+										failure,
+										{ releaseError },
+									);
+								}
+								throw releaseError;
+							}
+						}
 
-			if (failure !== undefined) {
-				throw failure;
-			}
-		}),
+						if (failure !== undefined) {
+							throw failure;
+						}
+					}),
+				),
+			),
+		),
 	);

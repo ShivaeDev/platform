@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { makeDatabase } from "../src/index.js";
+import { type DatabaseServiceOf, makeDatabase } from "../src/index.js";
 import { withTestTransaction } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -9,8 +9,15 @@ const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
 const integrationEffect =
 	databaseUrl === undefined ? it.effect.skip : it.effect;
 
-const Database = makeDatabase<Contract>("@test/IntegrationDatabase", {
+const Database = makeDatabase<Contract>()("@test/IntegrationDatabase", {
 	contractJson,
+});
+type DatabaseService = DatabaseServiceOf<typeof Database>;
+const scopedValues = (db: DatabaseService, email: string) => ({
+	db,
+	posts: db.Post,
+	relation: db.User.where({ email }),
+	stream: db.User.where({ email }).stream,
 });
 const DatabaseLive = Database.layer({
 	url: databaseUrl ?? "postgresql://integration-tests-disabled",
@@ -31,10 +38,13 @@ integrationEffect("owns the client and commits successful transactions", () =>
 			expect(exists).toBe(false);
 
 			yield* db.transaction(
-				db.User.create({
-					id: crypto.randomUUID(),
-					email,
-					name: "Committed",
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					yield* transactionDb.User.create({
+						id: crypto.randomUUID(),
+						email,
+						name: "Committed",
+					});
 				}),
 			);
 
@@ -109,16 +119,109 @@ integrationEffect("reuses the active transaction for nested boundaries", () =>
 			const relation = db.User.where({ email });
 
 			yield* db.transaction(
-				db.transaction(
-					db.User.create({
-						id: crypto.randomUUID(),
-						email,
-						name: "Nested",
-					}),
-				),
+				Effect.gen(function* () {
+					const outer = yield* Database;
+					expect(outer).not.toBe(db);
+					yield* db.transaction(
+						Effect.gen(function* () {
+							const inner = yield* Database;
+							expect(inner).toBe(outer);
+							yield* inner.User.create({
+								id: crypto.randomUUID(),
+								email,
+								name: "Nested",
+							});
+						}),
+					);
+				}),
 			);
 
 			expect(yield* relation.exists()).toBe(true);
+		}),
+	),
+);
+
+integrationEffect("refuses values from a concurrent sibling transaction", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const valuesFromA =
+				yield* Deferred.make<ReturnType<typeof scopedValues>>();
+			const releaseA = yield* Deferred.make<void>();
+			const transactionA = yield* Effect.forkChild(
+				db.transaction(
+					Effect.gen(function* () {
+						const databaseA = yield* Database;
+						yield* Deferred.succeed(
+							valuesFromA,
+							scopedValues(databaseA, uniqueEmail("transaction-a")),
+						);
+						yield* Deferred.await(releaseA);
+					}),
+				),
+				{ startImmediately: true },
+			);
+			const fromA = yield* Deferred.await(valuesFromA);
+			const rootRelationError = yield* Effect.flip(fromA.relation.exists());
+			const rootStreamError = yield* Effect.flip(
+				Stream.runCollect(fromA.stream),
+			);
+			const rootDatabaseError = yield* Effect.flip(
+				fromA.db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				),
+			);
+			const rootIncludeExit = yield* Effect.exit(
+				db.User.include("posts", fromA.posts),
+			);
+
+			const mismatches = yield* db
+				.transaction(
+					Effect.gen(function* () {
+						const databaseB = yield* Database;
+						const relationError = yield* Effect.flip(fromA.relation.exists());
+						const streamError = yield* Effect.flip(
+							Stream.runCollect(fromA.stream),
+						);
+						const databaseError = yield* Effect.flip(
+							fromA.db.transaction(
+								Effect.gen(function* () {
+									yield* Database;
+								}),
+							),
+						);
+						const includeExit = yield* Effect.exit(
+							databaseB.User.include("posts", fromA.posts),
+						);
+						return { databaseError, includeExit, relationError, streamError };
+					}),
+				)
+				.pipe(Effect.ensuring(Deferred.succeed(releaseA, undefined)));
+			yield* Fiber.join(transactionA);
+
+			for (const error of [
+				mismatches.databaseError,
+				mismatches.relationError,
+				mismatches.streamError,
+				rootDatabaseError,
+				rootRelationError,
+				rootStreamError,
+			]) {
+				expect(error.reason).toMatchObject({
+					_tag: "PrismaRuntimeFailure",
+					code: "RUNTIME.TRANSACTION_CONTEXT_MISMATCH",
+				});
+			}
+			for (const includeExit of [mismatches.includeExit, rootIncludeExit]) {
+				expect(Exit.isFailure(includeExit)).toBe(true);
+				if (Exit.isFailure(includeExit)) {
+					expect(Cause.pretty(includeExit.cause)).toContain(
+						"Included Relation belongs to another transaction",
+					);
+				}
+			}
 		}),
 	),
 );
@@ -178,33 +281,34 @@ integrationEffect(
 		),
 );
 
-integrationEffect(
-	"replays an existing Relation in the transaction and rolls back failures",
-	() =>
-		withDatabase(
-			Effect.gen(function* () {
-				const db = yield* Database;
-				const email = uniqueEmail("failure");
-				const relation = db.User.where({ email });
+integrationEffect("uses the transaction Database and rolls back failures", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const email = uniqueEmail("failure");
+			const relation = db.User.where({ email });
 
-				const exit = yield* Effect.exit(
-					db.transaction(
-						Effect.gen(function* () {
-							yield* db.User.create({
-								id: crypto.randomUUID(),
-								email,
-								name: "Rolled back",
-							});
-							expect(yield* relation.exists()).toBe(true);
-							return yield* Effect.fail("expected failure");
-						}),
-					),
-				);
+			const exit = yield* Effect.exit(
+				db.transaction(
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id: crypto.randomUUID(),
+							email,
+							name: "Rolled back",
+						});
+						expect(yield* transactionDb.User.where({ email }).exists()).toBe(
+							true,
+						);
+						return yield* Effect.fail("expected failure");
+					}),
+				),
+			);
 
-				expect(Exit.isFailure(exit)).toBe(true);
-				expect(yield* relation.exists()).toBe(false);
-			}),
-		),
+			expect(Exit.isFailure(exit)).toBe(true);
+			expect(yield* relation.exists()).toBe(false);
+		}),
+	),
 );
 
 integrationEffect("rolls back interrupted transactions before returning", () =>
@@ -218,7 +322,8 @@ integrationEffect("rolls back interrupted transactions before returning", () =>
 			const fiber = yield* Effect.forkDetach(
 				db.transaction(
 					Effect.gen(function* () {
-						yield* db.User.create({
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
 							id: crypto.randomUUID(),
 							email,
 							name: "Interrupted",
@@ -249,11 +354,15 @@ integrationEffect(
 
 				const value = yield* withTestTransaction(
 					Database,
-					db.User.create({
-						id,
-						email: `${id}@example.test`,
-						name: "Test transaction",
-					}).pipe(Effect.as(42)),
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id,
+							email: `${id}@example.test`,
+							name: "Test transaction",
+						});
+						return 42;
+					}),
 				);
 
 				expect(value).toBe(42);
@@ -275,7 +384,8 @@ integrationEffect(
 					withTestTransaction(
 						Database,
 						Effect.gen(function* () {
-							yield* db.User.create({
+							const transactionDb = yield* Database;
+							yield* transactionDb.User.create({
 								id,
 								email: `${id}@example.test`,
 								name: "Failed test transaction",

@@ -2,7 +2,7 @@ import sqlite, {
 	type SqliteClient,
 	type SqliteOptionsBase,
 } from "@prisma-next/sqlite/runtime";
-import type { Layer } from "effect";
+import { type Layer, Semaphore } from "effect";
 import type { PrismaError } from "./error.js";
 import {
 	acquireConnectedClient,
@@ -10,14 +10,12 @@ import {
 } from "./internal/client-lifecycle.js";
 import {
 	type DatabaseIdentifier,
+	type DatabaseIdentifierLiteral,
 	type DatabaseServiceHolder,
 	type DefaultModels,
 	makeSqlDatabase,
 } from "./internal/database-factory.js";
-import type {
-	AnySqlContract,
-	ExecutorIdentifier,
-} from "./internal/executor.js";
+import type { AnySqlContract } from "./internal/executor.js";
 import { fromPrismaPromise } from "./internal/promise.js";
 import { decodeSqliteDatetimesAsUtc } from "./internal/sqlite-datetime.js";
 import {
@@ -49,60 +47,69 @@ type SqliteFactoryOptions<Contract extends AnySqlContract> =
 
 export interface SqliteDatabaseDefinition<
 	Contract extends AnySqlContract,
-	Requirement = ExecutorIdentifier<DefaultModels<Contract>>,
-> extends DatabaseServiceHolder<Contract, Requirement> {
+	Identifier extends string,
+> extends DatabaseServiceHolder<Contract, Identifier> {
 	readonly layer: (
 		options: SqliteDatabaseLayerOptions,
-	) => Layer.Layer<DatabaseIdentifier<Contract> | Requirement, PrismaError>;
+	) => Layer.Layer<DatabaseIdentifier<Contract, Identifier>, PrismaError>;
 }
 
-export const makeSqliteDatabase = <const Contract extends AnySqlContract>(
-	identifier: string,
-	options: SqliteFactoryOptions<Contract>,
-): SqliteDatabaseDefinition<Contract> => {
-	type Models = DefaultModels<Contract>;
+export const makeSqliteDatabase =
+	<const Contract extends AnySqlContract>() =>
+	<const Identifier extends string>(
+		identifier: DatabaseIdentifierLiteral<Identifier>,
+		options: SqliteFactoryOptions<Contract>,
+	): SqliteDatabaseDefinition<Contract, Identifier> => {
+		type Models = DefaultModels<Contract>;
 
-	return makeSqlDatabase<Contract, SqliteDatabaseLayerOptions>(
-		identifier,
-		(layerOptions) => {
-			assertFileBackedPath(layerOptions.path);
-			applySqlitePragmas(
-				layerOptions.path,
-				layerOptions.pragmas ?? defaultSqlitePragmas,
-			);
+		return makeSqlDatabase<Contract, Identifier, SqliteDatabaseLayerOptions>(
+			identifier,
+			(layerOptions) => {
+				assertFileBackedPath(layerOptions.path);
+				applySqlitePragmas(
+					layerOptions.path,
+					layerOptions.pragmas ?? defaultSqlitePragmas,
+				);
 
-			const clientOptions = {
-				path: layerOptions.path,
-				extensions: layerOptions.extensions,
-				middleware: layerOptions.middleware,
-				verifyMarker: layerOptions.verifyMarker,
-			};
-			const client: SqliteClient<Contract> =
-				options.contract === undefined
-					? sqlite<Contract>({
-							...clientOptions,
-							contractJson: options.contractJson,
-						})
-					: sqlite<Contract>({
-							...clientOptions,
-							contract: options.contract,
-						});
+				const clientOptions = {
+					path: layerOptions.path,
+					extensions: layerOptions.extensions,
+					middleware: layerOptions.middleware,
+					verifyMarker: layerOptions.verifyMarker,
+				};
+				const client: SqliteClient<Contract> =
+					options.contract === undefined
+						? sqlite<Contract>({
+								...clientOptions,
+								contractJson: options.contractJson,
+							})
+						: sqlite<Contract>({
+								...clientOptions,
+								contract: options.contract,
+							});
 
-			decodeSqliteDatetimesAsUtc(client.context);
+				decodeSqliteDatetimesAsUtc(client.context);
 
-			return fromPrismaPromise(() =>
-				acquireConnectedClient(client, () => {
-					// The SQLite client already exposes the unbound namespace.
-					const models = client.orm as Models;
-					assertAvailableModelNames(Object.keys(models));
-					return {
-						client,
-						models,
-						querySemaphore: undefined,
-						transactional: false,
-					};
-				}),
-			);
-		},
-	) as SqliteDatabaseDefinition<Contract>;
-};
+				return fromPrismaPromise(() =>
+					acquireConnectedClient(client, () => {
+						// The SQLite client already exposes the unbound namespace.
+						const models = client.orm as Models;
+						assertAvailableModelNames(Object.keys(models));
+						return {
+							client,
+							identity: {},
+							liveness: {
+								closedCode: "RUNTIME.DATABASE_CLOSED",
+								open: true,
+							},
+							mode: "root",
+							models,
+							querySemaphore: undefined,
+							transactionIdentity: undefined,
+							transactionSemaphore: Semaphore.makeUnsafe(1),
+						};
+					}),
+				);
+			},
+		) as SqliteDatabaseDefinition<Contract, Identifier>;
+	};

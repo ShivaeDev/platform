@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-08-27
+
+### Changed
+
+- **Breaking:** Make Database the only public persistence service. Relations
+  and Streams no longer expose an executor requirement. Transaction bodies
+  yield Database, while captured Relations from that singleton resolve the
+  private active transaction when executed inside the boundary.
+- **Breaking:** Construct database definitions with `makeDatabase<Contract>()`
+  or `makeSqliteDatabase<Contract>()` so two databases sharing one contract
+  retain distinct service identities. Composition uses one unique definition
+  identifier and one live Layer per definition.
+- Refuse forced-rollback test transactions nested inside ordinary commit
+  transactions, and fail closed when transaction-bound values escape their
+  settled boundary or cross into a concurrent sibling transaction.
+- Serialize SQLite transaction scopes inside the supported singleton Database
+  Layer while leaving ordinary queries and writes unsynchronized.
+
 ## 0.5.3 - 2026-08-12
 
 ### Changed

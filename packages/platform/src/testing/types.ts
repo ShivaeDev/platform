@@ -1,7 +1,6 @@
 import type { TestContext, Vitest } from "@effect/vitest";
 import type {
 	AnyDatabase,
-	DatabaseRequirement,
 	DatabaseService,
 } from "@shivaedev/effect-prisma/testing";
 import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc";
@@ -62,10 +61,6 @@ export interface MakePlatformItOptions<
 			>;
 		}>,
 		context: TestContext,
-	) => Effect.Effect<
-		Extension,
-		unknown,
-		Provided | DatabaseRequirement<Database> | Effect.Services<Database>
-	>;
+	) => Effect.Effect<Extension, unknown, Provided | Effect.Services<Database>>;
 	readonly layer: Layer.Layer<Provided, LayerError>;
 }

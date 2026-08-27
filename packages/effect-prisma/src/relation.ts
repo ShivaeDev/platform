@@ -14,23 +14,19 @@ type NormalizeTerminal<Name, Result> = Name extends "first"
 	? import("effect").Option.Option<Exclude<Result, null>>
 	: Result;
 
-type WrapReturn<Name, Result, Requirement, Contract, Model extends string> =
+type WrapReturn<Name, Result, Contract, Model extends string, DatabaseId> =
 	Result extends PromiseLike<infer Value>
-		? Effect.Effect<
-				NormalizeTerminal<Name, Awaited<Value>>,
-				PrismaError,
-				Requirement
-			>
+		? Effect.Effect<NormalizeTerminal<Name, Awaited<Value>>, PrismaError>
 		: Result extends object
-			? Relation<Result, Requirement, Contract, Model>
+			? Relation<Result, Contract, Model, DatabaseId>
 			: never;
 
 type WrapFunction<
 	Name,
 	Function_,
-	Requirement,
 	Contract,
 	Model extends string,
+	DatabaseId,
 > = Function_ extends {
 	(...arguments_: infer Arguments1): infer Result1;
 	(...arguments_: infer Arguments2): infer Result2;
@@ -41,22 +37,22 @@ type WrapFunction<
 }
 	? ((
 			...arguments_: Arguments1
-		) => WrapReturn<Name, Result1, Requirement, Contract, Model>) &
+		) => WrapReturn<Name, Result1, Contract, Model, DatabaseId>) &
 			((
 				...arguments_: Arguments2
-			) => WrapReturn<Name, Result2, Requirement, Contract, Model>) &
+			) => WrapReturn<Name, Result2, Contract, Model, DatabaseId>) &
 			((
 				...arguments_: Arguments3
-			) => WrapReturn<Name, Result3, Requirement, Contract, Model>) &
+			) => WrapReturn<Name, Result3, Contract, Model, DatabaseId>) &
 			((
 				...arguments_: Arguments4
-			) => WrapReturn<Name, Result4, Requirement, Contract, Model>) &
+			) => WrapReturn<Name, Result4, Contract, Model, DatabaseId>) &
 			((
 				...arguments_: Arguments5
-			) => WrapReturn<Name, Result5, Requirement, Contract, Model>) &
+			) => WrapReturn<Name, Result5, Contract, Model, DatabaseId>) &
 			((
 				...arguments_: Arguments6
-			) => WrapReturn<Name, Result6, Requirement, Contract, Model>)
+			) => WrapReturn<Name, Result6, Contract, Model, DatabaseId>)
 	: never;
 
 type FunctionKeys<Value> = {
@@ -82,37 +78,33 @@ type ExplicitPrismaMethod =
 	| "sum"
 	| "variant";
 
-type RelationMethods<
-	Collection,
-	Requirement,
-	Contract,
-	Model extends string,
-> = {
+type RelationMethods<Collection, Contract, Model extends string, DatabaseId> = {
 	readonly [Key in Exclude<
 		FunctionKeys<Collection>,
 		ExplicitPrismaMethod
-	>]: WrapFunction<Key, Collection[Key], Requirement, Contract, Model>;
+	>]: WrapFunction<Key, Collection[Key], Contract, Model, DatabaseId>;
 };
 
 declare const RelationQueryTypeId: unique symbol;
 
 export type RelationQuery<
 	Value,
-	Requirement,
 	Contract,
 	Model extends string,
-> = Effect.Effect<Value, PrismaError, Requirement> & {
+	DatabaseId,
+> = Effect.Effect<Value, PrismaError> & {
 	readonly [RelationQueryTypeId]: {
 		readonly contract: Contract;
+		readonly database: (database: DatabaseId) => DatabaseId;
 		readonly model: Model;
 	};
 };
 
 export type Relation<
 	Collection,
-	Requirement,
 	Contract = undefined,
 	Model extends string = string,
-> = RelationQuery<CollectionResult<Collection>, Requirement, Contract, Model> &
-	RelationMethods<Collection, Requirement, Contract, Model> &
-	PrismaRelationMethods<Collection, Requirement, Contract, Model>;
+	DatabaseId = undefined,
+> = RelationQuery<CollectionResult<Collection>, Contract, Model, DatabaseId> &
+	RelationMethods<Collection, Contract, Model, DatabaseId> &
+	PrismaRelationMethods<Collection, Contract, Model, DatabaseId>;

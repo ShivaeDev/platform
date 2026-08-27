@@ -16,9 +16,9 @@ type Simplify<Value> = { [Key in keyof Value]: Value[Key] };
 type QueryValue<Query> =
 	Query extends RelationQuery<
 		infer Value,
-		infer _Requirement,
 		infer _Contract,
-		infer _Model
+		infer _Model,
+		infer _DatabaseId
 	>
 		? Value
 		: never;
@@ -27,21 +27,27 @@ type AcceptRelatedQuery<
 	Query,
 	Contract extends AnyPostgresContract,
 	Model extends string,
-> =
-	Query extends RelationQuery<
+	DatabaseId,
+> = [Query] extends [
+	RelationQuery<
 		infer _Value,
-		infer _Requirement,
 		infer QueryContract,
-		infer QueryModel
-	>
-		? [QueryContract] extends [Contract]
-			? [Contract] extends [QueryContract]
-				? QueryModel extends Model
-					? unknown
+		infer QueryModel,
+		infer QueryDatabaseId
+	>,
+]
+	? [QueryContract] extends [Contract]
+		? [Contract] extends [QueryContract]
+			? [QueryDatabaseId] extends [DatabaseId]
+				? [DatabaseId] extends [QueryDatabaseId]
+					? QueryModel extends Model
+						? unknown
+						: never
 					: never
 				: never
 			: never
-		: never;
+		: never
+	: never;
 
 type IncludedQueryValue<
 	Query,
@@ -61,9 +67,10 @@ type AcceptRelatedQueryShape<
 	Shape extends Readonly<Record<string, unknown>>,
 	Contract extends AnyPostgresContract,
 	Model extends string,
+	DatabaseId,
 > = {
 	readonly [Key in keyof Shape]: Shape[Key] &
-		AcceptRelatedQuery<Shape[Key], Contract, Model>;
+		AcceptRelatedQuery<Shape[Key], Contract, Model, DatabaseId>;
 };
 
 type WithIncludedRelation<
@@ -84,9 +91,9 @@ type WithIncludedRelation<
 
 export type IncludeMethod<
 	Collection,
-	Requirement,
 	Contract,
 	Model extends string,
+	DatabaseId,
 > = Contract extends AnyPostgresContract
 	? Collection extends PrismaCollection<
 			Contract,
@@ -113,9 +120,9 @@ export type IncludeMethod<
 							>
 						>
 					>,
-					Requirement,
 					Contract,
-					Model
+					Model,
+					DatabaseId
 				>;
 				include<RelationName extends RelationNames<Contract, Model>, Query>(
 					relationName: RelationName,
@@ -123,7 +130,8 @@ export type IncludeMethod<
 						AcceptRelatedQuery<
 							Query,
 							Contract,
-							RelatedModelNameOf<Contract, Model, RelationName>
+							RelatedModelNameOf<Contract, Model, RelationName>,
+							DatabaseId
 						>,
 				): Relation<
 					WithIncludedRelation<
@@ -133,9 +141,9 @@ export type IncludeMethod<
 						RelationName,
 						IncludedQueryValue<Query, Contract, Model, RelationName>
 					>,
-					Requirement,
 					Contract,
-					Model
+					Model,
+					DatabaseId
 				>;
 				include<
 					RelationName extends RelationNames<Contract, Model>,
@@ -149,7 +157,8 @@ export type IncludeMethod<
 									AcceptRelatedQueryShape<
 										Shape,
 										Contract,
-										RelatedModelNameOf<Contract, Model, RelationName>
+										RelatedModelNameOf<Contract, Model, RelationName>,
+										DatabaseId
 									>
 						: never,
 				): Relation<
@@ -160,9 +169,9 @@ export type IncludeMethod<
 						RelationName,
 						QueryShapeValue<Shape>
 					>,
-					Requirement,
 					Contract,
-					Model
+					Model,
+					DatabaseId
 				>;
 			}
 		: Record<never, never>

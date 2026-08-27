@@ -7,7 +7,7 @@ import { makeTemporaryDatabase } from "./sqlite/support.js";
 
 const temporary = makeTemporaryDatabase();
 
-const Database = makeSqliteDatabase<Contract>("@test/SqliteTestingDatabase", {
+const Database = makeSqliteDatabase<Contract>()("@test/SqliteTestingDatabase", {
 	contractJson,
 });
 const DatabaseLive = Database.layer({ path: temporary.path });
@@ -22,6 +22,7 @@ it.afterAll(temporary.remove);
 const ids = {
 	each: crypto.randomUUID(),
 	failed: crypto.randomUUID(),
+	ordinaryNested: crypto.randomUUID(),
 	rolledBack: crypto.randomUUID(),
 };
 
@@ -84,13 +85,49 @@ effectDB(
 
 		yield* withTestTransaction(
 			Database,
-			db.User.create({
-				id: nestedId,
-				email: `${nestedId}@example.test`,
-				name: "Nested",
+			Effect.gen(function* () {
+				const transactionDb = yield* Database;
+				yield* transactionDb.User.create({
+					id: nestedId,
+					email: `${nestedId}@example.test`,
+					name: "Nested",
+				});
 			}),
 		);
 
 		expect(yield* db.User.where({ id: nestedId }).exists()).toBe(true);
+	},
+);
+
+effectDB(
+	"reuses the forced-rollback scope for an ordinary transaction",
+	function* (db) {
+		const outer = yield* Database;
+		expect(outer).toBe(db);
+
+		yield* db.transaction(
+			Effect.gen(function* () {
+				const inner = yield* Database;
+				expect(inner).toBe(outer);
+				yield* inner.User.create({
+					id: ids.ordinaryNested,
+					email: `${ids.ordinaryNested}@example.test`,
+					name: "Ordinary nested transaction",
+				});
+			}),
+		);
+
+		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
+			true,
+		);
+	},
+);
+
+effectDB(
+	"rolls back an ordinary transaction nested in the previous test scope",
+	function* (db) {
+		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
+			false,
+		);
 	},
 );

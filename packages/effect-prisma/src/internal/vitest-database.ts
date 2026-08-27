@@ -5,7 +5,6 @@ import * as TestConsole from "effect/testing/TestConsole";
 import { withTestTransaction } from "../testing/transaction.js";
 import type {
 	AnyDatabase,
-	DatabaseRequirement,
 	DatabaseService,
 	DatabaseTest,
 	DatabaseTester,
@@ -76,18 +75,10 @@ const restoreContext = <Provided>(
 	}) as DatabaseFixture<Provided>;
 
 export const makeDatabaseTester = <Database extends AnyDatabase, Provided>(
-	fixtureIt: FixtureTestApi<
-		Provided | DatabaseRequirement<Database> | Effect.Services<Database>
-	>,
+	fixtureIt: FixtureTestApi<Provided | Effect.Services<Database>>,
 	database: Database,
-): DatabaseTester<
-	Database,
-	Provided | DatabaseRequirement<Database> | Effect.Services<Database>
-> => {
-	type Services =
-		| Provided
-		| DatabaseRequirement<Database>
-		| Effect.Services<Database>;
+): DatabaseTester<Database, Provided | Effect.Services<Database>> => {
+	type Services = Provided | Effect.Services<Database>;
 
 	const run = <A, Eff extends Effect.Effect<unknown, unknown, Services>>(
 		body: (

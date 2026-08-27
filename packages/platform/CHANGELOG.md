@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.5 - 2026-08-27
+
+### Changed
+
+- Require Effect Prisma 0.6.0 and carry only the Database service through the
+  shared application test transaction.
+
 ## 0.3.4 - 2026-08-12
 
 ### Changed

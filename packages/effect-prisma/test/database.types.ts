@@ -1,7 +1,11 @@
 import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
-import { Effect, type Option, type Stream } from "effect";
+import { Effect, type Layer, type Option, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
-import { makeDatabase, type PrismaError } from "../src/index.js";
+import {
+	type DatabaseServiceOf,
+	makeDatabase,
+	type PrismaError,
+} from "../src/index.js";
 import { makeDatabaseIt } from "../src/testing.js";
 import { type Contract, contractJson } from "./contract.js";
 
@@ -32,7 +36,39 @@ type _ContractEmailIsString = Assert<
 	ContractEmail extends string ? true : false
 >;
 
-const Database = makeDatabase<Contract>("@test/Database", { contractJson });
+const Database = makeDatabase<Contract>()("@test/Database", { contractJson });
+const AuditDatabase = makeDatabase<Contract>()("@test/AuditDatabase", {
+	contractJson,
+});
+declare const databaseService: DatabaseServiceOf<typeof Database>;
+declare const auditDatabaseService: DatabaseServiceOf<typeof AuditDatabase>;
+// @ts-expect-error Same-contract Database services retain distinct nominal identities.
+const mislabeledDatabaseService: DatabaseServiceOf<typeof Database> =
+	auditDatabaseService;
+void databaseService;
+void mislabeledDatabaseService;
+
+declare const widenedIdentifier: string;
+// @ts-expect-error A widened identifier cannot provide a stable Database identity.
+makeDatabase<Contract>()(widenedIdentifier, { contractJson });
+declare const unionIdentifier: "@test/One" | "@test/Two";
+// @ts-expect-error A union identifier cannot name one Database identity.
+makeDatabase<Contract>()(unionIdentifier, { contractJson });
+declare const patternedIdentifier: `@tenant/${string}`;
+// @ts-expect-error A template pattern can name more than one Database identity.
+makeDatabase<Contract>()(patternedIdentifier, { contractJson });
+declare const brandedIdentifier: string & {
+	readonly DatabaseIdentifier: unique symbol;
+};
+// @ts-expect-error A branded widened string can name more than one Database identity.
+makeDatabase<Contract>()(brandedIdentifier, { contractJson });
+const reservedIdentifier =
+	"\0@shivaedev/effect-prisma/internal/ActiveTransaction/0";
+// @ts-expect-error Internal Context keys cannot also identify a Database.
+makeDatabase<Contract>()(reservedIdentifier, { contractJson });
+expectTypeOf<Layer.Success<ReturnType<typeof Database.layer>>>().toEqualTypeOf<
+	Effect.Services<typeof Database>
+>();
 const databaseIt = makeDatabaseIt({
 	database: Database,
 	layer: Database.layer({
@@ -69,8 +105,38 @@ const program = Effect.gen(function* () {
 	expectTypeOf<Effect.Success<typeof byObject>>().not.toBeAny();
 	expectTypeOf<Effect.Success<typeof byObject>>().toEqualTypeOf<Array<User>>();
 	expectTypeOf<Effect.Error<typeof byObject>>().toEqualTypeOf<PrismaError>();
-	expectTypeOf<Effect.Services<typeof byObject>>().not.toBeAny();
-	expectTypeOf<Effect.Services<typeof byObject>>().not.toBeNever();
+	expectTypeOf<Effect.Services<typeof byObject>>().toBeNever();
+
+	const transaction = db.transaction(
+		Effect.gen(function* () {
+			const transactionDb = yield* Database;
+			return yield* transactionDb.User.count();
+		}),
+	);
+	expectTypeOf<Effect.Success<typeof transaction>>().toEqualTypeOf<number>();
+	expectTypeOf<Effect.Services<typeof transaction>>().toBeNever();
+
+	const crossDatabaseTransaction = db.transaction(
+		Effect.gen(function* () {
+			yield* Database;
+			const auditDb = yield* AuditDatabase;
+			const maybeForeign = Math.random() > 0.5 ? db.Post : auditDb.Post;
+			db.User.include(
+				"posts",
+				// @ts-expect-error Included Relations must come from this Database identity.
+				auditDb.Post,
+			);
+			db.User.include(
+				"posts",
+				// @ts-expect-error A union cannot hide a Relation from another Database.
+				maybeForeign,
+			);
+			return yield* auditDb.User.count();
+		}),
+	);
+	expectTypeOf<
+		Effect.Services<typeof crossDatabaseTransaction>
+	>().toEqualTypeOf<Effect.Services<typeof AuditDatabase>>();
 
 	const byCallback = db.User.where((user) => {
 		expectTypeOf(user).not.toBeAny();
@@ -308,7 +374,16 @@ const program = Effect.gen(function* () {
 	expectTypeOf<
 		Stream.Error<typeof db.User.stream>
 	>().toEqualTypeOf<PrismaError>();
-	expectTypeOf<Stream.Services<typeof db.User.stream>>().not.toBeAny();
+	expectTypeOf<Stream.Services<typeof db.User.stream>>().toBeNever();
+
+	db.transaction(
+		// @ts-expect-error A transaction body must yield Database so queries bind to its transaction implementation.
+		db.User.create({
+			id: crypto.randomUUID(),
+			email: "prebuilt@example.com",
+			name: "Prebuilt",
+		}),
+	);
 
 	// @ts-expect-error Models are generated from the contract.
 	db.Movie;

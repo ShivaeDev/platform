@@ -1,14 +1,11 @@
 import { it } from "@effect/vitest";
-import { Cause, Context, Effect, Exit, Option, Stream } from "effect";
+import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
 import {
 	acquireConnectedClient,
 	assertAvailableModelNames,
 } from "../src/internal/client-lifecycle.js";
-import type {
-	DatabaseExecutor,
-	ExecutorIdentifier,
-} from "../src/internal/executor.js";
+import type { DatabaseExecutor } from "../src/internal/executor.js";
 import { fromPrismaPromise } from "../src/internal/promise.js";
 import { makeModelRelation } from "../src/internal/relation-runtime.js";
 
@@ -77,11 +74,6 @@ interface Models {
 	readonly User: FakeCollection<User>;
 }
 
-const Executor = Context.Service<
-	ExecutorIdentifier<Models>,
-	DatabaseExecutor<Models>
->("@test/Executor");
-
 const rows: ReadonlyArray<User> = [
 	{ id: 1, active: true },
 	{ id: 2, active: false },
@@ -90,16 +82,16 @@ const rows: ReadonlyArray<User> = [
 
 const executor: DatabaseExecutor<Models> = {
 	client: {} as DatabaseExecutor<Models>["client"],
+	identity: {},
 	models: {
 		User: new FakeCollection(rows),
 	},
+	liveness: { closedCode: "RUNTIME.DATABASE_CLOSED", open: true },
+	mode: "root",
 	querySemaphore: undefined,
-	transactional: false,
+	transactionIdentity: undefined,
+	transactionSemaphore: undefined,
 };
-
-const provideExecutor = <A, E>(
-	effect: Effect.Effect<A, E, ExecutorIdentifier<Models>>,
-): Effect.Effect<A, E> => Effect.provideService(effect, Executor, executor);
 
 it.effect("adapts a Prisma-shaped thenable", () =>
 	Effect.gen(function* () {
@@ -162,23 +154,25 @@ it("only reserves names that cannot be represented by the facade", () => {
 it.effect("keeps a base Relation and its branches independent", () =>
 	Effect.gen(function* () {
 		const base = makeModelRelation<FakeCollection<User>, Models>(
-			Executor,
+			executor,
 			"User",
 		);
 		const active = base.where({ active: true });
 		const firstActive = active.take(1);
 
+		expect(Object.keys(base)).toEqual([]);
+		expect(Object.hasOwn(base, "runtime")).toBe(false);
 		expect(yield* base).toEqual(rows);
 		expect(yield* active).toEqual([rows[0], rows[2]]);
 		expect(yield* firstActive).toEqual([rows[0]]);
 		expect(yield* base).toEqual(rows);
-	}).pipe(provideExecutor),
+	}),
 );
 
 it.effect("can execute multiple terminals against one Relation", () =>
 	Effect.gen(function* () {
 		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			Executor,
+			executor,
 			"User",
 		).where({ active: true });
 
@@ -187,13 +181,13 @@ it.effect("can execute multiple terminals against one Relation", () =>
 
 		const first = yield* relation.first();
 		expect(Option.getOrThrow(first)).toEqual(rows[0]);
-	}).pipe(provideExecutor),
+	}),
 );
 
 it.effect("replays one Relation independently under concurrency", () =>
 	Effect.gen(function* () {
 		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			Executor,
+			executor,
 			"User",
 		).where({ active: true });
 
@@ -205,13 +199,13 @@ it.effect("replays one Relation independently under concurrency", () =>
 			[rows[0], rows[2]],
 			[rows[0], rows[2]],
 		]);
-	}).pipe(provideExecutor),
+	}),
 );
 
 it.effect("exposes a cold independently consumable Stream", () =>
 	Effect.gen(function* () {
 		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			Executor,
+			executor,
 			"User",
 		).where({ active: true });
 
@@ -220,5 +214,5 @@ it.effect("exposes a cold independently consumable Stream", () =>
 
 		expect(first).toEqual([rows[0], rows[2]]);
 		expect(second).toEqual(first);
-	}).pipe(provideExecutor),
+	}),
 );

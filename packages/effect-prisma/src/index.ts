@@ -3,7 +3,6 @@ export {
 	type AnyDatabase,
 	type DatabaseDefinition,
 	type DatabaseLayerOptions,
-	type DatabaseRequirement,
 	type DatabaseService,
 	type DatabaseServiceOf,
 	makeDatabase,

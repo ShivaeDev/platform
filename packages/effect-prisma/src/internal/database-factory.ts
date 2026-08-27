@@ -1,13 +1,9 @@
 import type { orm } from "@prisma-next/sql-orm-client";
 import { Context, Effect, Layer } from "effect";
-import type { PrismaError } from "../error.js";
+import { type PrismaError, toPrismaError } from "../error.js";
 import type { Relation } from "../relation.js";
 import { assertAvailableModelNames } from "./client-lifecycle.js";
-import type {
-	AnySqlContract,
-	DatabaseExecutor,
-	ExecutorIdentifier,
-} from "./executor.js";
+import type { AnySqlContract, DatabaseExecutor } from "./executor.js";
 import { makeModelRelation } from "./relation-runtime.js";
 import { DatabaseTestingTypeId } from "./testing.js";
 import {
@@ -15,6 +11,7 @@ import {
 	releaseTestTransaction,
 	releaseTransaction,
 	type TransactionOrm,
+	withTransactionSemaphore,
 } from "./transaction.js";
 
 type OrmFor<Contract extends AnySqlContract> = ReturnType<typeof orm<Contract>>;
@@ -30,27 +27,62 @@ export type DefaultModels<Contract extends AnySqlContract> =
 		? Models
 		: never;
 
-export interface DatabaseIdentifier<Contract extends AnySqlContract> {
-	readonly _contract: Contract;
-	readonly _databaseIdentifier: unique symbol;
+type IsUnion<Value, Whole = Value> = Value extends unknown
+	? [Whole] extends [Value]
+		? false
+		: true
+	: never;
+
+type IsSingletonString<Value extends string> =
+	Record<never, never> extends Record<Value, never> ? false : true;
+
+const internalContextIdentifierPrefix = "\0@shivaedev/effect-prisma/internal/";
+let activeTransactionReferenceSequence = 0;
+
+export type DatabaseIdentifierLiteral<Identifier extends string> = [
+	Identifier,
+] extends [`\0@shivaedev/effect-prisma/internal/${string}`]
+	? never
+	: string extends Identifier
+		? never
+		: true extends IsUnion<Identifier>
+			? never
+			: IsSingletonString<Identifier> extends true
+				? Identifier
+				: never;
+
+export interface DatabaseIdentifier<
+	Contract extends AnySqlContract,
+	Identifier extends string,
+> {
+	readonly _contract: (contract: Contract) => Contract;
+	readonly _databaseIdentifier: (identifier: Identifier) => Identifier;
 }
 
-type DatabaseModels<Contract extends AnySqlContract, Requirement> = {
+type DatabaseModels<
+	Contract extends AnySqlContract,
+	Identifier extends string,
+> = {
 	readonly [Model in keyof DefaultModels<Contract>]: Relation<
 		DefaultModels<Contract>[Model],
-		Requirement,
 		Contract,
-		Model & string
+		Model & string,
+		DatabaseIdentifier<Contract, Identifier>
 	>;
 };
 
 export type DatabaseService<
 	Contract extends AnySqlContract,
-	Requirement,
-> = DatabaseModels<Contract, Requirement> & {
+	Identifier extends string,
+> = DatabaseModels<Contract, Identifier> & {
 	transaction<A, E, R>(
-		program: Effect.Effect<A, E, R>,
-	): Effect.Effect<A, E | PrismaError, R | Requirement>;
+		program: Effect.Effect<A, E, R> &
+			(DatabaseIdentifier<Contract, Identifier> extends R ? unknown : never),
+	): Effect.Effect<
+		A,
+		E | PrismaError,
+		Exclude<R, DatabaseIdentifier<Contract, Identifier>>
+	>;
 };
 
 /**
@@ -59,41 +91,27 @@ export type DatabaseService<
  */
 export interface DatabaseServiceHolder<
 	Contract extends AnySqlContract,
-	Requirement = ExecutorIdentifier<DefaultModels<Contract>>,
+	Identifier extends string,
 > extends Context.Service<
-		DatabaseIdentifier<Contract>,
-		DatabaseService<Contract, Requirement>
+		DatabaseIdentifier<Contract, Identifier>,
+		DatabaseService<Contract, Identifier>
 	> {}
 
 export type AnyDatabase = Effect.Effect<unknown, never, unknown> & {
 	readonly layer: (...arguments_: ReadonlyArray<never>) => Layer.Any;
 };
 
-/**
- * `Context.Service` is invariant in both of its parameters, so a holder built
- * for a concrete contract never matches `DatabaseServiceHolder<AnySqlContract,
- * …>`. The contract has to be inferred alongside the requirement, or the
- * conditional falls through to `never` for every real database.
- */
-export type DatabaseRequirement<Database> =
-	Database extends DatabaseServiceHolder<
-		infer _Contract extends AnySqlContract,
-		infer Requirement
-	>
-		? Requirement
-		: never;
-
 export type DatabaseServiceOf<Database extends AnyDatabase> =
 	Effect.Success<Database>;
 
-export interface SqlDatabase<Contract extends AnySqlContract, Options>
-	extends DatabaseServiceHolder<Contract> {
+export interface SqlDatabase<
+	Contract extends AnySqlContract,
+	Identifier extends string,
+	Options,
+> extends DatabaseServiceHolder<Contract, Identifier> {
 	readonly layer: (
 		options: Options,
-	) => Layer.Layer<
-		DatabaseIdentifier<Contract> | ExecutorIdentifier<DefaultModels<Contract>>,
-		PrismaError
-	>;
+	) => Layer.Layer<DatabaseIdentifier<Contract, Identifier>, PrismaError>;
 }
 
 /**
@@ -121,68 +139,157 @@ export const namespaceModels = <
 };
 
 /**
- * Assemble the database service, its Executor service, and its Layer around a
- * driver-specific executor acquisition.
+ * Assemble the database service and its Layer around a driver-specific
+ * executor acquisition.
  */
-export const makeSqlDatabase = <const Contract extends AnySqlContract, Options>(
-	identifier: string,
+export const makeSqlDatabase = <
+	const Contract extends AnySqlContract,
+	const Identifier extends string,
+	Options,
+>(
+	identifier: DatabaseIdentifierLiteral<Identifier>,
 	acquireExecutor: (
 		options: Options,
 	) => Effect.Effect<
 		DatabaseExecutor<DefaultModels<Contract>, Contract>,
 		PrismaError
 	>,
-): SqlDatabase<Contract, Options> => {
+): SqlDatabase<Contract, Identifier, Options> => {
+	if (identifier.startsWith(internalContextIdentifierPrefix)) {
+		throw new TypeError(
+			"Database identifier uses a reserved internal namespace",
+		);
+	}
 	type Models = DefaultModels<Contract>;
-	type ExecutorId = ExecutorIdentifier<Models>;
-	type DatabaseId = DatabaseIdentifier<Contract>;
+	type DatabaseId = DatabaseIdentifier<Contract, Identifier>;
 
-	const Executor = Context.Service<
-		ExecutorId,
-		DatabaseExecutor<Models, Contract>
-	>(`${identifier}/Executor`);
 	const Service = Context.Service<
 		DatabaseId,
-		DatabaseService<Contract, ExecutorId>
+		DatabaseService<Contract, Identifier>
 	>(identifier);
-
-	const scopedTransaction =
-		(release: typeof releaseTransaction, span: string) =>
-		<A, E, R>(
-			program: Effect.Effect<A, E, R>,
-		): Effect.Effect<A, E | PrismaError, R | ExecutorId> =>
-			Effect.flatMap(Executor, (current) => {
-				if (current.transactional) {
-					return program;
-				}
-
-				return Effect.acquireUseRelease(
-					acquireTransaction(current, (transactionOrm) =>
-						namespaceModels<Contract, Models>(
-							current.client.contract,
-							transactionOrm,
-						),
+	const executors = new WeakMap<
+		DatabaseService<Contract, Identifier>,
+		DatabaseExecutor<Models, Contract>
+	>();
+	type ActiveTransaction = {
+		readonly executor: DatabaseExecutor<Models, Contract>;
+		readonly facade: DatabaseService<Contract, Identifier>;
+	};
+	const ActiveTransaction = Context.Reference<ActiveTransaction | undefined>(
+		`${internalContextIdentifierPrefix}ActiveTransaction/${activeTransactionReferenceSequence++}`,
+		{ defaultValue: () => undefined },
+	);
+	const executorOf = (
+		facade: DatabaseService<Contract, Identifier>,
+	): Effect.Effect<DatabaseExecutor<Models, Contract>> => {
+		const executor = executors.get(facade);
+		return executor === undefined
+			? Effect.die(
+					new TypeError(
+						"The database service was not created by its database Layer",
 					),
-					(resource) =>
-						program.pipe(Effect.provideService(Executor, resource.executor)),
-					release,
-				).pipe(Effect.withSpan(span, { kind: "client" }));
-			});
+				)
+			: Effect.succeed(executor);
+	};
+	const runTransaction = <A, E, R>(
+		current: DatabaseExecutor<Models, Contract>,
+		currentFacade: DatabaseService<Contract, Identifier>,
+		program: Effect.Effect<A, E, R>,
+		release: typeof releaseTransaction,
+		mode: "test" | "transaction",
+		span: string,
+	): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseId>> => {
+		if (!current.liveness.open) {
+			return Effect.fail(toPrismaError({ code: current.liveness.closedCode }));
+		}
+		if (
+			current.mode === "test" ||
+			(current.mode === "transaction" && mode === "transaction")
+		) {
+			return Effect.provideService(program, Service, currentFacade);
+		}
+		if (current.mode === "transaction") {
+			return Effect.fail(
+				toPrismaError({
+					code: "RUNTIME.TEST_TRANSACTION_INSIDE_TRANSACTION_UNSUPPORTED",
+				}),
+			);
+		}
 
-	const transaction = scopedTransaction(
-		releaseTransaction,
-		"prisma.transaction",
-	);
-	const withTestTransaction = scopedTransaction(
-		releaseTestTransaction,
-		"prisma.testTransaction",
-	);
+		const transaction = Effect.acquireUseRelease(
+			acquireTransaction(
+				current,
+				(transactionOrm) =>
+					namespaceModels<Contract, Models>(
+						current.client.contract,
+						transactionOrm,
+					),
+				mode,
+			),
+			(resource) => {
+				const transactionFacade = makeFacade(resource.executor);
+				return program.pipe(
+					Effect.provideService(Service, transactionFacade),
+					Effect.provideService(ActiveTransaction, {
+						executor: resource.executor,
+						facade: transactionFacade,
+					}),
+				);
+			},
+			release,
+		).pipe(Effect.withSpan(span, { kind: "client" }));
 
-	const facade = new Proxy(
-		Object.assign(Object.create(null), {
-			transaction,
-		}) as DatabaseService<Contract, ExecutorId>,
-		{
+		return withTransactionSemaphore(current.transactionSemaphore, transaction);
+	};
+
+	function makeFacade(
+		current: DatabaseExecutor<Models, Contract>,
+	): DatabaseService<Contract, Identifier> {
+		let facade: DatabaseService<Contract, Identifier>;
+		const resolveActiveTransaction = Effect.flatMap(
+			ActiveTransaction,
+			(active) => {
+				if (current.mode === "root") {
+					return Effect.succeed(active ?? { executor: current, facade });
+				}
+				return active?.executor === current
+					? Effect.succeed(active)
+					: Effect.fail(
+							toPrismaError({
+								code: "RUNTIME.TRANSACTION_CONTEXT_MISMATCH",
+							}),
+						);
+			},
+		);
+		const resolveExecutor = Effect.suspend(() =>
+			current.liveness.open
+				? Effect.map(resolveActiveTransaction, ({ executor }) => executor)
+				: Effect.succeed(current),
+		);
+		const target = Object.assign(Object.create(null), {
+			transaction: <A, E, R>(
+				program: Effect.Effect<A, E, R> &
+					(DatabaseId extends R ? unknown : never),
+			) =>
+				Effect.suspend(() => {
+					if (!current.liveness.open) {
+						return Effect.fail(
+							toPrismaError({ code: current.liveness.closedCode }),
+						);
+					}
+					return Effect.flatMap(resolveActiveTransaction, (selected) => {
+						return runTransaction(
+							selected.executor,
+							selected.facade,
+							program,
+							releaseTransaction,
+							"transaction",
+							"prisma.transaction",
+						);
+					});
+				}),
+		}) as DatabaseService<Contract, Identifier>;
+		facade = new Proxy(target, {
 			get(target, property, receiver) {
 				if (Reflect.has(target, property)) {
 					return Reflect.get(target, property, receiver);
@@ -190,29 +297,45 @@ export const makeSqlDatabase = <const Contract extends AnySqlContract, Options>(
 				if (typeof property !== "string") {
 					return undefined;
 				}
-				return makeModelRelation(Executor, property);
+				return makeModelRelation(current, property, resolveExecutor);
 			},
-		},
-	);
+		});
+		executors.set(facade, current);
+		return facade;
+	}
+
+	const withTestTransaction = <A, E, R>(
+		program: Effect.Effect<A, E, R> & (DatabaseId extends R ? unknown : never),
+	): Effect.Effect<A, E | PrismaError, DatabaseId | Exclude<R, DatabaseId>> =>
+		Effect.flatMap(Service, (facade) => {
+			return Effect.flatMap(executorOf(facade), (current) =>
+				runTransaction(
+					current,
+					facade,
+					program,
+					releaseTestTransaction,
+					"test",
+					"prisma.testTransaction",
+				),
+			);
+		});
 
 	const layer = (
 		layerOptions: Options,
-	): Layer.Layer<DatabaseId | ExecutorId, PrismaError> => {
+	): Layer.Layer<DatabaseId, PrismaError> => {
 		const acquire = Effect.acquireRelease(
 			Effect.suspend(() => acquireExecutor(layerOptions)),
-			(executor) =>
-				Effect.promise(() => executor.client.close()).pipe(Effect.orDie),
+			(executor) => {
+				executor.liveness.open = false;
+				return Effect.promise(() => executor.client.close()).pipe(Effect.orDie);
+			},
 		);
 
-		return Layer.effectContext(
-			Effect.map(acquire, (executor) =>
-				Context.make(Executor, executor).pipe(Context.add(Service, facade)),
-			),
-		);
+		return Layer.effect(Service)(Effect.map(acquire, makeFacade));
 	};
 
 	return Object.assign(Service, {
 		layer,
 		[DatabaseTestingTypeId]: { withTestTransaction },
-	}) as SqlDatabase<Contract, Options>;
+	}) as SqlDatabase<Contract, Identifier, Options>;
 };

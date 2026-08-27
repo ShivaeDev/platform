@@ -1,6 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
 import { it } from "@effect/vitest";
-import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
+import {
+	Cause,
+	Deferred,
+	Effect,
+	Exit,
+	Fiber,
+	Layer,
+	Option,
+	Stream,
+} from "effect";
 import { afterAll, expect } from "vitest";
 import { makeSqliteDatabase } from "../src/sqlite.js";
 import { withTestTransaction } from "../src/testing.js";
@@ -8,13 +17,25 @@ import { type Contract, contractJson } from "./sqlite/contract.js";
 import { makeTemporaryDatabase } from "./sqlite/support.js";
 
 const temporary = makeTemporaryDatabase();
+const auditTemporary = makeTemporaryDatabase();
 afterAll(temporary.remove);
+afterAll(auditTemporary.remove);
 
-const Database = makeSqliteDatabase<Contract>("@test/SqliteDatabase", {
+const Database = makeSqliteDatabase<Contract>()("@test/SqliteDatabase", {
 	contractJson,
 });
+const AuditDatabase = makeSqliteDatabase<Contract>()(
+	"@test/SqliteAuditDatabase",
+	{
+		contractJson,
+	},
+);
 const DatabaseLive = Database.layer({ path: temporary.path });
+const AuditDatabaseLive = AuditDatabase.layer({ path: auditTemporary.path });
 const withDatabase = Effect.provide(DatabaseLive);
+const withDatabases = Effect.provide(
+	Layer.merge(DatabaseLive, AuditDatabaseLive),
+);
 
 const uniqueEmail = (scenario: string): string =>
 	`${scenario}-${crypto.randomUUID()}@example.test`;
@@ -62,14 +83,44 @@ it.effect("owns the client and commits successful transactions", () =>
 			expect(yield* relation.exists()).toBe(false);
 
 			yield* db.transaction(
-				db.User.create({
-					id: crypto.randomUUID(),
-					email,
-					name: "Committed",
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					yield* transactionDb.User.create({
+						id: crypto.randomUUID(),
+						email,
+						name: "Committed",
+					});
 				}),
 			);
 
 			expect(yield* relation.exists()).toBe(true);
+		}),
+	),
+);
+
+it.effect("runs a captured Relation in the active transaction", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const email = uniqueEmail("captured-relation");
+			const create = db.User.create({
+				id: crypto.randomUUID(),
+				email,
+				name: "Captured",
+			});
+
+			const failure = yield* Effect.flip(
+				db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+						yield* create;
+						return yield* Effect.fail("rollback");
+					}),
+				),
+			);
+
+			expect(failure).toBe("rollback");
+			expect(yield* db.User.where({ email }).exists()).toBe(false);
 		}),
 	),
 );
@@ -99,6 +150,24 @@ it.effect("returns structured query failures", () =>
 			if (error.reason._tag === "PrismaQueryFailure") {
 				expect(error.reason.sqlState).toBe("23505");
 				expect(error.reason.constraint).toBe("user.email");
+			}
+		}),
+	),
+);
+
+it.effect("refuses an included Relation from another Database", () =>
+	withDatabases(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const auditDb = yield* AuditDatabase;
+			const foreignPost = auditDb.Post as unknown as typeof db.Post;
+			const exit = yield* Effect.exit(db.User.include("posts", foreignPost));
+
+			expect(Exit.isFailure(exit)).toBe(true);
+			if (Exit.isFailure(exit)) {
+				expect(Cause.pretty(exit.cause)).toContain(
+					"Included Relations must use the same Database",
+				);
 			}
 		}),
 	),
@@ -165,13 +234,21 @@ it.effect("reuses the active transaction for nested boundaries", () =>
 			const relation = db.User.where({ email });
 
 			yield* db.transaction(
-				db.transaction(
-					db.User.create({
-						id: crypto.randomUUID(),
-						email,
-						name: "Nested",
-					}),
-				),
+				Effect.gen(function* () {
+					const outer = yield* Database;
+					expect(outer).not.toBe(db);
+					yield* db.transaction(
+						Effect.gen(function* () {
+							const inner = yield* Database;
+							expect(inner).toBe(outer);
+							yield* inner.User.create({
+								id: crypto.randomUUID(),
+								email,
+								name: "Nested",
+							});
+						}),
+					);
+				}),
 			);
 
 			expect(yield* relation.exists()).toBe(true);
@@ -235,32 +312,227 @@ it.effect(
 );
 
 it.effect(
-	"replays an existing Relation in the transaction and rolls back failures",
+	"refuses a forced rollback boundary inside a commit transaction",
 	() =>
 		withDatabase(
 			Effect.gen(function* () {
 				const db = yield* Database;
-				const email = uniqueEmail("failure");
-				const relation = db.User.where({ email });
-
-				const exit = yield* Effect.exit(
+				const error = yield* Effect.flip(
 					db.transaction(
 						Effect.gen(function* () {
-							yield* db.User.create({
-								id: crypto.randomUUID(),
-								email,
-								name: "Rolled back",
-							});
-							expect(yield* relation.exists()).toBe(true);
-							return yield* Effect.fail("expected failure");
+							yield* Database;
+							return yield* withTestTransaction(
+								Database,
+								Effect.gen(function* () {
+									yield* Database;
+								}),
+							);
 						}),
 					),
 				);
 
-				expect(Exit.isFailure(exit)).toBe(true);
-				expect(yield* relation.exists()).toBe(false);
+				expect(error.reason).toMatchObject({
+					_tag: "PrismaRuntimeFailure",
+					code: "RUNTIME.TEST_TRANSACTION_INSIDE_TRANSACTION_UNSUPPORTED",
+				});
 			}),
 		),
+);
+
+it.effect("fails closed when a transaction Relation escapes settlement", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const escaped = yield* db.transaction(
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					return {
+						db: transactionDb,
+						relation: transactionDb.User.where({ id: crypto.randomUUID() }),
+						stream: transactionDb.User.stream,
+					};
+				}),
+			);
+			const relationError = yield* Effect.flip(escaped.relation.exists());
+			const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
+			const transactionError = yield* Effect.flip(
+				escaped.db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				),
+			);
+
+			expect(relationError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
+			expect(streamError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
+			expect(transactionError.reason).toMatchObject({
+				_tag: "PrismaRuntimeFailure",
+				code: "RUNTIME.TRANSACTION_CLOSED",
+			});
+		}),
+	),
+);
+
+it.effect("refuses an escaped transaction Relation used as an include", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const escapedPost = yield* db.transaction(
+				Effect.gen(function* () {
+					const transactionDb = yield* Database;
+					return transactionDb.Post;
+				}),
+			);
+			const exit = yield* Effect.exit(db.User.include("posts", escapedPost));
+
+			expect(Exit.isFailure(exit)).toBe(true);
+			if (Exit.isFailure(exit)) {
+				expect(Cause.pretty(exit.cause)).toContain(
+					"Included Relation is closed",
+				);
+			}
+		}),
+	),
+);
+
+it.effect("fails closed when Database values escape their Layer", () =>
+	Effect.gen(function* () {
+		const escaped = yield* Effect.gen(function* () {
+			const db = yield* Database;
+			return { db, stream: db.User.stream };
+		}).pipe(Effect.provide(DatabaseLive));
+		const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
+		const transactionError = yield* Effect.flip(
+			escaped.db
+				.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+					}),
+				)
+				.pipe(Effect.provide(DatabaseLive)),
+		);
+
+		expect(streamError.reason).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.DATABASE_CLOSED",
+		});
+		expect(transactionError.reason).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.DATABASE_CLOSED",
+		});
+	}),
+);
+
+it.effect("serializes SQLite transaction scopes for one Database Layer", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const firstEntered = yield* Deferred.make<void>();
+			const releaseFirst = yield* Deferred.make<void>();
+			const secondEntered = yield* Deferred.make<void>();
+			const first = yield* Effect.forkChild(
+				db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+						yield* Deferred.succeed(firstEntered, undefined);
+						yield* Deferred.await(releaseFirst);
+					}),
+				),
+				{ startImmediately: true },
+			);
+			yield* Deferred.await(firstEntered);
+			const second = yield* Effect.forkChild(
+				db.transaction(
+					Effect.gen(function* () {
+						yield* Database;
+						yield* Deferred.succeed(secondEntered, undefined);
+					}),
+				),
+				{ startImmediately: true },
+			);
+
+			yield* Effect.yieldNow;
+			expect(yield* Deferred.isDone(secondEntered)).toBe(false);
+			yield* Deferred.succeed(releaseFirst, undefined);
+			yield* Fiber.join(first);
+			yield* Fiber.join(second);
+			expect(yield* Deferred.isDone(secondEntered)).toBe(true);
+		}),
+	),
+);
+
+it.effect(
+	"settles an interrupted SQLite transaction before admitting the next",
+	() =>
+		withDatabase(
+			Effect.gen(function* () {
+				const db = yield* Database;
+				const firstEntered = yield* Deferred.make<void>();
+				const secondEntered = yield* Deferred.make<void>();
+				const first = yield* Effect.forkChild(
+					db.transaction(
+						Effect.gen(function* () {
+							yield* Database;
+							yield* Deferred.succeed(firstEntered, undefined);
+							yield* Effect.never;
+						}),
+					),
+					{ startImmediately: true },
+				);
+				yield* Deferred.await(firstEntered);
+				const second = yield* Effect.forkChild(
+					db.transaction(
+						Effect.gen(function* () {
+							yield* Database;
+							yield* Deferred.succeed(secondEntered, undefined);
+						}),
+					),
+					{ startImmediately: true },
+				);
+
+				yield* Effect.yieldNow;
+				expect(yield* Deferred.isDone(secondEntered)).toBe(false);
+				yield* Fiber.interrupt(first);
+				yield* Fiber.join(second);
+				expect(yield* Deferred.isDone(secondEntered)).toBe(true);
+			}),
+		),
+);
+
+it.effect("uses the transaction Database and rolls back failures", () =>
+	withDatabase(
+		Effect.gen(function* () {
+			const db = yield* Database;
+			const email = uniqueEmail("failure");
+			const relation = db.User.where({ email });
+
+			const exit = yield* Effect.exit(
+				db.transaction(
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id: crypto.randomUUID(),
+							email,
+							name: "Rolled back",
+						});
+						expect(yield* transactionDb.User.where({ email }).exists()).toBe(
+							true,
+						);
+						return yield* Effect.fail("expected failure");
+					}),
+				),
+			);
+
+			expect(Exit.isFailure(exit)).toBe(true);
+			expect(yield* relation.exists()).toBe(false);
+		}),
+	),
 );
 
 it.effect("rolls back interrupted transactions before returning", () =>
@@ -274,7 +546,8 @@ it.effect("rolls back interrupted transactions before returning", () =>
 			const fiber = yield* Effect.forkDetach(
 				db.transaction(
 					Effect.gen(function* () {
-						yield* db.User.create({
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
 							id: crypto.randomUUID(),
 							email,
 							name: "Interrupted",
@@ -304,11 +577,15 @@ it.effect(
 
 				const value = yield* withTestTransaction(
 					Database,
-					db.User.create({
-						id,
-						email: `${id}@example.test`,
-						name: "Test transaction",
-					}).pipe(Effect.as(42)),
+					Effect.gen(function* () {
+						const transactionDb = yield* Database;
+						yield* transactionDb.User.create({
+							id,
+							email: `${id}@example.test`,
+							name: "Test transaction",
+						});
+						return 42;
+					}),
 				);
 
 				expect(value).toBe(42);
@@ -330,7 +607,8 @@ it.effect(
 					withTestTransaction(
 						Database,
 						Effect.gen(function* () {
-							yield* db.User.create({
+							const transactionDb = yield* Database;
+							yield* transactionDb.User.create({
 								id,
 								email: `${id}@example.test`,
 								name: "Failed test transaction",
