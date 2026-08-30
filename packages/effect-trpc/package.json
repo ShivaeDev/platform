@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Effect-native procedures and testing for tRPC",
 	"type": "module",
 	"license": "MIT",
@@ -50,6 +50,9 @@
 		"typecheck": "tsc --noEmit",
 		"typecheck:compat": "tsc6 --noEmit",
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
+	},
+	"dependencies": {
+		"@shivaedev/effect-test": "workspace:0.1.0"
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",

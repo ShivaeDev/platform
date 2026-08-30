@@ -227,4 +227,5 @@ it.effectDB("creates a user", function* (db) {
 ```
 
 `effectDB` supports the usual `skip`, `skipIf`, `runIf`, `only`, `each`, and
-`fails` variants. `withTestTransaction` is also exported for custom harnesses.
+`fails` variants. Tests install TestClock unless you pass `clock: "live"`.
+`withTestTransaction` is also exported for custom harnesses.

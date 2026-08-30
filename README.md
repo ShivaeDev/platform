@@ -9,6 +9,8 @@ before 1.0.
 
 - [`@shivaedev/effect-prisma`](./packages/effect-prisma): Effect-native
   PostgreSQL queries and transactions for Prisma Next.
+- [`@shivaedev/effect-test`](./packages/effect-test): Generic Effect Vitest
+  runner with worker-scoped Layers and TestClock.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test

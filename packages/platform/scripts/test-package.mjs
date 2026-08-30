@@ -10,6 +10,7 @@ const temporaryDirectory = await mkdtemp(join(tmpdir(), "platform-consumer-"));
 const tarballs = {
 	platform: join(temporaryDirectory, "platform.tgz"),
 	prisma: join(temporaryDirectory, "effect-prisma.tgz"),
+	test: join(temporaryDirectory, "effect-test.tgz"),
 	trpc: join(temporaryDirectory, "effect-trpc.tgz"),
 };
 
@@ -21,6 +22,11 @@ const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	});
 
 try {
+	execute(
+		"pnpm",
+		["pack", "--out", tarballs.test],
+		join(repositoryRoot, "packages/effect-test"),
+	);
 	execute(
 		"pnpm",
 		["pack", "--out", tarballs.prisma],
@@ -82,6 +88,7 @@ try {
 					"@prisma-next/target-postgres":
 						manifest.devDependencies["@prisma-next/target-postgres"],
 					"@shivaedev/effect-prisma": `file:${tarballs.prisma}`,
+					"@shivaedev/effect-test": `file:${tarballs.test}`,
 					"@shivaedev/effect-trpc": `file:${tarballs.trpc}`,
 					"@shivaedev/platform": `file:${tarballs.platform}`,
 					"@trpc/server": manifest.devDependencies["@trpc/server"],
@@ -97,7 +104,12 @@ try {
 	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"),
+		(
+			await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
+		).replace(
+			'  "@vercel/detect-agent": 1.2.3',
+			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
+		),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),

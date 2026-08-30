@@ -9,7 +9,10 @@ const repositoryRoot = dirname(dirname(packageRoot));
 const temporaryDirectory = await mkdtemp(
 	join(tmpdir(), "effect-prisma-consumer-"),
 );
-const tarball = join(temporaryDirectory, "effect-prisma.tgz");
+const tarballs = {
+	prisma: join(temporaryDirectory, "effect-prisma.tgz"),
+	test: join(temporaryDirectory, "effect-test.tgz"),
+};
 
 const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	execFileSync(command, arguments_, {
@@ -19,9 +22,14 @@ const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	});
 
 try {
-	execute("pnpm", ["pack", "--out", tarball], packageRoot);
+	execute(
+		"pnpm",
+		["pack", "--out", tarballs.test],
+		join(repositoryRoot, "packages/effect-test"),
+	);
+	execute("pnpm", ["pack", "--out", tarballs.prisma], packageRoot);
 
-	const contents = execute("tar", ["-tzf", tarball]).trim().split("\n");
+	const contents = execute("tar", ["-tzf", tarballs.prisma]).trim().split("\n");
 	for (const required of [
 		"package/dist/bin/normalize-contract.js",
 		"package/dist/index.js",
@@ -70,7 +78,8 @@ try {
 						manifest.devDependencies["@prisma-next/target-postgres"],
 					"@prisma-next/sql-contract":
 						manifest.dependencies["@prisma-next/sql-contract"],
-					"@shivaedev/effect-prisma": `file:${tarball}`,
+					"@shivaedev/effect-prisma": `file:${tarballs.prisma}`,
+					"@shivaedev/effect-test": `file:${tarballs.test}`,
 					"@types/node": manifest.devDependencies["@types/node"],
 					effect: manifest.devDependencies.effect,
 					vitest: manifest.devDependencies.vitest,
@@ -94,9 +103,14 @@ try {
 			2,
 		)}\n`,
 	);
-	await copyFile(
-		join(repositoryRoot, "pnpm-workspace.yaml"),
+	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
+		(
+			await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
+		).replace(
+			'  "@vercel/detect-agent": 1.2.3',
+			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
+		),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
