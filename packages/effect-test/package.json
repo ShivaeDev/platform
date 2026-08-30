@@ -1,15 +1,15 @@
 {
-	"name": "@shivaedev/effect-prisma",
-	"version": "0.6.1",
-	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
+	"name": "@shivaedev/effect-test",
+	"version": "0.1.0",
+	"description": "Generic Effect Vitest runner with worker-scoped Layers and TestClock",
 	"type": "module",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
-		"directory": "packages/effect-prisma"
+		"directory": "packages/effect-test"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
 	},
@@ -17,9 +17,6 @@
 		"node": ">=24"
 	},
 	"sideEffects": false,
-	"bin": {
-		"effect-prisma-normalize": "./dist/bin/normalize-contract.js"
-	},
 	"files": [
 		"dist",
 		"src",
@@ -32,18 +29,6 @@
 			"source": "./src/index.ts",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
-		},
-		"./sqlite": {
-			"types": "./dist/sqlite.d.ts",
-			"source": "./src/sqlite.ts",
-			"import": "./dist/sqlite.js",
-			"default": "./dist/sqlite.js"
-		},
-		"./testing": {
-			"types": "./dist/testing.d.ts",
-			"source": "./src/testing.ts",
-			"import": "./dist/testing.js",
-			"default": "./dist/testing.js"
 		},
 		"./package.json": "./package.json"
 	},
@@ -60,16 +45,6 @@
 		"typecheck:compat": "tsc6 --noEmit",
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
-	"dependencies": {
-		"@prisma-next/contract": "catalog:",
-		"@prisma-next/postgres": "catalog:",
-		"@prisma-next/sql-contract": "catalog:",
-		"@prisma-next/sql-orm-client": "catalog:",
-		"@prisma-next/sql-relational-core": "catalog:",
-		"@prisma-next/sql-runtime": "catalog:",
-		"@prisma-next/sqlite": "catalog:",
-		"@shivaedev/effect-test": "workspace:0.1.0"
-	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
 		"effect": "catalog:"
@@ -81,13 +56,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
-		"@prisma-next/adapter-postgres": "catalog:",
-		"@prisma-next/adapter-sqlite": "catalog:",
-		"@prisma-next/cli": "catalog:",
-		"@prisma-next/target-postgres": "catalog:",
-		"@prisma-next/target-sqlite": "catalog:",
 		"@types/node": "catalog:",
-		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",

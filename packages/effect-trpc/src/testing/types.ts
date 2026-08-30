@@ -1,4 +1,5 @@
-import type { TestContext, TestOptions, Vitest } from "@effect/vitest";
+import type { TestContext, Vitest } from "@effect/vitest";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
 import type { Effect, Layer } from "effect";
 import type { EffectTRPCAdapter } from "../adapter.js";
 import type { EffectCallerFactory } from "./caller.js";
@@ -9,7 +10,7 @@ export type TrpcHarnessTest<Harness, Provided> = <
 >(
 	name: string,
 	body: (harness: Harness, context: TestContext) => Generator<Eff, A, never>,
-	options?: number | TestOptions,
+	options?: number | EffectTestOptions,
 ) => void;
 
 export interface TrpcHarnessTester<Harness, Provided>
@@ -27,7 +28,7 @@ export interface TrpcHarnessTester<Harness, Provided>
 			harness: Harness,
 			context: TestContext,
 		) => Generator<Eff, A, never>,
-		options?: number | TestOptions,
+		options?: number | EffectTestOptions,
 	) => void;
 	readonly fails: TrpcHarnessTest<Harness, Provided>;
 }
@@ -50,41 +51,6 @@ export type TrpcHarnessIt<Harness, Provided> = Vitest.Methods & {
 	readonly effectTRPC: TrpcHarnessTester<Harness, Provided>;
 };
 
-export interface TrpcHarnessTestRuntimeOptions<
-	Options,
-	Caller extends object,
-	Harness,
-	Provided,
-	LayerError,
-> {
-	readonly adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">;
-	readonly around?: <A, E>(
-		effect: Effect.Effect<A, E, Provided>,
-	) => Effect.Effect<A, unknown, Provided>;
-	readonly createCaller: (options?: Options) => Caller;
-	readonly layer: Layer.Layer<Provided, LayerError>;
-	readonly makeHarness: (
-		trpc: EffectCallerFactory<Options, Caller>,
-		context: TestContext,
-	) => Effect.Effect<Harness, unknown, Provided>;
-}
-
-export type TrpcTestRuntimeOptions<
-	Options,
-	Caller extends object,
-	Provided,
-	LayerError,
-> = Omit<
-	TrpcHarnessTestRuntimeOptions<
-		Options,
-		Caller,
-		EffectCallerFactory<Options, Caller>,
-		Provided,
-		LayerError
-	>,
-	"makeHarness"
->;
-
 export interface MakeTrpcItOptions<
 	CreateCaller extends (...arguments_: never[]) => object,
 	// biome-ignore lint/suspicious/noExplicitAny: Layer output and error are recovered with Layer utility types
@@ -94,6 +60,7 @@ export interface MakeTrpcItOptions<
 	readonly around?: <A, E>(
 		effect: Effect.Effect<A, E, Layer.Success<TestLayer>>,
 	) => Effect.Effect<A, unknown, Layer.Success<TestLayer>>;
+	readonly clock?: EffectClock;
 	readonly createCaller: CreateCaller;
 	readonly layer: TestLayer;
 }

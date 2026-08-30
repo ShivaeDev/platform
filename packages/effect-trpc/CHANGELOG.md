@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.3.3 - 2026-08-30
+
+### Changed
+
+- Build `makeTrpcIt` and `makeTrpcHarnessIt` on `@shivaedev/effect-test`
+  instead of a private Vitest runner.
+
+### Added
+
+- Accept `clock: "live"` on `makeTrpcIt`, `makeTrpcHarnessIt`, and
+  `effectTRPC` tests to use wall-clock time instead of TestClock.
+
 ## 0.3.2 - 2026-08-12
 
 ### Changed

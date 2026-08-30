@@ -9,7 +9,10 @@ const repositoryRoot = dirname(dirname(packageRoot));
 const temporaryDirectory = await mkdtemp(
 	join(tmpdir(), "effect-trpc-consumer-"),
 );
-const tarball = join(temporaryDirectory, "effect-trpc.tgz");
+const tarballs = {
+	test: join(temporaryDirectory, "effect-test.tgz"),
+	trpc: join(temporaryDirectory, "effect-trpc.tgz"),
+};
 
 const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	execFileSync(command, arguments_, {
@@ -19,9 +22,14 @@ const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	});
 
 try {
-	execute("pnpm", ["pack", "--out", tarball], packageRoot);
+	execute(
+		"pnpm",
+		["pack", "--out", tarballs.test],
+		join(repositoryRoot, "packages/effect-test"),
+	);
+	execute("pnpm", ["pack", "--out", tarballs.trpc], packageRoot);
 
-	const contents = execute("tar", ["-tzf", tarball]).trim().split("\n");
+	const contents = execute("tar", ["-tzf", tarballs.trpc]).trim().split("\n");
 	for (const required of [
 		"package/dist/index.js",
 		"package/dist/index.d.ts",
@@ -54,7 +62,8 @@ try {
 				type: "module",
 				dependencies: {
 					"@effect/vitest": manifest.devDependencies["@effect/vitest"],
-					"@shivaedev/effect-trpc": `file:${tarball}`,
+					"@shivaedev/effect-test": `file:${tarballs.test}`,
+					"@shivaedev/effect-trpc": `file:${tarballs.trpc}`,
 					"@trpc/server": manifest.devDependencies["@trpc/server"],
 					"@types/node": manifest.devDependencies["@types/node"],
 					effect: manifest.devDependencies.effect,
@@ -67,7 +76,12 @@ try {
 	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"),
+		(
+			await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
+		).replace(
+			'  "@vercel/detect-agent": 1.2.3',
+			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
+		),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),

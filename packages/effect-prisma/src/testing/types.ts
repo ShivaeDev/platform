@@ -1,4 +1,5 @@
-import type { TestContext, TestOptions, Vitest } from "@effect/vitest";
+import type { TestContext, Vitest } from "@effect/vitest";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
 import type { Effect, Layer } from "effect";
 import type { AnyDatabase, DatabaseServiceOf } from "../database.js";
 
@@ -15,7 +16,7 @@ export type DatabaseTest<Database extends AnyDatabase, Provided> = <
 		database: DatabaseService<Database>,
 		context: TestContext,
 	) => Generator<Eff, A, never>,
-	options?: number | TestOptions,
+	options?: number | EffectTestOptions,
 ) => void;
 
 export interface DatabaseTester<Database extends AnyDatabase, Provided>
@@ -33,7 +34,7 @@ export interface DatabaseTester<Database extends AnyDatabase, Provided>
 			database: DatabaseService<Database>,
 			context: TestContext,
 		) => Generator<Eff, A, never>,
-		options?: number | TestOptions,
+		options?: number | EffectTestOptions,
 	) => void;
 	readonly fails: DatabaseTest<Database, Provided>;
 }
@@ -50,6 +51,7 @@ export interface MakeDatabaseItOptions<
 	Provided,
 	LayerError,
 > {
+	readonly clock?: EffectClock;
 	readonly database: Database;
 	readonly layer: Layer.Layer<Provided, LayerError>;
 }

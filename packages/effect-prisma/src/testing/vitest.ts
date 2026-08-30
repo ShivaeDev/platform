@@ -1,13 +1,11 @@
 import { it as effectIt } from "@effect/vitest";
-import { Effect, Exit, Layer, Scope } from "effect";
-import {
-	type FixtureTestApi,
-	fixtureName,
-	makeDatabaseTester,
-} from "../internal/vitest-database.js";
+import { makeEffectIt } from "@shivaedev/effect-test";
+import type { Effect, Layer } from "effect";
+import { withTestTransaction } from "./transaction.js";
 import type {
 	AnyDatabase,
 	DatabaseIt,
+	DatabaseService,
 	MakeDatabaseItOptions,
 } from "./types.js";
 
@@ -25,34 +23,22 @@ export const makeDatabaseIt = <
 ): DatabaseIt<Database, Provided | Effect.Services<Database>> => {
 	type Services = Provided | Effect.Services<Database>;
 
-	const fixtureIt = effectIt.extend(
-		fixtureName,
-		{ scope: "worker" },
-		// biome-ignore lint/correctness/noEmptyPattern: Vitest fixtures require a destructured context parameter.
-		async ({}, { onCleanup }) => {
-			const scope = Effect.runSync(Scope.make());
-			onCleanup(() => Effect.runPromise(Scope.close(scope, Exit.void)));
-
-			try {
-				return await Effect.runPromise(
-					Layer.buildWithScope(options.layer, scope),
-				);
-			} catch (error) {
-				await Effect.runPromise(Scope.close(scope, Exit.void));
-				throw error;
-			}
-		},
-	);
-
-	const effectDB = makeDatabaseTester(
-		fixtureIt as unknown as FixtureTestApi<Services>,
-		options.database,
-	);
+	const { effectApp } = makeEffectIt({
+		around: (effect) => withTestTransaction(options.database, effect),
+		clock: options.clock,
+		layer: options.layer,
+		makeHarness: () =>
+			options.database as unknown as Effect.Effect<
+				DatabaseService<Database>,
+				never,
+				Effect.Services<Database>
+			>,
+	});
 
 	return new Proxy(effectIt, {
 		get(target, property, receiver) {
 			if (property === "effectDB") {
-				return effectDB;
+				return effectApp;
 			}
 			return Reflect.get(target, property, receiver);
 		},

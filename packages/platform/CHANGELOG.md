@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.6 - 2026-08-30
+
+### Changed
+
+- Require Effect Prisma 0.6.1 and Effect tRPC 0.3.3, which run Effect tests
+  through `@shivaedev/effect-test`.
+
 ## 0.3.5 - 2026-08-27
 
 ### Changed

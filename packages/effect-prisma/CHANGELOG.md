@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.6.1 - 2026-08-30
+
+### Changed
+
+- Build `makeDatabaseIt` on `@shivaedev/effect-test` instead of a private
+  Vitest runner.
+
+### Added
+
+- Accept `clock: "live"` on `makeDatabaseIt` and `effectDB` tests to use
+  wall-clock time instead of TestClock.
+
 ## 0.6.0 - 2026-08-27
 
 ### Changed
