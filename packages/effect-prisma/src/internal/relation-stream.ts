@@ -41,7 +41,7 @@ export const makeRelationStream = <
 						[],
 					) as AsyncIterable<unknown>;
 
-					if (executor.querySemaphore === undefined) {
+					if (executor.mode === "root") {
 						return Stream.fromAsyncIterable(iterable, (error) => error).pipe(
 							Stream.catch((error) =>
 								isPrismaFailure(error)

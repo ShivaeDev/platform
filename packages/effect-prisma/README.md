@@ -73,9 +73,10 @@ per transaction, so in-memory databases are rejected.
 That driver is synchronous. Queries block the event loop while they run, and
 because SQLite allows a single writer, overlapping write transactions wait for
 `busy_timeout` while blocking that event loop. The supported Database Layer
-therefore serializes its transaction scopes; ordinary queries and writes remain
-direct and unsynchronized. Do not coordinate multiple Database Layers against
-the same SQLite file.
+therefore serializes finite root query effects and explicit transaction
+lifetimes through one access permit. Transaction-internal queries use a private
+permit for their single connection, while root Streams remain incremental. Do
+not coordinate multiple Database Layers against the same SQLite file.
 
 SQLite stores `DateTime` as text, and `prisma-next db init` generates
 `DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
@@ -186,8 +187,10 @@ drivers do not provide the savepoint semantics that promise would require.
 
 Queries composed concurrently inside a transaction are executed one at a time
 on its single connection. Once a transaction query starts, interruption waits
-for it to settle before releasing that connection. Query effects outside
-transactions remain parallel.
+for it to settle before releasing that connection. PostgreSQL query effects
+outside transactions remain parallel. SQLite root query effects execute one at
+a time and do not overlap an explicit transaction lifetime, so a root write
+cannot invalidate the transaction's WAL snapshot.
 
 Transaction-scoped Streams are read into memory before emitting rows. This
 releases the connection before downstream Stream effects run database queries.
