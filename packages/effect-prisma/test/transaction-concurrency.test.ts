@@ -177,6 +177,52 @@ it.effect(
 );
 
 it.effect(
+	"keeps a root stream incremental when root queries share an access permit",
+	() =>
+		Effect.gen(function* () {
+			const events: Array<string> = [];
+			interface StreamModels {
+				readonly Source: EventStreamCollection<User>;
+			}
+			const executor: DatabaseExecutor<StreamModels> = {
+				client: {} as DatabaseExecutor<StreamModels>["client"],
+				identity: {},
+				liveness: {
+					closedCode: "RUNTIME.DATABASE_CLOSED",
+					open: true,
+				},
+				mode: "root",
+				models: { Source: new EventStreamCollection(rows, events) },
+				querySemaphore: Semaphore.makeUnsafe(1),
+				transactionIdentity: undefined,
+				transactionSemaphore: undefined,
+			};
+			const source = makeModelRelation<
+				EventStreamCollection<User>,
+				StreamModels
+			>(executor, "Source");
+
+			const result = yield* Stream.runCollect(
+				source.stream.pipe(
+					Stream.map((row) => {
+						events.push(`downstream:${row.id}`);
+						return row;
+					}),
+				),
+			);
+
+			expect(result).toEqual(rows);
+			expect(events).toEqual([
+				"source:start",
+				"downstream:1",
+				"downstream:2",
+				"downstream:3",
+				"source:end",
+			]);
+		}),
+);
+
+it.effect(
 	"buffers a transaction stream before running downstream effects",
 	() =>
 		Effect.gen(function* () {

@@ -468,6 +468,67 @@ it.effect("serializes SQLite transaction scopes for one Database Layer", () =>
 );
 
 it.effect(
+	"excludes root queries for the lifetime of a SQLite transaction",
+	() =>
+		withDatabase(
+			Effect.gen(function* () {
+				const db = yield* Database;
+				const transactionRead = yield* Deferred.make<void>();
+				const continueTransaction = yield* Deferred.make<void>();
+				const rootWriteStarted = yield* Deferred.make<void>();
+				const rootWriteFinished = yield* Deferred.make<void>();
+				const transactionEmail = uniqueEmail("transaction-snapshot");
+				const rootEmail = uniqueEmail("root-snapshot");
+
+				const transaction = yield* Effect.forkChild(
+					db.transaction(
+						Effect.gen(function* () {
+							const transactionDb = yield* Database;
+							yield* transactionDb.User.count();
+							yield* Deferred.succeed(transactionRead, undefined);
+							yield* Deferred.await(continueTransaction);
+							yield* transactionDb.User.create({
+								id: crypto.randomUUID(),
+								email: transactionEmail,
+								name: "Transaction snapshot",
+							});
+						}),
+					),
+					{ startImmediately: true },
+				);
+				yield* Deferred.await(transactionRead);
+
+				const rootWrite = yield* Effect.forkChild(
+					Deferred.succeed(rootWriteStarted, undefined).pipe(
+						Effect.andThen(
+							db.User.create({
+								id: crypto.randomUUID(),
+								email: rootEmail,
+								name: "Root snapshot",
+							}),
+						),
+						Effect.andThen(Deferred.succeed(rootWriteFinished, undefined)),
+					),
+					{ startImmediately: true },
+				);
+
+				yield* Deferred.await(rootWriteStarted);
+				yield* Effect.yieldNow;
+				const rootWasBlocked = !(yield* Deferred.isDone(rootWriteFinished));
+				yield* Deferred.succeed(continueTransaction, undefined);
+				yield* Fiber.join(transaction);
+				yield* Fiber.join(rootWrite);
+
+				expect(rootWasBlocked).toBe(true);
+				expect(yield* db.User.where({ email: transactionEmail }).exists()).toBe(
+					true,
+				);
+				expect(yield* db.User.where({ email: rootEmail }).exists()).toBe(true);
+			}),
+		),
+);
+
+it.effect(
 	"settles an interrupted SQLite transaction before admitting the next",
 	() =>
 		withDatabase(

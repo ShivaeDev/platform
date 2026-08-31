@@ -94,6 +94,7 @@ export const makeSqliteDatabase =
 					acquireConnectedClient(client, () => {
 						// The SQLite client already exposes the unbound namespace.
 						const models = client.orm as Models;
+						const accessSemaphore = Semaphore.makeUnsafe(1);
 						assertAvailableModelNames(Object.keys(models));
 						return {
 							client,
@@ -104,9 +105,9 @@ export const makeSqliteDatabase =
 							},
 							mode: "root",
 							models,
-							querySemaphore: undefined,
+							querySemaphore: accessSemaphore,
 							transactionIdentity: undefined,
-							transactionSemaphore: Semaphore.makeUnsafe(1),
+							transactionSemaphore: accessSemaphore,
 						};
 					}),
 				);

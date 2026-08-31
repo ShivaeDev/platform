@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.6.2 - 2026-08-31
+
+### Fixed
+
+- Coordinate finite root SQLite query effects with explicit transaction
+  lifetimes so a transaction cannot lose its WAL snapshot to an interleaved
+  root write.
+
 ## 0.6.1 - 2026-08-30
 
 ### Changed
