@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.3 - 2026-09-04
+
+### Changed
+
+- Require Effect 4.0.0-rc.112, so applications tracking the current release
+  candidate install without unmet peer warnings.
+
 ## 0.1.2 - 2026-08-12
 
 ### Changed

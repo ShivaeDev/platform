@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.7 - 2026-09-04
+
+### Changed
+
+- Require Effect 4.0.0-rc.112, so applications tracking the current release
+  candidate install without unmet peer warnings.
+- Require Effect Prisma 0.6.3 and Effect tRPC 0.3.4, which move to the same
+  Effect release.
+
 ## 0.3.6 - 2026-08-30
 
 ### Changed

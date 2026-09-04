@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.6.2",
+	"version": "0.6.3",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"type": "module",
 	"license": "MIT",
@@ -68,7 +68,7 @@
 		"@prisma-next/sql-relational-core": "catalog:",
 		"@prisma-next/sql-runtime": "catalog:",
 		"@prisma-next/sqlite": "catalog:",
-		"@shivaedev/effect-test": "workspace:0.1.0"
+		"@shivaedev/effect-test": "workspace:0.1.1"
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
