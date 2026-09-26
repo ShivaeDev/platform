@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
