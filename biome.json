@@ -11,7 +11,7 @@
 	"plugins": [
 		{
 			"path": "./script/lint/plugins/ambient-runtime.grit",
-			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts", "!**/prisma-next.config.ts", "!**/script/heavy.ts"]
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts", "!**/prisma-next.config.ts"]
 		},
 		{
 			"path": "./script/lint/plugins/type-assertions.grit",

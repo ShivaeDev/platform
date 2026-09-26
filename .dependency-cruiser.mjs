@@ -8,6 +8,7 @@ const LEAVES = {
 	"effect-service": [],
 	"effect-sql": ["effect-changes"],
 	"effect-test": [],
+	"heavy-lock": [],
 	quality: [],
 };
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
