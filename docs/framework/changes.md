@@ -80,6 +80,38 @@ interrupted while the driver's promise is pending, keep waiting for the promise
 and settle from its outcome, so a commit that lands after the interruption still
 publishes.
 
+[`@shivaedev/effect-changes-prisma`](../../packages/effect-changes-prisma) is
+that binding for Prisma Classic; see [Prisma Classic](#prisma-classic).
+
+## Prisma Classic
+
+`makePrismaChanges` makes a channel whose owner is the base Prisma client and
+adds three things around it:
+
+- `transaction(body)` runs the body inside `$transaction` on the current client
+  and settles its frame from `$transaction`'s promise. A nested `transaction`
+  runs on the transaction client, so Prisma makes it a savepoint and its frame
+  merges into the parent on release. A caller interrupted during the body
+  interrupts the body, so Prisma rolls back; one interrupted while `COMMIT` is in
+  flight waits for the outcome and publishes if the database committed.
+- `use(query)` runs a Prisma call against the current client and records the
+  changes of every write it made to a mapped model, in the calling fiber. A
+  typed map, `satisfies ChangeMap<PrismaClient, Change>` when it must classify
+  every model, turns each returned row into any number of changes; `null`
+  classifies a model whose writes publish nothing. Count-only `*Many` writes and
+  results narrowed by `select` or `omit` cannot name their subjects, so they are
+  reported to a test seam instead of recorded; rows are never read back.
+- A coverage check for tests: `writtenTables` reads `pg_stat_xact_user_tables`
+  on the test's transaction just before it rolls back, `tablesOf` maps tables to
+  models from `@@map`, and `checkCoverage` returns every table written without a
+  covering `Recorded` observation and every unnamed write. It catches raw SQL,
+  nested relation writes, cascades and triggers, which record nothing.
+
+A test harness that runs each test inside a rolled-back Prisma transaction
+provides that transaction as the binding's `Client` without opening a frame; the
+application's first `transaction` is then a root and publishes when its
+savepoint is released.
+
 ## Sink failures
 
 By the time a sink runs, the rows are committed. A failing sink, whether a failed
@@ -132,6 +164,14 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
   after `COMMIT`, and show that a throwing subscriber is logged while the result
   and the rows stand. The interruption case fails against the previous
   `transact`, which dropped the keys.
+- [Prisma Classic tests](../../packages/effect-changes-prisma/test) run a
+  generated Prisma 7 client with `@prisma/adapter-pg` against PostgreSQL: a sink
+  reading from a second client sees the committed rows, rollbacks, failed
+  deferred commits and timeouts publish nothing, an interruption while a slow
+  deferred trigger holds `COMMIT` still publishes, nested transactions merge and
+  discard, one row names several subjects, `*Many` and narrowed writes are
+  reported, and the coverage check finds a raw SQL insert and a table without a
+  model among the tables a rolled-back transaction wrote.
 
 ## Limits
 

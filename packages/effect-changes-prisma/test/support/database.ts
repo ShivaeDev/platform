@@ -1,0 +1,54 @@
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Effect, type Scope } from "effect";
+import { test } from "vitest";
+import { PrismaClient } from "../generated/client.ts";
+import { databaseUrl } from "./environment.ts";
+
+export const integration = databaseUrl === undefined ? test.skip : test;
+
+const url = databaseUrl ?? "postgresql://integration-tests-disabled";
+
+const tables = (schema: string) => [
+	`create schema "${schema}"`,
+	`create table "${schema}".changes_prisma_order (id text primary key, owner_id text not null, total integer not null)`,
+	`create table "${schema}".changes_prisma_membership (id text primary key, owner_id text not null, member_id text not null)`,
+	`create table "${schema}".changes_prisma_invoice (id text primary key, owner_id text not null,
+		order_id text references "${schema}".changes_prisma_order (id) deferrable initially deferred)`,
+	`create table "${schema}"."AuditNote" (id text primary key, text text not null)`,
+	`create table "${schema}".changes_prisma_unmodeled (id text primary key)`,
+];
+
+const connect = (schema: string) =>
+	Effect.acquireRelease(
+		Effect.sync(() => new PrismaClient({ adapter: new PrismaPg({ connectionString: url }, { schema }) })),
+		(client) => Effect.promise(() => client.$disconnect()),
+	);
+
+const statements = (client: PrismaClient, sql: ReadonlyArray<string>) =>
+	Effect.promise(async () => {
+		for (const statement of sql) await client.$executeRawUnsafe(statement);
+	});
+
+export const makeDatabase: Effect.Effect<
+	{
+		readonly schema: string;
+		readonly client: PrismaClient;
+		readonly observer: PrismaClient;
+		readonly execute: (...sql: ReadonlyArray<string>) => Effect.Effect<void>;
+	},
+	never,
+	Scope.Scope
+> = Effect.gen(function* () {
+	const schema = `changes_prisma_${crypto.randomUUID().replaceAll("-", "")}`;
+	const admin = yield* connect("public");
+	yield* Effect.acquireRelease(statements(admin, tables(schema)), () => statements(admin, [`drop schema "${schema}" cascade`]));
+	const client = yield* connect(schema);
+	const observer = yield* connect(schema);
+	return { schema, client, observer, execute: (...sql: ReadonlyArray<string>) => statements(admin, sql) };
+});
+
+export const orderIds = (client: PrismaClient) =>
+	Effect.map(
+		Effect.promise(() => client.order.findMany({ orderBy: { id: "asc" }, select: { id: true } })),
+		(rows) => rows.map((row) => row.id),
+	);

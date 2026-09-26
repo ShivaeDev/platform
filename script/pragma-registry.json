@@ -1,5 +1,10 @@
 [
 	{
+		"file": "packages/effect-changes-prisma/test/changes.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that an exhaustive change map must classify every Prisma model, that a mapping reads only its model's fields, and that the transaction client offered to `use` has no $extends. Each pragma goes unused, and typecheck fails, if the types stop enforcing it."
+	},
+	{
 		"file": "packages/effect-form/test/runtime.typecheck.ts",
 		"pragma": "@ts-expect-error",
 		"reason": "Compile-time proof that a form bound to the native runtime cannot submit through a handler requiring application services the runtime does not provide. The pragma goes unused, and typecheck fails, if the requirement ever leaks past the runtime."

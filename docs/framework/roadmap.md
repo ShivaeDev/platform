@@ -193,8 +193,13 @@ by the chosen policy rather than an unevictable input-key map.
   sink and an observer. `transact` is rebased on it; PostgreSQL tests cover
   interruption during `COMMIT`, failed deferred commits and two pools
   ([commit-bound changes](./changes.md)).
-- [ ] Bind a Prisma Classic `$transaction` driver to a channel through
-  `open`/`settle` when a consuming application needs it.
+- [x] Bind a Prisma Classic `$transaction` driver to a channel through
+  `open`/`settle`: `@shivaedev/effect-changes-prisma` records writes from a
+  typed model map, publishes after `COMMIT` including when the caller is
+  interrupted during it, merges nested transactions, reports count-only `*Many`
+  writes, and adds a `pg_stat_xact_user_tables` coverage check for tests.
+  PostgreSQL tests use a generated Prisma 7 client; no application has adopted
+  it yet ([Prisma Classic](./changes.md#prisma-classic)).
 - [ ] Add opt-in subscriptions only for a demonstrated consumer.
 
 **Accept when:** an action refreshes affected views and preserves unrelated ones.

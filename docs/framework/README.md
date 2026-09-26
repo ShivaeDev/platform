@@ -77,6 +77,10 @@ Platform · **B** build/integrate · **D** research, product-specific, or defer.
   inside a transaction publish once, deduplicated, after the owner's outermost
   commit; rollbacks publish nothing. It imports only `effect` and has no SQL or
   ORM dependency ([commit-bound changes](./changes.md)).
+- `@shivaedev/effect-changes-prisma`: an effect-changes channel bound to Prisma
+  Classic's interactive `$transaction`, with changes recorded from writes
+  through a typed model map and a test-time coverage check over
+  `pg_stat_xact_user_tables`.
 - `@shivaedev/effect-sql`: small native SQL/model repository helpers and
   `transact`, an effect-changes channel that invalidates Reactivity keys only
   after the outermost commit. Database engine behavior remains with Effect SQL.
