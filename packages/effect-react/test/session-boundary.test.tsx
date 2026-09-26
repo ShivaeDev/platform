@@ -1,0 +1,292 @@
+// @vitest-environment happy-dom
+import { RegistryContext, useAtomValue } from "@effect/atom-react";
+import { Effect } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { Activity, act, createElement, StrictMode, useContext, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { expect, test, vi } from "vitest";
+import { SessionBoundary } from "../src/index.ts";
+import { makeMealEditor } from "./meal-example/frontend.tsx";
+import { startMealServer } from "./meal-example/http-test.ts";
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
+interface Session {
+	readonly id: string;
+	readonly token: string;
+}
+
+const eventually = (assert: () => void) =>
+	vi.waitFor(async () => {
+		await act(async () => {});
+		assert();
+	});
+
+const shell = (url: string) => {
+	window.location.href = url;
+	const container = document.createElement("div");
+	document.body.append(container);
+	const root = createRoot(container);
+	const registries: AtomRegistry.AtomRegistry[] = [];
+	const rechecks: string[] = [];
+	const Registry = () => {
+		const registry = useContext(RegistryContext);
+		if (!registries.includes(registry)) registries.push(registry);
+		return null;
+	};
+	const show = (session: Session | undefined, id: number) =>
+		act(async () => {
+			root.render(
+				createElement(SessionBoundary<Session, ReturnType<typeof makeMealEditor>>, {
+					session,
+					identify: (current) => current.id,
+					connect: (current) => makeMealEditor({ url, token: current.token }),
+					recheck: () => rechecks.push(session?.id ?? "none"),
+					signedOut: createElement("p", null, "Signed out"),
+					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { key: "editor", id })],
+				}),
+			);
+		});
+	const input = () => container.querySelector<HTMLInputElement>('input[name="name"]');
+	return {
+		container,
+		registries,
+		rechecks,
+		show,
+		input,
+		edit: (value: string) =>
+			act(async () => {
+				const field = input();
+				if (!field) throw new Error("Missing name input");
+				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
+				field.dispatchEvent(new Event("input", { bubbles: true }));
+			}),
+		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
+		close: async () => {
+			await act(async () => root.unmount());
+			container.remove();
+		},
+	};
+};
+
+const sessions = () =>
+	new Map([
+		["alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
+		["bob-token", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
+	]);
+
+test("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
+	const server = await startMealServer({ sessions: sessions() });
+	const view = shell(server.url);
+	try {
+		await view.show({ id: "a1", token: "alice-token" }, 1);
+		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
+		await view.edit("Alice draft");
+		await view.show({ id: "a1", token: "alice-token" }, 1);
+		expect(view.input()?.value).toBe("Alice draft");
+		expect(view.registries).toHaveLength(1);
+
+		await view.show({ id: "b1", token: "bob-token" }, 2);
+		await eventually(() => expect(view.input()?.value).toBe("Soup"));
+		expect(view.container.textContent).not.toContain("Oatmeal");
+		expect(view.registries[0]?.getNodes().size).toBe(0);
+
+		await view.show(undefined, 1);
+		expect(view.container.textContent).toBe("Signed out");
+		expect(view.registries[1]?.getNodes().size).toBe(0);
+
+		await view.show({ id: "a2", token: "alice-token" }, 1);
+		await eventually(() => expect(view.input()?.value).toBe("Oatmeal"));
+		expect(view.container.textContent).not.toContain("Unsaved changes");
+		expect(view.registries).toHaveLength(3);
+		expect(view.rechecks).toEqual([]);
+	} finally {
+		await view.close();
+		await server.close();
+	}
+	expect(view.registries[2]?.getNodes().size).toBe(0);
+});
+
+test("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
+	const active = sessions();
+	const server = await startMealServer({ sessions: active });
+	const view = shell(server.url);
+	try {
+		await view.show({ id: "a1", token: "alice-token" }, 1);
+		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
+		await view.edit("Unsaved breakfast");
+		active.delete("alice-token");
+		await view.refresh();
+		await eventually(() => expect(view.rechecks).toEqual(["a1"]));
+		expect(view.container.textContent).toContain("Oatmeal / 300");
+		expect(view.input()?.value).toBe("Unsaved breakfast");
+
+		await view.show(undefined, 1);
+		expect(view.container.textContent).toBe("Signed out");
+		expect(view.registries[0]?.getNodes().size).toBe(0);
+		expect(view.rechecks).toEqual(["a1"]);
+	} finally {
+		await view.close();
+		await server.close();
+	}
+});
+
+test("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	const count = Atom.make(Effect.succeed(41));
+	let registry: AtomRegistry.AtomRegistry | undefined;
+	const Probe = () => {
+		registry = useContext(RegistryContext);
+		const value = useAtomValue(count);
+		return createElement("output", null, value._tag === "Success" ? value.value + 1 : "…");
+	};
+	const render = (session: string | undefined) =>
+		act(async () => {
+			root.render(
+				createElement(
+					StrictMode,
+					null,
+					createElement(SessionBoundary<string, undefined>, {
+						session,
+						identify: (id) => id,
+						connect: () => undefined,
+						recheck: () => {},
+						children: () => createElement(Probe),
+					}),
+				),
+			);
+		});
+	await render("s1");
+	expect(container.textContent).toBe("42");
+	expect(registry?.getNodes().size).toBeGreaterThan(0);
+	const first = registry;
+	await render(undefined);
+	expect(container.textContent).toBe("");
+	expect(first?.getNodes().size).toBe(0);
+	await act(async () => root.unmount());
+});
+
+const activity = async (hoisted: boolean) => {
+	const count = Atom.make(Effect.succeed(41));
+	const registries: AtomRegistry.AtomRegistry[] = [];
+	const Probe = () => {
+		const registry = useContext(RegistryContext);
+		if (!registries.includes(registry)) registries.push(registry);
+		const [draft] = useState(() => `draft-${registries.length}`);
+		const value = useAtomValue(count);
+		return createElement("output", null, `${draft}:${value._tag === "Success" ? value.value + 1 : "…"}`);
+	};
+	const boundary = () =>
+		createElement(SessionBoundary<string, undefined>, {
+			session: "s1",
+			identify: (id) => id,
+			connect: () => undefined,
+			recheck: () => {},
+			children: () => createElement(Probe),
+		});
+	const kept = boundary();
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	const errors: unknown[] = [];
+	const render = (mode: "visible" | "hidden") =>
+		act(async () => {
+			root.render(createElement(Activity, { mode, children: hoisted ? kept : boundary() }));
+		}).then(
+			() => {},
+			(error: unknown) => {
+				errors.push(error);
+			},
+		);
+	await render("visible");
+	expect(container.textContent).toBe("draft-1:42");
+	await render("hidden");
+	await render("visible");
+	expect(errors).toEqual([]);
+	expect(container.textContent).toBe("draft-1:42");
+	expect(registries.at(-1)?.getNodes().size).toBeGreaterThan(0);
+	await act(async () => root.unmount());
+	expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
+};
+
+test("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
+
+test("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
+
+test("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
+	const built: number[] = [];
+	const finalized: number[] = [];
+	const rendered: number[] = [];
+	const held = Atom.keepAlive(
+		Atom.make((get) => {
+			built.push(1);
+			get.addFinalizer(() => finalized.push(1));
+			return 1;
+		}),
+	);
+	const Probe = ({ round }: { readonly round: number }) => {
+		rendered.push(round);
+		return createElement("output", null, `${round}:${useAtomValue(held)}`);
+	};
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	const render = (mode: "visible" | "hidden", round: number) =>
+		act(async () => {
+			root.render(
+				createElement(Activity, {
+					mode,
+					children: createElement(SessionBoundary<string, undefined>, {
+						session: "s1",
+						identify: (id) => id,
+						connect: () => undefined,
+						recheck: () => {},
+						children: () => createElement(Probe, { round }),
+					}),
+				}),
+			);
+		});
+	await render("visible", 1);
+	await render("hidden", 1);
+	await render("hidden", 2);
+	expect(rendered).toContain(2);
+	expect(built.length).toBeGreaterThan(1);
+	await act(async () => root.unmount());
+	await eventually(() => expect(finalized).toHaveLength(built.length));
+});
+
+test("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
+	interface Rotating {
+		readonly id: string;
+		readonly credential: number;
+		readonly token: string;
+	}
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	const connected: string[] = [];
+	const show = (session: Rotating, identify: (session: Rotating) => string) =>
+		act(async () => {
+			root.render(
+				createElement(SessionBoundary<Rotating, string>, {
+					session,
+					identify,
+					connect: (current) => {
+						connected.push(current.token);
+						return current.token;
+					},
+					recheck: () => {},
+					children: (token) => createElement("output", null, token),
+				}),
+			);
+		});
+	const byId = (session: Rotating) => session.id;
+	await show({ id: "a1", credential: 1, token: "t1" }, byId);
+	await show({ id: "a1", credential: 2, token: "t2" }, byId);
+	expect(container.textContent).toBe("t1");
+	const byCredential = (session: Rotating) => `${session.id}:${session.credential}`;
+	await show({ id: "a1", credential: 2, token: "t2" }, byCredential);
+	await show({ id: "a1", credential: 3, token: "t3" }, byCredential);
+	expect(container.textContent).toBe("t3");
+	expect(connected).toEqual(["t1", "t2", "t3"]);
+	await act(async () => root.unmount());
+});

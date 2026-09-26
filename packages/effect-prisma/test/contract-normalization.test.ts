@@ -1,18 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizePrismaNextContractTypes } from "../src/internal/contract-normalization.js";
+import { normalizePrismaNextContractTypes } from "../src/internal/contract-normalization.ts";
 
 describe("Prisma Next contract normalization", () => {
 	it("replaces timestamp output declarations with Date", () => {
-		const source = [
-			"readonly createdAt: Timestamp<6>;",
-			"readonly verifiedAt: Timestamptz<3> | null;",
-		].join("\n");
+		const source = ["readonly createdAt: Timestamp<6>;", "readonly verifiedAt: Timestamptz<3> | null;"].join("\n");
 
-		expect(normalizePrismaNextContractTypes(source)).toBe(
-			["readonly createdAt: Date;", "readonly verifiedAt: Date | null;"].join(
-				"\n",
-			),
-		);
+		expect(normalizePrismaNextContractTypes(source)).toBe(["readonly createdAt: Date;", "readonly verifiedAt: Date | null;"].join("\n"));
 	});
 
 	it("is safe to run repeatedly and on contracts without timestamps", () => {
@@ -21,11 +14,7 @@ describe("Prisma Next contract normalization", () => {
 	});
 
 	it("supports declarations without an explicit timestamp precision", () => {
-		expect(
-			normalizePrismaNextContractTypes(
-				"readonly createdAt: Timestamp<undefined>;",
-			),
-		).toBe("readonly createdAt: Date;");
+		expect(normalizePrismaNextContractTypes("readonly createdAt: Timestamp<undefined>;")).toBe("readonly createdAt: Date;");
 	});
 
 	it("replaces timestamp codec input and output references with Date", () => {
@@ -34,16 +23,12 @@ describe("Prisma Next contract normalization", () => {
 			"readonly updatedAt: CodecTypes['pg/timestamptz@1']['input'];",
 		].join("\n");
 
-		expect(normalizePrismaNextContractTypes(source)).toBe(
-			["readonly createdAt: Date;", "readonly updatedAt: Date;"].join("\n"),
-		);
+		expect(normalizePrismaNextContractTypes(source)).toBe(["readonly createdAt: Date;", "readonly updatedAt: Date;"].join("\n"));
 	});
 
 	it("fails when Prisma emits an unsupported timestamp type shape", () => {
-		expect(() =>
-			normalizePrismaNextContractTypes(
-				"readonly createdAt: Timestamp<Precision>;",
-			),
-		).toThrow("Unsupported Prisma Next timestamp declaration");
+		expect(() => normalizePrismaNextContractTypes("readonly createdAt: Timestamp<Precision>;")).toThrow(
+			"Unsupported Prisma Next timestamp declaration",
+		);
 	});
 });

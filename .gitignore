@@ -8,3 +8,5 @@ coverage/
 !.env.example
 .pnpm-debug.log*
 .pnpm-store/
+.worktrees/
+.claude/

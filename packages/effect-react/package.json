@@ -1,0 +1,83 @@
+{
+	"name": "@shivaedev/effect-react",
+	"version": "0.1.0",
+	"description": "React query, action, editor and session hooks for native Effect atoms",
+	"type": "module",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/effect-react"
+	},
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"source": "./src/index.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./form": {
+			"types": "./dist/form.d.ts",
+			"source": "./src/form.ts",
+			"import": "./dist/form.js",
+			"default": "./dist/form.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"check": "biome check .",
+		"test": "vitest run",
+		"test:package": "node scripts/test-package.mjs",
+		"typecheck": "tsc --noEmit",
+		"typecheck:compat": "tsc6 --noEmit",
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
+	},
+	"peerDependencies": {
+		"@effect/atom-react": "catalog:",
+		"@shivaedev/effect-form": "workspace:^0.1.0",
+		"effect": "catalog:",
+		"react": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@shivaedev/effect-form": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@effect/atom-react": "catalog:",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"happy-dom": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:",
+		"@shivaedev/effect-sql": "workspace:0.1.0",
+		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/effect-service": "workspace:0.1.0",
+		"@shivaedev/effect-form": "workspace:0.1.0",
+		"@shivaedev/effect-contract": "workspace:0.1.0"
+	}
+}

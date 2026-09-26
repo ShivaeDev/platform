@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { afterAll, expect, it } from "vitest";
-import { makeContextBridge } from "../src/internal/context-bridge.js";
-import { makeRuntimeBridge } from "../src/internal/runtime.js";
+import { makeContextBridge } from "../src/internal/context-bridge.ts";
+import { makeRuntimeBridge } from "../src/internal/runtime.ts";
 
 const runtime = ManagedRuntime.make(Layer.empty);
 const bridge = makeRuntimeBridge(runtime, makeContextBridge(), {});
@@ -42,12 +42,7 @@ it("redacts defects thrown by consumer instrumentation", async () => {
 		},
 	});
 
-	await expect(
-		unsafeBridge.runEffect(
-			unsafeBridge.instrument(Effect.succeed("unreachable"), procedure),
-			{ procedure },
-		),
-	).rejects.toMatchObject({
+	await expect(unsafeBridge.runEffect(unsafeBridge.instrument(Effect.succeed("unreachable"), procedure), { procedure })).rejects.toMatchObject({
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",
 	});
@@ -60,9 +55,7 @@ it("redacts defects thrown by the consumer error mapper", async () => {
 		},
 	});
 
-	await expect(
-		unsafeBridge.runEffect(Effect.fail("domain failure"), { procedure }),
-	).rejects.toMatchObject({
+	await expect(unsafeBridge.runEffect(Effect.fail("domain failure"), { procedure })).rejects.toMatchObject({
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",
 	});

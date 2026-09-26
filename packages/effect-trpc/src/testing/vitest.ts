@@ -1,79 +1,47 @@
 import { it as effectIt, type Vitest } from "@effect/vitest";
 import { makeEffectIt } from "@shivaedev/effect-test";
 import { Effect, type Layer } from "effect";
-import { makeEffectCallerFactory } from "./caller.js";
-import type {
-	CallerOptions,
-	CallerResult,
-	MakeTrpcHarnessItOptions,
-	MakeTrpcItOptions,
-	TrpcHarnessIt,
-	TrpcIt,
-} from "./types.js";
+import type { AnyTestLayer } from "./any-test-layer.ts";
+import { makeEffectCallerFactory } from "./caller.ts";
+import type { CallerOptions, CallerResult, MakeTrpcHarnessItOptions, MakeTrpcItOptions, TrpcHarnessIt, TrpcIt } from "./types.ts";
 
-const withEffectTRPC = <Tester>(
-	tester: Tester,
-): Vitest.Methods & {
-	readonly effectTRPC: Tester;
-} =>
-	new Proxy(effectIt, {
+function withEffectTRPC<Tester>(tester: Tester): Vitest.Methods & { readonly effectTRPC: Tester };
+function withEffectTRPC(tester: unknown): unknown {
+	return new Proxy(effectIt, {
 		get(target, property, receiver) {
 			if (property === "effectTRPC") {
 				return tester;
 			}
 			return Reflect.get(target, property, receiver);
 		},
-	}) as Vitest.Methods & { readonly effectTRPC: Tester };
+	});
+}
 
-export const makeTrpcHarnessIt = <
-	CreateCaller extends (...arguments_: never[]) => object,
-	// biome-ignore lint/suspicious/noExplicitAny: Layer output and error are recovered with Layer utility types
-	TestLayer extends Layer.Layer<any, any, never>,
-	Harness,
->(
+export function makeTrpcHarnessIt<CreateCaller extends (...arguments_: never[]) => object, TestLayer extends AnyTestLayer, Harness>(
 	options: MakeTrpcHarnessItOptions<CreateCaller, TestLayer, Harness>,
-): TrpcHarnessIt<Harness, Layer.Success<TestLayer>> => {
-	type Options = CallerOptions<CreateCaller>;
-	type Caller = CallerResult<CreateCaller>;
-	type Provided = Layer.Success<TestLayer>;
-
+): TrpcHarnessIt<Harness, Layer.Success<TestLayer>>;
+export function makeTrpcHarnessIt<TestLayer extends AnyTestLayer, Harness>(
+	options: MakeTrpcHarnessItOptions<(options?: unknown) => object, TestLayer, Harness>,
+): unknown {
 	const { effectApp } = makeEffectIt({
 		around: options.around,
 		clock: options.clock,
 		layer: options.layer,
 		makeHarness: (context) =>
 			Effect.gen(function* () {
-				const services = yield* Effect.context<Provided>();
-				const trpc = makeEffectCallerFactory(
-					options.adapter,
-					// CreateCaller is a rest-never function type. The option and
-					// result aliases are the factory TypeScript cannot recover here.
-					options.createCaller as unknown as (options?: Options) => Caller,
-					services,
-				);
+				const services = yield* Effect.context<Layer.Success<TestLayer>>();
+				const trpc = makeEffectCallerFactory(options.adapter, options.createCaller, services);
 				return yield* options.makeHarness(trpc, context);
 			}),
 	});
 
 	return withEffectTRPC(effectApp);
-};
+}
 
-export const makeTrpcIt = <
-	CreateCaller extends (...arguments_: never[]) => object,
-	// biome-ignore lint/suspicious/noExplicitAny: Layer output and error are recovered with Layer utility types
-	TestLayer extends Layer.Layer<any, any, never>,
->(
+export const makeTrpcIt = <CreateCaller extends (...arguments_: never[]) => object, TestLayer extends AnyTestLayer>(
 	options: MakeTrpcItOptions<CreateCaller, TestLayer>,
-): TrpcIt<
-	CallerOptions<CreateCaller>,
-	CallerResult<CreateCaller>,
-	Layer.Success<TestLayer>
-> =>
+): TrpcIt<CallerOptions<CreateCaller>, CallerResult<CreateCaller>, Layer.Success<TestLayer>> =>
 	makeTrpcHarnessIt({
 		...options,
 		makeHarness: (trpc) => Effect.succeed(trpc),
-	}) as TrpcIt<
-		CallerOptions<CreateCaller>,
-		CallerResult<CreateCaller>,
-		Layer.Success<TestLayer>
-	>;
+	});

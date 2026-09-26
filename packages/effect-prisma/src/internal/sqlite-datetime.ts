@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "@prisma-next/sql-runtime";
-import type { AnySqlContract } from "./executor.js";
+import type { AnySqlContract } from "./executor.ts";
 
 type CodecRegistry = ExecutionContext<AnySqlContract>["contractCodecs"];
 type ContractCodec = ReturnType<CodecRegistry["forCodecRef"]>;
@@ -8,8 +8,7 @@ type CodecJson = Parameters<ContractCodec["decodeJson"]>[0];
 
 const sqliteDatetimeCodecId = "sqlite/datetime@1";
 
-const zonelessDatetime =
-	/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?)$/;
+const zonelessDatetime = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?)$/;
 
 /**
  * Stamp `Z` onto a SQLite datetime string that carries no zone designator.
@@ -22,22 +21,14 @@ const zonelessDatetime =
  * `new Date` already reads as UTC), and anything that is not a datetime string
  * are returned unchanged.
  */
-export const normalizeSqliteDatetime = (value: string): string =>
-	value.replace(zonelessDatetime, "$1T$2Z");
+export const normalizeSqliteDatetime = (value: string): string => value.replace(zonelessDatetime, "$1T$2Z");
 
 const decodeAsUtc = (codec: ContractCodec): ContractCodec => ({
 	id: sqliteDatetimeCodecId,
 	encode: (value, context) => codec.encode(value, context),
-	decode: (wire: CodecWire, context) =>
-		codec.decode(
-			typeof wire === "string" ? normalizeSqliteDatetime(wire) : wire,
-			context,
-		),
+	decode: (wire: CodecWire, context) => codec.decode(typeof wire === "string" ? normalizeSqliteDatetime(wire) : wire, context),
 	encodeJson: (value) => codec.encodeJson(value),
-	decodeJson: (json: CodecJson) =>
-		codec.decodeJson(
-			typeof json === "string" ? normalizeSqliteDatetime(json) : json,
-		),
+	decodeJson: (json: CodecJson) => codec.decodeJson(typeof json === "string" ? normalizeSqliteDatetime(json) : json),
 });
 
 /**
@@ -55,9 +46,7 @@ const decodeAsUtc = (codec: ContractCodec): ContractCodec => ({
  * Prisma Next materializes a codec through an unbound descriptor factory, so
  * the instance's `id` accessor throws.
  */
-export const decodeSqliteDatetimesAsUtc = (
-	context: ExecutionContext<AnySqlContract>,
-): void => {
+export const decodeSqliteDatetimesAsUtc = (context: ExecutionContext<AnySqlContract>): void => {
 	const registry = context.contractCodecs;
 	const descriptors = context.codecDescriptors;
 	const utcCodecs = new WeakMap<ContractCodec, ContractCodec>();
@@ -78,11 +67,7 @@ export const decodeSqliteDatetimesAsUtc = (
 			if (codec === undefined) {
 				return undefined;
 			}
-			const reference = descriptors.codecRefForColumn(
-				namespaceId,
-				table,
-				column,
-			);
+			const reference = descriptors.codecRefForColumn(namespaceId, table, column);
 			return reference?.codecId === sqliteDatetimeCodecId ? wrap(codec) : codec;
 		},
 		forCodecRef: (reference) => {
@@ -91,5 +76,7 @@ export const decodeSqliteDatetimesAsUtc = (
 		},
 	};
 
-	(context as { contractCodecs: CodecRegistry }).contractCodecs = utcRegistry;
+	if (!Reflect.set(context, "contractCodecs", utcRegistry)) {
+		throw new TypeError("The SQLite execution context does not accept a codec registry");
+	}
 };

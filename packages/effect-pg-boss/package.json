@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-pg-boss",
-	"version": "0.1.3",
+	"version": "0.2.0",
 	"description": "Effect-native jobs and lifecycle management for pg-boss",
 	"type": "module",
 	"license": "MIT",

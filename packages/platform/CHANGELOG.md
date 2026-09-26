@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-09-26
+
+### Added
+
+- `@shivaedev/platform/errors`: browser-safe Schema error classes shared by native
+  RPC contracts, effect-contract rejections and form field rejections.
+- `@shivaedev/platform/rpc`: browser-safe request id and identity services plus
+  the `RequestTracing`, `Authenticated` and `MaybeAuthenticated` middleware tags.
+- `@shivaedev/platform/rpc-server`: middleware layers for request ids, log and
+  span annotation, redacted failure logging, Better Auth sessions and an explicit
+  Origin policy. The Origin policy and session provider see only the transport
+  request's headers, not headers set inside RPC messages; `transportHeaders`
+  gives application middleware the same view.
+
+### Changed
+
+- Require Effect Prisma 0.6.4 and Effect tRPC 0.4.0, which adds declared
+  rejections to tRPC error data.
 
 ## 0.3.8 - 2026-09-26
 

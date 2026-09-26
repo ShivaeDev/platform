@@ -1,4 +1,4 @@
-import type { RelationRecipe } from "./recipe.js";
+import type { RelationRecipe } from "./recipe.ts";
 
 export interface RelationPlan {
 	readonly liveness: { readonly open: boolean };

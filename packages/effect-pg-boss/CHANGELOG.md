@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-09-26
+
+### Changed
+
+- **Breaking:** Replace `developmentCacheKey` with `clientCacheKey`. The Layer
+  no longer reads `NODE_ENV`; passing a key always enables client reuse, so pass
+  it only in the environments that should share a client. `undefined` disables
+  reuse.
+- Type the `PgBossClient.work` handler with `Job<unknown>` instead of a
+  caller-chosen payload type; each queue's schema decodes the payload.
 
 ## 0.1.3 - 2026-09-04
 

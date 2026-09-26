@@ -13,17 +13,8 @@ export interface EffectTRPCErrorContext extends ProcedureInfo {
 	readonly origin: "defect" | "failure";
 }
 
-export type EffectTRPCErrorMapper = (
-	error: unknown,
-	context: EffectTRPCErrorContext,
-) => TRPCError | undefined;
+export type EffectTRPCErrorMapper = (error: unknown, context: EffectTRPCErrorContext) => TRPCError | undefined;
 
-export type EffectTRPCInstrument = <A, E, R>(
-	effect: Effect.Effect<A, E, R>,
-	procedure: ProcedureInfo,
-) => Effect.Effect<A, E, R>;
+export type EffectTRPCInstrument = <A, E, R>(effect: Effect.Effect<A, E, R>, procedure: ProcedureInfo) => Effect.Effect<A, E, R>;
 
-export type EffectTRPCStreamInstrument = <A, E, R>(
-	stream: Stream.Stream<A, E, R>,
-	procedure: ProcedureInfo,
-) => Stream.Stream<A, E, R>;
+export type EffectTRPCStreamInstrument = <A, E, R>(stream: Stream.Stream<A, E, R>, procedure: ProcedureInfo) => Stream.Stream<A, E, R>;

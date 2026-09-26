@@ -1,0 +1,107 @@
+[
+	{
+		"file": "packages/effect-form/test/runtime.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that a form bound to the native runtime cannot submit through a handler requiring application services the runtime does not provide. The pragma goes unused, and typecheck fails, if the requirement ever leaks past the runtime."
+	},
+	{
+		"file": "packages/effect-pg-boss/test/service.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof of the queue guarantees: durable payload schemas must encode to objects, a handler's service requirement stays visible on the Layer, and enqueue rejects payloads that do not match the decoded schema. Each pragma goes unused, and typecheck fails, if a guarantee is relaxed."
+	},
+	{
+		"file": "packages/effect-prisma/test/database.integration.test.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Includes another model's Relation, which the types already reject, to prove the runtime refuses it as well."
+	},
+	{
+		"file": "packages/effect-prisma/test/database.sqlite.integration.test.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Includes a Relation from another model or another database, which the types already reject, to prove the runtime refuses it as well."
+	},
+	{
+		"file": "packages/effect-prisma/test/database.rejections.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that queries, writes, includes and transactions reject values the contract rejects. Each pragma goes unused, and typecheck fails, if a query accepts such a value."
+	},
+	{
+		"file": "packages/effect-prisma/test/database.sqlite.queries.integration.test.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Includes another model's Relation, which the types already reject, to prove the runtime refuses it as well."
+	},
+	{
+		"file": "packages/effect-prisma/test/database.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that the Effect database surface keeps Prisma Next's generated model, field, filter, relation, and transaction types. Each pragma goes unused, and typecheck fails, if a query accepts a value the contract rejects."
+	},
+	{
+		"file": "packages/effect-react/test/form.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that form hooks only accept field rejections naming a declared field, and require an explicit rejectField when a tagged rejection names a field the form lacks. The packed-package test reuses this file against the published form entry."
+	},
+	{
+		"file": "packages/effect-react/test/hooks.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that action input and query data keep their declared shapes through the React hooks. The packed-package test reuses this file against the published entry."
+	},
+	{
+		"file": "packages/effect-test/test/make-effect-it.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that a custom harness is not widened to accept unknown properties."
+	},
+	{
+		"file": "packages/effect-trpc/test/procedure.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that procedures reject services the runtime and request Layer do not provide and resolvers that return values outside the output schema, for queries and subscriptions alike."
+	},
+	{
+		"file": "packages/effect-trpc/test/rejection.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that rejectWith and decodeRejection accept only schemas of tagged values, that rejectWith's code option takes tRPC error codes, and that the client decode refuses schemas needing services. Each pragma goes unused, and typecheck fails, if a constraint is relaxed."
+	},
+	{
+		"file": "packages/effect-trpc/test/testing.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that the Effect test caller rejects unknown procedures, keeps its caller option type, and does not widen custom harnesses."
+	},
+	{
+		"file": "packages/platform/test/native-rpc.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that native RPC handlers must return the declared success shape, fail only with declared errors, and implement every procedure, and that generated clients expose only declared procedures with inferred payloads."
+	},
+	{
+		"file": "packages/platform/test/platform.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that the platform test harness rejects unknown procedures and models, keeps caller option and database filter types, and does not widen harness extensions."
+	},
+	{
+		"file": "packages/platform/test/rpc.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof of the request-context guarantees: Identity reaches only RPCs guarded by Authenticated, the guard provides Identity rather than OptionalIdentity, session resolvers must return a user id, and the Origin policy has no default for requests without an Origin header."
+	},
+	{
+		"file": "packages/quality/test/config.typecheck.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Compile-time proof that defineConfig rejects unknown rule ids, unknown levels, misspelled or mistyped options, options for a rule that declares none, and settings for a local rule missing from local. Each pragma goes unused, and typecheck fails, if the config type accepts such a value."
+	},
+	{
+		"file": "packages/effect-test/src/any-test-layer.ts",
+		"pragma": "biome:suspicious/noExplicitAny",
+		"reason": "The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer."
+	},
+	{
+		"file": "packages/effect-trpc/src/testing/any-test-layer.ts",
+		"pragma": "biome:suspicious/noExplicitAny",
+		"reason": "The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer."
+	},
+	{
+		"file": "packages/effect-prisma/test/support/controlled-collection.ts",
+		"pragma": "biome:suspicious/noThenProperty",
+		"reason": "Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption."
+	},
+	{
+		"file": "packages/effect-test/src/vitest.ts",
+		"pragma": "biome:correctness/noEmptyPattern",
+		"reason": "Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty."
+	}
+]

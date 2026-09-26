@@ -6,9 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
-const temporaryDirectory = await mkdtemp(
-	join(tmpdir(), "effect-prisma-consumer-"),
-);
+const temporaryDirectory = await mkdtemp(join(tmpdir(), "effect-prisma-consumer-"));
 const tarballs = {
 	prisma: join(temporaryDirectory, "effect-prisma.tgz"),
 	test: join(temporaryDirectory, "effect-test.tgz"),
@@ -22,11 +20,7 @@ const execute = (command, arguments_, cwd = temporaryDirectory) =>
 	});
 
 try {
-	execute(
-		"pnpm",
-		["pack", "--out", tarballs.test],
-		join(repositoryRoot, "packages/effect-test"),
-	);
+	execute("pnpm", ["pack", "--out", tarballs.test], join(repositoryRoot, "packages/effect-test"));
 	execute("pnpm", ["pack", "--out", tarballs.prisma], packageRoot);
 
 	const contents = execute("tar", ["-tzf", tarballs.prisma]).trim().split("\n");
@@ -56,9 +50,7 @@ try {
 		throw new Error("Packed package unexpectedly contains its test suite");
 	}
 
-	const manifest = JSON.parse(
-		await readFile(join(packageRoot, "package.json"), "utf8"),
-	);
+	const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
 	await writeFile(
 		join(temporaryDirectory, "package.json"),
 		`${JSON.stringify(
@@ -68,16 +60,11 @@ try {
 				type: "module",
 				dependencies: {
 					"@effect/vitest": manifest.devDependencies["@effect/vitest"],
-					"@prisma-next/adapter-postgres":
-						manifest.devDependencies["@prisma-next/adapter-postgres"],
-					"@prisma-next/adapter-sqlite":
-						manifest.devDependencies["@prisma-next/adapter-sqlite"],
-					"@prisma-next/contract":
-						manifest.dependencies["@prisma-next/contract"],
-					"@prisma-next/target-postgres":
-						manifest.devDependencies["@prisma-next/target-postgres"],
-					"@prisma-next/sql-contract":
-						manifest.dependencies["@prisma-next/sql-contract"],
+					"@prisma-next/adapter-postgres": manifest.devDependencies["@prisma-next/adapter-postgres"],
+					"@prisma-next/adapter-sqlite": manifest.devDependencies["@prisma-next/adapter-sqlite"],
+					"@prisma-next/contract": manifest.dependencies["@prisma-next/contract"],
+					"@prisma-next/target-postgres": manifest.devDependencies["@prisma-next/target-postgres"],
+					"@prisma-next/sql-contract": manifest.dependencies["@prisma-next/sql-contract"],
 					"@shivaedev/effect-prisma": `file:${tarballs.prisma}`,
 					"@shivaedev/effect-test": `file:${tarballs.test}`,
 					"@types/node": manifest.devDependencies["@types/node"],
@@ -105,9 +92,7 @@ try {
 	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		(
-			await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
-		).replace(
+		(await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")).replace(
 			'  "@vercel/detect-agent": 1.2.3',
 			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
 		),
@@ -149,22 +134,10 @@ try {
 			2,
 		)}\n`,
 	);
-	await copyFile(
-		join(packageRoot, "test/generated/contract.d.ts"),
-		join(temporaryDirectory, "contract.d.ts"),
-	);
-	await copyFile(
-		join(packageRoot, "test/generated/contract.json"),
-		join(temporaryDirectory, "contract.json"),
-	);
-	await copyFile(
-		join(packageRoot, "test/sqlite/generated/contract.d.ts"),
-		join(temporaryDirectory, "sqlite-contract.d.ts"),
-	);
-	await copyFile(
-		join(packageRoot, "test/sqlite/generated/contract.json"),
-		join(temporaryDirectory, "sqlite-contract.json"),
-	);
+	await copyFile(join(packageRoot, "test/generated/contract.d.ts"), join(temporaryDirectory, "contract.d.ts"));
+	await copyFile(join(packageRoot, "test/generated/contract.json"), join(temporaryDirectory, "contract.json"));
+	await copyFile(join(packageRoot, "test/sqlite/generated/contract.d.ts"), join(temporaryDirectory, "sqlite-contract.d.ts"));
+	await copyFile(join(packageRoot, "test/sqlite/generated/contract.json"), join(temporaryDirectory, "sqlite-contract.json"));
 	await writeFile(
 		join(temporaryDirectory, "index.ts"),
 		`import { Effect } from "effect"
@@ -255,48 +228,18 @@ export const lane = <A, E, R>(
 `,
 	);
 
-	execute("pnpm", [
-		"install",
-		"--ignore-scripts",
-		"--frozen-lockfile=false",
-		"--store-dir",
-		join(repositoryRoot, ".pnpm-store"),
-	]);
+	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")]);
 	const rawContract = join(temporaryDirectory, "raw-contract.d.ts");
-	await writeFile(
-		rawContract,
-		"export type Row = { readonly createdAt: Timestamp<6> };\n",
-	);
-	execute(
-		join(temporaryDirectory, "node_modules/.bin/effect-prisma-normalize"),
-		[rawContract],
-	);
-	if (
-		(await readFile(rawContract, "utf8")) !==
-		"export type Row = { readonly createdAt: Date };\n"
-	) {
+	await writeFile(rawContract, "export type Row = { readonly createdAt: Timestamp<6> };\n");
+	execute(join(temporaryDirectory, "node_modules/.bin/effect-prisma-normalize"), [rawContract]);
+	if ((await readFile(rawContract, "utf8")) !== "export type Row = { readonly createdAt: Date };\n") {
 		throw new Error("Packed contract normalizer did not replace Timestamp");
 	}
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.nodenext.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
-		"--project",
-		"tsconfig.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.strict.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
-		"--project",
-		"tsconfig.strict.json",
-	]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.strict.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.strict.json"]);
 	execute("node", [
 		"--input-type=module",
 		"--eval",

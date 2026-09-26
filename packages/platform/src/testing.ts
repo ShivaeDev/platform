@@ -4,5 +4,5 @@ export type {
 	PlatformIt,
 	PlatformTest,
 	PlatformTester,
-} from "./testing/types.js";
-export { makePlatformIt } from "./testing/vitest.js";
+} from "./testing/types.ts";
+export { makePlatformIt } from "./testing/vitest.ts";

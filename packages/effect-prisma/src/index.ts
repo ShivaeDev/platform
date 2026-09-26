@@ -6,12 +6,12 @@ export {
 	type DatabaseService,
 	type DatabaseServiceOf,
 	makeDatabase,
-} from "./database.js";
+} from "./database.ts";
 export {
 	PrismaConnectionFailure,
 	PrismaError,
 	type PrismaErrorReason,
 	PrismaQueryFailure,
 	PrismaRuntimeFailure,
-} from "./error.js";
-export type { Relation } from "./relation.js";
+} from "./error.ts";
+export type { Relation } from "./relation.ts";

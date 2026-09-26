@@ -1,0 +1,84 @@
+# Native SQL migrations
+
+Use Effect's existing migration runner directly. Platform does not add a migration
+engine, schema-diff generator, or CLI in this slice. A migration is an ordinary
+Effect that uses the same `SqlClient` as application repositories.
+
+## Start with numbered effects
+
+```ts
+import { Effect } from "effect";
+import { Migrator, SqlClient } from "effect/unstable/sql";
+
+const createFoods = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  yield* sql`create table food (
+    id integer primary key,
+    name text not null unique
+  )`;
+});
+
+const seedFoods = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  yield* sql`insert into food (name) values ('Apple')`;
+});
+
+export const migrate = Migrator.make({})({
+  loader: Migrator.fromRecord({
+    "1_create_foods": createFoods,
+    "2_seed_foods": seedFoods,
+  }),
+});
+```
+
+This example uses SQLite SQL. Provide the application's database Layer and run
+`migrate` during its explicit initialization phase, before serving requests. Keep
+the database scope alive for the application; a new in-memory SQLite connection
+would create a separate empty database.
+
+The first successful run returns `[[1, "create_foods"], [2, "seed_foods"]]`. Running
+the same loader again returns `[]`. The default `effect_sql_migrations` table
+records migration IDs, names, and creation timestamps. The native `table` option
+can change its name without a Platform wrapper.
+
+## What the native runner owns
+
+- `fromRecord` sorts numbered effects by ID. IDs should be positive and increasing.
+- `fromGlob` loads numbered modules with a default Effect export; `fromFileSystem`
+  adds filesystem/path service requirements. Choose packaging conventions when an
+  application needs file discovery.
+- The runner ensures the ledger exists and runs the pending batch through
+  `SqlClient.withTransaction`, including its ledger entries.
+- A migration-body failure aborts the batch. In Effect `4.0.0-rc.112`, the runner
+  wraps a typed body failure in a `MigrationError` defect with `kind: "Failed"`.
+  Startup should fail visibly; catching only the typed error channel does not
+  capture this failure. A caller inspecting completion can use `Effect.exit`.
+
+The [integration example](../../packages/effect-sql/test/migrations.test.ts) uses a
+fresh SQLite database for each test. It proves creation, numerical ordering,
+ledger recording, a no-op rerun, and rollback of pending writes and ledger entries
+after a SQL constraint failure. It does not claim PostgreSQL deployment validation
+or transactional behavior for every database's DDL.
+
+## Policies deliberately left open
+
+The current runner uses the highest applied ID as its cutoff. It does not replay
+an added migration below that cutoff, and its ledger does not checksum migration
+contents. Treat applied migrations as immutable and append higher IDs. Whether
+Platform should enforce checksums or reject out-of-order history remains a
+separate decision; this example adds neither behavior.
+
+Nontransactional DDL, deployment serialization, existing-database baselining,
+schema-diff generation, and a migration authoring CLI need concrete application
+requirements before Platform chooses a policy. Database-specific operations that
+cannot execute inside a transaction do not fit this runner's ordinary batch.
+
+These migrations evolve application tables and data. They do not rebuild event
+projections or introduce event sourcing. Repository models still describe the
+application's expected row codecs; changing a model alone does not alter a table.
+
+## Native API reference
+
+The implementation targets the workspace-pinned Effect `4.0.0-rc.112` APIs:
+[`Migrator`](https://github.com/Effect-TS/effect/blob/effect%404.0.0-rc.112/packages/effect/src/unstable/sql/Migrator.ts).
+The executable test is the local compatibility check when the dependency changes.

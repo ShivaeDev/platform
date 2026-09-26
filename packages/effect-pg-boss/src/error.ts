@@ -1,15 +1,10 @@
 import { Data, Redacted } from "effect";
 
-export type PgBossOperation =
-	| "enqueue"
-	| "health"
-	| "register"
-	| "start"
-	| "stop";
+export type PgBossOperation = "enqueue" | "health" | "register" | "start" | "stop";
 
 export class PgBossError extends Data.TaggedError("PgBossError")<{
 	readonly operation: PgBossOperation;
-	readonly queue?: string;
+	readonly queue?: string | undefined;
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
@@ -19,11 +14,7 @@ export class PgBossPayloadError extends Data.TaggedError("PgBossPayloadError")<{
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
-export const toPgBossError = (
-	operation: PgBossOperation,
-	error: unknown,
-	queue?: string,
-): PgBossError =>
+export const toPgBossError = (operation: PgBossOperation, error: unknown, queue?: string): PgBossError =>
 	new PgBossError({
 		operation,
 		queue,

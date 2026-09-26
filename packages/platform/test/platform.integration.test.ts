@@ -4,14 +4,12 @@ import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { afterAll } from "vitest";
-import {
-	type Contract,
-	contractJson,
-} from "../../effect-prisma/test/contract.js";
-import { makePlatformRuntime } from "../src/runtime.js";
-import { makePlatformIt } from "../src/testing.js";
+import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
+import { makePlatformRuntime } from "../src/runtime.ts";
+import { makePlatformIt } from "../src/testing.ts";
+import { environmentVariable } from "./support/environment.ts";
 
-const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
+const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {
 	contractJson,
 });
@@ -30,9 +28,7 @@ const adapter = makeEffectTRPC({ runtime });
 const t = initTRPC.context<CallerOptions>().create();
 const procedure = adapter.procedure(
 	t.procedure,
-	makeRequestServices((context: CallerOptions) =>
-		Layer.succeed(Actor, context.actor),
-	),
+	makeRequestServices((context: CallerOptions) => Layer.succeed(Actor, context.actor)),
 );
 const router = t.router({
 	createUser: procedure
@@ -59,8 +55,7 @@ const router = t.router({
 
 const it = makePlatformIt(Database)({
 	adapter,
-	createCaller: (options = { actor: "default" }) =>
-		router.createCaller(options),
+	createCaller: (options = { actor: "default" }) => router.createCaller(options),
 	layer: DatabaseLive,
 	extend: ({ db }) =>
 		Effect.succeed({
@@ -94,9 +89,7 @@ it.effectApp(
 
 		expect(created.name).toBe("default:Ada");
 		expect(yield* userExists(created.id)).toBe(true);
-		expect(
-			Option.getOrThrow(yield* db.User.where({ id: created.id }).first()).email,
-		).toBe(input.email);
+		expect(Option.getOrThrow(yield* db.User.where({ id: created.id }).first()).email).toBe(input.email);
 	},
 	integrationOptions,
 );

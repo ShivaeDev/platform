@@ -82,14 +82,16 @@ export const JobsLive = Jobs.layer({
   connectionString: databaseUrl,
   schema: "app_jobs",
   jobs: [emailWorker, cleanupWorker],
-  developmentCacheKey: "app-jobs",
+  clientCacheKey: isDevelopment ? "app-jobs" : undefined,
 })
 ```
 
-`developmentCacheKey` reuses and reference-counts one client across module
-reloads outside production. Applications decide which registrations are passed
-to the Layer, so environment rules such as production-only schedules remain
-application policy.
+`clientCacheKey` reuses and reference-counts one started client across Layer
+builds that share the key, such as development module reloads. The package does
+not inspect `NODE_ENV`; without a key every build starts its own client.
+Applications decide which key and registrations are passed to the Layer, so
+environment rules such as development caching and production-only schedules
+remain application policy.
 
 An `onError` Effect can route pg-boss background errors through application
 logging or telemetry. Without one, errors use Effect logging.

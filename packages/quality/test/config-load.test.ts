@@ -1,0 +1,67 @@
+import { join } from "node:path";
+import { NodeFileSystem } from "@effect/platform-node";
+import { it } from "@effect/vitest";
+import { Cause, Effect, Exit } from "effect";
+import { afterEach, expect } from "vitest";
+import { loadConfig } from "../src/config/load.ts";
+import { config, removeSeededTrees, seedTree } from "./support/tree.ts";
+
+afterEach(removeSeededTrees);
+
+const failureOf = (cwd: string, path?: string) =>
+	Effect.map(Effect.exit(loadConfig(cwd, path)), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it loaded)"));
+
+it.layer(NodeFileSystem.layer)("config loading", (it) => {
+	it.effect("loads quality.config.ts with the defaults filled in", () =>
+		Effect.gen(function* () {
+			const root = seedTree([config("{}")]);
+			const loaded = yield* loadConfig(root, undefined);
+			expect(loaded).toMatchObject({
+				baseline: "quality/baseline.json",
+				exclude: [],
+				file: join(root, "quality.config.ts"),
+				registry: "quality/registry.json",
+				root,
+				sources: ["."],
+			});
+			expect(loaded.active.map((rule) => rule.id)).toEqual(["structure/max-lines"]);
+		}),
+	);
+
+	it.effect("takes the repository root from an explicit config path", () =>
+		Effect.gen(function* () {
+			const root = seedTree([{ content: "export default {};\n", path: "tools/quality.config.ts" }]);
+			expect((yield* loadConfig(root, "tools/quality.config.ts")).root).toBe(join(root, "tools"));
+		}),
+	);
+
+	it.effect("fails when there is no config", () =>
+		Effect.gen(function* () {
+			expect(yield* failureOf(seedTree([]))).toContain("no config at");
+		}),
+	);
+
+	it.effect("fails when the config has no default export", () =>
+		Effect.gen(function* () {
+			const root = seedTree([{ content: "export const config = {};\n", path: "quality.config.ts" }]);
+			expect(yield* failureOf(root)).toContain("has no default export");
+		}),
+	);
+
+	it.effect("fails when the config does not load", () =>
+		Effect.gen(function* () {
+			const root = seedTree([{ content: "export default {\n", path: "quality.config.ts" }]);
+			expect(yield* failureOf(root)).toContain("cannot load");
+		}),
+	);
+
+	it.effect("lists every problem in an invalid config", () =>
+		Effect.gen(function* () {
+			const root = seedTree([config('{ rules: { "structure/max-line": "error", "structure/max-lines": "loud" }, sourcez: [] }')]);
+			const text = yield* failureOf(root);
+			expect(text).toContain("is invalid");
+			expect(text).toContain("sourcez");
+			expect(text).toContain("structure/max-lines");
+		}),
+	);
+});

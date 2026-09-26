@@ -1,12 +1,10 @@
 import { it } from "@effect/vitest";
 import { Effect, Exit, Fiber, Semaphore, Stream } from "effect";
 import { expect } from "vitest";
-import type { DatabaseExecutor } from "../src/internal/executor.js";
-import { makeModelRelation } from "../src/internal/relation-runtime.js";
-import {
-	ControlledCollection,
-	EventStreamCollection,
-} from "./support/controlled-collection.js";
+import type { DatabaseExecutor } from "../src/internal/executor.ts";
+import { makeModelRelation } from "../src/internal/relation-runtime.ts";
+import { ControlledCollection, EventStreamCollection } from "./support/controlled-collection.ts";
+import { unusedClient } from "./support/unused-client.ts";
 
 interface User {
 	readonly id: number;
@@ -18,11 +16,8 @@ interface Models {
 	readonly User: ControlledCollection<User>;
 }
 
-const makeExecutor = (
-	execute: () => Promise<Array<User>>,
-	querySemaphore?: Semaphore.Semaphore,
-): DatabaseExecutor<Models> => ({
-	client: {} as DatabaseExecutor<Models>["client"],
+const makeExecutor = (execute: () => Promise<Array<User>>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> => ({
+	client: unusedClient(),
 	identity: {},
 	liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
 	mode: querySemaphore === undefined ? "root" : "transaction",
@@ -32,8 +27,7 @@ const makeExecutor = (
 	transactionSemaphore: undefined,
 });
 
-const relation = (executor: DatabaseExecutor<Models>) =>
-	makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
+const relation = (executor: DatabaseExecutor<Models>) => makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
 
 it.effect("does not serialize queries outside a transaction", () => {
 	let active = 0;
@@ -65,10 +59,7 @@ it.effect("does not serialize queries outside a transaction", () => {
 	const executor = makeExecutor(execute);
 	return Effect.gen(function* () {
 		const query = relation(executor);
-		const fiber = yield* Effect.forkChild(
-			Effect.all([query, query], { concurrency: "unbounded" }),
-			{ startImmediately: true },
-		);
+		const fiber = yield* Effect.forkChild(Effect.all([query, query], { concurrency: "unbounded" }), { startImmediately: true });
 
 		yield* Effect.promise(() => startedTwice);
 		expect(maximumActive).toBe(2);
@@ -104,10 +95,7 @@ it.effect("serializes queries that share a transaction executor", () => {
 	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {
 		const query = relation(executor);
-		const fiber = yield* Effect.forkChild(
-			Effect.all([query, query], { concurrency: "unbounded" }),
-			{ startImmediately: true },
-		);
+		const fiber = yield* Effect.forkChild(Effect.all([query, query], { concurrency: "unbounded" }), { startImmediately: true });
 
 		yield* Effect.promise(() => startedOnce);
 		yield* Effect.yieldNow;
@@ -136,140 +124,110 @@ it.effect("releases a transaction query permit after failure", () => {
 	});
 });
 
-it.effect(
-	"holds a transaction query permit until interrupted work settles",
-	() => {
-		let attempt = 0;
-		let firstStarted!: () => void;
-		let releaseFirst!: () => void;
-		const started = new Promise<void>((resolve) => {
-			firstStarted = resolve;
+it.effect("holds a transaction query permit until interrupted work settles", () => {
+	let attempt = 0;
+	let firstStarted!: () => void;
+	let releaseFirst!: () => void;
+	const started = new Promise<void>((resolve) => {
+		firstStarted = resolve;
+	});
+	const released = new Promise<void>((resolve) => {
+		releaseFirst = resolve;
+	});
+	const execute = async () => {
+		attempt += 1;
+		if (attempt === 1) {
+			firstStarted();
+			await released;
+		}
+		return [...rows];
+	};
+
+	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
+	return Effect.gen(function* () {
+		const query = relation(executor);
+		const first = yield* Effect.forkChild(query, { startImmediately: true });
+		yield* Effect.promise(() => started);
+		const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {
+			startImmediately: true,
 		});
-		const released = new Promise<void>((resolve) => {
-			releaseFirst = resolve;
-		});
-		const execute = async () => {
-			attempt += 1;
-			if (attempt === 1) {
-				firstStarted();
-				await released;
-			}
-			return [...rows];
+		const second = yield* Effect.forkChild(query, { startImmediately: true });
+
+		yield* Effect.yieldNow;
+		expect(attempt).toBe(1);
+		releaseFirst();
+		yield* Fiber.join(interruption);
+		expect(yield* Fiber.join(second)).toEqual(rows);
+	});
+});
+
+it.effect("keeps a root stream incremental when root queries share an access permit", () =>
+	Effect.gen(function* () {
+		const events: Array<string> = [];
+		interface StreamModels {
+			readonly Source: EventStreamCollection<User>;
+		}
+		const executor: DatabaseExecutor<StreamModels> = {
+			client: unusedClient(),
+			identity: {},
+			liveness: {
+				closedCode: "RUNTIME.DATABASE_CLOSED",
+				open: true,
+			},
+			mode: "root",
+			models: { Source: new EventStreamCollection(rows, events) },
+			querySemaphore: Semaphore.makeUnsafe(1),
+			transactionIdentity: undefined,
+			transactionSemaphore: undefined,
 		};
+		const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
 
-		const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
-		return Effect.gen(function* () {
-			const query = relation(executor);
-			const first = yield* Effect.forkChild(query, { startImmediately: true });
-			yield* Effect.promise(() => started);
-			const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {
-				startImmediately: true,
-			});
-			const second = yield* Effect.forkChild(query, { startImmediately: true });
+		const result = yield* Stream.runCollect(
+			source.stream.pipe(
+				Stream.map((row) => {
+					events.push(`downstream:${row.id}`);
+					return row;
+				}),
+			),
+		);
 
-			yield* Effect.yieldNow;
-			expect(attempt).toBe(1);
-			releaseFirst();
-			yield* Fiber.join(interruption);
-			expect(yield* Fiber.join(second)).toEqual(rows);
-		});
-	},
+		expect(result).toEqual(rows);
+		expect(events).toEqual(["source:start", "downstream:1", "downstream:2", "downstream:3", "source:end"]);
+	}),
 );
 
-it.effect(
-	"keeps a root stream incremental when root queries share an access permit",
-	() =>
-		Effect.gen(function* () {
-			const events: Array<string> = [];
-			interface StreamModels {
-				readonly Source: EventStreamCollection<User>;
-			}
-			const executor: DatabaseExecutor<StreamModels> = {
-				client: {} as DatabaseExecutor<StreamModels>["client"],
-				identity: {},
-				liveness: {
-					closedCode: "RUNTIME.DATABASE_CLOSED",
-					open: true,
-				},
-				mode: "root",
-				models: { Source: new EventStreamCollection(rows, events) },
-				querySemaphore: Semaphore.makeUnsafe(1),
-				transactionIdentity: undefined,
-				transactionSemaphore: undefined,
-			};
-			const source = makeModelRelation<
-				EventStreamCollection<User>,
-				StreamModels
-			>(executor, "Source");
+it.effect("buffers a transaction stream before running downstream effects", () =>
+	Effect.gen(function* () {
+		const events: Array<string> = [];
+		interface StreamModels {
+			readonly Lookup: ControlledCollection<User>;
+			readonly Source: EventStreamCollection<User>;
+		}
+		const executor: DatabaseExecutor<StreamModels> = {
+			client: unusedClient(),
+			identity: {},
+			liveness: {
+				closedCode: "RUNTIME.TRANSACTION_CLOSED",
+				open: true,
+			},
+			mode: "transaction",
+			models: {
+				Lookup: new ControlledCollection(async () => {
+					events.push("lookup");
+					return [...rows];
+				}),
+				Source: new EventStreamCollection(rows, events),
+			},
+			querySemaphore: Semaphore.makeUnsafe(1),
+			transactionIdentity: {},
+			transactionSemaphore: undefined,
+		};
+		const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
+		const lookup = makeModelRelation<ControlledCollection<User>, StreamModels>(executor, "Lookup");
 
-			const result = yield* Stream.runCollect(
-				source.stream.pipe(
-					Stream.map((row) => {
-						events.push(`downstream:${row.id}`);
-						return row;
-					}),
-				),
-			);
+		const result = yield* Stream.runCollect(source.stream.pipe(Stream.mapEffect(() => lookup.exists())));
 
-			expect(result).toEqual(rows);
-			expect(events).toEqual([
-				"source:start",
-				"downstream:1",
-				"downstream:2",
-				"downstream:3",
-				"source:end",
-			]);
-		}),
-);
-
-it.effect(
-	"buffers a transaction stream before running downstream effects",
-	() =>
-		Effect.gen(function* () {
-			const events: Array<string> = [];
-			interface StreamModels {
-				readonly Lookup: ControlledCollection<User>;
-				readonly Source: EventStreamCollection<User>;
-			}
-			const executor: DatabaseExecutor<StreamModels> = {
-				client: {} as DatabaseExecutor<StreamModels>["client"],
-				identity: {},
-				liveness: {
-					closedCode: "RUNTIME.TRANSACTION_CLOSED",
-					open: true,
-				},
-				mode: "transaction",
-				models: {
-					Lookup: new ControlledCollection(async () => {
-						events.push("lookup");
-						return [...rows];
-					}),
-					Source: new EventStreamCollection(rows, events),
-				},
-				querySemaphore: Semaphore.makeUnsafe(1),
-				transactionIdentity: {},
-				transactionSemaphore: undefined,
-			};
-			const source = makeModelRelation<
-				EventStreamCollection<User>,
-				StreamModels
-			>(executor, "Source");
-			const lookup = makeModelRelation<
-				ControlledCollection<User>,
-				StreamModels
-			>(executor, "Lookup");
-
-			const result = yield* Stream.runCollect(
-				source.stream.pipe(Stream.mapEffect(() => lookup.exists())),
-			);
-
-			expect(result).toEqual([true, true, true]);
-			expect(events).toEqual([
-				"source:start",
-				"source:end",
-				"lookup",
-				"lookup",
-				"lookup",
-			]);
-		}),
+		expect(result).toEqual([true, true, true]);
+		expect(events).toEqual(["source:start", "source:end", "lookup", "lookup", "lookup"]);
+	}),
 );

@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+import process from "node:process";
+import { Console, Effect } from "effect";
+import { parseCommand, USAGE } from "./cli/args.ts";
+import { pruneBaseline, writeBaseline } from "./cli/baseline.ts";
+import { lint } from "./cli/lint.ts";
+import { runMain } from "./cli/run-main.ts";
+import { SetupFailure } from "./failure.ts";
+
+const parsed = parseCommand(process.argv.slice(2));
+
+const program = Effect.gen(function* () {
+	if (parsed._tag === "Usage") {
+		return yield* new SetupFailure({ message: `${parsed.problem}\n\n${USAGE}` });
+	}
+	const command = parsed.command;
+	switch (command._tag) {
+		case "Help":
+			return yield* Console.log(USAGE);
+		case "Lint":
+			return yield* lint(process.cwd(), command.config, command.warnings);
+		case "BaselineWrite":
+			return yield* writeBaseline(process.cwd(), command.config, command.rules);
+		case "BaselinePrune":
+			return yield* pruneBaseline(process.cwd(), command.config);
+	}
+});
+
+runMain(program);

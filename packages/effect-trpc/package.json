@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.3.4",
+	"version": "0.4.0",
 	"description": "Effect-native procedures and testing for tRPC",
 	"type": "module",
 	"license": "MIT",
@@ -30,6 +30,12 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./client": {
+			"types": "./dist/client.d.ts",
+			"source": "./src/client.ts",
+			"import": "./dist/client.js",
+			"default": "./dist/client.js"
+		},
 		"./testing": {
 			"types": "./dist/testing.d.ts",
 			"source": "./src/testing.ts",
@@ -52,7 +58,7 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
 	"dependencies": {
-		"@shivaedev/effect-test": "workspace:0.1.1"
+		"@shivaedev/effect-test": "workspace:0.1.2"
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
@@ -66,10 +72,13 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-contract": "workspace:0.1.0",
+		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
+		"superjson": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}

@@ -1,10 +1,6 @@
 import { type Layer as EffectLayer, Layer } from "effect";
 
-export interface EffectProcedureRequestServices<
-	Context,
-	Requirements,
-	Error = never,
-> {
+export interface EffectProcedureRequestServices<Context, Requirements, Error = never> {
 	readonly layer: (context: Context) => EffectLayer.Layer<Requirements, Error>;
 }
 
@@ -21,23 +17,7 @@ export const extendRequestServices = <
 	AdditionalError,
 	AdditionalDependencies extends BaseRequirements = BaseRequirements,
 >(
-	base: EffectProcedureRequestServices<
-		BaseContext,
-		BaseRequirements,
-		BaseError
-	>,
-	additional: (
-		context: Context,
-	) => EffectLayer.Layer<
-		AdditionalRequirements,
-		AdditionalError,
-		AdditionalDependencies
-	>,
-): EffectProcedureRequestServices<
-	Context,
-	BaseRequirements | AdditionalRequirements,
-	BaseError | AdditionalError
-> =>
-	makeRequestServices((context: Context) =>
-		Layer.provideMerge(additional(context), base.layer(context)),
-	);
+	base: EffectProcedureRequestServices<BaseContext, BaseRequirements, BaseError>,
+	additional: (context: Context) => EffectLayer.Layer<AdditionalRequirements, AdditionalError, AdditionalDependencies>,
+): EffectProcedureRequestServices<Context, BaseRequirements | AdditionalRequirements, BaseError | AdditionalError> =>
+	makeRequestServices((context: Context) => Layer.provideMerge(additional(context), base.layer(context)));

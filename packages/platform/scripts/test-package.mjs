@@ -1,12 +1,5 @@
 import { execFileSync } from "node:child_process";
-import {
-	copyFile,
-	mkdtemp,
-	readdir,
-	readFile,
-	rm,
-	writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,9 +7,7 @@ import { fileURLToPath } from "node:url";
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "platform-consumer-"));
-const runtimeConsumer = await mkdtemp(
-	join(tmpdir(), "platform-runtime-consumer-"),
-);
+const runtimeConsumer = await mkdtemp(join(tmpdir(), "platform-runtime-consumer-"));
 const tarballs = {
 	platform: join(temporaryDirectory, "platform.tgz"),
 	prisma: join(temporaryDirectory, "effect-prisma.tgz"),
@@ -31,27 +22,26 @@ const execute = (command, arguments_, cwd = temporaryDirectory) =>
 		stdio: ["ignore", "pipe", "inherit"],
 	});
 
+const assertBrowserSafe = async (entry, seen = new Set()) => {
+	if (seen.has(entry)) return;
+	seen.add(entry);
+	const source = await readFile(join(packageRoot, "dist", entry), "utf8");
+	for (const [, specifier] of source.matchAll(/(?:from|import)\s*\(?\s*"([^"]+)"/g)) {
+		if (specifier.startsWith(".")) await assertBrowserSafe(join(dirname(entry), specifier), seen);
+		else if (specifier !== "effect" && !specifier.startsWith("effect/"))
+			throw new Error(`${entry} imports ${specifier}; browser entries may import only effect`);
+	}
+};
+
 try {
-	execute(
-		"pnpm",
-		["pack", "--out", tarballs.test],
-		join(repositoryRoot, "packages/effect-test"),
-	);
-	execute(
-		"pnpm",
-		["pack", "--out", tarballs.prisma],
-		join(repositoryRoot, "packages/effect-prisma"),
-	);
-	execute(
-		"pnpm",
-		["pack", "--out", tarballs.trpc],
-		join(repositoryRoot, "packages/effect-trpc"),
-	);
+	await assertBrowserSafe("errors.js");
+	await assertBrowserSafe("rpc.js");
+	execute("pnpm", ["pack", "--out", tarballs.test], join(repositoryRoot, "packages/effect-test"));
+	execute("pnpm", ["pack", "--out", tarballs.prisma], join(repositoryRoot, "packages/effect-prisma"));
+	execute("pnpm", ["pack", "--out", tarballs.trpc], join(repositoryRoot, "packages/effect-trpc"));
 	execute("pnpm", ["pack", "--out", tarballs.platform], packageRoot);
 
-	const contents = execute("tar", ["-tzf", tarballs.platform])
-		.trim()
-		.split("\n");
+	const contents = execute("tar", ["-tzf", tarballs.platform]).trim().split("\n");
 	for (const required of [
 		"package/dist/better-auth.js",
 		"package/dist/better-auth.d.ts",
@@ -62,6 +52,12 @@ try {
 		"package/dist/testing.js",
 		"package/dist/testing.d.ts",
 		"package/dist/testing.d.ts.map",
+		"package/dist/errors.js",
+		"package/dist/errors.d.ts",
+		"package/dist/rpc.js",
+		"package/dist/rpc.d.ts",
+		"package/dist/rpc-server.js",
+		"package/dist/rpc-server.d.ts",
 		"package/src/testing.ts",
 		"package/src/better-auth.ts",
 		"package/src/runtime.ts",
@@ -77,9 +73,7 @@ try {
 		throw new Error("Packed package unexpectedly contains its test suite");
 	}
 
-	const manifest = JSON.parse(
-		await readFile(join(packageRoot, "package.json"), "utf8"),
-	);
+	const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
 	await writeFile(
 		join(temporaryDirectory, "package.json"),
 		`${JSON.stringify(
@@ -89,14 +83,10 @@ try {
 				type: "module",
 				dependencies: {
 					"@effect/vitest": manifest.devDependencies["@effect/vitest"],
-					"@prisma-next/adapter-postgres":
-						manifest.devDependencies["@prisma-next/adapter-postgres"],
-					"@prisma-next/contract":
-						manifest.devDependencies["@prisma-next/contract"],
-					"@prisma-next/sql-contract":
-						manifest.devDependencies["@prisma-next/sql-contract"],
-					"@prisma-next/target-postgres":
-						manifest.devDependencies["@prisma-next/target-postgres"],
+					"@prisma-next/adapter-postgres": manifest.devDependencies["@prisma-next/adapter-postgres"],
+					"@prisma-next/contract": manifest.devDependencies["@prisma-next/contract"],
+					"@prisma-next/sql-contract": manifest.devDependencies["@prisma-next/sql-contract"],
+					"@prisma-next/target-postgres": manifest.devDependencies["@prisma-next/target-postgres"],
 					"@shivaedev/effect-prisma": `file:${tarballs.prisma}`,
 					"@shivaedev/effect-test": `file:${tarballs.test}`,
 					"@shivaedev/effect-trpc": `file:${tarballs.trpc}`,
@@ -112,16 +102,10 @@ try {
 			2,
 		)}\n`,
 	);
-	const workspace = await readFile(
-		join(repositoryRoot, "pnpm-workspace.yaml"),
-		"utf8",
-	);
+	const workspace = await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		workspace.replace(
-			'  "@vercel/detect-agent": 1.2.3',
-			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
-		),
+		workspace.replace('  "@vercel/detect-agent": 1.2.3', `  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
@@ -159,14 +143,8 @@ try {
 			2,
 		)}\n`,
 	);
-	await copyFile(
-		join(repositoryRoot, "packages/effect-prisma/test/generated/contract.d.ts"),
-		join(temporaryDirectory, "contract.d.ts"),
-	);
-	await copyFile(
-		join(repositoryRoot, "packages/effect-prisma/test/generated/contract.json"),
-		join(temporaryDirectory, "contract.json"),
-	);
+	await copyFile(join(repositoryRoot, "packages/effect-prisma/test/generated/contract.d.ts"), join(temporaryDirectory, "contract.d.ts"));
+	await copyFile(join(repositoryRoot, "packages/effect-prisma/test/generated/contract.json"), join(temporaryDirectory, "contract.json"));
 	await writeFile(
 		join(temporaryDirectory, "index.ts"),
 		`import { makeDatabase } from "@shivaedev/effect-prisma"
@@ -178,6 +156,9 @@ import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime"
 import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
 import { makePlatformIt } from "@shivaedev/platform/testing"
+import { Conflict, rejectedField } from "@shivaedev/platform/errors"
+import { Authenticated, Identity } from "@shivaedev/platform/rpc"
+import { authenticatedLayer, betterAuthSessions, trustedOrigins } from "@shivaedev/platform/rpc-server"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
 
@@ -200,6 +181,14 @@ const router = t.router({
     return Stream.fromEffect(db.User.count())
   }),
 })
+
+const session = authenticatedLayer({
+  provider: betterAuthSessions(() => Promise.resolve({ user: { id: "packed" } })),
+  origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+})
+const rejected = rejectedField(new Conflict({ message: "Taken", field: "email" }))
+const identity = Effect.map(Identity, ({ id }) => id.toUpperCase())
+void [session, rejected, identity, Authenticated]
 
 const it = makePlatformIt(Database)({
   adapter,
@@ -232,29 +221,15 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, promise, 
 `,
 	);
 
-	execute("pnpm", [
-		"install",
-		"--ignore-scripts",
-		"--frozen-lockfile=false",
-		"--store-dir",
-		join(repositoryRoot, ".pnpm-store"),
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.nodenext.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
-		"--project",
-		"tsconfig.json",
-	]);
+	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"]);
+	execute("node", ["--input-type=module", "--eval", "await import('@shivaedev/platform/testing')"]);
 	execute("node", [
 		"--input-type=module",
 		"--eval",
-		"await import('@shivaedev/platform/testing')",
+		"await Promise.all([import('@shivaedev/platform/errors'), import('@shivaedev/platform/rpc'), import('@shivaedev/platform/rpc-server')])",
 	]);
 
 	await writeFile(
@@ -314,7 +289,10 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, promise, 
 	);
 	await writeFile(
 		join(runtimeConsumer, "index.ts"),
-		`import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+		`import { NotFound } from "@shivaedev/platform/errors"
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+import { RequestId } from "@shivaedev/platform/rpc"
+import { isSensitiveKey } from "@shivaedev/platform/rpc-server"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime"
 import { Context, Layer } from "effect"
 
@@ -333,23 +311,15 @@ const subscription = nodeSubscriptionSignal({ signals: [source.signal] })
 source.abort()
 subscription.dispose()
 
-if (application !== "application" || request !== "request" || !subscription.signal.aborted) {
-	throw new Error("The packed runtime and node-http entries misbehaved")
+const entries = [NotFound, RequestId, isSensitiveKey]
+
+if (application !== "application" || request !== "request" || !subscription.signal.aborted || entries.some((entry) => entry === undefined)) {
+	throw new Error("The packed effect-only entries misbehaved")
 }
 `,
 	);
 
-	execute(
-		"pnpm",
-		[
-			"install",
-			"--ignore-scripts",
-			"--frozen-lockfile=false",
-			"--store-dir",
-			join(repositoryRoot, ".pnpm-store"),
-		],
-		runtimeConsumer,
-	);
+	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")], runtimeConsumer);
 	const optionalPeerPrefixes = [
 		"@effect+vitest@",
 		"@prisma-next+",
@@ -360,31 +330,15 @@ if (application !== "application" || request !== "request" || !subscription.sign
 		"better-auth@",
 		"vitest@",
 	];
-	const optionalPeers = (
-		await readdir(join(runtimeConsumer, "node_modules/.pnpm"))
-	).filter((name) =>
+	const optionalPeers = (await readdir(join(runtimeConsumer, "node_modules/.pnpm"))).filter((name) =>
 		optionalPeerPrefixes.some((prefix) => name.startsWith(prefix)),
 	);
 	if (optionalPeers.length > 0) {
-		throw new Error(
-			`Installing platform with only effect pulled in ${optionalPeers.join(", ")}`,
-		);
+		throw new Error(`Installing platform with only effect pulled in ${optionalPeers.join(", ")}`);
 	}
-	execute(
-		join(packageRoot, "node_modules/.bin/tsc"),
-		["--project", "tsconfig.json"],
-		runtimeConsumer,
-	);
-	execute(
-		join(packageRoot, "node_modules/.bin/tsc"),
-		["--project", "tsconfig.nodenext.json"],
-		runtimeConsumer,
-	);
-	execute(
-		join(packageRoot, "node_modules/.bin/tsc6"),
-		["--project", "tsconfig.json"],
-		runtimeConsumer,
-	);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"], runtimeConsumer);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"], runtimeConsumer);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"], runtimeConsumer);
 	execute("node", ["index.ts"], runtimeConsumer);
 } finally {
 	await rm(temporaryDirectory, { force: true, recursive: true });

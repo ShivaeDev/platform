@@ -1,37 +1,16 @@
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
-import {
-	acquireConnectedClient,
-	assertAvailableModelNames,
-} from "../src/internal/client-lifecycle.js";
-import type { DatabaseExecutor } from "../src/internal/executor.js";
-import { fromPrismaPromise } from "../src/internal/promise.js";
-import { makeModelRelation } from "../src/internal/relation-runtime.js";
+import { acquireConnectedClient, assertAvailableModelNames } from "../src/internal/client-lifecycle.ts";
+import type { DatabaseExecutor } from "../src/internal/executor.ts";
+import { fromPrismaPromise } from "../src/internal/promise.ts";
+import { makeModelRelation } from "../src/internal/relation-runtime.ts";
+import { FakeResult } from "./support/controlled-collection.ts";
+import { unusedClient } from "./support/unused-client.ts";
 
 interface User {
 	readonly id: number;
 	readonly active: boolean;
-}
-
-class FakeResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<Row> {
-	constructor(private readonly rows: ReadonlyArray<Row>) {}
-
-	// biome-ignore lint/suspicious/noThenProperty: This test double intentionally matches Prisma's PromiseLike result.
-	then<TResult1 = Array<Row>, TResult2 = never>(
-		onfulfilled?:
-			| ((value: Array<Row>) => TResult1 | PromiseLike<TResult1>)
-			| null,
-		onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-	): PromiseLike<TResult1 | TResult2> {
-		return Promise.resolve([...this.rows]).then(onfulfilled, onrejected);
-	}
-
-	async *[Symbol.asyncIterator](): AsyncIterator<Row> {
-		for (const row of this.rows) {
-			yield row;
-		}
-	}
 }
 
 class FakeCollection<Row extends object> {
@@ -42,11 +21,7 @@ class FakeCollection<Row extends object> {
 
 	where(filter: Partial<Row>): FakeCollection<Row> {
 		return new FakeCollection(
-			this.rows.filter((row) =>
-				Object.entries(filter).every(
-					([key, value]) => Reflect.get(row, key) === value,
-				),
-			),
+			this.rows.filter((row) => Object.entries(filter).every(([key, value]) => Reflect.get(row, key) === value)),
 			this.limit,
 		);
 	}
@@ -56,17 +31,11 @@ class FakeCollection<Row extends object> {
 	}
 
 	all(): FakeResult<Row> {
-		return new FakeResult(
-			this.limit === undefined ? this.rows : this.rows.slice(0, this.limit),
-		);
+		return new FakeResult(this.limit === undefined ? this.rows : this.rows.slice(0, this.limit));
 	}
 
 	async first(): Promise<Row | null> {
-		return (
-			(this.limit === undefined
-				? this.rows[0]
-				: this.rows.slice(0, this.limit)[0]) ?? null
-		);
+		return (this.limit === undefined ? this.rows[0] : this.rows.slice(0, this.limit)[0]) ?? null;
 	}
 }
 
@@ -81,7 +50,7 @@ const rows: ReadonlyArray<User> = [
 ];
 
 const executor: DatabaseExecutor<Models> = {
-	client: {} as DatabaseExecutor<Models>["client"],
+	client: unusedClient(),
 	identity: {},
 	models: {
 		User: new FakeCollection(rows),
@@ -95,18 +64,14 @@ const executor: DatabaseExecutor<Models> = {
 
 it.effect("adapts a Prisma-shaped thenable", () =>
 	Effect.gen(function* () {
-		const result = yield* fromPrismaPromise(
-			() => new FakeResult([{ id: 1, active: true }]),
-		);
+		const result = yield* fromPrismaPromise(() => new FakeResult([{ id: 1, active: true }]));
 		expect(result).toEqual([{ id: 1, active: true }]);
 	}),
 );
 
 it.effect("keeps unknown Promise rejections in the defect channel", () =>
 	Effect.gen(function* () {
-		const exit = yield* Effect.exit(
-			fromPrismaPromise(() => Promise.reject(new Error("unknown"))),
-		);
+		const exit = yield* Effect.exit(fromPrismaPromise(() => Promise.reject(new Error("unknown"))));
 
 		expect(Exit.isFailure(exit)).toBe(true);
 		if (Exit.isFailure(exit)) {
@@ -143,20 +108,13 @@ it.effect("closes a connected client when initialization fails", () =>
 );
 
 it("only reserves names that cannot be represented by the facade", () => {
-	expect(() => assertAvailableModelNames(["transaction"])).toThrow(
-		"Prisma model name conflicts with the database facade: transaction",
-	);
-	expect(() =>
-		assertAvailableModelNames(["constructor", "toString"]),
-	).not.toThrow();
+	expect(() => assertAvailableModelNames(["transaction"])).toThrow("Prisma model name conflicts with the database facade: transaction");
+	expect(() => assertAvailableModelNames(["constructor", "toString"])).not.toThrow();
 });
 
 it.effect("keeps a base Relation and its branches independent", () =>
 	Effect.gen(function* () {
-		const base = makeModelRelation<FakeCollection<User>, Models>(
-			executor,
-			"User",
-		);
+		const base = makeModelRelation<FakeCollection<User>, Models>(executor, "User");
 		const active = base.where({ active: true });
 		const firstActive = active.take(1);
 
@@ -171,10 +129,7 @@ it.effect("keeps a base Relation and its branches independent", () =>
 
 it.effect("can execute multiple terminals against one Relation", () =>
 	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			executor,
-			"User",
-		).where({ active: true });
+		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
 		expect(yield* relation.exists()).toBe(true);
 		expect(yield* relation).toEqual([rows[0], rows[2]]);
@@ -186,10 +141,7 @@ it.effect("can execute multiple terminals against one Relation", () =>
 
 it.effect("replays one Relation independently under concurrency", () =>
 	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			executor,
-			"User",
-		).where({ active: true });
+		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
 		const results = yield* Effect.all([relation, relation], {
 			concurrency: "unbounded",
@@ -204,10 +156,7 @@ it.effect("replays one Relation independently under concurrency", () =>
 
 it.effect("exposes a cold independently consumable Stream", () =>
 	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(
-			executor,
-			"User",
-		).where({ active: true });
+		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
 		const first = yield* Stream.runCollect(relation.stream);
 		const second = yield* Stream.runCollect(relation.stream);

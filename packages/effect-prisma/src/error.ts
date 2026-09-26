@@ -1,31 +1,24 @@
 import { Data, Redacted } from "effect";
 
-export class PrismaRuntimeFailure extends Data.TaggedClass(
-	"PrismaRuntimeFailure",
-)<{
+export class PrismaRuntimeFailure extends Data.TaggedClass("PrismaRuntimeFailure")<{
 	readonly code: string;
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
 export class PrismaQueryFailure extends Data.TaggedClass("PrismaQueryFailure")<{
-	readonly sqlState?: string;
-	readonly constraint?: string;
-	readonly table?: string;
-	readonly column?: string;
+	readonly sqlState?: string | undefined;
+	readonly constraint?: string | undefined;
+	readonly table?: string | undefined;
+	readonly column?: string | undefined;
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
-export class PrismaConnectionFailure extends Data.TaggedClass(
-	"PrismaConnectionFailure",
-)<{
-	readonly transient?: boolean;
+export class PrismaConnectionFailure extends Data.TaggedClass("PrismaConnectionFailure")<{
+	readonly transient?: boolean | undefined;
 	readonly original: Redacted.Redacted<unknown>;
 }> {}
 
-export type PrismaErrorReason =
-	| PrismaRuntimeFailure
-	| PrismaQueryFailure
-	| PrismaConnectionFailure;
+export type PrismaErrorReason = PrismaRuntimeFailure | PrismaQueryFailure | PrismaConnectionFailure;
 
 export class PrismaError extends Data.TaggedError("PrismaError")<{
 	readonly reason: PrismaErrorReason;
@@ -52,10 +45,7 @@ export const isPrismaFailure = (error: unknown): error is PrismaFailure => {
 	if ("code" in error && typeof error.code === "string") {
 		return true;
 	}
-	return (
-		"kind" in error &&
-		(error.kind === "sql_query" || error.kind === "sql_connection")
-	);
+	return "kind" in error && (error.kind === "sql_query" || error.kind === "sql_connection");
 };
 
 export const toPrismaError = (error: PrismaFailure): PrismaError => {

@@ -1,7 +1,7 @@
-export { makePlatformRuntime } from "./runtime/make.js";
+export { makePlatformRuntime } from "./runtime/make.ts";
 export type {
 	PlatformRuntime,
 	PlatformRuntimeBuildError,
 	PlatformRuntimeOptions,
 	PlatformRuntimeServices,
-} from "./runtime/types.js";
+} from "./runtime/types.ts";

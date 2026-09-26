@@ -1,11 +1,9 @@
 import { getTRPCErrorFromUnknown, type TRPCError } from "@trpc/server";
 import { type Context, Effect } from "effect";
-import type { EffectTRPCAdapter } from "../adapter.js";
+import type { EffectTRPCAdapter } from "../adapter.ts";
 
 export type EffectCaller<Caller> = {
-	readonly [Key in keyof Caller]: Caller[Key] extends (
-		...arguments_: infer Arguments
-	) => Promise<infer Result>
+	readonly [Key in keyof Caller]: Caller[Key] extends (...arguments_: infer Arguments) => Promise<infer Result>
 		? (...arguments_: Arguments) => Effect.Effect<Result, TRPCError>
 		: Caller[Key] extends (...arguments_: infer Arguments) => infer Result
 			? (...arguments_: Arguments) => Result
@@ -14,14 +12,26 @@ export type EffectCaller<Caller> = {
 				: Caller[Key];
 };
 
-export type EffectCallerFactory<Options, Caller> = EffectCaller<Caller> &
-	((options?: Options) => EffectCaller<Caller>);
+export type EffectCallerFactory<Options, Caller> = EffectCaller<Caller> & ((options?: Options) => EffectCaller<Caller>);
 
-export const makeEffectCaller = <Caller extends object, Services>(
-	adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">,
+type Adapter = Pick<EffectTRPCAdapter<never>, "runWithServices">;
+
+const member = (node: unknown, segment: string): unknown =>
+	(typeof node === "object" && node !== null) || typeof node === "function" ? Reflect.get(node, segment) : undefined;
+
+const invoke = (promiseCaller: object, path: ReadonlyArray<string>, argumentsList: ReadonlyArray<unknown>): Promise<unknown> => {
+	const leaf = path.reduce<unknown>(member, promiseCaller);
+	return typeof leaf === "function"
+		? Promise.resolve(Reflect.apply(leaf, undefined, argumentsList))
+		: Promise.reject(new TypeError(`${path.join(".")} is not a procedure`));
+};
+
+export function makeEffectCaller<Caller extends object, Services>(
+	adapter: Adapter,
 	promiseCaller: Caller,
 	services: Context.Context<Services>,
-): EffectCaller<Caller> => {
+): EffectCaller<Caller>;
+export function makeEffectCaller(adapter: Adapter, promiseCaller: object, services: Context.Context<never>): unknown {
 	const build = (path: ReadonlyArray<string>): unknown =>
 		new Proxy(
 			Object.assign(() => undefined, { path }),
@@ -29,16 +39,7 @@ export const makeEffectCaller = <Caller extends object, Services>(
 				apply(_target, _this, argumentsList) {
 					return Effect.tryPromise({
 						catch: getTRPCErrorFromUnknown,
-						try: () =>
-							adapter.runWithServices(services, () => {
-								let leaf: unknown = promiseCaller;
-								for (const segment of path) {
-									leaf = (leaf as Record<string, unknown>)[segment];
-								}
-								return (leaf as (...args: unknown[]) => Promise<unknown>)(
-									...argumentsList,
-								);
-							}),
+						try: () => adapter.runWithServices(services, () => invoke(promiseCaller, path, argumentsList)),
 					});
 				},
 				get(_target, property) {
@@ -50,21 +51,17 @@ export const makeEffectCaller = <Caller extends object, Services>(
 			},
 		);
 
-	return build([]) as EffectCaller<Caller>;
-};
+	return build([]);
+}
 
-export const makeEffectCallerFactory = <
-	Options,
-	Caller extends object,
-	Services,
->(
-	adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">,
+export function makeEffectCallerFactory<Options, Caller extends object, Services>(
+	adapter: Adapter,
 	createCaller: (options?: Options) => Caller,
 	services: Context.Context<Services>,
-): EffectCallerFactory<Options, Caller> => {
+): EffectCallerFactory<Options, Caller>;
+export function makeEffectCallerFactory(adapter: Adapter, createCaller: (options?: unknown) => object, services: Context.Context<never>): unknown {
 	const defaultCaller = makeEffectCaller(adapter, createCaller(), services);
-	const target = (options?: Options) =>
-		makeEffectCaller(adapter, createCaller(options), services);
+	const target = (options?: unknown) => makeEffectCaller(adapter, createCaller(options), services);
 
 	return new Proxy(target, {
 		get(_target, property, receiver) {
@@ -76,5 +73,5 @@ export const makeEffectCallerFactory = <
 			}
 			return Reflect.get(defaultCaller, property);
 		},
-	}) as EffectCallerFactory<Options, Caller>;
-};
+	});
+}

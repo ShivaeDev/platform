@@ -1,4 +1,4 @@
-import { Clock, type Duration, Effect, Exit, Schedule } from "effect";
+import { Clock, type Duration, Effect, Result, Schedule } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 
 export interface EventuallyOptions {
@@ -8,38 +8,38 @@ export interface EventuallyOptions {
 
 const defaultInterval = "10 millis";
 
-const isTestClock = (clock: Clock.Clock): clock is TestClock.TestClock =>
-	"adjust" in clock;
+const isTestClock = (clock: Clock.Clock): clock is TestClock.TestClock => "adjust" in clock;
 
-export const eventually = <A, E, R>(
-	effect: Effect.Effect<A, E, R>,
-	options?: EventuallyOptions,
-): Effect.Effect<A, E, R> =>
+const retryOnLiveClock = <A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> =>
+	times === undefined
+		? Effect.retry(effect, Schedule.spaced(interval))
+		: Effect.retry(effect, {
+				schedule: Schedule.spaced(interval),
+				times,
+			});
+
+const retryOnTestClock = <A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> =>
 	Effect.gen(function* () {
-		const interval = options?.interval ?? defaultInterval;
-		const clock = yield* Clock.Clock;
-
-		if (!isTestClock(clock)) {
-			return yield* options?.times === undefined
-				? Effect.retry(effect, Schedule.spaced(interval))
-				: Effect.retry(effect, {
-						schedule: Schedule.spaced(interval),
-						times: options.times,
-					});
-		}
-
-		let retriesLeft = options?.times;
+		let retriesLeft = times;
 		for (;;) {
-			const exit = yield* Effect.exit(effect);
-			if (Exit.isSuccess(exit)) {
-				return exit.value;
+			const result = yield* Effect.result(effect);
+			if (Result.isSuccess(result)) {
+				return result.success;
 			}
 			if (retriesLeft === 0) {
-				return yield* exit;
+				return yield* Effect.fail(result.failure);
 			}
 			if (retriesLeft !== undefined) {
 				retriesLeft -= 1;
 			}
 			yield* TestClock.adjust(interval);
 		}
+	});
+
+export const eventually = <A, E, R>(effect: Effect.Effect<A, E, R>, options?: EventuallyOptions): Effect.Effect<A, E, R> =>
+	Effect.gen(function* () {
+		const interval = options?.interval ?? defaultInterval;
+		const clock = yield* Clock.Clock;
+		const retry = isTestClock(clock) ? retryOnTestClock : retryOnLiveClock;
+		return yield* retry(effect, interval, options?.times);
 	});

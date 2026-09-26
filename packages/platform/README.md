@@ -7,8 +7,9 @@ database, transport, and test framework.
 Generic Prisma and tRPC integrations remain available separately from
 `@shivaedev/effect-prisma` and `@shivaedev/effect-trpc`.
 
-`effect` is the only required peer, and the `runtime` and `node-http` entries
-need nothing else. Install the optional peers for the entries that use them:
+`effect` is the only required peer. The `runtime`, `node-http`, `errors`, `rpc`
+and `rpc-server` entries need nothing else. Install the optional peers for the
+entries that use them:
 
 - `better-auth`: `better-auth` and `@shivaedev/effect-prisma`
 - `testing`: `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`,
@@ -74,6 +75,44 @@ The adapter owns database translation only. Providers, plugins, cookies,
 session policy, and authorization remain application configuration. Native
 experimental Better Auth joins are not supported; the standard adapter join
 fallback remains available.
+
+## Errors and native RPC request context
+
+`@shivaedev/platform/errors` exports browser-safe `Schema.TaggedError` classes:
+`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest` and `Conflict` (both with an
+optional `field`), `PreconditionFailed` and `AuthUnavailable`. Use them as native
+RPC error schemas or effect-contract rejections. `rejectedField(error)` extracts
+`{ field, message }` from any field rejection so a form can show it.
+
+`@shivaedev/platform/rpc` declares the `RequestTracing`, `Authenticated` and
+`MaybeAuthenticated` middleware and the `RequestId`, `Identity` and
+`OptionalIdentity` services they provide. It is browser-safe, so shared `RpcGroup`
+declarations can use it. Implement the middleware on the server with
+`@shivaedev/platform/rpc-server`:
+
+```ts
+import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc"
+import { authenticatedLayer, betterAuthSessions, requestTracingLayer, trustedOrigins } from "@shivaedev/platform/rpc-server"
+
+const Api = RpcGroup.make(/* ... */).middleware(Authenticated).middleware(RequestTracing)
+
+const Middleware = Layer.mergeAll(
+  requestTracingLayer(),
+  authenticatedLayer({
+    provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+    origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+  }),
+)
+```
+
+Each RPC gets its own request id and resolves its own session. The Origin check
+and session lookup read the HTTP request's own headers, never header pairs a
+client puts inside an RPC message. An outage of the
+session provider fails with `AuthUnavailable`, never as a signed-out user.
+Failures log once with a redacted payload. The Origin policy is a function the
+application supplies; see the
+[request context guide](../../docs/framework/request-context.md) for the
+trade-offs between browsers and native clients.
 
 ## Testing
 

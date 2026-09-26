@@ -1,0 +1,12 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+	JsModuleSource() as $match where { $match <: r"^[\"']\.\.?/[^\"']*[\"']$", ! $match <: r"^[\"'][^\"']*\.(?:ts|tsx|json)[\"']$" },
+	JsImportCallExpression() as $match where {
+		$match <: r"^import\s*\(\s*[\"']\.\.?/[^\"']*[\"']\s*\)$",
+		! $match <: r"^import\s*\(\s*[\"'][^\"']*\.(?:ts|tsx|json)[\"']\s*\)$"
+	}
+} where {
+	register_diagnostic(span=$match, message="Relative imports use the on-disk TypeScript extension (./module.ts); this repository emits no JavaScript from source specifiers.")
+}

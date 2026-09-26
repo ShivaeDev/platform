@@ -1,0 +1,78 @@
+{
+	"name": "@shivaedev/effect-form",
+	"version": "0.1.0",
+	"description": "Schema-derived Effect atom forms with optional React hooks",
+	"type": "module",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/effect-form"
+	},
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"source": "./src/index.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json",
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"source": "./src/react.ts",
+			"import": "./dist/react.js",
+			"default": "./dist/react.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"check": "biome check .",
+		"test": "vitest run",
+		"test:package": "node scripts/test-package.mjs",
+		"typecheck": "tsc --noEmit",
+		"typecheck:compat": "tsc6 --noEmit",
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
+	},
+	"peerDependencies": {
+		"effect": "catalog:",
+		"@effect/atom-react": "catalog:",
+		"react": "^19.2.8"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		},
+		"@effect/atom-react": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@effect/vitest": "catalog:",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:",
+		"@effect/atom-react": "catalog:",
+		"react": "catalog:",
+		"@types/react": "catalog:"
+	}
+}

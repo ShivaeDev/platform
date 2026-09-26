@@ -1,18 +1,10 @@
-import type { AnyDatabase, DatabaseServiceOf } from "@shivaedev/effect-prisma";
-import type { BetterAuthOptions, DBAdapterInstance, Where } from "better-auth";
-import { type CustomAdapter, createAdapterFactory } from "better-auth/adapters";
-import { Effect, Option } from "effect";
-import type { PlatformRuntime } from "../runtime/types.js";
-import { type DynamicRelation, refineRelation } from "./relation.js";
-
-type CleanedWhere = Required<Where>;
-type FindOneInput = Parameters<CustomAdapter["findOne"]>[0];
-type FindManyInput = Parameters<CustomAdapter["findMany"]>[0];
-type UpdateInput<Value> = {
-	readonly model: string;
-	readonly update: Value;
-	readonly where: CleanedWhere[];
-};
+import type { AnyDatabase } from "@shivaedev/effect-prisma";
+import type { BetterAuthOptions, DBAdapterInstance } from "better-auth";
+import { createAdapterFactory } from "better-auth/adapters";
+import { Effect } from "effect";
+import type { PlatformRuntime } from "../runtime/types.ts";
+import { type DynamicRelation, refineRelation } from "./relation.ts";
+import { makeRowAdapter, type RelationQuery } from "./row-adapter.ts";
 
 export interface EffectPrismaAdapterOptions {
 	readonly debugLogs?: boolean;
@@ -21,54 +13,55 @@ export interface EffectPrismaAdapterOptions {
 	readonly usePlural?: boolean;
 }
 
-interface DynamicDatabase<Requirements> {
-	readonly transaction: <A, E, R>(
-		program: Effect.Effect<A, E, R>,
-	) => Effect.Effect<A, E | unknown, R | Requirements>;
-	readonly [model: string]: DynamicRelation<Requirements> | unknown;
+interface DynamicDatabase {
+	readonly transaction: <A, E, R>(program: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, unknown>;
 }
 
-const modelRelation = <Requirements>(
-	database: DynamicDatabase<Requirements>,
-	model: string,
-	mapModelName: (model: string) => string,
-): DynamicRelation<Requirements> =>
-	Reflect.get(database, mapModelName(model)) as DynamicRelation<Requirements>;
+const isFunction = (value: unknown, key: string): boolean =>
+	((typeof value === "object" && value !== null) || typeof value === "function") && typeof Reflect.get(value, key) === "function";
 
-const defaultModelName = (model: string): string =>
-	model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`;
+const isDynamicDatabase = (value: unknown): value is DynamicDatabase => isFunction(value, "transaction");
 
-const rejectJoin = (join: unknown): void => {
-	if (join !== undefined) {
-		throw new TypeError(
-			"The Effect Prisma Better Auth adapter does not support experimental native joins",
-		);
+const isDynamicRelation = (value: unknown): value is DynamicRelation<unknown> => isFunction(value, "where") && isFunction(value, "select");
+
+const modelRelation = (database: DynamicDatabase, model: string): DynamicRelation<unknown> => {
+	const relation: unknown = Reflect.get(database, model);
+	if (!isDynamicRelation(relation)) {
+		throw new TypeError(`Unknown database model: ${model}`);
 	}
+	return relation;
 };
 
-export const effectPrismaAdapter =
-	<Database extends AnyDatabase, Services, BuildError>(
-		databaseTag: Database,
-		runtime: PlatformRuntime<Services, BuildError>,
-		adapterOptions: EffectPrismaAdapterOptions = {},
-	): DBAdapterInstance =>
-	(authOptions: BetterAuthOptions) => {
-		const mapModelName = adapterOptions.modelName ?? defaultModelName;
-		const databaseEffect = databaseTag as Effect.Effect<
-			DatabaseServiceOf<Database>,
-			never,
-			Services
-		>;
+const defaultModelName = (model: string): string => (model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`);
 
-		const run = <Value>(
-			operation: (
-				database: DynamicDatabase<Services>,
-			) => Effect.Effect<Value, unknown, Services>,
-		): Promise<Value> =>
-			runtime.runPromise(
-				Effect.flatMap(databaseEffect, (database) =>
-					operation(database as DynamicDatabase<Services>),
-				),
+export function effectPrismaAdapter<Database extends AnyDatabase, Services, BuildError>(
+	databaseTag: Database,
+	runtime: PlatformRuntime<Services, BuildError>,
+	adapterOptions?: EffectPrismaAdapterOptions,
+): DBAdapterInstance;
+export function effectPrismaAdapter(
+	databaseTag: AnyDatabase,
+	runtime: PlatformRuntime<unknown, unknown>,
+	adapterOptions: EffectPrismaAdapterOptions = {},
+): DBAdapterInstance {
+	return (authOptions: BetterAuthOptions) => {
+		const mapModelName = adapterOptions.modelName ?? defaultModelName;
+		const databaseEffect = Effect.flatMap(databaseTag, (database) =>
+			isDynamicDatabase(database) ? Effect.succeed(database) : Effect.die(new TypeError("The database service has no transaction")),
+		);
+
+		const run = <Value>(operation: (database: DynamicDatabase) => Effect.Effect<Value, unknown, unknown>): Promise<Value> =>
+			runtime.runPromise(Effect.flatMap(databaseEffect, operation));
+
+		const query: RelationQuery = (model, refinement, use) =>
+			run((database) => use(refineRelation(modelRelation(database, mapModelName(model)), refinement)));
+
+		const inTransaction = <Value>(callback: () => Promise<Value>): Effect.Effect<Value, unknown, unknown> =>
+			Effect.flatMap(Effect.context<unknown>(), (services) =>
+				Effect.tryPromise({
+					try: () => runtime.runWithServices(services, callback),
+					catch: (error) => error,
+				}),
 			);
 
 		let factory: ReturnType<typeof createAdapterFactory>;
@@ -83,144 +76,11 @@ export const effectPrismaAdapter =
 				supportsJSON: true,
 				supportsNumericIds: true,
 				supportsUUIDs: true,
-				transaction: (callback) =>
-					run((database) =>
-						database.transaction(
-							Effect.flatMap(Effect.context<Services>(), (services) =>
-								Effect.tryPromise({
-									try: () =>
-										runtime.runWithServices(services, () =>
-											callback(factory(authOptions)),
-										),
-									catch: (error) => error,
-								}),
-							),
-						),
-					),
+				transaction: (callback) => run((database) => database.transaction(inTransaction(() => callback(factory(authOptions))))),
 			},
-			adapter: ({ debugLog, getFieldAttributes }) => ({
-				create: async ({ data, model, select }) => {
-					debugLog("create", { model });
-					return (await run((database) =>
-						refineRelation(modelRelation(database, model, mapModelName), {
-							select,
-						}).create(data),
-					)) as typeof data;
-				},
-				findOne: async <Value>({
-					join,
-					model,
-					select,
-					where,
-				}: FindOneInput) => {
-					rejectJoin(join);
-					return (await run((database) =>
-						Effect.map(
-							refineRelation(modelRelation(database, model, mapModelName), {
-								select,
-								where,
-							}).first(),
-							Option.getOrNull,
-						),
-					)) as Value | null;
-				},
-				findMany: async <Value>({
-					join,
-					limit,
-					model,
-					offset,
-					select,
-					sortBy,
-					where,
-				}: FindManyInput) => {
-					rejectJoin(join);
-					return (await run(
-						(database) =>
-							refineRelation(modelRelation(database, model, mapModelName), {
-								limit,
-								offset,
-								select,
-								sortBy,
-								where,
-							}) as unknown as Effect.Effect<
-								ReadonlyArray<Record<string, unknown>>,
-								unknown,
-								Services
-							>,
-					)) as Value[];
-				},
-				update: async <Value>({ model, update, where }: UpdateInput<Value>) => {
-					if (where.length === 0) return null;
-					const hasUniqueCondition = where.some(
-						(condition) =>
-							condition.connector !== "OR" &&
-							condition.operator === "eq" &&
-							condition.mode !== "insensitive" &&
-							(condition.field === "id" ||
-								getFieldAttributes({
-									field: condition.field,
-									model,
-								}).unique === true),
-					);
-					return (await run((database) => {
-						const relation = refineRelation(
-							modelRelation(database, model, mapModelName),
-							{ where },
-						);
-						return hasUniqueCondition
-							? relation.update(update as Record<string, unknown>)
-							: Effect.map(
-									relation.updateAll(update as Record<string, unknown>),
-									(rows) => rows[0] ?? null,
-								);
-					})) as Value | null;
-				},
-				updateMany: ({ model, update, where }) =>
-					run((database) =>
-						Effect.map(
-							refineRelation(modelRelation(database, model, mapModelName), {
-								where,
-							}).updateAll(update),
-							(rows) => rows.length,
-						),
-					),
-				delete: ({ model, where }) => {
-					const hasId = where.some(
-						(condition) =>
-							condition.connector !== "OR" &&
-							condition.field === "id" &&
-							condition.operator === "eq",
-					);
-					return run((database) => {
-						const relation = refineRelation(
-							modelRelation(database, model, mapModelName),
-							{ where },
-						);
-						return hasId
-							? Effect.asVoid(relation.delete())
-							: Effect.asVoid(relation.deleteAll());
-					});
-				},
-				deleteMany: ({ model, where }) =>
-					run((database) =>
-						Effect.map(
-							refineRelation(modelRelation(database, model, mapModelName), {
-								where,
-							}).deleteAll(),
-							(rows) => rows.length,
-						),
-					),
-				count: ({ model, where }) =>
-					run((database) =>
-						refineRelation(modelRelation(database, model, mapModelName), {
-							where: where as CleanedWhere[] | undefined,
-						}).count(),
-					),
-				options: {
-					usePlural: adapterOptions.usePlural ?? false,
-				},
-			}),
+			adapter: makeRowAdapter(query, adapterOptions.usePlural ?? false),
 		});
 
 		return factory(authOptions);
 	};
+}

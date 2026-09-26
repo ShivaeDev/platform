@@ -1,43 +1,17 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import {
-	Context,
-	Data,
-	Effect,
-	Layer,
-	ManagedRuntime,
-	Option,
-	Schema,
-	Stream,
-} from "effect";
+import { Context, Data, Effect, Layer, ManagedRuntime, Option, Schema, Stream } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-	extendRequestServices,
-	makeEffectTRPC,
-	makeRequestServices,
-	notFound,
-	RequestSignal,
-} from "../src/index.js";
+import { extendRequestServices, makeEffectTRPC, makeRequestServices, notFound, RequestSignal } from "../src/index.ts";
 
-class RuntimeValue extends Context.Service<RuntimeValue, string>()(
-	"@test/RuntimeValue",
-) {}
+class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/RuntimeValue") {}
 
-class RuntimeOnlyValue extends Context.Service<RuntimeOnlyValue, string>()(
-	"@test/RuntimeOnlyValue",
-) {}
+class RuntimeOnlyValue extends Context.Service<RuntimeOnlyValue, string>()("@test/RuntimeOnlyValue") {}
 
-class RequestValue extends Context.Service<RequestValue, string>()(
-	"@test/RequestValue",
-) {}
+class RequestValue extends Context.Service<RequestValue, string>()("@test/RequestValue") {}
 
-class ExtendedRequestValue extends Context.Service<
-	ExtendedRequestValue,
-	string
->()("@test/ExtendedRequestValue") {}
+class ExtendedRequestValue extends Context.Service<ExtendedRequestValue, string>()("@test/ExtendedRequestValue") {}
 
-class AuthenticatedActor extends Context.Service<AuthenticatedActor, string>()(
-	"@test/AuthenticatedActor",
-) {}
+class AuthenticatedActor extends Context.Service<AuthenticatedActor, string>()("@test/AuthenticatedActor") {}
 
 class DomainFailure extends Data.TaggedError("DomainFailure")<{
 	readonly message: string;
@@ -47,12 +21,7 @@ interface RequestContext {
 	readonly requestId: string;
 }
 
-const runtime = ManagedRuntime.make(
-	Layer.merge(
-		Layer.succeed(RuntimeValue, "runtime"),
-		Layer.succeed(RuntimeOnlyValue, "runtime-only"),
-	),
-);
+const runtime = ManagedRuntime.make(Layer.merge(Layer.succeed(RuntimeValue, "runtime"), Layer.succeed(RuntimeOnlyValue, "runtime-only")));
 const instrumented: Array<{ path: string; type: string }> = [];
 const instrumentedStreams: Array<{ path: string; type: string }> = [];
 const instrumentedRequestValues: Array<string> = [];
@@ -79,15 +48,11 @@ const adapter = makeEffectTRPC({
 	},
 	mapError: (error, context) => {
 		mapped.push({ origin: context.origin, path: context.path });
-		return error instanceof DomainFailure
-			? new TRPCError({ code: "CONFLICT", message: error.message })
-			: undefined;
+		return error instanceof DomainFailure ? new TRPCError({ code: "CONFLICT", message: error.message }) : undefined;
 	},
 });
 const t = initTRPC.context<RequestContext>().create();
-const requestServices = makeRequestServices((context: RequestContext) =>
-	Layer.succeed(RequestValue, context.requestId),
-);
+const requestServices = makeRequestServices((context: RequestContext) => Layer.succeed(RequestValue, context.requestId));
 const extendedRequestServices = extendRequestServices(requestServices, () =>
 	Layer.effect(
 		ExtendedRequestValue,
@@ -95,48 +60,34 @@ const extendedRequestServices = extendRequestServices(requestServices, () =>
 	),
 );
 const effectProcedure = adapter.procedure(t.procedure, requestServices);
-const authenticatedProcedure = t.procedure.use(({ ctx, next }) =>
-	next({ ctx: { ...ctx, actor: `actor:${ctx.requestId}` } }),
-);
-const authenticatedServices = makeRequestServices(
-	(context: RequestContext & { readonly actor: string }) =>
-		Layer.succeed(AuthenticatedActor, context.actor),
+const authenticatedProcedure = t.procedure.use(({ ctx, next }) => next({ ctx: { ...ctx, actor: `actor:${ctx.requestId}` } }));
+const authenticatedServices = makeRequestServices((context: RequestContext & { readonly actor: string }) =>
+	Layer.succeed(AuthenticatedActor, context.actor),
 );
 const router = t.router({
-	authenticated: adapter
-		.procedure(authenticatedProcedure, authenticatedServices)
-		.query(function* () {
-			return yield* AuthenticatedActor;
-		}),
-	decodedInput: effectProcedure
-		.input(Schema.Struct({ value: Schema.NumberFromString }))
-		.query(function* (input) {
-			yield* Effect.void;
-			return input.value + 1;
-		}),
+	authenticated: adapter.procedure(authenticatedProcedure, authenticatedServices).query(function* () {
+		return yield* AuthenticatedActor;
+	}),
+	decodedInput: effectProcedure.input(Schema.Struct({ value: Schema.NumberFromString })).query(function* (input) {
+		yield* Effect.void;
+		return input.value + 1;
+	}),
 	domainFailure: effectProcedure.query(function* () {
 		return yield* new DomainFailure({ message: "domain conflict" });
 	}),
 	explicitFailure: effectProcedure.query(function* () {
 		return yield* notFound("missing");
 	}),
-	extendedServices: adapter
-		.procedure(t.procedure, extendedRequestServices)
-		.query(function* () {
-			return {
-				base: yield* RequestValue,
-				extended: yield* ExtendedRequestValue,
-			};
-		}),
+	extendedServices: adapter.procedure(t.procedure, extendedRequestServices).query(function* () {
+		return {
+			base: yield* RequestValue,
+			extended: yield* ExtendedRequestValue,
+		};
+	}),
 	layerFailure: adapter
 		.procedure(
 			t.procedure,
-			makeRequestServices(() =>
-				Layer.effect(
-					RequestValue,
-					Effect.fail(new DomainFailure({ message: "layer conflict" })),
-				),
-			),
+			makeRequestServices(() => Layer.effect(RequestValue, Effect.fail(new DomainFailure({ message: "layer conflict" })))),
 		)
 		.query(function* () {
 			yield* Effect.void;
@@ -160,9 +111,7 @@ const router = t.router({
 	interruptible: effectProcedure.subscription(function* () {
 		return Stream.scoped(
 			Stream.fromEffect(
-				Effect.acquireRelease(Effect.sync(markInterruptibleStarted), () =>
-					Effect.sync(() => finalizedStreams.push("interruptible")),
-				),
+				Effect.acquireRelease(Effect.sync(markInterruptibleStarted), () => Effect.sync(() => finalizedStreams.push("interruptible"))),
 			),
 		).pipe(Stream.flatMap(() => Stream.never));
 	}),
@@ -176,29 +125,17 @@ const router = t.router({
 		const requestValue = yield* RequestValue;
 		const requestSignal = yield* RequestSignal;
 		return Stream.scoped(
-			Stream.fromEffect(
-				Effect.acquireRelease(Effect.succeed(requestValue), (value) =>
-					Effect.sync(() => finalizedStreams.push(value)),
-				),
-			),
-		).pipe(
-			Stream.flatMap((value) =>
-				Stream.make(`${value}:one`, `${value}:two`, String(requestSignal)),
-			),
-		);
+			Stream.fromEffect(Effect.acquireRelease(Effect.succeed(requestValue), (value) => Effect.sync(() => finalizedStreams.push(value)))),
+		).pipe(Stream.flatMap((value) => Stream.make(`${value}:one`, `${value}:two`, String(requestSignal))));
 	}),
-	transformedStream: effectProcedure
-		.output(Schema.NumberFromString)
-		.subscription(function* () {
-			yield* Effect.void;
-			return Stream.make("42", "43");
-		}),
-	transformedOutput: effectProcedure
-		.output(Schema.NumberFromString)
-		.query(function* () {
-			yield* Effect.void;
-			return "42";
-		}),
+	transformedStream: effectProcedure.output(Schema.NumberFromString).subscription(function* () {
+		yield* Effect.void;
+		return Stream.make("42", "43");
+	}),
+	transformedOutput: effectProcedure.output(Schema.NumberFromString).query(function* () {
+		yield* Effect.void;
+		return "42";
+	}),
 	unknownDefect: effectProcedure.query(function* () {
 		return yield* Effect.die(new Error("private detail"));
 	}),
@@ -242,8 +179,7 @@ describe("makeEffectTRPC", () => {
 		const caller = router.createCaller({ requestId: "stream" });
 		const values: string[] = [];
 
-		for await (const value of await caller.stream(undefined))
-			values.push(value);
+		for await (const value of await caller.stream(undefined)) values.push(value);
 
 		expect(values).toEqual(["stream:one", "stream:two", "undefined"]);
 		expect(finalizedStreams).toContain("stream");
@@ -266,10 +202,7 @@ describe("makeEffectTRPC", () => {
 
 	it("interrupts subscriptions and runs finalizers on transport abort", async () => {
 		const controller = new AbortController();
-		const caller = router.createCaller(
-			{ requestId: "interrupt" },
-			{ signal: controller.signal },
-		);
+		const caller = router.createCaller({ requestId: "interrupt" }, { signal: controller.signal });
 		const stream = await caller.interruptible(undefined);
 		const iterator = stream[Symbol.asyncIterator]();
 		const next = iterator.next();
@@ -338,9 +271,7 @@ describe("makeEffectTRPC", () => {
 		const caller = router.createCaller({ requestId: "ambient" });
 		const overrides = Context.make(RuntimeValue, "override");
 
-		const result = await adapter.runWithServices(overrides, () =>
-			caller.services(),
-		);
+		const result = await adapter.runWithServices(overrides, () => caller.services());
 
 		expect(result).toEqual({
 			requestValue: "ambient",
