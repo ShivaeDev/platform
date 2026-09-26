@@ -13,16 +13,16 @@ class Rollback {
 	readonly _tag = "Rollback";
 }
 
-const withDatabase = <A, E>(use: (names: { ledger: string; foods: string }) => Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) =>
+const withDatabase = <A, E>(use: (names: { ledger: string; orders: string }) => Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) =>
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				const prefix = `pb_${crypto.randomUUID().replaceAll("-", "")}`;
-				const names = { ledger: `${prefix}_ledger`, foods: `${prefix}_foods` };
+				const names = { ledger: `${prefix}_ledger`, orders: `${prefix}_orders` };
 				yield* Effect.addFinalizer(() =>
 					Effect.gen(function* () {
-						for (const name of [names.foods, names.ledger]) {
+						for (const name of [names.orders, names.ledger]) {
 							yield* sql`drop table if exists ${sql(name)}`;
 						}
 					}).pipe(Effect.orDie),
@@ -75,11 +75,11 @@ const holdUncommittedLedger = (ledger: string) =>
 integration(
 	"native Migrator loses the empty-database bootstrap race with a typed SqlError",
 	async () => {
-		await withDatabase(({ ledger, foods }) =>
+		await withDatabase(({ ledger, orders }) =>
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				const loader = Migrator.fromRecord({
-					"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
+					"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 				});
 				const holder = yield* holdUncommittedLedger(ledger);
 				const first = yield* migrate({ table: ledger, loader }).pipe(Effect.exit, Effect.forkScoped);
@@ -87,7 +87,7 @@ integration(
 				yield* holder.blockedBehind(2);
 				yield* holder.rollback;
 				const exits = [yield* Fiber.join(first), yield* Fiber.join(second)];
-				expect(exits.filter(Exit.isSuccess).map((exit) => exit.value)).toEqual([[[1, "create_foods"]]]);
+				expect(exits.filter(Exit.isSuccess).map((exit) => exit.value)).toEqual([[[1, "create_orders"]]]);
 				const failures = exits.filter(Exit.isFailure).map((exit) => exit.cause);
 				expect(failures).toHaveLength(1);
 				expect(failures.map((cause) => [Cause.hasDies(cause), Cause.squash(cause)])).toMatchObject([
@@ -100,17 +100,17 @@ integration(
 	15_000,
 );
 
-const heldSeed = (foods: string) =>
+const heldSeed = (orders: string) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const entered = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();
 		const loader = Migrator.fromRecord({
-			"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
-			"2_seed_foods": Effect.gen(function* () {
+			"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
+			"2_seed_orders": Effect.gen(function* () {
 				yield* Deferred.succeed(entered, undefined);
 				yield* Deferred.await(release);
-				yield* sql`insert into ${sql(foods)} (name) values ('Apple')`;
+				yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
 			}),
 		});
 		const advisoryWaiter = waitUntil(
@@ -130,10 +130,10 @@ const heldSeed = (foods: string) =>
 integration(
 	"migratePostgres serializes empty-database runners and applies each migration once",
 	async () => {
-		await withDatabase(({ ledger, foods }) =>
+		await withDatabase(({ ledger, orders }) =>
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
-				const held = yield* heldSeed(foods);
+				const held = yield* heldSeed(orders);
 				const options = { table: ledger, loader: held.loader, lockTimeout: "5 seconds" } as const;
 				const first = yield* migratePostgres(options).pipe(Effect.forkScoped);
 				yield* held.entered;
@@ -141,11 +141,11 @@ integration(
 				yield* held.advisoryWaiter;
 				yield* held.release;
 				expect(yield* Fiber.join(first)).toEqual([
-					[1, "create_foods"],
-					[2, "seed_foods"],
+					[1, "create_orders"],
+					[2, "seed_orders"],
 				]);
 				expect(yield* Fiber.join(second)).toEqual([]);
-				expect(yield* sql`select name from ${sql(foods)}`).toEqual([{ name: "Apple" }]);
+				expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 				expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
 			}),
 		);
@@ -156,9 +156,9 @@ integration(
 integration(
 	"migratePostgres fails with a typed lock timeout while another runner holds the migration lock",
 	async () => {
-		await withDatabase(({ ledger, foods }) =>
+		await withDatabase(({ ledger, orders }) =>
 			Effect.gen(function* () {
-				const held = yield* heldSeed(foods);
+				const held = yield* heldSeed(orders);
 				const first = yield* migratePostgres({ table: ledger, loader: held.loader, lockTimeout: "5 seconds" }).pipe(Effect.forkScoped);
 				yield* held.entered;
 				const blocked = yield* migratePostgres({ table: ledger, loader: held.loader, lockTimeout: "100 millis" }).pipe(
@@ -175,19 +175,19 @@ integration(
 );
 
 integration("a failed migratePostgres batch rolls back the bootstrapped ledger with the batch", async () => {
-	await withDatabase(({ ledger, foods }) =>
+	await withDatabase(({ ledger, orders }) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const exit = yield* migratePostgres({
 				table: ledger,
 				lockTimeout: "5 seconds",
 				loader: Migrator.fromRecord({
-					"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
-					"2_duplicate_food": sql`insert into ${sql(foods)} (name) values ('Apple'), ('Apple')`.pipe(Effect.asVoid),
+					"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
+					"2_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper'), ('Printer paper')`.pipe(Effect.asVoid),
 				}),
 			}).pipe(Effect.exit);
 			expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);
-			expect(yield* sql`select to_regclass(${ledger}) as ledger, to_regclass(${foods}) as foods`).toEqual([{ ledger: null, foods: null }]);
+			expect(yield* sql`select to_regclass(${ledger}) as ledger, to_regclass(${orders}) as orders`).toEqual([{ ledger: null, orders: null }]);
 		}),
 	);
 });

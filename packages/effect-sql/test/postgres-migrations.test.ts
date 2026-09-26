@@ -8,7 +8,7 @@ const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")
 const integration = databaseUrl === undefined ? test.skip : test;
 const migrate = Migrator.make({});
 
-const withDatabase = <A, E>(use: (names: { ledger: string; foods: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) =>
+const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) =>
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -16,12 +16,12 @@ const withDatabase = <A, E>(use: (names: { ledger: string; foods: string; audit:
 				const prefix = `pm_${crypto.randomUUID().replaceAll("-", "")}`;
 				const names = {
 					ledger: `${prefix}_ledger`,
-					foods: `${prefix}_foods`,
+					orders: `${prefix}_orders`,
 					audit: `${prefix}_audit`,
 				};
 				yield* Effect.addFinalizer(() =>
 					Effect.gen(function* () {
-						for (const name of [names.audit, names.foods, names.ledger]) {
+						for (const name of [names.audit, names.orders, names.ledger]) {
 							yield* sql`drop table if exists ${sql(name)}`;
 						}
 					}).pipe(Effect.orDie),
@@ -39,39 +39,39 @@ const withDatabase = <A, E>(use: (names: { ledger: string; foods: string; audit:
 	);
 
 integration("PostgreSQL migrations initialize, upgrade and rerun without repeating writes", async () => {
-	await withDatabase(({ ledger, foods }) =>
+	await withDatabase(({ ledger, orders }) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const initial = {
-				"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
+				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 			};
 			expect(
 				yield* migrate({
 					table: ledger,
 					loader: Migrator.fromRecord(initial),
 				}),
-			).toEqual([[1, "create_foods"]]);
+			).toEqual([[1, "create_orders"]]);
 			const loader = Migrator.fromRecord({
-				"2_seed_foods": sql`insert into ${sql(foods)} (name) values ('Apple')`.pipe(Effect.asVoid),
+				"2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
 				...initial,
 			});
-			expect(yield* migrate({ table: ledger, loader })).toEqual([[2, "seed_foods"]]);
+			expect(yield* migrate({ table: ledger, loader })).toEqual([[2, "seed_orders"]]);
 			expect(yield* migrate({ table: ledger, loader })).toEqual([]);
-			expect(yield* sql`select name from ${sql(foods)}`).toEqual([{ name: "Apple" }]);
+			expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* sql`select migration_id, name from ${sql(ledger)} order by migration_id`).toEqual([
-				{ migration_id: 1, name: "create_foods" },
-				{ migration_id: 2, name: "seed_foods" },
+				{ migration_id: 1, name: "create_orders" },
+				{ migration_id: 2, name: "seed_orders" },
 			]);
 		}),
 	);
 });
 
 integration("PostgreSQL rolls back pending migration DDL, data and ledger as one batch", async () => {
-	await withDatabase(({ ledger, foods, audit }) =>
+	await withDatabase(({ ledger, orders, audit }) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const initial = {
-				"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
+				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 			};
 			yield* migrate({ table: ledger, loader: Migrator.fromRecord(initial) });
 			const exit = yield* migrate({
@@ -80,9 +80,9 @@ integration("PostgreSQL rolls back pending migration DDL, data and ledger as one
 					...initial,
 					"2_add_audit_and_seed": Effect.gen(function* () {
 						yield* sql`create table ${sql(audit)} (name text)`;
-						yield* sql`insert into ${sql(foods)} (name) values ('Apple')`;
+						yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
 					}),
-					"3_duplicate_food": sql`insert into ${sql(foods)} (name) values ('Apple')`.pipe(Effect.asVoid),
+					"3_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
 				}),
 			}).pipe(Effect.exit);
 			expect(Exit.isFailure(exit)).toBe(true);
@@ -93,7 +93,7 @@ integration("PostgreSQL rolls back pending migration DDL, data and ledger as one
 					kind: "Failed",
 				});
 			}
-			expect(yield* sql`select name from ${sql(foods)}`).toEqual([]);
+			expect(yield* sql`select name from ${sql(orders)}`).toEqual([]);
 			expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ table_name: null }]);
 			expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ migration_id: 1 }]);
 		}),
@@ -103,12 +103,12 @@ integration("PostgreSQL rolls back pending migration DDL, data and ledger as one
 integration(
 	"PostgreSQL concurrent runners wait on the existing ledger and apply each migration once",
 	async () => {
-		await withDatabase(({ ledger, foods }) =>
+		await withDatabase(({ ledger, orders }) =>
 			Effect.scoped(
 				Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
 					const initial = {
-						"1_create_foods": sql`create table ${sql(foods)} (name text primary key)`.pipe(Effect.asVoid),
+						"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 					};
 					yield* migrate({
 						table: ledger,
@@ -118,10 +118,10 @@ integration(
 					const release = yield* Deferred.make<void>();
 					const loader = Migrator.fromRecord({
 						...initial,
-						"2_seed_foods": Effect.gen(function* () {
+						"2_seed_orders": Effect.gen(function* () {
 							yield* Deferred.succeed(entered, undefined);
 							yield* Deferred.await(release);
-							yield* sql`insert into ${sql(foods)} (name) values ('Apple')`;
+							yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
 						}),
 					});
 					const first = yield* migrate({ table: ledger, loader }).pipe(Effect.forkScoped);
@@ -138,9 +138,9 @@ integration(
 						}
 					}).pipe(Effect.timeout("5 seconds"));
 					yield* Deferred.succeed(release, undefined);
-					expect(yield* Fiber.join(first)).toEqual([[2, "seed_foods"]]);
+					expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
 					expect(yield* Fiber.join(second)).toEqual([]);
-					expect(yield* sql`select name from ${sql(foods)}`).toEqual([{ name: "Apple" }]);
+					expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 					expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
 				}),
 			),

@@ -16,16 +16,16 @@ test("a failing invalidation after commit is logged and the committed result sta
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const reactivity = yield* Reactivity.Reactivity;
-			yield* sql`create table meals (id integer primary key)`;
-			reactivity.registerUnsafe(["meals"], () => {
+			yield* sql`create table orders (id integer primary key)`;
+			reactivity.registerUnsafe(["orders"], () => {
 				throw new Error("subscriber threw");
 			});
-			const saved = yield* Effect.as(Effect.andThen(sql`insert into meals (id) values (1)`, invalidateOnCommit({ meals: [1] })), "saved").pipe(
+			const saved = yield* Effect.as(Effect.andThen(sql`insert into orders (id) values (1)`, invalidateOnCommit({ orders: [1] })), "saved").pipe(
 				transact({ onSqlError: (error) => new Unavailable({ reason: error.message }) }),
 			);
-			yield* invalidateOnCommit(["meals"]);
+			yield* invalidateOnCommit(["orders"]);
 			expect(saved).toBe("saved");
-			expect(yield* sql`select id from meals`).toEqual([{ id: 1 }]);
+			expect(yield* sql`select id from orders`).toEqual([{ id: 1 }]);
 			const failure = { level: "Error", message: [expect.stringContaining("committed")], cause: expect.stringContaining("subscriber threw") };
 			expect(logged).toEqual([failure, failure]);
 		}).pipe(Effect.provide(Layer.mergeAll(SqliteClient.layer({ filename: ":memory:" }), Reactivity.layer, Logger.layer([logger])))),

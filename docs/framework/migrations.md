@@ -10,23 +10,23 @@ Effect that uses the same `SqlClient` as application repositories.
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 
-const createFoods = Effect.gen(function* () {
+const createOrders = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
-  yield* sql`create table food (
+  yield* sql`create table orders (
     id integer primary key,
     name text not null unique
   )`;
 });
 
-const seedFoods = Effect.gen(function* () {
+const seedOrders = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
-  yield* sql`insert into food (name) values ('Apple')`;
+  yield* sql`insert into orders (name) values ('Printer paper')`;
 });
 
 export const migrate = Migrator.make({})({
   loader: Migrator.fromRecord({
-    "1_create_foods": createFoods,
-    "2_seed_foods": seedFoods,
+    "1_create_orders": createOrders,
+    "2_seed_orders": seedOrders,
   }),
 });
 ```
@@ -36,7 +36,7 @@ This example uses SQLite SQL. Provide the application's database Layer and run
 the database scope alive for the application; a new in-memory SQLite connection
 would create a separate empty database.
 
-The first successful run returns `[[1, "create_foods"], [2, "seed_foods"]]`. Running
+The first successful run returns `[[1, "create_orders"], [2, "seed_orders"]]`. Running
 the same loader again returns `[]`. The default `effect_sql_migrations` table
 records migration IDs, names, and creation timestamps. The native `table` option
 can change its name without a Platform wrapper.

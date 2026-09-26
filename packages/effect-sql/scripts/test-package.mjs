@@ -107,28 +107,28 @@ try {
 import { Model } from "effect/unstable/schema"
 import { invalidateOnCommit, makeRepository, transact } from "@shivaedev/effect-sql"
 
-class Food extends Model.Class<Food>("Food")({
+class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
   id: Schema.Number,
   name: Schema.String,
-  calories: Schema.NumberFromString,
+  amount: Schema.NumberFromString,
 }) {}
 
 const program = Effect.gen(function* () {
-  const foods = yield* makeRepository(Food, { tableName: "food", idColumn: "id", spanPrefix: "Food" })
-  const selected = yield* foods.findMany({ select: ["name", "calories"], where: { calories: 42 } })
-  const rows: Array<{ readonly name: string; readonly calories: number }> = selected
+  const lines = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: "id", spanPrefix: "InvoiceLine" })
+  const selected = yield* lines.findMany({ select: ["name", "amount"], where: { amount: 42 } })
+  const rows: Array<{ readonly name: string; readonly amount: number }> = selected
   void rows
   // @ts-expect-error Unselected fields are absent from the result.
   selected[0].id
   // @ts-expect-error Field codecs accept their domain type.
-  foods.findMany({ where: { calories: "42" } })
+  lines.findMany({ where: { amount: "42" } })
   // @ts-expect-error Unknown selected columns are rejected.
-  foods.findMany({ select: ["missing"] })
+  lines.findMany({ select: ["missing"] })
   // @ts-expect-error Unknown sort columns are rejected.
-  foods.findMany({ orderBy: { field: "missing", direction: "asc" } })
+  lines.findMany({ orderBy: { field: "missing", direction: "asc" } })
   // @ts-expect-error Selections cannot be empty.
-  foods.findMany({ select: [] })
-  const saved: string = yield* Effect.as(invalidateOnCommit({ food: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
+  lines.findMany({ select: [] })
+  const saved: string = yield* Effect.as(invalidateOnCommit({ invoiceLines: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
   void saved
 })
 void program

@@ -26,13 +26,13 @@ The concurrency test holds the first runner inside its migration using a Deferre
 const migrate = Migrator.make({})
 
 const migrations = Migrator.fromRecord({
-  "1_create_meals": Effect.gen(function* () {
+  "1_create_orders": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
-    yield* sql`create table meals (id integer primary key, name text not null)`
+    yield* sql`create table orders (id integer primary key, name text not null)`
   }),
   "2_add_notes": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
-    yield* sql`alter table meals add column notes text`
+    yield* sql`alter table orders add column notes text`
   })
 })
 

@@ -28,27 +28,28 @@ export const setup = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	const suffix = crypto.randomUUID().replaceAll("-", "");
 	const tables = {
-		meals: `platform_effect_sql_meals_${suffix}`,
+		orders: `platform_effect_sql_orders_${suffix}`,
 		notes: `platform_effect_sql_notes_${suffix}`,
 		others: `platform_effect_sql_others_${suffix}`,
 	};
 	yield* Effect.acquireRelease(
 		Effect.all([
-			sql`create table ${sql(tables.meals)} (id integer primary key, name text not null)`,
-			sql`create table ${sql(tables.notes)} (id integer primary key, meal integer references ${sql(tables.meals)} (id) deferrable initially deferred)`,
+			sql`create table ${sql(tables.orders)} (id integer primary key, name text not null)`,
+			sql`create table ${sql(tables.notes)} (id integer primary key, order_id integer references ${sql(tables.orders)} (id) deferrable initially deferred)`,
 			sql`create table ${sql(tables.others)} (id integer primary key)`,
 		]),
-		() => Effect.orDie(sql`drop table ${sql(tables.notes)}, ${sql(tables.meals)}, ${sql(tables.others)}`),
+		() => Effect.orDie(sql`drop table ${sql(tables.notes)}, ${sql(tables.orders)}, ${sql(tables.others)}`),
 	);
 	const events: Array<string> = [];
-	for (const key of ["meals", "meals:1", "meals:2"]) reactivity.registerUnsafe([key], () => events.push(key));
-	const insert = (id: number) => sql`insert into ${sql(tables.meals)} (id, name) values (${id}, ${`meal ${id}`})`;
-	const count = Effect.map(sql<{ readonly total: number }>`select count(*)::int as total from ${sql(tables.meals)}`, ([row]) => row?.total);
-	const mealIds = (client: SqlClient.SqlClient) => Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.meals)} order by id`, ids);
+	for (const key of ["orders", "orders:1", "orders:2"]) reactivity.registerUnsafe([key], () => events.push(key));
+	const insert = (id: number) => sql`insert into ${sql(tables.orders)} (id, name) values (${id}, ${`order ${id}`})`;
+	const count = Effect.map(sql<{ readonly total: number }>`select count(*)::int as total from ${sql(tables.orders)}`, ([row]) => row?.total);
+	const orderIds = (client: SqlClient.SqlClient) =>
+		Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.orders)} order by id`, ids);
 	const otherIds = (client: SqlClient.SqlClient) =>
 		Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.others)} order by id`, ids);
 	const insertOther = (client: SqlClient.SqlClient, id: number) => client`insert into ${sql(tables.others)} (id) values (${id})`;
-	return { sql, reactivity, tables, events, insert, count, mealIds, otherIds, insertOther };
+	return { sql, reactivity, tables, events, insert, count, orderIds, otherIds, insertOther };
 });
 
 export const onClient = (client: SqlClient.SqlClient) => Effect.provideService(SqlClient.SqlClient, client);
