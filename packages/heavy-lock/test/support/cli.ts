@@ -38,7 +38,7 @@ export interface Started {
 	readonly stop: () => void;
 }
 
-// A run that deadlocks is killed with every process it started, so the test fails instead of hanging.
+// A run that deadlocks is killed so the test fails instead of hanging; its command, in a process group of its own, ends through its own bound.
 export const start = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Started => {
 	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, env, detached: true, stdio: ["ignore", "ignore", "pipe"] });
 	let running = true;
@@ -69,7 +69,7 @@ export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>,
 export const pollWhile = (condition: string): string =>
 	`give_up=$(($(date +%s) + ${TEST_TIMEOUT_MS / 1000})); while ${condition} && [ "$(date +%s)" -lt "$give_up" ]; do sleep 0.02; done`;
 
-// Holds the lock until the test creates the release file or removes its directory, and fails if neither happens within the bound.
+// Holds the lock until the test creates the release file or removes its directory, or the bound passes; it succeeds only when released.
 export const holdUntil = (release: string): ReadonlyArray<string> => [
 	"/bin/sh",
 	"-c",
