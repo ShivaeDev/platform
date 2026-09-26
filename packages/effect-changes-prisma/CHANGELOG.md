@@ -43,6 +43,8 @@
   `transaction` on a transaction client is a savepoint and has no timeout of
   its own; on any other client it is a separate transaction whose expiry does
   not stop the body it runs in.
+- Two copies of the package with bindings of the same name shared their
+  `Client` and expiry signal. Each binding is now keyed by a random id.
 
 ## 0.1.1 - 2026-09-26
 
