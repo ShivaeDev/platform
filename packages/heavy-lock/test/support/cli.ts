@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { dirname } from "node:path";
 import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -52,6 +53,13 @@ export const start = (args: ReadonlyArray<string>, env: Record<string, string>, 
 };
 
 export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Promise<Exit> => start(args, env, cwd).exited;
+
+// Holds the lock until the test creates the release file, so no assertion depends on the machine's speed; it also stops once the test's directory is removed, so a failed test leaves no loop behind.
+export const holdUntil = (release: string): ReadonlyArray<string> => [
+	"/bin/sh",
+	"-c",
+	`while [ ! -e "${release}" ] && [ -d "${dirname(release)}" ]; do sleep 0.02; done`,
+];
 
 export const waitFor = async (condition: () => boolean): Promise<void> => {
 	while (!condition()) {

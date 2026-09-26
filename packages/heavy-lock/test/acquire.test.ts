@@ -2,13 +2,14 @@ import { rmSync } from "node:fs";
 import process from "node:process";
 import { expect, it } from "@effect/vitest";
 import { Effect, Fiber, Layer, Option } from "effect";
+import { TestConsole } from "effect/testing";
 import { afterEach } from "vitest";
 import { HeldLock } from "../src/held-lock.ts";
 import { HOLDER_ID_ENV } from "../src/holder.ts";
 import { readHolder, tryAcquire } from "../src/lock-file.ts";
 import { heavyLockLayer, withHeavyLock } from "../src/with-heavy-lock.ts";
 import { scriptedClock } from "./support/clock.ts";
-import { holder, readLock, removeTemporaryDirectories, services, temporaryLock } from "./support/lock.ts";
+import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "./support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
@@ -117,12 +118,15 @@ it.live("an interrupted waiter leaves the holder's lock alone and nothing behind
 		yield* tryAcquire(lock, build);
 
 		const waiter = yield* Effect.forkChild(withHeavyLock(Effect.void, { lockPath: lock, pollInterval: "5 millis" }));
-		yield* Effect.sleep("100 millis");
+		while ((yield* TestConsole.errorLines).length === 0) {
+			yield* Effect.sleep("5 millis");
+		}
 		yield* Fiber.interrupt(waiter);
 
 		expect(yield* readHolder(lock)).toEqual(Option.some(build));
 		expect(readLock(lock)).toBe(JSON.stringify(build));
-	}).pipe(Effect.provide(services())),
+		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+	}).pipe(Effect.provide(Layer.merge(services(), TestConsole.layer))),
 );
 
 it.live("interrupting the effect under the lock releases it", () =>

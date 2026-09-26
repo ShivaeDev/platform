@@ -1,9 +1,10 @@
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
 import { HOLDER_ID_ENV } from "../src/holder.ts";
-import { cliEnvironment, HEAVY_LOCK_CLI, runCli, start, waitFor } from "./support/cli.ts";
-import { holder, readLock, removeTemporaryDirectories, startTime, temporaryLock, writeLock } from "./support/lock.ts";
+import { cliEnvironment, HEAVY_LOCK_CLI, holdUntil, runCli, start, waitFor } from "./support/cli.ts";
+import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "./support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
@@ -40,15 +41,20 @@ it(
 	"a second heavy command waits for the first and names it",
 	async () => {
 		const lock = temporaryLock();
-		const first = start(["--", "sleep", "1"], cliEnvironment(lock));
+		const release = join(temporaryDirectory(), "release");
+		const holding = holdUntil(release);
+		const first = start(["--", ...holding], cliEnvironment(lock));
 		await waitFor(() => readLock(lock) !== undefined);
 
-		const second = await runCli(["--", "true"], cliEnvironment(lock));
+		const second = start(["--", "true"], cliEnvironment(lock));
+		await waitFor(() => second.stderr().includes("waiting for"));
+		writeFileSync(release, "");
+		const waited = await second.exited;
 
 		expect((await first.exited).status).toBe(0);
-		expect(second.status).toBe(0);
-		expect(second.stderr).toMatch(new RegExp(`waiting for pid ${first.pid} running \`sleep 1\``));
-		expect(second.stderr).toMatch(/acquired after \d+s/);
+		expect(waited.status).toBe(0);
+		expect(waited.stderr).toContain(`waiting for pid ${first.pid} running \`${holding.join(" ")}\``);
+		expect(waited.stderr).toMatch(/acquired after \d+s/);
 		expect(existsSync(lock)).toBe(false);
 	},
 	TIMEOUT,
@@ -58,14 +64,18 @@ it(
 	"records its holder in the shared protocol's format, with its process start time in the C locale",
 	async () => {
 		const lock = temporaryLock();
-		const run = start(["--", "sleep", "1"], cliEnvironment(lock, { LANG: "de_DE.UTF-8", LC_ALL: "de_DE.UTF-8" }), "/");
+		const release = join(temporaryDirectory(), "release");
+		const holding = holdUntil(release);
+		const run = start(["--", ...holding], cliEnvironment(lock, { LANG: "de_DE.UTF-8", LC_ALL: "de_DE.UTF-8" }), "/");
 		await waitFor(() => readLock(lock) !== undefined);
 
 		const recorded = readLock(lock) ?? "";
+		const processStartedAt = startTime(run.pid);
+		writeFileSync(release, "");
 		const { id, startedAtMs } = JSON.parse(recorded);
 
 		expect(recorded).toBe(
-			`{"id":"${id}","pid":${run.pid},"processStartedAt":"${startTime(run.pid)}","command":"sleep 1","cwd":"/","startedAtMs":${startedAtMs}}`,
+			`{"id":"${id}","pid":${run.pid},"processStartedAt":"${processStartedAt}","command":${JSON.stringify(holding.join(" "))},"cwd":"/","startedAtMs":${startedAtMs}}`,
 		);
 		expect((await run.exited).status).toBe(0);
 	},
