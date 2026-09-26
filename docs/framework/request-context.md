@@ -69,9 +69,10 @@ declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `TOO_MANY_REQUESTS`, and `AuthUnavailable`, a provider outage, gets
 `SERVICE_UNAVAILABLE`. Every other tag, including `BadRequest`, gets
 `BAD_REQUEST`. An input that fails the procedure's input schema arrives as a
-`BadRequest` with the failing path as its `field`. The client reads the field
-with `Option.flatMap(rejectionOf(error), rejectedField)`; see the effect-trpc
-README.
+`BadRequest` with the failing path as its `field` and `invalidInput: true`,
+which tells it apart from a `BadRequest` the procedure declares. The client
+reads the field with `Option.flatMap(rejectionOf(error), rejectedField)`; see
+the effect-trpc README.
 
 ## Request id, identity and logging
 

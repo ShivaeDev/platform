@@ -174,6 +174,7 @@ describe("everything else stays opaque", () => {
 	it("reads only tagged rejections from error data", () => {
 		expect(rejectionOf({ data: { rejection: { field: "name", message: "Untagged" } } })).toEqual(Option.none());
 		expect(rejectionOf({ data: { rejection: { _tag: 1 } } })).toEqual(Option.none());
+		expect(rejectionOf({ data: { rejection: { _tag: "BadRequest", invalidInput: "yes" } } })).toEqual(Option.none());
 		expect(rejectionOf({ data: { rejection: "Conflict" } })).toEqual(Option.none());
 		expect(rejectionOf({ rejection: { _tag: "Conflict" } })).toEqual(Option.none());
 		expect(rejectionOf(new Error("Conflict"))).toEqual(Option.none());

@@ -98,4 +98,6 @@ test("an input the procedure's schema rejects reaches the form as a BadRequest f
 	expect(invalid).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });
 	expect(Option.getOrThrow(decodeRejection(Rejection)(invalid))).toBeInstanceOf(BadRequest);
 	expect(Option.map(Option.flatMap(rejectionOf(invalid), rejectedField), ({ field }) => field)).toEqual(Option.some("name"));
+	expect(Option.map(rejectionOf(invalid), ({ invalidInput }) => invalidInput)).toEqual(Option.some(true));
+	expect(Option.map(rejectionOf(await rename("required")), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));
 });

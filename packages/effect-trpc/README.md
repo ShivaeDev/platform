@@ -166,7 +166,19 @@ adds it to the error data, next to tRPC's own fields:
   `BadRequest` rejection with the first issue's message and, unless the issue
   concerns the whole input, its path as `field` (`"address.city"`,
   `"tags.1"`). The code is `BAD_REQUEST`, as for a `BadRequest` the procedure
-  raises, so a form shows the error on its field before the handler runs.
+  raises, so a form shows the error on its field before the handler runs. It
+  also carries `invalidInput: true`, which a declared rejection never gets, so
+  a client can show its own copy for input that did not parse and the
+  declared message otherwise:
+
+  ```jsonc
+  { "code": "BAD_REQUEST", "httpStatus": 400, "path": "rename",
+    "rejection": { "_tag": "BadRequest", "message": "Expected a value with a length of at least 1", "field": "name", "invalidInput": true } }
+  ```
+
+  `invalidInput` is reserved: `rejectWith` does not accept a schema that
+  encodes a field by that name, and the formatter strips it from any declared
+  rejection, so only input that did not parse carries it.
 - An application with its own `errorFormatter` calls
   `withRejection(shape, error)` inside it.
 - The error channel loses the declared types and gains `RejectionError`. An
@@ -180,14 +192,18 @@ a `TRPCClientError`:
 import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client"
 import { rejectedField } from "@shivaedev/platform/errors"
 
-rejectionOf(error)                                          // Option<{ _tag: string, ... }>, still encoded
+rejectionOf(error)                                          // Option<{ _tag: string, invalidInput?: true, ... }>, still encoded
 decodeRejection(Schema.Union([BadRequest, Conflict]))(error) // Option<BadRequest | Conflict>
 Option.flatMap(rejectionOf(error), rejectedField)           // Option<{ field, message }>
+Option.exists(rejectionOf(error), (rejection) => rejection.invalidInput === true) // the input did not parse
 ```
 
 Both return `Option.none()` for any error without a tagged rejection, and
-`decodeRejection` also for a rejection its schema does not declare. The client
-entry imports only `effect`.
+`decodeRejection` also for a rejection its schema does not declare.
+`rejectionOf` also returns `Option.none()` when `invalidInput` is present but
+not `true`. An input failure still decodes as the declared `BadRequest`; the
+mark is read from `rejectionOf`, or from `error.data.rejection.invalidInput` on a
+`TRPCClientError` typed by the router. The client entry imports only `effect`.
 
 ## Vitest
 

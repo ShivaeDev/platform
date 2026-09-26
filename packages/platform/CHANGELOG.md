@@ -10,7 +10,8 @@
 
 ### Changed
 
-- Require Effect tRPC 0.4.1, which maps `TooManyRequests` to HTTP 429.
+- Require Effect tRPC 0.4.1, which maps `TooManyRequests` to HTTP 429 and
+  marks input-validation rejections with `invalidInput: true`.
 
 ## 0.4.1 - 2026-09-26
 
