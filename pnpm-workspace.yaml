@@ -36,6 +36,12 @@ catalog:
   "@prisma-next/sqlite": 0.15.0
   "@prisma-next/target-postgres": 0.15.0
   "@prisma-next/target-sqlite": 0.15.0
+  # `prisma@7.10.0` was published without the provenance attestation earlier
+  # releases carry, which the no-downgrade trust policy rejects. Keep the Prisma
+  # Classic packages on one attested version until an attested 7.10+ lands.
+  "@prisma/adapter-pg": 7.9.1
+  "@prisma/client": 7.9.1
+  prisma: 7.9.1
   "@types/node": 24.10.1
   "@types/pg": 8.20.0
   "@trpc/client": 11.18.0
@@ -58,3 +64,5 @@ strictDepBuilds: true
 allowBuilds:
   esbuild: true
   msgpackr-extract: false
+  "@prisma/engines": false
+  prisma: false

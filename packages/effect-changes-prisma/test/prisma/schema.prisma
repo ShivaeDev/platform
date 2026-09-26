@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Order {
+  id      String @id
+  ownerId String @map("owner_id")
+  total   Int
+
+  @@map("changes_prisma_order")
+}
+
+model Membership {
+  id       String @id
+  ownerId  String @map("owner_id")
+  memberId String @map("member_id")
+
+  @@map("changes_prisma_membership")
+}
+
+model Invoice {
+  id      String  @id
+  ownerId String  @map("owner_id")
+  orderId String? @map("order_id")
+
+  @@map("changes_prisma_invoice")
+}
+
+model AuditNote {
+  id   String @id
+  text String
+}
