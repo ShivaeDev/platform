@@ -112,15 +112,16 @@ try {
 			2,
 		)}\n`,
 	);
-	const consumerWorkspace = (
-		await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
-	).replace(
-		'  "@vercel/detect-agent": 1.2.3',
-		`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
+	const workspace = await readFile(
+		join(repositoryRoot, "pnpm-workspace.yaml"),
+		"utf8",
 	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		consumerWorkspace,
+		workspace.replace(
+			'  "@vercel/detect-agent": 1.2.3',
+			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
+		),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
@@ -264,23 +265,18 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, promise, 
 				private: true,
 				type: "module",
 				dependencies: {
-					"@effect/vitest": manifest.devDependencies["@effect/vitest"],
-					"@shivaedev/effect-trpc": `file:${tarballs.trpc}`,
 					"@shivaedev/platform": `file:${tarballs.platform}`,
-					"@trpc/server": manifest.devDependencies["@trpc/server"],
-					"@types/node": manifest.devDependencies["@types/node"],
 					effect: manifest.devDependencies.effect,
-					vitest: manifest.devDependencies.vitest,
+				},
+				devDependencies: {
+					"@types/node": manifest.devDependencies["@types/node"],
 				},
 			},
 			null,
 			2,
 		)}\n`,
 	);
-	await writeFile(
-		join(runtimeConsumer, "pnpm-workspace.yaml"),
-		consumerWorkspace,
-	);
+	await writeFile(join(runtimeConsumer, "pnpm-workspace.yaml"), workspace);
 	await writeFile(
 		join(runtimeConsumer, "tsconfig.json"),
 		`${JSON.stringify(
@@ -354,16 +350,24 @@ if (application !== "application" || request !== "request" || !subscription.sign
 		],
 		runtimeConsumer,
 	);
-	const prismaPackages = (
+	const optionalPeerPrefixes = [
+		"@effect+vitest@",
+		"@prisma-next+",
+		"@shivaedev+effect-prisma@",
+		"@shivaedev+effect-test@",
+		"@shivaedev+effect-trpc@",
+		"@trpc+server@",
+		"better-auth@",
+		"vitest@",
+	];
+	const optionalPeers = (
 		await readdir(join(runtimeConsumer, "node_modules/.pnpm"))
-	).filter(
-		(name) =>
-			name.startsWith("@shivaedev+effect-prisma@") ||
-			name.startsWith("@prisma-next+"),
+	).filter((name) =>
+		optionalPeerPrefixes.some((prefix) => name.startsWith(prefix)),
 	);
-	if (prismaPackages.length > 0) {
+	if (optionalPeers.length > 0) {
 		throw new Error(
-			`Installing the runtime and node-http entries pulled in ${prismaPackages.join(", ")}`,
+			`Installing platform with only effect pulled in ${optionalPeers.join(", ")}`,
 		);
 	}
 	execute(

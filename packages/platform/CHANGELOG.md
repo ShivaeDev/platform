@@ -6,9 +6,12 @@
 
 ### Changed
 
-- Make Effect Prisma an optional peer. Applications that import only the
-  `runtime` and `node-http` entries no longer install Effect Prisma and Prisma
-  Next; the `better-auth` and `testing` entries still require it.
+- Require only Effect. Effect Prisma, Effect tRPC, tRPC server, and Effect
+  Vitest are now optional peers, so applications that import only the
+  `runtime` and `node-http` entries no longer install Prisma Next, tRPC, or
+  Vitest. The `better-auth` entry still requires Effect Prisma, and the
+  `testing` entry requires all four.
+- Accept any Better Auth 1.x release from 1.6.25 instead of exactly 1.6.25.
 
 ## 0.3.7 - 2026-09-04
 
