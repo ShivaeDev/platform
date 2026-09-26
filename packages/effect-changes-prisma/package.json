@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes-prisma",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Commit-bound change channels for Prisma Classic: automatic change recording, publish after $transaction commits, and a test-time coverage check",
 	"type": "module",
 	"license": "MIT",
@@ -46,10 +46,10 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
 	"dependencies": {
-		"@shivaedev/effect-changes": "workspace:0.1.0"
+		"@shivaedev/effect-changes": "workspace:*"
 	},
 	"peerDependencies": {
-		"@prisma/client": "^7.9.1",
+		"@prisma/client": "catalog:",
 		"effect": "catalog:"
 	},
 	"devDependencies": {

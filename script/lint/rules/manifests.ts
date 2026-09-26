@@ -2,12 +2,12 @@ import { Result, Schema } from "effect";
 import { jsonDecoder } from "#lint/adapters/json.ts";
 import type { Inventory, TextFile } from "#lint/inventory.ts";
 import type { Violation } from "#lint/violation.ts";
+import { workspacePackages } from "#lint/workspace.ts";
 
 const EXACT_VERSION = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 const CATALOG_HEADING = /^catalogs?:/;
 const TOP_LEVEL_KEY = /^\S/;
 const CATALOG_ENTRY = /^\s+"?([^":]+)"?:\s*(\S.*)$/;
-const PEER_RANGE = /^[\^~]?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
 const DEPENDENCY_KEYS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"] as const;
 const DependencyMap = Schema.Record(Schema.String, Schema.Unknown);
 const decodeManifest = jsonDecoder(
@@ -58,33 +58,36 @@ const catalogViolation = (line: string): readonly Violation[] => {
 
 const catalogViolations = (catalog: string): readonly Violation[] => catalogLines(catalog).flatMap(catalogViolation);
 
-const dependencyViolation = (manifest: TextFile, key: string, name: string, spec: unknown): readonly Violation[] => {
-	const throughCatalog = typeof spec === "string" && (spec.startsWith("catalog:") || spec.startsWith("workspace:"));
-	const peerRange = key === "peerDependencies" && typeof spec === "string" && PEER_RANGE.test(spec);
-	if (throughCatalog || peerRange) {
+const dependencyViolation = (manifest: TextFile, key: string, internal: ReadonlySet<string>, name: string, spec: unknown): readonly Violation[] => {
+	const allowed = internal.has(name) ? spec === "workspace:*" : typeof spec === "string" && spec.startsWith("catalog:");
+	if (allowed) {
 		return [];
 	}
 	return [
 		{
 			file: manifest.path,
 			line: undefined,
-			message:
-				key === "peerDependencies"
-					? `peerDependencies entry "${name}": "${String(spec)}" is neither "catalog:", "workspace:", nor a single ^, ~, or exact semver range consumers can satisfy.`
-					: `${key} entry "${name}": "${String(spec)}" bypasses the catalog. Use "catalog:" and pin the exact version in pnpm-workspace.yaml.`,
+			message: internal.has(name)
+				? `${key} entry "${name}": "${String(spec)}" names a version. Use "workspace:*"; packing pins the workspace package's own version.`
+				: `${key} entry "${name}": "${String(spec)}" bypasses the catalog. Use "catalog:" and pin the exact version in pnpm-workspace.yaml.`,
 			rule: "manifests/catalog-only",
 		},
 	];
 };
 
-const dependencyViolations = (manifest: TextFile, key: string, deps: Readonly<Record<string, unknown>> | undefined): readonly Violation[] => {
+const dependencyViolations = (
+	manifest: TextFile,
+	key: string,
+	internal: ReadonlySet<string>,
+	deps: Readonly<Record<string, unknown>> | undefined,
+): readonly Violation[] => {
 	if (deps === undefined) {
 		return [];
 	}
-	return Object.entries(deps).flatMap(([name, spec]) => dependencyViolation(manifest, key, name, spec));
+	return Object.entries(deps).flatMap(([name, spec]) => dependencyViolation(manifest, key, internal, name, spec));
 };
 
-const oneManifestViolations = (manifest: TextFile): readonly Violation[] => {
+const oneManifestViolations = (manifest: TextFile, internal: ReadonlySet<string>): readonly Violation[] => {
 	const decoded = decodeManifest(manifest.raw);
 	if (Result.isFailure(decoded)) {
 		return [
@@ -96,10 +99,10 @@ const oneManifestViolations = (manifest: TextFile): readonly Violation[] => {
 			},
 		];
 	}
-	return DEPENDENCY_KEYS.flatMap((key) => dependencyViolations(manifest, key, decoded.success[key]));
+	return DEPENDENCY_KEYS.flatMap((key) => dependencyViolations(manifest, key, internal, decoded.success[key]));
 };
 
-export const manifestViolations = (inventory: Inventory): readonly Violation[] => [
-	...catalogViolations(inventory.workspaceCatalog),
-	...inventory.manifests.flatMap(oneManifestViolations),
-];
+export const manifestViolations = (inventory: Inventory): readonly Violation[] => {
+	const internal = new Set(workspacePackages(inventory).map(({ name }) => name));
+	return [...catalogViolations(inventory.workspaceCatalog), ...inventory.manifests.flatMap((manifest) => oneManifestViolations(manifest, internal))];
+};

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-09-26
+
+### Changed
+
+- Pin the optional `better-auth` peer dependency to exactly 1.6.25, the version
+  the package is tested against, instead of `^1.6.25`.
+
 ## 0.4.0 - 2026-09-26
 
 ### Added
