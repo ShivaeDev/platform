@@ -17,7 +17,7 @@ afterEach(async () => {
 
 const fields = Schema.Struct({ name: Schema.String });
 type NameFields = typeof fields.fields;
-interface Dish {
+interface Order {
 	readonly id: number;
 	readonly name: string;
 }
@@ -37,8 +37,8 @@ const mount = async (Component: () => null) => {
 
 const creating = async () => {
 	const names: string[] = [];
-	const create = (values: { readonly name: string }) => Effect.sync((): Dish => ({ id: names.push(values.name), name: values.name.trim() }));
-	const held: { create?: Create<NameFields, Dish, never, never>; submit?: Submit<Dish, unknown> } = {};
+	const create = (values: { readonly name: string }) => Effect.sync((): Order => ({ id: names.push(values.name), name: values.name.trim() }));
+	const held: { create?: Create<NameFields, Order, never, never>; submit?: Submit<Order, unknown> } = {};
 	const registry = await mount(() => {
 		const current = useCreate({ fields, initialValues: { name: "" }, create, runtime });
 		held.create = current;
@@ -54,21 +54,21 @@ const creating = async () => {
 
 test("a create submitted through the form's own API records the result and resets the form", async () => {
 	const { names, current } = await creating();
-	current().create.form.change("name", "Soup ");
+	current().create.form.change("name", "Desk lamps ");
 	await act(async () => current().submit.run());
-	expect(Option.getOrNull(current().create.created)).toEqual({ id: 1, name: "Soup" });
+	expect(Option.getOrNull(current().create.created)).toEqual({ id: 1, name: "Desk lamps" });
 	expect(current().create.form.values.value).toEqual({ name: "" });
 	await act(async () => current().submit.run());
-	expect(names).toEqual(["Soup ", ""]);
+	expect(names).toEqual(["Desk lamps ", ""]);
 });
 
 test("a form-API create after an earlier save() compares against its own submission", async () => {
 	const { registry, current } = await creating();
-	current().create.form.change("name", "Soup");
+	current().create.form.change("name", "Desk lamps");
 	await act(async () => current().create.save());
-	current().create.form.change("name", "Stew");
+	current().create.form.change("name", "Office chairs");
 	await act(async () => registry.set(current().create.form.submit, undefined));
-	expect(Option.getOrNull(current().create.created)).toEqual({ id: 2, name: "Stew" });
+	expect(Option.getOrNull(current().create.created)).toEqual({ id: 2, name: "Office chairs" });
 	expect(current().create.form.values.value).toEqual({ name: "" });
 });
 
@@ -87,7 +87,7 @@ test("an edit typed while an async schema decodes the submission survives the cr
 			}),
 		),
 	});
-	const held: { create?: Create<typeof slow.fields, Dish, never, never> } = {};
+	const held: { create?: Create<typeof slow.fields, Order, never, never> } = {};
 	await mount(() => {
 		held.create = useCreate({ fields: slow, initialValues: { name: "" }, create: (values) => Effect.succeed({ id: 1, name: values.name }), runtime });
 		return null;
@@ -96,26 +96,26 @@ test("an edit typed while an async schema decodes the submission survives the cr
 		if (held.create === undefined) throw new Error("Create hook did not render");
 		return held.create;
 	};
-	await act(async () => current().form.change("name", "Soup"));
+	await act(async () => current().form.change("name", "Desk lamps"));
 	await act(async () => current().save());
-	await act(async () => current().form.change("name", "Soup and bread"));
+	await act(async () => current().form.change("name", "Desk lamps and chairs"));
 	await act(async () => decoding.resolve());
-	await vi.waitFor(() => expect(Option.getOrNull(current().created)).toEqual({ id: 1, name: "Soup" }));
-	expect(current().form.values.value).toEqual({ name: "Soup and bread" });
+	await vi.waitFor(() => expect(Option.getOrNull(current().created)).toEqual({ id: 1, name: "Desk lamps" }));
+	expect(current().form.values.value).toEqual({ name: "Desk lamps and chairs" });
 });
 
 test("an edit submitted through the form's own API receives the normalized saved row", async () => {
-	const query = Atom.make(Effect.succeed<Dish>({ id: 1, name: "soup" }));
-	const save = (values: { readonly name: string }) => Effect.succeed<Dish>({ id: 1, name: values.name.toUpperCase() });
-	const held: { editor?: Editor<NameFields, Dish, never, never, never> } = {};
+	const query = Atom.make(Effect.succeed<Order>({ id: 1, name: "desk lamps" }));
+	const save = (values: { readonly name: string }) => Effect.succeed<Order>({ id: 1, name: values.name.toUpperCase() });
+	const held: { editor?: Editor<NameFields, Order, never, never, never> } = {};
 	const registry = await mount(() => {
 		held.editor = useEditor({ query, fields, values: (row) => ({ name: row.name }), save, runtime });
 		return null;
 	});
 	const form = held.editor?.form;
 	if (form === undefined) throw new Error("Editor form did not load");
-	form.change("name", "stew");
+	form.change("name", "toner");
 	await act(async () => registry.set(form.submit, undefined));
-	expect(form.values.value).toEqual({ name: "STEW" });
+	expect(form.values.value).toEqual({ name: "TONER" });
 	expect(registry.get(form.dirty)).toBe(false);
 });

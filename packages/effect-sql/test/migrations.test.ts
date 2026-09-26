@@ -3,14 +3,14 @@ import { Cause, Effect, Exit } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
-const createFoods = Effect.gen(function* () {
+const createOrders = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`create table food (id integer primary key, name text not null unique)`;
+	yield* sql`create table orders (id integer primary key, name text not null unique)`;
 });
 
-const seedFoods = Effect.gen(function* () {
+const seedOrders = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`insert into food (name) values ('Apple')`;
+	yield* sql`insert into orders (name) values ('Printer paper')`;
 });
 
 const migrate = Migrator.make({});
@@ -23,20 +23,20 @@ test("numbered migrations create a usable database and rerun without repeating w
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const loader = Migrator.fromRecord({
-				"2_seed_foods": seedFoods,
-				"1_create_foods": createFoods,
+				"2_seed_orders": seedOrders,
+				"1_create_orders": createOrders,
 			});
 
 			expect(yield* migrate({ loader })).toEqual([
-				[1, "create_foods"],
-				[2, "seed_foods"],
+				[1, "create_orders"],
+				[2, "seed_orders"],
 			]);
-			expect(yield* sql`select name from food`).toEqual([{ name: "Apple" }]);
+			expect(yield* sql`select name from orders`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* migrate({ loader })).toEqual([]);
-			expect(yield* sql`select name from food`).toEqual([{ name: "Apple" }]);
+			expect(yield* sql`select name from orders`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* sql`select migration_id, name from effect_sql_migrations order by migration_id`).toEqual([
-				{ migration_id: 1, name: "create_foods" },
-				{ migration_id: 2, name: "seed_foods" },
+				{ migration_id: 1, name: "create_orders" },
+				{ migration_id: 2, name: "seed_orders" },
 			]);
 		}),
 	);
@@ -47,13 +47,13 @@ test("a failed pending migration rolls back its batch and ledger entries", async
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* migrate({
-				loader: Migrator.fromRecord({ "1_create_foods": createFoods }),
+				loader: Migrator.fromRecord({ "1_create_orders": createOrders }),
 			});
 			const exit = yield* migrate({
 				loader: Migrator.fromRecord({
-					"1_create_foods": createFoods,
-					"2_seed_foods": seedFoods,
-					"3_duplicate_food": seedFoods,
+					"1_create_orders": createOrders,
+					"2_seed_orders": seedOrders,
+					"3_duplicate_order": seedOrders,
 				}),
 			}).pipe(Effect.exit);
 
@@ -64,7 +64,7 @@ test("a failed pending migration rolls back its batch and ledger entries", async
 					kind: "Failed",
 				});
 			}
-			expect(yield* sql`select name from food`).toEqual([]);
+			expect(yield* sql`select name from orders`).toEqual([]);
 			expect(yield* sql`select migration_id from effect_sql_migrations`).toEqual([{ migration_id: 1 }]);
 		}),
 	);

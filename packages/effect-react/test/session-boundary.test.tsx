@@ -7,8 +7,8 @@ import { Activity, act, createElement, StrictMode, useContext, useState } from "
 import { createRoot } from "react-dom/client";
 import { expect, test, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
-import { makeMealEditor } from "./meal-example/frontend.tsx";
-import { startMealServer } from "./meal-example/http-test.ts";
+import { makeOrderEditor } from "./order-example/frontend.tsx";
+import { startOrderServer } from "./order-example/http-test.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -38,10 +38,10 @@ const shell = (url: string) => {
 	const show = (session: Session | undefined, id: number) =>
 		act(async () => {
 			root.render(
-				createElement(SessionBoundary<Session, ReturnType<typeof makeMealEditor>>, {
+				createElement(SessionBoundary<Session, ReturnType<typeof makeOrderEditor>>, {
 					session,
 					identify: (current) => current.id,
-					connect: (current) => makeMealEditor({ url, token: current.token }),
+					connect: (current) => makeOrderEditor({ url, token: current.token }),
 					recheck: () => rechecks.push(session?.id ?? "none"),
 					signedOut: createElement("p", null, "Signed out"),
 					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { key: "editor", id })],
@@ -77,19 +77,19 @@ const sessions = () =>
 	]);
 
 test("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
-	const server = await startMealServer({ sessions: sessions() });
+	const server = await startOrderServer({ sessions: sessions() });
 	const view = shell(server.url);
 	try {
 		await view.show({ id: "a1", token: "alice-token" }, 1);
-		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
+		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
 		await view.edit("Alice draft");
 		await view.show({ id: "a1", token: "alice-token" }, 1);
 		expect(view.input()?.value).toBe("Alice draft");
 		expect(view.registries).toHaveLength(1);
 
 		await view.show({ id: "b1", token: "bob-token" }, 2);
-		await eventually(() => expect(view.input()?.value).toBe("Soup"));
-		expect(view.container.textContent).not.toContain("Oatmeal");
+		await eventually(() => expect(view.input()?.value).toBe("Desk lamps"));
+		expect(view.container.textContent).not.toContain("Printer paper");
 		expect(view.registries[0]?.getNodes().size).toBe(0);
 
 		await view.show(undefined, 1);
@@ -97,7 +97,7 @@ test("each session generation owns a fresh client and registry; switching, signi
 		expect(view.registries[1]?.getNodes().size).toBe(0);
 
 		await view.show({ id: "a2", token: "alice-token" }, 1);
-		await eventually(() => expect(view.input()?.value).toBe("Oatmeal"));
+		await eventually(() => expect(view.input()?.value).toBe("Printer paper"));
 		expect(view.container.textContent).not.toContain("Unsaved changes");
 		expect(view.registries).toHaveLength(3);
 		expect(view.rechecks).toEqual([]);
@@ -110,17 +110,17 @@ test("each session generation owns a fresh client and registry; switching, signi
 
 test("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
 	const active = sessions();
-	const server = await startMealServer({ sessions: active });
+	const server = await startOrderServer({ sessions: active });
 	const view = shell(server.url);
 	try {
 		await view.show({ id: "a1", token: "alice-token" }, 1);
-		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
-		await view.edit("Unsaved breakfast");
+		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
+		await view.edit("Unsaved order");
 		active.delete("alice-token");
 		await view.refresh();
 		await eventually(() => expect(view.rechecks).toEqual(["a1"]));
-		expect(view.container.textContent).toContain("Oatmeal / 300");
-		expect(view.input()?.value).toBe("Unsaved breakfast");
+		expect(view.container.textContent).toContain("Printer paper / 300");
+		expect(view.input()?.value).toBe("Unsaved order");
 
 		await view.show(undefined, 1);
 		expect(view.container.textContent).toBe("Signed out");

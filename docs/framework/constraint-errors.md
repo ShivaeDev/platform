@@ -11,7 +11,7 @@ Map a known constraint to a domain error at the owning operation:
 sql.withTransaction(save).pipe(
   Effect.catchTag("SqlError", (error): Effect.Effect<never, NameTaken | SqlError> =>
     error.reason._tag === "UniqueViolation" &&
-    error.reason.constraint === "food_name_key"
+    error.reason.constraint === "orders_name_key"
       ? Effect.fail(new NameTaken())
       : Effect.fail(error),
   ),

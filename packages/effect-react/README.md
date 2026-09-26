@@ -6,42 +6,42 @@ This package targets Effect and `@effect/atom-react` **4.0.0-rc.112** and React 
 
 ## Native RPC usage
 
-Given an `Api` service constructed with native `AtomRpc.Service`, and RPCs `Meals` and `RenameMeal`:
+Given an `Api` service constructed with native `AtomRpc.Service`, and RPCs `Orders` and `RenameOrder`:
 
 ```tsx
 import { RegistryProvider } from "@effect/atom-react"
 import { useAction, useQuery } from "@shivaedev/effect-react"
 import { Option } from "effect"
 
-function Meals() {
-  const meals = useQuery(Api.query("Meals", {}, {
-    reactivityKeys: ["meals"],
+function Orders() {
+  const orders = useQuery(Api.query("Orders", {}, {
+    reactivityKeys: ["orders"],
     timeToLive: "1 minute",
   }))
-  const rename = useAction(Api.mutation("RenameMeal"))
+  const rename = useAction(Api.mutation("RenameOrder"))
 
   function save(id: string, title: string) {
     rename.dispatch({
       payload: { id, title },
-      reactivityKeys: ["meals"],
+      reactivityKeys: ["orders"],
     })
   }
 
-  if (Option.isNone(meals.data)) {
-    return Option.isSome(meals.cause)
-      ? <button onClick={meals.refresh}>Retry</button>
+  if (Option.isNone(orders.data)) {
+    return Option.isSome(orders.cause)
+      ? <button onClick={orders.refresh}>Retry</button>
       : <p>Loading…</p>
   }
-  return <MealList meals={meals.data.value} refreshing={meals.refreshing}
+  return <OrderList orders={orders.data.value} refreshing={orders.refreshing}
     pending={rename.pending} onRename={save} />
 }
 
 function App() {
-  return <RegistryProvider><Meals /></RegistryProvider>
+  return <RegistryProvider><Orders /></RegistryProvider>
 }
 ```
 
-`Api` and `MealList` above are application definitions. The hooks also accept non-RPC atoms built with `Atom.make`, `Atom.fn` or an atom runtime. Stable atom identities should be declared outside render, created with native `Atom.family`, or memoized; native `Api.query(...)` already supplies its own family.
+`Api` and `OrderList` above are application definitions. The hooks also accept non-RPC atoms built with `Atom.make`, `Atom.fn` or an atom runtime. Stable atom identities should be declared outside render, created with native `Atom.family`, or memoized; native `Api.query(...)` already supplies its own family.
 
 ## Editing
 
@@ -50,10 +50,10 @@ function App() {
 ```ts
 const editor = useEditor({
   query: api.get.query({ id }),
-  fields: FoodFields,
-  values: (food) => ({ name: food.name, grams: String(food.grams) }),
+  fields: InvoiceLineFields,
+  values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
   save: (values) => api.save.run({ id, ...values }),
-  runtime: FoodsClient.runtime,
+  runtime: InvoiceLinesClient.runtime,
 })
 // editor.query: QueryState; editor.form: Form | undefined until data first arrives
 // editor.save(), editor.saving, editor.dirty, editor.failure (non-field failures), editor.revert()
@@ -81,7 +81,7 @@ Mount `SessionBoundary` at the authenticated root. For each session key it build
 
 `resumeSignal({ window, native })` is an atom that increments when the page becomes visible, when the network returns while visible, and when an injected native resume source fires. Feed it to native `Atom.makeRefreshOnSignal` or to `Atom.swr` as `focusSignal`.
 
-State belongs to the **supplied atom in the registry**, not to an individual hook call. In particular, native `Api.mutation("RenameMeal")` returns the same atom for that operation. Components using it share pending/result state and the native action's concurrency behavior. With the default native action, a later dispatch interrupts the earlier one; shared state then represents the later action. Disable duplicate submissions, or create distinct native action atoms when independent lifetimes are needed. Native registry retention and disposal govern cleanup. The package adds no optimistic policy, offline queue, form state or parallel action scheduler.
+State belongs to the **supplied atom in the registry**, not to an individual hook call. In particular, native `Api.mutation("RenameOrder")` returns the same atom for that operation. Components using it share pending/result state and the native action's concurrency behavior. With the default native action, a later dispatch interrupts the earlier one; shared state then represents the later action. Disable duplicate submissions, or create distinct native action atoms when independent lifetimes are needed. Native registry retention and disposal govern cleanup. The package adds no optimistic policy, offline queue, form state or parallel action scheduler.
 
 ## Validation
 

@@ -4,8 +4,8 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, test, vi } from "vitest";
-import { makeMealEditor } from "./meal-example/frontend.tsx";
-import { startMealServer } from "./meal-example/http-test.ts";
+import { makeOrderEditor } from "./order-example/frontend.tsx";
+import { startOrderServer } from "./order-example/http-test.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -27,7 +27,7 @@ const mountSessions = (url: string) => {
 		enter: async (token: string, id: number) => {
 			const old = previous;
 			const registry = AtomRegistry.make();
-			const { api, Editor } = makeMealEditor({ url, token });
+			const { api, Editor } = makeOrderEditor({ url, token });
 			previous = registry;
 			await act(async () => {
 				root.render(createElement(RegistryContext.Provider, { key: ++generation, value: registry }, createElement(Editor, { id })));
@@ -64,27 +64,27 @@ const sessions = () =>
 	]);
 
 test("replacing an authenticated session discards its cached data and dirty form, including on reentry", async () => {
-	const server = await startMealServer({ sessions: sessions() });
+	const server = await startOrderServer({ sessions: sessions() });
 	const view = mountSessions(server.url);
 	try {
 		const alice = await view.enter("alice-session", 1);
-		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
+		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
 		await view.edit("Alice private draft");
 		expect(view.container.textContent).toContain("Unsaved changes");
 		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Alice private draft");
 		const bobDenied = await view.enter("bob-session", 1);
 		expect(view.container.querySelector("input")).toBeNull();
-		expect(view.container.textContent).not.toContain("Oatmeal");
+		expect(view.container.textContent).not.toContain("Printer paper");
 		expect(alice.registry.getNodes().size).toBe(0);
 		expect(() => alice.registry.get(alice.query)).toThrow("registry is disposed");
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
 		expect(view.container.querySelector("input")).toBeNull();
 		const bob = await view.enter("bob-session", 2);
-		await eventually(() => expect(view.container.textContent).toContain("Soup / 200"));
+		await eventually(() => expect(view.container.textContent).toContain("Desk lamps / 200"));
 		expect(bobDenied.registry.getNodes().size).toBe(0);
-		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Soup");
+		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Desk lamps");
 		await view.enter("alice-session", 1);
-		await eventually(() => expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Oatmeal"));
+		await eventually(() => expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Printer paper"));
 		expect(view.container.textContent).not.toContain("Unsaved changes");
 		expect(bob.registry.getNodes().size).toBe(0);
 	} finally {
@@ -95,24 +95,24 @@ test("replacing an authenticated session discards its cached data and dirty form
 
 test("refresh failure retains the same-session draft and previous value; retry recovers and teardown clears the registry", async () => {
 	const active = sessions();
-	const server = await startMealServer({ sessions: active });
+	const server = await startOrderServer({ sessions: active });
 	const view = mountSessions(server.url);
 	const alice = await view.enter("alice-session", 1);
 	try {
-		await eventually(() => expect(view.container.textContent).toContain("Oatmeal / 300"));
-		await view.edit("Unsaved breakfast");
+		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
+		await view.edit("Unsaved order");
 		active.delete("alice-session");
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
-		expect(view.container.textContent).toContain("Oatmeal / 300");
-		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Unsaved breakfast");
+		expect(view.container.textContent).toContain("Printer paper / 300");
+		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Unsaved order");
 		active.set("alice-session", {
 			userId: "alice",
 			expiresAt: Number.POSITIVE_INFINITY,
 		});
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')).toBeNull());
-		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Unsaved breakfast");
+		expect(view.container.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("Unsaved order");
 	} finally {
 		await view.close();
 		await server.close();

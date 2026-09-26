@@ -1,5 +1,5 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage } from "node:http";
-import { makeMealWebHandler } from "./backend.ts";
+import { makeOrderWebHandler } from "./backend.ts";
 
 const toHeaders = (incoming: IncomingHttpHeaders): Headers => {
 	const headers = new Headers();
@@ -22,8 +22,8 @@ const toRequest = async (incoming: IncomingMessage, signal: AbortSignal): Promis
 	});
 };
 
-export const startMealServer = async (options: Parameters<typeof makeMealWebHandler>[0]) => {
-	const app = makeMealWebHandler(options);
+export const startOrderServer = async (options: Parameters<typeof makeOrderWebHandler>[0]) => {
+	const app = makeOrderWebHandler(options);
 	const server = createServer(async (incoming, outgoing) => {
 		const controller = new AbortController();
 		const abort = () => {

@@ -5,26 +5,26 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect, expectTypeOf, test } from "vitest";
 import { makeRepository } from "../src/index.ts";
 
-class Food extends Model.Class<Food>("Food")({
+class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
 	id: Model.Field({
 		select: Schema.Number,
 		update: Schema.Number,
 		json: Schema.Number,
 	}),
 	name: Schema.String,
-	calories: Schema.NumberFromString.check(Schema.isFinite()),
+	amount: Schema.NumberFromString.check(Schema.isFinite()),
 	note: Schema.NullOr(Schema.String),
 }) {}
 
 const setup = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	yield* sql`create table food (id integer primary key, name text not null, calories text not null, note text)`;
-	const foods = yield* makeRepository(Food, {
-		tableName: "food",
+	yield* sql`create table invoice_line (id integer primary key, name text not null, amount text not null, note text)`;
+	const lines = yield* makeRepository(InvoiceLine, {
+		tableName: "invoice_line",
 		idColumn: "id",
-		spanPrefix: "Food",
+		spanPrefix: "InvoiceLine",
 	});
-	return { sql, foods };
+	return { sql, lines };
 });
 
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
@@ -33,41 +33,41 @@ const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
 test("model variants derive CRUD while field codecs drive filters and selections", async () => {
 	await run(
 		Effect.gen(function* () {
-			const { foods, sql } = yield* setup;
-			const apple = yield* foods.insert({
-				name: "Apple",
-				calories: 52,
+			const { lines, sql } = yield* setup;
+			const consulting = yield* lines.insert({
+				name: "Consulting",
+				amount: 52,
 				note: null,
 			});
-			expect(apple).toBeInstanceOf(Food);
-			expect(apple.id).toBe(1);
-			expect(apple.calories).toBe(52);
-			const stored = yield* sql`select calories from food`;
-			expect(stored).toEqual([{ calories: "52" }]);
-			yield* foods.insert({ name: "Pear", calories: 57, note: "ripe" });
-			const selected = yield* foods.findMany({
-				where: { calories: 52, note: null },
-				select: ["name", "calories"],
+			expect(consulting).toBeInstanceOf(InvoiceLine);
+			expect(consulting.id).toBe(1);
+			expect(consulting.amount).toBe(52);
+			const stored = yield* sql`select amount from invoice_line`;
+			expect(stored).toEqual([{ amount: "52" }]);
+			yield* lines.insert({ name: "Hosting", amount: 57, note: "annual" });
+			const selected = yield* lines.findMany({
+				where: { amount: 52, note: null },
+				select: ["name", "amount"],
 			});
-			expectTypeOf(selected).toEqualTypeOf<Array<{ readonly name: string; readonly calories: number }>>();
-			expect(selected).toEqual([{ name: "Apple", calories: 52 }]);
+			expectTypeOf(selected).toEqualTypeOf<Array<{ readonly name: string; readonly amount: number }>>();
+			expect(selected).toEqual([{ name: "Consulting", amount: 52 }]);
 			expect(
-				yield* foods.findMany({
+				yield* lines.findMany({
 					select: ["name"],
 					orderBy: { field: "name", direction: "desc" },
 					limit: 1,
 				}),
-			).toEqual([{ name: "Pear" }]);
-			expect(yield* foods.findMany({ limit: 0 })).toEqual([]);
-			yield* foods.update({
-				id: apple.id,
-				name: "Red apple",
-				calories: 55,
+			).toEqual([{ name: "Hosting" }]);
+			expect(yield* lines.findMany({ limit: 0 })).toEqual([]);
+			yield* lines.update({
+				id: consulting.id,
+				name: "Onsite consulting",
+				amount: 55,
 				note: null,
 			});
-			expect((yield* foods.findById(apple.id)).name).toBe("Red apple");
-			yield* foods.delete(apple.id);
-			expect(yield* foods.findMany({ where: { id: apple.id } })).toEqual([]);
+			expect((yield* lines.findById(consulting.id)).name).toBe("Onsite consulting");
+			yield* lines.delete(consulting.id);
+			expect(yield* lines.findMany({ where: { id: consulting.id } })).toEqual([]);
 		}),
 	);
 });
@@ -75,18 +75,18 @@ test("model variants derive CRUD while field codecs drive filters and selections
 test("repository writes participate in the caller's native transaction", async () => {
 	await run(
 		Effect.gen(function* () {
-			const { foods, sql } = yield* setup;
+			const { lines, sql } = yield* setup;
 			const result = yield* sql
 				.withTransaction(
 					Effect.gen(function* () {
-						yield* foods.insert({ name: "Rollback", calories: 1, note: null });
-						expect(yield* foods.findMany({ select: ["name"] })).toEqual([{ name: "Rollback" }]);
+						yield* lines.insert({ name: "Rollback", amount: 1, note: null });
+						expect(yield* lines.findMany({ select: ["name"] })).toEqual([{ name: "Rollback" }]);
 						return yield* Effect.fail("cancelled");
 					}),
 				)
 				.pipe(Effect.result);
 			expect(result._tag).toBe("Failure");
-			expect(yield* foods.findMany()).toEqual([]);
+			expect(yield* lines.findMany()).toEqual([]);
 		}),
 	);
 });
@@ -94,14 +94,14 @@ test("repository writes participate in the caller's native transaction", async (
 test("query decoding and invalid limits remain typed failures", async () => {
 	await run(
 		Effect.gen(function* () {
-			const { foods, sql } = yield* setup;
-			yield* sql`insert into food (name, calories) values ('Imported', 'not-a-number')`;
-			const badRow = yield* foods.findMany().pipe(Effect.flip);
+			const { lines, sql } = yield* setup;
+			yield* sql`insert into invoice_line (name, amount) values ('Imported', 'not-a-number')`;
+			const badRow = yield* lines.findMany().pipe(Effect.flip);
 			expect(badRow._tag).toBe("SchemaError");
-			const badLimit = yield* foods.findMany({ limit: -1 }).pipe(Effect.flip);
+			const badLimit = yield* lines.findMany({ limit: -1 }).pipe(Effect.flip);
 			expect(badLimit._tag).toBe("SchemaError");
-			yield* sql`drop table food`;
-			const missingTable = yield* foods.findMany().pipe(Effect.flip);
+			yield* sql`drop table invoice_line`;
+			const missingTable = yield* lines.findMany().pipe(Effect.flip);
 			expect(missingTable._tag).toBe("SqlError");
 		}),
 	);
@@ -110,16 +110,16 @@ test("query decoding and invalid limits remain typed failures", async () => {
 test("undefined filter values leave that field unconstrained", async () => {
 	await run(
 		Effect.gen(function* () {
-			const { foods } = yield* setup;
-			yield* foods.insert({ name: "Apple", calories: 52, note: null });
-			yield* foods.insert({ name: "Pear", calories: 57, note: "ripe" });
+			const { lines } = yield* setup;
+			yield* lines.insert({ name: "Consulting", amount: 52, note: null });
+			yield* lines.insert({ name: "Hosting", amount: 57, note: "annual" });
 			const name: string | undefined = undefined;
 			expect(
-				yield* foods.findMany({
-					where: { name, calories: 57 },
+				yield* lines.findMany({
+					where: { name, amount: 57 },
 					select: ["name"],
 				}),
-			).toEqual([{ name: "Pear" }]);
+			).toEqual([{ name: "Hosting" }]);
 		}),
 	);
 });
@@ -128,12 +128,12 @@ test("unknown runtime field names fail as SchemaError", async () => {
 	const unknownField = (): "name" => JSON.parse('"missing"');
 	await run(
 		Effect.gen(function* () {
-			const { foods } = yield* setup;
+			const { lines } = yield* setup;
 			const failures = yield* Effect.forEach(
 				[
-					foods.findMany({ select: [unknownField()] }),
-					foods.findMany({ where: { [unknownField()]: "Apple" } }),
-					foods.findMany({
+					lines.findMany({ select: [unknownField()] }),
+					lines.findMany({ where: { [unknownField()]: "Consulting" } }),
+					lines.findMany({
 						orderBy: { field: unknownField(), direction: "asc" },
 					}),
 				],
@@ -167,13 +167,13 @@ test("field codec services remain available when filtering and decoding selected
 			spanPrefix: "Label",
 		});
 		const query = labels.findMany({
-			where: { name: "Apple" },
+			where: { name: "Consulting" },
 			select: ["name"],
 		});
 		expectTypeOf<Effect.Services<typeof query>>().toEqualTypeOf<Prefix>();
-		yield* labels.insert({ id: 1, name: "Apple" });
-		expect(yield* sql`select name from label`).toEqual([{ name: "db:Apple" }]);
-		expect(yield* query).toEqual([{ name: "Apple" }]);
+		yield* labels.insert({ id: 1, name: "Consulting" });
+		expect(yield* sql`select name from label`).toEqual([{ name: "db:Consulting" }]);
+		expect(yield* query).toEqual([{ name: "Consulting" }]);
 	}).pipe(Effect.provideService(Prefix, "db:"));
 	await run(program);
 });

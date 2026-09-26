@@ -8,7 +8,7 @@ policy.
 
 This is application composition, not another cache or session framework.
 The [executable example](../../packages/effect-react/test/session-lifecycle.test.tsx)
-uses `makeMealEditor` against the meal feature's real loopback HTTP endpoint.
+uses `makeOrderEditor` against the order feature's real loopback HTTP endpoint.
 
 ## Session transition
 
@@ -20,8 +20,8 @@ When authentication is unresolved or absent, render the public/loading shell
 without the previous authenticated subtree.
 
 The test switches the same React root from Alice to Bob, first requesting Alice's
-meal under Bob's credentials, then Bob's own meal. Alice's cached meal and dirty
-form disappear; the cross-owner request fails; Bob sees his own meal. Returning
+order under Bob's credentials, then Bob's own order. Alice's cached order and dirty
+form disappear; the cross-owner request fails; Bob sees his own order. Returning
 to Alice starts from persisted data rather than resurrecting her old draft.
 Unmount and explicit disposal leave the registry empty and reject further reads.
 A plain `RegistryContext.Provider` does not own this disposal for its caller.
@@ -86,7 +86,7 @@ Create the signal once and feed native combinators:
 
 ```ts
 const resume = resumeSignal({ window, native: capacitorResume })
-const meals = Atom.makeRefreshOnSignal(resume)(api.query("ListMeals", undefined))
+const orders = Atom.makeRefreshOnSignal(resume)(api.query("ListOrders", undefined))
 const profile = Atom.swr(api.query("Profile", undefined), {
 	staleTime: "5 minutes", revalidateOnFocus: true, focusSignal: resume,
 })
@@ -131,18 +131,18 @@ These details were checked against the installed Effect `4.0.0-rc.112` source:
 - Finite `timeToLive` delegates to `Atom.setIdleTTL`; infinite TTL uses
   `Atom.keepAlive`. This is retention after inactivity, not a promise that data
   stays fresh for that duration or a polling interval.
-- The current meal query supplies no TTL override. Set retention intentionally
+- The current order query supplies no TTL override. Set retention intentionally
   when a real navigation use case needs it. Session disposal takes precedence
   over any retention policy.
 - Reactivity keys connect local successful mutations to query refresh. They do
   not deliver cross-device changes, implement offline replay or authenticate a
   request. Explicit refresh remains useful for external changes.
-- Native Reactivity expands a record key such as `{ meals: [id] }` into both
-  `"meals"` and `"meals:<id>"`, when registering a query and when invalidating.
-  The meal example declares these keys once in its contract; the
-  `effect-contract` binding registers item queries with `` `meals:${id}` ``, the
-  list with `"meals"`, and invalidates both after a save, so one save refreshes
-  that meal and the list but no other mounted meal.
+- Native Reactivity expands a record key such as `{ orders: [id] }` into both
+  `"orders"` and `"orders:<id>"`, when registering a query and when invalidating.
+  The order example declares these keys once in its contract; the
+  `effect-contract` binding registers item queries with `` `orders:${id}` ``, the
+  list with `"orders"`, and invalidates both after a save, so one save refreshes
+  that order and the list but no other mounted order.
 - `serializationKey` enables native serialization; it does not make hydration
   safe across users. SSR must use request-specific ownership and an explicit
   hydration policy before enabling it for authenticated data.
@@ -165,7 +165,7 @@ Those policies need the real application's host and authentication integration.
 ## Bun
 
 Bun 1.3.14 was checked by hand against the same native components: `Bun.serve`
-hosting `HttpRouter.toWebHandler(RpcServer.layerHttp(...))` with the meal
+hosting `HttpRouter.toWebHandler(RpcServer.layerHttp(...))` with the order
 contract and authentication middleware, a `FetchHttpClient` RPC client and an
 `AtomRpc` query through an atom registry. Reads, typed rejections, Unauthorized
 and saves round-tripped. Interrupting the client fiber aborted the request and
@@ -173,6 +173,6 @@ the server handler's scope closed with interruption, so `Bun.serve` forwards the
 disconnect to `request.signal`. Vitest's DOM hook and resume tests also pass when
 run with `bun --bun`.
 
-The SQLite-backed meal backend does not run under Bun: `@effect/sql-sqlite-node`
+The SQLite-backed order backend does not run under Bun: `@effect/sql-sqlite-node`
 imports `node:sqlite`, which Bun 1.3.14 lacks. A Bun host needs a Bun SQL driver.
 This check is not part of CI.

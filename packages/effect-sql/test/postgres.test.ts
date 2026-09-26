@@ -9,14 +9,14 @@ import { environmentVariable } from "./support/environment.ts";
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
 
-class Food extends Model.Class<Food>("PostgresFood")({
+class InvoiceLine extends Model.Class<InvoiceLine>("PostgresInvoiceLine")({
 	id: Model.Field({
 		select: Schema.Number,
 		update: Schema.Number,
 		json: Schema.Number,
 	}),
 	name: Schema.String,
-	calories: Schema.NumberFromString,
+	amount: Schema.NumberFromString,
 	note: Schema.NullOr(Schema.String),
 }) {}
 
@@ -30,44 +30,44 @@ integration("PostgreSQL repository preserves model codecs and ambient transactio
 					yield* sql`create temporary table ${sql(tableName)} (
 						id integer generated always as identity primary key,
 						name text not null,
-						calories text not null,
+						amount text not null,
 						note text
 					) on commit drop`;
-					const foods = yield* makeRepository(Food, {
+					const lines = yield* makeRepository(InvoiceLine, {
 						tableName,
 						idColumn: "id",
-						spanPrefix: "PostgresFood",
+						spanPrefix: "PostgresInvoiceLine",
 					});
-					const apple = yield* foods.insert({
-						name: "Apple",
-						calories: 52,
+					const consulting = yield* lines.insert({
+						name: "Consulting",
+						amount: 52,
 						note: null,
 					});
-					expect(apple).toBeInstanceOf(Food);
-					expect(apple.id).toBe(1);
-					expect(apple.calories).toBe(52);
-					expect(yield* sql`select calories from ${sql(tableName)}`).toEqual([{ calories: "52" }]);
-					yield* foods.insert({ name: "Pear", calories: 57, note: "ripe" });
-					const selected = yield* foods.findMany({
-						where: { calories: 52, note: null },
-						select: ["name", "calories"],
+					expect(consulting).toBeInstanceOf(InvoiceLine);
+					expect(consulting.id).toBe(1);
+					expect(consulting.amount).toBe(52);
+					expect(yield* sql`select amount from ${sql(tableName)}`).toEqual([{ amount: "52" }]);
+					yield* lines.insert({ name: "Hosting", amount: 57, note: "annual" });
+					const selected = yield* lines.findMany({
+						where: { amount: 52, note: null },
+						select: ["name", "amount"],
 					});
-					expectTypeOf(selected).toEqualTypeOf<Array<{ readonly name: string; readonly calories: number }>>();
-					expect(selected).toEqual([{ name: "Apple", calories: 52 }]);
+					expectTypeOf(selected).toEqualTypeOf<Array<{ readonly name: string; readonly amount: number }>>();
+					expect(selected).toEqual([{ name: "Consulting", amount: 52 }]);
 					expect(
-						yield* foods.findMany({
+						yield* lines.findMany({
 							select: ["name"],
 							orderBy: { field: "name", direction: "desc" },
 							limit: 1,
 						}),
-					).toEqual([{ name: "Pear" }]);
+					).toEqual([{ name: "Hosting" }]);
 					const rollbackProgram = Effect.gen(function* () {
-						yield* foods.insert({
+						yield* lines.insert({
 							name: "Rollback",
-							calories: 1,
+							amount: 1,
 							note: null,
 						});
-						const inserted = yield* foods.findMany({
+						const inserted = yield* lines.findMany({
 							where: { name: "Rollback" },
 							select: ["name"],
 						});
@@ -77,11 +77,11 @@ integration("PostgreSQL repository preserves model codecs and ambient transactio
 					const rolledBack = yield* sql.withTransaction(rollbackProgram).pipe(Effect.result);
 					expect(rolledBack._tag).toBe("Failure");
 					expect(
-						yield* foods.findMany({
+						yield* lines.findMany({
 							select: ["name"],
 							orderBy: { field: "id", direction: "asc" },
 						}),
-					).toEqual([{ name: "Apple" }, { name: "Pear" }]);
+					).toEqual([{ name: "Consulting" }, { name: "Hosting" }]);
 				}),
 			);
 		}).pipe(

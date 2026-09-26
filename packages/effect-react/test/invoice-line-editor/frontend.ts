@@ -3,13 +3,13 @@ import { useField } from "@shivaedev/effect-form/react";
 import { Option, Schema } from "effect";
 import { createElement, type ReactNode } from "react";
 import { useCreate, useEditor } from "../../src/form.ts";
-import type { Food, makeFoodServer } from "./backend.ts";
+import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
-const fields = Schema.Struct({ name: Schema.String, grams: Schema.NumberFromString });
-type FoodFields = typeof fields.fields;
-const values = (food: Food) => ({ name: food.name, grams: String(food.grams) });
+const fields = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
+type InvoiceLineFields = typeof fields.fields;
+const values = (line: InvoiceLine) => ({ name: line.name, quantity: String(line.quantity) });
 
-const Input = <E, ER>({ form, name }: { readonly form: Form<FoodFields, Food, E, ER>; readonly name: "name" | "grams" }) => {
+const Input = <E, ER>({ form, name }: { readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>; readonly name: "name" | "quantity" }) => {
 	const field = useField(form, name);
 	return createElement(
 		"label",
@@ -26,7 +26,7 @@ const Input = <E, ER>({ form, name }: { readonly form: Form<FoodFields, Food, E,
 };
 
 interface Saving<E, ER> {
-	readonly form: Form<FoodFields, Food, E, ER>;
+	readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>;
 	readonly dirty: boolean;
 	readonly saving: boolean;
 	readonly failure: Option.Option<unknown>;
@@ -38,7 +38,7 @@ const saveStatus = ({ saving, dirty }: { readonly saving: boolean; readonly dirt
 	return dirty ? "Unsaved" : "Saved";
 };
 
-const FoodForm = <E, ER>({ editor, children }: { readonly editor: Saving<E, ER>; readonly children?: ReactNode }) =>
+const InvoiceLineForm = <E, ER>({ editor, children }: { readonly editor: Saving<E, ER>; readonly children?: ReactNode }) =>
 	createElement(
 		"form",
 		{
@@ -48,23 +48,23 @@ const FoodForm = <E, ER>({ editor, children }: { readonly editor: Saving<E, ER>;
 			},
 		},
 		createElement(Input<E, ER>, { form: editor.form, name: "name" }),
-		createElement(Input<E, ER>, { form: editor.form, name: "grams" }),
+		createElement(Input<E, ER>, { form: editor.form, name: "quantity" }),
 		Option.isSome(editor.failure) && createElement("p", { role: "alert" }, "Could not save"),
 		createElement("button", { type: "submit" }, "Save"),
 		createElement("p", { role: "status" }, saveStatus(editor)),
 		children,
 	);
 
-type Server = ReturnType<typeof makeFoodServer>;
+type Server = ReturnType<typeof makeInvoiceLineServer>;
 
-export const makeFoodViews = ({ api, runtime }: Server) => {
-	const FoodEditor = ({ id }: { readonly id: number }) => {
+export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
+	const InvoiceLineEditor = ({ id }: { readonly id: number }) => {
 		const editor = useEditor({
 			query: api.get.query({ id }),
 			fields,
 			values,
 			runtime,
-			save: (food) => api.save.run({ id, ...food }),
+			save: (line) => api.save.run({ id, ...line }),
 		});
 		const { query, form } = editor;
 		return createElement(
@@ -74,20 +74,20 @@ export const makeFoodViews = ({ api, runtime }: Server) => {
 			Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load"),
 			Option.match(query.data, {
 				onNone: () => createElement("p", null, "Loading"),
-				onSome: (food) => createElement("output", null, `${food.name} / ${food.grams}`),
+				onSome: (line) => createElement("output", null, `${line.name} / ${line.quantity}`),
 			}),
-			form && createElement(FoodForm, { editor: { ...editor, form } }),
+			form && createElement(InvoiceLineForm, { editor: { ...editor, form } }),
 		);
 	};
-	const FoodCreate = () => {
+	const InvoiceLineCreate = () => {
 		const create = useCreate({
 			fields,
-			initialValues: { name: "", grams: "" },
+			initialValues: { name: "", quantity: "" },
 			runtime,
 			create: api.create.run,
 		});
-		const created = Option.map(create.created, (food) => createElement("output", null, `Created ${food.id}: ${food.name}`));
-		return createElement(FoodForm, { editor: create }, Option.getOrNull(created));
+		const created = Option.map(create.created, (line) => createElement("output", null, `Created ${line.id}: ${line.name}`));
+		return createElement(InvoiceLineForm, { editor: create }, Option.getOrNull(created));
 	};
-	return { FoodEditor, FoodCreate };
+	return { InvoiceLineEditor, InvoiceLineCreate };
 };

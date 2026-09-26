@@ -7,12 +7,12 @@ import { type InvalidationKeys, invalidateOnCommit, transact } from "../src/inde
 
 class Rejected extends Data.TaggedError("Rejected") {}
 class Unavailable extends Data.TaggedError("Unavailable") {}
-class Meals extends Context.Service<Meals, number>()("test/Meals") {}
-declare const body: Effect.Effect<string, Rejected | SqlError, Meals>;
+class Orders extends Context.Service<Orders, number>()("test/Orders") {}
+declare const body: Effect.Effect<string, Rejected | SqlError, Orders>;
 
-type Transacted = Effect.Effect<string, Rejected | Unavailable, Meals | SqlClient.SqlClient | Reactivity.Reactivity>;
+type Transacted = Effect.Effect<string, Rejected | Unavailable, Orders | SqlClient.SqlClient | Reactivity.Reactivity>;
 
 expectTypeOf(transact(body, { onSqlError: () => new Unavailable() })).toEqualTypeOf<Transacted>();
 expectTypeOf(body.pipe(transact({ onSqlError: () => new Unavailable() }))).toEqualTypeOf<Transacted>();
 expectTypeOf(invalidateOnCommit).parameters.toEqualTypeOf<[keys: InvalidationKeys]>();
-expectTypeOf(invalidateOnCommit(["meals"])).toEqualTypeOf<Effect.Effect<void, never, SqlClient.SqlClient | Reactivity.Reactivity>>();
+expectTypeOf(invalidateOnCommit(["orders"])).toEqualTypeOf<Effect.Effect<void, never, SqlClient.SqlClient | Reactivity.Reactivity>>();

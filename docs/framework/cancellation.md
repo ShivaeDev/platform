@@ -1,23 +1,23 @@
 # HTTP cancellation
 
-The meal example uses native Effect RPC and FetchHttpClient. Cancelling the client
+The order example uses native Effect RPC and FetchHttpClient. Cancelling the client
 fiber can abort its HTTP request, which interrupts the server handler when the
 HTTP host forwards the disconnect to the Web Request's AbortSignal. Scoped
 resources then release through ordinary Effect finalizers.
 
 ## What is proved
 
-[`meal-cancellation.test.ts`](../../packages/effect-react/test/meal-cancellation.test.ts)
-starts the real loopback server and calls `SaveMeal` through `RpcClient.make`,
+[`order-cancellation.test.ts`](../../packages/effect-react/test/order-cancellation.test.ts)
+starts the real loopback server and calls `SaveOrder` through `RpcClient.make`,
 HTTP and JSON serialization. The server acquires scoped work at the existing
 `beforeSave` boundary and signals a Deferred before waiting on another Deferred.
 The test interrupts the client fiber, waits for the server's finalizer, and
 asserts its exit contains interruption. It then opens the gate and independently
-reads `GetMeal`: the original meal remains stored. No sleep establishes ordering;
+reads `GetOrder`: the original order remains stored. No sleep establishes ordering;
 the timeout only bounds a broken implementation.
 
 The test host previously constructed a fresh Web Request without its disconnect
-signal. [`http-test.ts`](../../packages/effect-react/test/meal-example/http-test.ts)
+signal. [`http-test.ts`](../../packages/effect-react/test/order-example/http-test.ts)
 now forwards an aborted incoming request or a prematurely closed outgoing
 response to an AbortController, passes its signal to the request, and removes the
 listeners when handling finishes. An ordinary completed response does not abort.
