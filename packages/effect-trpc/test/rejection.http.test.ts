@@ -13,12 +13,23 @@ class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", de
 class Forbidden extends Schema.TaggedError<Forbidden>()("Forbidden", described) {}
 class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perField) {}
 class PreconditionFailed extends Schema.TaggedError<PreconditionFailed>()("PreconditionFailed", described) {}
+class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequests", described) {}
 class BadRequest extends Schema.TaggedError<BadRequest>()("BadRequest", perField) {}
 class Throttled extends Schema.TaggedError<Throttled>()("Throttled", { retryAfter: Schema.NumberFromString }) {}
 class AuthUnavailable extends Schema.TaggedError<AuthUnavailable>()("AuthUnavailable", described) {}
 class Undeclared extends Schema.TaggedError<Undeclared>()("Undeclared", { message: Schema.String, field: Schema.String }) {}
 
-const Rejection = Schema.Union([NotFound, Unauthorized, Forbidden, Conflict, PreconditionFailed, BadRequest, AuthUnavailable, Throttled]);
+const Rejection = Schema.Union([
+	NotFound,
+	Unauthorized,
+	Forbidden,
+	Conflict,
+	PreconditionFailed,
+	TooManyRequests,
+	BadRequest,
+	AuthUnavailable,
+	Throttled,
+]);
 const SECRET = "postgres://app:hunter2@db.internal/app";
 
 const failures = {
@@ -27,6 +38,7 @@ const failures = {
 	forbidden: new Forbidden({ message: "Not yours" }),
 	taken: new Conflict({ message: "Name is taken", field: "name" }),
 	stale: new PreconditionFailed({ message: "Profile changed" }),
+	busy: new TooManyRequests({ message: "Slow down" }),
 	empty: new BadRequest({ message: "Name is required", field: "name" }),
 	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
 	throttled: new Throttled({ retryAfter: 30 }),
@@ -86,6 +98,7 @@ describe("declared rejections over tRPC HTTP with superjson", () => {
 		["forbidden", "FORBIDDEN", 403],
 		["taken", "CONFLICT", 409],
 		["stale", "PRECONDITION_FAILED", 412],
+		["busy", "TOO_MANY_REQUESTS", 429],
 		["empty", "BAD_REQUEST", 400],
 		["outage", "SERVICE_UNAVAILABLE", 503],
 		["throttled", "BAD_REQUEST", 400],
@@ -161,6 +174,7 @@ describe("everything else stays opaque", () => {
 	it("reads only tagged rejections from error data", () => {
 		expect(rejectionOf({ data: { rejection: { field: "name", message: "Untagged" } } })).toEqual(Option.none());
 		expect(rejectionOf({ data: { rejection: { _tag: 1 } } })).toEqual(Option.none());
+		expect(rejectionOf({ data: { rejection: { _tag: "BadRequest", invalidInput: "yes" } } })).toEqual(Option.none());
 		expect(rejectionOf({ data: { rejection: "Conflict" } })).toEqual(Option.none());
 		expect(rejectionOf({ rejection: { _tag: "Conflict" } })).toEqual(Option.none());
 		expect(rejectionOf(new Error("Conflict"))).toEqual(Option.none());

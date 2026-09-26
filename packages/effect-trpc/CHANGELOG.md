@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.1 - 2026-09-26
+
+### Added
+
+- Map the Platform `TooManyRequests` rejection to `TOO_MANY_REQUESTS`, which
+  tRPC sends as HTTP 429.
+- Mark the `BadRequest` that `rejectionFormatter` sends for an input the
+  procedure's schema rejects with `invalidInput: true`, so a client can tell
+  input that did not parse from a declared `BadRequest` with a `field`. The
+  rest of the rejection is unchanged and still decodes as `BadRequest`.
+  `EncodedRejection`, and so `rejectionOf` and the router-typed
+  `TRPCClientError` data, type the mark as `invalidInput?: true`.
+
+### Changed
+
+- Reserve `invalidInput` for that mark. `rejectWith` no longer accepts a schema
+  whose encoded value has an `invalidInput` field, and `rejectionFormatter`
+  strips the key from every declared rejection, which 0.4.0 sent as it was, so
+  a handler can neither fake the mark nor turn its rejection into a 500.
+  `rejectWith` also requires the encoded value to have a string `_tag`, which
+  sending the rejection already required at run time. Both checks happen at
+  compile time, so a schema with an encoded `invalidInput` field or without an
+  encoded string `_tag` no longer compiles where it used to fail at run time
+  or, for `invalidInput`, send a spoofable mark. This stays a patch release
+  because such a schema could not be sent correctly before.
+
 ## 0.4.0 - 2026-09-26
 
 ### Added

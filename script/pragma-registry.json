@@ -62,7 +62,12 @@
 	{
 		"file": "packages/effect-trpc/test/rejection.typecheck.ts",
 		"pragma": "@ts-expect-error",
-		"reason": "Compile-time proof that rejectWith and decodeRejection accept only schemas of tagged values, that rejectWith's code option takes tRPC error codes, and that the client decode refuses schemas needing services. Each pragma goes unused, and typecheck fails, if a constraint is relaxed."
+		"reason": "Compile-time proof that rejectWith and decodeRejection accept only schemas of tagged values, that rejectWith refuses schemas encoding the reserved invalidInput field, that rejectWith's code option takes tRPC error codes, and that the client decode refuses schemas needing services. Each pragma goes unused, and typecheck fails, if a constraint is relaxed."
+	},
+	{
+		"file": "packages/effect-trpc/test/rejection.input.test.ts",
+		"pragma": "@ts-expect-error",
+		"reason": "Marks only the schema type argument of a rejectWith that the types refuse for a schema encoding the reserved invalidInput field, to prove the formatter still strips the key at run time and never answers with a 500. The pragma goes unused, and typecheck fails, if the constraint is relaxed."
 	},
 	{
 		"file": "packages/effect-trpc/test/testing.typecheck.ts",

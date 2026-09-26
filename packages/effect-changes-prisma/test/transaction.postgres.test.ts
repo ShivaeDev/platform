@@ -1,6 +1,6 @@
 import { Cause, Data, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { PrismaError } from "../src/index.ts";
+import { PrismaError, TransactionExpired } from "../src/index.ts";
 import { makeChanges } from "./support/changes.ts";
 import { integration, makeDatabase, orderIds } from "./support/database.ts";
 
@@ -88,7 +88,7 @@ integration("interrupting the caller during the body interrupts the body and rol
 	),
 );
 
-integration("a transaction that outlives its timeout rolls back and publishes nothing", () =>
+integration("a transaction that outlives its timeout rolls back, publishes nothing and fails with TransactionExpired", () =>
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -100,7 +100,7 @@ integration("a transaction that outlives its timeout rolls back and publishes no
 						Effect.sleep("300 millis"),
 					).pipe((body) => changes.transaction(body, { timeout: 100 })),
 				);
-				expect(failure).toBeInstanceOf(PrismaError);
+				expect(failure).toBeInstanceOf(TransactionExpired);
 				expect(yield* orderIds(observer)).toEqual([]);
 				expect(published).toEqual([]);
 			}),
