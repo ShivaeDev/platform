@@ -62,6 +62,8 @@ These are executable boundary examples, not an application deployment. See the
 - [x] dependency-cruiser boundaries: leaf packages stay leaves; browser packages never import server packages.
 - [x] `@shivaedev/quality` engine: typed `quality.config.ts`, the `quality` command line, a report grouped by rule,
   a shrink-only baseline and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
+- [x] `@shivaedev/heavy-lock`: the machine-wide heavy-process lock as a package, with a command line and an Effect API.
+  Platform's `build`, `typecheck`, `typecheck:compat`, `test` and `test:package` scripts run it from source.
 - [ ] Port the repository rules into `@shivaedev/quality` with options, split the Grit plugins, add presets,
   and run `pnpm lint` through the package.
 - [ ] Effect boundaries (no `try`/`async` outside `adapters/`): 99 source and 670 test
