@@ -38,7 +38,7 @@ The test issues sessions through BetterAuth's actual sign-up HTTP handler, passe
 - Sign-out through BetterAuth's HTTP handler revokes the session, even if a client retains the old cookie.
 - A persisted expired session is rejected by the provider. The test backdates the database row to establish this condition without waiting for wall time.
 
-The test exercises real Web `Request`/`Response` handling and the native generated RPC client through an injected fetch transport. It does not open a TCP listener and does not simulate a browser cookie jar. The earlier meal example separately exercises a loopback HTTP server.
+The test exercises real Web `Request`/`Response` handling and the native generated RPC client through an injected fetch transport. It does not open a TCP listener and does not simulate a browser cookie jar. The earlier order example separately exercises a loopback HTTP server.
 
 Cookie caching is explicitly disabled in this example. Immediate revocation here is a database-backed session property, not a promise about every possible BetterAuth cache or secondary-storage configuration.
 

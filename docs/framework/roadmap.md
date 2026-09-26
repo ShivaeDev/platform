@@ -26,10 +26,10 @@ The [rendered feature fixture](../../packages/effect-react/test/native-feature.t
 connects an actual SQLite repository, native RPC handlers/client, AtomRpc and
 React. A successful action refreshes the list; a rejected action leaves persisted
 and rendered data intact. It uses in-process RpcTest, not HTTP serialization or
-authentication. The [meal-editing example](./meal-example.md) extends this with service
+authentication. The [order-editing example](./order-example.md) extends this with service
 declarations, editable forms and authenticated HTTP.
 
-The first slice needed no RPC wrapper package. The meal example later showed
+The first slice needed no RPC wrapper package. The order example later showed
 repeated contract, rejection and reactivity-key work, now covered by
 `@shivaedev/effect-contract`, which still produces native RPC definitions. The
 [RPC guide](./native-rpc.md) and [migration guide](./migrations.md) document the
@@ -100,7 +100,7 @@ dependencies are rejected; resources release at the documented scope boundary.
 - [x] Extract Antumbra declaration helpers only where the example demonstrates
   duplicated work; remove fact emission and journal-sequence assumptions.
   `@shivaedev/effect-contract` provides `query`, `command` and `contract` with
-  typed rejections; the meal example uses them.
+  typed rejections; the order example uses them.
 
 **Accept when:** a feature declares each boundary contract once and can call its
 service locally or over RPC without changing its domain result/error model.
@@ -155,7 +155,7 @@ protocol is introduced. Do not create a redundant RPC package for the example.
   versus an explicitly separate supported auth integration.
 - [x] Reuse request-service layering principles for native RPC session context.
 - [x] Verify cross-user read/write rejection, session revocation and expiry over
-  real HTTP in the meal example.
+  real HTTP in the order example.
 - [x] Extract the session middleware applications duplicate: request-local
   `Identity`/`OptionalIdentity`, a Better Auth session provider, an explicit
   Origin policy, and outage kept distinct from unauthorized

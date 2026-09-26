@@ -2,14 +2,14 @@ import { Cause, Deferred, Effect, Exit, Fiber, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import { expect, test } from "vitest";
-import { Meals } from "./meal-example/contract.ts";
-import { startMealServer } from "./meal-example/http-test.ts";
+import { Orders } from "./order-example/contract.ts";
+import { startOrderServer } from "./order-example/http-test.ts";
 
 test("interrupting a real HTTP RPC releases server work before the save can run", async () => {
 	const entered = Deferred.makeUnsafe<void>();
 	const released = Deferred.makeUnsafe<Exit.Exit<unknown, unknown>>();
 	const resume = Deferred.makeUnsafe<void>();
-	const server = await startMealServer({
+	const server = await startOrderServer({
 		beforeSave: () =>
 			Effect.scoped(
 				Effect.gen(function* () {
@@ -26,16 +26,16 @@ test("interrupting a real HTTP RPC releases server work before the save can run"
 	try {
 		await Effect.runPromise(
 			Effect.gen(function* () {
-				const client = yield* RpcClient.make(Meals);
-				const saving = yield* Effect.forkChild(client["meals.save"]({ id: 1, name: "Cancelled meal", calories: 999 }));
+				const client = yield* RpcClient.make(Orders);
+				const saving = yield* Effect.forkChild(client["orders.save"]({ id: 1, name: "Cancelled order", quantity: 999 }));
 				yield* Deferred.await(entered);
 				yield* Fiber.interrupt(saving);
 				const releaseExit = yield* Deferred.await(released);
 				expect(Exit.isFailure(releaseExit) && Cause.hasInterrupts(releaseExit.cause)).toBe(true);
 				yield* Deferred.succeed(resume, undefined);
-				expect(yield* client["meals.get"]({ id: 1 })).toMatchObject({
-					name: "Oatmeal",
-					calories: 300,
+				expect(yield* client["orders.get"]({ id: 1 })).toMatchObject({
+					name: "Printer paper",
+					quantity: 300,
 				});
 			}).pipe(Effect.scoped, Effect.provide(protocol), Effect.timeout("3 seconds")),
 		);

@@ -8,16 +8,16 @@ import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import { createElement, useEffect, useState } from "react";
 import { useQuery } from "../../src/index.ts";
-import { Meal, Meals } from "./contract.ts";
+import { Order, Orders } from "./contract.ts";
 
 const fields = Schema.Struct({
-	name: Meal.fields.name,
-	calories: Schema.NumberFromString,
+	name: Order.fields.name,
+	quantity: Schema.NumberFromString,
 });
 
-const valuesOf = (meal: Meal) => ({
-	name: meal.name,
-	calories: String(meal.calories),
+const valuesOf = (order: Order) => ({
+	name: order.name,
+	quantity: String(order.quantity),
 });
 
 const saveStatus = (submitting: boolean, dirty: boolean): string => {
@@ -25,29 +25,29 @@ const saveStatus = (submitting: boolean, dirty: boolean): string => {
 	return dirty ? "Unsaved changes" : "Saved";
 };
 
-export const makeMealEditor = ({ url, token }: { readonly url: string; readonly token?: string | undefined }) => {
-	class Client extends AtomRpc.Service<Client>()("example/MealsClient", {
-		group: Meals,
+export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly token?: string | undefined }) => {
+	class Client extends AtomRpc.Service<Client>()("example/OrdersClient", {
+		group: Orders,
 		protocol: RpcClient.layerProtocolHttp({
 			url,
 			transformClient: (client) =>
 				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
 		}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
 	}) {}
-	const api = bind(Meals, Client);
+	const api = bind(Orders, Client);
 
-	const Draft = ({ meal }: { readonly meal: Meal }) => {
+	const Draft = ({ order }: { readonly order: Order }) => {
 		const [form] = useState(() =>
 			make(fields, {
-				initialValues: valuesOf(meal),
+				initialValues: valuesOf(order),
 				runtime: Client.runtime,
 				onSubmit: (values, submitter) =>
-					api.save.run({ id: meal.id, ...values }).pipe(Effect.catchTag("MealValidation", (error) => submitter.fail(error.field, error.message))),
+					api.save.run({ id: order.id, ...values }).pipe(Effect.catchTag("OrderValidation", (error) => submitter.fail(error.field, error.message))),
 			}),
 		);
-		useEffect(() => form.receive(valuesOf(meal)), [form, meal]);
+		useEffect(() => form.receive(valuesOf(order)), [form, order]);
 		const name = useField(form, "name");
-		const calories = useField(form, "calories");
+		const quantity = useField(form, "quantity");
 		const submit = useSubmit(form);
 		useEffect(() => {
 			if (AsyncResult.isSuccess(submit.result) && !submit.result.waiting) {
@@ -73,28 +73,28 @@ export const makeMealEditor = ({ url, token }: { readonly url: string; readonly 
 					name: name.name,
 					value: name.value,
 					"aria-invalid": name.error !== undefined,
-					"aria-describedby": name.error ? "meal-name-error" : undefined,
+					"aria-describedby": name.error ? "order-name-error" : undefined,
 					onBlur: name.onBlur,
 					onChange: (event) => name.onChange(event.target.value),
 				}),
 			),
-			name.error && createElement("p", { role: "alert", id: "meal-name-error" }, name.error),
+			name.error && createElement("p", { role: "alert", id: "order-name-error" }, name.error),
 			createElement(
 				"label",
 				null,
-				"Calories",
+				"Quantity",
 				createElement("input", {
-					name: calories.name,
+					name: quantity.name,
 					inputMode: "decimal",
-					value: calories.value,
-					"aria-invalid": calories.error !== undefined,
-					"aria-describedby": calories.error ? "meal-calories-error" : undefined,
-					onBlur: calories.onBlur,
-					onChange: (event) => calories.onChange(event.target.value),
+					value: quantity.value,
+					"aria-invalid": quantity.error !== undefined,
+					"aria-describedby": quantity.error ? "order-quantity-error" : undefined,
+					onBlur: quantity.onBlur,
+					onChange: (event) => quantity.onChange(event.target.value),
 				}),
 			),
-			calories.error && createElement("p", { role: "alert", id: "meal-calories-error" }, calories.error),
-			generalFailure && createElement("p", { role: "alert" }, "Could not save your meal. Try again."),
+			quantity.error && createElement("p", { role: "alert", id: "order-quantity-error" }, quantity.error),
+			generalFailure && createElement("p", { role: "alert" }, "Could not save your order. Try again."),
 			createElement("button", { type: "submit", disabled: submit.submitting }, "Save"),
 			createElement("button", { type: "button", onClick: form.revert, disabled: submit.submitting }, "Revert"),
 			createElement("p", { role: "status" }, saveStatus(submit.submitting, dirty)),
@@ -103,25 +103,25 @@ export const makeMealEditor = ({ url, token }: { readonly url: string; readonly 
 
 	const Editor = ({ id }: { readonly id: number }) => {
 		const query = useQuery(api.get.query({ id }));
-		const meal = Option.getOrUndefined(query.data);
+		const order = Option.getOrUndefined(query.data);
 		return createElement(
 			"section",
 			null,
-			createElement("h1", null, "Edit meal"),
+			createElement("h1", null, "Edit order"),
 			createElement("button", { type: "button", onClick: query.refresh, disabled: query.pending }, "Refresh"),
-			query.pending && createElement("p", null, "Loading meal…"),
-			Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load your meal. Try again."),
-			meal && createElement("output", { "data-testid": "server-meal" }, `${meal.name} / ${meal.calories}`),
-			meal && createElement(Draft, { key: meal.id, meal }),
+			query.pending && createElement("p", null, "Loading order…"),
+			Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load your order. Try again."),
+			order && createElement("output", { "data-testid": "server-order" }, `${order.name} / ${order.quantity}`),
+			order && createElement(Draft, { key: order.id, order }),
 		);
 	};
-	const MealList = () => {
+	const OrderList = () => {
 		const query = useQuery(api.list.query());
 		return createElement(
 			"ul",
-			{ "data-testid": "meal-list" },
-			Option.getOrElse(query.data, () => []).map((meal) => createElement("li", { key: meal.id }, `${meal.name} / ${meal.calories}`)),
+			{ "data-testid": "order-list" },
+			Option.getOrElse(query.data, () => []).map((order) => createElement("li", { key: order.id }, `${order.name} / ${order.quantity}`)),
 		);
 	};
-	return { Client, api, Editor, MealList };
+	return { Client, api, Editor, OrderList };
 };

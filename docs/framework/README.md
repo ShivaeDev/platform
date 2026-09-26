@@ -89,7 +89,7 @@ Platform · **B** build/integrate · **D** research, product-specific, or defer.
 - `@shivaedev/effect-contract`: query and command declarations that become native
   `Rpc`/`RpcGroup` definitions, with typed rejections and reactivity keys, plus a
   browser-safe binding over native AtomRpc. Handlers, middleware, transports and
-  the atom cache stay native. The meal example established the need.
+  the atom cache stay native. The order example established the need.
 
 Existing Prisma, tRPC, auth and job integrations continue to have consumers. The
 new packages can be developed and validated independently; adopting them in an
@@ -97,7 +97,7 @@ application is a separate change with its own behavior checks.
 
 ## Composed example
 
-The [meal-editing example](./meal-example.md) adds service declarations, encoded
+The [order-editing example](./order-example.md) adds service declarations, encoded
 form fields, request authentication and real HTTP serialization to the initial
 repository/RPC/atom fixture. Its guide links the feature code and the behavioral
 tests; it also records the remaining application-specific boundaries.

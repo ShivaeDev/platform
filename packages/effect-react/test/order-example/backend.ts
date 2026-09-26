@@ -8,52 +8,62 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
-import { Authentication, Meal, MealNotFound, Meals, Principal, SaveMeal, type SaveMealInput, StorageUnavailable, Unauthorized } from "./contract.ts";
+import {
+	Authentication,
+	Order,
+	OrderNotFound,
+	Orders,
+	Principal,
+	SaveOrder,
+	type SaveOrderInput,
+	StorageUnavailable,
+	Unauthorized,
+} from "./contract.ts";
 
-class MealRow extends Model.Class<MealRow>("MealRow")({
-	...Meal.fields,
-	id: Model.Field({ select: Meal.fields.id, update: Meal.fields.id, json: Meal.fields.id }),
+class OrderRow extends Model.Class<OrderRow>("OrderRow")({
+	...Order.fields,
+	id: Model.Field({ select: Order.fields.id, update: Order.fields.id, json: Order.fields.id }),
 	ownerId: Schema.String,
 }) {}
-const publicMeal = (row: MealRow) => new Meal({ id: row.id, name: row.name, calories: row.calories });
-const makeMealsRepository = makeRepository(MealRow, { tableName: "meals", idColumn: "id", spanPrefix: "Meals" });
-class MealsRepository extends Context.Service<MealsRepository, Effect.Success<typeof makeMealsRepository>>()("meal/Repository") {}
+const publicOrder = (row: OrderRow) => new Order({ id: row.id, name: row.name, quantity: row.quantity });
+const makeOrdersRepository = makeRepository(OrderRow, { tableName: "orders", idColumn: "id", spanPrefix: "Orders" });
+class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<typeof makeOrdersRepository>>()("order/Repository") {}
 
 const unavailable = () => new StorageUnavailable();
 const owned = (userId: string, id: number) =>
-	MealsRepository.use((repository) => repository.findById(id)).pipe(
-		Effect.catchTag("NoSuchElementError", () => Effect.fail(new MealNotFound())),
+	OrdersRepository.use((repository) => repository.findById(id)).pipe(
+		Effect.catchTag("NoSuchElementError", () => Effect.fail(new OrderNotFound())),
 		Effect.filterOrFail(
 			(row) => row.ownerId === userId,
-			() => new MealNotFound(),
+			() => new OrderNotFound(),
 		),
 	);
 
-const MealService = defineService({
-	id: "meal/Service",
-	requires: [MealsRepository, SqlClient.SqlClient, Reactivity.Reactivity],
+const OrderService = defineService({
+	id: "order/Service",
+	requires: [OrdersRepository, SqlClient.SqlClient, Reactivity.Reactivity],
 	initialize: Effect.void,
 	methods: () => ({
 		get: (userId: string, id: number) =>
 			owned(userId, id).pipe(
-				Effect.map(publicMeal),
+				Effect.map(publicOrder),
 				Effect.catchTags({ SqlError: () => Effect.fail(unavailable()), SchemaError: () => Effect.fail(unavailable()) }),
 			),
 		list: (userId: string) =>
-			MealsRepository.use((repository) => repository.findMany({ where: { ownerId: userId }, orderBy: { field: "id", direction: "asc" } })).pipe(
-				Effect.map((rows) => rows.map((row) => new Meal(row))),
+			OrdersRepository.use((repository) => repository.findMany({ where: { ownerId: userId }, orderBy: { field: "id", direction: "asc" } })).pipe(
+				Effect.map((rows) => rows.map((row) => new Order(row))),
 				Effect.catchTags({ SqlError: () => Effect.fail(unavailable()), SchemaError: () => Effect.fail(unavailable()) }),
 			),
-		save: (userId: string, input: SaveMealInput) =>
+		save: (userId: string, input: SaveOrderInput) =>
 			Effect.gen(function* () {
 				const found = yield* owned(userId, input.id);
 				const name = input.name.trim();
-				if (name.length === 0) return yield* SaveMeal.reject.MealValidation({ field: "name", message: "Enter a meal name" });
-				if (!Number.isInteger(input.calories) || input.calories < 0 || input.calories > 5000)
-					return yield* SaveMeal.reject.MealValidation({ field: "calories", message: "Calories must be a whole number between 0 and 5000" });
-				const repository = yield* MealsRepository;
-				const saved = publicMeal(yield* repository.update({ ...found, name, calories: input.calories }));
-				yield* invalidateOnCommit(invalidationKeys(SaveMeal.invalidates(input, saved)));
+				if (name.length === 0) return yield* SaveOrder.reject.OrderValidation({ field: "name", message: "Enter an order name" });
+				if (!Number.isInteger(input.quantity) || input.quantity < 0 || input.quantity > 5000)
+					return yield* SaveOrder.reject.OrderValidation({ field: "quantity", message: "Quantity must be a whole number between 0 and 5000" });
+				const repository = yield* OrdersRepository;
+				const saved = publicOrder(yield* repository.update({ ...found, name, quantity: input.quantity }));
+				yield* invalidateOnCommit(invalidationKeys(SaveOrder.invalidates(input, saved)));
 				return saved;
 			}).pipe(
 				Effect.catchTag("SchemaError", () => Effect.fail(unavailable())),
@@ -62,28 +72,28 @@ const MealService = defineService({
 	}),
 });
 
-export interface MealSession {
+export interface OrderSession {
 	readonly userId: string;
 	readonly expiresAt: number;
 }
 
-export interface MealServerOptions {
-	readonly sessions?: ReadonlyMap<string, MealSession>;
-	readonly beforeSave?: (input: SaveMealInput) => Effect.Effect<void>;
+export interface OrderServerOptions {
+	readonly sessions?: ReadonlyMap<string, OrderSession>;
+	readonly beforeSave?: (input: SaveOrderInput) => Effect.Effect<void>;
 	readonly beforeGet?: (id: number) => Effect.Effect<void>;
 }
 
 const seeded = Layer.effect(
-	MealsRepository,
+	OrdersRepository,
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		yield* sql`create table meals (id integer primary key, ownerId text not null, name text not null, calories integer not null)`;
-		yield* sql`insert into meals (id, ownerId, name, calories) values (1, 'alice', 'Oatmeal', 300), (2, 'bob', 'Soup', 200), (3, 'alice', 'Toast', 150)`;
-		return yield* makeMealsRepository;
+		yield* sql`create table orders (id integer primary key, ownerId text not null, name text not null, quantity integer not null)`;
+		yield* sql`insert into orders (id, ownerId, name, quantity) values (1, 'alice', 'Printer paper', 300), (2, 'bob', 'Desk lamps', 200), (3, 'alice', 'Toner', 150)`;
+		return yield* makeOrdersRepository;
 	}),
 );
 
-export const makeMealWebHandler = (options: MealServerOptions = {}) => {
+export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 	const sessions =
 		options.sessions ??
 		new Map([
@@ -100,29 +110,29 @@ export const makeMealWebHandler = (options: MealServerOptions = {}) => {
 		}),
 	);
 	const database = Layer.merge(SqliteClient.layer({ filename: ":memory:" }), Reactivity.layer);
-	const service = MealService.layer.pipe(Layer.provide(seeded), Layer.provide(database));
-	const handlers = Meals.toLayer(
+	const service = OrderService.layer.pipe(Layer.provide(seeded), Layer.provide(database));
+	const handlers = Orders.toLayer(
 		Effect.gen(function* () {
-			const meals = yield* MealService;
-			return Meals.of({
-				"meals.get": ({ id }) =>
+			const orders = yield* OrderService;
+			return Orders.of({
+				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						const { userId } = yield* Principal;
 						if (options.beforeGet) yield* options.beforeGet(id);
-						return yield* meals.get(userId, id);
+						return yield* orders.get(userId, id);
 					}),
-				"meals.list": () => Effect.flatMap(Principal, ({ userId }) => meals.list(userId)),
-				"meals.save": (input) =>
+				"orders.list": () => Effect.flatMap(Principal, ({ userId }) => orders.list(userId)),
+				"orders.save": (input) =>
 					Effect.gen(function* () {
 						const { userId } = yield* Principal;
 						if (options.beforeSave) yield* options.beforeSave(input);
-						return yield* meals.save(userId, input);
+						return yield* orders.save(userId, input);
 					}),
 			});
 		}),
 	).pipe(Layer.provide(service));
 	return HttpRouter.toWebHandler(
-		RpcServer.layerHttp({ group: Meals, path: "/rpc", protocol: "http" }).pipe(
+		RpcServer.layerHttp({ group: Orders, path: "/rpc", protocol: "http" }).pipe(
 			Layer.provide(handlers),
 			Layer.provide(authentication),
 			Layer.provide(RpcSerialization.layerJson),

@@ -4,7 +4,7 @@ Effect's `Rpc`, `RpcGroup`, and `AtomRpc` share one Schema contract between type
 handlers and clients. This guide shows them directly. Applications can declare
 the same contracts with [`@shivaedev/effect-contract`](../../packages/effect-contract/README.md),
 which produces these native definitions and adds typed rejections and
-reactivity keys; the meal example uses it. Handlers, middleware and clients
+reactivity keys; the order example uses it. Handlers, middleware and clients
 remain the native components below.
 
 ## Ordinary operations

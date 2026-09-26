@@ -5,14 +5,14 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, test, vi } from "vitest";
-import { makeMealEditor } from "./meal-example/frontend.tsx";
-import { startMealServer } from "./meal-example/http-test.ts";
+import { makeOrderEditor } from "./order-example/frontend.tsx";
+import { startOrderServer } from "./order-example/http-test.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const mountEditor = async (url: string, token?: string, id = 1) => {
 	window.location.href = url;
-	const { Client, api, Editor } = makeMealEditor({ url, token });
+	const { Client, api, Editor } = makeOrderEditor({ url, token });
 	const registry = AtomRegistry.make();
 	const container = document.createElement("div");
 	document.body.append(container);
@@ -44,7 +44,7 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 		},
 		save: (name: string) => {
 			const independent = AtomRegistry.make();
-			const result = Client.runtime.atom(api.save.run({ id, name, calories: 900 }).pipe(Effect.result));
+			const result = Client.runtime.atom(api.save.run({ id, name, quantity: 900 }).pipe(Effect.result));
 			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
 		},
 		read: () => {
@@ -74,39 +74,39 @@ const sessions = () =>
 	]);
 
 test("real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits", async () => {
-	const server = await startMealServer({ sessions: sessions() });
+	const server = await startOrderServer({ sessions: sessions() });
 	const view = await mountEditor(server.url, "alice-session");
 	try {
-		await eventually(() => expect(view.input("Name").value).toBe("Oatmeal"));
-		await view.edit("Name", "  Breakfast  ");
-		await view.edit("Calories", "450");
+		await eventually(() => expect(view.input("Name").value).toBe("Printer paper"));
+		await view.edit("Name", "  Office chairs  ");
+		await view.edit("Quantity", "450");
 		await view.click("Save");
 		await eventually(() => {
-			expect(view.container.querySelector('[data-testid="server-meal"]')?.textContent).toContain("Breakfast");
+			expect(view.container.querySelector('[data-testid="server-order"]')?.textContent).toContain("Office chairs");
 			expect(view.container.querySelector('[role="status"]')?.textContent).toBe("Saved");
-			expect(view.input("Name").value).toBe("Breakfast");
+			expect(view.input("Name").value).toBe("Office chairs");
 		});
 		expect(await view.read()).toMatchObject({
-			name: "Breakfast",
-			calories: 450,
+			name: "Office chairs",
+			quantity: 450,
 		});
-		await view.edit("Calories", "-1");
+		await view.edit("Quantity", "-1");
 		await view.click("Save");
 		await eventually(() =>
-			expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Calories must be a whole number between 0 and 5000"),
+			expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Quantity must be a whole number between 0 and 5000"),
 		);
 		expect(await view.read()).toMatchObject({
-			name: "Breakfast",
-			calories: 450,
+			name: "Office chairs",
+			quantity: 450,
 		});
-		await view.edit("Calories", "450");
+		await view.edit("Quantity", "450");
 		await view.edit("Name", "Unsubmitted local edit");
 		expect(Result.isSuccess(await view.save("Remote update"))).toBe(true);
 		await view.click("Refresh");
 		await eventually(() => {
-			expect(view.container.querySelector('[data-testid="server-meal"]')?.textContent).toContain("Remote update");
+			expect(view.container.querySelector('[data-testid="server-order"]')?.textContent).toContain("Remote update");
 			expect(view.input("Name").value).toBe("Unsubmitted local edit");
-			expect(view.input("Calories").value).toBe("900");
+			expect(view.input("Quantity").value).toBe("900");
 			expect(view.container.querySelector('[role="status"]')?.textContent).toBe("Unsaved changes");
 		});
 		await view.click("Revert");
@@ -121,24 +121,24 @@ test("edits made while a save is in flight survive its response and query refres
 	const entered = await Effect.runPromise(Deferred.make<void>());
 	const resumed = await Effect.runPromise(Deferred.make<void>());
 	const release = () => Effect.runPromise(Deferred.succeed(resumed, undefined));
-	const server = await startMealServer({
+	const server = await startOrderServer({
 		sessions: sessions(),
 		beforeSave: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(resumed))),
 	});
 	const view = await mountEditor(server.url, "alice-session");
 	try {
-		await eventually(() => expect(view.input("Name").value).toBe("Oatmeal"));
-		await view.edit("Name", "Submitted meal");
+		await eventually(() => expect(view.input("Name").value).toBe("Printer paper"));
+		await view.edit("Name", "Submitted order");
 		await view.click("Save");
 		await Effect.runPromise(Deferred.await(entered));
 		await view.edit("Name", "Newer local edit");
 		await release();
 		await eventually(() => {
-			expect(view.container.querySelector('[data-testid="server-meal"]')?.textContent).toContain("Submitted meal");
+			expect(view.container.querySelector('[data-testid="server-order"]')?.textContent).toContain("Submitted order");
 			expect(view.input("Name").value).toBe("Newer local edit");
 			expect(view.container.querySelector('[role="status"]')?.textContent).toBe("Unsaved changes");
 		});
-		expect(await view.read()).toMatchObject({ name: "Submitted meal" });
+		expect(await view.read()).toMatchObject({ name: "Submitted order" });
 	} finally {
 		await release();
 		await view.close();
@@ -148,7 +148,7 @@ test("edits made while a save is in flight survive its response and query refres
 
 test("HTTP sessions isolate owners and a revoked session cannot save", async () => {
 	const activeSessions = sessions();
-	const server = await startMealServer({ sessions: activeSessions });
+	const server = await startOrderServer({ sessions: activeSessions });
 	const alice = await mountEditor(server.url, "alice-session");
 	const bob = await mountEditor(server.url, "bob-session", 2);
 	const stranger = await mountEditor(server.url, "bob-session", 1);
@@ -156,24 +156,24 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 	const expired = await mountEditor(server.url, "expired-session");
 	try {
 		await eventually(() => {
-			expect(alice.input("Name").value).toBe("Oatmeal");
-			expect(bob.input("Name").value).toBe("Soup");
+			expect(alice.input("Name").value).toBe("Printer paper");
+			expect(bob.input("Name").value).toBe("Desk lamps");
 			expect(stranger.container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
 			expect(anonymous.container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
 		});
-		expect(stranger.container.textContent).not.toContain("Oatmeal");
-		expect(anonymous.container.textContent).not.toContain("Oatmeal");
+		expect(stranger.container.textContent).not.toContain("Printer paper");
+		expect(anonymous.container.textContent).not.toContain("Printer paper");
 		const [crossOwnerSave, anonymousSave, expiredSave] = await Promise.all([
 			stranger.save("Cross-owner overwrite"),
 			anonymous.save("Anonymous overwrite"),
 			expired.save("Expired overwrite"),
 		]);
-		expect(Result.isFailure(crossOwnerSave) && crossOwnerSave.failure._tag).toBe("MealNotFound");
+		expect(Result.isFailure(crossOwnerSave) && crossOwnerSave.failure._tag).toBe("OrderNotFound");
 		expect(Result.isFailure(anonymousSave) && anonymousSave.failure._tag).toBe("Unauthorized");
 		expect(Result.isFailure(expiredSave) && expiredSave.failure._tag).toBe("Unauthorized");
 		expect(await alice.read()).toMatchObject({
-			name: "Oatmeal",
-			calories: 300,
+			name: "Printer paper",
+			quantity: 300,
 		});
 		await alice.edit("Name", "Must not persist");
 		activeSessions.delete("alice-session");
@@ -184,10 +184,10 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 			expiresAt: Number.POSITIVE_INFINITY,
 		});
 		expect(await alice.read()).toMatchObject({
-			name: "Oatmeal",
-			calories: 300,
+			name: "Printer paper",
+			quantity: 300,
 		});
-		expect(await bob.read()).toMatchObject({ name: "Soup", calories: 200 });
+		expect(await bob.read()).toMatchObject({ name: "Desk lamps", quantity: 200 });
 	} finally {
 		await alice.close();
 		await bob.close();
@@ -198,9 +198,9 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 	}
 });
 
-test("saving one meal refreshes it and the list without refetching another mounted meal", async () => {
+test("saving one order refreshes it and the list without refetching another mounted order", async () => {
 	const gets = new Map<number, number>();
-	const server = await startMealServer({
+	const server = await startOrderServer({
 		sessions: sessions(),
 		beforeGet: (id) =>
 			Effect.sync(() => {
@@ -208,7 +208,7 @@ test("saving one meal refreshes it and the list without refetching another mount
 			}),
 	});
 	window.location.href = server.url;
-	const { Editor, MealList } = makeMealEditor({
+	const { Editor, OrderList } = makeOrderEditor({
 		url: server.url,
 		token: "alice-session",
 	});
@@ -221,22 +221,22 @@ test("saving one meal refreshes it and the list without refetching another mount
 		if (!section) throw new Error(`Missing editor ${index}`);
 		return section;
 	};
-	const list = () => [...container.querySelectorAll('[data-testid="meal-list"] li')].map((item) => item.textContent);
+	const list = () => [...container.querySelectorAll('[data-testid="order-list"] li')].map((item) => item.textContent);
 	try {
 		await act(async () => {
 			root.render(
 				createElement(
 					RegistryContext.Provider,
 					{ value: registry },
-					createElement(MealList),
+					createElement(OrderList),
 					createElement(Editor, { id: 1 }),
 					createElement(Editor, { id: 3 }),
 				),
 			);
 		});
 		await eventually(() => {
-			expect(list()).toEqual(["Oatmeal / 300", "Toast / 150"]);
-			expect(editor(1).querySelector("input")?.value).toBe("Toast");
+			expect(list()).toEqual(["Printer paper / 300", "Toner / 150"]);
+			expect(editor(1).querySelector("input")?.value).toBe("Toner");
 		});
 		expect(gets).toEqual(
 			new Map([
@@ -247,15 +247,15 @@ test("saving one meal refreshes it and the list without refetching another mount
 		await act(async () => {
 			const input = editor(1).querySelector("input");
 			if (!input) throw new Error("Missing name input");
-			Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "Rye toast");
+			Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "Black toner");
 			input.dispatchEvent(new Event("input", { bubbles: true }));
 		});
 		await act(async () => {
 			editor(1).querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
 		});
 		await eventually(() => {
-			expect(list()).toEqual(["Oatmeal / 300", "Rye toast / 150"]);
-			expect(editor(1).querySelector('[data-testid="server-meal"]')?.textContent).toBe("Rye toast / 150");
+			expect(list()).toEqual(["Printer paper / 300", "Black toner / 150"]);
+			expect(editor(1).querySelector('[data-testid="server-order"]')?.textContent).toBe("Black toner / 150");
 		});
 		expect(gets).toEqual(
 			new Map([
