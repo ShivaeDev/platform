@@ -103,10 +103,11 @@ try {
 		)}\n`,
 	);
 	const workspace = await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
-	await writeFile(
-		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		workspace.replace('  "@vercel/detect-agent": 1.2.3', `  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`),
-	);
+	const packedWorkspace = workspace.replace(/^overrides:\n/m, `overrides:\n  "@shivaedev/effect-test": "file:${tarballs.test}"\n`);
+	if (!packedWorkspace.includes(tarballs.test)) {
+		throw new Error("pnpm-workspace.yaml has no overrides block to point @shivaedev/effect-test at its tarball");
+	}
+	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), packedWorkspace);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
 		`${JSON.stringify(
