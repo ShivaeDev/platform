@@ -1,12 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { Cause, Context, Effect, Exit, Option, Result, Stream } from "effect";
-import type { EffectTRPCRuntime } from "../adapter.js";
-import type {
-	EffectTRPCErrorMapper,
-	EffectTRPCInstrument,
-	ProcedureInfo,
-} from "../types.js";
-import type { ContextBridge } from "./context-bridge.js";
+import type { EffectTRPCRuntime } from "../adapter.ts";
+import type { EffectTRPCErrorMapper, EffectTRPCInstrument, ProcedureInfo } from "../types.ts";
+import type { ContextBridge } from "./context-bridge.ts";
 
 interface RunEffectOptions {
 	readonly procedure: ProcedureInfo;
@@ -15,14 +11,8 @@ interface RunEffectOptions {
 
 export interface RuntimeBridge<Requirements> {
 	readonly instrument: EffectTRPCInstrument;
-	readonly runEffect: <Value>(
-		effect: Effect.Effect<Value, unknown, Requirements>,
-		options: RunEffectOptions,
-	) => Promise<Value>;
-	readonly runStream: <Value>(
-		stream: Stream.Stream<Value, unknown, Requirements>,
-		options: RunEffectOptions,
-	) => Promise<AsyncIterable<Value>>;
+	readonly runEffect: <Value>(effect: Effect.Effect<Value, unknown, Requirements>, options: RunEffectOptions) => Promise<Value>;
+	readonly runStream: <Value>(stream: Stream.Stream<Value, unknown, Requirements>, options: RunEffectOptions) => Promise<AsyncIterable<Value>>;
 }
 
 const internalError = (cause?: unknown): TRPCError =>
@@ -43,19 +33,13 @@ const mapError = (
 	}
 
 	try {
-		return (
-			consumerMapper?.(error, { ...procedure, origin }) ?? internalError(error)
-		);
+		return consumerMapper?.(error, { ...procedure, origin }) ?? internalError(error);
 	} catch (mapperDefect) {
 		return internalError(mapperDefect);
 	}
 };
 
-const mapCause = (
-	cause: Cause.Cause<unknown>,
-	procedure: ProcedureInfo,
-	consumerMapper: EffectTRPCErrorMapper | undefined,
-): TRPCError => {
+const mapCause = (cause: Cause.Cause<unknown>, procedure: ProcedureInfo, consumerMapper: EffectTRPCErrorMapper | undefined): TRPCError => {
 	if (Cause.hasInterruptsOnly(cause)) {
 		return new TRPCError({
 			code: "CLIENT_CLOSED_REQUEST",
@@ -94,21 +78,14 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 	contextBridge: ContextBridge,
 	options: {
 		readonly instrument?: EffectTRPCInstrument;
-		readonly instrumentStream?: import("../types.js").EffectTRPCStreamInstrument;
+		readonly instrumentStream?: import("../types.ts").EffectTRPCStreamInstrument;
 		readonly mapError?: EffectTRPCErrorMapper;
 	},
 ): RuntimeBridge<Requirements> => ({
-	instrument: (effect, procedure) =>
-		Effect.suspend(() =>
-			options.instrument === undefined
-				? effect
-				: options.instrument(effect, procedure),
-		),
+	instrument: (effect, procedure) => Effect.suspend(() => (options.instrument === undefined ? effect : options.instrument(effect, procedure))),
 	runStream: async (stream, runOptions) => {
 		const instrumented = Stream.suspend(() =>
-			options.instrumentStream === undefined
-				? stream
-				: options.instrumentStream(stream, runOptions.procedure),
+			options.instrumentStream === undefined ? stream : options.instrumentStream(stream, runOptions.procedure),
 		).pipe(
 			Stream.withSpan(runOptions.procedure.path, {
 				attributes: {
@@ -119,14 +96,11 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 				captureStackTrace: runOptions.procedure.captureStackTrace,
 			}),
 			Stream.interruptWhen(interruptOn(runOptions.signal)),
-			Stream.catchCause((cause) =>
-				Stream.fail(mapCause(cause, runOptions.procedure, options.mapError)),
-			),
+			Stream.catchCause((cause) => Stream.fail(mapCause(cause, runOptions.procedure, options.mapError))),
 		);
 		const context = await runtime.runPromise(Effect.context<Requirements>());
 		const ambient = contextBridge.current();
-		const provided =
-			ambient === undefined ? context : Context.merge(context, ambient);
+		const provided = ambient === undefined ? context : Context.merge(context, ambient);
 		return Stream.toAsyncIterableWith(instrumented, provided);
 	},
 	runEffect: async (effect, runOptions) => {
@@ -147,17 +121,8 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 		);
 		const ambient = contextBridge.current();
 		const runnable =
-			ambient === undefined
-				? traced
-				: Effect.flatMap(runtime.contextEffect, (base) =>
-						Effect.provideContext(traced, Context.merge(base, ambient)),
-					);
-		const exit = await runtime.runPromiseExit(
-			runnable,
-			runOptions.signal === undefined
-				? undefined
-				: { signal: runOptions.signal },
-		);
+			ambient === undefined ? traced : Effect.flatMap(runtime.contextEffect, (base) => Effect.provideContext(traced, Context.merge(base, ambient)));
+		const exit = await runtime.runPromiseExit(runnable, runOptions.signal === undefined ? undefined : { signal: runOptions.signal });
 
 		if (Exit.isSuccess(exit)) {
 			return exit.value;

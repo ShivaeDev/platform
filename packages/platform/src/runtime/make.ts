@@ -1,20 +1,20 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Layer } from "effect";
-import { Cause, Context, Effect, Exit, ManagedRuntime } from "effect";
-import type { PlatformRuntime, PlatformRuntimeOptions } from "./types.js";
+import { Cause, Config, Context, Effect, Exit, ManagedRuntime } from "effect";
+import type { PlatformRuntime, PlatformRuntimeOptions } from "./types.ts";
 
 const RuntimeCacheKey = Symbol.for("@shivaedev/platform/runtime-cache");
-const globalRuntimeCache = globalThis as typeof globalThis & {
-	[RuntimeCacheKey]?: Map<string | symbol, PlatformRuntime<unknown, unknown>>;
-};
-const runtimeCache =
-	globalRuntimeCache[RuntimeCacheKey] ??
-	new Map<string | symbol, PlatformRuntime<unknown, unknown>>();
-globalRuntimeCache[RuntimeCacheKey] = runtimeCache;
+const sharedCache: unknown = Reflect.get(globalThis, RuntimeCacheKey);
+const runtimeCache: Map<string | symbol, unknown> = sharedCache instanceof Map ? sharedCache : new Map<string | symbol, unknown>();
+Reflect.set(globalThis, RuntimeCacheKey, runtimeCache);
 
-const make = <Services, BuildError>(
-	layer: Layer.Layer<Services, BuildError>,
-): PlatformRuntime<Services, BuildError> => {
+// One development cache key belongs to one makePlatformRuntime call site, so its entry has that site's services and build error.
+function cachedEntry<Services, BuildError>(runtime: unknown): PlatformRuntime<Services, BuildError>;
+function cachedEntry(runtime: unknown): unknown {
+	return runtime;
+}
+
+const make = <Services, BuildError>(layer: Layer.Layer<Services, BuildError>): PlatformRuntime<Services, BuildError> => {
 	const managed = ManagedRuntime.make(layer);
 	const services = new AsyncLocalStorage<Context.Context<never>>();
 
@@ -25,15 +25,10 @@ const make = <Services, BuildError>(
 		const ambient = currentServices();
 		return ambient === undefined
 			? effect
-			: Effect.flatMap(managed.contextEffect, (base) =>
-					Effect.provideContext(effect, Context.merge(base, ambient)),
-				);
+			: Effect.flatMap(managed.contextEffect, (base) => Effect.provideContext(effect, Context.merge(base, ambient)));
 	};
 
-	const runPromiseExit: PlatformRuntime<
-		Services,
-		BuildError
-	>["runPromiseExit"] = (effect, options) =>
+	const runPromiseExit: PlatformRuntime<Services, BuildError>["runPromiseExit"] = (effect, options) =>
 		managed.runPromiseExit(withAmbient(effect), options);
 
 	const runtime: PlatformRuntime<Services, BuildError> = {
@@ -49,26 +44,24 @@ const make = <Services, BuildError>(
 			throw Cause.squash(exit.cause);
 		},
 		runPromiseExit,
-		runWithServices: (context, evaluate) =>
-			services.run(context as Context.Context<never>, evaluate),
+		runWithServices: (context, evaluate) => services.run(context, evaluate),
 	};
 
 	return runtime;
 };
 
+const production = Effect.map(Effect.orDie(Config.string("NODE_ENV").pipe(Config.withDefault(""))), (environment) => environment === "production");
+
 export const makePlatformRuntime = <Services, BuildError>(
 	layer: Layer.Layer<Services, BuildError>,
 	options: PlatformRuntimeOptions = {},
 ): PlatformRuntime<Services, BuildError> => {
-	const key =
-		process.env.NODE_ENV === "production"
-			? undefined
-			: options.developmentCacheKey;
+	const key = Effect.runSync(production) ? undefined : options.developmentCacheKey;
 	if (key === undefined) return make(layer);
 
 	const cached = runtimeCache.get(key);
 	if (cached !== undefined) {
-		return cached as PlatformRuntime<Services, BuildError>;
+		return cachedEntry<Services, BuildError>(cached);
 	}
 
 	const runtime = make(layer);
@@ -79,6 +72,6 @@ export const makePlatformRuntime = <Services, BuildError>(
 			await runtime.dispose();
 		},
 	};
-	runtimeCache.set(key, cachedRuntime as PlatformRuntime<unknown, unknown>);
+	runtimeCache.set(key, cachedRuntime);
 	return cachedRuntime;
 };

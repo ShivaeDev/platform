@@ -16,5 +16,4 @@ export interface JobsHealth {
 	readonly readyTotal: number;
 }
 
-export const deadLetterQueueName = (queueName: string): string =>
-	`${queueName}-dlq`;
+export const deadLetterQueueName = (queueName: string): string => `${queueName}-dlq`;

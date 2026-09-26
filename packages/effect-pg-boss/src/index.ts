@@ -10,24 +10,24 @@ export {
 	type QueueWorker,
 	type ScheduleDefinition,
 	type ScheduledWorker,
-} from "./definition.js";
+} from "./definition.ts";
 export {
 	PgBossError,
 	type PgBossOperation,
 	PgBossPayloadError,
-} from "./error.js";
+} from "./error.ts";
 export {
 	deadLetterQueueName,
 	type JobsHealth,
 	type QueueHealth,
-} from "./health.js";
+} from "./health.ts";
 export type {
 	PgBossClient,
 	PgBossClientFactory,
-} from "./internal/client.js";
+} from "./internal/client.ts";
 export {
 	makePgBoss,
 	type PgBossDefinition,
 	type PgBossLayerOptions,
 	type PgBossService,
-} from "./service.js";
+} from "./service.ts";

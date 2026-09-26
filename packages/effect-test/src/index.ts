@@ -1,4 +1,4 @@
-export { type EventuallyOptions, eventually } from "./eventually.js";
+export { type EventuallyOptions, eventually } from "./eventually.ts";
 export type {
 	EffectClock,
 	EffectTest,
@@ -6,5 +6,5 @@ export type {
 	EffectTestOptions,
 	MakeEffectItOptions,
 	MakeEffectItResult,
-} from "./types.js";
-export { makeEffectIt } from "./vitest.js";
+} from "./types.ts";
+export { makeEffectIt } from "./vitest.ts";

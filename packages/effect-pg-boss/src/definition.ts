@@ -14,33 +14,21 @@ export interface JobContext {
 	readonly heartbeatSeconds: number | null;
 }
 
-export interface QueueDefinition<
-	Name extends string = string,
-	Payload extends JobPayloadSchema = JobPayloadSchema,
-> {
+export interface QueueDefinition<Name extends string = string, Payload extends JobPayloadSchema = JobPayloadSchema> {
 	readonly _tag: "QueueDefinition";
 	readonly name: Name;
 	readonly schema: Payload;
 	readonly queueOptions: Omit<QueueOptions, "deadLetter">;
 	readonly workerOptions: WorkOptions;
 	readonly handle: <E, R>(
-		handler: (
-			payload: Schema.Schema.Type<Payload>,
-			job: JobContext,
-		) => Effect.Effect<unknown, E, R>,
+		handler: (payload: Schema.Schema.Type<Payload>, job: JobContext) => Effect.Effect<unknown, E, R>,
 	) => QueueWorker<Payload, R>;
 }
 
-export interface QueueWorker<
-	Payload extends JobPayloadSchema = JobPayloadSchema,
-	Requirements = unknown,
-> {
+export interface QueueWorker<Payload extends JobPayloadSchema = JobPayloadSchema, Requirements = unknown> {
 	readonly _tag: "QueueWorker";
 	readonly queue: QueueDefinition<string, Payload>;
-	readonly handler: (
-		payload: Schema.Schema.Type<Payload>,
-		job: JobContext,
-	) => Effect.Effect<unknown, unknown, Requirements>;
+	readonly handler: (payload: Schema.Schema.Type<Payload>, job: JobContext) => Effect.Effect<unknown, unknown, Requirements>;
 }
 
 export interface JobRegistration {
@@ -54,9 +42,7 @@ export interface ScheduleDefinition<Name extends string = string> {
 	readonly queueOptions: Omit<QueueOptions, "deadLetter">;
 	readonly scheduleOptions: ScheduleOptions;
 	readonly workerOptions: WorkOptions;
-	readonly run: <E, R>(
-		effect: Effect.Effect<unknown, E, R>,
-	) => ScheduledWorker<R>;
+	readonly run: <E, R>(effect: Effect.Effect<unknown, E, R>) => ScheduledWorker<R>;
 }
 
 export interface ScheduledWorker<Requirements = unknown> {
@@ -65,9 +51,7 @@ export interface ScheduledWorker<Requirements = unknown> {
 	readonly effect: Effect.Effect<unknown, unknown, Requirements>;
 }
 
-export type RegistrationRequirements<
-	Registrations extends readonly JobRegistration[],
-> = Registrations[number] extends infer Registration
+export type RegistrationRequirements<Registrations extends readonly JobRegistration[]> = Registrations[number] extends infer Registration
 	? Registration extends QueueWorker<infer Payload, infer Requirements>
 		? Requirements | Payload["DecodingServices"]
 		: Registration extends ScheduledWorker<infer Requirements>
@@ -75,20 +59,14 @@ export type RegistrationRequirements<
 			: never
 	: never;
 
-export interface DefineQueueOptions<
-	Name extends string,
-	Payload extends JobPayloadSchema,
-> {
+export interface DefineQueueOptions<Name extends string, Payload extends JobPayloadSchema> {
 	readonly name: Name;
 	readonly schema: Payload;
 	readonly queue?: Omit<QueueOptions, "deadLetter">;
 	readonly worker?: WorkOptions;
 }
 
-export const defineQueue = <
-	const Name extends string,
-	const Payload extends JobPayloadSchema,
->(
+export const defineQueue = <const Name extends string, const Payload extends JobPayloadSchema>(
 	options: DefineQueueOptions<Name, Payload>,
 ): QueueDefinition<Name, Payload> => {
 	const definition: QueueDefinition<Name, Payload> = {
@@ -115,9 +93,7 @@ export interface DefineScheduleOptions<Name extends string> {
 	readonly worker?: WorkOptions;
 }
 
-export const defineSchedule = <const Name extends string>(
-	options: DefineScheduleOptions<Name>,
-): ScheduleDefinition<Name> => {
+export const defineSchedule = <const Name extends string>(options: DefineScheduleOptions<Name>): ScheduleDefinition<Name> => {
 	const definition: ScheduleDefinition<Name> = {
 		_tag: "ScheduleDefinition",
 		cron: options.cron,

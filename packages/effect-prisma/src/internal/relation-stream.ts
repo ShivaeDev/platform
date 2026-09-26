@@ -1,20 +1,22 @@
 import { Effect, Stream } from "effect";
-import { isPrismaFailure, type PrismaError, toPrismaError } from "../error.js";
-import type { AnyPostgresContract, DatabaseExecutor } from "./executor.js";
-import { fromPrismaPromise } from "./promise.js";
-import { executeQuery } from "./query-execution.js";
-import { type RelationRecipe, replayRecipe } from "./recipe.js";
+import { isPrismaFailure, type PrismaError, toPrismaError } from "../error.ts";
+import { hasMethod, invokeMethod, isAsyncIterable } from "./dynamic.ts";
+import type { AnyPostgresContract, DatabaseExecutor } from "./executor.ts";
+import { fromPrismaPromise } from "./promise.ts";
+import { executeQuery } from "./query-execution.ts";
+import { type RelationRecipe, replayRecipe } from "./recipe.ts";
 
-type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
+const collectRows = (iterable: AsyncIterable<unknown>): Effect.Effect<Array<unknown>, PrismaError> =>
+	fromPrismaPromise(async () => {
+		const rows: Array<unknown> = [];
+		for await (const row of iterable) {
+			rows.push(row);
+		}
+		return rows;
+	});
 
-export const makeRelationStream = <
-	Models extends object,
-	Contract extends AnyPostgresContract,
->(
-	resolveExecutor: Effect.Effect<
-		DatabaseExecutor<Models, Contract>,
-		PrismaError
-	>,
+export const makeRelationStream = <Models extends object, Contract extends AnyPostgresContract>(
+	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>, PrismaError>,
 	recipe: RelationRecipe,
 ): Stream.Stream<unknown, PrismaError> => {
 	return Stream.unwrap(
@@ -22,49 +24,21 @@ export const makeRelationStream = <
 			executeQuery(
 				executor,
 				Effect.sync(() => {
-					const collection = replayRecipe(
-						executor.models,
-						recipe,
-						executor.identity,
-						executor.transactionIdentity,
-					);
-					if (
-						typeof collection !== "object" ||
-						collection === null ||
-						typeof Reflect.get(collection, "all") !== "function"
-					) {
+					const collection = replayRecipe(executor.models, recipe, executor.identity, executor.transactionIdentity);
+					const iterable = hasMethod(collection, "all") ? invokeMethod(collection, "all", []) : undefined;
+					if (!isAsyncIterable(iterable)) {
 						throw new TypeError("Only collection Relations can be streamed");
 					}
-					const iterable = Reflect.apply(
-						Reflect.get(collection, "all") as AnyFunction,
-						collection,
-						[],
-					) as AsyncIterable<unknown>;
 
 					if (executor.mode === "root") {
 						return Stream.fromAsyncIterable(iterable, (error) => error).pipe(
-							Stream.catch((error) =>
-								isPrismaFailure(error)
-									? Stream.fail(toPrismaError(error))
-									: Stream.die(error),
-							),
+							Stream.catch((error) => (isPrismaFailure(error) ? Stream.fail(toPrismaError(error)) : Stream.die(error))),
 						);
 					}
 
-					const buffered = executeQuery(
-						executor,
-						fromPrismaPromise(async () => {
-							const rows: Array<unknown> = [];
-							for await (const row of iterable) {
-								rows.push(row);
-							}
-							return rows;
-						}),
-					);
+					const buffered = executeQuery(executor, collectRows(iterable));
 
-					return Stream.unwrap(
-						Effect.map(buffered, (rows) => Stream.fromIterable(rows)),
-					);
+					return Stream.unwrap(Effect.map(buffered, (rows) => Stream.fromIterable(rows)));
 				}),
 			),
 		),

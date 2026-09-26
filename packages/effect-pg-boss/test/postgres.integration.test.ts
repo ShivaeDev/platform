@@ -1,27 +1,25 @@
 import { Effect, Schema } from "effect";
 import { PgBoss } from "pg-boss";
 import { describe, expect, it, vi } from "vitest";
-import { deadLetterQueueName, defineQueue, makePgBoss } from "../src/index.js";
+import { deadLetterQueueName, defineQueue, makePgBoss } from "../src/index.ts";
+import { environmentVariable } from "./support/environment.ts";
 
-const databaseUrl = process.env.PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL;
-const integration = databaseUrl === undefined ? describe.skip : describe;
+const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
+const integration = databaseUrl === "" ? describe.skip : describe;
 
-const until = async <A>(
-	read: () => Promise<A | undefined>,
-	timeoutMilliseconds = 15_000,
-): Promise<A> => {
-	const deadline = Date.now() + timeoutMilliseconds;
-	while (Date.now() < deadline) {
-		const value = await read();
-		if (value !== undefined) return value;
-		await new Promise((resolve) => setTimeout(resolve, 50));
-	}
-	throw new Error("Timed out waiting for pg-boss");
-};
+const until = <A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_000): Promise<A> =>
+	vi.waitFor(
+		async () => {
+			const value = await read();
+			if (value === undefined) throw new Error("Timed out waiting for pg-boss");
+			return value;
+		},
+		{ interval: 50, timeout: timeoutMilliseconds },
+	);
 
 integration("PostgreSQL integration", () => {
 	it("round-trips transformed payloads and rejects malformed durable data", async () => {
-		const queueName = `effect-pg-boss-${process.pid}-${Date.now()}`;
+		const queueName = `effect-pg-boss-${crypto.randomUUID()}`;
 		const Queue = defineQueue({
 			name: queueName,
 			queue: { retryLimit: 0 },
@@ -45,23 +43,15 @@ integration("PostgreSQL integration", () => {
 				Effect.gen(function* () {
 					const jobs = yield* Jobs;
 					yield* jobs.enqueue(Queue, { id: 42 });
-					yield* Effect.promise(() =>
-						until(async () =>
-							handled.mock.calls.length === 1 ? true : undefined,
-						),
-					);
+					yield* Effect.promise(() => until(async () => (handled.mock.calls.length === 1 ? true : undefined)));
 					expect(handled).toHaveBeenCalledWith(42);
 
 					if (client === undefined) throw new Error("Client was not created");
 					const startedClient = client;
-					yield* Effect.promise(() =>
-						startedClient.send(queueName, { id: null }),
-					);
+					yield* Effect.promise(() => startedClient.send(queueName, { id: null }));
 					const deadLetter = yield* Effect.promise(() =>
 						until(async () => {
-							const entries = await startedClient.findJobs(
-								deadLetterQueueName(queueName),
-							);
+							const entries = await startedClient.findJobs(deadLetterQueueName(queueName));
 							return entries[0];
 						}),
 					);

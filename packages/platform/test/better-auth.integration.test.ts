@@ -2,15 +2,15 @@ import { expect } from "@effect/vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
-import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { afterAll, expect as expectPromise, it as vitestIt } from "vitest";
-import { effectPrismaAdapter } from "../src/better-auth.js";
-import { makePlatformRuntime } from "../src/runtime.js";
-import { makePlatformIt } from "../src/testing.js";
-import { type Contract, contractJson } from "./auth/contract.js";
+import { effectPrismaAdapter } from "../src/better-auth.ts";
+import { makePlatformRuntime } from "../src/runtime.ts";
+import { makePlatformIt } from "../src/testing.ts";
+import { type Contract, contractJson } from "./auth/contract.ts";
+import { environmentVariable } from "./support/environment.ts";
 
-const databaseUrl = process.env.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL;
+const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformAuthDatabase", {
 	contractJson,
 });
@@ -19,9 +19,8 @@ const DatabaseLive = Database.layer({
 });
 const runtime = makePlatformRuntime(DatabaseLive);
 const authDatabase = effectPrismaAdapter(Database, runtime, {
-	modelName: (model) =>
-		`Auth${model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`}`,
-})({} as BetterAuthOptions);
+	modelName: (model) => `Auth${model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`}`,
+})({});
 const adapter = makeEffectTRPC({ runtime });
 const t = initTRPC.create();
 const router = t.router({});
@@ -39,34 +38,30 @@ let rolledBackId = "";
 
 afterAll(() => runtime.dispose());
 
-vitestIt(
-	"rolls back a failed Better Auth transaction outside the test harness",
-	integrationOptions,
-	async () => {
-		const id = crypto.randomUUID();
-		const data = { email: `${id}@example.test`, id, name: "Rollback" };
+vitestIt("rolls back a failed Better Auth transaction outside the test harness", integrationOptions, async () => {
+	const id = crypto.randomUUID();
+	const data = { email: `${id}@example.test`, id, name: "Rollback" };
 
-		await expectPromise(
-			authDatabase.transaction(async (transaction) => {
-				await transaction.create<typeof data, typeof data>({
-					data,
-					forceAllowId: true,
-					model: "user",
-				});
-				throw new Error("rollback");
+	await expectPromise(
+		authDatabase.transaction(async (transaction) => {
+			await transaction.create<typeof data, typeof data>({
+				data,
+				forceAllowId: true,
+				model: "user",
+			});
+			throw new Error("rollback");
+		}),
+	).rejects.toThrow("rollback");
+
+	await expectPromise(
+		runtime.runPromise(
+			Effect.gen(function* () {
+				const db = yield* Database;
+				return yield* db.AuthUser.where({ id }).exists();
 			}),
-		).rejects.toThrow("rollback");
-
-		await expectPromise(
-			runtime.runPromise(
-				Effect.gen(function* () {
-					const db = yield* Database;
-					return yield* db.AuthUser.where({ id }).exists();
-				}),
-			),
-		).resolves.toBe(false);
-	},
-);
+		),
+	).resolves.toBe(false);
+});
 
 it.effectApp(
 	"shares the test rollback transaction with Better Auth adapter calls",
@@ -200,11 +195,7 @@ it.effectApp(
 				}),
 			),
 		).toBe(2);
-		expect(
-			yield* promise(() =>
-				authDatabase.deleteMany({ model: "user", where: [] }),
-			),
-		).toBe(2);
+		expect(yield* promise(() => authDatabase.deleteMany({ model: "user", where: [] }))).toBe(2);
 	},
 	integrationOptions,
 );

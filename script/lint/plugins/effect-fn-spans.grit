@@ -1,0 +1,7 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`Effect.fn($name)` as $match where {
+	! $name <: r"^[\"'][A-Z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*[\"']$",
+	register_diagnostic(span=$match, message="Effect.fn takes a literal span name shaped PascalCaseOwner.lowerCamelCaseOperation, such as \"Transact.invalidateOnCommit\".")
+}

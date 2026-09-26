@@ -17,10 +17,7 @@ export interface SqlDatabaseClient<Contract extends AnySqlContract> {
 	close(): Promise<void>;
 }
 
-export interface DatabaseExecutor<
-	Models extends object,
-	Contract extends AnySqlContract = AnySqlContract,
-> {
+export interface DatabaseExecutor<Models extends object, Contract extends AnySqlContract = AnySqlContract> {
 	readonly client: SqlDatabaseClient<Contract>;
 	readonly identity: object;
 	readonly liveness: {

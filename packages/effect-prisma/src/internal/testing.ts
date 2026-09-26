@@ -1,9 +1,7 @@
 import type { Effect } from "effect";
-import type { PrismaError } from "../error.js";
+import type { PrismaError } from "../error.ts";
 
-export const DatabaseTestingTypeId: unique symbol = Symbol.for(
-	"@shivaedev/effect-prisma/DatabaseTesting",
-);
+export const DatabaseTestingTypeId: unique symbol = Symbol.for("@shivaedev/effect-prisma/DatabaseTesting");
 
 export interface DatabaseTesting<DatabaseId> {
 	readonly withTestTransaction: <A, E, R>(
@@ -15,18 +13,18 @@ export interface DatabaseWithTesting<DatabaseId> {
 	readonly [DatabaseTestingTypeId]: DatabaseTesting<DatabaseId>;
 }
 
-export const getDatabaseTesting = <DatabaseId>(
-	database: object,
-): DatabaseTesting<DatabaseId> => {
-	const testing = Reflect.get(database, DatabaseTestingTypeId) as
-		| DatabaseTesting<DatabaseId>
-		| undefined;
+// makeSqlDatabase installs the testing hooks for the database's own service identifier.
+function testingFor<DatabaseId>(testing: object): DatabaseTesting<DatabaseId>;
+function testingFor(testing: object): unknown {
+	return testing;
+}
 
-	if (testing === undefined) {
-		throw new TypeError(
-			"The database was not created by this copy of @shivaedev/effect-prisma",
-		);
+export const getDatabaseTesting = <DatabaseId>(database: object): DatabaseTesting<DatabaseId> => {
+	const testing: unknown = Reflect.get(database, DatabaseTestingTypeId);
+
+	if (typeof testing !== "object" || testing === null || typeof Reflect.get(testing, "withTestTransaction") !== "function") {
+		throw new TypeError("The database was not created by this copy of @shivaedev/effect-prisma");
 	}
 
-	return testing;
+	return testingFor<DatabaseId>(testing);
 };

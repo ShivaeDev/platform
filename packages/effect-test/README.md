@@ -58,10 +58,20 @@ effectApp("talks to a real timer", function* () {
 }, { clock: "live" })
 ```
 
+The worker Layer is acquired and released outside the per-test environment,
+using the live clock unless the Layer supplies its own. Fibers started during
+Layer acquisition keep that environment; advancing a test's TestClock does not
+advance their timers. The selected per-test clock applies to `around`,
+`makeHarness`, and the test body.
+
 ## `eventually`
 
-Retries until the effect succeeds. Under TestClock it advances time with
-`TestClock.adjust`. Under `clock: "live"` it uses `Schedule.spaced`.
+Retries typed failures until the effect succeeds. Under TestClock it advances
+time with `TestClock.adjust`. Under `clock: "live"` it uses `Schedule.spaced`.
+`times` counts retries after the initial attempt; omitting it retries without a
+limit. Defects (including thrown assertions) and interruption propagate without
+retrying under either clock. Use `Effect.try(() => expect(...))` when an
+assertion failure is intentionally a retryable condition.
 
 ```ts
 import { eventually } from "@shivaedev/effect-test"

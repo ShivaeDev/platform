@@ -1,20 +1,13 @@
-import { EventEmitter } from "node:events";
-import type { IncomingMessage } from "node:http";
+import { IncomingMessage } from "node:http";
+import { Socket } from "node:net";
 import { describe, expect, it } from "vitest";
-import { nodeSubscriptionSignal } from "../src/node-http.js";
+import { nodeSubscriptionSignal } from "../src/node-http.ts";
 
 const makeNodeRequest = (complete = false) => {
-	const socket = new EventEmitter() as EventEmitter & { destroyed: boolean };
-	socket.destroyed = false;
-	const request = new EventEmitter() as EventEmitter & {
-		complete: boolean;
-		destroyed: boolean;
-		socket: typeof socket;
-	};
+	const socket = new Socket();
+	const request = new IncomingMessage(socket);
 	request.complete = complete;
-	request.destroyed = false;
-	request.socket = socket;
-	return { request: request as unknown as IncomingMessage, socket };
+	return { request, socket };
 };
 
 const webRequestCarrying = (nodeRequest: IncomingMessage): Request => {
@@ -52,7 +45,7 @@ describe("nodeSubscriptionSignal", () => {
 
 	it("aborts immediately for an already destroyed connection", () => {
 		const { request, socket } = makeNodeRequest();
-		socket.destroyed = true;
+		socket.destroy();
 		const subscription = nodeSubscriptionSignal({ nodeRequest: request });
 		expect(subscription.signal.aborted).toBe(true);
 	});

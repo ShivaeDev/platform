@@ -3,10 +3,7 @@ export interface ClientLifecycle {
 	readonly close: () => PromiseLike<void>;
 }
 
-export const acquireConnectedClient = async <A>(
-	client: ClientLifecycle,
-	initialize: () => A,
-): Promise<A> => {
+export const acquireConnectedClient = async <A>(client: ClientLifecycle, initialize: () => A): Promise<A> => {
 	try {
 		await client.connect();
 		return initialize();
@@ -18,14 +15,10 @@ export const acquireConnectedClient = async <A>(
 
 const reservedModelNames = new Set(["transaction"]);
 
-export const assertAvailableModelNames = (
-	modelNames: ReadonlyArray<string>,
-): void => {
+export const assertAvailableModelNames = (modelNames: ReadonlyArray<string>): void => {
 	for (const modelName of modelNames) {
 		if (reservedModelNames.has(modelName)) {
-			throw new TypeError(
-				`Prisma model name conflicts with the database facade: ${modelName}`,
-			);
+			throw new TypeError(`Prisma model name conflicts with the database facade: ${modelName}`);
 		}
 	}
 };

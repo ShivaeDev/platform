@@ -1,0 +1,84 @@
+import { Data, Effect, Layer, type Option, Schema } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import { useCreate, useEditor } from "../src/form.ts";
+
+const query = Atom.make(Effect.succeed({ id: 1, title: "Lunch" }));
+const fields = Schema.Struct({ title: Schema.String });
+const runtime = Atom.runtime(Layer.empty);
+const saveTitle = (values: { readonly title: string }) =>
+	values.title.length > 0 ? Effect.succeed({ id: 1, title: values.title }) : Effect.fail("Rejected" as const);
+
+export const useEditorExample = () => {
+	const editor = useEditor({
+		query,
+		fields,
+		values: (row) => ({ title: row.title }),
+		save: saveTitle,
+		runtime,
+		rejectField: (error) => (error === "Rejected" ? { field: "title", message: "Required" } : undefined),
+	});
+	const failure: Option.Option<"Rejected"> = editor.failure;
+	const row: Option.Option<{ id: number; title: string }> = editor.query.data;
+	const create = useCreate({
+		fields,
+		initialValues: { title: "" },
+		create: saveTitle,
+		runtime,
+		// @ts-expect-error Field rejections name a declared field.
+		rejectField: () => ({ field: "missing", message: "Unknown" }),
+	});
+	const created: Option.Option<{ id: number; title: string }> = create.created;
+	return { failure, row, created, save: editor.save };
+};
+
+class NameRejected extends Data.TaggedError("NameRejected")<{ readonly field: "title"; readonly message: string }> {}
+class StaleRejected extends Data.TaggedError("StaleRejected")<{ readonly field: "subtitle"; readonly message: string }> {}
+const saveNamed = (values: { readonly title: string }) => Effect.fail(new NameRejected({ field: "title", message: values.title }));
+const saveStale = (values: { readonly title: string }) => Effect.fail(new StaleRejected({ field: "subtitle", message: values.title }));
+
+export const useRejectionExample = () => {
+	const named = useCreate({ fields, initialValues: { title: "" }, create: saveNamed, runtime });
+	// @ts-expect-error A tagged field rejection naming a field the form lacks needs an explicit rejectField.
+	const stale = useCreate({ fields, initialValues: { title: "" }, create: saveStale, runtime });
+	const mapped = useEditor({
+		query,
+		fields,
+		values: (row) => ({ title: row.title }),
+		save: (values) => Effect.as(saveStale(values), { id: 1, title: values.title }),
+		runtime,
+		rejectField: (error) => ({ field: "title", message: error.message }),
+	});
+	// @ts-expect-error The editor applies the same constraint to its save command.
+	const unmapped = useEditor({
+		query,
+		fields,
+		values: (row) => ({ title: row.title }),
+		save: (values) => Effect.as(saveStale(values), { id: 1, title: values.title }),
+		runtime,
+	});
+	return { named, stale, mapped, unmapped };
+};
+
+const perField = { message: Schema.String, field: Schema.optionalKey(Schema.String) };
+class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perField) {}
+class TitleConflict extends Schema.TaggedError<TitleConflict>()("TitleConflict", {
+	message: Schema.String,
+	field: Schema.optionalKey(Schema.Literal("title")),
+}) {}
+class Described extends Schema.TaggedError<Described>()("Described", { message: Schema.String }) {}
+const saveConflict = (values: { readonly title: string }) => Effect.fail(new Conflict({ message: values.title }));
+
+export const useOptionalFieldExample = () => {
+	// @ts-expect-error An optional field typed wider than the form's field names needs an explicit rejectField.
+	const unmapped = useCreate({ fields, initialValues: { title: "" }, create: saveConflict, runtime });
+	const mapped = useCreate({
+		fields,
+		initialValues: { title: "" },
+		create: saveConflict,
+		runtime,
+		rejectField: (error) => (error.field === "title" ? { field: "title", message: error.message } : undefined),
+	});
+	const titled = useCreate({ fields, initialValues: { title: "" }, create: () => Effect.fail(new TitleConflict({ message: "Taken" })), runtime });
+	const described = useCreate({ fields, initialValues: { title: "" }, create: () => Effect.fail(new Described({ message: "Gone" })), runtime });
+	return { unmapped, mapped, titled, described };
+};

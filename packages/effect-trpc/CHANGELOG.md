@@ -1,6 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-09-26
+
+### Added
+
+- `rejectWith(schema)` sends failures matching a tagged schema to the client as
+  a `RejectionError` carrying the schema-encoded value. The tRPC code follows
+  the Platform error taxonomy (`NotFound`, `Unauthorized`, `Forbidden`,
+  `Conflict`, `PreconditionFailed`, and `AuthUnavailable` as
+  `SERVICE_UNAVAILABLE`), otherwise `BAD_REQUEST`, or a `code` option.
+  `rejectionCode` exposes that mapping.
+- `rejectionFormatter` and `withRejection` add the encoded value to the error
+  data as `data.rejection`. An input that fails the procedure's input schema
+  becomes a `BadRequest` rejection whose `field` is the first issue's dotted
+  path.
+- `@shivaedev/effect-trpc/client`, a browser-safe entry that imports only
+  Effect: `rejectionOf(error)` reads the encoded rejection from a
+  `TRPCClientError` and `decodeRejection(schema)(error)` decodes it.
+
+### Changed
+
+- Require Effect Test 0.1.2, whose `eventually` retries only typed failures.
 
 ## 0.3.4 - 2026-09-04
 

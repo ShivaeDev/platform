@@ -3,7 +3,7 @@ export {
 	type EffectCallerFactory,
 	makeEffectCaller,
 	makeEffectCallerFactory,
-} from "./testing/caller.js";
+} from "./testing/caller.ts";
 export type {
 	CallerOptions,
 	CallerResult,
@@ -15,5 +15,5 @@ export type {
 	TrpcIt,
 	TrpcTest,
 	TrpcTester,
-} from "./testing/types.js";
-export { makeTrpcHarnessIt, makeTrpcIt } from "./testing/vitest.js";
+} from "./testing/types.ts";
+export { makeTrpcHarnessIt, makeTrpcIt } from "./testing/vitest.ts";

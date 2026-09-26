@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.6.4 - 2026-09-26
+
+### Changed
+
+- Require Effect Test 0.1.2, whose `eventually` retries only typed failures.
 
 ## 0.6.3 - 2026-09-04
 

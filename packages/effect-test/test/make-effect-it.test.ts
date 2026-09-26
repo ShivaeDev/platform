@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { Clock, Context, Effect, Layer } from "effect";
+import { Cause, Clock, Context, Effect, Exit, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { eventually, makeEffectIt } from "../src/index.js";
+import { eventually, makeEffectIt } from "../src/index.ts";
 
 class Token extends Context.Service<Token, string>()("@test/Token") {}
 
@@ -25,16 +25,13 @@ const { effectApp } = makeEffectIt({
 		}),
 });
 
-effectApp(
-	"runs a generator body with the harness and Layer services",
-	function* (harness, context) {
-		expect(harness.token).toBe("from-layer");
-		expect(harness.name).toContain("runs a generator body");
-		expect(context.task.name).toContain("runs a generator body");
-		expect(yield* Token).toBe("from-layer");
-		expect(aroundLog.at(-1)).toBe("enter");
-	},
-);
+effectApp("runs a generator body with the harness and Layer services", function* (harness, context) {
+	expect(harness.token).toBe("from-layer");
+	expect(harness.name).toContain("runs a generator body");
+	expect(context.task.name).toContain("runs a generator body");
+	expect(yield* Token).toBe("from-layer");
+	expect(aroundLog.at(-1)).toBe("enter");
+});
 
 effectApp("installs TestClock by default", function* () {
 	expect(yield* Clock.currentTimeMillis).toBe(0);
@@ -79,23 +76,17 @@ const aroundIt = makeEffectIt({
 	makeHarness: () => Effect.succeed({ ok: true as const }),
 });
 
-aroundIt.effectApp(
-	"applies the around hook before the generator body",
-	function* (harness) {
-		expect(aroundRan).toBe(true);
-		expect(harness.ok).toBe(true);
-		return yield* Effect.void;
-	},
-);
+aroundIt.effectApp("applies the around hook before the generator body", function* (harness) {
+	expect(aroundRan).toBe(true);
+	expect(harness.ok).toBe(true);
+	return yield* Effect.void;
+});
 
-effectApp.each(["alpha", "beta"])(
-	"passes table cases to the generator for %s",
-	function* (item, harness) {
-		expect(["alpha", "beta"]).toContain(item);
-		expect(harness.token).toBe("from-layer");
-		return yield* Effect.void;
-	},
-);
+effectApp.each(["alpha", "beta"])("passes table cases to the generator for %s", function* (item, harness) {
+	expect(["alpha", "beta"]).toContain(item);
+	expect(harness.token).toBe("from-layer");
+	return yield* Effect.void;
+});
 
 effectApp("retries through TestClock.adjust", function* () {
 	const seen: number[] = [];
@@ -124,11 +115,7 @@ effectApp(
 			Effect.sync(() => {
 				attempts += 1;
 				return attempts;
-			}).pipe(
-				Effect.flatMap((count) =>
-					count >= 3 ? Effect.succeed("ready") : Effect.fail("not-yet"),
-				),
-			),
+			}).pipe(Effect.flatMap((count) => (count >= 3 ? Effect.succeed("ready") : Effect.fail("not-yet")))),
 			{ interval: "1 millis", times: 5 },
 		);
 		expect(value).toBe("ready");
@@ -137,3 +124,93 @@ effectApp(
 	},
 	{ clock: "live" },
 );
+
+for (const clock of ["test", "live"] as const) {
+	effectApp(
+		`stops after the configured retries under the ${clock} clock`,
+		function* () {
+			for (const times of [0, 2]) {
+				let attempts = 0;
+				const exit = yield* Effect.exit(
+					eventually(
+						Effect.suspend(() => {
+							attempts += 1;
+							return Effect.fail("not-ready");
+						}),
+						{ interval: "1 millis", times },
+					),
+				);
+				expect(exit).toEqual(Exit.fail("not-ready"));
+				expect(attempts).toBe(times + 1);
+			}
+		},
+		{ clock },
+	);
+
+	effectApp(
+		`does not retry thrown assertions under the ${clock} clock`,
+		function* () {
+			let attempts = 0;
+			const exit = yield* Effect.exit(
+				eventually(
+					Effect.sync(() => {
+						attempts += 1;
+						expect(attempts).toBe(3);
+					}),
+					{ interval: "1 millis", times: 3 },
+				),
+			);
+			expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);
+			expect(attempts).toBe(1);
+		},
+		{ clock },
+	);
+
+	effectApp(
+		`retries assertions explicitly captured with Effect.try under the ${clock} clock`,
+		function* () {
+			let attempts = 0;
+			yield* eventually(
+				Effect.try(() => {
+					attempts += 1;
+					expect(attempts).toBe(3);
+				}),
+				{ interval: "1 millis", times: 3 },
+			);
+			expect(attempts).toBe(3);
+		},
+		{ clock },
+	);
+
+	effectApp(
+		`preserves interruption under the ${clock} clock`,
+		function* () {
+			let attempts = 0;
+			const exit = yield* Effect.exit(
+				eventually(
+					Effect.suspend(() => {
+						attempts += 1;
+						return Effect.interrupt;
+					}),
+					{ interval: "1 millis", times: 3 },
+				),
+			);
+			expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
+			expect(attempts).toBe(1);
+		},
+		{ clock },
+	);
+}
+
+class AcquiredAt extends Context.Service<AcquiredAt, number>()("@test/AcquiredAt") {}
+
+const acquisitionIt = makeEffectIt({
+	layer: Layer.effect(AcquiredAt, Clock.currentTimeMillis),
+	makeHarness: () => Clock.currentTimeMillis,
+});
+
+acquisitionIt.effectApp("acquires the worker Layer with live time and the harness with test time", function* (harnessTime) {
+	expect(yield* AcquiredAt).toBeGreaterThan(1_000_000);
+	expect(harnessTime).toBe(0);
+	expect(yield* Clock.currentTimeMillis).toBe(0);
+});

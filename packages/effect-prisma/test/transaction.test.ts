@@ -1,14 +1,10 @@
 import { it } from "@effect/vitest";
 import { Deferred, Effect, Exit, Fiber, Semaphore } from "effect";
 import { expect } from "vitest";
-import type { AnyPostgresContract } from "../src/internal/executor.js";
-import { executeQuery } from "../src/internal/query-execution.js";
-import {
-	releaseTestTransaction,
-	releaseTransaction,
-	type TransactionResource,
-	withTransactionSemaphore,
-} from "../src/internal/transaction.js";
+import type { AnySqlContract } from "../src/internal/executor.ts";
+import { executeQuery } from "../src/internal/query-execution.ts";
+import { releaseTestTransaction, releaseTransaction, type TransactionResource, withTransactionSemaphore } from "../src/internal/transaction.ts";
+import { unusedClient } from "./support/unused-client.ts";
 
 interface ResourceOptions {
 	readonly commitFailure?: unknown;
@@ -18,7 +14,7 @@ interface ResourceOptions {
 
 const makeResource = (options: ResourceOptions = {}) => {
 	const calls: Array<string> = [];
-	const resource = {
+	const resource: TransactionResource<Record<string, never>, AnySqlContract> = {
 		connection: {
 			destroy: async () => {
 				calls.push("destroy");
@@ -31,7 +27,7 @@ const makeResource = (options: ResourceOptions = {}) => {
 			},
 		},
 		executor: {
-			client: {},
+			client: unusedClient(),
 			identity: {},
 			liveness: {
 				closedCode: "RUNTIME.TRANSACTION_CLOSED",
@@ -57,10 +53,7 @@ const makeResource = (options: ResourceOptions = {}) => {
 				}
 			},
 		},
-	} as unknown as TransactionResource<
-		Record<string, never>,
-		AnyPostgresContract
-	>;
+	};
 
 	return { calls, resource };
 };
@@ -104,9 +97,7 @@ it.effect("reports commit failure after attempting rollback and release", () =>
 			commitFailure: new Error("commit failed"),
 		});
 
-		const error = yield* Effect.flip(
-			releaseTransaction(resource, Exit.succeed(undefined)),
-		);
+		const error = yield* Effect.flip(releaseTransaction(resource, Exit.succeed(undefined)));
 
 		expect(calls).toEqual(["commit", "rollback", "release"]);
 		expect(error.reason).toMatchObject({
@@ -123,9 +114,7 @@ it.effect("destroys the connection when rollback fails", () =>
 			rollbackFailure: new Error("rollback failed"),
 		});
 
-		const error = yield* Effect.flip(
-			releaseTransaction(resource, Exit.fail("expected")),
-		);
+		const error = yield* Effect.flip(releaseTransaction(resource, Exit.fail("expected")));
 
 		expect(calls).toEqual(["rollback", "destroy"]);
 		expect(error.reason).toMatchObject({
@@ -143,9 +132,7 @@ it.effect("destroys the connection when release fails", () =>
 		};
 		const { calls, resource } = makeResource({ releaseFailure });
 
-		const error = yield* Effect.flip(
-			releaseTransaction(resource, Exit.succeed(undefined)),
-		);
+		const error = yield* Effect.flip(releaseTransaction(resource, Exit.succeed(undefined)));
 
 		expect(calls).toEqual(["commit", "release", "destroy"]);
 		expect(error.reason).toMatchObject({
@@ -156,63 +143,53 @@ it.effect("destroys the connection when release fails", () =>
 	}),
 );
 
-it.effect(
-	"drains the active query and refuses queued work before settlement",
-	() =>
-		Effect.gen(function* () {
-			const { calls, resource } = makeResource();
-			const queryStarted = yield* Deferred.make<void>();
-			const releaseQuery = yield* Deferred.make<void>();
-			const active = yield* Effect.forkChild(
-				executeQuery(
-					resource.executor,
-					Effect.gen(function* () {
-						calls.push("query1");
-						yield* Deferred.succeed(queryStarted, undefined);
-						yield* Deferred.await(releaseQuery);
+it.effect("drains the active query and refuses queued work before settlement", () =>
+	Effect.gen(function* () {
+		const { calls, resource } = makeResource();
+		const queryStarted = yield* Deferred.make<void>();
+		const releaseQuery = yield* Deferred.make<void>();
+		const active = yield* Effect.forkChild(
+			executeQuery(
+				resource.executor,
+				Effect.gen(function* () {
+					calls.push("query1");
+					yield* Deferred.succeed(queryStarted, undefined);
+					yield* Deferred.await(releaseQuery);
+				}),
+			),
+			{ startImmediately: true },
+		);
+		yield* Deferred.await(queryStarted);
+		const queued = yield* Effect.forkChild(
+			executeQuery(
+				resource.executor,
+				Effect.sync(() => calls.push("query2")),
+			).pipe(
+				Effect.tapError((error) =>
+					Effect.sync(() => {
+						if (error.reason._tag === "PrismaRuntimeFailure") {
+							calls.push(`queued:${error.reason.code}`);
+						}
 					}),
 				),
-				{ startImmediately: true },
-			);
-			yield* Deferred.await(queryStarted);
-			const queued = yield* Effect.forkChild(
-				executeQuery(
-					resource.executor,
-					Effect.sync(() => calls.push("query2")),
-				).pipe(
-					Effect.tapError((error) =>
-						Effect.sync(() => {
-							if (error.reason._tag === "PrismaRuntimeFailure") {
-								calls.push(`queued:${error.reason.code}`);
-							}
-						}),
-					),
-				),
-				{ startImmediately: true },
-			);
-			const settlement = yield* Effect.forkChild(
-				releaseTransaction(resource, Exit.succeed(undefined)),
-				{ startImmediately: true },
-			);
+			),
+			{ startImmediately: true },
+		);
+		const settlement = yield* Effect.forkChild(releaseTransaction(resource, Exit.succeed(undefined)), { startImmediately: true });
 
-			yield* Effect.yieldNow;
-			expect(calls).toEqual(["query1"]);
-			yield* Deferred.succeed(releaseQuery, undefined);
-			yield* Fiber.join(active);
-			const queuedError = yield* Effect.flip(Fiber.join(queued));
-			yield* Fiber.join(settlement);
+		yield* Effect.yieldNow;
+		expect(calls).toEqual(["query1"]);
+		yield* Deferred.succeed(releaseQuery, undefined);
+		yield* Fiber.join(active);
+		const queuedError = yield* Effect.flip(Fiber.join(queued));
+		yield* Fiber.join(settlement);
 
-			expect(queuedError.reason).toMatchObject({
-				_tag: "PrismaRuntimeFailure",
-				code: "RUNTIME.TRANSACTION_CLOSED",
-			});
-			expect(calls).toEqual([
-				"query1",
-				"queued:RUNTIME.TRANSACTION_CLOSED",
-				"commit",
-				"release",
-			]);
-		}),
+		expect(queuedError.reason).toMatchObject({
+			_tag: "PrismaRuntimeFailure",
+			code: "RUNTIME.TRANSACTION_CLOSED",
+		});
+		expect(calls).toEqual(["query1", "queued:RUNTIME.TRANSACTION_CLOSED", "commit", "release"]);
+	}),
 );
 
 it.effect("holds the transaction permit through interrupted settlement", () =>
@@ -235,18 +212,11 @@ it.effect("holds the transaction permit through interrupted settlement", () =>
 					yield* Deferred.await(releaseSettlement);
 				}),
 		);
-		const first = yield* Effect.forkChild(
-			withTransactionSemaphore(semaphore, firstScope),
-			{ startImmediately: true },
-		);
+		const first = yield* Effect.forkChild(withTransactionSemaphore(semaphore, firstScope), { startImmediately: true });
 		yield* Deferred.await(firstEntered);
-		const second = yield* Effect.forkChild(
-			withTransactionSemaphore(
-				semaphore,
-				Deferred.succeed(secondEntered, undefined),
-			),
-			{ startImmediately: true },
-		);
+		const second = yield* Effect.forkChild(withTransactionSemaphore(semaphore, Deferred.succeed(secondEntered, undefined)), {
+			startImmediately: true,
+		});
 		yield* Effect.yieldNow;
 		expect(yield* Deferred.isDone(secondEntered)).toBe(false);
 		const interruption = yield* Effect.forkChild(Fiber.interrupt(first), {

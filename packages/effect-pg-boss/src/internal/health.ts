@@ -1,25 +1,15 @@
 import { Effect } from "effect";
-import { toPgBossError } from "../error.js";
-import {
-	deadLetterQueueName,
-	type JobsHealth,
-	type QueueHealth,
-} from "../health.js";
-import type { PgBossClient } from "./client.js";
+import { toPgBossError } from "../error.ts";
+import { deadLetterQueueName, type JobsHealth, type QueueHealth } from "../health.ts";
+import type { PgBossClient } from "./client.ts";
 
-export const healthFor = (
-	client: PgBossClient,
-	names: readonly string[],
-): Effect.Effect<JobsHealth, import("../error.js").PgBossError> =>
+export const healthFor = (client: PgBossClient, names: readonly string[]): Effect.Effect<JobsHealth, import("../error.ts").PgBossError> =>
 	Effect.forEach(
 		names,
 		(name) =>
 			Effect.tryPromise({
 				try: async (): Promise<QueueHealth> => {
-					const [queue, deadLetter] = await Promise.all([
-						client.getQueue(name),
-						client.getQueue(deadLetterQueueName(name)),
-					]);
+					const [queue, deadLetter] = await Promise.all([client.getQueue(name), client.getQueue(deadLetterQueueName(name))]);
 					return {
 						activeCount: queue?.activeCount ?? 0,
 						deadLetteredCount: deadLetter?.queuedCount ?? 0,
@@ -35,10 +25,7 @@ export const healthFor = (
 	).pipe(
 		Effect.map((jobs) => ({
 			activeTotal: jobs.reduce((sum, job) => sum + job.activeCount, 0),
-			deadLetteredTotal: jobs.reduce(
-				(sum, job) => sum + job.deadLetteredCount,
-				0,
-			),
+			deadLetteredTotal: jobs.reduce((sum, job) => sum + job.deadLetteredCount, 0),
 			failedTotal: jobs.reduce((sum, job) => sum + job.failedCount, 0),
 			jobs,
 			queuedTotal: jobs.reduce((sum, job) => sum + job.queuedCount, 0),

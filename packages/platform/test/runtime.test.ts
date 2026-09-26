@@ -1,10 +1,8 @@
 import { Context, Effect, Layer } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import { makePlatformRuntime } from "../src/runtime.js";
+import { makePlatformRuntime } from "../src/runtime.ts";
 
-class RuntimeValue extends Context.Service<RuntimeValue, string>()(
-	"@test/PlatformRuntimeValue",
-) {}
+class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/PlatformRuntimeValue") {}
 
 let acquisitions = 0;
 let releases = 0;

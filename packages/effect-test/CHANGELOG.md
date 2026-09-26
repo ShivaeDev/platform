@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 - 2026-09-26
+
+### Fixed
+
+- Make `eventually` retry only typed failures under TestClock, matching the live
+  clock. Defects and interruption propagate without retrying.
+
+### Changed
+
+- Document the live worker-Layer clock and the scope of per-test clock overrides.
 
 ## 0.1.1 - 2026-09-04
 

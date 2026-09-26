@@ -6,9 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
-const temporaryDirectory = await mkdtemp(
-	join(tmpdir(), "effect-pg-boss-consumer-"),
-);
+const temporaryDirectory = await mkdtemp(join(tmpdir(), "effect-pg-boss-consumer-"));
 const tarball = join(temporaryDirectory, "effect-pg-boss.tgz");
 
 const execute = (command, arguments_, cwd = temporaryDirectory) =>
@@ -38,9 +36,7 @@ try {
 		throw new Error("Packed package unexpectedly contains its test suite");
 	}
 
-	const manifest = JSON.parse(
-		await readFile(join(packageRoot, "package.json"), "utf8"),
-	);
+	const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
 	await writeFile(
 		join(temporaryDirectory, "package.json"),
 		`${JSON.stringify(
@@ -59,10 +55,7 @@ try {
 			2,
 		)}\n`,
 	);
-	await writeFile(
-		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"),
-	);
+	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"));
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
 		`${JSON.stringify(
@@ -136,30 +129,11 @@ void program
 `,
 	);
 
-	execute("pnpm", [
-		"install",
-		"--ignore-scripts",
-		"--frozen-lockfile=false",
-		"--store-dir",
-		join(repositoryRoot, ".pnpm-store"),
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc"), [
-		"--project",
-		"tsconfig.nodenext.json",
-	]);
-	execute(join(packageRoot, "node_modules/.bin/tsc6"), [
-		"--project",
-		"tsconfig.json",
-	]);
-	execute("node", [
-		"--input-type=module",
-		"--eval",
-		"await import('@shivaedev/effect-pg-boss')",
-	]);
+	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"]);
+	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"]);
+	execute("node", ["--input-type=module", "--eval", "await import('@shivaedev/effect-pg-boss')"]);
 } finally {
 	await rm(temporaryDirectory, { force: true, recursive: true });
 }

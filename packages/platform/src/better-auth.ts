@@ -1,4 +1,4 @@
 export {
 	type EffectPrismaAdapterOptions,
 	effectPrismaAdapter,
-} from "./better-auth/adapter.js";
+} from "./better-auth/adapter.ts";

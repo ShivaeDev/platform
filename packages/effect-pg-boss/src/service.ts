@@ -1,31 +1,19 @@
 import { Context, Effect, Layer, type Option, type Schema } from "effect";
 import type { ConstructorOptions, SendOptions, StopOptions } from "pg-boss";
-import type {
-	JobPayloadSchema,
-	JobRegistration,
-	QueueDefinition,
-	RegistrationRequirements,
-} from "./definition.js";
-import type { PgBossError, PgBossPayloadError } from "./error.js";
-import type { JobsHealth } from "./health.js";
-import type { PgBossClientFactory } from "./internal/client.js";
-import { acquireClient, releaseClient } from "./internal/lifecycle.js";
-import { registerJobs } from "./internal/register.js";
-import { makeService } from "./internal/service.js";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "./definition.ts";
+import type { PgBossError, PgBossPayloadError } from "./error.ts";
+import type { JobsHealth } from "./health.ts";
+import type { PgBossClientFactory } from "./internal/client.ts";
+import { acquireClient, releaseClient } from "./internal/lifecycle.ts";
+import { registerJobs, registrationName } from "./internal/register.ts";
+import { makeService } from "./internal/service.ts";
 
 export interface PgBossService {
-	readonly enqueue: <
-		const Name extends string,
-		const Payload extends JobPayloadSchema,
-	>(
+	readonly enqueue: <const Name extends string, const Payload extends JobPayloadSchema>(
 		queue: QueueDefinition<Name, Payload>,
 		payload: Schema.Schema.Type<Payload>,
 		options?: SendOptions,
-	) => Effect.Effect<
-		Option.Option<string>,
-		PgBossError | PgBossPayloadError,
-		Payload["EncodingServices"]
-	>;
+	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, Payload["EncodingServices"]>;
 	readonly health: Effect.Effect<JobsHealth, PgBossError>;
 }
 
@@ -33,64 +21,33 @@ interface PgBossIdentifier {
 	readonly _pgBossIdentifier: unique symbol;
 }
 
-export type PgBossLayerOptions<
-	Registrations extends readonly JobRegistration[],
-	ErrorRequirements,
-> = ConstructorOptions & {
+export type PgBossLayerOptions<Registrations extends readonly JobRegistration[], ErrorRequirements> = ConstructorOptions & {
 	/** Override client construction for compatible clients or deterministic tests. */
 	readonly clientFactory?: PgBossClientFactory;
-	readonly developmentCacheKey?: string | symbol;
+	/** Reuse and reference-count one started client under this key, e.g. across development module reloads. */
+	readonly clientCacheKey?: string | symbol | undefined;
 	readonly jobs: Registrations;
-	readonly onError?: (
-		error: Error,
-	) => Effect.Effect<unknown, never, ErrorRequirements>;
+	readonly onError?: (error: Error) => Effect.Effect<unknown, never, ErrorRequirements>;
 	readonly stop?: StopOptions;
 };
 
-export interface PgBossDefinition
-	extends Context.Service<PgBossIdentifier, PgBossService> {
-	readonly layer: <
-		const Registrations extends readonly JobRegistration[],
-		ErrorRequirements = never,
-	>(
+export interface PgBossDefinition extends Context.Service<PgBossIdentifier, PgBossService> {
+	readonly layer: <const Registrations extends readonly JobRegistration[], ErrorRequirements = never>(
 		options: PgBossLayerOptions<Registrations, ErrorRequirements>,
-	) => Layer.Layer<
-		PgBossIdentifier,
-		PgBossError,
-		RegistrationRequirements<Registrations> | ErrorRequirements
-	>;
+	) => Layer.Layer<PgBossIdentifier, PgBossError, RegistrationRequirements<Registrations> | ErrorRequirements>;
 }
+
+const logClientError = (error: Error): Effect.Effect<void> => Effect.logError({ event: "pg_boss_error", message: error.message });
 
 export const makePgBoss = (identifier: string): PgBossDefinition => {
 	const Service = Context.Service<PgBossIdentifier, PgBossService>(identifier);
 
-	const layer = <
-		const Registrations extends readonly JobRegistration[],
-		ErrorRequirements = never,
-	>(
+	const layer = <const Registrations extends readonly JobRegistration[], ErrorRequirements = never>(
 		options: PgBossLayerOptions<Registrations, ErrorRequirements>,
-	): Layer.Layer<
-		PgBossIdentifier,
-		PgBossError,
-		RegistrationRequirements<Registrations> | ErrorRequirements
-	> => {
-		type Requirements =
-			| RegistrationRequirements<Registrations>
-			| ErrorRequirements;
-		const names = options.jobs.map((registration) =>
-			registration._tag === "QueueWorker"
-				? (registration as import("./definition.js").QueueWorker).queue.name
-				: (registration as import("./definition.js").ScheduledWorker).schedule
-						.name,
-		);
-		const {
-			clientFactory,
-			developmentCacheKey,
-			jobs,
-			onError,
-			stop,
-			...constructorOptions
-		} = options;
+	): Layer.Layer<PgBossIdentifier, PgBossError, RegistrationRequirements<Registrations> | ErrorRequirements> => {
+		type Requirements = RegistrationRequirements<Registrations> | ErrorRequirements;
+		const names = options.jobs.map(registrationName);
+		const { clientFactory, clientCacheKey, jobs, onError, stop, ...constructorOptions } = options;
 
 		const acquire = Effect.acquireRelease(
 			Effect.gen(function* () {
@@ -98,30 +55,14 @@ export const makePgBoss = (identifier: string): PgBossDefinition => {
 				const acquired = yield* acquireClient({
 					clientFactory,
 					constructor: constructorOptions,
-					developmentCacheKey,
+					clientCacheKey,
 				});
-				const reportError: (
-					error: Error,
-				) => Effect.Effect<unknown, never, Requirements> =
-					onError === undefined
-						? (error) =>
-								Effect.logError({
-									event: "pg_boss_error",
-									message: error.message,
-								})
-						: onError;
+				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements> = onError ?? logClientError;
 				const errorListener = (error: Error) => {
-					void Effect.runPromise(
-						Effect.exit(Effect.provide(reportError(error), context)),
-					);
+					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
 				};
 				acquired.client.on("error", errorListener);
-				const registration = registerJobs(
-					acquired.client,
-					jobs,
-					context,
-					acquired.reused,
-				);
+				const registration = registerJobs(acquired.client, jobs, context, acquired.reused);
 				return yield* registration.pipe(
 					Effect.as({ acquired, context, errorListener }),
 					Effect.onError(() => {
@@ -138,11 +79,9 @@ export const makePgBoss = (identifier: string): PgBossDefinition => {
 
 		return Layer.effect(
 			Service,
-			Effect.map(acquire, ({ acquired }) =>
-				makeService(acquired.client, names),
-			),
+			Effect.map(acquire, ({ acquired }) => makeService(acquired.client, names)),
 		);
 	};
 
-	return Object.assign(Service, { layer }) as PgBossDefinition;
+	return Object.assign(Service, { layer });
 };

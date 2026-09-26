@@ -8,46 +8,26 @@ type RelationDefinition<
 	Contract extends AnyPostgresContract,
 	Model extends string,
 	RelationName extends string,
-> = RelationName extends keyof RelationsOf<Contract, Model>
-	? RelationsOf<Contract, Model>[RelationName]
-	: never;
+> = RelationName extends keyof RelationsOf<Contract, Model> ? RelationsOf<Contract, Model>[RelationName] : never;
 
-type RelationCardinalityOf<
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	RelationName extends string,
-> =
+type RelationCardinalityOf<Contract extends AnyPostgresContract, Model extends string, RelationName extends string> =
 	RelationDefinition<Contract, Model, RelationName> extends {
 		readonly cardinality: infer Cardinality extends string;
 	}
 		? Cardinality
 		: never;
 
-export type IsToManyRelation<
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	RelationName extends string,
-> =
-	RelationCardinalityOf<Contract, Model, RelationName> extends "1:N" | "N:M"
-		? true
-		: false;
+export type IsToManyRelation<Contract extends AnyPostgresContract, Model extends string, RelationName extends string> =
+	RelationCardinalityOf<Contract, Model, RelationName> extends "1:N" | "N:M" ? true : false;
 
-export type RelatedModelNameOf<
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	RelationName extends string,
-> =
+export type RelatedModelNameOf<Contract extends AnyPostgresContract, Model extends string, RelationName extends string> =
 	RelationDefinition<Contract, Model, RelationName> extends {
 		readonly to: { readonly model: infer Related extends string };
 	}
 		? Related
 		: never;
 
-type RelationLocalFields<
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	RelationName extends string,
-> =
+type RelationLocalFields<Contract extends AnyPostgresContract, Model extends string, RelationName extends string> =
 	RelationDefinition<Contract, Model, RelationName> extends {
 		readonly on: {
 			readonly localFields: infer Fields extends readonly string[];
@@ -56,8 +36,7 @@ type RelationLocalFields<
 		? Fields
 		: readonly [];
 
-type DefaultNamespace<Contract extends AnyPostgresContract> =
-	Contract["domain"]["namespaces"][keyof Contract["domain"]["namespaces"]];
+type DefaultNamespace<Contract extends AnyPostgresContract> = Contract["domain"]["namespaces"][keyof Contract["domain"]["namespaces"]];
 
 type ModelFields<Contract extends AnyPostgresContract, Model extends string> =
 	DefaultNamespace<Contract> extends {
@@ -70,10 +49,7 @@ type ModelFields<Contract extends AnyPostgresContract, Model extends string> =
 			: never
 		: never;
 
-type AnyNullableField<
-	Fields,
-	Names extends readonly string[],
-> = Names extends readonly [
+type AnyNullableField<Fields, Names extends readonly string[]> = Names extends readonly [
 	infer Head extends string,
 	...infer Tail extends readonly string[],
 ]
@@ -84,19 +60,11 @@ type AnyNullableField<
 		: true
 	: false;
 
-export type IncludedRelationValue<
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	RelationName extends string,
-	Value,
-> =
+export type IncludedRelationValue<Contract extends AnyPostgresContract, Model extends string, RelationName extends string, Value> =
 	RelationCardinalityOf<Contract, Model, RelationName> extends "1:N" | "N:M"
 		? Array<Value>
 		: RelationCardinalityOf<Contract, Model, RelationName> extends "N:1"
-			? AnyNullableField<
-					ModelFields<Contract, Model>,
-					RelationLocalFields<Contract, Model, RelationName>
-				> extends true
+			? AnyNullableField<ModelFields<Contract, Model>, RelationLocalFields<Contract, Model, RelationName>> extends true
 				? Value | null
 				: Value
 			: Value | null;

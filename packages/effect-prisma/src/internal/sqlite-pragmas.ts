@@ -22,10 +22,7 @@ export const assertFileBackedPath = (path: string): void => {
  * it opens, but it has no hook for anything else, so durable pragmas such as
  * `journal_mode` are applied once against the database file itself.
  */
-export const applySqlitePragmas = (
-	path: string,
-	pragmas: ReadonlyArray<string>,
-): void => {
+export const applySqlitePragmas = (path: string, pragmas: ReadonlyArray<string>): void => {
 	if (pragmas.length === 0) {
 		return;
 	}

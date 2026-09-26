@@ -1,11 +1,7 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
-import { toPgBossError } from "../error.js";
-import {
-	defaultClientFactory,
-	type PgBossClient,
-	type PgBossClientFactory,
-} from "./client.js";
+import { toPgBossError } from "../error.ts";
+import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "./client.ts";
 
 interface CachedClient {
 	readonly client: Promise<PgBossClient>;
@@ -13,17 +9,25 @@ interface CachedClient {
 }
 
 const CacheKey = Symbol.for("@shivaedev/effect-pg-boss/client-cache");
-const globalCache = globalThis as typeof globalThis & {
-	[CacheKey]?: Map<string | symbol, CachedClient>;
+const sharedCache: unknown = Reflect.get(globalThis, CacheKey);
+const clientCache: Map<string | symbol, unknown> = sharedCache instanceof Map ? sharedCache : new Map<string | symbol, unknown>();
+Reflect.set(globalThis, CacheKey, clientCache);
+
+const isCachedClient = (value: unknown): value is CachedClient =>
+	typeof value === "object" &&
+	value !== null &&
+	Reflect.get(value, "client") instanceof Promise &&
+	typeof Reflect.get(value, "references") === "number";
+
+const cachedClient = (key: string | symbol): CachedClient | undefined => {
+	const entry = clientCache.get(key);
+	return isCachedClient(entry) ? entry : undefined;
 };
-const clientCache =
-	globalCache[CacheKey] ?? new Map<string | symbol, CachedClient>();
-globalCache[CacheKey] = clientCache;
 
 export interface AcquireClientOptions {
-	readonly clientFactory?: PgBossClientFactory;
+	readonly clientFactory?: PgBossClientFactory | undefined;
 	readonly constructor: ConstructorOptions;
-	readonly developmentCacheKey?: string | symbol;
+	readonly clientCacheKey?: string | symbol | undefined;
 }
 
 export interface AcquiredClient {
@@ -33,9 +37,7 @@ export interface AcquiredClient {
 }
 
 const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
-	const client = (options.clientFactory ?? defaultClientFactory)(
-		options.constructor,
-	);
+	const client = (options.clientFactory ?? defaultClientFactory)(options.constructor);
 	return client.start().then(
 		() => client,
 		async (error) => {
@@ -49,15 +51,10 @@ const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
 	);
 };
 
-export const acquireClient = (
-	options: AcquireClientOptions,
-): Effect.Effect<AcquiredClient, import("../error.js").PgBossError> =>
+export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("../error.ts").PgBossError> =>
 	Effect.tryPromise({
 		try: async () => {
-			const cacheKey =
-				process.env.NODE_ENV === "production"
-					? undefined
-					: options.developmentCacheKey;
+			const cacheKey = options.clientCacheKey;
 			if (cacheKey === undefined) {
 				return {
 					client: await startClient(options),
@@ -65,7 +62,7 @@ export const acquireClient = (
 				};
 			}
 
-			const existing = clientCache.get(cacheKey);
+			const existing = cachedClient(cacheKey);
 			if (existing !== undefined) {
 				existing.references += 1;
 				try {
@@ -99,10 +96,7 @@ export const acquireClient = (
 		catch: (error) => toPgBossError("start", error),
 	});
 
-export const releaseClient = (
-	acquired: AcquiredClient,
-	stopOptions?: StopOptions,
-): Effect.Effect<void> =>
+export const releaseClient = (acquired: AcquiredClient, stopOptions?: StopOptions): Effect.Effect<void> =>
 	Effect.tryPromise({
 		try: async () => {
 			if (acquired.cacheKey === undefined) {
@@ -110,7 +104,7 @@ export const releaseClient = (
 				return;
 			}
 
-			const entry = clientCache.get(acquired.cacheKey);
+			const entry = cachedClient(acquired.cacheKey);
 			if (entry === undefined) return;
 			entry.references -= 1;
 			if (entry.references > 0) return;

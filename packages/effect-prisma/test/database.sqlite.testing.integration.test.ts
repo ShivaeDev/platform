@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { makeSqliteDatabase } from "../src/sqlite.js";
-import { makeDatabaseIt, withTestTransaction } from "../src/testing.js";
-import { type Contract, contractJson } from "./sqlite/contract.js";
-import { makeTemporaryDatabase } from "./sqlite/support.js";
+import { makeSqliteDatabase } from "../src/sqlite.ts";
+import { makeDatabaseIt, withTestTransaction } from "../src/testing.ts";
+import { type Contract, contractJson } from "./sqlite/contract.ts";
+import { makeTemporaryDatabase } from "./sqlite/support.ts";
 
 const temporary = makeTemporaryDatabase();
 
@@ -26,28 +26,22 @@ const ids = {
 	rolledBack: crypto.randomUUID(),
 };
 
-effectDB(
-	"passes the typed database facade and Vitest context to the generator",
-	function* (db, context) {
-		expect(context.task.name).toContain("passes the typed database facade");
+effectDB("passes the typed database facade and Vitest context to the generator", function* (db, context) {
+	expect(context.task.name).toContain("passes the typed database facade");
 
-		const user = yield* db.User.create({
-			id: ids.rolledBack,
-			email: `${ids.rolledBack}@example.test`,
-			name: "Rolled back",
-		});
+	const user = yield* db.User.create({
+		id: ids.rolledBack,
+		email: `${ids.rolledBack}@example.test`,
+		name: "Rolled back",
+	});
 
-		expect(user.id).toBe(ids.rolledBack);
-		expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(true);
-	},
-);
+	expect(user.id).toBe(ids.rolledBack);
+	expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(true);
+});
 
-effectDB(
-	"does not retain successful writes from the previous test",
-	function* (db) {
-		expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(false);
-	},
-);
+effectDB("does not retain successful writes from the previous test", function* (db) {
+	expect(yield* db.User.where({ id: ids.rolledBack }).exists()).toBe(false);
+});
 
 effectDB.each([
 	{ id: ids.each, name: "First" },
@@ -78,56 +72,43 @@ effectDB("does not retain writes from an expected failure", function* (db) {
 	expect(yield* db.User.where({ id: ids.failed }).exists()).toBe(false);
 });
 
-effectDB(
-	"exposes the framework-neutral forced-rollback primitive",
-	function* (db) {
-		const nestedId = crypto.randomUUID();
+effectDB("exposes the framework-neutral forced-rollback primitive", function* (db) {
+	const nestedId = crypto.randomUUID();
 
-		yield* withTestTransaction(
-			Database,
-			Effect.gen(function* () {
-				const transactionDb = yield* Database;
-				yield* transactionDb.User.create({
-					id: nestedId,
-					email: `${nestedId}@example.test`,
-					name: "Nested",
-				});
-			}),
-		);
+	yield* withTestTransaction(
+		Database,
+		Effect.gen(function* () {
+			const transactionDb = yield* Database;
+			yield* transactionDb.User.create({
+				id: nestedId,
+				email: `${nestedId}@example.test`,
+				name: "Nested",
+			});
+		}),
+	);
 
-		expect(yield* db.User.where({ id: nestedId }).exists()).toBe(true);
-	},
-);
+	expect(yield* db.User.where({ id: nestedId }).exists()).toBe(true);
+});
 
-effectDB(
-	"reuses the forced-rollback scope for an ordinary transaction",
-	function* (db) {
-		const outer = yield* Database;
-		expect(outer).toBe(db);
+effectDB("reuses the forced-rollback scope for an ordinary transaction", function* (db) {
+	const outer = yield* Database;
+	expect(outer).toBe(db);
 
-		yield* db.transaction(
-			Effect.gen(function* () {
-				const inner = yield* Database;
-				expect(inner).toBe(outer);
-				yield* inner.User.create({
-					id: ids.ordinaryNested,
-					email: `${ids.ordinaryNested}@example.test`,
-					name: "Ordinary nested transaction",
-				});
-			}),
-		);
+	yield* db.transaction(
+		Effect.gen(function* () {
+			const inner = yield* Database;
+			expect(inner).toBe(outer);
+			yield* inner.User.create({
+				id: ids.ordinaryNested,
+				email: `${ids.ordinaryNested}@example.test`,
+				name: "Ordinary nested transaction",
+			});
+		}),
+	);
 
-		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
-			true,
-		);
-	},
-);
+	expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(true);
+});
 
-effectDB(
-	"rolls back an ordinary transaction nested in the previous test scope",
-	function* (db) {
-		expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(
-			false,
-		);
-	},
-);
+effectDB("rolls back an ordinary transaction nested in the previous test scope", function* (db) {
+	expect(yield* db.User.where({ id: ids.ordinaryNested }).exists()).toBe(false);
+});

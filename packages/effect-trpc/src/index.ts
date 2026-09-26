@@ -3,7 +3,8 @@ export {
 	type EffectTRPCRuntime,
 	type MakeEffectTRPCOptions,
 	makeEffectTRPC,
-} from "./adapter.js";
+} from "./adapter.ts";
+export type { EncodedRejection } from "./client/rejection.ts";
 export {
 	badRequest,
 	conflict,
@@ -13,14 +14,16 @@ export {
 	notFound,
 	preconditionFailed,
 	unauthorized,
-} from "./errors.js";
-export type { EffectProcedureBuilder } from "./procedure.js";
+} from "./errors.ts";
+export type { EffectProcedureBuilder } from "./procedure.ts";
+export { RejectionError, type RejectWithOptions, rejectionCode, rejectWith } from "./rejection.ts";
+export { type RejectionData, type RejectionErrorShape, rejectionFormatter, withRejection } from "./rejection-formatter.ts";
 export {
 	type EffectProcedureRequestServices,
 	extendRequestServices,
 	makeRequestServices,
-} from "./request-services.js";
-export { RequestSignal } from "./request-signal.js";
+} from "./request-services.ts";
+export { RequestSignal } from "./request-signal.ts";
 export type {
 	EffectTRPCErrorContext,
 	EffectTRPCErrorMapper,
@@ -28,4 +31,4 @@ export type {
 	EffectTRPCStreamInstrument,
 	ProcedureInfo,
 	ProcedureKind,
-} from "./types.js";
+} from "./types.ts";

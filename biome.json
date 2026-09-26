@@ -1,23 +1,100 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
 	"files": {
-		"includes": [
-			"**",
-			"!**/.pnpm-store",
-			"!**/dist",
-			"!**/coverage",
-			"!**/test/generated",
-			"!**/test/*/generated"
-		]
+		"includes": ["**", "!**/.pnpm-store", "!**/dist", "!**/coverage", "!**/test/generated", "!**/test/*/generated", "!!.worktrees"]
 	},
 	"formatter": {
 		"enabled": true,
-		"indentStyle": "tab"
+		"indentStyle": "tab",
+		"lineWidth": 150
 	},
+	"plugins": [
+		{
+			"path": "./script/lint/plugins/ambient-runtime.grit",
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts", "!**/prisma-next.config.ts", "!**/script/heavy.ts"]
+		},
+		{
+			"path": "./script/lint/plugins/type-assertions.grit",
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"]
+		},
+		{
+			"path": "./script/lint/plugins/effect-fn-spans.grit",
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"]
+		},
+		{
+			"path": "./script/lint/plugins/imports.grit",
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"]
+		}
+	],
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"preset": "recommended"
+			"preset": "recommended",
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "error"
+			},
+			"style": {
+				"noNestedTernary": "error"
+			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"**",
+				"!packages/*/src/index.ts",
+				"!packages/effect-form/src/react.ts",
+				"!packages/effect-react/src/form.ts",
+				"!packages/effect-prisma/src/sqlite.ts",
+				"!packages/effect-prisma/src/testing.ts",
+				"!packages/effect-trpc/src/client.ts",
+				"!packages/effect-trpc/src/testing.ts",
+				"!packages/platform/src/better-auth.ts",
+				"!packages/platform/src/errors.ts",
+				"!packages/platform/src/node-http.ts",
+				"!packages/platform/src/rpc-server.ts",
+				"!packages/platform/src/rpc.ts",
+				"!packages/platform/src/runtime.ts",
+				"!packages/platform/src/testing.ts"
+			],
+			"linter": {
+				"rules": {
+					"performance": {
+						"noBarrelFile": "error",
+						"noReExportAll": "error"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/effect-prisma/test/support/controlled-collection.ts"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noThenProperty": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/effect-test/src/vitest.ts"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noEmptyPattern": "off"
+					}
+				}
+			}
+		}
+	]
 }
