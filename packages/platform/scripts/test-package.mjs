@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	copyFile,
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +14,9 @@ import { fileURLToPath } from "node:url";
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "platform-consumer-"));
+const runtimeConsumer = await mkdtemp(
+	join(tmpdir(), "platform-runtime-consumer-"),
+);
 const tarballs = {
 	platform: join(temporaryDirectory, "platform.tgz"),
 	prisma: join(temporaryDirectory, "effect-prisma.tgz"),
@@ -102,11 +112,13 @@ try {
 			2,
 		)}\n`,
 	);
+	const workspace = await readFile(
+		join(repositoryRoot, "pnpm-workspace.yaml"),
+		"utf8",
+	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		(
-			await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")
-		).replace(
+		workspace.replace(
 			'  "@vercel/detect-agent": 1.2.3',
 			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
 		),
@@ -244,6 +256,137 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, promise, 
 		"--eval",
 		"await import('@shivaedev/platform/testing')",
 	]);
+
+	await writeFile(
+		join(runtimeConsumer, "package.json"),
+		`${JSON.stringify(
+			{
+				name: "platform-runtime-consumer",
+				private: true,
+				type: "module",
+				dependencies: {
+					"@shivaedev/platform": `file:${tarballs.platform}`,
+					effect: manifest.devDependencies.effect,
+				},
+				devDependencies: {
+					"@types/node": manifest.devDependencies["@types/node"],
+				},
+			},
+			null,
+			2,
+		)}\n`,
+	);
+	await writeFile(join(runtimeConsumer, "pnpm-workspace.yaml"), workspace);
+	await writeFile(
+		join(runtimeConsumer, "tsconfig.json"),
+		`${JSON.stringify(
+			{
+				compilerOptions: {
+					lib: ["ESNext", "DOM", "DOM.Iterable"],
+					module: "ESNext",
+					moduleResolution: "Bundler",
+					noEmit: true,
+					skipLibCheck: false,
+					strict: true,
+					target: "ESNext",
+					types: ["node"],
+					verbatimModuleSyntax: true,
+				},
+				include: ["index.ts"],
+			},
+			null,
+			2,
+		)}\n`,
+	);
+	await writeFile(
+		join(runtimeConsumer, "tsconfig.nodenext.json"),
+		`${JSON.stringify(
+			{
+				extends: "./tsconfig.json",
+				compilerOptions: {
+					module: "NodeNext",
+					moduleResolution: "NodeNext",
+				},
+			},
+			null,
+			2,
+		)}\n`,
+	);
+	await writeFile(
+		join(runtimeConsumer, "index.ts"),
+		`import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { Context, Layer } from "effect"
+
+class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}
+
+const runtime = makePlatformRuntime(Layer.succeed(Greeting, "application"))
+const application: string = await runtime.runPromise(Greeting)
+const request: string = await runtime.runWithServices(
+	Context.make(Greeting, "request"),
+	() => runtime.runPromise(Greeting),
+)
+await runtime.dispose()
+
+const source = new AbortController()
+const subscription = nodeSubscriptionSignal({ signals: [source.signal] })
+source.abort()
+subscription.dispose()
+
+if (application !== "application" || request !== "request" || !subscription.signal.aborted) {
+	throw new Error("The packed runtime and node-http entries misbehaved")
+}
+`,
+	);
+
+	execute(
+		"pnpm",
+		[
+			"install",
+			"--ignore-scripts",
+			"--frozen-lockfile=false",
+			"--store-dir",
+			join(repositoryRoot, ".pnpm-store"),
+		],
+		runtimeConsumer,
+	);
+	const optionalPeerPrefixes = [
+		"@effect+vitest@",
+		"@prisma-next+",
+		"@shivaedev+effect-prisma@",
+		"@shivaedev+effect-test@",
+		"@shivaedev+effect-trpc@",
+		"@trpc+server@",
+		"better-auth@",
+		"vitest@",
+	];
+	const optionalPeers = (
+		await readdir(join(runtimeConsumer, "node_modules/.pnpm"))
+	).filter((name) =>
+		optionalPeerPrefixes.some((prefix) => name.startsWith(prefix)),
+	);
+	if (optionalPeers.length > 0) {
+		throw new Error(
+			`Installing platform with only effect pulled in ${optionalPeers.join(", ")}`,
+		);
+	}
+	execute(
+		join(packageRoot, "node_modules/.bin/tsc"),
+		["--project", "tsconfig.json"],
+		runtimeConsumer,
+	);
+	execute(
+		join(packageRoot, "node_modules/.bin/tsc"),
+		["--project", "tsconfig.nodenext.json"],
+		runtimeConsumer,
+	);
+	execute(
+		join(packageRoot, "node_modules/.bin/tsc6"),
+		["--project", "tsconfig.json"],
+		runtimeConsumer,
+	);
+	execute("node", ["index.ts"], runtimeConsumer);
 } finally {
 	await rm(temporaryDirectory, { force: true, recursive: true });
+	await rm(runtimeConsumer, { force: true, recursive: true });
 }

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.3.7",
+	"version": "0.3.8",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
 	"type": "module",
 	"license": "MIT",
@@ -68,10 +68,22 @@
 		"@shivaedev/effect-prisma": "0.6.3",
 		"@shivaedev/effect-trpc": "0.3.4",
 		"@trpc/server": "catalog:",
-		"better-auth": "catalog:",
+		"better-auth": "^1.6.25",
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@effect/vitest": {
+			"optional": true
+		},
+		"@shivaedev/effect-prisma": {
+			"optional": true
+		},
+		"@shivaedev/effect-trpc": {
+			"optional": true
+		},
+		"@trpc/server": {
+			"optional": true
+		},
 		"better-auth": {
 			"optional": true
 		}
