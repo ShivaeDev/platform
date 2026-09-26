@@ -6,31 +6,31 @@ import { decodeRejection, rejectionOf } from "../src/client.ts";
 import { rejectWith } from "../src/index.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "./support/http.ts";
 
-class MealNotFound extends Schema.TaggedError<MealNotFound>()("MealNotFound", {}) {}
+class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}
 
-const Draft = Schema.Struct({ name: Schema.String, calories: Schema.Number });
+const Draft = Schema.Struct({ name: Schema.String, quantity: Schema.Number });
 
-const Log = command("log", {
+const Place = command("place", {
 	payload: Draft,
 	success: Schema.String,
-	rejections: { MealNotFound, Invalid: fieldRejection(Draft) },
+	rejections: { OrderNotFound, Invalid: fieldRejection(Draft) },
 	invalidates: () => [],
 });
 
 const Forget = command("forget", { invalidates: () => [] });
 
-const log = ({ name, calories }: typeof Draft.Type): Effect.Effect<string, typeof Log.error.Type> => {
-	if (name === "missing") return Log.reject.MealNotFound();
-	if (calories < 0) return Log.reject.Invalid({ field: "calories", message: "Calories cannot be negative" });
-	return Effect.succeed(`logged:${name}`);
+const place = ({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typeof Place.error.Type> => {
+	if (name === "missing") return Place.reject.OrderNotFound();
+	if (quantity < 0) return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
+	return Effect.succeed(`placed:${name}`);
 };
 
 const router = t.router({
-	log: procedure.input(Log.payload).mutation(function* (draft) {
-		return yield* log(draft).pipe(rejectWith(Log.error));
+	place: procedure.input(Place.payload).mutation(function* (draft) {
+		return yield* place(draft).pipe(rejectWith(Place.error));
 	}),
 	forget: procedure.mutation(function* () {
-		return yield* Effect.fail(new MealNotFound()).pipe(rejectWith(Forget.error));
+		return yield* Effect.fail(new OrderNotFound()).pipe(rejectWith(Forget.error));
 	}),
 });
 
@@ -39,20 +39,20 @@ const client = createTRPCClient<typeof router>({ links: [httpBatchLink(inProcess
 afterAll(() => runtime.dispose());
 
 it("sends a contract field rejection that decodes to the operation's generated class", async () => {
-	const error = await failureOf(client.log.mutate({ name: "Soup", calories: -1 }));
+	const error = await failureOf(client.place.mutate({ name: "Desk lamps", quantity: -1 }));
 
 	expect(error).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });
-	expect(rejectionOf(error)).toEqual(Option.some({ _tag: "Invalid", field: "calories", message: "Calories cannot be negative" }));
-	const rejection = Option.getOrThrow(decodeRejection(Log.error)(error));
-	expect(rejection).toBeInstanceOf(Log.Rejection.Invalid);
-	expect(rejection).toMatchObject({ field: "calories", message: "Calories cannot be negative" });
+	expect(rejectionOf(error)).toEqual(Option.some({ _tag: "Invalid", field: "quantity", message: "Quantity cannot be negative" }));
+	const rejection = Option.getOrThrow(decodeRejection(Place.error)(error));
+	expect(rejection).toBeInstanceOf(Place.Rejection.Invalid);
+	expect(rejection).toMatchObject({ field: "quantity", message: "Quantity cannot be negative" });
 });
 
 it("sends a reused rejection class by its tag", async () => {
-	const error = await failureOf(client.log.mutate({ name: "missing", calories: 1 }));
+	const error = await failureOf(client.place.mutate({ name: "missing", quantity: 1 }));
 
-	expect(Option.getOrThrow(decodeRejection(Log.error)(error))).toBeInstanceOf(MealNotFound);
-	expect(await client.log.mutate({ name: "Soup", calories: 120 })).toBe("logged:Soup");
+	expect(Option.getOrThrow(decodeRejection(Place.error)(error))).toBeInstanceOf(OrderNotFound);
+	expect(await client.place.mutate({ name: "Desk lamps", quantity: 120 })).toBe("placed:Desk lamps");
 });
 
 it("keeps failures opaque for an operation without rejections", async () => {

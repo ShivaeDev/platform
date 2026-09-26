@@ -170,7 +170,7 @@ adds it to the error data, next to tRPC's own fields:
   `withRejection(shape, error)` inside it.
 - The error channel loses the declared types and gains `RejectionError`. An
   effect-contract operation's `error` schema works directly:
-  `rejectWith(SaveMeal.error)`.
+  `rejectWith(SaveOrder.error)`.
 
 The browser-safe `@shivaedev/effect-trpc/client` entry reads the rejection from
 a `TRPCClientError`:

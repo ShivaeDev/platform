@@ -50,7 +50,7 @@ test("anti-forgery, one-time code, access key and bank account names are redacte
 	];
 	const redacted = redact(Object.fromEntries(keys.map((key) => [key, `${key}-plaintext`])));
 	expect(redacted).toEqual(Object.fromEntries(keys.map((key) => [key, "<redacted>"])));
-	const visible = { pinned: true, options: 1, spinner: "a", topic: "b", pineapple: 2, accountName: "c" };
+	const visible = { pinned: true, options: 1, spinner: "a", topic: "b", pinboard: 2, accountName: "c" };
 	expect(redact(visible)).toEqual(visible);
 });
 
