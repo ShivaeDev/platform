@@ -2,6 +2,7 @@ const alternatives = (names) => `(?:${names.join("|")})`;
 
 const LEAVES = {
 	"effect-changes": [],
+	"effect-changes-prisma": ["effect-changes"],
 	"effect-contract": [],
 	"effect-form": [],
 	"effect-pg-boss": [],
@@ -11,7 +12,7 @@ const LEAVES = {
 	quality: [],
 };
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
-const SERVER = ["effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform"];
+const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform"];
 const BROWSER_ENTRIES = ["effect-trpc/src/client", "platform/src/errors", "platform/src/rpc"];
 const BROWSER_ENTRY_IMPORTS = ["effect"];
 
