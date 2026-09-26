@@ -1,0 +1,23 @@
+import { NodeServices } from "@effect/platform-node"
+import { acquireHeavyLock, HeavyLockError, HeldLock, heavyLockLayer, withHeavyLock } from "@shivaedev/heavy-lock"
+import { Effect, Layer } from "effect"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
+
+const build = Effect.gen(function* () {
+  const held = yield* HeldLock
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
+  return yield* spawner.exitCode(ChildProcess.make("pnpm", ["build"], { env: { ...held.env }, extendEnv: true, stdout: "inherit", stderr: "inherit" }))
+})
+
+export const program: Effect.Effect<number, HeavyLockError | import("effect").PlatformError.PlatformError> = withHeavyLock(build, {
+  command: "pnpm build",
+  lockPath: "/tmp/heavy.lock",
+  pollInterval: "2 seconds",
+}).pipe(Effect.provide(NodeServices.layer))
+
+export const scoped = Effect.scoped(acquireHeavyLock()).pipe(Effect.provide(NodeServices.layer))
+export const layered: Layer.Layer<HeldLock, HeavyLockError> = heavyLockLayer().pipe(Layer.provide(NodeServices.layer))
+export const failure = (error: HeavyLockError): string => error.message
+
+// @ts-expect-error The lock needs Node services until they are provided.
+export const unprovided: Effect.Effect<number, unknown> = withHeavyLock(build)

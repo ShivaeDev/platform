@@ -1,0 +1,12 @@
+const { collection, contract, invalidationKeys, query } = await import('@shivaedev/effect-contract');
+const { Effect, Schema } = await import('effect');
+const { RpcTest } = await import('effect/unstable/rpc');
+const notes = collection('notes', Schema.Number);
+const Notes = contract('notes', { queries: [query('list', { success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
+const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.list': () => Effect.succeed(['written']) })));
+const result = await Effect.runPromise(Effect.gen(function* () {
+ const client = yield* RpcTest.makeClient(Notes);
+ return yield* client['notes.list']();
+}).pipe(Effect.provide(layer), Effect.scoped));
+if (result.join() !== 'written') throw new Error('Packed contract did not return its handler result');
+if (invalidationKeys([notes.item(1)]).join() !== 'notes:1,notes') throw new Error('Packed keys did not expand');

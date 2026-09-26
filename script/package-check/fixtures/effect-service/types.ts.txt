@@ -1,0 +1,20 @@
+import { Context, Effect, Layer } from "effect"
+import { defineService } from "@shivaedev/effect-service"
+
+class Prefix extends Context.Service<Prefix, string>()("@consumer/Prefix") {}
+const Greetings = defineService({
+  id: "@consumer/Greetings",
+  requires: [Prefix],
+  initialize: Effect.void,
+  methods: () => ({ greet: (name: string) => Effect.map(Prefix, prefix => prefix + name) }),
+})
+const layer = Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "Hello ")))
+const program = Effect.gen(function* () {
+  const greetings = yield* Greetings
+  const greeting: string = yield* greetings.greet("Ada")
+  // @ts-expect-error Arguments remain checked through the packed declarations.
+  greetings.greet(42)
+  return greeting
+}).pipe(Effect.provide(layer))
+const runnable: Effect.Effect<string> = program
+void runnable

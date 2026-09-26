@@ -1,0 +1,71 @@
+import { makeDatabase } from "@shivaedev/effect-prisma"
+import { initTRPC } from "@trpc/server"
+import type { BetterAuthOptions } from "better-auth"
+import { Effect, Layer, Stream } from "effect"
+import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc"
+import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+import { makePlatformIt } from "@shivaedev/platform/testing"
+import { Conflict, rejectedField } from "@shivaedev/platform/errors"
+import { Authenticated, Identity } from "@shivaedev/platform/rpc"
+import { authenticatedLayer, betterAuthSessions, trustedOrigins } from "@shivaedev/platform/rpc-server"
+import type { Contract } from "./contract.js"
+import contractJson from "./contract.json" with { type: "json" }
+
+const Database = makeDatabase<Contract>()("@consumer/Database", { contractJson })
+const DatabaseLive = Database.layer({ url: "postgresql://compile-only" })
+const runtime = makePlatformRuntime(DatabaseLive)
+const disconnect = nodeSubscriptionSignal({ signals: [new AbortController().signal] })
+disconnect.dispose()
+const adapter = makeEffectTRPC({ runtime })
+const authDatabase = effectPrismaAdapter(Database, runtime)({} satisfies BetterAuthOptions)
+const t = initTRPC.context<{ readonly actor: string }>().create()
+const procedure = adapter.procedure(t.procedure, makeRequestServices(() => Layer.empty))
+const router = t.router({
+  count: procedure.query(function* () {
+    const db = yield* Database
+    return yield* db.User.count()
+  }),
+  counts: procedure.subscription(function* () {
+    const db = yield* Database
+    return Stream.fromEffect(db.User.count())
+  }),
+})
+
+const session = authenticatedLayer({
+  provider: betterAuthSessions(() => Promise.resolve({ user: { id: "packed" } })),
+  origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+})
+const rejected = rejectedField(new Conflict({ message: "Taken", field: "email" }))
+const identity = Effect.map(Identity, ({ id }) => id.toUpperCase())
+void [session, rejected, identity, Authenticated]
+
+const it = makePlatformIt(Database)({
+  adapter,
+  createCaller: (options = { actor: "default" }) => router.createCaller(options),
+  layer: DatabaseLive,
+  extend: () => Effect.succeed({ fixture: "typed" as const }),
+})
+
+type IsAny<Value> = 0 extends (1 & Value) ? true : false
+
+it.effectApp("retains packed harness types", function* ({ db, fixture, promise, trpc }) {
+	const databaseIsAny: IsAny<typeof db> = false
+	const fixtureIsAny: IsAny<typeof fixture> = false
+	const count: number = yield* trpc.count()
+  const users = yield* db.User.where({ email: "typed@example.test" })
+  users[0]?.email.toUpperCase()
+	fixture.toUpperCase()
+	void databaseIsAny
+	void fixtureIsAny
+	void count
+	void promise(() => authDatabase.count({ model: "user" }))
+
+  // @ts-expect-error Unknown procedures remain rejected through the packed package.
+  yield* trpc.missing()
+	// @ts-expect-error Unknown models remain rejected through the packed package.
+	db.Movie
+	// @ts-expect-error Application extensions do not widen unknown properties.
+	fixture.missing
+})

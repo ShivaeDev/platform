@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Validate packed consumers and executable bins through the shared workspace gate.
+
 ## 0.1.1 - 2026-09-26
 
 ### Changed

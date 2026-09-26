@@ -1,0 +1,6 @@
+import { defineConfig } from "@shivaedev/quality"
+
+export const typed = defineConfig({
+  // @ts-expect-error Built-in rule options stay typed through the packed declarations.
+  rules: { "structure/max-lines": { options: { source: "many" } } },
+})

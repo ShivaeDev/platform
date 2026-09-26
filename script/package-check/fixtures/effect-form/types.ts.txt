@@ -1,0 +1,32 @@
+import { Effect, Layer, Schema } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import { make, type Form } from "@shivaedev/effect-form";
+import { useField, useSubmit } from "@shivaedev/effect-form/react";
+const schema = Schema.Struct({ count: Schema.NumberFromString });
+const form = make(schema, {
+  initialValues: { count: "1" },
+  runtime: Atom.runtime(Layer.empty),
+  onSubmit: (values) => {
+    const count: number = values.count;
+    return Effect.succeed(count);
+  },
+});
+const encoded: string = form.field("count").value;
+void encoded;
+void (form satisfies Form<typeof schema.fields, number, never, never>);
+// @ts-expect-error Field names come from the schema.
+form.field("missing");
+// @ts-expect-error Editing accepts encoded values.
+form.change("count", 1);
+function Consumer() {
+  const field = useField(form, "count");
+  const value: string = field.value;
+  const submit = useSubmit(form);
+  const run: () => void = submit.run;
+  void value;
+  void run;
+  // @ts-expect-error React field values retain the encoded type.
+  field.onChange(12);
+  return null;
+}
+void Consumer;

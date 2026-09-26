@@ -1,0 +1,21 @@
+import { Effect, Schema } from "effect"
+import { defineConfig, defineRule } from "@shivaedev/quality"
+
+const Marker = Schema.Struct({ marker: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("TODO"))) })
+
+const noTodo = defineRule({
+  id: "local/no-todo",
+  description: "Resolve markers before merging.",
+  options: Schema.toStandardSchemaV1(Marker),
+  check: ({ options, sources }) =>
+    sources.flatMap((file) =>
+      file.lines.flatMap((text, index) =>
+        text.includes(options.marker) ? [{ file: file.path, line: index + 1, message: "Resolve this " + options.marker + "." }] : []),
+    ),
+})
+
+export default defineConfig({
+  local: [noTodo],
+  rules: { "structure/max-lines": { options: { source: 3 } }, "local/no-todo": { options: { marker: "FIXME" } } },
+  sources: ["src"],
+})

@@ -1,0 +1,11 @@
+const { makeChannel } = await import('@shivaedev/effect-changes');
+const { Context, Effect, Exit } = await import('effect');
+const Owner = Context.Service('consumer/Owner');
+const published = [];
+const channel = makeChannel({ name: 'Consumer', owner: Effect.service(Owner), publish: (changes) => Effect.sync(() => published.push(changes)) });
+const native = (body) => body;
+const run = (effect) => Effect.runPromiseExit(Effect.provideService(effect, Owner, 'main'));
+await run(channel.within(native)(Effect.andThen(channel.record(['a', 'b']), channel.record(['a']))));
+const failed = await run(channel.within(native)(Effect.andThen(channel.record(['c']), Effect.fail('rejected'))));
+if (!Exit.isFailure(failed)) throw new Error('Packed channel swallowed a failure');
+if (JSON.stringify(published) !== '[["a","b"]]') throw new Error('Packed channel published ' + JSON.stringify(published));

@@ -1,0 +1,18 @@
+{
+	"platform": [
+		{
+			"entries": ["./runtime", "./node-http", "./errors", "./rpc", "./rpc-server"],
+			"fixtures": ["runtime-minimal.ts.txt"],
+			"run": ["runtime-minimal.ts"],
+			"omitOptionalPeers": true
+		}
+	],
+	"effect-react": [
+		{
+			"entries": ["."],
+			"fixtures": ["hooks-types.ts.txt"],
+			"run": [],
+			"omitOptionalPeers": true
+		}
+	]
+}

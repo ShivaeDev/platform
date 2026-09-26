@@ -1,0 +1,21 @@
+import { Effect, Schema } from "effect"
+import { collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract"
+
+class Missing extends Schema.TaggedError<Missing>()("Missing", {}) {}
+const Draft = Schema.Struct({ title: Schema.String })
+const notes = collection("notes", Schema.Number)
+const Get = query("get", { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] })
+const Rename = command("rename", {
+  payload: { id: Schema.Number, title: Schema.String },
+  rejections: { Missing, Invalid: fieldRejection(Draft) },
+  invalidates: ({ id }) => [notes.item(id)],
+})
+const Notes = contract("notes", { queries: [Get], commands: [Rename] })
+export const handlers = Notes.of({
+  "notes.get": ({ id }) => (id === 1 ? Effect.succeed("one") : Get.reject.Missing()),
+  "notes.rename": ({ title }) => (title === "" ? Rename.reject.Invalid({ field: "title", message: "Enter a title" }) : Effect.void),
+})
+// @ts-expect-error Key ids keep the collection's id type through the packed declarations.
+notes.item("1")
+// @ts-expect-error Field rejections accept only the struct's keys.
+Rename.reject.Invalid({ field: "body", message: "" })

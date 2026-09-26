@@ -1,0 +1,22 @@
+import { Context, Effect } from "effect"
+import { type Frame, makeChannel, type Outcome } from "@shivaedev/effect-changes"
+
+class Owner extends Context.Service<Owner, string>()("consumer/Owner") {}
+interface Event { readonly subject: string; readonly domain: string }
+
+const channel = makeChannel<Event, Owner>({
+  name: "Consumer",
+  owner: Effect.service(Owner),
+  key: (event) => `${event.subject}:${event.domain}`,
+  publish: (events) => Effect.log(events.length),
+})
+const recorded: Effect.Effect<void, never, Owner> = channel.record([{ subject: "owner", domain: "memberships" }, { subject: "member", domain: "memberships" }])
+const body: Effect.Effect<number, "rejected", Owner> = Effect.as(recorded, 1)
+const wrapped: Effect.Effect<number, "rejected", Owner> = channel.within(<X, E, R>(effect: Effect.Effect<X, E, R>) => effect)(body)
+const opened: Effect.Effect<Frame, never, Owner> = channel.open
+const outcome: Outcome = "rolledBack"
+// @ts-expect-error Outcomes are only committed or rolledBack.
+const invalid: Outcome = "aborted"
+// @ts-expect-error Recorded changes keep the channel's change type.
+channel.record([{ subject: "owner" }])
+void [wrapped, opened, outcome, invalid]
