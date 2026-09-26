@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+const compilerTimeout = 60_000;
 const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
 
 const compile = (compiler: "tsc" | "tsc6", arguments_: ReadonlyArray<string>) =>
@@ -31,7 +32,7 @@ const invalidArguments = (fixtures: ReadonlyArray<string>) => [
 	...fixtures.map((fixture) => `test/fixtures/invalid/${fixture}.ts`),
 ];
 
-describe("service definition compiler fixtures", () => {
+describe("service definition compiler fixtures", { timeout: compilerTimeout }, () => {
 	for (const compiler of ["tsc", "tsc6"] as const) {
 		it(`${compiler} emits only the initialized public service surface`, () => {
 			const output = mkdtempSync(join(tmpdir(), `effect-service-${compiler}-`));

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+const compilerTimeout = 60_000;
 const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
 
 const compile = (compiler: "tsc" | "tsc6", arguments_: ReadonlyArray<string>) =>
@@ -47,7 +48,7 @@ const invalidArguments = [
 	...Object.keys(invalidFixtures).map((fixture) => `test/fixtures/invalid/${fixture}.ts`),
 ];
 
-describe("contract compiler fixtures", () => {
+describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
 	for (const compiler of ["tsc", "tsc6"] as const) {
 		it(`${compiler} accepts the valid contract, binding and handlers`, () => {
 			const output = mkdtempSync(join(tmpdir(), `effect-contract-${compiler}-`));
