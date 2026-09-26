@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-09-26
+
+### Added
+
+- Map the Platform `TooManyRequests` rejection to `TOO_MANY_REQUESTS`, which
+  tRPC sends as HTTP 429.
+
 ## 0.4.0 - 2026-09-26
 
 ### Added

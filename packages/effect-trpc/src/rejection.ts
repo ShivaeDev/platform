@@ -8,6 +8,7 @@ const TAXONOMY_CODES = new Map<string, TRPC_ERROR_CODE_KEY>([
 	["Forbidden", "FORBIDDEN"],
 	["Conflict", "CONFLICT"],
 	["PreconditionFailed", "PRECONDITION_FAILED"],
+	["TooManyRequests", "TOO_MANY_REQUESTS"],
 	["AuthUnavailable", "SERVICE_UNAVAILABLE"],
 ]);
 

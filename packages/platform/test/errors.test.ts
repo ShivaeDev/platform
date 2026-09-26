@@ -1,10 +1,10 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
 import { expect, test } from "vitest";
-import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, rejectedField } from "../src/errors.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
 import { httpClient, rpcHttp, serve } from "./rpc/support.ts";
 
-const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed]);
+const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests]);
 const Profiles = RpcGroup.make(Rpc.make("Rename", { payload: { name: Schema.String }, success: Schema.String, error: Rejection }));
 
 const Handlers = Profiles.toLayer({
@@ -13,6 +13,7 @@ const Handlers = Profiles.toLayer({
 		if (name === "taken") return Effect.fail(new Conflict({ message: "Name is taken", field: "name" }));
 		if (name === "stale") return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
 		if (name === "missing") return Effect.fail(new NotFound({ message: "No profile" }));
+		if (name === "busy") return Effect.fail(new TooManyRequests({ message: "Slow down" }));
 		return Effect.succeed(name);
 	},
 });
@@ -35,6 +36,10 @@ test("taxonomy errors cross native RPC JSON as decoded instances with their fiel
 		expect(stale).toBeInstanceOf(PreconditionFailed);
 		expect(rejectedField(stale)).toEqual(Option.none());
 		expect(await rename("missing")).toMatchObject({ _tag: "NotFound", message: "No profile" });
+		const busy = await rename("busy");
+		expect(busy).toBeInstanceOf(TooManyRequests);
+		expect(busy).toMatchObject({ message: "Slow down" });
+		expect(rejectedField(busy)).toEqual(Option.none());
 	} finally {
 		await app.dispose();
 	}
@@ -49,6 +54,7 @@ test("taxonomy errors encode to tagged JSON and any tagged error with a field is
 		field: "name",
 	});
 	expect(Schema.encodeSync(Rejection)(new BadRequest({ message: "Malformed" }))).toEqual({ _tag: "BadRequest", message: "Malformed" });
+	expect(Schema.encodeSync(Rejection)(new TooManyRequests({ message: "Slow down" }))).toEqual({ _tag: "TooManyRequests", message: "Slow down" });
 	expect(rejectedField(new BadRequest({ message: "Malformed" }))).toEqual(Option.none());
 	expect(rejectedField(new Forbidden({ message: "No" }))).toEqual(Option.none());
 	expect(rejectedField({ _tag: "Conflict", message: "Encoded", field: "name" })).toEqual(Option.some({ field: "name", message: "Encoded" }));

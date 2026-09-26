@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.2 - 2026-09-26
+
+### Added
+
+- `TooManyRequests` in `@shivaedev/platform/errors`, a rejection with a
+  `message` for a caller that exceeded a rate limit. Effect tRPC sends it as
+  `TOO_MANY_REQUESTS`, HTTP 429.
+
+### Changed
+
+- Require Effect tRPC 0.4.1, which maps `TooManyRequests` to HTTP 429.
+
 ## 0.4.1 - 2026-09-26
 
 ### Changed

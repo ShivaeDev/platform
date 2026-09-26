@@ -159,6 +159,7 @@ adds it to the error data, next to tRPC's own fields:
   | `Forbidden` | `FORBIDDEN` | 403 |
   | `Conflict` | `CONFLICT` | 409 |
   | `PreconditionFailed` | `PRECONDITION_FAILED` | 412 |
+  | `TooManyRequests` | `TOO_MANY_REQUESTS` | 429 |
   | `AuthUnavailable` | `SERVICE_UNAVAILABLE` | 503 |
   | any other, including `BadRequest` | `BAD_REQUEST` | 400 |
 - When a procedure's input schema rejects the input, the formatter sends a

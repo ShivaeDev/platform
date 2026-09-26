@@ -80,9 +80,10 @@ fallback remains available.
 
 `@shivaedev/platform/errors` exports browser-safe `Schema.TaggedError` classes:
 `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest` and `Conflict` (both with an
-optional `field`), `PreconditionFailed` and `AuthUnavailable`. Use them as native
-RPC error schemas or effect-contract rejections. `rejectedField(error)` extracts
-`{ field, message }` from any field rejection so a form can show it.
+optional `field`), `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable`.
+Use them as native RPC error schemas or effect-contract rejections.
+`rejectedField(error)` extracts `{ field, message }` from any field rejection so a
+form can show it.
 
 `@shivaedev/platform/rpc` declares the `RequestTracing`, `Authenticated` and
 `MaybeAuthenticated` middleware and the `RequestId`, `Identity` and

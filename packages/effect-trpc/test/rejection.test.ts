@@ -43,8 +43,20 @@ describe("rejectWith", () => {
 describe("rejection codes and shapes", () => {
 	it("maps the Platform taxonomy tags and defaults to BAD_REQUEST", () => {
 		expect(
-			["NotFound", "Unauthorized", "Forbidden", "Conflict", "PreconditionFailed", "AuthUnavailable", "BadRequest", "toString"].map(rejectionCode),
-		).toEqual(["NOT_FOUND", "UNAUTHORIZED", "FORBIDDEN", "CONFLICT", "PRECONDITION_FAILED", "SERVICE_UNAVAILABLE", "BAD_REQUEST", "BAD_REQUEST"]);
+			["NotFound", "Unauthorized", "Forbidden", "Conflict", "PreconditionFailed", "TooManyRequests", "AuthUnavailable", "BadRequest", "toString"].map(
+				rejectionCode,
+			),
+		).toEqual([
+			"NOT_FOUND",
+			"UNAUTHORIZED",
+			"FORBIDDEN",
+			"CONFLICT",
+			"PRECONDITION_FAILED",
+			"TOO_MANY_REQUESTS",
+			"SERVICE_UNAVAILABLE",
+			"BAD_REQUEST",
+			"BAD_REQUEST",
+		]);
 	});
 
 	it("uses the tag as the message when the rejection has none", () => {

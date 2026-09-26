@@ -1,7 +1,7 @@
 import { Effect, type Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
 import { expectTypeOf } from "vitest";
-import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, Unauthorized } from "../src/errors.ts";
+import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "../src/errors.ts";
 import { Authenticated, Identity, OptionalIdentity, RequestId, RequestTracing } from "../src/rpc.ts";
 import { authenticatedLayer, betterAuthSessions, requestTracingLayer, trustedOrigins } from "../src/rpc-server.ts";
 
@@ -45,6 +45,7 @@ const rejections: Readonly<Record<string, TaggedRejection>> = {
 	BadRequest,
 	Conflict,
 	PreconditionFailed,
+	TooManyRequests,
 	AuthUnavailable,
 };
 void rejections;
