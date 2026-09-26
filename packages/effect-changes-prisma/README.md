@@ -84,7 +84,7 @@ checkCoverage<A>(coverage: Coverage<A>): ReadonlyArray<CoverageViolation>
 | --- | --- |
 | The body succeeds and `$transaction` resolves | Publish once, before `transaction` returns; a savepoint merges into its parent |
 | The body fails, dies or is interrupted | Prisma rolls back; discard; the body's failure is returned unchanged |
-| The body succeeds but `COMMIT` fails, the transaction times out or cannot start | Discard; fail with `PrismaError` |
+| The body succeeds but `COMMIT` fails or the transaction times out | Discard; fail with `PrismaError` |
 | The caller is interrupted while the body runs | The body is interrupted, Prisma rolls back, nothing publishes |
 | The caller is interrupted while `COMMIT` is in flight | Keep waiting; publish if the database committed; the caller still sees the interruption |
 
@@ -120,7 +120,7 @@ const violations = checkCoverage({
 
 - `tablesOf` reads the table of every model from Prisma schema text, honouring `@@map`; a model without it uses its name. Pass an explicit `Map` instead if your tables come from elsewhere.
 - `writtenTables(client)` must run on the test's own transaction: PostgreSQL counts inserted, updated and deleted rows per transaction, including rows written in savepoints that rolled back.
-- `checkCoverage` is a pure function and never throws. It reports each written table whose model is not mapped to `null` and for which no `Recorded` observation satisfies `covers`, as `Unrecorded` (with `model: undefined` when no model owns the table), and each distinct unnamed write as `Unnamed`. `Recorded` includes changes whose frame was later discarded, matching the statistics.
+- `checkCoverage` is a pure function and throws only if `covers` throws. It reports each written table whose model is not mapped to `null` and for which no `Recorded` observation satisfies `covers`, as `Unrecorded` (with `model: undefined` when no model owns the table), and each distinct unnamed write as `Unnamed`. `Recorded` includes changes whose frame was later discarded, matching the statistics.
 - Raw SQL, relation writes nested in `data`, cascades and triggers write tables that nothing records; the check is how they surface. Filter the result if a table is written legitimately without a change.
 
 ## Limits
