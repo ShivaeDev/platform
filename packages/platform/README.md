@@ -7,6 +7,10 @@ database, transport, and test framework.
 Generic Prisma and tRPC integrations remain available separately from
 `@shivaedev/effect-prisma` and `@shivaedev/effect-trpc`.
 
+`@shivaedev/effect-prisma` and `better-auth` are optional peers. Install Effect
+Prisma to use the `better-auth` or `testing` entries, and Better Auth to use the
+`better-auth` entry. The `runtime` and `node-http` entries need neither.
+
 ## Runtime
 
 Build one managed runtime for the application and share it with integrations:

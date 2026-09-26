@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.8 - 2026-09-26
+
+### Changed
+
+- Make Effect Prisma an optional peer. Applications that import only the
+  `runtime` and `node-http` entries no longer install Effect Prisma and Prisma
+  Next; the `better-auth` and `testing` entries still require it.
+
 ## 0.3.7 - 2026-09-04
 
 ### Changed
