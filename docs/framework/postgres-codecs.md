@@ -25,15 +25,15 @@ transaction, with `ON COMMIT DROP`.
 This is the relevant portion of the tested model, not a second query schema:
 
 ```ts
-class Measurement extends Model.Class<Measurement>("Measurement")({
+class Payment extends Model.Class<Payment>("Payment")({
   id: Model.Field({
     select: Schema.Number,
     update: Schema.Number,
     json: Schema.Number,
   }),
   amount: Schema.BigDecimalFromString,
-  observed_at: Schema.Date,
-  details: Schema.Struct({ source: Schema.String, samples: Schema.Int }),
+  settled_at: Schema.Date,
+  details: Schema.Struct({ channel: Schema.String, attempts: Schema.Int }),
   note: Schema.NullOr(Schema.String),
   created_at: Model.Field({
     select: Schema.Date,
@@ -41,18 +41,18 @@ class Measurement extends Model.Class<Measurement>("Measurement")({
   }),
 }) {}
 
-const measurements = yield* makeRepository(Measurement, {
-  tableName: "measurements",
+const payments = yield* makeRepository(Payment, {
+  tableName: "payments",
   idColumn: "id",
-  spanPrefix: "Measurement",
+  spanPrefix: "Payment",
 })
 
-const rows = yield* measurements.findMany({
+const rows = yield* payments.findMany({
   where: { amount: BigDecimal.fromStringUnsafe("9007199254740993.123456789012") },
   select: ["amount", "details"],
 })
 // Inferred: Array<{ readonly amount: BigDecimal;
-//   readonly details: { readonly source: string; readonly samples: number } }>
+//   readonly details: { readonly channel: string; readonly attempts: number } }>
 ```
 
 `fromStringUnsafe` above constructs a known constant. Decode untrusted decimal
@@ -68,7 +68,7 @@ these tests cover the database boundary, not decimal/date RPC serialization.
 
 The tests deliberately write valid SQL values that violate the model:
 
-- A JSON object with a string `samples` fails native `findById` with
+- A JSON object with a string `attempts` fails native `findById` with
   `SchemaError`.
 - JSON `null` fails `findMany({ select: ["details"] })`, because the object
   schema does not permit it. JSON null is distinct from SQL NULL.
