@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 - 2026-09-26
+
+### Changed
+
+- Load only the Node modules the `quality` command uses, so it starts in about
+  half the time.
+
 ## 0.1.0 - 2026-09-26
 
 ### Added

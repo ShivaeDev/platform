@@ -1,4 +1,5 @@
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Cause, Console, Effect, Exit, type FileSystem, Runtime } from "effect";
 import { SetupFailure } from "../failure.ts";
 
