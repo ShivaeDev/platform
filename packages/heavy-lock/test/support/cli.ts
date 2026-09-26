@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { dirname } from "node:path";
+import { performance } from "node:perf_hooks";
 import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -17,11 +18,7 @@ export interface Exit {
 	readonly stderr: string;
 }
 
-export interface Started {
-	readonly pid: number;
-	readonly stderr: () => string;
-	readonly exited: Promise<Exit>;
-}
+export const TEST_TIMEOUT_MS = 20_000;
 
 const killGroup = (pid: number | undefined): void => {
 	if (pid === undefined) {
@@ -34,10 +31,23 @@ const killGroup = (pid: number | undefined): void => {
 	}
 };
 
+export interface Started {
+	readonly pid: number;
+	readonly stderr: () => string;
+	readonly exited: Promise<Exit>;
+	readonly stop: () => void;
+}
+
 // A run that deadlocks is killed with every process it started, so the test fails instead of hanging.
 export const start = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Started => {
 	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, env, detached: true, stdio: ["ignore", "ignore", "pipe"] });
-	const deadline = setTimeout(() => killGroup(child.pid), 20_000);
+	let running = true;
+	const stop = () => {
+		if (running) {
+			killGroup(child.pid);
+		}
+	};
+	const deadline = setTimeout(stop, TEST_TIMEOUT_MS);
 	let stderr = "";
 	child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
 		stderr += chunk;
@@ -45,24 +55,36 @@ export const start = (args: ReadonlyArray<string>, env: Record<string, string>, 
 	const exited = new Promise<Exit>((resolve, reject) => {
 		child.on("error", reject);
 		child.on("close", (status) => {
+			running = false;
 			clearTimeout(deadline);
 			resolve({ status, stderr });
 		});
 	});
-	return { pid: child.pid ?? 0, stderr: () => stderr, exited };
+	return { pid: child.pid ?? 0, stderr: () => stderr, exited, stop };
 };
 
 export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Promise<Exit> => start(args, env, cwd).exited;
 
-// Holds the lock until the test creates the release file, so no assertion depends on the machine's speed; it also stops once the test's directory is removed, so a failed test leaves no loop behind.
+// The command runs outside the test's process group, so a test run that dies without cleaning up cannot stop it; the loop gives up on its own after about the test timeout.
+export const pollWhile = (condition: string): string =>
+	`give_up=$(($(date +%s) + ${TEST_TIMEOUT_MS / 1000})); while ${condition} && [ "$(date +%s)" -lt "$give_up" ]; do sleep 0.02; done`;
+
+// Holds the lock until the test creates the release file or removes its directory, and fails if neither happens within the bound.
 export const holdUntil = (release: string): ReadonlyArray<string> => [
 	"/bin/sh",
 	"-c",
-	`while [ ! -e "${release}" ] && [ -d "${dirname(release)}" ]; do sleep 0.02; done`,
+	`${pollWhile(`[ ! -e "${release}" ] && [ -d "${dirname(release)}" ]`)}; test -e "${release}"`,
 ];
 
+// Gives up well inside the test timeout, so a failing test still reaches its cleanup before the directories are removed.
+const WAIT_MS = TEST_TIMEOUT_MS / 2;
+
 export const waitFor = async (condition: () => boolean): Promise<void> => {
+	const deadline = performance.now() + WAIT_MS;
 	while (!condition()) {
+		if (performance.now() > deadline) {
+			throw new Error(`Condition not met within ${WAIT_MS} ms.`);
+		}
 		await sleep(10);
 	}
 };

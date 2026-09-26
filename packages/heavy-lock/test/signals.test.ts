@@ -1,15 +1,14 @@
 import { chmodSync, existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
-import { cliEnvironment, runCli, start, waitFor } from "./support/cli.ts";
+import { cliEnvironment, pollWhile, runCli, start, TEST_TIMEOUT_MS, waitFor } from "./support/cli.ts";
 import { holder, lockDirectory, readLock, removeTemporaryDirectories, temporaryDirectory, temporaryLock, writeLock } from "./support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
-const TIMEOUT = 20_000;
-
-const trapping = (ready: string) => `trap "exit 10" INT; trap "exit 11" TERM; trap "exit 12" HUP; touch "${ready}"; while :; do sleep 0.05; done`;
+const trapping = (ready: string) =>
+	`trap "exit 10" INT; trap "exit 11" TERM; trap "exit 12" HUP; touch "${ready}"; ${pollWhile(`[ -d "${dirname(ready)}" ]`)}; exit 1`;
 
 it.each([
 	["SIGINT", 10],
@@ -21,14 +20,18 @@ it.each([
 		const lock = temporaryLock();
 		const ready = join(temporaryDirectory(), "ready");
 		const run = start(["--", "/bin/sh", "-c", trapping(ready)], cliEnvironment(lock));
-		await waitFor(() => existsSync(ready));
+		try {
+			await waitFor(() => existsSync(ready));
 
-		process.kill(run.pid, signal);
+			process.kill(run.pid, signal);
 
-		expect((await run.exited).status).toBe(code);
-		expect(existsSync(lock)).toBe(false);
+			expect((await run.exited).status).toBe(code);
+			expect(existsSync(lock)).toBe(false);
+		} finally {
+			run.stop();
+		}
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -40,7 +43,7 @@ it(
 
 		expect(result).toEqual({ status: 0, stderr: "" });
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -49,17 +52,20 @@ it(
 		const lock = temporaryLock();
 		const ready = join(temporaryDirectory(), "ready");
 		const run = start(["--", "/bin/sh", "-c", `touch "${ready}"; exec sleep 10`], cliEnvironment(lock));
-		await waitFor(() => existsSync(ready));
+		try {
+			await waitFor(() => existsSync(ready));
+			process.kill(run.pid, "SIGINT");
+			expect((await run.exited).status).toBe(130);
+		} finally {
+			run.stop();
+		}
 
-		process.kill(run.pid, "SIGINT");
-		const interrupted = await run.exited;
 		const killed = await runCli(["--", "/bin/sh", "-c", "kill -KILL $$"], cliEnvironment(lock));
 
-		expect(interrupted.status).toBe(130);
 		expect(killed.status).toBe(137);
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -69,15 +75,19 @@ it(
 		const build = JSON.stringify(holder("build"));
 		writeLock(lock, build);
 		const waiter = start(["--", "true"], cliEnvironment(lock));
-		await waitFor(() => waiter.stderr().includes("waiting for"));
+		try {
+			await waitFor(() => waiter.stderr().includes("waiting for"));
 
-		process.kill(waiter.pid, "SIGTERM");
+			process.kill(waiter.pid, "SIGTERM");
 
-		expect((await waiter.exited).status).toBe(143);
-		expect(readLock(lock)).toBe(build);
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+			expect((await waiter.exited).status).toBe(143);
+			expect(readLock(lock)).toBe(build);
+			expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+		} finally {
+			waiter.stop();
+		}
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it.each([
@@ -100,5 +110,5 @@ it.each([
 		expect(existsSync(marker)).toBe(false);
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );

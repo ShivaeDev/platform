@@ -3,12 +3,10 @@ import { join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
 import { HOLDER_ID_ENV } from "../src/holder.ts";
-import { cliEnvironment, HEAVY_LOCK_CLI, holdUntil, runCli, start, waitFor } from "./support/cli.ts";
+import { cliEnvironment, HEAVY_LOCK_CLI, holdUntil, runCli, type Started, start, TEST_TIMEOUT_MS, waitFor } from "./support/cli.ts";
 import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "./support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
-
-const TIMEOUT = 20_000;
 
 it(
 	"runs a command holding the lock, hands it the holder's id, keeps its exit code, and releases",
@@ -21,7 +19,7 @@ it(
 		expect(result).toEqual({ status: 3, stderr: "" });
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -34,7 +32,7 @@ it(
 		expect(result).toEqual({ status: 3, stderr: "" });
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -43,21 +41,29 @@ it(
 		const lock = temporaryLock();
 		const release = join(temporaryDirectory(), "release");
 		const holding = holdUntil(release);
-		const first = start(["--", ...holding], cliEnvironment(lock));
-		await waitFor(() => readLock(lock) !== undefined);
+		const runs: Started[] = [];
+		try {
+			const first = start(["--", ...holding], cliEnvironment(lock));
+			runs.push(first);
+			await waitFor(() => readLock(lock) !== undefined);
+			const second = start(["--", "true"], cliEnvironment(lock));
+			runs.push(second);
+			await waitFor(() => second.stderr().includes("waiting for"));
+			writeFileSync(release, "");
+			const waited = await second.exited;
 
-		const second = start(["--", "true"], cliEnvironment(lock));
-		await waitFor(() => second.stderr().includes("waiting for"));
-		writeFileSync(release, "");
-		const waited = await second.exited;
-
-		expect((await first.exited).status).toBe(0);
-		expect(waited.status).toBe(0);
-		expect(waited.stderr).toContain(`waiting for pid ${first.pid} running \`${holding.join(" ")}\``);
-		expect(waited.stderr).toMatch(/acquired after \d+s/);
-		expect(existsSync(lock)).toBe(false);
+			expect((await first.exited).status).toBe(0);
+			expect(waited.status).toBe(0);
+			expect(waited.stderr).toContain(`waiting for pid ${first.pid} running \`${holding.join(" ")}\``);
+			expect(waited.stderr).toMatch(/acquired after \d+s/);
+			expect(existsSync(lock)).toBe(false);
+		} finally {
+			for (const run of runs) {
+				run.stop();
+			}
+		}
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -67,19 +73,23 @@ it(
 		const release = join(temporaryDirectory(), "release");
 		const holding = holdUntil(release);
 		const run = start(["--", ...holding], cliEnvironment(lock, { LANG: "de_DE.UTF-8", LC_ALL: "de_DE.UTF-8" }), "/");
-		await waitFor(() => readLock(lock) !== undefined);
+		try {
+			await waitFor(() => readLock(lock) !== undefined);
 
-		const recorded = readLock(lock) ?? "";
-		const processStartedAt = startTime(run.pid);
-		writeFileSync(release, "");
-		const { id, startedAtMs } = JSON.parse(recorded);
+			const recorded = readLock(lock) ?? "";
+			const processStartedAt = startTime(run.pid);
+			writeFileSync(release, "");
+			const { id, startedAtMs } = JSON.parse(recorded);
 
-		expect(recorded).toBe(
-			`{"id":"${id}","pid":${run.pid},"processStartedAt":"${processStartedAt}","command":${JSON.stringify(holding.join(" "))},"cwd":"/","startedAtMs":${startedAtMs}}`,
-		);
-		expect((await run.exited).status).toBe(0);
+			expect(recorded).toBe(
+				`{"id":"${id}","pid":${run.pid},"processStartedAt":"${processStartedAt}","command":${JSON.stringify(holding.join(" "))},"cwd":"/","startedAtMs":${startedAtMs}}`,
+			);
+			expect((await run.exited).status).toBe(0);
+		} finally {
+			run.stop();
+		}
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -94,7 +104,7 @@ it(
 		expect(result).toEqual({ status: 0, stderr: "" });
 		expect(readLock(lock)).toBe(typecheck);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it.each([[[]], [["sleep", "1"]], [["--"]]])(
@@ -107,7 +117,7 @@ it.each([[[]], [["sleep", "1"]], [["--"]]])(
 		expect(result).toEqual({ status: 2, stderr: "Usage: heavy-lock -- <command> [args...]\n" });
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
 
 it(
@@ -121,5 +131,5 @@ it(
 		expect(result.stderr).toMatch(/^no-such-command-anywhere: /);
 		expect(existsSync(lock)).toBe(false);
 	},
-	TIMEOUT,
+	TEST_TIMEOUT_MS,
 );
