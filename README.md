@@ -17,6 +17,9 @@ implementation and acceptance criteria.
   dependencies with native Effect Layers and caller-owned scopes.
 - [`@shivaedev/effect-changes`](./packages/effect-changes): Commit-bound change
   channels that publish recorded changes only after their transaction commits.
+- [`@shivaedev/effect-changes-prisma`](./packages/effect-changes-prisma):
+  Commit-bound changes recorded from Prisma Classic writes, with a test-time
+  coverage check.
 - [`@shivaedev/effect-sql`](./packages/effect-sql): Simple schema-derived
   repositories over native Effect SQL, and after-commit invalidation.
 - [`@shivaedev/effect-contract`](./packages/effect-contract): Query and command
