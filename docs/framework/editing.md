@@ -10,16 +10,16 @@ the root `@shivaedev/effect-react` entry does not load it.
 ```ts
 const editor = useEditor({
 	query: api.get.query({ id }),
-	fields: FoodFields,
-	values: (food) => ({ name: food.name, grams: String(food.grams) }),
+	fields: InvoiceLineFields,
+	values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
 	save: (values) => api.save.run({ id, ...values }),
-	runtime: FoodsClient.runtime,
+	runtime: InvoiceLinesClient.runtime,
 });
 if (editor.form === undefined) return editor.query.pending ? <Loading /> : <LoadFailed retry={editor.query.refresh} />;
-return <FoodForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
+return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
 ```
 
-Inside `FoodForm`, `useField(form, "name")` from `@shivaedev/effect-form/react`
+Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/effect-form/react`
 supplies value, change, blur and message.
 
 ## Behavior
@@ -59,7 +59,7 @@ messages after a reset.
 
 | Concern | tRPC + TanStack Query + RHF | This stack |
 | --- | --- | --- |
-| Load | `trpc.food.get.useQuery({ id })` | `api.get.query({ id })` passed to `useEditor` |
+| Load | `trpc.invoiceLine.get.useQuery({ id })` | `api.get.query({ id })` passed to `useEditor` |
 | Form defaults | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | `values(row)`; created on first data |
 | Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy | per-field merge by default |
 | Save | `useMutation` + `onSuccess: invalidate` + `reset(saved)` | `save: api.save.run(...)`; contract invalidates, editor receives the result |
@@ -74,8 +74,8 @@ checked against the form's field names at compile time.
 
 ## Evidence
 
-[`food-editor.test.tsx`](../../packages/effect-react/test/food-editor.test.tsx)
-renders a contract-bound food editor over in-process native RPC. It covers
+[`invoice-line-editor.test.tsx`](../../packages/effect-react/test/invoice-line-editor.test.tsx)
+renders a contract-bound invoice line editor over in-process native RPC. It covers
 initial loading, refresh failure with retained data and retry, dirty refresh,
 server normalization with an edit made while saving, an ignored second submit,
 field and non-field failures, remounting per id, create-reset during a save and

@@ -3,37 +3,37 @@ import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import { RpcMiddleware, RpcTest } from "effect/unstable/rpc";
 
-export class Food extends Schema.Class<Food>("Food")({
+export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 	id: Schema.Number,
 	name: Schema.String,
-	grams: Schema.Number,
+	quantity: Schema.Number,
 }) {}
-export const FoodDraft = Schema.Struct({ name: Food.fields.name, grams: Food.fields.grams });
+export const InvoiceLineDraft = Schema.Struct({ name: InvoiceLine.fields.name, quantity: InvoiceLine.fields.quantity });
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
-class Principal extends Context.Service<Principal, { readonly user: string }>()("food/Principal") {}
-class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("food/Guard", { error: Unauthorized }) {}
+class Principal extends Context.Service<Principal, { readonly user: string }>()("invoice/Principal") {}
+class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("invoice/Guard", { error: Unauthorized }) {}
 
-const foods = collection("foods", Food.fields.id);
-const GetFood = query("get", {
+const invoiceLines = collection("invoiceLines", InvoiceLine.fields.id);
+const GetInvoiceLine = query("get", {
 	payload: { id: Schema.Number },
-	success: Food,
-	rejections: { FoodNotFound: {}, Unavailable },
-	reads: ({ id }) => [foods.item(id)],
+	success: InvoiceLine,
+	rejections: { InvoiceLineNotFound: {}, Unavailable },
+	reads: ({ id }) => [invoiceLines.item(id)],
 });
-const SaveFood = command("save", {
-	payload: { id: Schema.Number, ...FoodDraft.fields },
-	success: Food,
-	rejections: { FoodRejected: fieldRejection(FoodDraft), Unavailable },
-	invalidates: ({ id }) => [foods.item(id)],
+const SaveInvoiceLine = command("save", {
+	payload: { id: Schema.Number, ...InvoiceLineDraft.fields },
+	success: InvoiceLine,
+	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	invalidates: ({ id }) => [invoiceLines.item(id)],
 });
-const CreateFood = command("create", {
-	payload: FoodDraft,
-	success: Food,
-	rejections: { FoodRejected: fieldRejection(FoodDraft), Unavailable },
-	invalidates: (_draft, food) => [foods.item(food.id), foods.list],
+const CreateInvoiceLine = command("create", {
+	payload: InvoiceLineDraft,
+	success: InvoiceLine,
+	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	invalidates: (_draft, line) => [invoiceLines.item(line.id), invoiceLines.list],
 });
-export const Foods = contract("foods", { queries: [GetFood], commands: [SaveFood, CreateFood] }).middleware(Guard);
+export const InvoiceLines = contract("invoiceLines", { queries: [GetInvoiceLine], commands: [SaveInvoiceLine, CreateInvoiceLine] }).middleware(Guard);
 
 interface Control {
 	mode: "ok" | "unavailable" | "unauthorized";
@@ -42,8 +42,8 @@ interface Control {
 	held: Deferred.Deferred<void> | undefined;
 }
 
-export const makeFoodServer = (initial: ReadonlyArray<Food>) => {
-	const store = new Map(initial.map((food) => [food.id, food]));
+export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
+	const store = new Map(initial.map((line) => [line.id, line]));
 	const control: Control = { mode: "ok", gets: 0, saves: 0, held: undefined };
 	const hold = () => {
 		const gate = Effect.runSync(Deferred.make<void>());
@@ -57,35 +57,35 @@ export const makeFoodServer = (initial: ReadonlyArray<Food>) => {
 		return gate === undefined ? Effect.void : Deferred.await(gate);
 	});
 	const normalized = (
-		draft: typeof FoodDraft.Type,
-	): Effect.Effect<typeof FoodDraft.Type, { readonly field: "name" | "grams"; readonly message: string }> => {
+		draft: typeof InvoiceLineDraft.Type,
+	): Effect.Effect<typeof InvoiceLineDraft.Type, { readonly field: "name" | "quantity"; readonly message: string }> => {
 		const name = draft.name.trim();
 		if (name.length > 20) return Effect.fail({ field: "name", message: "Name is too long" });
-		if (draft.grams > 5000) return Effect.fail({ field: "grams", message: "Too heavy" });
-		return Effect.succeed({ name: name.charAt(0).toUpperCase() + name.slice(1), grams: draft.grams });
+		if (draft.quantity > 5000) return Effect.fail({ field: "quantity", message: "Quantity is too large" });
+		return Effect.succeed({ name: name.charAt(0).toUpperCase() + name.slice(1), quantity: draft.quantity });
 	};
-	const stored = (food: Food) => Effect.sync(() => store.set(food.id, food)).pipe(Effect.as(food));
+	const stored = (line: InvoiceLine) => Effect.sync(() => store.set(line.id, line)).pipe(Effect.as(line));
 	const counted = Effect.sync(() => {
 		control.saves += 1;
 	}).pipe(Effect.andThen(admitted));
-	const handlers = Foods.toLayer({
-		"foods.get": ({ id }) =>
+	const handlers = InvoiceLines.toLayer({
+		"invoiceLines.get": ({ id }) =>
 			admitted.pipe(
 				Effect.andThen(() => {
 					control.gets += 1;
-					const food = store.get(id);
-					return food === undefined ? GetFood.reject.FoodNotFound() : Effect.succeed(food);
+					const line = store.get(id);
+					return line === undefined ? GetInvoiceLine.reject.InvoiceLineNotFound() : Effect.succeed(line);
 				}),
 			),
-		"foods.save": ({ id, ...draft }) =>
+		"invoiceLines.save": ({ id, ...draft }) =>
 			counted.pipe(
-				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => SaveFood.reject.FoodRejected(rejection)))),
-				Effect.flatMap((values) => stored(new Food({ id, ...values }))),
+				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => SaveInvoiceLine.reject.InvoiceLineRejected(rejection)))),
+				Effect.flatMap((values) => stored(new InvoiceLine({ id, ...values }))),
 			),
-		"foods.create": (draft) =>
+		"invoiceLines.create": (draft) =>
 			counted.pipe(
-				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateFood.reject.FoodRejected(rejection)))),
-				Effect.flatMap((values) => stored(new Food({ id: store.size + 1, ...values }))),
+				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateInvoiceLine.reject.InvoiceLineRejected(rejection)))),
+				Effect.flatMap((values) => stored(new InvoiceLine({ id: store.size + 1, ...values }))),
 			),
 	});
 	const guard = Layer.succeed(Guard, (effect) =>
@@ -93,12 +93,12 @@ export const makeFoodServer = (initial: ReadonlyArray<Food>) => {
 			control.mode === "unauthorized" ? Effect.fail(new Unauthorized()) : Effect.provideService(effect, Principal, { user: "ada" }),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/FoodClient", {
-		group: Foods,
+	class Client extends AtomRpc.Service<Client>()("test/InvoiceLineClient", {
+		group: InvoiceLines,
 		protocol: Layer.merge(handlers, guard),
-		makeEffect: RpcTest.makeClient(Foods, { flatten: true }),
+		makeEffect: RpcTest.makeClient(InvoiceLines, { flatten: true }),
 	}) {}
-	const api = bind(Foods, Client);
-	const edit = (food: Food) => store.set(food.id, food);
+	const api = bind(InvoiceLines, Client);
+	const edit = (line: InvoiceLine) => store.set(line.id, line);
 	return { api, runtime: Client.runtime, control, hold, edit, stored: (id: number) => store.get(id) };
 };

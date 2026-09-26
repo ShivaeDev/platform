@@ -2,7 +2,7 @@ import { Data, Effect, Layer, type Option, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import { useCreate, useEditor } from "../src/form.ts";
 
-const query = Atom.make(Effect.succeed({ id: 1, title: "Lunch" }));
+const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const fields = Schema.Struct({ title: Schema.String });
 const runtime = Atom.runtime(Layer.empty);
 const saveTitle = (values: { readonly title: string }) =>
