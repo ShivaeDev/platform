@@ -52,7 +52,7 @@ interface PrismaChanges<Tx, A, R> {
   readonly channel: Channel<A, R>;
   readonly Client: Context.Reference<Tx>;
   readonly use: <X>(query: (client: Tx) => PromiseLike<X>) => Effect<X, PrismaError, R>;
-  readonly transaction: <X, E, R2>(body: Effect<X, E, R2>, options?: TransactionOptions) => Effect<X, E | PrismaError, R | R2>;
+  readonly transaction: <X, E, R2>(body: Effect<X, E, R2>, options?: TransactionOptions) => Effect<X, E | TransactionExpired | PrismaError, R | R2>;
   readonly recordWrite: (write: Write) => Effect<void, never, R>;
   readonly Unnamed: Context.Reference<(write: UnnamedWrite) => Effect<void>>;
 }
@@ -63,6 +63,7 @@ type UnnamedWrite =
   | { readonly model: string; readonly operation: string; readonly reason: "countOnly" }
   | { readonly model: string; readonly operation: string; readonly reason: "narrowed"; readonly field: string };
 class PrismaError { readonly _tag: "PrismaError"; readonly cause: unknown }
+class TransactionExpired { readonly _tag: "TransactionExpired"; readonly message: string; readonly cause?: unknown }
 
 tablesOf(schema: string): ReadonlyMap<string, string>
 tableWrites(client: RawQueryClient): Effect<TableWrites, PrismaError>
@@ -83,11 +84,17 @@ checkCoverage<A>(coverage: Coverage<A>): ReadonlyArray<CoverageViolation>
 
 | Situation | Result |
 | --- | --- |
+| `$transaction` cannot start, for example because no connection frees up within `maxWait` | The body never runs; fail with `PrismaError`, even though Prisma reports it as `P2028` |
 | The body succeeds and `$transaction` resolves | Publish once, before `transaction` returns; a savepoint merges into its parent |
 | The body fails, dies or is interrupted | Prisma rolls back; discard; the body's failure is returned unchanged |
-| The body succeeds but `COMMIT` fails or the transaction times out | Discard; fail with `PrismaError` |
+| The body is still running when the transaction's timeout passes | The body is interrupted at its next step; a query already in flight completes first. Prisma rolls back; discard; fail with `TransactionExpired` |
+| A query or a nested `transaction` in the body fails because the transaction is already closed | The body is stopped, whatever it does with the error; discard; fail with `TransactionExpired` |
+| The body succeeds but `COMMIT` finds the transaction closed | Discard; fail with `TransactionExpired` |
+| The body succeeds but `COMMIT` fails for another reason | Discard; fail with `PrismaError` |
 | The caller is interrupted while the body runs | The body is interrupted, Prisma rolls back, nothing publishes |
 | The caller is interrupted while `COMMIT` is in flight | Keep waiting; publish if the database committed; the caller still sees the interruption |
+
+The timeout is the `timeout` option, otherwise the one Prisma applies to the current client, extended or not: its `transactionOptions.timeout`, 5 seconds unless the client was constructed with another. Like Prisma's, the clock starts once the transaction has begun, and it reads wall-clock time, so a `TestClock` does not move it. A `transaction` running on a transaction client, which Prisma makes a savepoint, has no timeout of its own; the outer transaction's applies. On any other client, such as a per-request extended client or the base client provided inside a body, `transaction` starts a separate transaction with its own timeout, and that transaction closing does not stop the body it runs in. Prisma reports a closed transaction as `P2028`, for example when a test harness's own transaction, which `transaction` does not time, has expired.
 
 A frame is a root when there is no frame for the client further out, not when the current client is the base client. A test harness can therefore run each test inside a Prisma transaction that always rolls back, provide its transaction client as `Client` without opening a frame, and the application's first `transaction` inside it publishes when its savepoint is released.
 
@@ -130,7 +137,8 @@ const violations = checkCoverage({
 
 - The client handed to `use` wraps write methods of mapped models, so their results are plain promises: pass them to `transaction`, not to the array form of `$transaction`, and do not chain fluent relation calls on them. Calling `$transaction` on that client runs outside the binding; use `transaction`.
 - A relation write nested in `data` records only the top-level model.
-- Prisma's interactive transaction timeout (5 seconds by default) still applies; pass `{ timeout }` to `transaction`.
+- Prisma's interactive transaction timeout (5 seconds by default) still applies; pass `{ timeout }` to `transaction` for a longer one.
+- The client's timeout is read from Prisma's internal client configuration, which Prisma `7.9.1` keeps on the client. If a later Prisma moves it, `transaction` sets no deadline of its own, and a body that outlives Prisma's timeout stops at its first query after the transaction closes; pass `{ timeout }` to have it interrupted on time.
 - `checkCoverage` matches tables by name, not by schema.
 - `writtenTables` does not see a `TRUNCATE` inside the test transaction: `TRUNCATE` resets the transaction's insert, update and delete counts in `pg_stat_xact_user_tables`, so they fall back to the baseline, and a table that was written and then truncated counts as unwritten.
 - Delivery is in-process, as for every effect-changes channel.

@@ -7,6 +7,19 @@
 - `tableWrites(client)` reads the current transaction's per-table write counts
   as a baseline for `writtenTables`.
 
+### Changed
+
+- **Breaking:** `transaction` can fail with the new `TransactionExpired`, so its
+  error type is now `E | TransactionExpired | PrismaError`. A transaction that
+  outlives its timeout, and a savepoint start, `RELEASE` or `COMMIT` that
+  Prisma refuses with `P2028` because the transaction is closed, used to fail
+  with `PrismaError` and now fail with `TransactionExpired`. A transaction that
+  cannot start at all, such as one waiting past `maxWait` for a connection,
+  still fails with `PrismaError`, although Prisma also reports it as `P2028`.
+  Migrate by adding `TransactionExpired` wherever the error type is written
+  out: `Effect.Effect<A, PrismaError>` becomes
+  `Effect.Effect<A, TransactionExpired | PrismaError>`.
+
 ### Fixed
 
 - `writtenTables` reported tables that earlier transactions wrote on the same
@@ -16,6 +29,20 @@
   `writtenTables(client, since)` to report only the tables written after it.
   A `TRUNCATE` inside the test transaction resets its counts to the baseline,
   so `writtenTables` does not see it.
+- A `transaction` body kept running after Prisma expired the transaction,
+  keeping the caller waiting and free to make HTTP calls or publish while its
+  queries were refused. The body is now interrupted when the transaction's
+  timeout passes, or when one of its queries or nested `transaction`s fails
+  with `P2028` because the transaction is closed. The call then fails with
+  `TransactionExpired`, and nothing publishes. The timeout is the `timeout`
+  option, else the `transactionOptions.timeout` Prisma applies to the current
+  client, extended or not, 5 seconds unless the client sets another. It is
+  timed from the start of the transaction on the wall clock. When the client's
+  timeout cannot be read, `transaction` sets no deadline of its own, and the
+  body stops at its first query after Prisma closes the transaction. A
+  `transaction` on a transaction client is a savepoint and has no timeout of
+  its own; on any other client it is a separate transaction whose expiry does
+  not stop the body it runs in.
 
 ## 0.1.1 - 2026-09-26
 

@@ -103,7 +103,7 @@ try {
 	await writeFile(
 		join(temporaryDirectory, "index.ts"),
 		`import { Effect } from "effect"
-import { type ChangeMap, checkCoverage, makePrismaChanges, type PrismaError, tablesOf } from "@shivaedev/effect-changes-prisma"
+import { type ChangeMap, checkCoverage, makePrismaChanges, type PrismaError, tablesOf, type TransactionExpired } from "@shivaedev/effect-changes-prisma"
 
 interface OrderRow { readonly id: string; readonly ownerId: string }
 interface OrderDelegate {
@@ -124,7 +124,7 @@ const models = { Order: (row) => [{ subject: row.ownerId }] } satisfies ChangeMa
 const published: Array<string> = []
 const changes = makePrismaChanges({ name: "Consumer", client, models, publish: (batch: ReadonlyArray<Change>) => Effect.sync(() => published.push(...batch.map((change) => change.subject))) })
 
-const saved: Effect.Effect<OrderRow, PrismaError> = changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada" } })).pipe(changes.transaction)
+const saved: Effect.Effect<OrderRow, TransactionExpired | PrismaError> = changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada" } })).pipe(changes.transaction)
 await Effect.runPromise(saved)
 if (published.join() !== "ada" || rows.length !== 1) throw new Error("the packed binding did not publish after commit")
 const violations = checkCoverage({ written: ["order"], tables: tablesOf("model Order {\\n  id String @id\\n  @@map(\\"order\\")\\n}"), models, observations: [], unnamed: [], covers: () => true })

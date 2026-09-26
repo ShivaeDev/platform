@@ -93,7 +93,10 @@ adds three things around it:
   runs on the transaction client, so Prisma makes it a savepoint and its frame
   merges into the parent on release. A caller interrupted during the body
   interrupts the body, so Prisma rolls back; one interrupted while `COMMIT` is in
-  flight waits for the outcome and publishes if the database committed.
+  flight waits for the outcome and publishes if the database committed. A body
+  still running when the transaction's timeout passes, or whose query or nested
+  `transaction` finds the transaction closed, is interrupted and the call fails
+  with `TransactionExpired`, as does a `COMMIT` that finds it closed.
 - `use(query)` runs a Prisma call against the current client and records the
   changes of every write it made to a mapped model, in the calling fiber. A
   typed map, `satisfies ChangeMap<PrismaClient, Change>` when it must classify
@@ -170,7 +173,8 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
 - [Prisma Classic tests](../../packages/effect-changes-prisma/test) run a
   generated Prisma 7 client with `@prisma/adapter-pg` against PostgreSQL: a sink
   reading from a second client sees the committed rows, rollbacks, failed
-  deferred commits and timeouts publish nothing, an interruption while a slow
+  deferred commits and timeouts publish nothing, a body that outlives the
+  timeout is interrupted before its next side effect, an interruption while a slow
   deferred trigger holds `COMMIT` still publishes, nested transactions merge and
   discard, one row names several subjects, `*Many` and narrowed writes are
   reported, and the coverage check finds a raw SQL insert and a table without a
