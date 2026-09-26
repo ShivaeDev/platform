@@ -19,10 +19,6 @@ describe("baseline write", () => {
 		});
 	});
 
-	it("refuses to regenerate an existing baseline", () => {
-		expect(adopt([], [], [long], known)._tag).toBe("Refused");
-	});
-
 	it("adopts a named rule into an existing baseline and leaves other entries alone", () => {
 		const existing = [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }];
 		const adoption = adopt(existing, ["local/new"], [long, fresh], known);

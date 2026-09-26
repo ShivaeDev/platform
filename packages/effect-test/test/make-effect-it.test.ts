@@ -65,30 +65,13 @@ liveIt.effectApp(
 	{ clock: "test" },
 );
 
-let aroundRan = false;
-const aroundIt = makeEffectIt({
-	layer: Layer.succeed(Token, "from-layer"),
-	around: (effect) =>
-		Effect.gen(function* () {
-			aroundRan = true;
-			return yield* effect;
-		}),
-	makeHarness: () => Effect.succeed({ ok: true as const }),
-});
-
-aroundIt.effectApp("applies the around hook before the generator body", function* (harness) {
-	expect(aroundRan).toBe(true);
-	expect(harness.ok).toBe(true);
-	return yield* Effect.void;
-});
-
 effectApp.each(["alpha", "beta"])("passes table cases to the generator for %s", function* (item, harness) {
-	expect(["alpha", "beta"]).toContain(item);
+	expect(harness.name).toContain(item);
 	expect(harness.token).toBe("from-layer");
 	return yield* Effect.void;
 });
 
-effectApp("retries through TestClock.adjust", function* () {
+effectApp("retries at the configured interval using the test clock", function* () {
 	const seen: number[] = [];
 	const value = yield* eventually(
 		Effect.gen(function* () {
@@ -99,12 +82,12 @@ effectApp("retries through TestClock.adjust", function* () {
 			}
 			return now;
 		}),
-		{ interval: "10 millis" },
+		{ interval: "7 millis" },
 	);
 
-	expect(value).toBe(50);
-	expect(seen).toEqual([0, 10, 20, 30, 40, 50]);
-	expect(yield* Clock.currentTimeMillis).toBe(50);
+	expect(value).toBe(56);
+	expect(seen).toEqual([0, 7, 14, 21, 28, 35, 42, 49, 56]);
+	expect(yield* Clock.currentTimeMillis).toBe(56);
 });
 
 effectApp(

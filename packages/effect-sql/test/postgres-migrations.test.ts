@@ -2,11 +2,13 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Deferred, Effect, Exit, Fiber, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
+import { migratePostgres } from "../src/index.ts";
 import { environmentVariable } from "./support/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
-const migrate = Migrator.make({});
+const migrate = (options: { readonly table: string; readonly loader: Migrator.Loader<SqlClient.SqlClient> }) =>
+	migratePostgres({ ...options, lockTimeout: "5 seconds" });
 
 const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) =>
 	Effect.runPromise(
@@ -38,7 +40,7 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit
 		),
 	);
 
-integration("PostgreSQL migrations initialize, upgrade and rerun without repeating writes", async () => {
+integration("migratePostgres initializes, upgrades and reruns without repeating writes", async () => {
 	await withDatabase(({ ledger, orders }) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -66,7 +68,7 @@ integration("PostgreSQL migrations initialize, upgrade and rerun without repeati
 	);
 });
 
-integration("PostgreSQL rolls back pending migration DDL, data and ledger as one batch", async () => {
+integration("migratePostgres rolls back pending DDL, data and ledger as one batch", async () => {
 	await withDatabase(({ ledger, orders, audit }) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -101,7 +103,7 @@ integration("PostgreSQL rolls back pending migration DDL, data and ledger as one
 });
 
 integration(
-	"PostgreSQL concurrent runners wait on the existing ledger and apply each migration once",
+	"migratePostgres serializes upgrades on an existing ledger and applies each migration once",
 	async () => {
 		await withDatabase(({ ledger, orders }) =>
 			Effect.scoped(
@@ -114,24 +116,24 @@ integration(
 						table: ledger,
 						loader: Migrator.fromRecord(initial),
 					});
-					const entered = yield* Deferred.make<void>();
+					const entered = yield* Deferred.make<number>();
 					const release = yield* Deferred.make<void>();
 					const loader = Migrator.fromRecord({
 						...initial,
 						"2_seed_orders": Effect.gen(function* () {
-							yield* Deferred.succeed(entered, undefined);
+							const [backend] = yield* sql<{ pid: number }>`select pg_backend_pid() as pid`;
+							yield* Deferred.succeed(entered, backend?.pid ?? 0);
 							yield* Deferred.await(release);
 							yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
 						}),
 					});
 					const first = yield* migrate({ table: ledger, loader }).pipe(Effect.forkScoped);
-					yield* Deferred.await(entered).pipe(Effect.timeout("5 seconds"));
+					const holder = yield* Deferred.await(entered).pipe(Effect.timeout("5 seconds"));
 					const second = yield* migrate({ table: ledger, loader }).pipe(Effect.forkScoped);
 					yield* Effect.gen(function* () {
 						while (true) {
 							const waiting = yield* sql<{ waiting: boolean }>`select exists (
-					select 1 from pg_locks where relation = ${ledger}::regclass
-					and mode = 'AccessExclusiveLock' and not granted
+					select 1 from pg_stat_activity where ${holder} = any(pg_blocking_pids(pid))
 				) as waiting`;
 							if (waiting[0]?.waiting) return;
 							yield* Effect.sleep("10 millis");

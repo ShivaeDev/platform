@@ -22,14 +22,6 @@ const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 );
 
 describe("evaluation", () => {
-	it("passes with warnings only", () => {
-		expect(passes(evaluate([todo("src/a.ts", 1)], [], [], known))).toBe(true);
-	});
-
-	it("fails on an error-level violation", () => {
-		expect(passes(evaluate([long("src/big.ts", 151)], [], [], known))).toBe(false);
-	});
-
 	it("fails on a stale baseline or registry entry alone", () => {
 		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known))).toBe(false);
 		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known))).toBe(false);

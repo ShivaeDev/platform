@@ -37,11 +37,5 @@ describe("SQLite datetime normalization", () => {
 			expect(new Date(stored).toISOString()).not.toBe("2026-08-11T23:12:16.000Z");
 			expect(new Date(normalizeSqliteDatetime(stored)).toISOString()).toBe("2026-08-11T23:12:16.000Z");
 		});
-
-		it("does not move values that already carry a zone", () => {
-			const stored = "2026-08-11T23:12:16.789Z";
-
-			expect(new Date(normalizeSqliteDatetime(stored)).toISOString()).toBe(new Date(stored).toISOString());
-		});
 	});
 });

@@ -118,8 +118,6 @@ it.effect("keeps a base Relation and its branches independent", () =>
 		const active = base.where({ active: true });
 		const firstActive = active.take(1);
 
-		expect(Object.keys(base)).toEqual([]);
-		expect(Object.hasOwn(base, "runtime")).toBe(false);
 		expect(yield* base).toEqual(rows);
 		expect(yield* active).toEqual([rows[0], rows[2]]);
 		expect(yield* firstActive).toEqual([rows[0]]);

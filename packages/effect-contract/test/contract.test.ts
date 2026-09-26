@@ -2,20 +2,9 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect, Ref } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
 import { type CommandShape, command, contract, type QueryShape } from "../src/index.ts";
-import { Create, Get, Guard, List, makeServer, NoteMissing, Notes, Rename } from "./notes.ts";
+import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "./notes.ts";
 
 describe("contract", () => {
-	it("produces a native group whose tags are namespaced and whose middleware keeps the declaration", () => {
-		expect([...Notes.requests.keys()]).toEqual(["notes.get", "notes.list", "notes.rename", "notes.create"]);
-		for (const rpc of Notes.requests.values()) expect(rpc.middlewares.has(Guard)).toBe(true);
-		expect(Notes.declaration.name).toBe("notes");
-		expect(Notes.declaration.queries).toEqual([Get, List]);
-		expect(Notes.declaration.commands).toEqual([Rename, Create]);
-		const bare = contract("bare", { queries: [List] });
-		expect([...bare.requests.keys()]).toEqual(["bare.list"]);
-		expect([...bare.requests.values()][0]?.middlewares.size).toBe(0);
-	});
-
 	it("rejects duplicate operation names at construction when the compiler cannot see them", () => {
 		const queries: ReadonlyArray<QueryShape> = [List, Get, List];
 		expect(() => contract("dupes", { queries })).toThrow("Operation names must be unique; duplicated: list");

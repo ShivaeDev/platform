@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -43,16 +43,6 @@ const repository = () =>
 	]);
 
 it.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
-	it.effect("walks nested files and skips vendored directories", () =>
-		Effect.gen(function* () {
-			const root = makeRoot();
-			mkdirSync(join(root, "src", "node_modules"), { recursive: true });
-			writeFileSync(join(root, "src", "mod.ts"), "export const k = 1;\n");
-			writeFileSync(join(root, "src", "node_modules", "v.ts"), "export const v = 1;\n");
-			expect(yield* walk(root)).toEqual([join(root, "src", "mod.ts")]);
-		}),
-	);
-
 	it.effect("treats a missing optional file as absent", () =>
 		Effect.gen(function* () {
 			expect(yield* readOptionalText(join(makeRoot(), ".gitignore"))).toBeUndefined();

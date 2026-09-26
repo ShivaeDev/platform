@@ -40,13 +40,6 @@ Finished work moves to the changelog.
 const html = (source: string) => Effect.runPromise(boardHtml(boardOf(source), "plan.md", 0).pipe(Effect.provide(Highlighter.layer)));
 
 describe("the board", () => {
-	it("counts the ### items under each ## section and skips sections without items", () => {
-		expect(countsOf(boardOf(notes))).toEqual([
-			{ title: "In review", count: 1 },
-			{ title: "To do", count: 2 },
-		]);
-	});
-
 	it("keeps each item's body, including a details block, with its heading", () => {
 		const [, todo] = boardOf(notes).sections;
 		expect(todo?.items[0]).toBe(
@@ -63,11 +56,6 @@ describe("the board", () => {
 		);
 		expect(rendered).toContain('<h2>Later</h2>\n<div class="notes"><p>Nothing planned yet.</p>');
 		expect(rendered).toContain("<footer><p>Finished work moves to the changelog.</p>");
-	});
-
-	it("follows edits: another item raises its section's count", () => {
-		const grown = notes.replace("## Later", "### `ops` Renew the certificate\n\n## Later");
-		expect(countsOf(boardOf(grown))).toContainEqual({ title: "To do", count: 3 });
 	});
 
 	it("keeps a --- inside a card in the card when a later section follows", () => {

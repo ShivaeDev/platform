@@ -6,8 +6,8 @@ registry owns cached query state; React components also own form objects and
 local state, so replacing only the registry is insufficient as a general reset
 policy.
 
-This is application composition, not another cache or session framework.
-The [executable example](../../packages/effect-react/test/session-lifecycle.test.tsx)
+`SessionBoundary` owns the registry and React subtree for each session generation.
+The [executable example](../../packages/effect-react/test/session-boundary.test.tsx)
 uses `makeOrderEditor` against the order feature's real loopback HTTP endpoint.
 
 ## Session transition
@@ -19,12 +19,12 @@ opaque generation counter; logging back into the same account is a new session.
 When authentication is unresolved or absent, render the public/loading shell
 without the previous authenticated subtree.
 
-The test switches the same React root from Alice to Bob, first requesting Alice's
-order under Bob's credentials, then Bob's own order. Alice's cached order and dirty
-form disappear; the cross-owner request fails; Bob sees his own order. Returning
-to Alice starts from persisted data rather than resurrecting her old draft.
-Unmount and explicit disposal leave the registry empty and reject further reads.
-A plain `RegistryContext.Provider` does not own this disposal for its caller.
+The test switches the same React root between authenticated sessions and then
+signs out. Cached data and dirty forms disappear with the outgoing generation.
+Re-entering starts from persisted data. A failed refresh retains the draft;
+retry can recover before the auth owner decides to end the session.
+`SessionBoundary` disposes each outgoing registry. A plain
+`RegistryContext.Provider` does not own disposal for its caller.
 
 Do not persist or hydrate authenticated atom values across this boundary. Any
 future persisted draft or offline queue requires an explicit account partition,
@@ -152,7 +152,7 @@ These details were checked against the installed Effect `4.0.0-rc.112` source:
 Run:
 
 ```sh
-pnpm --filter @shivaedev/effect-react exec vitest run test/session-lifecycle.test.tsx test/session-boundary.test.tsx
+pnpm heavy pnpm --filter @shivaedev/effect-react test test/session-boundary.test.tsx
 ```
 
 These tests use happy-dom and actual HTTP serialization, authentication and

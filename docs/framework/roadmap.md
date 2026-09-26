@@ -124,10 +124,10 @@ not commit partial writes. Authorization remains explicit application policy.
 
 - [ ] Wrap native Migrator with minimal authoring/configuration and status/run
   commands when an application fixture needs migrations.
-- [x] Test fresh, repeated and failed migrations with native SQLite Migrator.
+- [x] Test fresh, repeated and failed migrations through `migratePostgres`.
 - [x] Verify concurrent migration execution and PostgreSQL migration behavior.
 - [x] Document native applied-ID behavior and operational limitations.
-- [x] Reproduce the native empty-database ledger bootstrap race and close it with
+- [x] Serialize empty-database ledger initialization with
   `migratePostgres`: advisory lock, explicit lock timeout and pre-created ledger
   around the unchanged native Migrator
   ([evidence](./postgres-migrations.md)).
