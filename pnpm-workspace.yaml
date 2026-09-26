@@ -22,6 +22,7 @@ catalog:
   react: 19.2.8
   react-dom: 19.2.8
   happy-dom: 20.11.2
+  mermaid: 11.16.1
   ignore: 7.0.6
   dependency-cruiser: 18.1.1
   "@prisma-next/adapter-postgres": 0.15.0
@@ -42,6 +43,8 @@ catalog:
   "@prisma/adapter-pg": 7.9.1
   "@prisma/client": 7.9.1
   prisma: 7.9.1
+  "@types/hast": 3.0.5
+  "@types/mdast": 4.0.4
   "@types/node": 24.10.1
   "@types/pg": 8.20.0
   "@trpc/client": 11.18.0
@@ -51,6 +54,8 @@ catalog:
   effect: 4.0.0-rc.112
   better-auth: 1.6.25
   pg-boss: 12.23.1
+  satteri: 0.9.5
+  shiki: 4.4.2
   typescript: npm:@typescript/typescript6@6.0.2
   vitest: 4.1.9
 
