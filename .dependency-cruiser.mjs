@@ -11,9 +11,10 @@ const LEAVES = {
 	"effect-test": [],
 	"heavy-lock": [],
 	quality: [],
+	"work-board": [],
 };
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
-const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform"];
+const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform", "work-board"];
 const BROWSER_ENTRIES = ["effect-trpc/src/client", "platform/src/errors", "platform/src/rpc"];
 const BROWSER_ENTRY_IMPORTS = ["effect"];
 

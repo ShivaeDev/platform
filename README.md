@@ -40,6 +40,8 @@ implementation and acceptance criteria.
   rules, a shrink-only baseline and a registry of reasoned exceptions.
 - [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
   heavy commands one at a time across repositories.
+- [`@shivaedev/work-board`](./packages/work-board): A local server that shows a
+  folder of markdown files as a live page, updated in place when a file changes.
 
 ## Development
 
