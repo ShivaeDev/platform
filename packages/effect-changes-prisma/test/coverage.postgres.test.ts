@@ -18,7 +18,8 @@ integration("the coverage check reads the tables a test transaction wrote and re
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
-				const { schema, client } = yield* makeDatabase;
+				const { schema, client, execute } = yield* makeDatabase;
+				yield* execute(`create table "${schema}".changes_prisma_lookup (id text primary key)`);
 				const { changes, observations, unnamed, observe } = makeChanges(client);
 				const tables = tablesOf(yield* Effect.promise(() => readFile(new URL("./prisma/schema.prisma", import.meta.url), "utf8")));
 				const application = Effect.gen(function* () {
@@ -32,6 +33,7 @@ integration("the coverage check reads the tables a test transaction wrote and re
 					yield* changes.use((db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
 					yield* changes.use((db) => db.$executeRawUnsafe(`insert into "${schema}".changes_prisma_invoice (id, owner_id) values ('i1', 'ada')`));
 					yield* changes.use((db) => db.$executeRawUnsafe(`insert into "${schema}".changes_prisma_unmodeled (id) values ('u1')`));
+					yield* changes.use((db) => db.$queryRawUnsafe(`select id from "${schema}".changes_prisma_lookup`));
 					yield* changes.use((db) => db.order.updateMany({ where: { ownerId: "ada" }, data: { total: 2 } }));
 				});
 				const context = yield* Effect.context<never>();
