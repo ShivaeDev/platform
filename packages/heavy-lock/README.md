@@ -80,7 +80,7 @@ const acquireHeavyLock: (options?: HeavyLockOptions) => Effect.Effect<HeldLockSh
 
 const heavyLockLayer: (options?: HeavyLockOptions) => Layer.Layer<HeldLock, HeavyLockError, HeavyLockServices>;
 
-class HeldLock extends Context.Service<HeldLock, { readonly env: Readonly<Record<string, string>> }> {}
+class HeldLock extends Context.Service<HeldLock, { readonly env: Readonly<Record<string, string>> }>()("@shivaedev/heavy-lock/HeldLock") {}
 ```
 
 - `withHeavyLock` holds the lock while the effect runs and releases it when the
@@ -161,6 +161,6 @@ language; every implementation must follow it exactly to share the lock.
    `heavy-process lock: acquired after <elapsed>`. The time is local, and
    `<elapsed>` is `<s>s` under a minute and `<m>m <s>s` from a minute on.
 
-The package's `test/fixtures/reference-holder.lock` holds a holder file written
-by the reference implementation; its tests encode, decode and wait on it byte
+The package's `test/fixtures/reference-holder.lock` holds a holder file in the
+protocol's exact byte format; its tests encode, decode and wait on it byte
 for byte.

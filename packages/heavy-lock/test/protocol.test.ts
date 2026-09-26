@@ -22,7 +22,7 @@ const referenceHolder: Holder = {
 	startedAtMs: 1790409600123,
 };
 
-it.effect("a holder encodes byte for byte as the reference implementation wrote it, whatever order its fields were given in", () =>
+it.effect("a holder encodes byte for byte as the protocol fixture, whatever order its fields were given in", () =>
 	Effect.gen(function* () {
 		const reordered: Holder = {
 			startedAtMs: 1790409600123,
@@ -52,7 +52,7 @@ it.effect("a lock in the reference format naming a live process blocks the lock"
 	}).pipe(Effect.provide(services())),
 );
 
-it.effect("the lock this implementation holds is what a reference reader accepts as live", () =>
+it.effect("the lock this implementation holds follows the protocol's key order and format", () =>
 	Effect.gen(function* () {
 		const lock = temporaryLock();
 
