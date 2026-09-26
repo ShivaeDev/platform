@@ -13,8 +13,6 @@ export const readHolder = Effect.fn("HeavyLock.readHolder")(function* (lock: str
 	);
 });
 
-const isLive = (holder: Option.Option<Holder>) => (Option.isSome(holder) ? isHolderAlive(holder.value) : Effect.succeed(false));
-
 // A racing waiter may have replaced the dead lock with a live one before the rename; that lock goes back.
 export const reclaim = Effect.fn("HeavyLock.reclaim")(function* (lock: string, dead: Option.Option<Holder>) {
 	const fs = yield* FileSystem.FileSystem;
@@ -28,7 +26,7 @@ export const reclaim = Effect.fn("HeavyLock.reclaim")(function* (lock: string, d
 	}
 	const current = yield* readHolder(aside);
 	const raced = Option.isSome(current) && !Option.exists(dead, (holder) => holder.id === current.value.id);
-	if (raced && (yield* isLive(current))) {
+	if (raced && (yield* isHolderAlive(current.value))) {
 		yield* fs.link(aside, lock).pipe(Effect.catchIf(hasReason("AlreadyExists"), () => Effect.void));
 	}
 	yield* fs.remove(aside, { force: true });
@@ -45,7 +43,7 @@ const linked = Effect.fn("HeavyLock.linked")(function* (draft: string, lock: str
 const linkOrFindBlocker = Effect.fn("HeavyLock.linkOrFindBlocker")(function* (draft: string, lock: string) {
 	while (!(yield* linked(draft, lock))) {
 		const current = yield* readHolder(lock);
-		if (Option.isSome(current) && (yield* isLive(current))) {
+		if (Option.isSome(current) && (yield* isHolderAlive(current.value))) {
 			return current;
 		}
 		yield* reclaim(lock, current);
