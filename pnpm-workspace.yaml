@@ -5,16 +5,17 @@ overrides:
   # `@prisma-next/cli-telemetry` asks for `^1.2.3`; 1.2.4 and 1.2.5 dropped the
   # provenance attestation earlier versions carried, which `trustPolicy:
   # no-downgrade` rejects. Drop the pin once an attested release lands.
-  "@vercel/detect-agent": 1.2.3
+  "@vercel/detect-agent": "catalog:"
   # `@effect/platform-node` asks for `^` its own prerelease of the shared layer;
   # keep it on the catalog Effect version instead of a newer prerelease.
-  "@effect/platform-node-shared": 4.0.0-rc.112
+  "@effect/platform-node-shared": "catalog:"
 
 catalog:
   "@biomejs/biome": 2.5.1
   "@effect/vitest": 4.0.0-rc.112
   "@effect/atom-react": 4.0.0-rc.112
   "@effect/platform-node": 4.0.0-rc.112
+  "@effect/platform-node-shared": 4.0.0-rc.112
   "@effect/sql-sqlite-node": 4.0.0-rc.112
   "@effect/sql-pg": 4.0.0-rc.112
   "@types/react": 19.2.18
@@ -58,6 +59,7 @@ catalog:
   shiki: 4.4.2
   typescript: npm:@typescript/typescript6@6.0.2
   vitest: 4.1.9
+  "@vercel/detect-agent": 1.2.3
 
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false

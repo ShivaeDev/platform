@@ -46,7 +46,7 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
 	"dependencies": {
-		"@shivaedev/effect-changes": "workspace:0.1.0"
+		"@shivaedev/effect-changes": "workspace:*"
 	},
 	"peerDependencies": {
 		"effect": "catalog:"

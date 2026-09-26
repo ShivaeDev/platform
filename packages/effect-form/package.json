@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-form",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"type": "module",
 	"license": "MIT",
@@ -54,7 +54,7 @@
 	"peerDependencies": {
 		"effect": "catalog:",
 		"@effect/atom-react": "catalog:",
-		"react": "^19.2.8"
+		"react": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"react": {

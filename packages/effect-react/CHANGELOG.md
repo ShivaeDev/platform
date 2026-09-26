@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 - 2026-09-26
+
+### Changed
+
+- Pin the optional `@shivaedev/effect-form` peer dependency to exactly 0.1.1,
+  the version released alongside, instead of `^0.1.0`.
+
 ## 0.1.0 - 2026-09-26
 
 ### Added

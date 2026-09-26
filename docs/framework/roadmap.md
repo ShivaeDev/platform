@@ -57,7 +57,7 @@ These are executable boundary examples, not an application deployment. See the
 - [x] Strict shared `tsconfig.base.json` and `.ts` relative imports with `rewriteRelativeImportExtensions`.
 - [x] GritQL bans: type assertions, ambient runtime, relative import extensions, `Effect.fn` span names (`Owner.operation`).
 - [x] Repository rules: 150/300-line file limits, nesting depth, comments, pragma registry, `index.ts` only as package entry.
-- [x] Manifests: `catalog:`/`workspace:` dependencies with exact catalog versions.
+- [x] Manifests: `catalog:`/`workspace:*` dependencies with exact catalog versions.
 - [x] Browser-safe sources for effect-contract, effect-form and effect-react.
 - [x] dependency-cruiser boundaries: leaf packages stay leaves; browser packages never import server packages.
 - [x] `@shivaedev/quality` engine: typed `quality.config.ts`, the `quality` command line, a report grouped by rule,

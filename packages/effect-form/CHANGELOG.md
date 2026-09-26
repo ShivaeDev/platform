@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 - 2026-09-26
+
+### Changed
+
+- Pin the `react` peer dependency to exactly 19.2.8, the version the package is
+  tested against, instead of `^19.2.8`.
+
 ## 0.1.0 - 2026-09-26
 
 ### Added

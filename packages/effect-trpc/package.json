@@ -58,7 +58,7 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build && pnpm test:package"
 	},
 	"dependencies": {
-		"@shivaedev/effect-test": "workspace:0.1.2"
+		"@shivaedev/effect-test": "workspace:*"
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
@@ -72,7 +72,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
-		"@shivaedev/effect-contract": "workspace:0.1.0",
+		"@shivaedev/effect-contract": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

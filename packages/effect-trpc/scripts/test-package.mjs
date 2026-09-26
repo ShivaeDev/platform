@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withTarballOverrides } from "../../../script/packed-workspace.ts";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
@@ -84,10 +85,7 @@ try {
 	);
 	await writeFile(
 		join(temporaryDirectory, "pnpm-workspace.yaml"),
-		(await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")).replace(
-			'  "@vercel/detect-agent": 1.2.3',
-			`  "@vercel/detect-agent": 1.2.3\n  "@shivaedev/effect-test": "file:${tarballs.test}"`,
-		),
+		withTarballOverrides(await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"), { "@shivaedev/effect-test": tarballs.test }),
 	);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
