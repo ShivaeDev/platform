@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withTarballOverrides } from "../../../script/packed-workspace.ts";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repositoryRoot = dirname(dirname(packageRoot));
@@ -59,14 +60,10 @@ try {
 			2,
 		)}\n`,
 	);
-	const workspace = (await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8")).replace(
-		/^overrides:\n/m,
-		`overrides:\n  "@shivaedev/effect-changes": "file:${tarballs.changes}"\n`,
+	await writeFile(
+		join(temporaryDirectory, "pnpm-workspace.yaml"),
+		withTarballOverrides(await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"), { "@shivaedev/effect-changes": tarballs.changes }),
 	);
-	if (!workspace.includes(tarballs.changes)) {
-		throw new Error("pnpm-workspace.yaml has no overrides block to point @shivaedev/effect-changes at its tarball");
-	}
-	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), workspace);
 	await writeFile(
 		join(temporaryDirectory, "tsconfig.json"),
 		`${JSON.stringify(
