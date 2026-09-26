@@ -11,5 +11,5 @@ export type {
 	Transactional,
 	TransactionOptions,
 } from "./model.ts";
-export { type RawQueryClient, tablesOf, writtenTables } from "./tables.ts";
+export { type RawQueryClient, type TableWrites, tablesOf, tableWrites, writtenTables } from "./tables.ts";
 export type { UnnamedWrite, Write } from "./write.ts";

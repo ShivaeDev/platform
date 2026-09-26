@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 - 2026-09-26
+
+### Added
+
+- `tableWrites(client)` reads the current transaction's per-table write counts
+  as a baseline for `writtenTables`.
+
+### Fixed
+
+- `writtenTables` reported tables that earlier transactions wrote on the same
+  pooled connection, because PostgreSQL keeps `pg_stat_xact_user_tables`
+  counters per connection until it flushes them. Take a baseline with
+  `tableWrites` when the test transaction starts and pass it as
+  `writtenTables(client, since)` to report only the tables written after it.
+  A `TRUNCATE` inside the test transaction resets its counts to the baseline,
+  so `writtenTables` does not see it.
+
 ## 0.1.1 - 2026-09-26
 
 ### Changed

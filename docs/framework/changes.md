@@ -101,11 +101,14 @@ adds three things around it:
   classifies a model whose writes publish nothing. Count-only `*Many` writes and
   results narrowed by `select` or `omit` cannot name their subjects, so they are
   reported to a test seam instead of recorded; rows are never read back.
-- A coverage check for tests: `writtenTables` reads `pg_stat_xact_user_tables`
-  on the test's transaction just before it rolls back, `tablesOf` maps tables to
-  models from `@@map`, and `checkCoverage` returns every table written without a
-  covering `Recorded` observation and every unnamed write. It catches raw SQL,
-  nested relation writes, cascades and triggers, which record nothing.
+- A coverage check for tests: `tableWrites` takes a baseline from
+  `pg_stat_xact_user_tables` when the test's transaction starts, `writtenTables`
+  reads the tables written since then just before it rolls back, `tablesOf` maps
+  tables to models from `@@map`, and `checkCoverage` returns every table written
+  without a covering `Recorded` observation and every unnamed write. It catches
+  raw SQL, nested relation writes, cascades and triggers, which record nothing.
+  It does not see a `TRUNCATE` inside the test transaction, which resets the
+  transaction's counts to the baseline.
 
 A test harness that runs each test inside a rolled-back Prisma transaction
 provides that transaction as the binding's `Client` without opening a frame; the

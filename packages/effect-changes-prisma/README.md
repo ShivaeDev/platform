@@ -65,7 +65,8 @@ type UnnamedWrite =
 class PrismaError { readonly _tag: "PrismaError"; readonly cause: unknown }
 
 tablesOf(schema: string): ReadonlyMap<string, string>
-writtenTables(client: RawQueryClient): Effect<ReadonlyArray<string>, PrismaError>
+tableWrites(client: RawQueryClient): Effect<TableWrites, PrismaError>
+writtenTables(client: RawQueryClient, since?: TableWrites): Effect<ReadonlyArray<string>, PrismaError>
 checkCoverage<A>(coverage: Coverage<A>): ReadonlyArray<CoverageViolation>
 ```
 
@@ -99,15 +100,17 @@ A frame is a root when there is no frame for the client further out, not when th
 
 ## Coverage check
 
-The check runs in tests. Read the tables the test transaction wrote from `pg_stat_xact_user_tables` just before it rolls back, then compare them with the changes the channel observed:
+The check runs in tests. Take a baseline from `pg_stat_xact_user_tables` when the test transaction starts, read the tables written since just before it rolls back, then compare them with the changes the channel observed:
 
 ```ts
 const tables = tablesOf(await readFile("prisma/schema.prisma", "utf8"));
 const observations: Array<Observation<Change>> = [];
 const unnamed: Array<UnnamedWrite> = [];
+// first, as the test transaction starts:
+const since = yield* tableWrites(testTransaction);
 // run the test with changes.channel.Observer and changes.Unnamed pushing into those arrays,
 // and changes.Client set to the test's transaction client; then, before rolling back:
-const written = yield* writtenTables(testTransaction);
+const written = yield* writtenTables(testTransaction, since);
 const violations = checkCoverage({
   written,
   tables,
@@ -119,7 +122,7 @@ const violations = checkCoverage({
 ```
 
 - `tablesOf` reads the table of every model from Prisma schema text, honouring `@@map`; a model without it uses its name. Pass an explicit `Map` instead if your tables come from elsewhere.
-- `writtenTables(client)` must run on the test's own transaction: PostgreSQL counts inserted, updated and deleted rows per transaction, including rows written in savepoints that rolled back.
+- `tableWrites(client)` and `writtenTables(client, since)` must run on the test's own transaction. PostgreSQL counts inserted, updated and deleted rows, including rows written in savepoints that rolled back, but it keeps those counters per connection until it flushes them, at most once a second. On a pooled connection they still hold the writes of earlier transactions, so `writtenTables` reports only the tables whose counters grew past the `since` baseline. Without `since` it reports every table with an unflushed count. The binding cannot take the baseline for you: the test transaction is the harness's own `$transaction`, which it never sees begin.
 - `checkCoverage` is a pure function and throws only if `covers` throws. It reports each written table whose model is not mapped to `null` and for which no `Recorded` observation satisfies `covers`, as `Unrecorded` (with `model: undefined` when no model owns the table), and each distinct unnamed write as `Unnamed`. `Recorded` includes changes whose frame was later discarded, matching the statistics.
 - Raw SQL, relation writes nested in `data`, cascades and triggers write tables that nothing records; the check is how they surface. Filter the result if a table is written legitimately without a change.
 
@@ -129,6 +132,7 @@ const violations = checkCoverage({
 - A relation write nested in `data` records only the top-level model.
 - Prisma's interactive transaction timeout (5 seconds by default) still applies; pass `{ timeout }` to `transaction`.
 - `checkCoverage` matches tables by name, not by schema.
+- `writtenTables` does not see a `TRUNCATE` inside the test transaction: `TRUNCATE` resets the transaction's insert, update and delete counts in `pg_stat_xact_user_tables`, so they fall back to the baseline, and a table that was written and then truncated counts as unwritten.
 - Delivery is in-process, as for every effect-changes channel.
 
 Tested with Prisma `7.9.1` and `@prisma/adapter-pg` on PostgreSQL 18, and Effect `4.0.0-rc.112`.
