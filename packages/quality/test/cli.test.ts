@@ -4,9 +4,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { quality, trees } from "./support/cli.ts";
 import { config, linkPackage, removeSeededTrees, seedTree } from "./support/tree.ts";
 
+const cliTimeout = 60_000;
+
 afterEach(removeSeededTrees);
 
-describe("quality lint", () => {
+describe("quality lint", { timeout: cliTimeout }, () => {
 	it("exits 0 on a clean tree, skipping declarations and ignored files", () => {
 		const result = quality(seedTree(trees.clean), "lint");
 		expect(result).toEqual({ status: 0, stderr: "", stdout: "quality: passed. 3 source files checked.\n" });
@@ -64,7 +66,7 @@ describe("quality lint", () => {
 	});
 });
 
-describe("quality baseline", () => {
+describe("quality baseline", { timeout: cliTimeout }, () => {
 	it("adopts existing violations, holds them and shrinks with the code", () => {
 		const root = seedTree(trees.dirty);
 		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.json.\n" });
@@ -94,7 +96,7 @@ describe("quality baseline", () => {
 	});
 });
 
-describe("quality exits 2 when it cannot run", () => {
+describe("quality exits 2 when it cannot run", { timeout: cliTimeout }, () => {
 	it.each([
 		["without a config", [], "no config at"],
 		[

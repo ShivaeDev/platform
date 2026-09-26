@@ -11,17 +11,16 @@
 		"#*": "./script/*"
 	},
 	"scripts": {
-		"build": "node script/heavy.ts pnpm --recursive --if-present build",
+		"build": "node packages/heavy-lock/src/cli.ts -- pnpm --recursive --if-present build",
 		"check": "biome check .",
 		"format": "biome check --write .",
-		"heavy": "node script/heavy.ts",
+		"heavy": "node packages/heavy-lock/src/cli.ts --",
 		"lint": "pnpm check && node script/lint.ts && pnpm lint:boundaries",
 		"lint:boundaries": "depcruise packages --config .dependency-cruiser.mjs",
-		"test": "pnpm test:script && node script/heavy.ts pnpm --recursive --if-present test",
-		"test:package": "node script/heavy.ts pnpm --recursive --if-present test:package",
-		"test:script": "node --test 'script/**/*.test.ts'",
-		"typecheck": "node script/heavy.ts sh -c 'pnpm typecheck:root && pnpm --recursive --if-present typecheck'",
-		"typecheck:compat": "node script/heavy.ts sh -c 'pnpm typecheck:compat:root && pnpm --recursive --if-present typecheck:compat'",
+		"test": "node packages/heavy-lock/src/cli.ts -- pnpm --recursive --if-present test",
+		"test:package": "node packages/heavy-lock/src/cli.ts -- pnpm --recursive --if-present test:package",
+		"typecheck": "node packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --if-present typecheck'",
+		"typecheck:compat": "node packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:compat:root && pnpm --recursive --if-present typecheck:compat'",
 		"typecheck:root": "tsc --noEmit",
 		"typecheck:compat:root": "tsc6 --noEmit",
 		"ready": "pnpm lint && pnpm build && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm test:package"

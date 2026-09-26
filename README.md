@@ -38,6 +38,8 @@ implementation and acceptance criteria.
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
   rules, a shrink-only baseline and a registry of reasoned exceptions.
+- [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
+  heavy commands one at a time across repositories.
 
 ## Development
 
@@ -59,5 +61,6 @@ every step of `ready`, queue on a machine-wide lock shared with other
 repositories; a waiting run names the holder, and CI skips the lock. Run the
 scripts directly: they take the lock themselves, so do not wrap them in a lock
 by hand. Run other heavy commands, such as a focused PostgreSQL suite, through
-`pnpm heavy <command>`. The
-[lock's README](./script/heavy-process-lock/README.md) describes the protocol.
+`pnpm heavy <command>`. The scripts run
+[`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
+before anything is built; its README describes the protocol.
