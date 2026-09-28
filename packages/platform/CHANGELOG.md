@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 - 2026-09-26
+
+### Changed
+
+- Pin the optional `better-auth` peer dependency to 1.6.30, the current 1.6
+  release, up from 1.6.25.
+
 ## 0.4.2 - 2026-09-26
 
 ### Added
