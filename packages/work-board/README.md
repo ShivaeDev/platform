@@ -145,3 +145,14 @@ const board = HttpRouter.toWebHandler(
   Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),
 )
 ```
+
+On pnpm 11, installing into a project needs a decision on `msgpackr-extract`,
+which `effect` pulls in: pnpm refuses its build script by default, and
+`pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`. Record the decision under
+`allowBuilds` in `pnpm-workspace.yaml`, or run `pnpm approve-builds`; `false`
+skips the build. `pnpm dlx` and `pnpm add --global` need no setting.
+
+```yaml
+allowBuilds:
+  msgpackr-extract: false
+```

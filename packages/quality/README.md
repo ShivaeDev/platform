@@ -10,6 +10,13 @@ Every rule is an error by default. A repository adopts the gate at once: it reco
 pnpm add --save-dev @shivaedev/quality
 ```
 
+On pnpm 11, installing into a project needs a decision on `msgpackr-extract`, which `effect` pulls in: pnpm refuses its build script by default, and `pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`. Record the decision under `allowBuilds` in `pnpm-workspace.yaml`, or run `pnpm approve-builds`; `false` skips the build. `pnpm dlx` and `pnpm add --global` need no setting.
+
+```yaml
+allowBuilds:
+  msgpackr-extract: false
+```
+
 Node 24 or later loads `quality.config.ts` directly (type stripping), so no build step runs first. Use only erasable TypeScript in the config, and give relative imports their `.ts` extension.
 
 ```ts

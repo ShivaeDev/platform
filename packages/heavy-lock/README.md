@@ -45,6 +45,17 @@ command's exit decides `heavy-lock`'s.
 A `heavy-lock` run inside a command that already holds the lock runs at once,
 so a lock-wrapped script may call other lock-wrapped scripts.
 
+On pnpm 11, installing into a project needs a decision on `msgpackr-extract`,
+which `effect` pulls in: pnpm refuses its build script by default, and
+`pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`. Record the decision under
+`allowBuilds` in `pnpm-workspace.yaml`, or run `pnpm approve-builds`; `false`
+skips the build. `pnpm dlx` and `pnpm add --global` need no setting.
+
+```yaml
+allowBuilds:
+  msgpackr-extract: false
+```
+
 ## Effect API
 
 ```ts

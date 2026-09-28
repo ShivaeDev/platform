@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -52,7 +52,10 @@ try {
 		throw new Error("Packed package unexpectedly contains its test suite");
 	}
 	const packedManifest = JSON.parse(execute("tar", ["-xOzf", tarball, "package/package.json"]));
-	if (packedManifest.bin?.quality !== "./dist/cli.js" || JSON.stringify(packedManifest.dependencies).includes("catalog:")) {
+	if (
+		packedManifest.bin?.quality !== "./dist/cli.js" ||
+		JSON.stringify([packedManifest.dependencies, packedManifest.peerDependencies]).includes("catalog:")
+	) {
 		throw new Error("Packed manifest must expose the quality bin and pin its dependencies");
 	}
 
@@ -64,10 +67,12 @@ try {
 		dependencies: {
 			"@shivaedev/quality": `file:${tarball}`,
 			"@types/node": manifest.devDependencies["@types/node"],
-			effect: manifest.dependencies.effect,
+			...packedManifest.peerDependencies,
 		},
 	});
-	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"));
+	// A consumer has none of this repository's overrides; keeping them would hide how the package resolves on its own.
+	const workspace = await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
+	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), workspace.replace(/^overrides:\n(?:(?:[ \t].*)?\n)*/m, ""));
 	const compilerOptions = {
 		lib: ["ESNext"],
 		module: "ESNext",
@@ -121,6 +126,14 @@ export const typed = defineConfig({
 	await source("src/marked.ts", "// FIXME: split this\nexport const e = 5\n");
 
 	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")]);
+	const installed = await readdir(join(temporaryDirectory, "node_modules/.pnpm"));
+	for (const name of ["effect", "@effect/platform-node-shared"]) {
+		const prefix = `${name.replace("/", "+")}@`;
+		const copies = installed.filter((entry) => entry.startsWith(prefix)).map((entry) => entry.split("_")[0]);
+		if (copies.join() !== `${prefix}${packedManifest.peerDependencies[name]}`) {
+			throw new Error(`Consumer must hold one ${name} copy at the peer version, found: ${copies.join(", ")}`);
+		}
+	}
 	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
 	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"]);
 	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"]);

@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,13 +69,14 @@ try {
 		private: true,
 		type: "module",
 		dependencies: {
-			"@effect/platform-node": manifest.devDependencies["@effect/platform-node"],
 			"@shivaedev/heavy-lock": `file:${tarball}`,
 			"@types/node": manifest.devDependencies["@types/node"],
-			effect: manifest.devDependencies.effect,
+			...packedManifest.peerDependencies,
 		},
 	});
-	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8"));
+	// A consumer has none of this repository's overrides; keeping them would hide how the package resolves on its own.
+	const workspace = await readFile(join(repositoryRoot, "pnpm-workspace.yaml"), "utf8");
+	await writeFile(join(temporaryDirectory, "pnpm-workspace.yaml"), workspace.replace(/^overrides:\n(?:(?:[ \t].*)?\n)*/m, ""));
 	const compilerOptions = {
 		lib: ["ESNext"],
 		module: "ESNext",
@@ -141,6 +142,14 @@ if (held.file.command !== "consumer" || held.env.HEAVY_PROCESS_LOCK_ID !== held.
 	);
 
 	execute("pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(repositoryRoot, ".pnpm-store")]);
+	const installed = await readdir(join(temporaryDirectory, "node_modules/.pnpm"));
+	for (const name of ["effect", "@effect/platform-node-shared"]) {
+		const prefix = `${name.replace("/", "+")}@`;
+		const copies = installed.filter((entry) => entry.startsWith(prefix)).map((entry) => entry.split("_")[0]);
+		if (copies.join() !== `${prefix}${packedManifest.peerDependencies[name]}`) {
+			throw new Error(`Consumer must hold one ${name} copy at the peer version, found: ${copies.join(", ")}`);
+		}
+	}
 	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
 	execute(join(packageRoot, "node_modules/.bin/tsc"), ["--project", "tsconfig.nodenext.json"]);
 	execute(join(packageRoot, "node_modules/.bin/tsc6"), ["--project", "tsconfig.json"]);
