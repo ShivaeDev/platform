@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 - 2026-09-28
+
+### Changed
+
+- **Breaking:** Take `effect`, `@effect/platform-node` and
+  `@effect/platform-node-shared` as peer dependencies pinned to exact versions
+  instead of dependencies, so an install holds one copy of Effect. pnpm, npm
+  and Bun install them with the package. Migrate a repository that depends on
+  Effect to the pinned versions, 4.0.0-rc.112, before upgrading.
+
+### Fixed
+
+- Pin `@effect/platform-node-shared` to the `effect` version, so the `quality`
+  command starts after a fresh install. Before, `@effect/platform-node` resolved
+  a newer `@effect/platform-node-shared` prerelease than its `effect`, and the
+  command crashed on start importing modules that `effect` lacks.
+
 ## 0.1.1 - 2026-09-26
 
 ### Changed
