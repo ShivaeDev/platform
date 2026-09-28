@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/heavy-lock",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Machine-wide lock that runs heavy commands one at a time across repositories",
 	"type": "module",
 	"license": "MIT",
@@ -50,10 +50,12 @@
 	},
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"effect": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",

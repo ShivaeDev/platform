@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"type": "module",
 	"license": "MIT",
@@ -55,10 +55,12 @@
 	},
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"effect": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
 		"@types/node": "catalog:",
