@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-09-28
+
+### Changed
+
+- Pin the `@prisma/client` peer dependency to exactly 7.10.0, the version the
+  package is now tested against, instead of 7.9.1.
+
 ## 0.2.0 - 2026-09-26
 
 ### Added
