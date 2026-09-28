@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes-prisma",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Commit-bound change channels for Prisma Classic: automatic change recording, publish after $transaction commits, and a test-time coverage check",
 	"type": "module",
 	"license": "MIT",

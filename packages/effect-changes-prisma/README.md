@@ -138,9 +138,9 @@ const violations = checkCoverage({
 - The client handed to `use` wraps write methods of mapped models, so their results are plain promises: pass them to `transaction`, not to the array form of `$transaction`, and do not chain fluent relation calls on them. Calling `$transaction` on that client runs outside the binding; use `transaction`.
 - A relation write nested in `data` records only the top-level model.
 - Prisma's interactive transaction timeout (5 seconds by default) still applies; pass `{ timeout }` to `transaction` for a longer one.
-- The client's timeout is read from Prisma's internal client configuration, which Prisma `7.9.1` keeps on the client. If a later Prisma moves it, `transaction` sets no deadline of its own, and a body that outlives Prisma's timeout stops at its first query after the transaction closes; pass `{ timeout }` to have it interrupted on time.
+- The client's timeout is read from Prisma's internal client configuration, which Prisma `7.10.0` keeps on the client. If a later Prisma moves it, `transaction` sets no deadline of its own, and a body that outlives Prisma's timeout stops at its first query after the transaction closes; pass `{ timeout }` to have it interrupted on time.
 - `checkCoverage` matches tables by name, not by schema.
 - `writtenTables` does not see a `TRUNCATE` inside the test transaction: `TRUNCATE` resets the transaction's insert, update and delete counts in `pg_stat_xact_user_tables`, so they fall back to the baseline, and a table that was written and then truncated counts as unwritten.
 - Delivery is in-process, as for every effect-changes channel.
 
-Tested with Prisma `7.9.1` and `@prisma/adapter-pg` on PostgreSQL 18, and Effect `4.0.0-rc.112`.
+Tested with Prisma `7.10.0` and `@prisma/adapter-pg` on PostgreSQL 18, and Effect `4.0.0-rc.112`.
