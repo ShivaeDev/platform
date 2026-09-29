@@ -105,8 +105,8 @@ tests; it also records the remaining application-specific boundaries.
 The [editing guide](./editing.md) covers `useEditor` and `useCreate`.
 
 The [boundary validation guide](./boundary-validation.md) covers PostgreSQL
-codecs and migrations, real BetterAuth sessions, cancellation, client teardown
-and an expense-entry form fixture.
+codecs and migrations, real BetterAuth sessions, action interruption and Node
+abort signals, client teardown and form submission/refresh behavior.
 
 ## What establishes success
 
