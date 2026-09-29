@@ -66,3 +66,22 @@ by hand. Run other heavy commands, such as a focused PostgreSQL suite, through
 `pnpm heavy <command>`. The scripts run
 [`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
 before anything is built; its README describes the protocol.
+
+### Packed consumers
+
+`pnpm test:package` packs every publishable package once, validates its manifest
+and source maps, then installs clean consumers with its workspace dependency
+tarballs. Consumers use the catalog Effect versions, reject duplicate Effect
+installations, and check every public entry with both supported TypeScript
+versions. The same gate runs executable bins against real input.
+Consumers for packages with executable bins omit the repository's Effect
+overrides, so exact peers must keep their Effect stack aligned. Unrelated
+dependency pins and installation trust policies stay in force. Packed
+executables using the Node platform must declare its shared layer as an exact
+peer at the same version. The gate removes that peer from a temporary copy of
+the Heavy Lock tarball and verifies that archive validation rejects it.
+
+Consumer type-error fixtures live in `script/package-check/fixtures`. Declarative
+cases alongside the runner describe optional-peer consumers, browser entry
+constraints and executable input; package file lists come from manifests.
+The publish workflow runs this gate in a read-only prerequisite job.

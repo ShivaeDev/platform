@@ -1,0 +1,54 @@
+{
+	"heavy-lock": {
+		"args": [
+			"--",
+			"node",
+			"-e",
+			"const fs = require('node:fs'); const held = JSON.parse(fs.readFileSync(process.env.HEAVY_PROCESS_LOCK, 'utf8')); require('node:assert/strict').equal(held.id, process.env.HEAVY_PROCESS_LOCK_ID); fs.writeFileSync('held.txt', 'completed')"
+		],
+		"files": {},
+		"expectedFiles": {
+			"held.txt": "completed"
+		},
+		"env": {
+			"CI": null,
+			"HEAVY_PROCESS_LOCK_ID": null,
+			"HEAVY_PROCESS_LOCK": "{consumer}/locks/heavy-process.lock"
+		},
+		"absent": ["locks/heavy-process.lock"]
+	},
+	"effect-prisma-normalize": {
+		"args": ["raw-contract.d.ts"],
+		"files": {
+			"raw-contract.d.ts": "export type Row = { readonly createdAt: Timestamp<6> };\n"
+		},
+		"expectedFiles": {
+			"raw-contract.d.ts": "export type Row = { readonly createdAt: Date };\n"
+		}
+	},
+	"quality": {
+		"args": ["baseline", "write"],
+		"files": {
+			"quality.config.ts": "export default { sources: ['sample'], rules: { 'structure/max-lines': { options: { source: 1 } } } }\n",
+			"sample/long.ts": "export const a = 1\nexport const b = 2\n"
+		},
+		"expectedFiles": {
+			"quality/baseline.json": "sample/long.ts"
+		},
+		"output": "recorded 1 entry"
+	},
+	"work-board": {
+		"checkVersion": true,
+		"args": ["board", "--port", "0", "--home", "plan.md"],
+		"files": {
+			"board/plan.md": "# Plan\n\n## To do\n\n### `ops` Rotate the key\n"
+		},
+		"expectedFiles": {},
+		"pages": {
+			"/": "<span><b>1</b> to do</span>",
+			"/_board/style.css": "",
+			"/_board/client.js": "",
+			"/_board/mermaid/mermaid.esm.min.mjs": ""
+		}
+	}
+}

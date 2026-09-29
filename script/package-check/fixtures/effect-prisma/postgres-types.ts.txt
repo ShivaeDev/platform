@@ -1,0 +1,27 @@
+import { Effect } from "effect"
+import { makeDatabase } from "@shivaedev/effect-prisma"
+import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing"
+import type { Contract } from "./contract.js"
+import contractJson from "./contract.json" with { type: "json" }
+
+const Database = makeDatabase<Contract>()("@consumer/Database", { contractJson })
+const it = makeDatabaseIt({
+  database: Database,
+  layer: Database.layer({ url: "postgresql://compile-only" }),
+})
+
+it.effectDB("retains package types", function* (db) {
+  const users = yield* db.User.where({ email: "typed@example.test" })
+  users[0]?.email.toUpperCase()
+
+  // @ts-expect-error Unknown models stay rejected through the packed package.
+  db.Movie
+  // @ts-expect-error Filter values stay strongly typed through the packed package.
+  db.User.where({ email: 123 })
+})
+
+const program = Effect.gen(function* () {
+  const db = yield* Database
+  return yield* db.User.where({ name: "Ada" })
+})
+void program

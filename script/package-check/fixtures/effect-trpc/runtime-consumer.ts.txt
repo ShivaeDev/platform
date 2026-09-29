@@ -1,0 +1,7 @@
+import { RejectionError, rejectionFormatter } from "@shivaedev/effect-trpc"
+import { rejectionOf } from "@shivaedev/effect-trpc/client"
+const error = new RejectionError({ _tag: "NotFound", message: "Gone" })
+if (error.code !== "NOT_FOUND") throw new Error("RejectionError lost its taxonomy code: " + error.code)
+const shape = rejectionFormatter({ shape: { message: "Gone", code: -32004, data: { code: "NOT_FOUND", httpStatus: 404 } }, error })
+const read = rejectionOf(shape)
+if (read._tag !== "Some" || read.value._tag !== "NotFound") throw new Error("The client entry did not read the formatted rejection")

@@ -1,0 +1,12 @@
+{
+	"effect-prisma": {
+		"contract.d.ts": "packages/effect-prisma/test/generated/contract.d.ts",
+		"contract.json": "packages/effect-prisma/test/generated/contract.json",
+		"sqlite-contract.d.ts": "packages/effect-prisma/test/sqlite/generated/contract.d.ts",
+		"sqlite-contract.json": "packages/effect-prisma/test/sqlite/generated/contract.json"
+	},
+	"platform": {
+		"contract.d.ts": "packages/effect-prisma/test/generated/contract.d.ts",
+		"contract.json": "packages/effect-prisma/test/generated/contract.json"
+	}
+}

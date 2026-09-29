@@ -1,0 +1,22 @@
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { Context, Layer } from "effect"
+
+class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}
+
+const runtime = makePlatformRuntime(Layer.succeed(Greeting, "application"))
+const application: string = await runtime.runPromise(Greeting)
+const request: string = await runtime.runWithServices(
+	Context.make(Greeting, "request"),
+	() => runtime.runPromise(Greeting),
+)
+await runtime.dispose()
+
+const source = new AbortController()
+const subscription = nodeSubscriptionSignal({ signals: [source.signal] })
+source.abort()
+subscription.dispose()
+
+if (application !== "application" || request !== "request" || !subscription.signal.aborted) {
+	throw new Error("The packed effect-only entries misbehaved")
+}
