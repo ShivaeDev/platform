@@ -10,8 +10,13 @@ const packedPath = (path: string): string => posix.join("package", path);
 
 export const checkArchive = (pkg: Package) =>
 	Effect.gen(function* () {
+		yield* command(pkg.directory, "pnpm", ["pack", "--out", pkg.tarball]);
+		return yield* checkPackedArchive(pkg);
+	});
+
+export const checkPackedArchive = (pkg: Package) =>
+	Effect.gen(function* () {
 		const { directory, tarball } = pkg;
-		yield* command(directory, "pnpm", ["pack", "--out", tarball]);
 		const contents = new Set((yield* command(directory, "tar", ["-tzf", tarball])).trim().split("\n"));
 		const manifest = decodeManifest(yield* command(directory, "tar", ["-xOzf", tarball, "package/package.json"]));
 		for (const key of dependencyKeys) {
@@ -19,6 +24,12 @@ export const checkArchive = (pkg: Package) =>
 				yield* requireThat(exact.test(version), `${manifest.name}: ${key}.${name} is not exact: ${version}`);
 			}
 		}
+		const nodeVersion = manifest.peerDependencies?.["@effect/platform-node"] ?? manifest.dependencies?.["@effect/platform-node"];
+		if (Object.keys(bins(manifest)).length > 0 && nodeVersion !== undefined)
+			yield* requireThat(
+				manifest.peerDependencies?.["@effect/platform-node-shared"] === nodeVersion,
+				`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
+			);
 		const required = [...targets(manifest.exports), ...targets(manifest.types), ...Object.values(bins(manifest))];
 		for (const target of required) {
 			yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);

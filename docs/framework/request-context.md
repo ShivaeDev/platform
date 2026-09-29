@@ -18,9 +18,9 @@ browser entries and fails if they import anything other than `effect`.
 ## Error taxonomy
 
 `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`,
-`PreconditionFailed` and `AuthUnavailable` are `Schema.TaggedError` classes. Each
-has a `message`. `BadRequest` and `Conflict` also have an optional `field`. Use
-them directly as native RPC error schemas:
+`PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are
+`Schema.TaggedError` classes. Each has a `message`. `BadRequest` and `Conflict`
+also have an optional `field`. Use them directly as native RPC error schemas:
 
 ```ts
 Rpc.make("Rename", {
@@ -63,14 +63,16 @@ The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
 On tRPC, `rejectWith` from `@shivaedev/effect-trpc` sends these classes as
-declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict` and
-`PreconditionFailed` get the tRPC codes `NOT_FOUND`, `UNAUTHORIZED`, `FORBIDDEN`,
-`CONFLICT` and `PRECONDITION_FAILED`, and `AuthUnavailable`, a provider outage,
-gets `SERVICE_UNAVAILABLE`. Every other tag, including `BadRequest`, gets
+declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
+`PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
+`UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
+`TOO_MANY_REQUESTS`, and `AuthUnavailable`, a provider outage, gets
+`SERVICE_UNAVAILABLE`. Every other tag, including `BadRequest`, gets
 `BAD_REQUEST`. An input that fails the procedure's input schema arrives as a
-`BadRequest` with the failing path as its `field`. The client reads the field
-with `Option.flatMap(rejectionOf(error), rejectedField)`; see the effect-trpc
-README.
+`BadRequest` with the failing path as its `field` and `invalidInput: true`,
+which tells it apart from a `BadRequest` the procedure declares. The client
+reads the field with `Option.flatMap(rejectionOf(error), rejectedField)`; see
+the effect-trpc README.
 
 ## Request id, identity and logging
 

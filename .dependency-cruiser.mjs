@@ -1,3 +1,5 @@
+import platformManifest from "./packages/platform/package.json" with { type: "json" };
+
 const alternatives = (names) => `(?:${names.join("|")})`;
 
 const LEAVES = {
@@ -17,6 +19,11 @@ const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-rea
 const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform", "work-board"];
 const BROWSER_ENTRIES = ["effect-trpc/src/client", "platform/src/errors", "platform/src/rpc"];
 const BROWSER_ENTRY_IMPORTS = ["effect"];
+const PLATFORM_CORE_ENTRIES = ["errors", "node-http", "rpc", "rpc-server", "runtime"];
+const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
+	.filter(([, meta]) => meta.optional)
+	.map(([name]) => name);
+const WORKSPACE_SCOPE = "@shivaedev/";
 
 const sourceOf = (names) => `^packages/${alternatives(names)}/src/`;
 const entryOf = (entries) => `^packages/${alternatives(entries)}`;
@@ -47,6 +54,20 @@ export default {
 			to: {
 				reachable: true,
 				pathNot: [`${entryOf(BROWSER_ENTRIES)}(\\.ts$|/)`, `(^|/)node_modules/${alternatives(BROWSER_ENTRY_IMPORTS)}/`],
+			},
+		},
+		{
+			name: "platform-core-needs-no-optional-peer",
+			comment:
+				"The errors, node-http, rpc, rpc-server and runtime entries of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
+			severity: "error",
+			from: { path: `^packages/platform/src/${alternatives(PLATFORM_CORE_ENTRIES)}(\\.ts$|/)` },
+			to: {
+				reachable: true,
+				path: [
+					...PLATFORM_OPTIONAL_PEERS.filter((name) => name.startsWith(WORKSPACE_SCOPE)).map((name) => packageOf(name.slice(WORKSPACE_SCOPE.length))),
+					`(^|/)node_modules/${alternatives([...PLATFORM_OPTIONAL_PEERS, "@better-auth/[^/]+"])}/`,
+				],
 			},
 		},
 		{

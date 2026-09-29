@@ -6,6 +6,26 @@
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
+## 0.4.3 - 2026-09-26
+
+### Changed
+
+- Pin the optional `better-auth` peer dependency to 1.6.30, the current 1.6
+  release, up from 1.6.25.
+
+## 0.4.2 - 2026-09-26
+
+### Added
+
+- `TooManyRequests` in `@shivaedev/platform/errors`, a rejection with a
+  `message` for a caller that exceeded a rate limit. Effect tRPC sends it as
+  `TOO_MANY_REQUESTS`, HTTP 429.
+
+### Changed
+
+- Require Effect tRPC 0.4.1, which maps `TooManyRequests` to HTTP 429 and
+  marks input-validation rejections with `invalidInput: true`.
+
 ## 0.4.1 - 2026-09-26
 
 ### Changed

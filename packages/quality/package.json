@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Repository quality gate with typed rules, a shrink-only baseline and a registry of reasoned exceptions",
 	"type": "module",
 	"license": "MIT",
@@ -48,14 +48,20 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build"
 	},
 	"dependencies": {
-		"@effect/platform-node": "catalog:",
-		"effect": "catalog:",
 		"ignore": "catalog:"
 	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"effect": "catalog:"
+	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
+		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}

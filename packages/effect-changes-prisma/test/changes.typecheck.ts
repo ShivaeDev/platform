@@ -1,7 +1,7 @@
 import type { ITXClientDenyList } from "@prisma/client/runtime/client";
 import { type Context, Data, Effect } from "effect";
 import { expectTypeOf } from "vitest";
-import { type ChangeMap, type ModelName, type ModelRow, makePrismaChanges, type PrismaError } from "../src/index.ts";
+import { type ChangeMap, type ModelName, type ModelRow, makePrismaChanges, type PrismaError, type TransactionExpired } from "../src/index.ts";
 import type { PrismaClient } from "./generated/client.ts";
 import { type Change, models } from "./support/changes.ts";
 
@@ -25,7 +25,7 @@ const changes = makePrismaChanges({ name: "Typed", client: prisma, models, publi
 
 expectTypeOf(changes.Client).toEqualTypeOf<Context.Reference<Omit<PrismaClient, ITXClientDenyList>>>();
 expectTypeOf(changes.transaction(Effect.fail(new Rejected()).pipe(Effect.as("done")))).toEqualTypeOf<
-	Effect.Effect<string, Rejected | PrismaError, never>
+	Effect.Effect<string, Rejected | TransactionExpired | PrismaError, never>
 >();
 expectTypeOf(changes.use((db) => db.order.count())).toEqualTypeOf<Effect.Effect<number, PrismaError, never>>();
 // @ts-expect-error Inside a transaction the client cannot be extended, so `use` does not offer $extends.

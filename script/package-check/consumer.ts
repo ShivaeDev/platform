@@ -7,7 +7,7 @@ import { writeFixtures } from "#package-check/fixtures.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
-import { withTarballOverrides } from "#packed-workspace.ts";
+import { consumerWorkspace } from "#package-check/workspace.ts";
 
 const compilerOptions = {
 	lib: ["ESNext", "DOM", "DOM.Iterable"],
@@ -48,10 +48,7 @@ export const checkConsumer = (
 				"typecheck:compat": "tsc6 --project tsconfig.json",
 			},
 		});
-		yield* fs.writeFileString(
-			join(consumer, "pnpm-workspace.yaml"),
-			withTarballOverrides(yield* fs.readFileString(join(root, "pnpm-workspace.yaml")), tarballs),
-		);
+		yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs));
 		yield* writeJson(join(consumer, "tsconfig.json"), { compilerOptions, include: ["*.ts"] });
 		yield* writeJson(join(consumer, "tsconfig.nodenext.json"), {
 			extends: "./tsconfig.json",

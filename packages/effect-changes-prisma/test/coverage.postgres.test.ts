@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { Data, Effect } from "effect";
 import { expect } from "vitest";
-import { checkCoverage, tablesOf, writtenTables } from "../src/index.ts";
+import { checkCoverage, tablesOf, tableWrites, writtenTables } from "../src/index.ts";
 import { type Change, makeChanges, models } from "./support/changes.ts";
 import { integration, makeDatabase } from "./support/database.ts";
 
@@ -40,8 +40,9 @@ integration("the coverage check reads the tables a test transaction wrote and re
 				const written = yield* Effect.promise(() =>
 					client
 						.$transaction(async (tx) => {
+							const since = await Effect.runPromise(tableWrites(tx));
 							await Effect.runPromiseWith(context)(application.pipe(Effect.provideService(changes.Client, tx), observe));
-							throw new RolledBack(await Effect.runPromise(writtenTables(tx)));
+							throw new RolledBack(await Effect.runPromise(writtenTables(tx, since)));
 						})
 						.catch((error: unknown) => (error instanceof RolledBack ? error.written : [])),
 				);

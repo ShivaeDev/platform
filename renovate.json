@@ -1,0 +1,53 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended", ":enableVulnerabilityAlerts"],
+	"schedule": ["* 0-5 * * 1"],
+	"minimumReleaseAge": "7 days",
+	"draftPR": true,
+	"automerge": false,
+	"rebaseWhen": "conflicted",
+	"prConcurrentLimit": 3,
+	"lockFileMaintenance": {
+		"enabled": false
+	},
+	"vulnerabilityAlerts": {
+		"draftPR": true,
+		"automerge": false,
+		"prConcurrentLimit": 1
+	},
+	"packageRules": [
+		{
+			"description": "Every version lives once in the pnpm-workspace.yaml catalog and stays exact.",
+			"matchDepTypes": ["pnpm.catalog.default"],
+			"rangeStrategy": "pin"
+		},
+		{
+			"description": "Workspace packages are released from this repository, never updated by Renovate.",
+			"matchPackageNames": ["@shivaedev/**"],
+			"enabled": false
+		},
+		{
+			"description": "Effect packages release together and must share one version, so they move in one update.",
+			"matchPackageNames": ["effect", "@effect/**"],
+			"groupName": "effect stack",
+			"groupSlug": "effect-stack"
+		},
+		{
+			"description": "Prisma Classic packages must share one version.",
+			"matchPackageNames": ["prisma", "@prisma/**"],
+			"groupName": "prisma",
+			"groupSlug": "prisma"
+		},
+		{
+			"description": "Prisma Next packages must share one version.",
+			"matchPackageNames": ["@prisma-next/**"],
+			"groupName": "prisma next",
+			"groupSlug": "prisma-next"
+		},
+		{
+			"description": "Better Auth stays on 1.6. Platform pins it as an exact peer, so moving to 1.7 is a planned migration, not a routine update.",
+			"matchPackageNames": ["better-auth", "@better-auth/**"],
+			"allowedVersions": "<1.7.0"
+		}
+	]
+}

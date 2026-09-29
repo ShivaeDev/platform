@@ -27,6 +27,12 @@ rejectWith(Rejection, {
 // @ts-expect-error A rejection schema must decode to a tagged value.
 rejectWith(Schema.Struct({ message: Schema.String }));
 
+class Spoof extends Schema.TaggedError<Spoof>()("Spoof", { invalidInput: Schema.Literal(true) }) {}
+// @ts-expect-error A declared rejection may not encode the reserved invalidInput field.
+rejectWith(Spoof);
+// @ts-expect-error A declared rejection may not encode the reserved invalidInput field, even optionally.
+rejectWith(Schema.Struct({ _tag: Schema.Literal("Spoof"), invalidInput: Schema.optionalKey(Schema.Boolean) }));
+
 // @ts-expect-error The code must be a tRPC error code.
 rejectWith(Rejection, { code: () => "GONE" });
 
@@ -43,6 +49,7 @@ expectTypeOf(encoded).toEqualTypeOf<Option.Option<EncodedRejection>>();
 if (encoded._tag === "Some") {
 	expectTypeOf(encoded.value._tag).toEqualTypeOf<string>();
 	expectTypeOf(encoded.value.field).toEqualTypeOf<unknown>();
+	expectTypeOf(encoded.value.invalidInput).toEqualTypeOf<true | undefined>();
 }
 
 // @ts-expect-error A rejection schema must decode to a tagged value.
@@ -60,6 +67,7 @@ const t = initTRPC.create({ errorFormatter: rejectionFormatter });
 const router = t.router({});
 declare const clientError: TRPCClientError<typeof router>;
 expectTypeOf(clientError.data?.rejection).toEqualTypeOf<EncodedRejection | undefined>();
+expectTypeOf(clientError.data?.rejection?.invalidInput).toEqualTypeOf<true | undefined>();
 expectTypeOf(clientError.data?.code).toEqualTypeOf<TRPC_ERROR_CODE_KEY | undefined>();
 
 declare const shape: { readonly message: string; readonly data: { readonly code: string } };

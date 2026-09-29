@@ -6,6 +6,24 @@
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
+## 0.2.0 - 2026-09-28
+
+### Changed
+
+- Add `@effect/platform-node-shared` as a peer dependency pinned to the same
+  exact version as the `effect` and `@effect/platform-node` peers, so an
+  install holds one copy of Effect. An application that embeds `boardLayer` and
+  already depends on the Effect stack adds `@effect/platform-node-shared` at
+  that version; pnpm, npm and Bun install it otherwise.
+
+### Fixed
+
+- Pin `@effect/platform-node-shared` to the `effect` version, so the
+  `work-board` command starts after a fresh install. Before,
+  `@effect/platform-node` resolved a newer `@effect/platform-node-shared`
+  prerelease than its `effect`, and the command crashed on start importing
+  modules that `effect` lacks.
+
 ## 0.1.0 - 2026-09-26
 
 ### Added
