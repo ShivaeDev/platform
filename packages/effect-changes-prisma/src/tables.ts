@@ -12,12 +12,24 @@ export interface RawQueryClient {
 	$queryRawUnsafe(query: string): PromiseLike<unknown>;
 }
 
-const Written = Schema.Array(Schema.Struct({ relname: Schema.String }));
+export type TableWrites = ReadonlyMap<string, bigint>;
 
-const WRITTEN = "select relname from pg_stat_xact_user_tables where n_tup_ins + n_tup_upd + n_tup_del > 0 order by relname";
+const Counted = Schema.Array(Schema.Struct({ relname: Schema.String, writes: Schema.BigInt }));
 
-export const writtenTables = Effect.fn("PrismaChanges.writtenTables")(function* (client: RawQueryClient) {
-	const rows = yield* Effect.tryPromise({ try: () => client.$queryRawUnsafe(WRITTEN), catch: (cause) => new PrismaError({ cause }) });
-	const decoded = yield* Effect.mapError(Schema.decodeUnknownEffect(Written)(rows), (cause) => new PrismaError({ cause }));
-	return decoded.map((row) => row.relname);
+const COUNTED =
+	"select relname, n_tup_ins + n_tup_upd + n_tup_del as writes from pg_stat_xact_user_tables where n_tup_ins + n_tup_upd + n_tup_del > 0 order by relname";
+
+const none: TableWrites = new Map();
+
+export const tableWrites = Effect.fn("PrismaChanges.tableWrites")(function* (client: RawQueryClient) {
+	const rows = yield* Effect.tryPromise({ try: () => client.$queryRawUnsafe(COUNTED), catch: (cause) => new PrismaError({ cause }) });
+	const decoded = yield* Effect.mapError(Schema.decodeUnknownEffect(Counted)(rows), (cause) => new PrismaError({ cause }));
+	const counts = new Map<string, bigint>();
+	for (const { relname, writes } of decoded) counts.set(relname, (counts.get(relname) ?? 0n) + writes);
+	return counts satisfies TableWrites;
+});
+
+export const writtenTables = Effect.fn("PrismaChanges.writtenTables")(function* (client: RawQueryClient, since: TableWrites = none) {
+	const counts = yield* tableWrites(client);
+	return [...counts].flatMap(([table, writes]) => (writes > (since.get(table) ?? 0n) ? [table] : []));
 });

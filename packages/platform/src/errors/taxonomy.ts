@@ -15,4 +15,6 @@ export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perFiel
 
 export class PreconditionFailed extends Schema.TaggedError<PreconditionFailed>()("PreconditionFailed", described) {}
 
+export class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequests", described) {}
+
 export class AuthUnavailable extends Schema.TaggedError<AuthUnavailable>()("AuthUnavailable", described) {}

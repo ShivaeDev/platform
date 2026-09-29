@@ -7,6 +7,7 @@ import { checkBins } from "#package-check/bins.ts";
 import { checkConsumer } from "#package-check/consumer.ts";
 import { command } from "#package-check/io.ts";
 import { decodeManifest, decodeVersions, type Package } from "#package-check/model.ts";
+import { checkSharedPeerRegression } from "#package-check/peer-regression.ts";
 import { scenarios } from "#package-check/scenarios.ts";
 
 const program = Effect.gen(function* () {
@@ -33,5 +34,6 @@ const program = Effect.gen(function* () {
 		for (const scenario of yield* scenarios(root, pkg)) yield* checkConsumer(root, pkg, packages, catalog, `${consumer}-${index++}`, scenario);
 		yield* Console.log(`Passed packed ${pkg.manifest.name}`);
 	}
+	yield* checkSharedPeerRegression(packages);
 });
 NodeRuntime.runMain(program.pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)));

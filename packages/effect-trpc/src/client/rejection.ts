@@ -1,6 +1,9 @@
 import { Option, Schema } from "effect";
 
-export const EncodedRejection = Schema.StructWithRest(Schema.Struct({ _tag: Schema.String }), [Schema.Record(Schema.String, Schema.Unknown)]);
+export const EncodedRejection = Schema.StructWithRest(
+	Schema.Struct({ _tag: Schema.String, invalidInput: Schema.optionalKey(Schema.Literal(true)) }),
+	[Schema.Record(Schema.String, Schema.Unknown)],
+);
 
 export type EncodedRejection = typeof EncodedRejection.Type;
 

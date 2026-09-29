@@ -38,6 +38,7 @@
 		"output": "recorded 1 entry"
 	},
 	"work-board": {
+		"checkVersion": true,
 		"args": ["board", "--port", "0", "--home", "plan.md"],
 		"files": {
 			"board/plan.md": "# Plan\n\n## To do\n\n### `ops` Rotate the key\n"

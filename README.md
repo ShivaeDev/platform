@@ -74,6 +74,12 @@ and source maps, then installs clean consumers with its workspace dependency
 tarballs. Consumers use the catalog Effect versions, reject duplicate Effect
 installations, and check every public entry with both supported TypeScript
 versions. The same gate runs executable bins against real input.
+Consumers for packages with executable bins omit the repository's Effect
+overrides, so exact peers must keep their Effect stack aligned. Unrelated
+dependency pins and installation trust policies stay in force. Packed
+executables using the Node platform must declare its shared layer as an exact
+peer at the same version. The gate removes that peer from a temporary copy of
+the Heavy Lock tarball and verifies that archive validation rejects it.
 
 Consumer type-error fixtures live in `script/package-check/fixtures`. Declarative
 cases alongside the runner describe optional-peer consumers, browser entry

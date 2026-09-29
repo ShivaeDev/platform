@@ -12,6 +12,7 @@ const Case = Schema.Struct({
 	pages: Schema.optional(Versions),
 	env: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
 	absent: Schema.optional(Schema.Array(Schema.String)),
+	checkVersion: Schema.optional(Schema.Boolean),
 });
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Case)));
 export const checkBins = (root: string, pkg: Package, consumer: string) =>
@@ -26,6 +27,7 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 				yield* fs.writeFileString(join(consumer, path), content);
 			}
 			const bin = join(consumer, "node_modules/.bin", name);
+			yield* checkVersion(consumer, bin, pkg.manifest.version, scenario.checkVersion);
 			if (scenario.pages !== undefined) yield* checkServer(consumer, bin, scenario.args, scenario.pages);
 			else {
 				const output = yield* runBin(consumer, bin, scenario);
@@ -33,6 +35,15 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 			}
 			yield* checkResults(consumer, name, scenario);
 		}
+	});
+
+const checkVersion = (consumer: string, bin: string, version: string, enabled: boolean | undefined) =>
+	Effect.gen(function* () {
+		if (!enabled) return;
+		yield* requireThat(
+			(yield* command(consumer, bin, ["--version"])).trim() === version,
+			`${bin}: --version does not match packed version ${version}`,
+		);
 	});
 
 const runBin = (consumer: string, bin: string, scenario: typeof Case.Type) => {

@@ -18,9 +18,20 @@ const tables = (schema: string) => [
 	`create table "${schema}".changes_prisma_unmodeled (id text primary key)`,
 ];
 
-const connect = (schema: string) =>
+export interface ConnectOptions {
+	readonly max?: number;
+	readonly timeout?: number;
+}
+
+export const connect = (schema: string, options: ConnectOptions = {}) =>
 	Effect.acquireRelease(
-		Effect.sync(() => new PrismaClient({ adapter: new PrismaPg({ connectionString: url }, { schema }) })),
+		Effect.sync(
+			() =>
+				new PrismaClient({
+					adapter: new PrismaPg({ connectionString: url, ...(options.max === undefined ? {} : { max: options.max }) }, { schema }),
+					...(options.timeout === undefined ? {} : { transactionOptions: { timeout: options.timeout } }),
+				}),
+		),
 		(client) => Effect.promise(() => client.$disconnect()),
 	);
 

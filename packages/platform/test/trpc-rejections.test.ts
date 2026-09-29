@@ -6,15 +6,16 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
 import superjson from "superjson";
 import { afterAll, expect, test } from "vitest";
-import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField } from "../src/errors.ts";
+import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
 
-const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, AuthUnavailable]);
+const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
 
 const failures = {
 	required: new BadRequest({ message: "Name is required", field: "name" }),
 	malformed: new BadRequest({ message: "Malformed" }),
 	taken: new Conflict({ message: "Name is taken", field: "name" }),
 	stale: new PreconditionFailed({ message: "Profile changed" }),
+	busy: new TooManyRequests({ message: "Slow down" }),
 	missing: new NotFound({ message: "No profile" }),
 	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
 };
@@ -67,9 +68,16 @@ test("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form
 });
 
 test("taxonomy errors without a field keep their code and are not field rejections", async () => {
-	const [malformed, stale, missing, outage] = await Promise.all([rename("malformed"), rename("stale"), rename("missing"), rename("outage")]);
+	const [malformed, stale, busy, missing, outage] = await Promise.all([
+		rename("malformed"),
+		rename("stale"),
+		rename("busy"),
+		rename("missing"),
+		rename("outage"),
+	]);
 
-	expect([malformed, stale, missing, outage].map((error) => Option.flatMap(rejectionOf(error), rejectedField))).toEqual([
+	expect([malformed, stale, busy, missing, outage].map((error) => Option.flatMap(rejectionOf(error), rejectedField))).toEqual([
+		Option.none(),
 		Option.none(),
 		Option.none(),
 		Option.none(),
@@ -78,6 +86,8 @@ test("taxonomy errors without a field keep their code and are not field rejectio
 	expect(outage).toMatchObject({ data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503, rejection: { _tag: "AuthUnavailable" } } });
 	expect(malformed).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400, rejection: { _tag: "BadRequest", message: "Malformed" } } });
 	expect(stale).toMatchObject({ data: { code: "PRECONDITION_FAILED", httpStatus: 412 } });
+	expect(busy).toMatchObject({ data: { code: "TOO_MANY_REQUESTS", httpStatus: 429, rejection: { _tag: "TooManyRequests", message: "Slow down" } } });
+	expect(Option.getOrThrow(decodeRejection(Rejection)(busy))).toBeInstanceOf(TooManyRequests);
 	expect(Option.getOrThrow(decodeRejection(Rejection)(missing))).toBeInstanceOf(NotFound);
 	expect(missing).toMatchObject({ data: { code: "NOT_FOUND", httpStatus: 404 } });
 });
@@ -88,4 +98,6 @@ test("an input the procedure's schema rejects reaches the form as a BadRequest f
 	expect(invalid).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });
 	expect(Option.getOrThrow(decodeRejection(Rejection)(invalid))).toBeInstanceOf(BadRequest);
 	expect(Option.map(Option.flatMap(rejectionOf(invalid), rejectedField), ({ field }) => field)).toEqual(Option.some("name"));
+	expect(Option.map(rejectionOf(invalid), ({ invalidInput }) => invalidInput)).toEqual(Option.some(true));
+	expect(Option.map(rejectionOf(await rename("required")), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));
 });
