@@ -1,4 +1,5 @@
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { Effect, FileSystem, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, type Package, Versions } from "#package-check/model.ts";
@@ -40,9 +41,10 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 const checkVersion = (consumer: string, bin: string, version: string, enabled: boolean | undefined) =>
 	Effect.gen(function* () {
 		if (!enabled) return;
+		const output = stripVTControlCharacters(yield* command(consumer, bin, ["--version"])).trim();
 		yield* requireThat(
-			(yield* command(consumer, bin, ["--version"])).trim() === version,
-			`${bin}: --version does not match packed version ${version}`,
+			output === `${basename(bin)} v${version}`,
+			`${bin}: --version reported ${JSON.stringify(output)}, expected ${basename(bin)} v${version}`,
 		);
 	});
 
