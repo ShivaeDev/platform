@@ -69,31 +69,24 @@ Invalidation does not automatically broadcast changes to other clients.
 
 ## Executable evidence
 
-- [Runtime integration test](../../packages/platform/test/native-rpc.test.ts):
-  native `RpcTest` client/server calls use Layer-provided dependencies, return
-  ordinary values, preserve declared failures, and observe state changes from
-  successful handlers. Rejected mutations leave the observed state unchanged.
+- [Contract round trips](../../packages/effect-contract/test/contract.test.ts):
+  declared operations return handler results and preserve rejections through a
+  native client; middleware can deny a request.
+- [Public error round trips](../../packages/platform/test/errors.test.ts):
+  taxonomy errors cross native RPC JSON as decoded instances with their fields.
 - [Compile assertions](../../packages/platform/test/native-rpc.typecheck.ts): the
   generated client preserves success and error types; incorrect payloads,
   undeclared methods, missing handlers, incorrect handler results and undeclared
   failures are rejected by TypeScript.
 
-These tests intentionally use Effect's in-memory **no-serialization** transport.
-They prove native composition and inference; they do not prove wire encoding,
-HTTP/WebSocket behavior, authentication, request-scoped identity, or production
-cancellation/reconnection. The `Owner` service in the runtime test is a fixed
-Layer dependency, not an authentication implementation.
+The contract tests use the in-memory transport. Error tests include JSON
+serialization. Neither establishes production cancellation or reconnection;
+a deployed host requires its own verification.
 
-## Remaining work
+## Application boundaries
 
-- [ ] Choose and test the web/mobile host transport and serialization layer.
-- [ ] Bind authenticated request identity through native RPC middleware.
-- [ ] Verify transformed Schema values and errors over actual serialization.
-- [ ] Test cancellation, disconnect/reconnect and error presentation through the
-      chosen host and React client.
-- [x] Add a shared invalidation policy only where consumers demonstrate repeated
-      boilerplate; define transaction commit behavior before server-push refresh.
-      See `@shivaedev/effect-contract` and `transact` in `@shivaedev/effect-sql`.
-
-The native API was checked against the workspace's pinned Effect
-`4.0.0-rc.112`. Its unstable RPC and reactivity exports remain version-sensitive.
+Applications choose their host transport, credentials and reconnection policy.
+The shared invalidation declarations live in `@shivaedev/effect-contract`;
+`transact` in `@shivaedev/effect-sql` publishes invalidations only after commit.
+See the [roadmap](./roadmap.md) for remaining framework work. Native RPC and
+reactivity exports remain version-sensitive in the pinned Effect release.

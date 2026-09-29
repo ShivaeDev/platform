@@ -44,10 +44,10 @@ RPC Effect directly.
 - [x] Map known constraint failures to domain errors while preserving other SQL errors.
 - [x] Verify PostgreSQL migration upgrades, failed batches and existing-ledger concurrency.
 - [x] Exercise real BetterAuth signed sessions through native RPC middleware.
-- [x] Prove client HTTP interruption releases server work before a write.
+- [x] Prove action dispatch interruption and Node abort-signal lifetimes.
 - [x] Prove explicit session replacement clears cached queries and editable drafts.
-- [x] Exercise a representative entry form: numeric strings, optional values that
-  stay absent or become null, failed-save retry and refresh during edits.
+- [x] Exercise decoded submission, optional fields, failed-save retry and
+  refresh during edits through the form package.
 
 These are executable boundary examples, not an application deployment. See the
 [validation guide](./boundary-validation.md) for source links and practical limits.
@@ -124,10 +124,10 @@ not commit partial writes. Authorization remains explicit application policy.
 
 - [ ] Wrap native Migrator with minimal authoring/configuration and status/run
   commands when an application fixture needs migrations.
-- [x] Test fresh, repeated and failed migrations with native SQLite Migrator.
+- [x] Test fresh, repeated and failed migrations through `migratePostgres`.
 - [x] Verify concurrent migration execution and PostgreSQL migration behavior.
 - [x] Document native applied-ID behavior and operational limitations.
-- [x] Reproduce the native empty-database ledger bootstrap race and close it with
+- [x] Serialize empty-database ledger initialization with
   `migratePostgres`: advisory lock, explicit lock timeout and pre-created ledger
   around the unchanged native Migrator
   ([evidence](./postgres-migrations.md)).
@@ -142,7 +142,7 @@ generation remain separate decisions.
 
 - [x] Build an example with native Rpc/RpcGroup, handlers and client.
 - [x] Extend the example with request middleware and a real host transport.
-- [x] Exercise ordinary reads/writes, typed failures and pre-write HTTP cancellation.
+- [x] Exercise ordinary reads/writes and typed failures over HTTP.
 - [ ] Add application host transports and optional streaming only as needed.
 
 **Accept when:** the actual client calls the actual handler with preserved
@@ -228,8 +228,8 @@ after rejection and out-of-order responses.
   fields keep local input), accept successful submissions without overwriting a
   refresh received during the save, retain edits made while saving, and support
   explicit revert.
-- [x] Validate numeric, optional, choice and date fields in a representative
-  entry-form fixture.
+- [x] Validate numeric decoding, optional and date fields, and encoded choices
+  through public form APIs.
 - [x] Bind a query, form and save command in [`useEditor` and `useCreate`](./editing.md),
   including create-reset that keeps fields edited during the save.
 
@@ -257,7 +257,8 @@ and generic offline writes remain deferred until required by a consumer.
 - [x] Incorporate service declarations and editable forms into that fixture.
 - [x] Add rendered form/save tests through the actual service and HTTP handlers,
   with server/registry cleanup and public persistence assertions.
-- [x] Prove interrupted HTTP requests release scoped server work before writing.
+- [x] Prove overlapping action dispatches interrupt earlier work and Node abort
+  signals follow connection lifetimes.
 - [ ] Validate deployment host/proxy cancellation and in-transaction interruption.
 - [x] Verify package declarations and installed consumers; run `pnpm ready`.
 - [x] Run a real PostgreSQL repository test for selection, nulls, encoded text,

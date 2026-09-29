@@ -54,11 +54,11 @@ can change its name without a Platform wrapper.
   Startup should fail visibly; catching only the typed error channel does not
   capture this failure. A caller inspecting completion can use `Effect.exit`.
 
-The [integration example](../../packages/effect-sql/test/migrations.test.ts) uses a
-fresh SQLite database for each test. It proves creation, numerical ordering,
-ledger recording, a no-op rerun, and rollback of pending writes and ledger entries
-after a SQL constraint failure. It does not claim PostgreSQL deployment validation
-or transactional behavior for every database's DDL.
+The [PostgreSQL tests](../../packages/effect-sql/test/postgres-migrations.test.ts)
+exercise `migratePostgres` for creation, upgrades, reruns and failed batches.
+The [PostgreSQL guide](./postgres-migrations.md) describes concurrent runners and
+lock timeouts. Native SQLite migration behavior belongs to Effect; the example
+above does not establish transactional DDL behavior for every database.
 
 ## Policies deliberately left open
 

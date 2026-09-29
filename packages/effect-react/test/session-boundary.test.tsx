@@ -7,74 +7,16 @@ import { Activity, act, createElement, StrictMode, useContext, useState } from "
 import { createRoot } from "react-dom/client";
 import { expect, test, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
-import { makeOrderEditor } from "./order-example/frontend.tsx";
 import { startOrderServer } from "./order-example/http-test.ts";
+import { sessions, shell } from "./support/session.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-
-interface Session {
-	readonly id: string;
-	readonly token: string;
-}
 
 const eventually = (assert: () => void) =>
 	vi.waitFor(async () => {
 		await act(async () => {});
 		assert();
 	});
-
-const shell = (url: string) => {
-	window.location.href = url;
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
-	const registries: AtomRegistry.AtomRegistry[] = [];
-	const rechecks: string[] = [];
-	const Registry = () => {
-		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
-		return null;
-	};
-	const show = (session: Session | undefined, id: number) =>
-		act(async () => {
-			root.render(
-				createElement(SessionBoundary<Session, ReturnType<typeof makeOrderEditor>>, {
-					session,
-					identify: (current) => current.id,
-					connect: (current) => makeOrderEditor({ url, token: current.token }),
-					recheck: () => rechecks.push(session?.id ?? "none"),
-					signedOut: createElement("p", null, "Signed out"),
-					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { key: "editor", id })],
-				}),
-			);
-		});
-	const input = () => container.querySelector<HTMLInputElement>('input[name="name"]');
-	return {
-		container,
-		registries,
-		rechecks,
-		show,
-		input,
-		edit: (value: string) =>
-			act(async () => {
-				const field = input();
-				if (!field) throw new Error("Missing name input");
-				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
-				field.dispatchEvent(new Event("input", { bubbles: true }));
-			}),
-		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
-		close: async () => {
-			await act(async () => root.unmount());
-			container.remove();
-		},
-	};
-};
-
-const sessions = () =>
-	new Map([
-		["alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
-		["bob-token", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
-	]);
 
 test("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
@@ -126,6 +68,28 @@ test("Unauthorized keeps the retained screen and asks the auth owner to re-check
 		expect(view.container.textContent).toBe("Signed out");
 		expect(view.registries[0]?.getNodes().size).toBe(0);
 		expect(view.rechecks).toEqual(["a1"]);
+	} finally {
+		await view.close();
+		await server.close();
+	}
+});
+
+test("refresh retry recovers without losing the session's dirty form", async () => {
+	const active = sessions();
+	const server = await startOrderServer({ sessions: active });
+	const view = shell(server.url);
+	try {
+		await view.show({ id: "a1", token: "alice-token" }, 1);
+		await eventually(() => expect(view.container.textContent).toContain("Printer paper / 300"));
+		await view.edit("Unsaved order");
+		active.delete("alice-token");
+		await view.refresh();
+		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
+		expect(view.input()?.value).toBe("Unsaved order");
+		active.set("alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY });
+		await view.refresh();
+		await eventually(() => expect(view.container.querySelector('[role="alert"]')).toBeNull());
+		expect(view.input()?.value).toBe("Unsaved order");
 	} finally {
 		await view.close();
 		await server.close();

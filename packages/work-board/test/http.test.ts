@@ -186,13 +186,6 @@ describe("local-only safety", () => {
 });
 
 describe("assets", () => {
-	it("serves the page's own stylesheet and scripts", async () => {
-		expect((await get("/_board/style.css")).headers.get("content-type")).toBe("text/css; charset=utf-8");
-		expect(await (await get("/_board/client.js")).text()).toContain('new EventSource("/events")');
-		expect(await (await get("/_board/swap.js")).text()).toContain("export const swap");
-		expect(await (await get("/_board/diagrams.js")).text()).toContain("export const renderDiagrams");
-	});
-
 	it("serves Mermaid's modules from the installed package and nothing else", async () => {
 		const mermaid = await get("/_board/mermaid/mermaid.esm.min.mjs");
 		expect(mermaid.status).toBe(200);
@@ -202,7 +195,9 @@ describe("assets", () => {
 	});
 
 	it("styles the page with system fonts and no remote or embedded assets", async () => {
-		const css = await (await get("/_board/style.css")).text();
+		const response = await get("/_board/style.css");
+		expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
+		const css = await response.text();
 		expect(css).toContain('--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;');
 		expect(css).toContain("--mono: ui-monospace, SFMono-Regular, Menlo, monospace;");
 		expect(css).toContain("@media (prefers-color-scheme: dark)");

@@ -41,14 +41,6 @@ it.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {
 		}),
 	);
 
-	it.effect("scopes an outer directory rule to the re-included subtree", () =>
-		Effect.gen(function* () {
-			const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept));
-			expect(paths).toContain("packages/z/build/sub/deep.ts");
-			expect(paths).not.toContain("packages/z/build/a.scratch.ts");
-		}),
-	);
-
 	it.effect("applies the ignore files above a nested source directory", () =>
 		Effect.gen(function* () {
 			const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept), ["packages/y", "packages/w"]);

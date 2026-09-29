@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Consolidate duplicate test cases around observable package behavior.
+
 - Validate packed consumers and executable bins through the shared workspace gate.
 
 ## 0.4.3 - 2026-09-26

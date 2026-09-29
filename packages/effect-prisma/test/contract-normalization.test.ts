@@ -1,34 +1,56 @@
-import { describe, expect, it } from "vitest";
-import { normalizePrismaNextContractTypes } from "../src/internal/contract-normalization.ts";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+import { afterEach, expect, it } from "vitest";
 
-describe("Prisma Next contract normalization", () => {
-	it("replaces timestamp output declarations with Date", () => {
-		const source = ["readonly createdAt: Timestamp<6>;", "readonly verifiedAt: Timestamptz<3> | null;"].join("\n");
+const directories: string[] = [];
+const cli = fileURLToPath(new URL("../src/bin/normalize-contract.ts", import.meta.url));
+const contract = (source: string) => {
+	const directory = mkdtempSync(join(tmpdir(), "contract-normalization-"));
+	directories.push(directory);
+	const path = join(directory, "contract.d.ts");
+	writeFileSync(path, source);
+	return path;
+};
+const normalize = (path: string) => spawnSync(process.execPath, [cli, path], { encoding: "utf8" });
+afterEach(() => {
+	for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+});
 
-		expect(normalizePrismaNextContractTypes(source)).toBe(["readonly createdAt: Date;", "readonly verifiedAt: Date | null;"].join("\n"));
-	});
+it("normalizes generated timestamps, preserves other fields and can run twice", () => {
+	const path = contract(
+		[
+			"readonly createdAt: Timestamp<6>;",
+			"readonly verifiedAt: Timestamptz<3> | null;",
+			"readonly deletedAt: Timestamp<undefined>;",
+			"readonly output: CodecTypes['pg/timestamp@1']['output'];",
+			"readonly input: CodecTypes['pg/timestamptz@1']['input'];",
+			"readonly email: string;",
+		].join("\n"),
+	);
+	const expected = [
+		"readonly createdAt: Date;",
+		"readonly verifiedAt: Date | null;",
+		"readonly deletedAt: Date;",
+		"readonly output: Date;",
+		"readonly input: Date;",
+		"readonly email: string;",
+	].join("\n");
+	for (let run = 0; run < 2; run++) {
+		const result = normalize(path);
+		expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: "" });
+		expect(readFileSync(path, "utf8")).toBe(expected);
+	}
+});
 
-	it("is safe to run repeatedly and on contracts without timestamps", () => {
-		const source = "readonly email: string;";
-		expect(normalizePrismaNextContractTypes(source)).toBe(source);
-	});
-
-	it("supports declarations without an explicit timestamp precision", () => {
-		expect(normalizePrismaNextContractTypes("readonly createdAt: Timestamp<undefined>;")).toBe("readonly createdAt: Date;");
-	});
-
-	it("replaces timestamp codec input and output references with Date", () => {
-		const source = [
-			"readonly createdAt: CodecTypes['pg/timestamp@1']['output'];",
-			"readonly updatedAt: CodecTypes['pg/timestamptz@1']['input'];",
-		].join("\n");
-
-		expect(normalizePrismaNextContractTypes(source)).toBe(["readonly createdAt: Date;", "readonly updatedAt: Date;"].join("\n"));
-	});
-
-	it("fails when Prisma emits an unsupported timestamp type shape", () => {
-		expect(() => normalizePrismaNextContractTypes("readonly createdAt: Timestamp<Precision>;")).toThrow(
-			"Unsupported Prisma Next timestamp declaration",
-		);
-	});
+it("refuses unsupported timestamp declarations without overwriting the generated file", () => {
+	const source = "readonly createdAt: Timestamp<Precision>;";
+	const path = contract(source);
+	const result = normalize(path);
+	expect(result.status).toBe(1);
+	expect(result.stderr).toContain("Unsupported Prisma Next timestamp declaration");
+	expect(readFileSync(path, "utf8")).toBe(source);
 });
