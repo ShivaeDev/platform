@@ -71,7 +71,7 @@ A comment says why, never what the code already says or what it used to be. Six 
 | `comments/no-todo` | `TODO`, `FIXME`, `XXX` and `@todo` | none |
 | `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max`, `allow` |
 
-The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files. Each finding names the line its comment starts on.
+The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
 
 `comments/max-per-file` counts comments this way:
 
@@ -79,7 +79,7 @@ The rules find comments with the TypeScript parser, so text inside strings, temp
 - Line comments that each stand alone on adjacent lines form one run and count once. A blank line, code, a directive, or a comment after code on the same line starts a new one.
 - Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `prettier-ignore`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`).
 
-The other comment rules skip directives too. Its measure is the count, so a baselined file may lose comments but never gain one. A finding names the first comment over the limit.
+The measure of `comments/max-per-file` is the count, so a baselined file may lose comments but never gain one. A finding names the first comment over the limit.
 
 A tool pragma is a comment whose every line starts with an allowed tag, such as `/** @vitest-environment happy-dom */`. `allow` lists the tags and defaults to `@vitest-environment`, `@vitest-environment-options`, `@jest-environment`, `@jsx`, `@jsxFrag`, `@jsxImportSource` and `@jsxRuntime`. A list given replaces the default, and `comments/no-jsdoc` and `comments/max-per-file` each take their own, so give both the same list:
 
