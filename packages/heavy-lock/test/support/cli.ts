@@ -69,19 +69,19 @@ export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>,
 export const pollWhile = (condition: string): string =>
 	`give_up=$(($(date +%s) + ${TEST_TIMEOUT_MS / 1000})); while ${condition} && [ "$(date +%s)" -lt "$give_up" ]; do sleep 0.02; done`;
 
-export const holdUntil = (release: string): ReadonlyArray<string> => [
+export const holdUntilReleasedOrAbandoned = (release: string): ReadonlyArray<string> => [
 	"/bin/sh",
 	"-c",
 	`${pollWhile(`[ ! -e "${release}" ] && [ -d "${dirname(release)}" ]`)}; test -e "${release}"`,
 ];
 
-const WAIT_MS = TEST_TIMEOUT_MS / 2;
+const WAIT_LEAVING_TIME_FOR_CLEANUP_MS = TEST_TIMEOUT_MS / 2;
 
 export const waitFor = async (condition: () => boolean): Promise<void> => {
-	const deadline = performance.now() + WAIT_MS;
+	const deadline = performance.now() + WAIT_LEAVING_TIME_FOR_CLEANUP_MS;
 	while (!condition()) {
 		if (performance.now() > deadline) {
-			throw new Error(`Condition not met within ${WAIT_MS} ms.`);
+			throw new Error(`Condition not met within ${WAIT_LEAVING_TIME_FOR_CLEANUP_MS} ms.`);
 		}
 		await sleep(10);
 	}

@@ -3,7 +3,16 @@ import { join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
 import { HOLDER_ID_ENV } from "../src/holder.ts";
-import { cliEnvironment, HEAVY_LOCK_CLI, holdUntil, runCli, type Started, start, TEST_TIMEOUT_MS, waitFor } from "./support/cli.ts";
+import {
+	cliEnvironment,
+	HEAVY_LOCK_CLI,
+	holdUntilReleasedOrAbandoned,
+	runCli,
+	type Started,
+	start,
+	TEST_TIMEOUT_MS,
+	waitFor,
+} from "./support/cli.ts";
 import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "./support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
@@ -40,7 +49,7 @@ it(
 	async () => {
 		const lock = temporaryLock();
 		const release = join(temporaryDirectory(), "release");
-		const holding = holdUntil(release);
+		const holding = holdUntilReleasedOrAbandoned(release);
 		const runs: Started[] = [];
 		try {
 			const first = start(["--", ...holding], cliEnvironment(lock));
@@ -71,7 +80,7 @@ it(
 	async () => {
 		const lock = temporaryLock();
 		const release = join(temporaryDirectory(), "release");
-		const holding = holdUntil(release);
+		const holding = holdUntilReleasedOrAbandoned(release);
 		const run = start(["--", ...holding], cliEnvironment(lock, { LANG: "de_DE.UTF-8", LC_ALL: "de_DE.UTF-8" }), "/");
 		try {
 			await waitFor(() => readLock(lock) !== undefined);

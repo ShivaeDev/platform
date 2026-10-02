@@ -36,8 +36,7 @@ const refusal = (id: string, levels: ReadonlyMap<string, Level>, existing: Reado
 	return existing.some((entry) => entry.rule === id) ? [`${id}: already baselined. Its entries only shrink; fix new violations instead.`] : [];
 };
 
-// Without a baseline every rule is adopted at once; afterwards a rule is adopted by name, once, so a baseline never grows for a rule it
-// already covers.
+// A baseline never grows for a rule it already covers.
 export const adopt = (
 	existing: ReadonlyArray<BaselineEntry> | undefined,
 	rules: ReadonlyArray<string>,
