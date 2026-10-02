@@ -54,7 +54,7 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 		expect(result.status).toBe(1);
 		expect(result.stdout).toContain("  src/a.ts:1  JSDoc block.");
 		expect(result.stdout).toContain('  src/a.ts:2  Marks unfinished work: "TODO".');
-		expect(result.stdout).toContain("  src/a.ts:3  3 comments exceed the 2-comment limit.");
+		expect(result.stdout).toContain("  src/a.ts:3  3 comments against a limit of 2.");
 	});
 
 	it("honours registered exceptions and fails on stale ones", () => {

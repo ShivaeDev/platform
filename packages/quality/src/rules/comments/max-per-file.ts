@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { plural } from "../../report/plural.ts";
 import { defineRule, type Finding, type SourceFile } from "../../rule.ts";
 import { isDirective, isPragma, Pragmas } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
@@ -25,7 +26,14 @@ const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): R
 	const first = blocks[max];
 	return first === undefined
 		? []
-		: [{ file: file.path, line: first.line, measure: blocks.length, message: `${blocks.length} comments exceed the ${max}-comment limit.` }];
+		: [
+				{
+					file: file.path,
+					line: first.line,
+					measure: blocks.length,
+					message: `${plural(blocks.length, "comment", "comments")} against a limit of ${max}.`,
+				},
+			];
 };
 
 export const maxPerFile = defineRule({

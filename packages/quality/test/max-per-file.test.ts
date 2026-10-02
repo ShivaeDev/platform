@@ -56,14 +56,14 @@ describe("comments/max-per-file fires", () => {
 	it("on a file with more than 2 comments, at the first comment over the limit, measuring the count", async () => {
 		const content = "// one\nexport const a = 1;\n/* two */\nexport const b = 2;\n// three\n";
 		expect(await checkRule(maxPerFile, undefined, { sources: [{ content, path: "src/a.ts" }] })).toEqual([
-			{ file: "src/a.ts", line: 5, measure: 3, message: "3 comments exceed the 2-comment limit." },
+			{ file: "src/a.ts", line: 5, measure: 3, message: "3 comments against a limit of 2." },
 		]);
 	});
 
 	it("at the configured limit", async () => {
 		const sources = [{ content: "// one\n", path: "src/a.ts" }];
 		expect(await checkRule(maxPerFile, { max: 0 }, { sources })).toEqual([
-			{ file: "src/a.ts", line: 1, measure: 1, message: "1 comments exceed the 0-comment limit." },
+			{ file: "src/a.ts", line: 1, measure: 1, message: "1 comment against a limit of 0." },
 		]);
 	});
 });

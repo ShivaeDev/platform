@@ -53,7 +53,15 @@ const cases: ReadonlyArray<Case> = [
 			["// #endregion", "#endregion"],
 			["/**\n * Parsing\n * -------\n */", "-------"],
 		],
-		quiet: ["// a === b", "// maps a -> b", "// pass --flag", "/**\n * A plain doc.\n */", "// ends with a path a/b"],
+		quiet: [
+			"// a === b",
+			"// maps a -> b",
+			"// pass --flag",
+			"/**\n * A plain doc.\n */",
+			"// ends with a path a/b",
+			"/*#__PURE__*/",
+			"/*#__NO_SIDE_EFFECTS__*/",
+		],
 	},
 	{
 		rule: noTodo,
