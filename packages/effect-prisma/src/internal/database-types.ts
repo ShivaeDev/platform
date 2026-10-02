@@ -50,10 +50,6 @@ export type DatabaseService<Contract extends AnySqlContract, Identifier extends 
 	): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseIdentifier<Contract, Identifier>>>;
 };
 
-/**
- * The driver-independent part of a database definition: the Context service
- * carrying the typed facade. Driver entrypoints add their own `layer` options.
- */
 export interface DatabaseServiceHolder<Contract extends AnySqlContract, Identifier extends string>
 	extends Context.Service<DatabaseIdentifier<Contract, Identifier>, DatabaseService<Contract, Identifier>> {}
 

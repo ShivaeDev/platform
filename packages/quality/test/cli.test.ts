@@ -34,18 +34,27 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 			{
 				content: [
 					'import { defineConfig, defineRule } from "@shivaedev/quality";',
-					'const todo = defineRule({ id: "local/no-todo", description: "Resolve TODOs before merging.",',
-					'  check: ({ sources }) => sources.filter((file) => file.text.includes("TODO")).map((file) => ({ file: file.path, message: "has a TODO." })) });',
-					'export default defineConfig({ local: [todo], sources: ["src"] });',
+					'const noLog = defineRule({ id: "local/no-console-log", description: "Log through the logger.",',
+					'  check: ({ sources }) => sources.filter((file) => file.text.includes("console.log")).map((file) => ({ file: file.path, message: "logs to the console." })) });',
+					'export default defineConfig({ local: [noLog], sources: ["src"] });',
 				].join("\n"),
 				path: "quality.config.ts",
 			},
-			{ content: "// TODO: later\n", path: "src/todo.ts" },
+			{ content: 'console.log("ready");\n', path: "src/log.ts" },
 		]);
 		linkPackage(root);
 		const result = quality(root, "lint");
 		expect(result.status).toBe(1);
-		expect(result.stdout).toContain("error local/no-todo (1)\n  Resolve TODOs before merging.\n  src/todo.ts  has a TODO.");
+		expect(result.stdout).toContain("error local/no-console-log (1)\n  Log through the logger.\n  src/log.ts  logs to the console.");
+	});
+
+	it("runs the comment rules by default, at the line of each comment", () => {
+		const root = seedTree([config('{ sources: ["src"] }'), { content: "/** Adds. */\nexport const a = 1; // TODO\n// three\n", path: "src/a.ts" }]);
+		const result = quality(root, "lint");
+		expect(result.status).toBe(1);
+		expect(result.stdout).toContain("  src/a.ts:1  JSDoc block.");
+		expect(result.stdout).toContain('  src/a.ts:2  Marks unfinished work: "TODO".');
+		expect(result.stdout).toContain("  src/a.ts:3  3 comments against a limit of 2.");
 	});
 
 	it("honours registered exceptions and fails on stale ones", () => {

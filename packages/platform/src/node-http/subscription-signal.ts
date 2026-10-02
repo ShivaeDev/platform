@@ -1,18 +1,13 @@
 import type { IncomingMessage } from "node:http";
 
 export interface NodeSubscriptionSignalOptions {
-	/** A Web request, including its signal and an optional srvx node runtime. */
 	readonly request?: Request | undefined;
-	/** The node request when the transport exposes it directly. */
 	readonly nodeRequest?: IncomingMessage | undefined;
-	/** Additional transport or procedure signals to combine. */
 	readonly signals?: Iterable<AbortSignal | undefined>;
 }
 
 export interface NodeSubscriptionSignal {
-	/** Detach node listeners when the subscription ends. */
 	readonly dispose: () => void;
-	/** Aborts when any supplied signal or the underlying connection closes. */
 	readonly signal: AbortSignal;
 }
 
@@ -26,11 +21,7 @@ const nodeRequestFrom = (request: Request | undefined): IncomingMessage | undefi
 	return isIncomingMessage(req) ? req : undefined;
 };
 
-/**
- * Combine Web/procedure abort signals with node request and socket close events.
- * The node events cover long-lived responses under Bun's node:http compatibility
- * layer, where a Web request signal alone may not report an abandoned socket.
- */
+// Under Bun's node:http compatibility layer a Web request signal may miss an abandoned socket, so node close events cover long-lived responses.
 export const nodeSubscriptionSignal = (options: NodeSubscriptionSignalOptions): NodeSubscriptionSignal => {
 	const controller = new AbortController();
 	const signals: AbortSignal[] = [controller.signal];

@@ -601,6 +601,9 @@ importers:
       ignore:
         specifier: 'catalog:'
         version: 7.0.6
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -620,9 +623,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-rc.112
-      typescript:
-        specifier: 'catalog:'
-        version: '@typescript/typescript6@6.0.2'
       vitest:
         specifier: 'catalog:'
         version: 4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))

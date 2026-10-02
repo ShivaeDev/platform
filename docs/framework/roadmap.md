@@ -56,7 +56,7 @@ These are executable boundary examples, not an application deployment. See the
 
 - [x] Strict shared `tsconfig.base.json` and `.ts` relative imports with `rewriteRelativeImportExtensions`.
 - [x] GritQL bans: type assertions, ambient runtime, relative import extensions, `Effect.fn` span names (`Owner.operation`).
-- [x] Repository rules: 150/300-line file limits, nesting depth, comments, pragma registry, `index.ts` only as package entry.
+- [x] Repository rules: nesting depth, comments, pragma registry, `index.ts` only as package entry.
 - [x] Manifests: `catalog:`/`workspace:*` dependencies with exact catalog versions.
 - [x] Browser-safe sources for effect-contract, effect-form and effect-react.
 - [x] dependency-cruiser boundaries: leaf packages stay leaves; browser packages never import server packages.
@@ -64,8 +64,10 @@ These are executable boundary examples, not an application deployment. See the
   a shrink-only baseline and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
 - [x] `@shivaedev/heavy-lock`: the machine-wide heavy-process lock as a package, with a command line and an Effect API.
   Platform's `build`, `typecheck`, `typecheck:compat`, `test` and `test:package` scripts run it from source.
-- [ ] Port the repository rules into `@shivaedev/quality` with options, split the Grit plugins, add presets,
-  and run `pnpm lint` through the package.
+- [x] `@shivaedev/quality` comment rules: no JSDoc, line or pull request references, banners or TODOs, and at most
+  2 comments per file. `pnpm lint` runs the package's built-in rules, which replace the repository's own line limits.
+- [ ] Port the remaining repository rules in `script/lint/rules/` into `@shivaedev/quality` with options, split the Grit plugins
+  and add presets, so `pnpm lint` runs only through the package.
 - [ ] Effect boundaries (no `try`/`async` outside `adapters/`): 99 source and 670 test
   violations. Source work is mechanical; tests need a scope decision (rewrite into Effect style or exempt).
 - [ ] Service parameters: porting Antumbra's rule would flag public APIs that take services or `Context`

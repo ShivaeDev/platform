@@ -29,11 +29,6 @@ function databaseFacade(facade: object): unknown {
 	return facade;
 }
 
-/**
- * Resolve the models of the single domain namespace from a namespaced ORM
- * client. Prisma Next namespaces PostgreSQL models under their schema and
- * SQLite models under the unbound namespace.
- */
 export const namespaceModels = <Contract extends AnySqlContract, Models extends object>(
 	contract: Contract,
 	namespacedOrm: TransactionOrm<Contract>,
@@ -43,9 +38,9 @@ export const namespaceModels = <Contract extends AnySqlContract, Models extends 
 	if (namespaces.length !== 1 || only === undefined) {
 		throw new TypeError("Effect Prisma currently requires exactly one domain namespace");
 	}
-	const [name, namespace] = only;
+	const [postgresSchemaOrSqliteUnbound, namespace] = only;
 	assertAvailableModelNames(Object.keys(namespace.models));
-	return contractModels<Models>(Reflect.get(namespacedOrm, name));
+	return contractModels<Models>(Reflect.get(namespacedOrm, postgresSchemaOrSqliteUnbound));
 };
 
 export const runTransaction = <Contract extends AnySqlContract, Identifier extends string, A, E, R>(

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decodeConfig } from "../src/config/decode.ts";
 import { resolveRules } from "../src/config/resolve.ts";
 import { defineConfig, defineRule } from "../src/index.ts";
+import { builtInRules } from "../src/rules/built-in.ts";
 
 const todo = defineRule({ id: "local/no-todo", description: "Resolve TODOs.", check: () => [] });
 
@@ -20,7 +21,7 @@ describe("config", () => {
 	it("defaults every rule to error", async () => {
 		const resolved = await resolve(defineConfig({ local: [todo] }));
 		expect(resolved._tag === "Valid" && [...resolved.value.levels]).toEqual([
-			["structure/max-lines", "error"],
+			...builtInRules.map((rule) => [rule.id, "error"]),
 			["local/no-todo", "error"],
 		]);
 	});
@@ -29,7 +30,9 @@ describe("config", () => {
 		const resolved = await resolve(
 			defineConfig({ local: [todo], rules: { "local/no-todo": "off", "structure/max-lines": { level: "warn", options: { source: 200 } } } }),
 		);
-		expect(resolved._tag === "Valid" && resolved.value.active.map((rule) => [rule.id, rule.level])).toEqual([["structure/max-lines", "warn"]]);
+		const active = resolved._tag === "Valid" ? resolved.value.active.map((rule) => [rule.id, rule.level]) : [];
+		expect(active).toContainEqual(["structure/max-lines", "warn"]);
+		expect(active.map(([id]) => id)).not.toContain("local/no-todo");
 	});
 
 	it("does not validate the options of a rule that is off", async () => {

@@ -21,6 +21,9 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 		"local/max-files": { options: { max: 3 } },
 		"local/no-todo": "warn",
 		"structure/max-lines": { level: "error", options: { source: 200, testFiles: ["e2e/"] } },
+		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
+		"comments/no-jsdoc": { options: { allow: ["@license"] } },
+		"comments/no-todo": "off",
 	},
 	sources: ["src"],
 });
@@ -42,6 +45,16 @@ export const wrongOption = defineConfig({
 export const misspelledOption = defineConfig({
 	// @ts-expect-error Option names are checked too.
 	rules: { "structure/max-lines": { options: { sourc: 150 } } },
+});
+
+export const commentLimit = defineConfig({
+	// @ts-expect-error The comment limit is a number.
+	rules: { "comments/max-per-file": { options: { max: "2" } } },
+});
+
+export const patternOptions = defineConfig({
+	// @ts-expect-error The pattern rules take no options.
+	rules: { "comments/no-banner": { options: { allow: [] } } },
 });
 
 export const optionsForNone = defineConfig({

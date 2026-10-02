@@ -6,6 +6,8 @@
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
+- Remove a JSDoc block, so the package passes the comment rules of `@shivaedev/quality`.
+
 ## 0.4.1 - 2026-09-26
 
 ### Added

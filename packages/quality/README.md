@@ -22,15 +22,16 @@ Node 24 or later loads `quality.config.ts` directly (type stripping), so no buil
 ```ts
 // quality.config.ts
 import { defineConfig } from "@shivaedev/quality";
-import { noTodo } from "./quality/no-todo.ts";
+import { noConsoleLog } from "./quality/no-console-log.ts";
 
 export default defineConfig({
 	sources: ["src", "scripts"],
 	exclude: ["src/components/ui/", "*.gen.ts"],
-	local: [noTodo],
+	local: [noConsoleLog],
 	rules: {
 		"structure/max-lines": { options: { source: 200, testFiles: ["e2e/"] } },
-		"local/no-todo": "warn",
+		"comments/max-per-file": { options: { max: 3 } },
+		"local/no-console-log": "warn",
 	},
 });
 ```
@@ -57,17 +58,57 @@ The config is typed: an unknown rule id, a misspelled option or an option of the
 
 `structure/max-lines` keeps each module to one job: a source file may have 150 lines and a test file 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns that mark test files (`*.test.*`, `*.spec.*`, `test/`, `tests/` and `__tests__/` by default). A violation's measure is the file's line count, so a baselined file may shrink but never grow.
 
+### Comments
+
+A comment says why, never what the code already says or what it used to be. Six rules hold every comment to that:
+
+| Rule | Reports | Options |
+| --- | --- | --- |
+| `comments/no-jsdoc` | Every `/** */` block, except a tool pragma | `allow` |
+| `comments/no-line-reference` | A line number: `file.ts:42`, `file.ts#L42`, `line 42` | none |
+| `comments/no-pr-reference` | A pull request or issue: `#123`, `PR 123`, `MR 123`, `pull request 123`, `merge request 123`, `issue 123`, `ticket 123`, `/pull/123`, `/pulls/123`, `/issues/123`, `/merge_requests/123`, `GH-123` | none |
+| `comments/no-banner` | A banner, divider or region: a line that starts or ends with three or more of `- = * # ~ _ + / \ ─ ━ ═ ┄ ┈`, `#region`, `#endregion` | none |
+| `comments/no-todo` | `TODO`, `FIXME`, `XXX` and `@todo` | none |
+| `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max`, `allow` |
+
+The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
+
+`comments/max-per-file` counts comments this way:
+
+- A block comment counts once, however many lines it spans.
+- Line comments that each stand alone on adjacent lines form one run and count once. A blank line, code, a directive, or a comment after code on the same line starts a new one.
+- Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `prettier-ignore`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`).
+
+The measure of `comments/max-per-file` is the count, so a baselined file may lose comments but never gain one. A finding names the first comment over the limit.
+
+A tool pragma is a comment whose every line starts with an allowed tag, such as `/** @vitest-environment happy-dom */`. `allow` lists the tags and defaults to `@vitest-environment`, `@vitest-environment-options`, `@jest-environment`, `@jsx`, `@jsxFrag`, `@jsxImportSource` and `@jsxRuntime`. A list given replaces the default, and `comments/no-jsdoc` and `comments/max-per-file` each take their own, so give both the same list:
+
+```ts
+const pragmas = ["@vitest-environment", "@license"];
+
+export default defineConfig({
+	rules: {
+		"comments/no-jsdoc": { options: { allow: pragmas } },
+		"comments/max-per-file": { options: { allow: pragmas } },
+	},
+});
+```
+
+A repository with existing comments adopts the rules through the baseline, for example `quality baseline write --rule comments/no-jsdoc --rule comments/max-per-file`.
+
 ### Local rules
 
 ```ts
 import { defineRule } from "@shivaedev/quality";
 
-export const noTodo = defineRule({
-	id: "local/no-todo",
-	description: "Resolve TODOs before merging.",
+export const noConsoleLog = defineRule({
+	id: "local/no-console-log",
+	description: "Log through the application logger.",
 	check: ({ sources }) =>
 		sources.flatMap((file) =>
-			file.lines.flatMap((text, index) => (text.includes("TODO") ? [{ file: file.path, line: index + 1, message: "Resolve this TODO." }] : [])),
+			file.lines.flatMap((text, index) =>
+				text.includes("console.log(") ? [{ file: file.path, line: index + 1, message: "Logs to the console." }] : [],
+			),
 		),
 });
 ```
@@ -86,7 +127,7 @@ A rule with options declares them with any [Standard Schema](https://standardsch
 			"measure": 412
 		}
 	},
-	"local/no-todo": {
+	"comments/no-jsdoc": {
 		"src/legacy/sync.ts": {
 			"count": 3
 		}
@@ -133,4 +174,4 @@ quality baseline prune [--config <file>]
 
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, the rule, config, discovery, registry, baseline and report behavior, the command line against seeded repositories, and an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle.
+`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories, and an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle.

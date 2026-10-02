@@ -24,7 +24,15 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				root,
 				sources: ["."],
 			});
-			expect(loaded.active.map((rule) => rule.id)).toEqual(["structure/max-lines"]);
+			expect(loaded.active.map((rule) => rule.id)).toEqual([
+				"structure/max-lines",
+				"comments/no-jsdoc",
+				"comments/no-line-reference",
+				"comments/no-pr-reference",
+				"comments/no-banner",
+				"comments/no-todo",
+				"comments/max-per-file",
+			]);
 		}),
 	);
 

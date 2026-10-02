@@ -15,10 +15,6 @@ import { releaseTestTransaction } from "./transaction.ts";
 
 let activeTransactionReferenceSequence = 0;
 
-/**
- * Assemble the database service and its Layer around a driver-specific
- * executor acquisition.
- */
 export const makeSqlDatabase = <const Contract extends AnySqlContract, const Identifier extends string, Options>(
 	identifier: DatabaseIdentifierLiteral<Identifier>,
 	acquireExecutor: (options: Options) => Effect.Effect<DatabaseExecutor<DefaultModels<Contract>, Contract>, PrismaError>,

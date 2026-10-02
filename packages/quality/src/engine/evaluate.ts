@@ -14,7 +14,6 @@ export interface Outcome {
 	readonly registered: number;
 }
 
-/** Registered exceptions apply first; the baseline then covers what is left, per rule and file. */
 export const evaluate = (
 	violations: ReadonlyArray<Violation>,
 	registry: ReadonlyArray<RegistryEntry>,

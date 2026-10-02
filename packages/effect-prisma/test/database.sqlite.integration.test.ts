@@ -26,7 +26,6 @@ const journalMode = (path: string): unknown => {
 	}
 };
 
-/** The text SQLite actually stored, before any codec sees it. */
 const storedCreatedAt = (path: string, id: string): string => {
 	const database = new DatabaseSync(path);
 	try {

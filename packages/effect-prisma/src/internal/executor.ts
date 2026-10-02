@@ -6,10 +6,6 @@ import type { Semaphore } from "effect";
 export type AnySqlContract = PrismaContract<SqlStorage>;
 export type AnyPostgresContract = AnySqlContract;
 
-/**
- * The subset of a Prisma Next client the package depends on. Both the
- * PostgreSQL and the SQLite client satisfy it.
- */
 export interface SqlDatabaseClient<Contract extends AnySqlContract> {
 	readonly contract: Contract;
 	readonly context: ExecutionContext<Contract>;
