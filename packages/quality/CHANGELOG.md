@@ -2,7 +2,28 @@
 
 ## Unreleased
 
+### Added
+
+- Add comment rules, each an error by default: `comments/no-jsdoc` (with an
+  `allow` list of tool pragmas such as `@vitest-environment`),
+  `comments/no-line-reference`, `comments/no-pr-reference`, `comments/no-banner`,
+  `comments/no-todo` and `comments/max-per-file` (2 comments per file by
+  default; a block comment or a run of adjacent line comments counts once, and
+  pragmas and directives are not counted). They find comments with the
+  TypeScript parser, so strings, template literals, regular expressions and JSX
+  text never count.
+
 ### Changed
+
+- **Breaking:** The comment rules are on by default, so upgrading fails a
+  repository with existing comment violations until it fixes them or adopts the
+  rules with `quality baseline write --rule <id>`.
+
+- Depend on `typescript`, resolved to the TypeScript 6 compiler API, to find
+  comments.
+
+- Remove the JSDoc from the package's own source; the README documents the
+  config, rule and finding fields.
 
 - Consolidate duplicate test cases around observable package behavior.
 

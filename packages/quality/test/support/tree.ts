@@ -23,7 +23,6 @@ export const seedTree = (...groups: ReadonlyArray<ReadonlyArray<SeedFile>>): str
 	return root;
 };
 
-/** Makes the package importable from a seeded tree, the way an installed consumer resolves it. */
 export const linkPackage = (root: string): void => {
 	mkdirSync(join(root, "node_modules", "@shivaedev"), { recursive: true });
 	symlinkSync(packageRoot, join(root, "node_modules", "@shivaedev", "quality"), "dir");

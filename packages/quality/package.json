@@ -48,7 +48,8 @@
 		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build"
 	},
 	"dependencies": {
-		"ignore": "catalog:"
+		"ignore": "catalog:",
+		"typescript": "catalog:"
 	},
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
@@ -62,7 +63,6 @@
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
-		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}
 }

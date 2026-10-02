@@ -13,7 +13,7 @@ export const ignoreScopeAt = (
 		contents === undefined || contents === "" ? inherited : withIgnoreFile(inherited, dir, contents),
 	);
 
-/** The ignore files of every directory between the root and a walked directory, which the walk itself does not visit. */
+// The walk itself never visits the directories between the root and a source, so their ignore files are read here.
 export const scopeAbove = (root: string, dir: string): Effect.Effect<IgnoreScope, FilesystemFailure, FileSystem.FileSystem> => {
 	const parts = relative(root, dir)
 		.split(sep)

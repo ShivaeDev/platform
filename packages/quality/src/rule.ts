@@ -4,9 +4,7 @@ export interface Finding {
 	readonly file: string;
 	readonly line?: number | undefined;
 	readonly message: string;
-	/** Tells apart exceptions of one rule in one file, such as which Biome rule an override turns off. */
 	readonly subject?: string | undefined;
-	/** A size where larger is worse, such as a file's line count. A baselined file may not grow past it. */
 	readonly measure?: number | undefined;
 }
 
@@ -73,10 +71,6 @@ const configureWith =
 		return { _tag: "Ready", check: async (inputs) => check({ ...inputs, options: value }) };
 	};
 
-/**
- * Defines a rule. Options are an object validated by a Standard Schema; a rule the config gives no options validates `{}`,
- * so give each option a default or make it optional.
- */
 export function defineRule<const Id extends string, Input, Options>(definition: RuleDefinitionWithOptions<Id, Input, Options>): Rule<Id, Input>;
 export function defineRule<const Id extends string>(definition: RuleDefinitionWithoutOptions<Id>): Rule<Id, undefined>;
 export function defineRule<const Id extends string, Input, Options>(

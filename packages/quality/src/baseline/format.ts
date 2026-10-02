@@ -49,5 +49,5 @@ export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>, indent: st
 	return `${JSON.stringify(rules, null, indent)}\n`;
 };
 
-/** Keeps the indentation of the file being rewritten, so the repository formatter leaves it alone. */
+// Keeps the indentation of the file being rewritten, so the repository formatter leaves it alone.
 export const indentOf = (raw: string | undefined): string => /^([ \t]+)\S/m.exec(raw ?? "")?.[1] ?? "\t";

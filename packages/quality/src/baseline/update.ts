@@ -36,10 +36,8 @@ const refusal = (id: string, levels: ReadonlyMap<string, Level>, existing: Reado
 	return existing.some((entry) => entry.rule === id) ? [`${id}: already baselined. Its entries only shrink; fix new violations instead.`] : [];
 };
 
-/**
- * Records the error-level violations of rules being adopted. Without a baseline every rule is adopted at once; afterwards a
- * rule is adopted by name, once, so a baseline never grows for a rule it already covers.
- */
+// Without a baseline every rule is adopted at once; afterwards a rule is adopted by name, once, so a baseline never grows for a rule it
+// already covers.
 export const adopt = (
 	existing: ReadonlyArray<BaselineEntry> | undefined,
 	rules: ReadonlyArray<string>,
@@ -67,7 +65,6 @@ const shrunk = (entry: BaselineEntry, current: BaselineEntry): BaselineEntry => 
 
 const unchanged = (left: BaselineEntry, right: BaselineEntry): boolean => left.count === right.count && left.measure === right.measure;
 
-/** Drops fixed debt and lowers entries to what is left. It never adds an entry or raises one. */
 export const prune = (existing: ReadonlyArray<BaselineEntry>, violations: ReadonlyArray<Violation>, levels: ReadonlyMap<string, Level>): Pruned => {
 	const current = new Map(record(violations).map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const kept = existing.flatMap((before) => {
