@@ -42,9 +42,25 @@ describe("suppressions/biome-overrides finds", () => {
 		["an assist action", { assist: { actions: { source: { useSortedKeys: "off" } } } }, "assist/source/useSortedKeys"],
 		["an assist action with options", { assist: { actions: { source: { organizeImports: { level: "off" } } } } }, "assist/source/organizeImports"],
 		["the formatter", { formatter: { enabled: false } }, "format"],
+		["a language's linter", { css: { linter: { enabled: false } } }, "css/lint"],
+		["a language's formatter", { json: { formatter: { enabled: false } } }, "json/format"],
+		["a language's assist", { javascript: { assist: { enabled: false } } }, "javascript/assist"],
 	])("%s switched off", async (_, config, rule) => {
 		expect(await weakened(config)).toEqual([rule]);
 		expect(await weakened({ overrides: [{ includes: ["src/**"], ...config }] })).toEqual([rule]);
+	});
+
+	it.each([
+		["excluded files", { files: { includes: ["**", "!**/dist", "!!vendor"] } }, 'Weakens "files/includes" for "**", "!**/dist", "!!vendor"'],
+		["files kept from the linter", { linter: { includes: ["**", "!scripts/**"] } }, 'Weakens "lint/includes" for "**", "!scripts/**"'],
+		["a linter narrowed to some files", { linter: { includes: ["src/**"] } }, 'Weakens "lint/includes" for "src/**"'],
+		["files kept from the formatter", { formatter: { includes: ["**", "!*.md"] } }, 'Weakens "format/includes" for "**", "!*.md"'],
+	])("%s, as the whole list", async (_, config, message) => {
+		expect(await check({ "biome.json": JSON.stringify(config) })).toEqual([`biome.json:1 ${message} without a declaration.`]);
+	});
+
+	it("no narrowing in a list that keeps every file", async () => {
+		expect(await weakened({ files: { includes: ["**"] }, linter: { includes: ["**"] } })).toEqual([]);
 	});
 
 	it("no weakening in rules raised, enabled or configured", async () => {

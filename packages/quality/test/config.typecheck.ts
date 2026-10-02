@@ -76,3 +76,10 @@ export const localOnlyWithLocal = defineConfig({
 	// @ts-expect-error A local rule's settings need the rule in local.
 	rules: { "local/max-files": { options: { max: 3 } } },
 });
+
+export const declaredIgnore = defineConfig({
+	rules: {
+		// @ts-expect-error Only @ts-expect-error can be declared for type tests.
+		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason: "No." }] } },
+	},
+});

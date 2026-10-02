@@ -5,9 +5,8 @@ import { validOrFail } from "../decoded.ts";
 import { SetupFailure } from "../failure.ts";
 import type { InventoryScope } from "../inventory/collect.ts";
 import { type ConfigInput, decodeConfig } from "./decode.ts";
+import { CONFIG_FILE } from "./file.ts";
 import { type ResolvedRules, resolveRules } from "./resolve.ts";
-
-export const CONFIG_FILE = "quality.config.ts";
 
 const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 

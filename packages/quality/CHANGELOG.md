@@ -18,13 +18,15 @@
   linter, the compiler or a formatter (`biome-ignore…`, `@ts-ignore`,
   `@ts-expect-error`, `@ts-nocheck`, `eslint-disable…`, `prettier-ignore` and
   their equivalents for Oxlint, Stylelint, Deno, TSLint and Flow), in
-  TypeScript and JavaScript modules and in CSS, SCSS and Less files;
+  TypeScript and JavaScript modules and in CSS, SCSS and Less files, except
+  `@ts-expect-error` in type-test files the config declares with a reason;
   `suppressions/no-double-cast` reports casts through `unknown`, `any` or
   `never`; `suppressions/biome-overrides` reports a Biome setting that turns a
   lint rule, group, domain, assist action, the linter, the assist or the
-  formatter off or down unless the quality config declares it with its rule,
-  its `includes` and a reason, and reports a declaration that matches no
-  setting. Coverage hints stay allowed.
+  formatter off or down, per language too, or keeps files out of a check
+  through an `includes` list, unless the quality config declares it with its
+  rule, its `includes` and a reason. Both rules report a declaration that
+  matches nothing. Coverage hints stay allowed.
 
 - Add `registrable: false` to `defineRule`, for a rule the registry must never
   excuse. The suppression rules set it, so a registry entry that names one fails

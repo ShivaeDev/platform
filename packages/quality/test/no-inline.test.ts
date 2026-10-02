@@ -97,8 +97,40 @@ describe("suppressions/no-inline stays quiet", () => {
 	});
 });
 
-describe("suppressions/no-inline options", () => {
-	it("are refused", async () => {
-		expect(await issuesOf(noInline, { allow: ["@ts-expect-error"] })).toEqual(["this rule takes no options"]);
+describe("suppressions/no-inline declarations", () => {
+	const reason = "Type tests assert the errors the types must raise.";
+	const typeTests = { declared: [{ directive: "@ts-expect-error" as const, includes: ["*.typecheck.ts"] as const, reason }] };
+	const declaredFindings = async (sources: ReadonlyArray<{ readonly content: string; readonly path: string }>) =>
+		(await checkRule(noInline, typeTests, { sources })).map((finding) => `${finding.file}:${finding.line ?? "-"} ${finding.message}`);
+
+	it("allow @ts-expect-error only in the files they include", async () => {
+		const expectError = "// @ts-expect-error The types reject it.\n";
+		expect(
+			await declaredFindings([
+				{ content: expectError, path: "test/api.typecheck.ts" },
+				{ content: expectError, path: "test/api.test.ts" },
+			]),
+		).toEqual(['test/api.test.ts:1 Suppresses a check: "@ts-expect-error".']);
+	});
+
+	it("never allow another directive in those files", async () => {
+		expect(
+			await declaredFindings([{ content: "// @ts-expect-error\n// @ts-ignore\n// biome-ignore lint: x\n", path: "test/api.typecheck.ts" }]),
+		).toEqual(['test/api.typecheck.ts:2 Suppresses a check: "@ts-ignore".', 'test/api.typecheck.ts:3 Suppresses a check: "biome-ignore".']);
+	});
+
+	it("go stale when no directive matches them", async () => {
+		expect(await declaredFindings([{ content: "export const a = 1;\n", path: "test/api.typecheck.ts" }])).toEqual([
+			'quality.config.ts:- Declares "@ts-expect-error" for "*.typecheck.ts", which matches no directive. Remove the declaration.',
+		]);
+	});
+
+	it.each([
+		["another directive", { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason }] }, "directive"],
+		["a linter directive", { declared: [{ directive: "biome-ignore", includes: ["*.ts"], reason }] }, "directive"],
+		["no includes", { declared: [{ directive: "@ts-expect-error", includes: [], reason }] }, "includes"],
+		["a blank reason", { declared: [{ directive: "@ts-expect-error", includes: ["*.ts"], reason: " " }] }, "reason"],
+	])("reject %s", async (_, options, field) => {
+		expect(await issuesOf(noInline, options)).toEqual([expect.stringContaining(field)]);
 	});
 });

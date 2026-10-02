@@ -102,9 +102,9 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 
 | Rule | Reports | Options |
 | --- | --- | --- |
-| `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter | none |
+| `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except a declared `@ts-expect-error` | `declared` |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
-| `suppressions/biome-overrides` | A Biome setting that turns a check off or down without a declaration, and a declaration that matches no setting | `declared` |
+| `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
 
 `suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
 
@@ -115,6 +115,30 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 - Flow: `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`.
 
 Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
+
+#### Declared type tests
+
+A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, may be declared for a set of files:
+
+```ts
+export default defineConfig({
+	rules: {
+		"suppressions/no-inline": {
+			options: {
+				declared: [
+					{
+						directive: "@ts-expect-error",
+						includes: ["*.typecheck.ts"],
+						reason: "Type tests assert the compile errors the public types must raise.",
+					},
+				],
+			},
+		},
+	},
+});
+```
+
+`includes` takes `.gitignore` patterns, like `exclude`. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in those files. A declaration that matches no `@ts-expect-error` is reported against `quality.config.ts` until it is removed. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
 
 `suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
 
@@ -133,8 +157,10 @@ A scope that truly cannot follow a lint rule keeps its exception in the Biome co
 | `assist.actions` with `recommended: false` or `preset: "none"` | `assist/recommended` |
 | `assist.enabled: false` | `assist` |
 | `formatter.enabled: false` | `format` |
+| `enabled: false` in a language's `linter`, `assist` or `formatter`, such as `css.linter` | `<language>/lint`, `<language>/assist`, `<language>/format` |
+| An `includes` list in `files`, `linter`, `assist` or `formatter` that excludes a pattern with `!` or lacks `**` | `files/includes`, `lint/includes`, `assist/includes`, `format/includes` |
 
-Biome runs assist actions, key sorting among them, as part of `biome check` and reports what they would change, so turning one off is an override. Formatter options such as `indentStyle` or `lineWidth` choose a style, not an exception, and are not overrides. Settings that raise a rule, enable it or set its options are not overrides either.
+Biome runs assist actions, key sorting among them, as part of `biome check` and reports what they would change, so turning one off is an override. Formatter options such as `indentStyle` or `lineWidth` choose a style, not an exception, and are not overrides. Settings that raise a rule or enable it are not overrides either. Rule options are not read, so an option that loosens a rule, such as a higher complexity limit, is left to review.
 
 ```ts
 export default defineConfig({
@@ -159,7 +185,7 @@ export default defineConfig({
 });
 ```
 
-A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Patterns in a nested config are relative to its folder, so they are declared with the folder in front: `"src/**"` in `packages/web/biome.json` is declared as `"packages/web/src/**"`, and its top level as `"packages/web/**"`. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
+A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. An `includes` list that keeps files out is declared as the whole list, so every pattern added to it needs the declaration to change too. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Patterns in a nested config are relative to its folder, so they are declared with the folder in front: `"src/**"` in `packages/web/biome.json` is declared as `"packages/web/src/**"`, and its top level as `"packages/web/**"`. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
 
 ### Local rules
 

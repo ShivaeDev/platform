@@ -54,10 +54,21 @@ const assist = (section: Json | undefined): ReadonlyArray<Setting> => [
 	...groupSettings("assist", ASSIST_WEAK, member(section, "actions")),
 ];
 
+const LANGUAGES: ReadonlyArray<string> = ["javascript", "json", "css", "graphql", "grit", "html"];
+
+const TOOLS: ReadonlyArray<readonly [string, string]> = [
+	["linter", "lint"],
+	["assist", "assist"],
+	["formatter", "format"],
+];
+
+const SCOPED_SECTIONS: ReadonlyArray<readonly [string, string]> = [["files", "files"], ...TOOLS];
+
 const scopeSettings = (scope: Json): ReadonlyArray<Setting> => [
 	...linter(member(scope, "linter")),
 	...assist(member(scope, "assist")),
 	...disabled("format", member(scope, "formatter")),
+	...LANGUAGES.flatMap((language) => TOOLS.flatMap(([key, name]) => disabled(`${language}/${name}`, member(member(scope, language), key)))),
 ];
 
 const scoped = (base: string, glob: string): string => {
@@ -70,7 +81,20 @@ const includesOf = (override: Json): ReadonlyArray<string> => {
 	return includes.length === 0 ? ["**"] : includes;
 };
 
+const narrowsScope = (globs: ReadonlyArray<string>): boolean =>
+	globs.length > 0 && (globs.some((glob) => glob.startsWith("!")) || !globs.includes("**"));
+
+const narrowings = (config: Json, file: string, base: string): ReadonlyArray<Weakening> =>
+	SCOPED_SECTIONS.flatMap(([key, name]) => {
+		const list = member(member(config, key), "includes");
+		const globs = itemsOf(list).flatMap((item) => textOf(item) ?? []);
+		return list === undefined || !narrowsScope(globs)
+			? []
+			: [{ file, includes: globs.map((glob) => scoped(base, glob)), line: list.line, rule: `${name}/includes` }];
+	});
+
 export const weakeningsOf = (config: Json, file: string, base: string): ReadonlyArray<Weakening> => [
+	...narrowings(config, file, base),
 	...scopeSettings(config).map((setting) => ({ ...setting, file, includes: [scoped(base, "**")] })),
 	...itemsOf(member(config, "overrides")).flatMap((override) =>
 		scopeSettings(override).map((setting) => ({ ...setting, file, includes: includesOf(override).map((glob) => scoped(base, glob)) })),

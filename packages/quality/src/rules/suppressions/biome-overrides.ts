@@ -42,7 +42,7 @@ const unreadable = (config: Config): ReadonlyArray<Finding> =>
 export const biomeOverrides = defineRule({
 	id: "suppressions/biome-overrides",
 	description:
-		"A rule turned off or down in the Biome config is an exception for every file in its scope. Fix the code and remove the setting, or declare its rule, includes and reason under this rule's declared option.",
+		"A Biome setting that turns a check off or down, or keeps files out of it, is an exception for every file it covers. Fix the code and remove the setting, or declare its rule, includes and reason under this rule's declared option.",
 	options: Schema.toStandardSchemaV1(BiomeOverridesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	registrable: false,
 	check: async (inputs) => {
