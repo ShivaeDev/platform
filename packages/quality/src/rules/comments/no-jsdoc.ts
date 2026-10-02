@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { defineRule } from "../../rule.ts";
-import { isJsdoc, isPragma, Pragmas } from "./kinds.ts";
+import { isDirective, isJsdoc, isPragma, Pragmas } from "./kinds.ts";
 import { commentsOf } from "./scan.ts";
 
 const NoJsdocOptions = Schema.Struct({ allow: Pragmas });
@@ -12,7 +12,7 @@ export const noJsdoc = defineRule({
 	check: ({ options, sources }) =>
 		sources.flatMap((file) =>
 			commentsOf(file)
-				.filter((comment) => isJsdoc(comment) && !isPragma(comment, options.allow))
+				.filter((comment) => isJsdoc(comment) && !isPragma(comment, options.allow) && !isDirective(comment))
 				.map((comment) => ({ file: file.path, line: comment.line, message: "JSDoc block." })),
 		),
 });

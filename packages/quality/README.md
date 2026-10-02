@@ -66,7 +66,7 @@ A comment says why, never what the code already says or what it used to be. Six 
 | --- | --- | --- |
 | `comments/no-jsdoc` | Every `/** */` block, except a tool pragma | `allow` |
 | `comments/no-line-reference` | A line number: `file.ts:42`, `file.ts#L42`, `line 42` | none |
-| `comments/no-pr-reference` | A pull request or issue: `#123`, `PR 123`, `MR 123`, `pull request 123`, `merge request 123`, `issue 123`, `ticket 123`, `/pull/123`, `/issues/123`, `/merge_requests/123`, `GH-123` | none |
+| `comments/no-pr-reference` | A pull request or issue: `#123`, `PR 123`, `MR 123`, `pull request 123`, `merge request 123`, `issue 123`, `ticket 123`, `/pull/123`, `/pulls/123`, `/issues/123`, `/merge_requests/123`, `GH-123` | none |
 | `comments/no-banner` | A banner, divider or region: a line that starts or ends with three or more of `- = * # ~ _ + / \ ─ ━ ═ ┄ ┈`, `#region`, `#endregion` | none |
 | `comments/no-todo` | `TODO`, `FIXME`, `XXX` and `@todo` | none |
 | `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max`, `allow` |

@@ -31,6 +31,10 @@ describe("comments/no-jsdoc stays quiet", () => {
 		expect(await jsdoc("// line\n/* block */\n/**/\n")).toEqual([]);
 	});
 
+	it("on directives written as docblocks", async () => {
+		expect(await jsdoc("export const a = /** @__PURE__ */ make();\n/** @ts-expect-error A wrong type. */\n")).toEqual([]);
+	});
+
 	it("on tool pragmas allowed by default", async () => {
 		const pragmas = [
 			`/** ${VITEST_ENVIRONMENT} happy-dom */`,
