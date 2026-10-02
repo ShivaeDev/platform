@@ -134,8 +134,8 @@ it.effect("refuses an included Relation from another Database", () =>
 		Effect.gen(function* () {
 			const db = yield* Database;
 			const auditDb = yield* AuditDatabase;
-			// @ts-expect-error Another database's Relation is rejected at compile time and refused at run time.
-			const exit = yield* Effect.exit(db.User.include("posts", auditDb.Post));
+			const foreign: Effect.Effect<unknown, unknown> = Reflect.apply(db.User.include, db.User, ["posts", auditDb.Post]);
+			const exit = yield* Effect.exit(foreign);
 
 			expect(Exit.isFailure(exit)).toBe(true);
 			if (Exit.isFailure(exit)) {

@@ -3,9 +3,26 @@ import { defineConfig } from "./packages/quality/src/config.ts";
 export default defineConfig({
 	sources: ["packages", "script"],
 	rules: {
+		"suppressions/no-inline": {
+			options: {
+				declared: [
+					{
+						directive: "@ts-expect-error",
+						includes: ["*.typecheck.ts"],
+						reason:
+							"Type tests prove that an API rejects what its types forbid. TypeScript has no other way to assert a compile error, and each directive fails typecheck as soon as the error it expects goes away.",
+					},
+				],
+			},
+		},
 		"suppressions/biome-overrides": {
 			options: {
 				declared: [
+					{
+						rule: "files/includes",
+						includes: ["**", "!**/.pnpm-store", "!**/dist", "!**/coverage", "!**/test/generated", "!**/test/*/generated", "!!.worktrees"],
+						reason: "Package-manager stores, build output, coverage reports, generated test clients and linked worktrees are not source.",
+					},
 					{
 						rule: "lint/suspicious/noExplicitAny",
 						includes: ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],

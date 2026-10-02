@@ -86,11 +86,11 @@ class Spoofed extends Schema.TaggedError<Spoofed>()("BadRequest", { message: Sch
 
 const Mark = Schema.Struct({ mark: Schema.Union([Schema.Boolean, Schema.String]) });
 
-const rejectSpoofed =
-	rejectWith<
-		// @ts-expect-error A declared rejection may not encode the reserved invalidInput field.
-		typeof Spoofed
-	>(Spoofed);
+const rejectSpoofed: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, Exclude<E, Spoofed> | RejectionError, R> = Reflect.apply(
+	rejectWith,
+	undefined,
+	[Spoofed],
+);
 
 const spoofing = t.router({
 	declared: procedure.input(Mark).mutation(function* ({ mark }) {

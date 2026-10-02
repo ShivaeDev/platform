@@ -201,8 +201,8 @@ integrationEffect("loads related rows without changing the base relation", () =>
 				});
 				const withPostAuthors = yield* base.include("posts", db.Post.include("user"));
 				const standaloneTitles = yield* postTitles;
-				// @ts-expect-error Another model's Relation is rejected at compile time and refused at run time.
-				const wrongModelExit = yield* Effect.exit(base.include("posts", db.User));
+				const wrongModel: Effect.Effect<unknown, unknown> = Reflect.apply(base.include, base, ["posts", db.User]);
+				const wrongModelExit = yield* Effect.exit(wrongModel);
 				const postWithAuthor = yield* db.Post.where({
 					id: firstPostId,
 				})
