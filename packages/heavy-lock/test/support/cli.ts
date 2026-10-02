@@ -69,14 +69,12 @@ export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>,
 export const pollWhile = (condition: string): string =>
 	`give_up=$(($(date +%s) + ${TEST_TIMEOUT_MS / 1000})); while ${condition} && [ "$(date +%s)" -lt "$give_up" ]; do sleep 0.02; done`;
 
-// Holds the lock until the test creates the release file or removes its directory, or the bound passes; it succeeds only when released.
 export const holdUntil = (release: string): ReadonlyArray<string> => [
 	"/bin/sh",
 	"-c",
 	`${pollWhile(`[ ! -e "${release}" ] && [ -d "${dirname(release)}" ]`)}; test -e "${release}"`,
 ];
 
-// Gives up well inside the test timeout, so a failing test still reaches its cleanup before the directories are removed.
 const WAIT_MS = TEST_TIMEOUT_MS / 2;
 
 export const waitFor = async (condition: () => boolean): Promise<void> => {

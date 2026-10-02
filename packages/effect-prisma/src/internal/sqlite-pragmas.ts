@@ -2,11 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 
 export const MEMORY_PATH = ":memory:";
 
-/**
- * Prisma Next's SQLite driver opens a fresh `node:sqlite` connection for every
- * `RuntimeConnection`, so an in-memory database would give each transaction its
- * own empty database.
- */
+// Prisma Next's SQLite driver opens a fresh `node:sqlite` connection per `RuntimeConnection`, so each transaction would get its own empty in-memory database.
 export const assertFileBackedPath = (path: string): void => {
 	if (path === MEMORY_PATH || path.trim().length === 0) {
 		throw new TypeError(
@@ -15,13 +11,7 @@ export const assertFileBackedPath = (path: string): void => {
 	}
 };
 
-/**
- * Apply connect-time pragmas.
- *
- * The driver already sets `foreign_keys` and `busy_timeout` on every connection
- * it opens, but it has no hook for anything else, so durable pragmas such as
- * `journal_mode` are applied once against the database file itself.
- */
+// The driver has no hook for pragmas beyond `foreign_keys` and `busy_timeout`, so durable ones such as `journal_mode` go to the file once.
 export const applySqlitePragmas = (path: string, pragmas: ReadonlyArray<string>): void => {
 	if (pragmas.length === 0) {
 		return;

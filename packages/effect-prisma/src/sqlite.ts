@@ -13,12 +13,7 @@ import { applySqlitePragmas, assertFileBackedPath } from "./internal/sqlite-prag
 export const defaultSqlitePragmas: ReadonlyArray<string> = ["journal_mode=WAL"];
 
 export interface SqliteDatabaseLayerOptions extends SqliteOptionsBase {
-	/** Path to the database file. In-memory databases are not supported. */
 	readonly path: string;
-	/**
-	 * Pragmas applied once when the Layer connects. Defaults to
-	 * {@link defaultSqlitePragmas}; pass `[]` to skip them.
-	 */
 	readonly pragmas?: ReadonlyArray<string>;
 }
 

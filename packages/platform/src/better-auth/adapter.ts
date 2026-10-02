@@ -8,7 +8,6 @@ import { makeRowAdapter, type RelationQuery } from "./row-adapter.ts";
 
 export interface EffectPrismaAdapterOptions {
 	readonly debugLogs?: boolean;
-	/** Map Better Auth model names to Prisma contract model names. */
 	readonly modelName?: (model: string) => string;
 	readonly usePlural?: boolean;
 }

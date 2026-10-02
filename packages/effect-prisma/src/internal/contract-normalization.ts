@@ -2,10 +2,7 @@ const timestampReference = /\b(?:Timestamp|Timestamptz)<(?:\d+|undefined)>/g;
 const timestampCodecReference = /\bCodecTypes\['pg\/(?:timestamp|timestamptz)@1'\]\['(?:input|output)'\]/g;
 const unsupportedTimestampReference = /\b(?:Timestamp|Timestamptz)\s*</;
 
-/**
- * Align Prisma Next's generated PostgreSQL timestamp declarations with the
- * JavaScript Dates accepted and returned by its runtime codecs.
- */
+// Prisma Next declares PostgreSQL timestamps with types other than the JavaScript Dates its runtime codecs accept and return.
 export const normalizePrismaNextContractTypes = (source: string): string => {
 	const normalized = source.replaceAll(timestampReference, "Date").replaceAll(timestampCodecReference, "Date");
 

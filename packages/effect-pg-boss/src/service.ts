@@ -22,9 +22,8 @@ interface PgBossIdentifier {
 }
 
 export type PgBossLayerOptions<Registrations extends readonly JobRegistration[], ErrorRequirements> = ConstructorOptions & {
-	/** Override client construction for compatible clients or deterministic tests. */
 	readonly clientFactory?: PgBossClientFactory;
-	/** Reuse and reference-count one started client under this key, e.g. across development module reloads. */
+	// One started client is reference-counted per key, so development module reloads reuse it instead of starting another.
 	readonly clientCacheKey?: string | symbol | undefined;
 	readonly jobs: Registrations;
 	readonly onError?: (error: Error) => Effect.Effect<unknown, never, ErrorRequirements>;

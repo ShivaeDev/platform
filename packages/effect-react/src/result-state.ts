@@ -48,7 +48,7 @@ export interface ActionState<Input, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: Input) => void;
 }
 
-/** Dispatches an action and reads its shared native state without claiming a per-invocation completion result. */
+// The atom's state is shared by every dispatch, so it never claims to be one invocation's completion result.
 export const useAction = <Input, A, E>(atom: Atom.AtomResultFn<Input, A, E>): ActionState<Input, A, E> => {
 	const result = useAtomValue(atom);
 	useRecheckOnUnauthorized(result);

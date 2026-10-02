@@ -1,7 +1,6 @@
 import type { Context, Effect, Exit } from "effect";
 
 export interface PlatformRuntimeOptions {
-	/** Reuse one runtime across development module reloads. */
 	readonly developmentCacheKey?: string | symbol;
 }
 
