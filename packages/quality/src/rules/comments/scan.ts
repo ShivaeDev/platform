@@ -1,5 +1,6 @@
 import ts from "typescript";
 import type { SourceFile } from "../../rule.ts";
+import { parse } from "../syntax.ts";
 
 export interface SourceComment {
 	readonly kind: "block" | "line";
@@ -10,15 +11,7 @@ export interface SourceComment {
 	readonly ownLine: boolean;
 }
 
-const SCRIPT_KINDS: ReadonlyArray<readonly [RegExp, ts.ScriptKind]> = [
-	[/\.d\.[cm]?ts$/, ts.ScriptKind.Unknown],
-	[/\.[cm]?ts$/, ts.ScriptKind.TS],
-	[/\.tsx$/, ts.ScriptKind.TSX],
-	[/\.[cm]?js$/, ts.ScriptKind.JS],
-	[/\.jsx$/, ts.ScriptKind.JSX],
-];
-
-const scriptKindOf = (path: string): ts.ScriptKind => SCRIPT_KINDS.find(([pattern]) => pattern.test(path))?.[1] ?? ts.ScriptKind.Unknown;
+const DECLARATION = /\.d\.[cm]?ts$/;
 
 const commentRanges = (source: ts.SourceFile): ReadonlyArray<ts.CommentRange> => {
 	const ranges = new Map<number, ts.CommentRange>();
@@ -44,7 +37,7 @@ const commentRanges = (source: ts.SourceFile): ReadonlyArray<ts.CommentRange> =>
 		.sort((left, right) => left.pos - right.pos);
 };
 
-const bodyOf = (kind: SourceComment["kind"], text: string): ReadonlyArray<string> =>
+export const bodyOf = (kind: SourceComment["kind"], text: string): ReadonlyArray<string> =>
 	kind === "line"
 		? [text.slice(2).trim()]
 		: text
@@ -70,15 +63,11 @@ const toComment = (source: ts.SourceFile, range: ts.CommentRange): SourceComment
 const scanned = new WeakMap<SourceFile, ReadonlyArray<SourceComment>>();
 
 const scan = (file: SourceFile): ReadonlyArray<SourceComment> => {
-	const kind = scriptKindOf(file.path);
-	if (kind === ts.ScriptKind.Unknown) {
-		return [];
-	}
-	const source = ts.createSourceFile(file.path, file.text, ts.ScriptTarget.Latest, true, kind);
-	return commentRanges(source).map((range) => toComment(source, range));
+	const source = parse(file);
+	return source === undefined ? [] : commentRanges(source).map((range) => toComment(source, range));
 };
 
-export const commentsOf = (file: SourceFile): ReadonlyArray<SourceComment> => {
+export const scanComments = (file: SourceFile): ReadonlyArray<SourceComment> => {
 	const cached = scanned.get(file);
 	if (cached !== undefined) {
 		return cached;
@@ -87,3 +76,5 @@ export const commentsOf = (file: SourceFile): ReadonlyArray<SourceComment> => {
 	scanned.set(file, comments);
 	return comments;
 };
+
+export const commentsOf = (file: SourceFile): ReadonlyArray<SourceComment> => (DECLARATION.test(file.path) ? [] : scanComments(file));

@@ -32,7 +32,11 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"comments/no-banner",
 				"comments/no-todo",
 				"comments/max-per-file",
+				"suppressions/no-inline",
+				"suppressions/no-double-cast",
+				"suppressions/biome-overrides",
 			]);
+			expect([...loaded.unregistrable]).toEqual(["suppressions/no-inline", "suppressions/no-double-cast", "suppressions/biome-overrides"]);
 		}),
 	);
 

@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { SUPPRESSIONS } from "../suppressions/directives.ts";
 import type { SourceComment } from "./scan.ts";
 
 export const DEFAULT_PRAGMAS: ReadonlyArray<string> = [
@@ -14,10 +15,10 @@ export const DEFAULT_PRAGMAS: ReadonlyArray<string> = [
 export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_PRAGMAS)));
 
 const DIRECTIVES: ReadonlyArray<RegExp> = [
+	...SUPPRESSIONS,
 	/^@ts-/,
 	/^biome-ignore/,
-	/^eslint-(?:disable|enable)/,
-	/^prettier-ignore/,
+	/^(?:eslint|oxlint|stylelint)-(?:disable|enable)/,
 	/^[#@]__(?:PURE|NO_SIDE_EFFECTS)__/,
 	/^(?:c8|v8|istanbul) ignore/,
 ];

@@ -23,13 +23,13 @@ const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 
 describe("evaluation", () => {
 	it("fails on a stale baseline or registry entry alone", () => {
-		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known))).toBe(false);
-		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known))).toBe(false);
+		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known, new Set()))).toBe(false);
+		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known, new Set()))).toBe(false);
 	});
 
 	it("applies the registry before the baseline", () => {
 		const registry = [{ file: "src/big.ts", reason: "Generated upstream.", rule: "structure/max-lines" }];
-		const outcome = evaluate([long("src/big.ts", 151)], registry, [{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], known);
+		const outcome = evaluate([long("src/big.ts", 151)], registry, [{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set());
 		expect(outcome.registered).toBe(1);
 		expect(outcome.staleBaseline.map((stale) => stale.problem)).toEqual(["has no violations left"]);
 	});
@@ -38,7 +38,7 @@ describe("evaluation", () => {
 describe("report", () => {
 	it("groups errors by rule, states the rule's guidance once and locates each violation", () => {
 		const text = render(
-			evaluate([long("src/b.ts", 200), violation({ file: "src/a.ts", line: 3, rule: "local/x" }), long("src/a.ts", 160)], [], [], known),
+			evaluate([long("src/b.ts", 200), violation({ file: "src/a.ts", line: 3, rule: "local/x" }), long("src/a.ts", 160)], [], [], known, new Set()),
 			context(),
 		);
 		expect(text).toBe(
@@ -57,14 +57,14 @@ describe("report", () => {
 
 	it("notes when a baselined file got worse", () => {
 		const text = render(
-			evaluate([long("src/big.ts", 420)], [], [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }], known),
+			evaluate([long("src/big.ts", 420)], [], [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }], known, new Set()),
 			context(),
 		);
 		expect(text).toContain("  src/big.ts is over its baseline: 1 violation measuring 420 against 1 violation measuring 400 baselined.");
 	});
 
 	it("summarizes warnings by file, busiest first", () => {
-		const text = render(evaluate(todos, [], [], known), context());
+		const text = render(evaluate(todos, [], [], known, new Set()), context());
 		expect(text).toContain(
 			"warn local/todo (28)\n  src/a.ts (7), src/b.ts (6), src/c.ts (5), src/d.ts (4), src/e.ts (3), and 2 more files. --warnings all lists each one.",
 		);
@@ -72,7 +72,7 @@ describe("report", () => {
 	});
 
 	it("lists every warning on request", () => {
-		const text = render(evaluate(todos, [], [], known), context({ warnings: "all" }));
+		const text = render(evaluate(todos, [], [], known, new Set()), context({ warnings: "all" }));
 		expect(text).toContain("  src/g.ts:1  Resolve this TODO.");
 		expect(text.split("\n").filter((line) => line.endsWith("Resolve this TODO."))).toHaveLength(28);
 	});
@@ -83,6 +83,7 @@ describe("report", () => {
 			[{ file: "src/a.ts", reason: "Kept.", rule: "local/todo", subject: "legacy" }],
 			[{ count: 2, file: "src/gone.ts", rule: "structure/max-lines" }],
 			known,
+			new Set(),
 		);
 		expect(render(outcome, context())).toBe(
 			[
@@ -99,6 +100,7 @@ describe("report", () => {
 			[{ file: "src/a.ts", reason: "Generated.", rule: "structure/max-lines" }],
 			[{ count: 1, file: "src/b.ts", measure: 151, rule: "structure/max-lines" }],
 			known,
+			new Set(),
 		);
 		expect(render(outcome, context({ checked: 1 }))).toBe(
 			"quality: passed. 1 source file checked; 1 baselined and 1 registered violations not shown.",

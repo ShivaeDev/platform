@@ -24,6 +24,10 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
 		"comments/no-jsdoc": { options: { allow: ["@license"] } },
 		"comments/no-todo": "off",
+		"suppressions/biome-overrides": {
+			options: { declared: [{ includes: ["src/legacy/**"], reason: "Migrating off the old API.", rule: "lint/style/noNonNullAssertion" }] },
+		},
+		"suppressions/no-double-cast": "warn",
 	},
 	sources: ["src"],
 });

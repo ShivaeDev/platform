@@ -33,6 +33,8 @@ export interface RegistryCheck {
 const covers = (entry: RegistryEntry, violation: Violation): boolean =>
 	entry.rule === violation.rule && entry.file === violation.file && (entry.subject === undefined || entry.subject === violation.subject);
 
+const UNREGISTRABLE = "names a rule that takes no exceptions. Fix the code, or baseline the violations while the repository adopts the rule";
+
 const coveringEntry = (entries: ReadonlyArray<RegistryEntry>, violation: Violation): RegistryEntry | undefined => {
 	const matching = entries.filter((entry) => covers(entry, violation));
 	return matching.find((entry) => entry.subject !== undefined) ?? matching[0];
@@ -42,10 +44,12 @@ export const applyRegistry = (
 	violations: ReadonlyArray<Violation>,
 	entries: ReadonlyArray<RegistryEntry>,
 	levels: ReadonlyMap<string, Level>,
+	unregistrable: ReadonlySet<string>,
 ): RegistryCheck => {
+	const usable = entries.filter((entry) => !unregistrable.has(entry.rule));
 	const used = new Set<RegistryEntry>();
 	const kept = violations.filter((violation) => {
-		const entry = coveringEntry(entries, violation);
+		const entry = coveringEntry(usable, violation);
 		if (entry !== undefined) {
 			used.add(entry);
 		}
@@ -53,6 +57,9 @@ export const applyRegistry = (
 	});
 	const stale = entries
 		.filter((entry) => !used.has(entry))
-		.map((entry) => ({ entry, problem: unusedEntryProblem(levels, entry.rule, "matches no violation") }));
+		.map((entry) => ({
+			entry,
+			problem: unregistrable.has(entry.rule) ? UNREGISTRABLE : unusedEntryProblem(levels, entry.rule, "matches no violation"),
+		}));
 	return { kept, registered: violations.length - kept.length, stale };
 };

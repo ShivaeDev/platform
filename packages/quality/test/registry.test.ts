@@ -5,16 +5,17 @@ import { levels, violation } from "./support/violations.ts";
 const known = levels({ "biome/override": "error", "local/off": "off", "pragmas/ts-expect-error": "error" });
 const pragma = violation({ file: "test/a.typecheck.ts", rule: "pragmas/ts-expect-error" });
 const reason = "Compile-time proof that the types reject the value.";
+const open: ReadonlySet<string> = new Set();
 
 describe("registry", () => {
 	it("registers an exception by rule and file", () => {
-		const checked = applyRegistry([pragma, pragma], [{ file: pragma.file, reason, rule: pragma.rule }], known);
+		const checked = applyRegistry([pragma, pragma], [{ file: pragma.file, reason, rule: pragma.rule }], known, open);
 		expect(checked).toEqual({ kept: [], registered: 2, stale: [] });
 	});
 
 	it("keeps a violation of another rule or file", () => {
 		const other = violation({ file: "test/b.ts", rule: "pragmas/ts-expect-error" });
-		const checked = applyRegistry([other], [{ file: pragma.file, reason, rule: pragma.rule }], known);
+		const checked = applyRegistry([other], [{ file: pragma.file, reason, rule: pragma.rule }], known, open);
 		expect(checked.kept).toEqual([other]);
 		expect(checked.stale.map((stale) => stale.problem)).toEqual(["matches no violation"]);
 	});
@@ -26,19 +27,20 @@ describe("registry", () => {
 			[any, then],
 			[{ file: "src/layer.ts", reason, rule: "biome/override", subject: "suspicious/noExplicitAny" }],
 			known,
+			open,
 		);
 		expect(checked.kept).toEqual([then]);
 		expect(checked.registered).toBe(1);
 	});
 
 	it("reports an entry that suppresses nothing as stale", () => {
-		const checked = applyRegistry([], [{ file: "src/gone.ts", reason, rule: "pragmas/ts-expect-error" }], known);
+		const checked = applyRegistry([], [{ file: "src/gone.ts", reason, rule: "pragmas/ts-expect-error" }], known, open);
 		expect(checked.stale).toEqual([{ entry: { file: "src/gone.ts", reason, rule: "pragmas/ts-expect-error" }, problem: "matches no violation" }]);
 	});
 
 	it("reports a duplicate entry as stale", () => {
 		const entry = { file: pragma.file, reason, rule: pragma.rule };
-		expect(applyRegistry([pragma], [entry, { ...entry }], known).stale).toHaveLength(1);
+		expect(applyRegistry([pragma], [entry, { ...entry }], known, open).stale).toHaveLength(1);
 	});
 
 	it("reports entries for unknown and disabled rules", () => {
@@ -49,8 +51,15 @@ describe("registry", () => {
 				{ file: "src/a.ts", reason, rule: "local/off" },
 			],
 			known,
+			open,
 		);
 		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule", "names a rule that is off"]);
+	});
+
+	it("never covers a violation of a rule that takes no exceptions, and reports the entry", () => {
+		const checked = applyRegistry([pragma], [{ file: pragma.file, reason, rule: pragma.rule }], known, new Set([pragma.rule]));
+		expect(checked.kept).toEqual([pragma]);
+		expect(checked.stale.map((stale) => stale.problem)).toEqual([expect.stringContaining("names a rule that takes no exceptions")]);
 	});
 });
 

@@ -77,7 +77,7 @@ The rules find comments with the TypeScript parser, so text inside strings, temp
 
 - A block comment counts once, however many lines it spans.
 - Line comments that each stand alone on adjacent lines form one run and count once. A blank line, code, a directive, or a comment after code on the same line starts a new one.
-- Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `prettier-ignore`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`).
+- Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `oxlint-…`, `stylelint-…`, `deno-lint-ignore…`, `tslint:disable…`, `prettier-ignore`, Flow's `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`). The suppression rules below report the directives that silence a check.
 
 The measure of `comments/max-per-file` is the count, so a baselined file may lose comments but never gain one. A finding names the first comment over the limit.
 
@@ -96,6 +96,71 @@ export default defineConfig({
 
 A repository with existing comments adopts the rules through the baseline, for example `quality baseline write --rule comments/no-jsdoc --rule comments/max-per-file`.
 
+### Suppressions
+
+A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline, which only shrinks.
+
+| Rule | Reports | Options |
+| --- | --- | --- |
+| `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter | none |
+| `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
+| `suppressions/biome-overrides` | A Biome setting that turns a check off or down without a declaration, and a declaration that matches no setting | `declared` |
+
+`suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
+
+- Biome: `biome-ignore`, `biome-ignore-all` and `biome-ignore-start`, for lint, assist and format alike. The `biome-ignore-end` that closes a range is not reported again.
+- TypeScript: `@ts-ignore`, `@ts-expect-error` and `@ts-nocheck`. `@ts-check` turns checking on and is allowed.
+- Other linters: `eslint-disable`, `eslint-disable-line`, `eslint-disable-next-line` and inline rule settings such as `/* eslint no-console: "off" */`; the same `-disable` forms of `oxlint` and `stylelint`; `deno-lint-ignore` and `deno-lint-ignore-file`; `tslint:disable…`.
+- Formatters: `prettier-ignore`, since `prettier --check` fails on the code it skips.
+- Flow: `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`.
+
+Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
+
+`suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
+
+#### Declared Biome overrides
+
+A scope that truly cannot follow a lint rule keeps its exception in the Biome config, and the quality config declares it with a reason. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the local files a config `extends` (an entry that starts with `.`). These settings count as overrides, at the top level and in every `overrides` entry:
+
+| Setting | Declared as |
+| --- | --- |
+| A lint rule at `off`, `warn` or `info`, as a string or a `level` | `lint/<group>/<rule>` |
+| A lint group at `off`, `warn` or `info`, or with `recommended: false` or `preset: "none"` | `lint/<group>` |
+| `linter.rules` with `recommended: false` or `preset: "none"` | `lint/recommended` |
+| A domain at `none` | `lint/domains/<domain>` |
+| `linter.enabled: false` | `lint` |
+| An assist action at `off`, such as `useSortedKeys` or `organizeImports` | `assist/<group>/<action>` |
+| `assist.actions` with `recommended: false` or `preset: "none"` | `assist/recommended` |
+| `assist.enabled: false` | `assist` |
+| `formatter.enabled: false` | `format` |
+
+Biome runs assist actions, key sorting among them, as part of `biome check` and reports what they would change, so turning one off is an override. Formatter options such as `indentStyle` or `lineWidth` choose a style, not an exception, and are not overrides. Settings that raise a rule, enable it or set its options are not overrides either.
+
+```ts
+export default defineConfig({
+	rules: {
+		"suppressions/biome-overrides": {
+			options: {
+				declared: [
+					{
+						rule: "lint/style/noDefaultExport",
+						includes: ["*.config.ts"],
+						reason: "Tools load their config files through the default export.",
+					},
+					{
+						rule: "lint/suspicious/noConsole",
+						includes: ["scripts/**"],
+						reason: "Scripts report to the terminal they run in.",
+					},
+				],
+			},
+		},
+	},
+});
+```
+
+A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Patterns in a nested config are relative to its folder, so they are declared with the folder in front: `"src/**"` in `packages/web/biome.json` is declared as `"packages/web/src/**"`, and its top level as `"packages/web/**"`. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
+
 ### Local rules
 
 ```ts
@@ -112,6 +177,8 @@ export const noConsoleLog = defineRule({
 		),
 });
 ```
+
+A rule that must never be excused, like the suppression rules, sets `registrable: false`; the registry then refuses entries for it.
 
 `check` receives the repository `root`, every checked path in `files`, the `sources` with their `text` and `lines`, `readText(path)` for any other file (undefined when absent) and the validated `options`. It returns findings, or a promise of them. A finding names its `file`, relative to the root (an absolute path under it is made relative), and its `message`, and optionally a `line`, a `subject` that tells apart exceptions of one rule in one file, and a `measure` where larger is worse.
 
@@ -154,7 +221,7 @@ The file keeps the indentation it has, and its rules and files are sorted, so it
 ]
 ```
 
-An entry covers a rule's violations in one file, for good, and must say why. With a `subject`, it covers only the violations with that subject. The registry applies before the baseline. An entry that covers nothing, or names a rule that is off or unknown, fails the gate until it is removed.
+An entry covers a rule's violations in one file, for good, and must say why. With a `subject`, it covers only the violations with that subject. The registry applies before the baseline. An entry that covers nothing, or names a rule that is off, unknown or takes no exceptions, fails the gate until it is removed.
 
 ## Command line
 

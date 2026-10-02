@@ -11,7 +11,7 @@ export const lint = (
 ): Effect.Effect<void, SetupFailure | GateFailed, FileSystem.FileSystem> =>
 	Effect.gen(function* () {
 		const session = yield* openSession(cwd, config);
-		const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config.levels);
+		const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config.levels, session.config.unregistrable);
 		yield* Console.log(
 			render(outcome, {
 				baseline: session.config.baseline,

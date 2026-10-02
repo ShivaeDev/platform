@@ -19,8 +19,9 @@ export const evaluate = (
 	registry: ReadonlyArray<RegistryEntry>,
 	baseline: ReadonlyArray<BaselineEntry>,
 	levels: ReadonlyMap<string, Level>,
+	unregistrable: ReadonlySet<string>,
 ): Outcome => {
-	const registered = applyRegistry(violations, registry, levels);
+	const registered = applyRegistry(violations, registry, levels, unregistrable);
 	const baselined = applyBaseline(registered.kept, baseline, levels);
 	const kept = [...baselined.kept].sort(byLocation);
 	return {
