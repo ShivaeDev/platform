@@ -4,5 +4,5 @@
 		"allowImportingTsExtensions": true,
 		"rewriteRelativeImportExtensions": false
 	},
-	"include": ["script"]
+	"include": ["script", "quality.config.ts"]
 }
