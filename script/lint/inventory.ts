@@ -1,10 +1,8 @@
 import { join, relative } from "node:path";
 import { Effect, type FileSystem } from "effect";
 import { type FilesystemFailure, ignoreScopeAt, readRequiredText, walk } from "#lint/adapters/fs.ts";
-import { type SourceComment, sourceComments } from "#lint/adapters/typescript.ts";
 
 export interface SourceFile {
-	readonly comments: readonly SourceComment[];
 	readonly lines: readonly string[];
 	readonly path: string;
 }
@@ -15,9 +13,7 @@ export interface TextFile {
 }
 
 export interface Inventory {
-	readonly biomeConfig: string;
 	readonly manifests: readonly TextFile[];
-	readonly pragmaRegistry: string;
 	readonly root: string;
 	readonly sources: readonly SourceFile[];
 	readonly workspaceCatalog: string;
@@ -42,7 +38,7 @@ const posix = (path: string): string => path.replaceAll("\\", "/");
 const readText = (entry: Entry): Effect.Effect<TextFile, FilesystemFailure, FileSystem.FileSystem> =>
 	Effect.map(readRequiredText(entry.absolute), (raw) => ({ path: entry.path, raw }));
 
-const toSource = ({ path, raw }: TextFile): SourceFile => ({ comments: sourceComments(path, raw), lines: raw.split("\n"), path });
+const toSource = ({ path, raw }: TextFile): SourceFile => ({ lines: raw.split("\n"), path });
 
 export const collectInventory = (root: string): Effect.Effect<Inventory, FilesystemFailure, FileSystem.FileSystem> =>
 	Effect.gen(function* () {
@@ -59,7 +55,5 @@ export const collectInventory = (root: string): Effect.Effect<Inventory, Filesys
 		];
 		const manifests = yield* Effect.all(manifestEntries.map(readText), { concurrency: INVENTORY_CONCURRENCY });
 		const workspaceCatalog = yield* readRequiredText(join(root, "pnpm-workspace.yaml"));
-		const pragmaRegistry = yield* readRequiredText(join(root, "script", "pragma-registry.json"));
-		const biomeConfig = yield* readRequiredText(join(root, "biome.json"));
-		return { biomeConfig, manifests, pragmaRegistry, root, sources: texts.map(toSource), workspaceCatalog };
+		return { manifests, root, sources: texts.map(toSource), workspaceCatalog };
 	});
