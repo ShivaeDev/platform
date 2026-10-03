@@ -27,11 +27,11 @@ const router = t.router({});
 const it = makePlatformIt(Database)({
 	adapter,
 	createCaller: () => router.createCaller({}),
-	layer: DatabaseLive,
 	extend: ({ db }) =>
 		Effect.succeed({
 			userExists: (id: string) => db.AuthUser.where({ id }).exists(),
 		}),
+	layer: DatabaseLive,
 });
 const integrationOptions = { skip: databaseUrl === undefined };
 let rolledBackId = "";

@@ -52,7 +52,7 @@ export const interpret = <A>(models: LooseMap<A>, write: Write): Interpreted<A> 
 	try {
 		for (const row of rowsOf(write.result)) changes.push(...changesOf(guarded(row), operation));
 	} catch (error) {
-		if (error instanceof MissingField) return { changes: [], unnamed: { model, operation, reason: "narrowed", field: error.field } };
+		if (error instanceof MissingField) return { changes: [], unnamed: { field: error.field, model, operation, reason: "narrowed" } };
 		throw error;
 	}
 	return { changes, unnamed: undefined };

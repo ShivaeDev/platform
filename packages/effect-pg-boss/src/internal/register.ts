@@ -97,6 +97,7 @@ export const registerJobs = <R>(
 	replaceWorkers: boolean,
 ): Effect.Effect<void, import("../error.ts").PgBossError> =>
 	Effect.tryPromise({
+		catch: (error) => toPgBossError("register", error),
 		try: async () => {
 			registrationNames(registrations);
 			const provided = workerContext(context);
@@ -108,5 +109,4 @@ export const registerJobs = <R>(
 				}
 			}
 		},
-		catch: (error) => toPgBossError("register", error),
 	});

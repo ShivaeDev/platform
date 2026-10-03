@@ -14,23 +14,23 @@ const REFERENCE = readFileSync(new URL("./fixtures/reference-holder.lock", impor
 const PROTOCOL_KEYS = ["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs"];
 
 const referenceHolder: Holder = {
+	command: 'pnpm --filter "@shivaedev/*" test',
+	cwd: "/repo/checkout",
 	id: "3f1c9a52-0d4e-4b8f-9a71-5c2e8d6b4f10",
 	pid: 4242,
 	processStartedAt: "Sat Sep 26 12:00:00 2026",
-	command: 'pnpm --filter "@shivaedev/*" test',
-	cwd: "/repo/checkout",
 	startedAtMs: 1790409600123,
 };
 
 it.effect("a holder encodes byte for byte as the protocol fixture, whatever order its fields were given in", () =>
 	Effect.gen(function* () {
 		const reordered: Holder = {
-			startedAtMs: 1790409600123,
-			cwd: "/repo/checkout",
 			command: referenceHolder.command,
-			processStartedAt: referenceHolder.processStartedAt,
-			pid: 4242,
+			cwd: "/repo/checkout",
 			id: referenceHolder.id,
+			pid: 4242,
+			processStartedAt: referenceHolder.processStartedAt,
+			startedAtMs: 1790409600123,
 		};
 
 		expect(yield* encodeHolder(referenceHolder)).toBe(REFERENCE);
@@ -58,12 +58,12 @@ it.effect("the lock this implementation holds follows the protocol's key order a
 
 		const recorded = yield* withHeavyLock(
 			Effect.sync(() => readLock(lock) ?? ""),
-			{ lockPath: lock, command: "pnpm build" },
+			{ command: "pnpm build", lockPath: lock },
 		);
 
 		const parsed: unknown = JSON.parse(recorded);
 		expect(Object.keys(parsed ?? {})).toEqual(PROTOCOL_KEYS);
 		expect(recorded).toMatch(/^\{"id":"[\w-]+","pid":\d+,"processStartedAt":"[^"]+","command":"pnpm build","cwd":"[^"]+","startedAtMs":\d+\}$/);
-		expect(parsed).toMatchObject({ pid: process.pid, processStartedAt: startTime(process.pid), cwd: process.cwd() });
+		expect(parsed).toMatchObject({ cwd: process.cwd(), pid: process.pid, processStartedAt: startTime(process.pid) });
 	}).pipe(Effect.provide(services())),
 );

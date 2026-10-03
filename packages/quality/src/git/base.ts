@@ -3,8 +3,8 @@ import { SetupFailure } from "../failure.ts";
 import { type Git, git } from "./command.ts";
 
 export interface Base {
-	readonly ref: string;
 	readonly commit: string;
+	readonly ref: string;
 }
 
 const FALLBACK_BRANCHES = ["origin/main", "origin/master"];

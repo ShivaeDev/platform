@@ -7,7 +7,7 @@ import { httpClient, type Provider, recorder, rpcHttp, serve } from "./support.t
 
 const Account = RpcGroup.make(
 	Rpc.make("Whoami", { success: Schema.String }),
-	Rpc.make("ReadOwn", { payload: { userId: Schema.String }, success: Schema.String, error: Forbidden }),
+	Rpc.make("ReadOwn", { error: Forbidden, payload: { userId: Schema.String }, success: Schema.String }),
 )
 	.middleware(Authenticated)
 	.middleware(RequestTracing);
@@ -19,19 +19,6 @@ const Public = RpcGroup.make(Rpc.make("Greeting", { success: Schema.String }))
 export const Api = Account.merge(Public);
 
 const Handlers = Api.toLayer({
-	Whoami: () =>
-		Effect.gen(function* () {
-			const identity = yield* Identity;
-			const requestId = yield* RequestId;
-			yield* Effect.logInfo("handled");
-			return `${identity.id} ${requestId}`;
-		}),
-	ReadOwn: ({ userId }) =>
-		Effect.gen(function* () {
-			const identity = yield* Identity;
-			if (identity.id !== userId) return yield* new Forbidden({ message: "Not your account" });
-			return identity.id;
-		}),
 	Greeting: () =>
 		Effect.map(OptionalIdentity, (identity) =>
 			Option.match(identity, {
@@ -39,10 +26,23 @@ const Handlers = Api.toLayer({
 				onSome: ({ id }) => `hello ${id}`,
 			}),
 		),
+	ReadOwn: ({ userId }) =>
+		Effect.gen(function* () {
+			const identity = yield* Identity;
+			if (identity.id !== userId) return yield* new Forbidden({ message: "Not your account" });
+			return identity.id;
+		}),
+	Whoami: () =>
+		Effect.gen(function* () {
+			const identity = yield* Identity;
+			const requestId = yield* RequestId;
+			yield* Effect.logInfo("handled");
+			return `${identity.id} ${requestId}`;
+		}),
 });
 
 export const serverLayer = (provider: Provider, origin: OriginPolicy) => {
-	const policy = { provider: betterAuthSessions(provider.getSession), origin };
+	const policy = { origin, provider: betterAuthSessions(provider.getSession) };
 	return Layer.mergeAll(Handlers, authenticatedLayer(policy), maybeAuthenticatedLayer(policy), requestTracingLayer());
 };
 

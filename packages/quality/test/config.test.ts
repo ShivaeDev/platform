@@ -5,7 +5,7 @@ import { resolveRules } from "../src/config/resolve.ts";
 import { defineConfig, defineRule } from "../src/index.ts";
 import { builtInRules } from "../src/rules/built-in.ts";
 
-const todo = defineRule({ id: "local/no-todo", description: "Resolve TODOs.", check: () => [] });
+const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 
 const resolve = async (config: unknown) => {
 	const decoded = await decodeConfig(config);
@@ -58,11 +58,11 @@ describe("config", () => {
 	});
 
 	it("rejects a local rule that was not made with defineRule", async () => {
-		expect(await issues({ local: [{ id: "local/x", check: () => [] }] })).toEqual([expect.stringContaining("defineRule")]);
+		expect(await issues({ local: [{ check: () => [], id: "local/x" }] })).toEqual([expect.stringContaining("defineRule")]);
 	});
 
 	it("rejects a local rule that reuses an id", async () => {
-		const copy = defineRule({ id: "structure/max-lines", description: "Shadows the built-in rule.", check: () => [] });
+		const copy = defineRule({ check: () => [], description: "Shadows the built-in rule.", id: "structure/max-lines" });
 		expect(await issues({ local: [todo, todo, copy] })).toEqual([
 			'local: rule id "local/no-todo" is already defined',
 			'local: rule id "structure/max-lines" is already defined',
@@ -71,18 +71,18 @@ describe("config", () => {
 
 	it("reports an options schema that throws instead of crashing", async () => {
 		const throwing = defineRule({
-			id: "local/throwing",
+			check: () => [],
 			description: "Its schema throws.",
+			id: "local/throwing",
 			options: {
 				"~standard": {
-					vendor: "test",
-					version: 1,
 					validate: () => {
 						throw new Error("schema exploded");
 					},
+					vendor: "test",
+					version: 1,
 				},
 			},
-			check: () => [],
 		});
 		expect(await issues({ local: [throwing] })).toEqual(["rules.local/throwing.options: validation threw: schema exploded"]);
 	});

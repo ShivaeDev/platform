@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 const described = { message: Schema.String };
-const perField = { message: Schema.String, field: Schema.optionalKey(Schema.String) };
+const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };
 
 export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", described) {}
 

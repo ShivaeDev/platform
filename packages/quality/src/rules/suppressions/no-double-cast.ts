@@ -39,9 +39,9 @@ const doubleCasts = (file: SourceFile): ReadonlyArray<Finding> => {
 };
 
 export const noDoubleCast = defineRule({
-	id: "suppressions/no-double-cast",
+	check: ({ sources }) => sources.flatMap(doubleCasts),
 	description:
 		"A cast through unknown, any or never silences the compiler the way a suppression does. Decode the value at its boundary, narrow it, or fix the type that disagrees.",
+	id: "suppressions/no-double-cast",
 	registrable: false,
-	check: ({ sources }) => sources.flatMap(doubleCasts),
 });

@@ -29,9 +29,9 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 	class Client extends AtomRpc.Service<Client>()("example/OrdersClient", {
 		group: Orders,
 		protocol: RpcClient.layerProtocolHttp({
-			url,
 			transformClient: (client) =>
 				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+			url,
 		}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
 	}) {}
 	const api = bind(Orders, Client);
@@ -40,9 +40,9 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 		const [form] = useState(() =>
 			make(fields, {
 				initialValues: valuesOf(order),
-				runtime: Client.runtime,
 				onSubmit: (values, submitter) =>
 					api.save.run({ id: order.id, ...values }).pipe(Effect.catchTag("OrderValidation", (error) => submitter.fail(error.field, error.message))),
+				runtime: Client.runtime,
 			}),
 		);
 		useEffect(() => form.receive(valuesOf(order)), [form, order]);
@@ -70,33 +70,33 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 				null,
 				"Name",
 				createElement("input", {
-					name: name.name,
-					value: name.value,
-					"aria-invalid": name.error !== undefined,
 					"aria-describedby": name.error ? "order-name-error" : undefined,
+					"aria-invalid": name.error !== undefined,
+					name: name.name,
 					onBlur: name.onBlur,
 					onChange: (event) => name.onChange(event.target.value),
+					value: name.value,
 				}),
 			),
-			name.error && createElement("p", { role: "alert", id: "order-name-error" }, name.error),
+			name.error && createElement("p", { id: "order-name-error", role: "alert" }, name.error),
 			createElement(
 				"label",
 				null,
 				"Quantity",
 				createElement("input", {
-					name: quantity.name,
-					inputMode: "decimal",
-					value: quantity.value,
-					"aria-invalid": quantity.error !== undefined,
 					"aria-describedby": quantity.error ? "order-quantity-error" : undefined,
+					"aria-invalid": quantity.error !== undefined,
+					inputMode: "decimal",
+					name: quantity.name,
 					onBlur: quantity.onBlur,
 					onChange: (event) => quantity.onChange(event.target.value),
+					value: quantity.value,
 				}),
 			),
-			quantity.error && createElement("p", { role: "alert", id: "order-quantity-error" }, quantity.error),
+			quantity.error && createElement("p", { id: "order-quantity-error", role: "alert" }, quantity.error),
 			generalFailure && createElement("p", { role: "alert" }, "Could not save your order. Try again."),
-			createElement("button", { type: "submit", disabled: submit.submitting }, "Save"),
-			createElement("button", { type: "button", onClick: form.revert, disabled: submit.submitting }, "Revert"),
+			createElement("button", { disabled: submit.submitting, type: "submit" }, "Save"),
+			createElement("button", { disabled: submit.submitting, onClick: form.revert, type: "button" }, "Revert"),
 			createElement("p", { role: "status" }, saveStatus(submit.submitting, dirty)),
 		);
 	};
@@ -108,7 +108,7 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 			"section",
 			null,
 			createElement("h1", null, "Edit order"),
-			createElement("button", { type: "button", onClick: query.refresh, disabled: query.pending }, "Refresh"),
+			createElement("button", { disabled: query.pending, onClick: query.refresh, type: "button" }, "Refresh"),
 			query.pending && createElement("p", null, "Loading order…"),
 			Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load your order. Try again."),
 			order && createElement("output", { "data-testid": "server-order" }, `${order.name} / ${order.quantity}`),
@@ -123,5 +123,5 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 			Option.getOrElse(query.data, () => []).map((order) => createElement("li", { key: order.id }, `${order.name} / ${order.quantity}`)),
 		);
 	};
-	return { Client, api, Editor, OrderList };
+	return { api, Client, Editor, OrderList };
 };

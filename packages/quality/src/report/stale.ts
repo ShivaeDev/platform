@@ -4,8 +4,8 @@ import type { StaleRegistryEntry } from "../exceptions/registry.ts";
 import { plural } from "./plural.ts";
 
 interface StaleFiles {
-	readonly registry: string;
 	readonly baseline: string;
+	readonly registry: string;
 }
 
 const section = (label: string, file: string, guidance: string, lines: ReadonlyArray<string>): ReadonlyArray<string> =>

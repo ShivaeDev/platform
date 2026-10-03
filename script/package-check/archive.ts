@@ -4,7 +4,7 @@ import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Package, targets } from "#package-check/model.ts";
 
 const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
-const SourceMap = Schema.fromJsonString(Schema.Struct({ sources: Schema.Array(Schema.String), sourceRoot: Schema.optional(Schema.String) }));
+const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
 const packedPath = (path: string): string => posix.join("package", path);
 

@@ -12,9 +12,9 @@ const integration = databaseUrl === undefined ? test.skip : test;
 
 class Item extends Model.Class<Item>("ConstraintItem")({
 	id: Model.Field({
+		json: Schema.Number,
 		select: Schema.Number,
 		update: Schema.Number,
-		json: Schema.Number,
 	}),
 	name: Schema.String,
 	quantity: Schema.Number,
@@ -41,9 +41,9 @@ integration("known unique constraints become domain failures after rollback; oth
     constraint ${sql(unique)} unique (name)
    ) on commit drop`;
 					const items = yield* makeRepository(Item, {
-						tableName,
 						idColumn: "id",
 						spanPrefix: "ConstraintItem",
+						tableName,
 					});
 					yield* items.insert({ name: "Original", quantity: 1 });
 					const duplicateProgram = Effect.gen(function* () {

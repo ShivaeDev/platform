@@ -16,24 +16,24 @@ class Authentication extends RpcMiddleware.Service<Authentication, { provides: P
 }) {}
 const Account = RpcGroup.make(
 	Rpc.make("ReadOwnAccount", {
+		error: Forbidden,
 		payload: { userId: Schema.String },
 		success: Schema.String,
-		error: Forbidden,
 	}),
 ).middleware(Authentication);
 
 const createProvider = async () => {
 	const database = new DatabaseSync(":memory:");
 	const options = {
-		database,
 		baseURL: origin,
-		secret: "integration-only-secret-with-at-least-32-characters",
+		database,
 		emailAndPassword: { enabled: true },
+		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	};
 	await (await getMigrations(options)).runMigrations();
 	const auth = betterAuth(options);
-	return { database, auth };
+	return { auth, database };
 };
 
 const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => {
@@ -44,8 +44,8 @@ const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => 
 			const { headers } = request.value;
 			if (headers.origin !== origin) return yield* new Forbidden();
 			const session = yield* Effect.tryPromise({
-				try: () => auth.api.getSession({ headers: new Headers(headers) }),
 				catch: () => new AuthUnavailable(),
+				try: () => auth.api.getSession({ headers: new Headers(headers) }),
 			});
 			if (session === null) return yield* new Unauthorized();
 			return yield* Effect.provideService(effect, Principal, {
@@ -77,13 +77,13 @@ test("BetterAuth issued cookies authenticate isolated native RPC requests and ho
 	const signup = async (name: string) => {
 		const response = await auth.handler(
 			new Request(`${origin}/api/auth/sign-up/email`, {
-				method: "POST",
-				headers: { "content-type": "application/json", origin },
 				body: JSON.stringify({
-					name,
 					email: `${name}@example.test`,
+					name,
 					password: "example-password-123",
 				}),
+				headers: { "content-type": "application/json", origin },
+				method: "POST",
 			}),
 		);
 		expect(response.status).toBe(200);
@@ -96,7 +96,7 @@ test("BetterAuth issued cookies authenticate isolated native RPC requests and ho
 			headers: new Headers({ cookie }),
 		});
 		if (session === null) throw new Error("Sign-up did not create a session");
-		return { cookie, userId: session.user.id, token: session.session.token };
+		return { cookie, token: session.session.token, userId: session.user.id };
 	};
 	const read = (cookie: string, userId: string, requestOrigin = origin) =>
 		Effect.runPromise(
@@ -106,8 +106,8 @@ test("BetterAuth issued cookies authenticate isolated native RPC requests and ho
 			}).pipe(
 				Effect.provide(
 					RpcClient.layerProtocolHttp({
-						url: `${origin}/rpc`,
 						transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: requestOrigin })),
+						url: `${origin}/rpc`,
 					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
 				),
 				Effect.provideService(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init))),
@@ -142,13 +142,13 @@ test("BetterAuth issued cookies authenticate isolated native RPC requests and ho
 		});
 		const signout = await auth.handler(
 			new Request(`${origin}/api/auth/sign-out`, {
-				method: "POST",
+				body: "{}",
 				headers: {
+					"content-type": "application/json",
 					cookie: alice.cookie,
 					origin,
-					"content-type": "application/json",
 				},
-				body: "{}",
+				method: "POST",
 			}),
 		);
 		expect(signout.status).toBe(200);

@@ -8,4 +8,4 @@ export class HeavyLockError extends Data.TaggedError("HeavyLockError")<{
 export const failWith =
 	(message: string) =>
 	(cause: unknown): HeavyLockError =>
-		new HeavyLockError({ message, cause });
+		new HeavyLockError({ cause, message });

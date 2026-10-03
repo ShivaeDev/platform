@@ -4,12 +4,6 @@
 	"files": {
 		"includes": ["**", "!**/test/generated", "!**/test/*/generated"]
 	},
-	"plugins": [
-		{
-			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
-			"path": "./script/lint/plugins/imports.grit"
-		}
-	],
 	"overrides": [
 		{
 			"includes": [
@@ -76,6 +70,12 @@
 					}
 				}
 			}
+		}
+	],
+	"plugins": [
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./script/lint/plugins/imports.grit"
 		}
 	]
 }

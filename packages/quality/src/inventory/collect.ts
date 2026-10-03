@@ -7,9 +7,9 @@ import { posix } from "./ignore-scope.ts";
 import { scopeAbove, walk } from "./walk.ts";
 
 export interface InventoryScope {
-	readonly sources: ReadonlyArray<string>;
 	readonly exclude: ReadonlyArray<string>;
 	readonly extensions: ReadonlyArray<string>;
+	readonly sources: ReadonlyArray<string>;
 }
 
 export interface Inventory {

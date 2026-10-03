@@ -17,34 +17,34 @@ class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("inv
 const invoiceLines = collection("invoiceLines", InvoiceLine.fields.id);
 const GetInvoiceLine = query("get", {
 	payload: { id: Schema.Number },
-	success: InvoiceLine,
-	rejections: { InvoiceLineNotFound: {}, Unavailable },
 	reads: ({ id }) => [invoiceLines.item(id)],
+	rejections: { InvoiceLineNotFound: {}, Unavailable },
+	success: InvoiceLine,
 });
 const SaveInvoiceLine = command("save", {
-	payload: { id: Schema.Number, ...InvoiceLineDraft.fields },
-	success: InvoiceLine,
-	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
 	invalidates: ({ id }) => [invoiceLines.item(id)],
+	payload: { id: Schema.Number, ...InvoiceLineDraft.fields },
+	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	success: InvoiceLine,
 });
 const CreateInvoiceLine = command("create", {
-	payload: InvoiceLineDraft,
-	success: InvoiceLine,
-	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
 	invalidates: (_draft, line) => [invoiceLines.item(line.id), invoiceLines.list],
+	payload: InvoiceLineDraft,
+	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	success: InvoiceLine,
 });
-export const InvoiceLines = contract("invoiceLines", { queries: [GetInvoiceLine], commands: [SaveInvoiceLine, CreateInvoiceLine] }).middleware(Guard);
+export const InvoiceLines = contract("invoiceLines", { commands: [SaveInvoiceLine, CreateInvoiceLine], queries: [GetInvoiceLine] }).middleware(Guard);
 
 interface Control {
-	mode: "ok" | "unavailable" | "unauthorized";
 	gets: number;
-	saves: number;
 	held: Deferred.Deferred<void> | undefined;
+	mode: "ok" | "unavailable" | "unauthorized";
+	saves: number;
 }
 
 export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
 	const store = new Map(initial.map((line) => [line.id, line]));
-	const control: Control = { mode: "ok", gets: 0, saves: 0, held: undefined };
+	const control: Control = { gets: 0, held: undefined, mode: "ok", saves: 0 };
 	const hold = () => {
 		const gate = Effect.runSync(Deferred.make<void>());
 		control.held = gate;
@@ -69,6 +69,11 @@ export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
 		control.saves += 1;
 	}).pipe(Effect.andThen(admitted));
 	const handlers = InvoiceLines.toLayer({
+		"invoiceLines.create": (draft) =>
+			counted.pipe(
+				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateInvoiceLine.reject.InvoiceLineRejected(rejection)))),
+				Effect.flatMap((values) => stored(new InvoiceLine({ id: store.size + 1, ...values }))),
+			),
 		"invoiceLines.get": ({ id }) =>
 			admitted.pipe(
 				Effect.andThen(() => {
@@ -82,11 +87,6 @@ export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
 				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => SaveInvoiceLine.reject.InvoiceLineRejected(rejection)))),
 				Effect.flatMap((values) => stored(new InvoiceLine({ id, ...values }))),
 			),
-		"invoiceLines.create": (draft) =>
-			counted.pipe(
-				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateInvoiceLine.reject.InvoiceLineRejected(rejection)))),
-				Effect.flatMap((values) => stored(new InvoiceLine({ id: store.size + 1, ...values }))),
-			),
 	});
 	const guard = Layer.succeed(Guard, (effect) =>
 		Effect.suspend(() =>
@@ -95,10 +95,10 @@ export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/InvoiceLineClient", {
 		group: InvoiceLines,
-		protocol: Layer.merge(handlers, guard),
 		makeEffect: RpcTest.makeClient(InvoiceLines, { flatten: true }),
+		protocol: Layer.merge(handlers, guard),
 	}) {}
 	const api = bind(InvoiceLines, Client);
 	const edit = (line: InvoiceLine) => store.set(line.id, line);
-	return { api, runtime: Client.runtime, control, hold, edit, stored: (id: number) => store.get(id) };
+	return { api, control, edit, hold, runtime: Client.runtime, stored: (id: number) => store.get(id) };
 };

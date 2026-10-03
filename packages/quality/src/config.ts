@@ -16,14 +16,14 @@ export type BuiltInRules = typeof builtInRules;
 type IdOf<Rules extends ReadonlyArray<Rule>> = Rules[number]["id"];
 
 export interface QualityConfig<Local extends ReadonlyArray<Rule> = ReadonlyArray<Rule>> {
-	readonly sources?: ReadonlyArray<string>;
+	readonly adopt?: ReadonlyArray<IdOf<readonly [...BuiltInRules, ...Local]>>;
+	readonly baseline?: string;
 	readonly exclude?: ReadonlyArray<string>;
 	readonly extensions?: ReadonlyArray<string>;
-	readonly registry?: string;
-	readonly baseline?: string;
-	readonly adopt?: ReadonlyArray<IdOf<readonly [...BuiltInRules, ...Local]>>;
 	readonly local?: Local;
+	readonly registry?: string;
 	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...Local]>;
+	readonly sources?: ReadonlyArray<string>;
 }
 
 export const defineConfig = <const Local extends ReadonlyArray<Rule> = readonly []>(config: QualityConfig<Local>): QualityConfig<Local> => config;

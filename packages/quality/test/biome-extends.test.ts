@@ -24,7 +24,7 @@ const resolvedRule = async (specifier: string, manifest: object, files: Readonly
 
 describe("suppressions/biome-overrides resolves an extends entry", () => {
 	it.each([
-		["through an exports condition Biome accepts", "@acme/lint/biome", { exports: { "./biome": { import: "./a.json", default: "./b.json" } } }, "b"],
+		["through an exports condition Biome accepts", "@acme/lint/biome", { exports: { "./biome": { default: "./b.json", import: "./a.json" } } }, "b"],
 		["through the first accepted condition", "@acme/lint/biome", { exports: { "./biome": { biome: "./a.json", default: "./b.json" } } }, "a"],
 		["through an exports pattern", "@acme/lint/strict", { exports: { "./*": "./configs/*.json", "./str*": "./a.json" } }, "a"],
 		["through a string exports", "@acme/lint", { exports: "./b.json" }, "b"],
@@ -54,8 +54,8 @@ describe("suppressions/biome-overrides resolves an extends entry", () => {
 
 	it("without following the extends of a config it extends, as Biome does", async () => {
 		const texts = {
-			"biome.json": extending("./base.json", "@acme/lint"),
 			"base.json": JSON.stringify({ extends: ["./deeper.json"] }),
+			"biome.json": extending("./base.json", "@acme/lint"),
 			"deeper.json": weak("deeper"),
 			[`${PACKAGE}/package.json`]: JSON.stringify({ exports: "./biome.json" }),
 			[`${PACKAGE}/biome.json`]: JSON.stringify({ extends: ["./inner.json"] }),

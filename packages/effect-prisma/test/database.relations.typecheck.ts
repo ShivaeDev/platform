@@ -98,26 +98,26 @@ const program = Effect.gen(function* () {
 	>();
 
 	const create = db.User.create({
-		id: crypto.randomUUID(),
 		email: "new@example.com",
+		id: crypto.randomUUID(),
 		name: "New user",
 	});
 	expectTypeOf(create).not.toBeAny();
 	expectTypeOf<Effect.Success<typeof create>>().toEqualTypeOf<User>();
 	expectTypeOf<Effect.Error<typeof create>>().toEqualTypeOf<PrismaError>();
 	const createWithTimestamp = db.User.create({
-		id: crypto.randomUUID(),
-		email: "timestamped@example.com",
-		name: "Timestamped user",
 		createdAt: new Date(0),
+		email: "timestamped@example.com",
+		id: crypto.randomUUID(),
+		name: "Timestamped user",
 		verifiedAt: new Date(0),
 	});
 	expectTypeOf<Effect.Success<typeof createWithTimestamp>>().toEqualTypeOf<User>();
 
 	const createAll = db.User.createAll([
 		{
-			id: crypto.randomUUID(),
 			email: "many@example.com",
+			id: crypto.randomUUID(),
 			name: "Many",
 		},
 	]);

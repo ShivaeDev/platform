@@ -1,8 +1,8 @@
+import process from "node:process";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import process from "node:process";
 import { Cause, Console, Effect, Exit, type FileSystem, Layer, Runtime } from "effect";
 import { SetupFailure } from "../failure.ts";
 import type { Git } from "../git/command.ts";

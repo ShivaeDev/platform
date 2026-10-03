@@ -3,8 +3,8 @@ import { Migrator, SqlClient } from "effect/unstable/sql";
 
 export interface PostgresMigrationOptions<R> {
 	readonly loader: Migrator.Loader<R>;
-	readonly table?: string;
 	readonly lockTimeout: Duration.Input;
+	readonly table?: string;
 }
 
 const migrate = Migrator.make({});
@@ -26,7 +26,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
   created_at timestamp with time zone not null default now(),
   name text not null
 )`;
-			return yield* migrate({ table, loader });
+			return yield* migrate({ loader, table });
 		}),
 	);
 });

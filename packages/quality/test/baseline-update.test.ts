@@ -12,11 +12,11 @@ describe("baseline write", () => {
 		expect(adopt(undefined, [], [long, fresh, fresh, warned], known)).toEqual({
 			_tag: "Adopted",
 			added: 2,
-			replaced: 0,
 			entries: [
 				{ count: 262, file: "src/big.ts", rule: "structure/max-lines" },
 				{ count: 2, file: "src/a.ts", rule: "local/new" },
 			],
+			replaced: 0,
 		});
 	});
 

@@ -8,8 +8,8 @@ const program = Effect.gen(function* () {
 	db.transaction(
 		// @ts-expect-error A transaction body must yield Database so queries bind to its transaction implementation.
 		db.User.create({
-			id: crypto.randomUUID(),
 			email: "prebuilt@example.com",
+			id: crypto.randomUUID(),
 			name: "Prebuilt",
 		}),
 	);
@@ -39,13 +39,13 @@ const program = Effect.gen(function* () {
 	// @ts-expect-error Named query records require a to-many relation.
 	db.Post.include("user", { item: db.User });
 	// @ts-expect-error Create input fields retain their database field types.
-	db.User.create({ id: 123, email: "wrong-id@example.com", name: "Wrong id" });
+	db.User.create({ email: "wrong-id@example.com", id: 123, name: "Wrong id" });
 	db.User.create({
-		id: crypto.randomUUID(),
-		email: "wrong-timestamp@example.com",
-		name: "Wrong timestamp",
 		// @ts-expect-error Timestamp writes use the Date values accepted by the runtime codec.
 		createdAt: "2026-08-03T00:00:00.000Z",
+		email: "wrong-timestamp@example.com",
+		id: crypto.randomUUID(),
+		name: "Wrong timestamp",
 	});
 	// @ts-expect-error Unsafe whole-collection updates are rejected by Prisma state typing.
 	db.User.update({ name: "Unsafe" });

@@ -11,11 +11,11 @@ const reporterHints = (error: Error, sensitive: SensitiveKey) => ({
 const redactError = (error: Error, sensitive: SensitiveKey): Error => {
 	const options = error.cause === undefined ? undefined : { cause: redact(error.cause, sensitive) };
 	const copy = new Error(redactText(error.message, sensitive), options);
-	Object.defineProperty(copy, "name", { value: error.name, writable: true, configurable: true });
+	Object.defineProperty(copy, "name", { configurable: true, value: error.name, writable: true });
 	Object.defineProperty(copy, "stack", {
+		configurable: true,
 		value: error.stack === undefined ? undefined : redactText(error.stack, sensitive),
 		writable: true,
-		configurable: true,
 	});
 	return Object.assign(copy, redact(Object.fromEntries(Object.entries(error)), sensitive), reporterHints(error, sensitive));
 };

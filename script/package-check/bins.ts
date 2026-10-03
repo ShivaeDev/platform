@@ -6,14 +6,14 @@ import { bins, type Package, Versions } from "#package-check/model.ts";
 import { checkServer } from "#package-check/server.ts";
 
 const Case = Schema.Struct({
+	absent: Schema.optional(Schema.Array(Schema.String)),
 	args: Schema.Array(Schema.String),
-	files: Versions,
+	checkVersion: Schema.optional(Schema.Boolean),
+	env: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
 	expectedFiles: Versions,
+	files: Versions,
 	output: Schema.optional(Schema.String),
 	pages: Schema.optional(Versions),
-	env: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
-	absent: Schema.optional(Schema.Array(Schema.String)),
-	checkVersion: Schema.optional(Schema.Boolean),
 });
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Case)));
 export const checkBins = (root: string, pkg: Package, consumer: string) =>

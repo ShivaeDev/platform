@@ -13,15 +13,15 @@ expectTypeOf<ModelRow<PrismaClient, "Order">>().toExtend<{ id: string; ownerId: 
 expectTypeOf<{ id: string; ownerId: string; total: number }>().toExtend<ModelRow<PrismaClient, "Order">>();
 
 // @ts-expect-error An exhaustive map must classify every model, AuditNote included.
-void ({ Order: models.Order, Membership: models.Membership, Invoice: models.Invoice } satisfies ChangeMap<PrismaClient, Change>);
+void ({ Invoice: models.Invoice, Membership: models.Membership, Order: models.Order } satisfies ChangeMap<PrismaClient, Change>);
 
 void ({
 	...models,
 	// @ts-expect-error A mapping reads only the fields its model has.
-	Order: (order) => [{ subject: order.memberId, domain: "orders" }],
+	Order: (order) => [{ domain: "orders", subject: order.memberId }],
 } satisfies ChangeMap<PrismaClient, Change>);
 
-const changes = makePrismaChanges({ name: "Typed", client: prisma, models, publish: (_: ReadonlyArray<Change>) => Effect.void });
+const changes = makePrismaChanges({ client: prisma, models, name: "Typed", publish: (_: ReadonlyArray<Change>) => Effect.void });
 
 expectTypeOf(changes.Client).toEqualTypeOf<Context.Reference<Omit<PrismaClient, ITXClientDenyList>>>();
 expectTypeOf(changes.transaction(Effect.fail(new Rejected()).pipe(Effect.as("done")))).toEqualTypeOf<

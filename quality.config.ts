@@ -19,8 +19,51 @@ const PACKAGE_ENTRIES = [
 
 export default defineConfig({
 	adopt: ["biome"],
-	sources: ["packages", "script"],
 	rules: {
+		"suppressions/biome-overrides": {
+			options: {
+				declared: [
+					{
+						includes: ["**", "!**/test/generated", "!**/test/*/generated"],
+						reason: "Generated test clients are not source.",
+						rule: "files/includes",
+					},
+					{
+						includes: PACKAGE_ENTRIES,
+						reason: "Package entry points are the files that re-export a package's public modules.",
+						rule: "lint/performance/noBarrelFile",
+					},
+					{
+						includes: PACKAGE_ENTRIES,
+						reason: "Package entry points are the files that re-export a package's public modules.",
+						rule: "lint/performance/noReExportAll",
+					},
+					{
+						includes: [".dependency-cruiser.ts"],
+						reason: "dependency-cruiser loads its config file through the default export.",
+						rule: "lint/style/noDefaultExport",
+					},
+					{
+						includes: ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
+						reason:
+							"The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer.",
+						rule: "lint/suspicious/noExplicitAny",
+					},
+					{
+						includes: ["packages/effect-prisma/test/support/controlled-collection.ts"],
+						reason:
+							"Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption.",
+						rule: "lint/suspicious/noThenProperty",
+					},
+					{
+						includes: ["packages/effect-test/src/vitest.ts"],
+						reason:
+							"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
+						rule: "lint/correctness/noEmptyPattern",
+					},
+				],
+			},
+		},
 		"suppressions/no-inline": {
 			options: {
 				declared: [
@@ -33,49 +76,6 @@ export default defineConfig({
 				],
 			},
 		},
-		"suppressions/biome-overrides": {
-			options: {
-				declared: [
-					{
-						rule: "files/includes",
-						includes: ["**", "!**/test/generated", "!**/test/*/generated"],
-						reason: "Generated test clients are not source.",
-					},
-					{
-						rule: "lint/performance/noBarrelFile",
-						includes: PACKAGE_ENTRIES,
-						reason: "Package entry points are the files that re-export a package's public modules.",
-					},
-					{
-						rule: "lint/performance/noReExportAll",
-						includes: PACKAGE_ENTRIES,
-						reason: "Package entry points are the files that re-export a package's public modules.",
-					},
-					{
-						rule: "lint/style/noDefaultExport",
-						includes: [".dependency-cruiser.ts"],
-						reason: "dependency-cruiser loads its config file through the default export.",
-					},
-					{
-						rule: "lint/suspicious/noExplicitAny",
-						includes: ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
-						reason:
-							"The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer.",
-					},
-					{
-						rule: "lint/suspicious/noThenProperty",
-						includes: ["packages/effect-prisma/test/support/controlled-collection.ts"],
-						reason:
-							"Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption.",
-					},
-					{
-						rule: "lint/correctness/noEmptyPattern",
-						includes: ["packages/effect-test/src/vitest.ts"],
-						reason:
-							"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
-					},
-				],
-			},
-		},
 	},
+	sources: ["packages", "script"],
 });

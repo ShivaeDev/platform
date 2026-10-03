@@ -4,14 +4,14 @@ import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "../e
 import { byLocation, type RuleIndex, type Violation } from "./violation.ts";
 
 export interface Outcome {
+	readonly baselined: number;
 	readonly errors: ReadonlyArray<Violation>;
-	readonly warnings: ReadonlyArray<Violation>;
+	readonly looseBaseline: ReadonlyArray<StaleBaselineEntry>;
+	readonly registered: number;
 	readonly regressions: ReadonlyArray<Regression>;
 	readonly staleBaseline: ReadonlyArray<StaleBaselineEntry>;
-	readonly looseBaseline: ReadonlyArray<StaleBaselineEntry>;
 	readonly staleRegistry: ReadonlyArray<StaleRegistryEntry>;
-	readonly baselined: number;
-	readonly registered: number;
+	readonly warnings: ReadonlyArray<Violation>;
 }
 
 export const evaluate = (
@@ -27,8 +27,8 @@ export const evaluate = (
 		baselined: baselined.baselined,
 		errors: kept.filter((violation) => violation.level === "error"),
 		looseBaseline: baselined.loose,
-		regressions: baselined.regressions,
 		registered: registered.registered,
+		regressions: baselined.regressions,
 		staleBaseline: baselined.stale,
 		staleRegistry: registered.stale,
 		warnings: kept.filter((violation) => violation.level === "warn"),

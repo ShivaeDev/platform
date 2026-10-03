@@ -68,7 +68,7 @@ describe("the board", () => {
 
 	it("keeps a --- inside a card of the last section in the card", () => {
 		const board = boardOf("# Plan\n\n## Later\n\n### Three\n\nA\n\n---\n\nB\n\n### Four\n\nC\n\n---\n\nThe end.\n");
-		expect(countsOf(board)).toEqual([{ title: "Later", count: 2 }]);
+		expect(countsOf(board)).toEqual([{ count: 2, title: "Later" }]);
 		expect(board.sections[0]?.items[0]).toBe("### Three\n\nA\n\n---\n\nB");
 		expect(board.footer).toBe("The end.");
 	});

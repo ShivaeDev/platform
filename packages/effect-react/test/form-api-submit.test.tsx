@@ -40,7 +40,7 @@ const creating = async () => {
 	const create = (values: { readonly name: string }) => Effect.sync((): Order => ({ id: names.push(values.name), name: values.name.trim() }));
 	const held: { create?: Create<NameFields, Order, never, never>; submit?: Submit<Order, unknown> } = {};
 	const registry = await mount(() => {
-		const current = useCreate({ fields, initialValues: { name: "" }, create, runtime });
+		const current = useCreate({ create, fields, initialValues: { name: "" }, runtime });
 		held.create = current;
 		held.submit = useSubmit(current.form);
 		return null;
@@ -49,7 +49,7 @@ const creating = async () => {
 		if (held.create === undefined || held.submit === undefined) throw new Error("Create hook did not render");
 		return { create: held.create, submit: held.submit };
 	};
-	return { names, registry, current };
+	return { current, names, registry };
 };
 
 test("a create submitted through the form's own API records the result and resets the form", async () => {
@@ -89,7 +89,7 @@ test("an edit typed while an async schema decodes the submission survives the cr
 	});
 	const held: { create?: Create<typeof slow.fields, Order, never, never> } = {};
 	await mount(() => {
-		held.create = useCreate({ fields: slow, initialValues: { name: "" }, create: (values) => Effect.succeed({ id: 1, name: values.name }), runtime });
+		held.create = useCreate({ create: (values) => Effect.succeed({ id: 1, name: values.name }), fields: slow, initialValues: { name: "" }, runtime });
 		return null;
 	});
 	const current = () => {
@@ -109,7 +109,7 @@ test("an edit submitted through the form's own API receives the normalized saved
 	const save = (values: { readonly name: string }) => Effect.succeed<Order>({ id: 1, name: values.name.toUpperCase() });
 	const held: { editor?: Editor<NameFields, Order, never, never, never> } = {};
 	const registry = await mount(() => {
-		held.editor = useEditor({ query, fields, values: (row) => ({ name: row.name }), save, runtime });
+		held.editor = useEditor({ fields, query, runtime, save, values: (row) => ({ name: row.name }) });
 		return null;
 	});
 	const form = held.editor?.form;

@@ -16,7 +16,7 @@ describe("baseline check", () => {
 	it("fails a file that gained a violation and keeps all of them", () => {
 		const checked = applyBaseline([todo, todo, todo], [{ count: 2, file: "src/a.ts", rule: "local/todo" }], known);
 		expect(checked.kept).toHaveLength(3);
-		expect(checked.regressions).toEqual([{ entry: { count: 2, file: "src/a.ts", rule: "local/todo" }, count: 3 }]);
+		expect(checked.regressions).toEqual([{ count: 3, entry: { count: 2, file: "src/a.ts", rule: "local/todo" } }]);
 	});
 
 	it("fails a file that grew further above its limit than its baselined count", () => {

@@ -11,13 +11,13 @@ import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, re
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
 
 const failures = {
-	required: new BadRequest({ message: "Name is required", field: "name" }),
-	malformed: new BadRequest({ message: "Malformed" }),
-	taken: new Conflict({ message: "Name is taken", field: "name" }),
-	stale: new PreconditionFailed({ message: "Profile changed" }),
 	busy: new TooManyRequests({ message: "Slow down" }),
+	malformed: new BadRequest({ message: "Malformed" }),
 	missing: new NotFound({ message: "No profile" }),
 	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
+	required: new BadRequest({ field: "name", message: "Name is required" }),
+	stale: new PreconditionFailed({ message: "Profile changed" }),
+	taken: new Conflict({ field: "name", message: "Name is taken" }),
 };
 
 const runtime = ManagedRuntime.make(Layer.empty);
@@ -35,15 +35,15 @@ const router = t.router({
 const client = createTRPCClient<typeof router>({
 	links: [
 		httpBatchLink({
-			url: "http://localhost/trpc",
-			transformer: superjson,
 			fetch: (input, init) =>
 				fetchRequestHandler({
+					createContext: () => ({}),
 					endpoint: "/trpc",
 					req: new Request(input, { ...init, signal: init?.signal ?? null }),
 					router,
-					createContext: () => ({}),
 				}),
+			transformer: superjson,
+			url: "http://localhost/trpc",
 		}),
 	],
 });

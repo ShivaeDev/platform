@@ -13,9 +13,9 @@ const clean = Atom.make(false);
 export interface SaveState<E> {
 	readonly dirty: boolean;
 	readonly failure: Option.Option<E>;
-	readonly saving: boolean;
-	readonly save: () => void;
 	readonly revert: () => void;
+	readonly save: () => void;
+	readonly saving: boolean;
 }
 
 export const useSaveState = <F extends Fields, A, E, ER>(
@@ -46,5 +46,5 @@ export const useSaveState = <F extends Fields, A, E, ER>(
 		AsyncResult.error(result),
 		(error): error is E | ER => !(error instanceof FieldFailure) && !(error instanceof Invalid),
 	);
-	return { dirty, failure, saving: result.waiting, save, revert };
+	return { dirty, failure, revert, save, saving: result.waiting };
 };

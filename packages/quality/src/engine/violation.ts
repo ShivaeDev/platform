@@ -4,8 +4,8 @@ import type { Finding } from "../rule.ts";
 export type ActiveLevel = "error" | "warn";
 
 export interface Violation extends Finding {
-	readonly rule: string;
 	readonly level: ActiveLevel;
+	readonly rule: string;
 }
 
 export const keyOf = (rule: string, file: string): string => `${rule}\u0000${file}`;
@@ -27,8 +27,8 @@ export const groupBy = <Item>(items: ReadonlyArray<Item>, key: (item: Item) => s
 };
 
 export interface RuleIndex {
-	readonly levels: ReadonlyMap<string, Level>;
 	readonly families: ReadonlySet<string>;
+	readonly levels: ReadonlyMap<string, Level>;
 	readonly unregistrable: ReadonlySet<string>;
 }
 

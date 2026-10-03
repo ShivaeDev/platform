@@ -4,6 +4,6 @@ import { Note, notes } from "../../notes.ts";
 
 query("byTitle", {
 	payload: { title: Schema.String },
-	success: Note,
 	reads: ({ title }) => [notes.item(title)],
+	success: Note,
 });

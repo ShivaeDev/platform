@@ -83,26 +83,6 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 	},
 ): RuntimeBridge<Requirements> => ({
 	instrument: (effect, procedure) => Effect.suspend(() => (options.instrument === undefined ? effect : options.instrument(effect, procedure))),
-	runStream: async (stream, runOptions) => {
-		const instrumented = Stream.suspend(() =>
-			options.instrumentStream === undefined ? stream : options.instrumentStream(stream, runOptions.procedure),
-		).pipe(
-			Stream.withSpan(runOptions.procedure.path, {
-				attributes: {
-					"rpc.method": runOptions.procedure.path,
-					"rpc.system": "trpc",
-					"trpc.type": runOptions.procedure.type,
-				},
-				captureStackTrace: runOptions.procedure.captureStackTrace,
-			}),
-			Stream.interruptWhen(interruptOn(runOptions.signal)),
-			Stream.catchCause((cause) => Stream.fail(mapCause(cause, runOptions.procedure, options.mapError))),
-		);
-		const context = await runtime.runPromise(Effect.context<Requirements>());
-		const ambient = contextBridge.current();
-		const provided = ambient === undefined ? context : Context.merge(context, ambient);
-		return Stream.toAsyncIterableWith(instrumented, provided);
-	},
 	runEffect: async (effect, runOptions) => {
 		const traced = effect.pipe(
 			Effect.withSpan(
@@ -128,5 +108,25 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 			return exit.value;
 		}
 		throw mapCause(exit.cause, runOptions.procedure, options.mapError);
+	},
+	runStream: async (stream, runOptions) => {
+		const instrumented = Stream.suspend(() =>
+			options.instrumentStream === undefined ? stream : options.instrumentStream(stream, runOptions.procedure),
+		).pipe(
+			Stream.withSpan(runOptions.procedure.path, {
+				attributes: {
+					"rpc.method": runOptions.procedure.path,
+					"rpc.system": "trpc",
+					"trpc.type": runOptions.procedure.type,
+				},
+				captureStackTrace: runOptions.procedure.captureStackTrace,
+			}),
+			Stream.interruptWhen(interruptOn(runOptions.signal)),
+			Stream.catchCause((cause) => Stream.fail(mapCause(cause, runOptions.procedure, options.mapError))),
+		);
+		const context = await runtime.runPromise(Effect.context<Requirements>());
+		const ambient = contextBridge.current();
+		const provided = ambient === undefined ? context : Context.merge(context, ambient);
+		return Stream.toAsyncIterableWith(instrumented, provided);
 	},
 });

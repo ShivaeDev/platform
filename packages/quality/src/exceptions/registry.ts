@@ -3,10 +3,10 @@ import { type Decoded, decodeWith } from "../decoded.ts";
 import { type RuleIndex, registrable, unusedEntryProblem, type Violation } from "../engine/violation.ts";
 
 const RegistryEntry = Schema.Struct({
-	rule: Schema.NonEmptyString,
 	file: Schema.NonEmptyString,
-	subject: Schema.optionalKey(Schema.NonEmptyString),
 	reason: Schema.String.check(Schema.isPattern(/\S/, { expected: "a reason that says why the exception is permanent" })),
+	rule: Schema.NonEmptyString,
+	subject: Schema.optionalKey(Schema.NonEmptyString),
 });
 
 export type RegistryEntry = typeof RegistryEntry.Type;

@@ -74,5 +74,5 @@ export function localPostgres(environment: DockerEnvironment) {
 			if (!sql(server, `SELECT 1 FROM pg_database WHERE datname = '${name}'`)) sql(server, `CREATE DATABASE "${name}"`);
 		}
 	}
-	return { sql, startPostgres, prepareDatabases };
+	return { prepareDatabases, sql, startPostgres };
 }

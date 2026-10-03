@@ -109,8 +109,8 @@ describe("suppressions/biome-overrides with a package preset", () => {
 	it("scopes the preset and its declarations below a nested config that extends it", async () => {
 		const texts = {
 			...presetTexts({ overrides: [configFiles], ...off("suspicious", "noConsole") }, shipped),
-			"biome.json": "{}",
 			"apps/web/biome.json": consumer({ root: false }),
+			"biome.json": "{}",
 		};
 		expect(await check(texts, undefined, ["apps/web/biome.json"])).toEqual([
 			'apps/web/biome.json:3 Extends "@acme/lint/biome", which weakens "lint/suspicious/noConsole" for "apps/web/**" without a declaration.',

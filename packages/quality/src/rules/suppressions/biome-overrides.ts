@@ -50,11 +50,6 @@ const staleOrRepeated = (file: string, weakenings: ReadonlyArray<Weakening>, shi
 };
 
 export const biomeOverrides = defineRule({
-	id: "suppressions/biome-overrides",
-	description:
-		"A Biome setting that turns a check off or down, or keeps files out of it, is an exception for every file it covers. Fix the code and remove the setting, or declare its rule, includes and reason under this rule's declared option.",
-	options: Schema.toStandardSchemaV1(BiomeOverridesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
-	registrable: false,
 	check: async (inputs) => {
 		const { chains, problems, root } = await biomeConfigs(inputs);
 		const { declared } = inputs.options;
@@ -67,4 +62,9 @@ export const biomeOverrides = defineRule({
 			...declared.flatMap(staleOrRepeated(root, weakenings, shipped)),
 		];
 	},
+	description:
+		"A Biome setting that turns a check off or down, or keeps files out of it, is an exception for every file it covers. Fix the code and remove the setting, or declare its rule, includes and reason under this rule's declared option.",
+	id: "suppressions/biome-overrides",
+	options: Schema.toStandardSchemaV1(BiomeOverridesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	registrable: false,
 });

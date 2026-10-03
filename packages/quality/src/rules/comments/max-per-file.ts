@@ -5,8 +5,8 @@ import { isDirective, isPragma, Pragmas } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
 
 const MaxPerFileOptions = Schema.Struct({
-	max: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
 	allow: Pragmas,
+	max: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
 });
 
 const continues = (previous: SourceComment | undefined, comment: SourceComment): boolean =>
@@ -28,9 +28,9 @@ const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): R
 		? []
 		: [
 				{
+					count: blocks.length - max,
 					file: file.path,
 					line: first.line,
-					count: blocks.length - max,
 					message: `${plural(blocks.length, "comment", "comments")} against a limit of ${max}.`,
 					threshold: max,
 				},
@@ -38,9 +38,9 @@ const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): R
 };
 
 export const maxPerFile = defineRule({
-	id: "comments/max-per-file",
+	check: ({ options, sources }) => sources.flatMap((file) => overCap(file, options.max, options.allow)),
 	description:
 		"A file that needs more than a few comments does too much, or its comments narrate the code. Delete the comments that restate the code, then split the file.",
+	id: "comments/max-per-file",
 	options: Schema.toStandardSchemaV1(MaxPerFileOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
-	check: ({ options, sources }) => sources.flatMap((file) => overCap(file, options.max, options.allow)),
 });

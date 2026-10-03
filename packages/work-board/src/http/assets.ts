@@ -20,7 +20,7 @@ export class MermaidMissing extends Data.TaggedError("MermaidMissing")<{ readonl
 
 export const mermaidRoot = Effect.fn("WorkBoard.mermaidRoot")(function* () {
 	const path = yield* Path.Path;
-	const entry = yield* Effect.try({ try: () => createRequire(import.meta.url).resolve("mermaid"), catch: (cause) => new MermaidMissing({ cause }) });
+	const entry = yield* Effect.try({ catch: (cause) => new MermaidMissing({ cause }), try: () => createRequire(import.meta.url).resolve("mermaid") });
 	return path.dirname(entry);
 });
 

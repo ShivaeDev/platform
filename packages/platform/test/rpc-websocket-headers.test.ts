@@ -24,7 +24,7 @@ const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<stri
 			yield* Effect.forkScoped(Effect.provideService(httpEffect, HttpServerRequest.HttpServerRequest, request));
 			const writer = inbound.writable.getWriter();
 			const reader = outbound.readable.getReader();
-			yield* Effect.promise(() => writer.write(JSON.stringify({ _tag: "Request", id: "1", tag: "Whoami", payload: null, headers: message })));
+			yield* Effect.promise(() => writer.write(JSON.stringify({ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" })));
 			const { value } = yield* Effect.promise(() => reader.read());
 			return new TextDecoder().decode(value);
 		}).pipe(

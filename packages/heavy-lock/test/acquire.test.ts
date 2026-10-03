@@ -5,7 +5,7 @@ import { Effect, Fiber, Layer, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { afterEach } from "vitest";
 import { HeldLock } from "../src/held-lock.ts";
-import { HOLDER_ID_ENV } from "../src/holder.ts";
+import { encodeHolder, HOLDER_ID_ENV } from "../src/holder.ts";
 import { readHolder, tryAcquire } from "../src/lock-file.ts";
 import { heavyLockLayer, withHeavyLock } from "../src/with-heavy-lock.ts";
 import { scriptedClock } from "./support/clock.ts";
@@ -31,7 +31,7 @@ it.effect("a waiter names the holder, reminds every minute, and takes the lock o
 			return 60_000;
 		});
 
-		const held = yield* scripted.provide(withHeavyLock(holding(lock), { lockPath: lock, command: "pnpm ready", pollInterval: "1 millis" }));
+		const held = yield* scripted.provide(withHeavyLock(holding(lock), { command: "pnpm ready", lockPath: lock, pollInterval: "1 millis" }));
 
 		expect(Option.map(held.holder, ({ command, startedAtMs }) => ({ command, startedAtMs }))).toEqual(
 			Option.some({ command: "pnpm ready", startedAtMs: startedAtMs + 150_000 }),
@@ -124,7 +124,7 @@ it.live("an interrupted waiter leaves the holder's lock alone and nothing behind
 		yield* Fiber.interrupt(waiter);
 
 		expect(yield* readHolder(lock)).toEqual(Option.some(build));
-		expect(readLock(lock)).toBe(JSON.stringify(build));
+		expect(readLock(lock)).toBe(yield* encodeHolder(build));
 		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
 	}).pipe(Effect.provide(Layer.merge(services(), TestConsole.layer))),
 );

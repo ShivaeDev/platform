@@ -17,10 +17,10 @@ const textOf = (node: ElementContent): string => {
 };
 
 const diagram = (source: string): Element => ({
-	type: "element",
-	tagName: "figure",
+	children: [{ children: [{ type: "text", value: source }], properties: { className: ["diagram-source"] }, tagName: "pre", type: "element" }],
 	properties: { className: ["diagram"], dataState: "pending" },
-	children: [{ type: "element", tagName: "pre", properties: { className: ["diagram-source"] }, children: [{ type: "text", value: source }] }],
+	tagName: "figure",
+	type: "element",
 });
 
 const isBundled = (language: string): language is BundledLanguage => Object.hasOwn(bundledLanguages, language);
@@ -30,12 +30,11 @@ const highlighted = async (highlighter: Shiki, source: string, language: string)
 		return undefined;
 	}
 	await highlighter.loadLanguage(language);
-	return highlighter.codeToHast(source, { lang: language, themes: THEMES, defaultColor: false }).children[0];
+	return highlighter.codeToHast(source, { defaultColor: false, lang: language, themes: THEMES }).children[0];
 };
 
 export const codeBlocks = (highlighter: Shiki) =>
 	defineHastPlugin({
-		name: "work-board-code",
 		element: {
 			filter: ["pre"],
 			visit: async (pre) => {
@@ -51,4 +50,5 @@ export const codeBlocks = (highlighter: Shiki) =>
 				return language === undefined ? undefined : await highlighted(highlighter, source, language);
 			},
 		},
+		name: "work-board-code",
 	});

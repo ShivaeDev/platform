@@ -7,10 +7,10 @@ import { staleSections } from "./stale.ts";
 export type WarningDetail = "summary" | "all";
 
 export interface ReportContext {
-	readonly descriptions: ReadonlyMap<string, string>;
-	readonly registry: string;
 	readonly baseline: string;
 	readonly checked: number;
+	readonly descriptions: ReadonlyMap<string, string>;
+	readonly registry: string;
 	readonly warnings: WarningDetail;
 }
 

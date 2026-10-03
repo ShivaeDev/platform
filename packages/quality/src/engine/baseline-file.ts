@@ -8,8 +8,8 @@ import { SetupFailure } from "../failure.ts";
 import { readOptionalText } from "../inventory/filesystem.ts";
 
 export interface BaselineFile {
-	readonly raw: string | undefined;
 	readonly entries: ReadonlyArray<BaselineEntry>;
+	readonly raw: string | undefined;
 }
 
 export const readInput = (root: string, path: string): Effect.Effect<string | undefined, SetupFailure, FileSystem.FileSystem> =>

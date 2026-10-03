@@ -28,8 +28,8 @@ export const setup = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	const suffix = crypto.randomUUID().replaceAll("-", "");
 	const tables = {
-		orders: `platform_effect_sql_orders_${suffix}`,
 		notes: `platform_effect_sql_notes_${suffix}`,
+		orders: `platform_effect_sql_orders_${suffix}`,
 		others: `platform_effect_sql_others_${suffix}`,
 	};
 	yield* Effect.acquireRelease(
@@ -49,7 +49,7 @@ export const setup = Effect.gen(function* () {
 	const otherIds = (client: SqlClient.SqlClient) =>
 		Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.others)} order by id`, ids);
 	const insertOther = (client: SqlClient.SqlClient, id: number) => client`insert into ${sql(tables.others)} (id) values (${id})`;
-	return { sql, reactivity, tables, events, insert, count, orderIds, otherIds, insertOther };
+	return { count, events, insert, insertOther, orderIds, otherIds, reactivity, sql, tables };
 });
 
 export const onClient = (client: SqlClient.SqlClient) => Effect.provideService(SqlClient.SqlClient, client);

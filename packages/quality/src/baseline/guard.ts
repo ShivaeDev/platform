@@ -8,9 +8,9 @@ export type GuardProblem =
 	| { readonly _tag: "NothingAdopted"; readonly rule: string };
 
 export interface GuardResult {
-	readonly problems: ReadonlyArray<GuardProblem>;
-	readonly moved: number;
 	readonly adopted: ReadonlyArray<string>;
+	readonly moved: number;
+	readonly problems: ReadonlyArray<GuardProblem>;
 }
 
 export const guardBaseline = (

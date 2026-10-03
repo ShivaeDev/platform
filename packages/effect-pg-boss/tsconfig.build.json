@@ -1,8 +1,8 @@
 {
-	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"],
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": "src"
 	},
+	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"],
 	"include": ["src"]
 }

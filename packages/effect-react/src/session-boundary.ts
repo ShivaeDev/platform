@@ -3,12 +3,12 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 
 export interface SessionBoundaryProps<S, Client> {
-	readonly session: S | undefined;
-	readonly identify: (session: S) => string;
-	readonly connect: (session: S) => Client;
-	readonly recheck: () => void;
-	readonly signedOut?: ReactNode;
 	readonly children: (client: Client) => ReactNode;
+	readonly connect: (session: S) => Client;
+	readonly identify: (session: S) => string;
+	readonly recheck: () => void;
+	readonly session: S | undefined;
+	readonly signedOut?: ReactNode;
 }
 
 const Recheck = createContext<() => void>(() => {});
@@ -17,11 +17,11 @@ export const useSessionRecheck = (): (() => void) => useContext(Recheck);
 
 interface Owned<Client> {
 	readonly client: Client;
-	readonly registry: AtomRegistry.AtomRegistry;
 	mounted: number;
+	readonly registry: AtomRegistry.AtomRegistry;
 }
 
-const owning = <Client>(client: Client): Owned<Client> => ({ client, registry: AtomRegistry.make(), mounted: 0 });
+const owning = <Client>(client: Client): Owned<Client> => ({ client, mounted: 0, registry: AtomRegistry.make() });
 
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
 const hidden = <Client>(client: Client): Owned<Client> => {
@@ -39,10 +39,10 @@ const hidden = <Client>(client: Client): Owned<Client> => {
 };
 
 interface GenerationProps<S, Client> {
-	readonly session: S;
+	readonly children: (client: Client) => ReactNode;
 	readonly connect: (session: S) => Client;
 	readonly recheck: () => void;
-	readonly children: (client: Client) => ReactNode;
+	readonly session: S;
 }
 
 const Generation = <S, Client>({ session, connect, recheck, children }: GenerationProps<S, Client>): ReactNode => {
@@ -75,4 +75,4 @@ export const SessionBoundary = <S, Client>({
 }: SessionBoundaryProps<S, Client>): ReactNode =>
 	session === undefined
 		? createElement(Fragment, null, signedOut)
-		: createElement(Generation<S, Client>, { key: identify(session), session, connect, recheck, children });
+		: createElement(Generation<S, Client>, { children, connect, key: identify(session), recheck, session });

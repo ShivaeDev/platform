@@ -52,9 +52,9 @@ export const makePgBoss = (identifier: string): PgBossDefinition => {
 			Effect.gen(function* () {
 				const context = yield* Effect.context<Requirements>();
 				const acquired = yield* acquireClient({
+					clientCacheKey,
 					clientFactory,
 					constructor: constructorOptions,
-					clientCacheKey,
 				});
 				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements> = onError ?? logClientError;
 				const errorListener = (error: Error) => {

@@ -19,14 +19,14 @@ const Setting = Schema.Union([Level, Schema.Struct({ level: Schema.optionalKey(L
 const LocalRule = Schema.declare(isRule, { expected: "a rule made with defineRule" });
 
 const ConfigInput = Schema.Struct({
-	sources: Schema.optionalKey(Schema.Array(Schema.String)),
+	adopt: Schema.optionalKey(Schema.Array(Schema.String)),
+	baseline: Schema.optionalKey(Schema.String),
 	exclude: Schema.optionalKey(Schema.Array(Schema.String)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
-	registry: Schema.optionalKey(Schema.String),
-	baseline: Schema.optionalKey(Schema.String),
-	adopt: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
+	registry: Schema.optionalKey(Schema.String),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
+	sources: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 
 export type ConfigInput = typeof ConfigInput.Type;

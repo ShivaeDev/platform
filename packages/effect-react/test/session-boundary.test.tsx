@@ -86,7 +86,7 @@ test("refresh retry recovers without losing the session's dirty form", async () 
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
 		expect(view.input()?.value).toBe("Unsaved order");
-		active.set("alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY });
+		active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')).toBeNull());
 		expect(view.input()?.value).toBe("Unsaved order");
@@ -113,11 +113,11 @@ test("StrictMode's effect replay keeps the generation's registry alive until the
 					StrictMode,
 					null,
 					createElement(SessionBoundary<string, undefined>, {
-						session,
-						identify: (id) => id,
-						connect: () => undefined,
-						recheck: () => {},
 						children: () => createElement(Probe),
+						connect: () => undefined,
+						identify: (id) => id,
+						recheck: () => {},
+						session,
 					}),
 				),
 			);
@@ -144,11 +144,11 @@ const activity = async (hoisted: boolean) => {
 	};
 	const boundary = () =>
 		createElement(SessionBoundary<string, undefined>, {
-			session: "s1",
-			identify: (id) => id,
-			connect: () => undefined,
-			recheck: () => {},
 			children: () => createElement(Probe),
+			connect: () => undefined,
+			identify: (id) => id,
+			recheck: () => {},
+			session: "s1",
 		});
 	const kept = boundary();
 	const container = document.createElement("div");
@@ -156,7 +156,7 @@ const activity = async (hoisted: boolean) => {
 	const errors: unknown[] = [];
 	const render = (mode: "visible" | "hidden") =>
 		act(async () => {
-			root.render(createElement(Activity, { mode, children: hoisted ? kept : boundary() }));
+			root.render(createElement(Activity, { children: hoisted ? kept : boundary(), mode }));
 		}).then(
 			() => {},
 			(error: unknown) => {
@@ -199,14 +199,14 @@ test("a generation re-rendered while hidden by <Activity> and then unmounted dis
 		act(async () => {
 			root.render(
 				createElement(Activity, {
-					mode,
 					children: createElement(SessionBoundary<string, undefined>, {
-						session: "s1",
-						identify: (id) => id,
-						connect: () => undefined,
-						recheck: () => {},
 						children: () => createElement(Probe, { round }),
+						connect: () => undefined,
+						identify: (id) => id,
+						recheck: () => {},
+						session: "s1",
 					}),
+					mode,
 				}),
 			);
 		});
@@ -221,8 +221,8 @@ test("a generation re-rendered while hidden by <Activity> and then unmounted dis
 
 test("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
 	interface Rotating {
-		readonly id: string;
 		readonly credential: number;
+		readonly id: string;
 		readonly token: string;
 	}
 	const container = document.createElement("div");
@@ -232,24 +232,24 @@ test("connect runs once per identity: a rotated credential reaches the client on
 		act(async () => {
 			root.render(
 				createElement(SessionBoundary<Rotating, string>, {
-					session,
-					identify,
+					children: (token) => createElement("output", null, token),
 					connect: (current) => {
 						connected.push(current.token);
 						return current.token;
 					},
+					identify,
 					recheck: () => {},
-					children: (token) => createElement("output", null, token),
+					session,
 				}),
 			);
 		});
 	const byId = (session: Rotating) => session.id;
-	await show({ id: "a1", credential: 1, token: "t1" }, byId);
-	await show({ id: "a1", credential: 2, token: "t2" }, byId);
+	await show({ credential: 1, id: "a1", token: "t1" }, byId);
+	await show({ credential: 2, id: "a1", token: "t2" }, byId);
 	expect(container.textContent).toBe("t1");
 	const byCredential = (session: Rotating) => `${session.id}:${session.credential}`;
-	await show({ id: "a1", credential: 2, token: "t2" }, byCredential);
-	await show({ id: "a1", credential: 3, token: "t3" }, byCredential);
+	await show({ credential: 2, id: "a1", token: "t2" }, byCredential);
+	await show({ credential: 3, id: "a1", token: "t3" }, byCredential);
 	expect(container.textContent).toBe("t3");
 	expect(connected).toEqual(["t1", "t2", "t3"]);
 	await act(async () => root.unmount());

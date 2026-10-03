@@ -19,7 +19,6 @@ const scoped = (prefix: string, value: Value): Value => {
 
 export const footnoteIds = (prefix: string) =>
 	defineHastPlugin({
-		name: "work-board-footnote-ids",
 		element: {
 			filter: ["a", "h2", "li"],
 			visit: (element) => ({
@@ -29,4 +28,5 @@ export const footnoteIds = (prefix: string) =>
 				),
 			}),
 		},
+		name: "work-board-footnote-ids",
 	});

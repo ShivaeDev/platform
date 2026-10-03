@@ -12,8 +12,8 @@ type Refinement = Parameters<typeof refineRelation>[1];
 
 interface RowMethods {
 	readonly create: (input: { readonly data: Row; readonly model: string; readonly select?: string[] | undefined }) => Promise<Row>;
-	readonly findOne: (input: FindOneInput) => Promise<Row | null>;
 	readonly findMany: (input: FindManyInput) => Promise<ReadonlyArray<Row>>;
+	readonly findOne: (input: FindOneInput) => Promise<Row | null>;
 	readonly update: (input: { readonly model: string; readonly update: Row; readonly where: CleanedWhere[] }) => Promise<Row | null>;
 }
 
@@ -47,18 +47,25 @@ export const makeRowAdapter =
 			&& (condition.field === "id" || getFieldAttributes({ field: condition.field, model }).unique === true);
 
 		return rowTyped({
+			count: ({ model, where }) => query(model, { where }, (relation) => relation.count()),
 			create: ({ data, model, select }) => {
 				debugLog("create", { model });
 				return query(model, { select }, (relation) => relation.create(data));
+			},
+			delete: ({ model, where }) => {
+				const byId = where.some(namesId);
+				return query(model, { where }, (relation) => (byId ? Effect.asVoid(relation.delete()) : Effect.asVoid(relation.deleteAll())));
+			},
+			deleteMany: ({ model, where }) => query(model, { where }, (relation) => Effect.map(relation.deleteAll(), (rows) => rows.length)),
+			findMany: ({ join, limit, model, offset, select, sortBy, where }) => {
+				rejectJoin(join);
+				return query(model, { limit, offset, select, sortBy, where }, (relation) => relation);
 			},
 			findOne: ({ join, model, select, where }) => {
 				rejectJoin(join);
 				return query(model, { select, where }, (relation) => Effect.map(relation.first(), Option.getOrNull));
 			},
-			findMany: ({ join, limit, model, offset, select, sortBy, where }) => {
-				rejectJoin(join);
-				return query(model, { limit, offset, select, sortBy, where }, (relation) => relation);
-			},
+			options: { usePlural },
 			update: ({ model, update, where }) => {
 				if (where.length === 0) return Promise.resolve(null);
 				const unique = where.some((condition) => isUnique(model, condition));
@@ -67,12 +74,5 @@ export const makeRowAdapter =
 				);
 			},
 			updateMany: ({ model, update, where }) => query(model, { where }, (relation) => Effect.map(relation.updateAll(update), (rows) => rows.length)),
-			delete: ({ model, where }) => {
-				const byId = where.some(namesId);
-				return query(model, { where }, (relation) => (byId ? Effect.asVoid(relation.delete()) : Effect.asVoid(relation.deleteAll())));
-			},
-			deleteMany: ({ model, where }) => query(model, { where }, (relation) => Effect.map(relation.deleteAll(), (rows) => rows.length)),
-			count: ({ model, where }) => query(model, { where }, (relation) => relation.count()),
-			options: { usePlural },
 		});
 	};

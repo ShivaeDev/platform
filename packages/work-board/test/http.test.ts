@@ -14,11 +14,11 @@ let board: RunningBoard;
 beforeEach(async () => {
 	outside = folder({ "private.md": "# Outside the folder\n" });
 	notes = folder({
-		"plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
-		"notes/log.md": "# Log\n",
 		".drafts/hidden.md": "# Hidden\n",
 		"node_modules/pkg/readme.md": "# Dependency\n",
+		"notes/log.md": "# Log\n",
 		"notes/raw.txt": "plain\n",
+		"plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
 	});
 	board = await startBoard(notes.root, "plan.md");
 });
@@ -158,7 +158,7 @@ describe("pages", () => {
 
 describe("local-only safety", () => {
 	it("refuses a request addressed to a host that is not loopback", async () => {
-		expect(await rawGet(board, "/", "board.example")).toEqual({ status: 403, body: "Only loopback hosts are served" });
+		expect(await rawGet(board, "/", "board.example")).toEqual({ body: "Only loopback hosts are served", status: 403 });
 		expect((await rawGet(board, "/_board/client.js", "board.example:4747")).status).toBe(403);
 		expect((await rawGet(board, "/", `localhost:${board.port}`)).status).toBe(200);
 	});

@@ -12,9 +12,8 @@ export const createOrder = (changes: Changes, id: string) => changes.use((db) =>
 export const warm = (client: PrismaClient) => Effect.promise(() => client.$queryRawUnsafe("select 1"));
 
 export const probe = (duration: Duration.Input) => {
-	const state = { sideEffects: 0, interrupted: false };
+	const state = { interrupted: false, sideEffects: 0 };
 	return {
-		state,
 		body: <A, E, R>(write: Effect.Effect<A, E, R>) =>
 			Effect.gen(function* () {
 				yield* write;
@@ -27,6 +26,7 @@ export const probe = (duration: Duration.Input) => {
 					}),
 				),
 			),
+		state,
 	};
 };
 
@@ -34,7 +34,7 @@ export const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 	Effect.gen(function* () {
 		const started = yield* Clock.currentTimeMillis;
 		const result = yield* effect;
-		return { result, elapsed: (yield* Clock.currentTimeMillis) - started };
+		return { elapsed: (yield* Clock.currentTimeMillis) - started, result };
 	});
 
 export const harnessed = <X, E>(changes: Changes, body: Effect.Effect<X, E>) =>

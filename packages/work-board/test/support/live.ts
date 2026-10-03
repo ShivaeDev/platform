@@ -24,9 +24,9 @@ export const STEPS = (text: string) => `<details>\n<summary>Steps</summary>\n\n$
 export const MIXED = `# Mixed\n\nBefore.\n\n${STEPS("Inside.")}\n\n${DIAGRAM}\n\nAfter.\n`;
 export const TWINS = `# Twins\n\n${STEPS("First.")}\n\n${STEPS("Second.")}\n`;
 
-export const FILES = { "board.md": BOARD, "plan.md": PLAN, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "twins.md": TWINS };
+export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "plan.md": PLAN, "twins.md": TWINS };
 
-export const waitFor = (check: () => void) => vi.waitFor(check, { timeout: 5000, interval: 10 });
+export const waitFor = (check: () => void) => vi.waitFor(check, { interval: 10, timeout: 5000 });
 
 export const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
 

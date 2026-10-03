@@ -6,9 +6,9 @@ export const consumerDependencies = (pkg: Package, packages: readonly Package[],
 	Effect.gen(function* () {
 		const closure = workspaceClosure(pkg, packages, imports, omitOptionalPeers);
 		const dependencies: Record<string, string> = {
-			effect: "catalog:",
 			"@types/node": "catalog:",
 			"@typescript/native": "catalog:",
+			effect: "catalog:",
 		};
 		for (const entry of closure.values()) {
 			Object.assign(dependencies, peers(entry, omitOptionalPeers));

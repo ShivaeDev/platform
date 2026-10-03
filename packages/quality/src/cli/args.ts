@@ -57,13 +57,13 @@ type Option = Exclude<keyof Values, "config" | "help">;
 const COMMAND_OPTIONS: ReadonlyArray<Option> = ["against", "from", "rule", "staged", "warnings"];
 
 const ACCEPTS: Readonly<Record<string, ReadonlyArray<Option>>> = {
-	lint: ["warnings"],
-	fix: [],
-	"baseline write": ["rule"],
-	"baseline prune": ["against"],
-	"baseline tighten": ["staged"],
 	"baseline check": ["against"],
 	"baseline migrate": ["from"],
+	"baseline prune": ["against"],
+	"baseline tighten": ["staged"],
+	"baseline write": ["rule"],
+	fix: [],
+	lint: ["warnings"],
 };
 
 const misplaced = (name: string, values: Values): string | undefined => {

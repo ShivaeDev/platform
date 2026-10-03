@@ -25,14 +25,14 @@ const cachedClient = (key: string | symbol): CachedClient | undefined => {
 };
 
 export interface AcquireClientOptions {
+	readonly clientCacheKey?: string | symbol | undefined;
 	readonly clientFactory?: PgBossClientFactory | undefined;
 	readonly constructor: ConstructorOptions;
-	readonly clientCacheKey?: string | symbol | undefined;
 }
 
 export interface AcquiredClient {
-	readonly client: PgBossClient;
 	readonly cacheKey?: string | symbol;
+	readonly client: PgBossClient;
 	readonly reused: boolean;
 }
 
@@ -53,6 +53,7 @@ const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
 
 export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("../error.ts").PgBossError> =>
 	Effect.tryPromise({
+		catch: (error) => toPgBossError("start", error),
 		try: async () => {
 			const cacheKey = options.clientCacheKey;
 			if (cacheKey === undefined) {
@@ -93,11 +94,11 @@ export const acquireClient = (options: AcquireClientOptions): Effect.Effect<Acqu
 				throw error;
 			}
 		},
-		catch: (error) => toPgBossError("start", error),
 	});
 
 export const releaseClient = (acquired: AcquiredClient, stopOptions?: StopOptions): Effect.Effect<void> =>
 	Effect.tryPromise({
+		catch: (error) => toPgBossError("stop", error),
 		try: async () => {
 			if (acquired.cacheKey === undefined) {
 				await acquired.client.stop(stopOptions);
@@ -111,5 +112,4 @@ export const releaseClient = (acquired: AcquiredClient, stopOptions?: StopOption
 			clientCache.delete(acquired.cacheKey);
 			await acquired.client.stop(stopOptions);
 		},
-		catch: (error) => toPgBossError("stop", error),
 	}).pipe(Effect.catch((error) => Effect.logError(error)));

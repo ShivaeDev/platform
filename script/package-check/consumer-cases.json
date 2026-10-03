@@ -1,33 +1,33 @@
 {
-	"platform": [
-		{
-			"entries": ["./runtime", "./node-http", "./errors", "./rpc", "./rpc-server"],
-			"fixtures": ["runtime-minimal.ts.txt"],
-			"run": ["runtime-minimal.ts"],
-			"omitOptionalPeers": true
-		}
-	],
 	"effect-react": [
 		{
 			"entries": ["."],
 			"fixtures": ["hooks-types.ts.txt"],
-			"run": [],
-			"omitOptionalPeers": true
+			"omitOptionalPeers": true,
+			"run": []
+		}
+	],
+	"platform": [
+		{
+			"entries": ["./runtime", "./node-http", "./errors", "./rpc", "./rpc-server"],
+			"fixtures": ["runtime-minimal.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["runtime-minimal.ts"]
 		}
 	],
 	"quality": [
 		{
 			"entries": ["."],
 			"fixtures": ["tsconfig/flags.ts.txt", "tsconfig/checked.js.txt"],
-			"run": [],
 			"omitOptionalPeers": false,
+			"run": [],
 			"tsconfig": "@shivaedev/quality/tsconfig/base.json"
 		},
 		{
 			"entries": ["."],
 			"fixtures": ["tsconfig/flags.ts.txt", "tsconfig/checked.js.txt", "tsconfig/emit-main.ts.txt", "tsconfig/emit-helper.ts.txt"],
-			"run": ["dist/emit-main.js"],
 			"omitOptionalPeers": false,
+			"run": ["dist/emit-main.js"],
 			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
 		}
 	]

@@ -8,7 +8,6 @@ class Token extends Context.Service<Token, string>()("@test/Token") {}
 const aroundLog: string[] = [];
 
 const { effectApp } = makeEffectIt({
-	layer: Layer.succeed(Token, "from-layer"),
 	around: (effect) =>
 		Effect.gen(function* () {
 			aroundLog.push("enter");
@@ -16,6 +15,7 @@ const { effectApp } = makeEffectIt({
 			aroundLog.push("exit");
 			return value;
 		}),
+	layer: Layer.succeed(Token, "from-layer"),
 	makeHarness: (context) =>
 		Effect.gen(function* () {
 			return {

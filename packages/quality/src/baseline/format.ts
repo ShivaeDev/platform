@@ -3,17 +3,17 @@ import { type Decoded, decodeWith } from "../decoded.ts";
 import { keyOf } from "../engine/violation.ts";
 
 const Line = Schema.Struct({
+	count: Schema.Int.check(Schema.isGreaterThan(0)),
 	path: Schema.NonEmptyString,
 	rule: Schema.NonEmptyString,
-	count: Schema.Int.check(Schema.isGreaterThan(0)),
 });
 
 const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Line), { parseOptions: { errors: "all", onExcessProperty: "error" } });
 
 export interface BaselineEntry {
-	readonly rule: string;
-	readonly file: string;
 	readonly count: number;
+	readonly file: string;
+	readonly rule: string;
 }
 
 const codepoints = (left: string, right: string): number => (left < right ? -1 : Number(left > right));
@@ -47,7 +47,9 @@ export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<R
 	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
 };
 
-export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ path: entry.file, rule: entry.rule, count: entry.count });
+const LINE_KEYS = ["path", "rule", "count"];
+
+export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ count: entry.count, path: entry.file, rule: entry.rule }, LINE_KEYS);
 
 export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>): string =>
 	[...entries]

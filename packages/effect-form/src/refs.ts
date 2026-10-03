@@ -17,17 +17,17 @@ export const propertyRef = <A, K extends keyof A>(parent: AtomRef.AtomRef<A>, na
 		[Equal.symbol]: (other) => Equal.equals(read, other),
 		[Hash.symbol]: () => Hash.hash(read),
 		key: read.key,
-		get value() {
-			return read.value;
-		},
-		subscribe: (listener) => read.subscribe(listener),
 		map: (transform) => read.map(transform),
 		prop: (key) => propertyRef(ref, key),
 		set: (value) => {
 			write.set(value);
 			return ref;
 		},
+		subscribe: (listener) => read.subscribe(listener),
 		update: (transform) => ref.set(transform(read.value)),
+		get value() {
+			return read.value;
+		},
 	};
 	return ref;
 };

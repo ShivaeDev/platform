@@ -3,15 +3,15 @@ import { scoped } from "./declarations.ts";
 import { entriesOf, isFalse, itemsOf, type Json, member, textOf } from "./json.ts";
 
 export interface Weakening {
-	readonly rule: string;
 	readonly includes: ReadonlyArray<string>;
-	readonly line: number;
 	readonly layer: Layer;
+	readonly line: number;
+	readonly rule: string;
 }
 
 interface Setting {
-	readonly rule: string;
 	readonly line: number;
+	readonly rule: string;
 	readonly weak: boolean;
 	readonly wholeGroup: boolean;
 }

@@ -22,7 +22,7 @@ const COUNTED =
 const none: TableWrites = new Map();
 
 export const tableWrites = Effect.fn("PrismaChanges.tableWrites")(function* (client: RawQueryClient) {
-	const rows = yield* Effect.tryPromise({ try: () => client.$queryRawUnsafe(COUNTED), catch: (cause) => new PrismaError({ cause }) });
+	const rows = yield* Effect.tryPromise({ catch: (cause) => new PrismaError({ cause }), try: () => client.$queryRawUnsafe(COUNTED) });
 	const decoded = yield* Effect.mapError(Schema.decodeUnknownEffect(Counted)(rows), (cause) => new PrismaError({ cause }));
 	const counts = new Map<string, bigint>();
 	for (const { relname, writes } of decoded) counts.set(relname, (counts.get(relname) ?? 0n) + writes);

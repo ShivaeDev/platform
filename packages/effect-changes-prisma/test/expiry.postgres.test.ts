@@ -16,7 +16,7 @@ const expires = (client: PrismaClient, options?: TransactionOptions, current: Pr
 			Effect.flip(changes.transaction(body(createOrder(changes, "o1")), options).pipe(Effect.provideService(changes.Client, current))),
 		);
 		expect(failure).toBeInstanceOf(TransactionExpired);
-		expect(state).toEqual({ sideEffects: 0, interrupted: true });
+		expect(state).toEqual({ interrupted: true, sideEffects: 0 });
 		expect(elapsed).toBeLessThan(1000);
 		expect(published).toEqual([]);
 	});
@@ -70,7 +70,7 @@ integration("a body that finishes inside the timeout still commits and publishes
 				const { changes, published } = makeChanges(client);
 				const { state, body } = probe("300 millis");
 				yield* changes.transaction(body(createOrder(changes, "o1")), { timeout: 2000 });
-				expect(state).toEqual({ sideEffects: 1, interrupted: false });
+				expect(state).toEqual({ interrupted: false, sideEffects: 1 });
 				expect(yield* orderIds(observer)).toEqual(["o1"]);
 				expect(published).toEqual([["ada:orders"]]);
 			}),
@@ -106,7 +106,7 @@ integration("an outer transaction that reaches its timeout while a nested transa
 				const nested = Effect.andThen(createOrder(changes, "o1"), changes.transaction(body(createOrder(changes, "o2"))));
 				const { result: failure, elapsed } = yield* timed(Effect.flip(changes.transaction(nested, { timeout: 200 })));
 				expect(failure).toBeInstanceOf(TransactionExpired);
-				expect(state).toEqual({ sideEffects: 0, interrupted: true });
+				expect(state).toEqual({ interrupted: true, sideEffects: 0 });
 				expect(elapsed).toBeLessThan(1000);
 				expect(yield* orderIds(observer)).toEqual([]);
 				expect(published).toEqual([]);

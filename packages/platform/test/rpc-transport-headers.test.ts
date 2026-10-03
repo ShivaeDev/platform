@@ -12,9 +12,9 @@ const post = async (
 ) => {
 	const response = await app.handler(
 		new Request(`${origin}/rpc`, {
-			method: "POST",
+			body: JSON.stringify([{ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" }]),
 			headers: { "content-type": "text/plain", ...transport },
-			body: JSON.stringify([{ _tag: "Request", id: "1", tag: "Whoami", payload: null, headers: message }]),
+			method: "POST",
 		}),
 	);
 	return JSON.stringify(await response.json());

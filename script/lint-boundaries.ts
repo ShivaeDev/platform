@@ -7,9 +7,9 @@ const program = Effect.gen(function* () {
 	const result = yield* Effect.tryPromise(() =>
 		cruise(["packages"], {
 			...configuration.options,
-			validate: true,
-			ruleSet: configuration,
 			outputType: "err",
+			ruleSet: configuration,
+			validate: true,
 		}),
 	);
 	yield* Console.log(result.output);

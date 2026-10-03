@@ -23,8 +23,8 @@ export type RunFailure<R extends Rpc.Any> =
 
 export interface QueryOptions {
 	readonly headers?: Headers.Input;
-	readonly timeToLive?: Duration.Input;
 	readonly serializationKey?: string;
+	readonly timeToLive?: Duration.Input;
 }
 
 export interface BoundQuery<R extends Rpc.Any, Self> {

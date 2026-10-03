@@ -2,26 +2,26 @@ import type { RootContent } from "mdast";
 import { markdownToMdast } from "satteri";
 
 export interface Section {
-	readonly title: string;
 	readonly heading: string;
-	readonly notes: string;
 	readonly items: ReadonlyArray<string>;
+	readonly notes: string;
+	readonly title: string;
 }
 
 export interface Board {
-	readonly title: string;
+	readonly definitions: string;
+	readonly footer: string;
 	readonly intro: string;
 	readonly sections: ReadonlyArray<Section>;
-	readonly footer: string;
-	readonly definitions: string;
+	readonly title: string;
 }
 
 interface Draft {
-	title: string;
+	definitions: string[];
+	footer: string[] | undefined;
 	intro: string[];
 	sections: Array<{ title: string; heading: string; notes: string[]; items: string[][] }>;
-	footer: string[] | undefined;
-	definitions: string[];
+	title: string;
 }
 
 const textOf = (node: RootContent): string => {
@@ -42,7 +42,7 @@ const place = (draft: Draft, node: RootContent, source: string, closing: boolean
 	} else if (node.type === "heading" && node.depth === 1 && draft.title === "") {
 		draft.title = source;
 	} else if (isSection(node)) {
-		draft.sections.push({ title: textOf(node), heading: source, notes: [], items: [] });
+		draft.sections.push({ heading: source, items: [], notes: [], title: textOf(node) });
 	} else if (section === undefined) {
 		draft.intro.push(source);
 	} else if (node.type === "heading" && node.depth === 3) {
@@ -57,7 +57,7 @@ const place = (draft: Draft, node: RootContent, source: string, closing: boolean
 const joined = (blocks: ReadonlyArray<string>): string => blocks.join("\n\n");
 
 export const boardOf = (source: string): Board => {
-	const draft: Draft = { title: "", intro: [], sections: [], footer: undefined, definitions: [] };
+	const draft: Draft = { definitions: [], footer: undefined, intro: [], sections: [], title: "" };
 	const root = markdownToMdast(source);
 	const nodes = root.type === "root" ? root.children : [];
 	const lastHeading = nodes.findLastIndex((node) => node.type === "heading");
@@ -65,18 +65,18 @@ export const boardOf = (source: string): Board => {
 		place(draft, node, source.slice(node.position?.start.offset, node.position?.end.offset), index > lastHeading);
 	});
 	return {
-		title: draft.title,
-		intro: joined(draft.intro),
-		sections: draft.sections.map((section) => ({ ...section, notes: joined(section.notes), items: section.items.map(joined) })),
-		footer: joined(draft.footer ?? []),
 		definitions: joined(draft.definitions),
+		footer: joined(draft.footer ?? []),
+		intro: joined(draft.intro),
+		sections: draft.sections.map((section) => ({ ...section, items: section.items.map(joined), notes: joined(section.notes) })),
+		title: draft.title,
 	};
 };
 
 export interface Count {
-	readonly title: string;
 	readonly count: number;
+	readonly title: string;
 }
 
 export const countsOf = (board: Board): ReadonlyArray<Count> =>
-	board.sections.flatMap((section) => (section.items.length === 0 ? [] : [{ title: section.title, count: section.items.length }]));
+	board.sections.flatMap((section) => (section.items.length === 0 ? [] : [{ count: section.items.length, title: section.title }]));

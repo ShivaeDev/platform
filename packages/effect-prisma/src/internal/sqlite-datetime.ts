@@ -15,11 +15,11 @@ const zonelessDatetime = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d
 export const normalizeSqliteDatetime = (value: string): string => value.replace(zonelessDatetime, "$1T$2Z");
 
 const decodeAsUtc = (codec: ContractCodec): ContractCodec => ({
-	id: sqliteDatetimeCodecId,
-	encode: (value, context) => codec.encode(value, context),
 	decode: (wire: CodecWire, context) => codec.decode(typeof wire === "string" ? normalizeSqliteDatetime(wire) : wire, context),
-	encodeJson: (value) => codec.encodeJson(value),
 	decodeJson: (json: CodecJson) => codec.decodeJson(typeof json === "string" ? normalizeSqliteDatetime(json) : json),
+	encode: (value, context) => codec.encode(value, context),
+	encodeJson: (value) => codec.encodeJson(value),
+	id: sqliteDatetimeCodecId,
 });
 
 // The registry resolves codecs for rows and included relations alike, and Prisma Next rejects a second descriptor for a registered
@@ -41,6 +41,10 @@ export const decodeSqliteDatetimesAsUtc = (context: ExecutionContext<AnySqlContr
 	};
 
 	const utcRegistry: CodecRegistry = {
+		forCodecRef: (reference) => {
+			const codec = registry.forCodecRef(reference);
+			return reference.codecId === sqliteDatetimeCodecId ? wrap(codec) : codec;
+		},
 		forColumn: (namespaceId, table, column) => {
 			const codec = registry.forColumn(namespaceId, table, column);
 			if (codec === undefined) {
@@ -48,10 +52,6 @@ export const decodeSqliteDatetimesAsUtc = (context: ExecutionContext<AnySqlContr
 			}
 			const reference = descriptors.codecRefForColumn(namespaceId, table, column);
 			return reference?.codecId === sqliteDatetimeCodecId ? wrap(codec) : codec;
-		},
-		forCodecRef: (reference) => {
-			const codec = registry.forCodecRef(reference);
-			return reference.codecId === sqliteDatetimeCodecId ? wrap(codec) : codec;
 		},
 	};
 

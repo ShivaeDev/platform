@@ -16,10 +16,10 @@ const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]
 ];
 
 const logged = (changes: number, reason: string) => ({
+	annotations: { changes, channel: "Test" },
+	cause: expect.stringContaining(reason),
 	level: "Error",
 	message: [expect.stringContaining("the committed result stands")],
-	annotations: { channel: "Test", changes },
-	cause: expect.stringContaining(reason),
 });
 
 const defect = (exit: Exit.Exit<unknown, unknown>) => (Exit.isFailure(exit) && Cause.hasDies(exit.cause) ? Cause.pretty(exit.cause) : "no defect");
@@ -48,7 +48,7 @@ test.each(failing)(
 		const logs = captureLogs();
 		return Effect.runPromise(
 			Effect.gen(function* () {
-				const { inTransaction, write } = harness({ publish, onPublishFailure: "die" });
+				const { inTransaction, write } = harness({ onPublishFailure: "die", publish });
 				const database = makeDatabase("main");
 				const committed = yield* Effect.as(write(database, "row", change("ada")), "saved").pipe(inTransaction(database), Effect.exit);
 				const bare = yield* write(database, "bare row", change("bob")).pipe(Effect.exit);

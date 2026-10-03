@@ -2,18 +2,18 @@ import { Schema } from "effect";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
 export const Manifest = Schema.Struct({
-	name: Schema.String,
-	version: Schema.String,
-	private: Schema.optional(Schema.Boolean),
-	exports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-	types: Schema.optional(Schema.String),
 	bin: Schema.optional(Schema.Union([Schema.String, Versions])),
-	files: Schema.optional(Schema.Array(Schema.String)),
 	dependencies: Schema.optional(Versions),
 	devDependencies: Schema.optional(Versions),
+	exports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+	files: Schema.optional(Schema.Array(Schema.String)),
+	name: Schema.String,
 	optionalDependencies: Schema.optional(Versions),
 	peerDependencies: Schema.optional(Versions),
 	peerDependenciesMeta: Schema.optional(Schema.Record(Schema.String, Schema.Struct({ optional: Schema.optional(Schema.Boolean) }))),
+	private: Schema.optional(Schema.Boolean),
+	types: Schema.optional(Schema.String),
+	version: Schema.String,
 });
 export type Manifest = typeof Manifest.Type;
 export interface Package {

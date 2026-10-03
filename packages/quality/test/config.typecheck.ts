@@ -1,36 +1,36 @@
 import { Effect, Schema } from "effect";
 import { defineConfig, defineRule, type QualityConfig, type Rule } from "../src/index.ts";
 
-const todo = defineRule({ id: "local/no-todo", description: "Resolve TODOs.", check: () => [] });
+const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 
 const limited = defineRule({
-	id: "local/max-files",
-	description: "Keep the repository small.",
-	options: Schema.toStandardSchemaV1(Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) })),
 	check: ({ files, options }) => {
 		const max: number = options.max;
 		return files.length > max ? [{ file: ".", message: "too many files" }] : [];
 	},
+	description: "Keep the repository small.",
+	id: "local/max-files",
+	options: Schema.toStandardSchemaV1(Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) })),
 });
 
 const rules: ReadonlyArray<Rule> = [todo, limited];
 
 export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defineConfig({
+	adopt: ["local/no-todo", "comments/no-jsdoc"],
 	local: [todo, limited],
 	rules: {
-		"local/max-files": { options: { max: 3 } },
-		"local/no-todo": "warn",
-		"structure/max-lines": { level: "error", options: { source: 200, testFiles: ["e2e/"] } },
 		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
 		"comments/no-jsdoc": { options: { allow: ["@license"] } },
 		"comments/no-todo": "off",
+		"local/max-files": { options: { max: 3 } },
+		"local/no-todo": "warn",
+		"structure/max-lines": { level: "error", options: { source: 200, testFiles: ["e2e/"] } },
 		"suppressions/biome-overrides": {
 			options: { declared: [{ includes: ["src/legacy/**"], reason: "Migrating off the old API.", rule: "lint/style/noNonNullAssertion" }] },
 		},
 		"suppressions/no-double-cast": "warn",
 	},
 	sources: ["src"],
-	adopt: ["local/no-todo", "comments/no-jsdoc"],
 });
 
 export const loose = defineConfig({ local: rules });

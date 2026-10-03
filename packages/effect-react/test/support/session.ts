@@ -26,22 +26,22 @@ export const shell = (url: string) => {
 		act(async () => {
 			root.render(
 				createElement(SessionBoundary<Session, ReturnType<typeof makeOrderEditor>>, {
-					session,
+					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { id, key: "editor" })],
+					connect: (current) => makeOrderEditor({ token: current.token, url }),
 					identify: (current) => current.id,
-					connect: (current) => makeOrderEditor({ url, token: current.token }),
 					recheck: () => rechecks.push(session?.id ?? "none"),
+					session,
 					signedOut: createElement("p", null, "Signed out"),
-					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { key: "editor", id })],
 				}),
 			);
 		});
 	const input = () => container.querySelector<HTMLInputElement>('input[name="name"]');
 	return {
+		close: async () => {
+			await act(async () => root.unmount());
+			container.remove();
+		},
 		container,
-		registries,
-		rechecks,
-		show,
-		input,
 		edit: (value: string) =>
 			act(async () => {
 				const field = input();
@@ -49,16 +49,16 @@ export const shell = (url: string) => {
 				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
+		input,
+		rechecks,
 		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
-		close: async () => {
-			await act(async () => root.unmount());
-			container.remove();
-		},
+		registries,
+		show,
 	};
 };
 
 export const sessions = () =>
 	new Map([
-		["alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
-		["bob-token", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
+		["alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
+		["bob-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 	]);

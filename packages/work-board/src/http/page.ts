@@ -11,8 +11,8 @@ import { boardOf } from "../render/board.ts";
 import { respond } from "./respond.ts";
 
 export interface PageOptions {
-	readonly root: string;
 	readonly home: string | undefined;
+	readonly root: string;
 }
 
 const requestedPath = (url: string): string => {

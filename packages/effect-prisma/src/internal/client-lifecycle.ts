@@ -1,6 +1,6 @@
 export interface ClientLifecycle {
-	readonly connect: () => PromiseLike<unknown>;
 	readonly close: () => PromiseLike<void>;
+	readonly connect: () => PromiseLike<unknown>;
 }
 
 export const acquireConnectedClient = async <A>(client: ClientLifecycle, initialize: () => A): Promise<A> => {

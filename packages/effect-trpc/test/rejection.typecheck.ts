@@ -6,7 +6,7 @@ import { decodeRejection, type EncodedRejection, rejectionOf } from "../src/clie
 import { type RejectionError, rejectionFormatter, rejectWith, withRejection } from "../src/index.ts";
 
 class NotFound extends Schema.TaggedError<NotFound>()("NotFound", { message: Schema.String }) {}
-class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { message: Schema.String, field: Schema.String }) {}
+class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { field: Schema.String, message: Schema.String }) {}
 class Other extends Schema.TaggedError<Other>()("Other", {}) {}
 class Clock extends Context.Service<Clock, number>()("@types/Clock") {}
 

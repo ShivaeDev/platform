@@ -7,31 +7,31 @@ import { isSensitiveKey, type RequestTracingOptions, requestTracingLayer } from 
 import { annotationsOf, recorder } from "./rpc/support.ts";
 
 const Registration = Schema.Struct({
-	email: Schema.String,
-	password: Schema.String,
-	profile: Schema.Struct({ nickname: Schema.String, apiKey: Schema.String }),
 	devices: Schema.Array(Schema.Struct({ name: Schema.String, refreshToken: Schema.String })),
+	email: Schema.String,
 	note: Schema.Redacted(Schema.String),
+	password: Schema.String,
+	profile: Schema.Struct({ apiKey: Schema.String, nickname: Schema.String }),
 });
 
 const Accounts = RpcGroup.make(
 	Rpc.make("Echo", { success: Schema.String }),
-	Rpc.make("Register", { payload: Registration, success: Schema.Void, error: Conflict }),
+	Rpc.make("Register", { error: Conflict, payload: Registration, success: Schema.Void }),
 	Rpc.make("Crash", { payload: Registration, success: Schema.Void }),
 ).middleware(RequestTracing);
 
 const Handlers = Accounts.toLayer({
-	Echo: () => Effect.andThen(Effect.logInfo("echo"), RequestId),
-	Register: () => Effect.fail(new Conflict({ message: "Email already registered", field: "email" })),
 	Crash: () => Effect.die(new Error("boom")),
+	Echo: () => Effect.andThen(Effect.logInfo("echo"), RequestId),
+	Register: () => Effect.fail(new Conflict({ field: "email", message: "Email already registered" })),
 });
 
 const registration = {
-	email: "alice@example.test",
-	password: "hunter2-plaintext",
-	profile: { nickname: "alice", apiKey: "key-plaintext" },
 	devices: [{ name: "phone", refreshToken: "refresh-plaintext" }],
+	email: "alice@example.test",
 	note: Redacted.make("note-plaintext"),
+	password: "hunter2-plaintext",
+	profile: { apiKey: "key-plaintext", nickname: "alice" },
 };
 
 const run = async <A, E>(options: RequestTracingOptions, program: (client: RpcClient.FromGroup<typeof Accounts>) => Effect.Effect<A, E>) => {
@@ -78,11 +78,11 @@ test("failure logs carry a redacted payload while the declared field rejection r
 	const [failure] = annotationsOf(logs, "RPC failure");
 	expect(failure).toMatchObject({ "rpc.failure": "Conflict", "rpc.method": "Register" });
 	expect(failure?.["rpc.payload"]).toEqual({
-		email: "alice@example.test",
-		password: "<redacted>",
-		profile: { nickname: "alice", apiKey: "<redacted>" },
 		devices: [{ name: "phone", refreshToken: "<redacted>" }],
+		email: "alice@example.test",
 		note: "<redacted>",
+		password: "<redacted>",
+		profile: { apiKey: "<redacted>", nickname: "alice" },
 	});
 	const defect = logs.find((log) => log.level === "Error");
 	expect(defect?.annotations).toMatchObject({ "rpc.method": "Crash", "rpc.payload": failure?.["rpc.payload"] });

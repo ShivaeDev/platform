@@ -60,8 +60,8 @@ it.effect("owns the client and commits successful transactions", () =>
 				Effect.gen(function* () {
 					const transactionDb = yield* Database;
 					yield* transactionDb.User.create({
-						id: crypto.randomUUID(),
 						email,
+						id: crypto.randomUUID(),
 						name: "Committed",
 					});
 				}),
@@ -78,8 +78,8 @@ it.effect("runs a captured Relation in the active transaction", () =>
 			const db = yield* Database;
 			const email = uniqueEmail("captured-relation");
 			const create = db.User.create({
-				id: crypto.randomUUID(),
 				email,
+				id: crypto.randomUUID(),
 				name: "Captured",
 			});
 
@@ -106,15 +106,15 @@ it.effect("returns structured query failures", () =>
 			const email = uniqueEmail("unique");
 
 			yield* db.User.create({
-				id: crypto.randomUUID(),
 				email,
+				id: crypto.randomUUID(),
 				name: "Original",
 			});
 
 			const error = yield* Effect.flip(
 				db.User.create({
-					id: crypto.randomUUID(),
 					email,
+					id: crypto.randomUUID(),
 					name: "Duplicate",
 				}),
 			);

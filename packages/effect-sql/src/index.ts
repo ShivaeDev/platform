@@ -9,13 +9,13 @@ type Key<S extends Model.Any> = Extract<keyof S["fields"] & keyof Row<S>, string
 type Row<S extends Model.Any> = Schema.Struct.Type<S["fields"]>;
 
 export interface FindMany<S extends Model.Any, K extends Key<S>> {
-	readonly select?: readonly [K, ...K[]];
-	readonly where?: { readonly [F in keyof Row<S>]?: Row<S>[F] | undefined };
+	readonly limit?: number;
 	readonly orderBy?: {
 		readonly field: Key<S>;
 		readonly direction: "asc" | "desc";
 	};
-	readonly limit?: number;
+	readonly select?: readonly [K, ...K[]];
+	readonly where?: { readonly [F in keyof Row<S>]?: Row<S>[F] | undefined };
 }
 
 const Limit = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));

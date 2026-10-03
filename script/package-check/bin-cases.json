@@ -1,56 +1,56 @@
 {
+	"effect-prisma-normalize": {
+		"args": ["raw-contract.d.ts"],
+		"expectedFiles": {
+			"raw-contract.d.ts": "export type Row = { readonly createdAt: Date };\n"
+		},
+		"files": {
+			"raw-contract.d.ts": "export type Row = { readonly createdAt: Timestamp<6> };\n"
+		}
+	},
 	"heavy-lock": {
+		"absent": ["locks/heavy-process.lock"],
 		"args": [
 			"--",
 			"node",
 			"-e",
 			"const fs = require('node:fs'); const held = JSON.parse(fs.readFileSync(process.env.HEAVY_PROCESS_LOCK, 'utf8')); require('node:assert/strict').equal(held.id, process.env.HEAVY_PROCESS_LOCK_ID); fs.writeFileSync('held.txt', 'completed')"
 		],
-		"files": {},
+		"env": {
+			"CI": null,
+			"HEAVY_PROCESS_LOCK": "{consumer}/locks/heavy-process.lock",
+			"HEAVY_PROCESS_LOCK_ID": null
+		},
 		"expectedFiles": {
 			"held.txt": "completed"
 		},
-		"env": {
-			"CI": null,
-			"HEAVY_PROCESS_LOCK_ID": null,
-			"HEAVY_PROCESS_LOCK": "{consumer}/locks/heavy-process.lock"
-		},
-		"absent": ["locks/heavy-process.lock"]
-	},
-	"effect-prisma-normalize": {
-		"args": ["raw-contract.d.ts"],
-		"files": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Timestamp<6> };\n"
-		},
-		"expectedFiles": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Date };\n"
-		}
+		"files": {}
 	},
 	"quality": {
 		"args": ["baseline", "write"],
+		"expectedFiles": {
+			"quality/baseline.jsonl": "{\"path\":\"sample/a.ts\",\"rule\":\"biome/lint/suspicious/noEqualsToNull\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"biome/plugin\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"structure/max-lines\",\"count\":6}\n"
+		},
 		"files": {
 			".gitignore": "node_modules/\n",
 			"biome.json": "{ \"extends\": [\"@shivaedev/quality/biome\"] }\n",
 			"quality.config.ts": "export default { rules: { \"structure/max-lines\": { options: { source: 1 } } }, sources: [\"sample\"] };\n",
 			"sample/a.ts": "export function isMissing(value: number | null): boolean {\n\treturn value == null;\n}\n\nexport function now(): number {\n\treturn Date.now();\n}\n"
 		},
-		"expectedFiles": {
-			"quality/baseline.jsonl": "{\"path\":\"sample/a.ts\",\"rule\":\"biome/lint/suspicious/noEqualsToNull\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"biome/plugin\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"structure/max-lines\",\"count\":6}\n"
-		},
 		"output": "recorded"
 	},
 	"work-board": {
-		"checkVersion": true,
 		"args": ["board", "--port", "0", "--home", "plan.md"],
+		"checkVersion": true,
+		"expectedFiles": {},
 		"files": {
 			"board/plan.md": "# Plan\n\n## To do\n\n### `ops` Rotate the key\n"
 		},
-		"expectedFiles": {},
 		"pages": {
 			"/": "<span><b>1</b> to do</span>",
-			"/_board/style.css": "",
 			"/_board/client.js": "",
-			"/_board/mermaid/mermaid.esm.min.mjs": ""
+			"/_board/mermaid/mermaid.esm.min.mjs": "",
+			"/_board/style.css": ""
 		}
 	}
 }

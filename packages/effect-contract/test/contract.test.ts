@@ -9,7 +9,7 @@ describe("contract", () => {
 		const queries: ReadonlyArray<QueryShape> = [List, Get, List];
 		expect(() => contract("dupes", { queries })).toThrow("Operation names must be unique; duplicated: list");
 		const commands: ReadonlyArray<CommandShape> = [command("get", { invalidates: () => [] })];
-		expect(() => contract("dupes", { queries: [Get], commands })).toThrow("Operation names must be unique; duplicated: get");
+		expect(() => contract("dupes", { commands, queries: [Get] })).toThrow("Operation names must be unique; duplicated: get");
 	});
 
 	it.effect("reuses declared rejection classes and generates classes for field specs", () =>
@@ -32,7 +32,7 @@ describe("contract", () => {
 			expect(missing).toBeInstanceOf(NoteMissing);
 			const invalid = yield* Effect.flip(client("notes.rename", { id: 1, title: " " }));
 			expect(invalid).toMatchObject({ _tag: "Invalid", field: "title" });
-			const created = yield* client("notes.create", { title: "Three", body: "b" });
+			const created = yield* client("notes.create", { body: "b", title: "Three" });
 			expect(created).toMatchObject({ id: 3, title: "Three" });
 			expect((yield* client("notes.list", undefined)).map((note) => note.title)).toEqual(["One", "Two", "Three"]);
 			yield* Ref.set(server.denied, true);

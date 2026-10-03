@@ -10,18 +10,18 @@ import type { Scenario } from "#package-check/scenarios.ts";
 import { consumerWorkspace } from "#package-check/workspace.ts";
 
 const compilerOptions = {
+	exactOptionalPropertyTypes: true,
 	lib: ["ESNext", "DOM", "DOM.Iterable"],
 	module: "ESNext",
 	moduleResolution: "Bundler",
 	noEmit: true,
+	noUncheckedIndexedAccess: true,
+	resolveJsonModule: true,
 	skipLibCheck: true,
 	strict: true,
 	target: "ESNext",
 	types: ["node"],
 	verbatimModuleSyntax: true,
-	resolveJsonModule: true,
-	exactOptionalPropertyTypes: true,
-	noUncheckedIndexedAccess: true,
 };
 
 export const checkConsumer = (
@@ -38,25 +38,25 @@ export const checkConsumer = (
 		const imports = yield* writeFixtures(root, pkg, consumer, scenario?.fixtures);
 		const { dependencies, tarballs } = yield* consumerDependencies(pkg, packages, imports, scenario?.omitOptionalPeers);
 		yield* writeJson(join(consumer, "package.json"), {
+			dependencies,
 			name: "packed-consumer",
 			private: true,
-			type: "module",
-			dependencies,
 			scripts: {
 				typecheck: "tsc --project tsconfig.json",
 				"typecheck:nodenext": "tsc --project tsconfig.nodenext.json",
 			},
+			type: "module",
 		});
 		yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs));
 		yield* writeJson(
 			join(consumer, "tsconfig.json"),
 			scenario?.tsconfig === undefined
 				? { compilerOptions, include: ["*.ts"] }
-				: { extends: scenario.tsconfig, compilerOptions: { types: ["node"], outDir: "dist" }, include: ["*.ts"] },
+				: { compilerOptions: { outDir: "dist", types: ["node"] }, extends: scenario.tsconfig, include: ["*.ts"] },
 		);
 		yield* writeJson(join(consumer, "tsconfig.nodenext.json"), {
-			extends: "./tsconfig.json",
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
+			extends: "./tsconfig.json",
 		});
 		const entries = (
 			scenario?.entries

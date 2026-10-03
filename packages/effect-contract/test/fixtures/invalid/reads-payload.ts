@@ -4,6 +4,6 @@ import { Note, notes } from "../../notes.ts";
 
 query("find", {
 	payload: { id: Schema.Number },
-	success: Note,
 	reads: ({ slug }) => [notes.item(slug)],
+	success: Note,
 });

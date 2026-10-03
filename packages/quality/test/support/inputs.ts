@@ -3,8 +3,8 @@ import { linesOf } from "../../src/inventory/collect.ts";
 import type { SeedFile } from "./tree.ts";
 
 export interface Seed {
-	readonly sources?: ReadonlyArray<SeedFile>;
 	readonly files?: ReadonlyArray<string>;
+	readonly sources?: ReadonlyArray<SeedFile>;
 	readonly texts?: Readonly<Record<string, string>>;
 }
 

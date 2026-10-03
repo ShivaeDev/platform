@@ -32,7 +32,7 @@ export const expiring = <X, E, R>(
 		const expired = yield* Deferred.make<never, TransactionExpired>();
 		const closed: Expire = (cause) =>
 			Effect.andThen(
-				Deferred.fail(expired, new TransactionExpired({ message: "The transaction was closed before its body finished", cause })),
+				Deferred.fail(expired, new TransactionExpired({ cause, message: "The transaction was closed before its body finished" })),
 				outer(cause),
 			);
 		const deadline =

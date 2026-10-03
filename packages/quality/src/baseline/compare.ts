@@ -2,8 +2,8 @@ import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Viola
 import type { BaselineEntry } from "./format.ts";
 
 export interface Regression {
-	readonly entry: BaselineEntry;
 	readonly count: number;
+	readonly entry: BaselineEntry;
 }
 
 export interface StaleBaselineEntry {
@@ -12,11 +12,11 @@ export interface StaleBaselineEntry {
 }
 
 export interface BaselineCheck {
+	readonly baselined: number;
 	readonly kept: ReadonlyArray<Violation>;
+	readonly loose: ReadonlyArray<StaleBaselineEntry>;
 	readonly regressions: ReadonlyArray<Regression>;
 	readonly stale: ReadonlyArray<StaleBaselineEntry>;
-	readonly loose: ReadonlyArray<StaleBaselineEntry>;
-	readonly baselined: number;
 }
 
 export const countOf = (violations: ReadonlyArray<Violation>): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);

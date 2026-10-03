@@ -5,9 +5,9 @@ import { type Expire, expiring, isTransactionClosed } from "./expiry.ts";
 import type { Transactional, TransactionOptions } from "./model.ts";
 
 interface Settled<X, E> {
+	readonly closed?: TransactionExpired;
 	readonly committed: boolean;
 	readonly exit: Exit.Exit<X, E | TransactionExpired | PrismaError>;
-	readonly closed?: TransactionExpired;
 }
 
 class BodyFailed {}
@@ -32,8 +32,8 @@ const commit = <Tx extends Transactional<Tx>, X, E, R>(
 	const rejected = (cause: unknown): Settled<X, E> => {
 		if (failed !== undefined) return { committed: false, exit: failed };
 		if (!isTransactionClosed(cause) || !(started || savepoint)) return { committed: false, exit: Exit.fail(new PrismaError({ cause })) };
-		const closed = new TransactionExpired({ message: "The transaction was closed before it could finish", cause });
-		return { committed: false, exit: Exit.fail(closed), closed };
+		const closed = new TransactionExpired({ cause, message: "The transaction was closed before it could finish" });
+		return { closed, committed: false, exit: Exit.fail(closed) };
 	};
 	return Promise.resolve(client.$transaction(run, options)).then(
 		(value): Settled<X, E> => ({ committed: true, exit: Exit.succeed(value) }),

@@ -15,8 +15,8 @@ export interface SessionProvider<Session extends SessionShape> {
 }
 
 export interface SessionPolicy<Session extends SessionShape> {
-	readonly provider: SessionProvider<Session>;
 	readonly origin: OriginPolicy;
+	readonly provider: SessionProvider<Session>;
 }
 
 export const resolveSession: <Session extends SessionShape>(

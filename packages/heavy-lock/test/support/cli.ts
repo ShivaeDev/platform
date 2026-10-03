@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 export const HEAVY_LOCK_CLI = fileURLToPath(new URL("../../src/cli.ts", import.meta.url));
 
 export const cliEnvironment = (lock: string, extra: Record<string, string> = {}): Record<string, string> => ({
-	PATH: "/usr/bin:/bin",
 	HEAVY_PROCESS_LOCK: lock,
+	PATH: "/usr/bin:/bin",
 	...extra,
 });
 
@@ -32,15 +32,15 @@ const killGroup = (pid: number | undefined): void => {
 };
 
 export interface Started {
+	readonly exited: Promise<Exit>;
 	readonly pid: number;
 	readonly stderr: () => string;
-	readonly exited: Promise<Exit>;
 	readonly stop: () => void;
 }
 
 // A run that deadlocks is killed so the test fails instead of hanging; its command, in a process group of its own, ends through its own bound.
 export const start = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Started => {
-	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, env, detached: true, stdio: ["ignore", "ignore", "pipe"] });
+	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: ["ignore", "ignore", "pipe"] });
 	let running = true;
 	const stop = () => {
 		if (running) {
@@ -60,7 +60,7 @@ export const start = (args: ReadonlyArray<string>, env: Record<string, string>, 
 			resolve({ status, stderr });
 		});
 	});
-	return { pid: child.pid ?? 0, stderr: () => stderr, exited, stop };
+	return { exited, pid: child.pid ?? 0, stderr: () => stderr, stop };
 };
 
 export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Promise<Exit> => start(args, env, cwd).exited;

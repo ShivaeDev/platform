@@ -15,19 +15,19 @@ export const procedure = makeEffectTRPC({ runtime }).procedure(
 );
 
 export interface Exchange {
-	readonly status: number;
 	readonly body: string;
+	readonly status: number;
 }
 
 export const inProcess = (router: AnyTRPCRouter) => {
 	const exchanges: Array<Exchange> = [];
 	const fetch = async (input: RequestInfo | URL, init?: RequestInit | { readonly signal?: AbortSignal | null | undefined }) => {
 		const request = new Request(input, { ...init, signal: init?.signal ?? null });
-		const response = await fetchRequestHandler({ endpoint: "/trpc", req: request, router, createContext: () => ({}) });
-		exchanges.push({ status: response.status, body: await response.clone().text() });
+		const response = await fetchRequestHandler({ createContext: () => ({}), endpoint: "/trpc", req: request, router });
+		exchanges.push({ body: await response.clone().text(), status: response.status });
 		return response;
 	};
-	return { exchanges, fetch, url: "http://localhost/trpc", transformer: superjson };
+	return { exchanges, fetch, transformer: superjson, url: "http://localhost/trpc" };
 };
 
 export const failureOf = async (call: Promise<unknown>): Promise<unknown> => {

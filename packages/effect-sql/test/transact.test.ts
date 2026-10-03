@@ -20,7 +20,7 @@ const setup = Effect.gen(function* () {
 	for (const key of ["orders", "orders:1", "orders:2"]) reactivity.registerUnsafe([key], () => events.push(key));
 	const insert = (id: number) => sql`insert into orders (id, name) values (${id}, ${`order ${id}`})`;
 	const count = Effect.map(sql<{ readonly total: number }>`select count(*) as total from orders`, ([row]) => row?.total);
-	return { sql, events, insert, count };
+	return { count, events, insert, sql };
 });
 
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) =>
@@ -173,7 +173,7 @@ const secondDatabase = Effect.gen(function* () {
 	const other = Context.get(yield* Layer.build(SqliteClient.layer({ filename: ":memory:" })), SqlClient.SqlClient);
 	yield* other`create table orders (id integer primary key)`;
 	const otherIds = Effect.map(other<{ readonly id: number }>`select id from orders`, (rows) => rows.map((row) => row.id));
-	return { other, otherIds, onOther: Effect.provideService(SqlClient.SqlClient, other), onMain: Effect.provideService(SqlClient.SqlClient, main) };
+	return { onMain: Effect.provideService(SqlClient.SqlClient, main), onOther: Effect.provideService(SqlClient.SqlClient, other), other, otherIds };
 });
 
 test("a transaction re-entered on a database inside a transaction on another database joins its own outer transaction", () =>

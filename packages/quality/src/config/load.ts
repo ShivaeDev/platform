@@ -11,11 +11,11 @@ import { type ResolvedRules, resolveRules } from "./resolve.ts";
 const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
-	readonly root: string;
+	readonly adopt: ReadonlyArray<string>;
+	readonly baseline: string;
 	readonly file: string;
 	readonly registry: string;
-	readonly baseline: string;
-	readonly adopt: ReadonlyArray<string>;
+	readonly root: string;
 }
 
 const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
@@ -23,8 +23,8 @@ const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.me
 const importDefault = (file: string): Effect.Effect<unknown, SetupFailure> =>
 	Effect.flatMap(
 		Effect.tryPromise({
-			try: async (): Promise<unknown> => import(pathToFileURL(file).href),
 			catch: (cause) => new SetupFailure({ message: `cannot load ${file}: ${messageOf(cause)}` }),
+			try: async (): Promise<unknown> => import(pathToFileURL(file).href),
 		}),
 		(loaded) =>
 			typeof loaded === "object" && loaded !== null && "default" in loaded

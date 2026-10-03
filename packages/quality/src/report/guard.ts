@@ -3,9 +3,9 @@ import type { Base } from "../git/base.ts";
 import { plural } from "./plural.ts";
 
 export interface GuardContext {
+	readonly base: Base;
 	readonly baseline: string;
 	readonly config: string;
-	readonly base: Base;
 }
 
 const problemLine = (problem: GuardProblem, context: GuardContext): string => {

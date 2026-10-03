@@ -5,15 +5,15 @@ import { itemsOf, type Json, member, type Parsed, parseJsonc, textOf } from "./j
 import { resolvePackage } from "./resolve.ts";
 
 export interface Preset {
-	readonly specifier: string;
+	readonly declared: ReadonlyArray<Declaration>;
 	readonly file: string;
 	readonly line: number;
-	readonly declared: ReadonlyArray<Declaration>;
+	readonly specifier: string;
 }
 
 export interface Layer {
-	readonly path: string;
 	readonly json: Json;
+	readonly path: string;
 	readonly preset: Preset | undefined;
 }
 
@@ -99,9 +99,9 @@ const rootConfig = async (readText: ReadText): Promise<string | undefined> => {
 };
 
 export interface BiomeConfigs {
-	readonly root: string;
 	readonly chains: ReadonlyArray<Chain>;
 	readonly problems: ReadonlyArray<Finding>;
+	readonly root: string;
 }
 
 export const biomeConfigs = async ({ files, readText }: RuleInputs): Promise<BiomeConfigs> => {

@@ -3,10 +3,10 @@ import { isDirective, textOf } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
 
 interface PatternRule<Id extends string> {
-	readonly id: Id;
 	readonly description: string;
-	readonly patterns: ReadonlyArray<RegExp>;
+	readonly id: Id;
 	readonly message: (match: string) => string;
+	readonly patterns: ReadonlyArray<RegExp>;
 }
 
 const firstMatch = (comment: SourceComment, patterns: ReadonlyArray<RegExp>): string | undefined => {
@@ -16,8 +16,6 @@ const firstMatch = (comment: SourceComment, patterns: ReadonlyArray<RegExp>): st
 
 export const definePatternRule = <const Id extends string>({ description, id, message, patterns }: PatternRule<Id>): Rule<Id, undefined> =>
 	defineRule({
-		id,
-		description,
 		check: ({ sources }) =>
 			sources.flatMap((file) =>
 				commentsOf(file).flatMap((comment): ReadonlyArray<Finding> => {
@@ -25,4 +23,6 @@ export const definePatternRule = <const Id extends string>({ description, id, me
 					return match === undefined ? [] : [{ file: file.path, line: comment.line, message: message(match) }];
 				}),
 			),
+		description,
+		id,
 	});

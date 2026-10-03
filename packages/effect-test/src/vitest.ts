@@ -95,6 +95,7 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 			const clock = split.clock ?? defaultClock;
 			current(name, split.vitest, ({ __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, _local }) => {
 				const context = restoreContext(__effectTestContext, {
+					_local,
 					annotate,
 					expect,
 					onTestFailed,
@@ -102,17 +103,12 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 					signal,
 					skip,
 					task,
-					_local,
 				});
 				return runEffectTest(run(body, context), context, clock);
 			});
 		};
 
 	const effectApp: EffectTester<Harness, Provided> = Object.assign(register(fixtureIt), {
-		skip: register(fixtureIt.skip),
-		skipIf: (condition: unknown) => register(fixtureIt.skipIf(condition)),
-		runIf: (condition: unknown) => register(fixtureIt.runIf(condition)),
-		only: register(fixtureIt.only),
 		each:
 			<Item>(cases: ReadonlyArray<Item>) =>
 			<A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
@@ -127,6 +123,7 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 					split.vitest,
 					(item, { __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, _local }) => {
 						const context = restoreContext(__effectTestContext, {
+							_local,
 							annotate,
 							expect,
 							onTestFailed,
@@ -134,13 +131,16 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 							signal,
 							skip,
 							task,
-							_local,
 						});
 						return runEffectTest(Effect.asVoid(run((harness, testContext) => body(item, harness, testContext), context)), context, clock);
 					},
 				);
 			},
 		fails: register(fixtureIt.fails),
+		only: register(fixtureIt.only),
+		runIf: (condition: unknown) => register(fixtureIt.runIf(condition)),
+		skip: register(fixtureIt.skip),
+		skipIf: (condition: unknown) => register(fixtureIt.skipIf(condition)),
 	});
 
 	return { effectApp };

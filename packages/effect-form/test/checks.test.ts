@@ -18,19 +18,19 @@ const gated = Effect.gen(function* () {
 		return made;
 	};
 	return {
+		answer: (value: string, message: string | undefined) => Deferred.succeed(entry(released, value), message),
 		check: (value: string) => Deferred.succeed(entry(started, value), undefined).pipe(Effect.andThen(Deferred.await(entry(released, value)))),
 		started: (value: string) => Deferred.await(entry(started, value)),
-		answer: (value: string, message: string | undefined) => Deferred.succeed(entry(released, value), message),
 	};
 });
 
 const formWith = (check: (value: string) => Effect.Effect<string | undefined>) =>
 	make(Schema.Struct({ name: Schema.String }), {
-		initialValues: { name: "" },
-		runtime,
-		debounce: "5 millis",
 		checks: { name: check },
+		debounce: "5 millis",
+		initialValues: { name: "" },
 		onSubmit: Effect.succeed,
+		runtime,
 	});
 
 const eventually = (assert: () => void) => Effect.promise(() => vi.waitFor(assert));
@@ -103,11 +103,11 @@ it.live("a check reads services from the form runtime", () =>
 	Effect.gen(function* () {
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(Schema.Struct({ name: Schema.String }), {
-			initialValues: { name: "" },
-			runtime: Atom.runtime(Layer.succeed(Reserved)(new Set(["admin"]))),
-			debounce: "5 millis",
 			checks: { name: (value) => Effect.map(Reserved, (reserved) => (reserved.has(value) ? "Name is reserved" : undefined)) },
+			debounce: "5 millis",
+			initialValues: { name: "" },
 			onSubmit: Effect.succeed,
+			runtime: Atom.runtime(Layer.succeed(Reserved)(new Set(["admin"]))),
 		});
 		yield* AtomRegistry.mount(registry, form.error("name"));
 		form.change("name", "admin");
@@ -126,11 +126,11 @@ it.live("a value failing its schema is never sent to the check", () =>
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const checked: string[] = [];
 		const form = make(Schema.Struct({ name: Schema.String.check(Schema.isMinLength(3)) }), {
-			initialValues: { name: "" },
-			runtime,
-			debounce: "5 millis",
 			checks: { name: recorded(checked) },
+			debounce: "5 millis",
+			initialValues: { name: "" },
 			onSubmit: Effect.succeed,
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.error("name"));
 		form.change("name", "ab");

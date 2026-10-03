@@ -2,25 +2,25 @@ import { hasMethod, invokeMethod } from "./dynamic.ts";
 import { getRelationPlan, type RelationPlan } from "./relation-plan.ts";
 
 export interface RelationOperation {
-	readonly name: PropertyKey;
 	readonly arguments: ReadonlyArray<unknown>;
+	readonly name: PropertyKey;
 }
 
 export interface RelationRecipe {
 	readonly model: string;
-	readonly parent?: RelationRecipe;
 	readonly operation?: RelationOperation;
+	readonly parent?: RelationRecipe;
 }
 
 export const rootRecipe = (model: string): RelationRecipe => ({ model });
 
 export const appendOperation = (parent: RelationRecipe, name: PropertyKey, arguments_: ReadonlyArray<unknown>): RelationRecipe => ({
 	model: parent.model,
-	parent,
 	operation: {
-		name,
 		arguments: arguments_,
+		name,
 	},
+	parent,
 });
 
 const operations = (recipe: RelationRecipe): ReadonlyArray<RelationOperation> => {

@@ -9,9 +9,9 @@ const Missing = Schema.Struct({
 });
 const Items = RpcGroup.make(
 	Rpc.make("find", {
+		error: Missing,
 		payload: { id: Schema.String },
 		success: Item,
-		error: Missing,
 	}),
 );
 

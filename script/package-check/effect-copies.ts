@@ -28,7 +28,7 @@ const effectCopies = (directory: string, core: boolean) =>
 		for (const name of names) {
 			const real = yield* fs.realPath(join(modules, name));
 			const manifest = decodeManifest(yield* fs.readFileString(join(real, "package.json")));
-			if (effectPackage(manifest.name)) copies.push({ name: manifest.name, version: manifest.version, real });
+			if (effectPackage(manifest.name)) copies.push({ name: manifest.name, real, version: manifest.version });
 		}
 		return copies;
 	});

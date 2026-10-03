@@ -27,13 +27,13 @@ const mount = () => {
 	});
 	const input = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
 	return {
-		container,
-		render: (node: ReactNode) => act(async () => root.render(node)),
-		text: () => container.textContent ?? "",
-		value: (name: string) => input(name)?.value,
-		error: (name: string) => container.querySelector(`[data-error="${name}"]`)?.textContent,
-		status: () => container.querySelector('[role="status"]')?.textContent,
 		alerts: () => [...container.querySelectorAll('[role="alert"]')].map((alert) => alert.textContent),
+		click: (label: string) => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === label)?.click()),
+		container,
+		error: (name: string) => container.querySelector(`[data-error="${name}"]`)?.textContent,
+		render: (node: ReactNode) => act(async () => root.render(node)),
+		status: () => container.querySelector('[role="status"]')?.textContent,
+		text: () => container.textContent ?? "",
 		type: (name: string, value: string) =>
 			act(async () => {
 				const field = input(name);
@@ -41,7 +41,7 @@ const mount = () => {
 				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
-		click: (label: string) => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === label)?.click()),
+		value: (name: string) => input(name)?.value,
 	};
 };
 
@@ -64,11 +64,11 @@ const editing = async (id = 1) => {
 	const show = (current: number) =>
 		view.render(
 			createElement(SessionBoundary<string, undefined>, {
-				session: "s1",
-				identify: (session) => session,
+				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: current, key: "editor" })],
 				connect: () => undefined,
+				identify: (session) => session,
 				recheck: () => {},
-				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { key: "editor", id: current })],
+				session: "s1",
 			}),
 		);
 	await show(id);
@@ -76,7 +76,7 @@ const editing = async (id = 1) => {
 	expect(view.value("name")).toBeUndefined();
 	release();
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
-	return { server, view, show, registry: () => registry };
+	return { registry: () => registry, server, show, view };
 };
 
 test("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
@@ -150,11 +150,11 @@ test("create resets to its initial values after success, keeping fields edited d
 	const view = mount();
 	await view.render(
 		createElement(SessionBoundary<string, undefined>, {
-			session: "s1",
-			identify: (session) => session,
-			connect: () => undefined,
-			recheck: () => {},
 			children: () => createElement(InvoiceLineCreate),
+			connect: () => undefined,
+			identify: (session) => session,
+			recheck: () => {},
+			session: "s1",
 		}),
 	);
 	await view.type("name", "pencil");
@@ -191,12 +191,12 @@ test("switching session tears down the editor, its draft and its registry; Unaut
 	const show = (session: "alice" | "bob" | undefined) =>
 		view.render(
 			createElement(SessionBoundary<"alice" | "bob", ReturnType<typeof makeInvoiceLineViews>>, {
-				session,
-				identify: (user) => user,
+				children: ({ InvoiceLineEditor }) => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: 1, key: "editor" })],
 				connect: (user) => makeInvoiceLineViews(servers[user]),
+				identify: (user) => user,
 				recheck: () => rechecks.push(session ?? "none"),
+				session,
 				signedOut: "Signed out",
-				children: ({ InvoiceLineEditor }) => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { key: "editor", id: 1 })],
 			}),
 		);
 	await show("alice");

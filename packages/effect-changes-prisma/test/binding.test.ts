@@ -11,7 +11,7 @@ const other: Client = { $transaction: (run) => run(other) };
 const bind = async () => {
 	vi.resetModules();
 	const { makePrismaChanges } = await import("../src/index.ts");
-	return makePrismaChanges({ name: "Same", client, models: {}, publish: () => Effect.void });
+	return makePrismaChanges({ client, models: {}, name: "Same", publish: () => Effect.void });
 };
 
 test("bindings with the same name from two copies of the package keep their clients apart", async () => {

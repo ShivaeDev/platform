@@ -16,6 +16,6 @@ export const publisher = <A, R>(
 			Effect.andThen(
 				Effect.annotateCurrentSpan("changes.published", false),
 				Effect.logError("Changes.publish failed after the changes were committed; the committed result stands", cause),
-			).pipe(Effect.annotateLogs({ channel: name, changes: changes.length })),
+			).pipe(Effect.annotateLogs({ changes: changes.length, channel: name })),
 		);
 	}, Effect.uninterruptible);

@@ -50,7 +50,7 @@ test("anti-forgery, one-time code, access key and bank account names are redacte
 	];
 	const redacted = redact(Object.fromEntries(keys.map((key) => [key, `${key}-plaintext`])));
 	expect(redacted).toEqual(Object.fromEntries(keys.map((key) => [key, "<redacted>"])));
-	const visible = { pinned: true, options: 1, spinner: "a", topic: "b", pinboard: 2, accountName: "c" };
+	const visible = { accountName: "c", options: 1, pinboard: 2, pinned: true, spinner: "a", topic: "b" };
 	expect(redact(visible)).toEqual(visible);
 });
 
@@ -62,26 +62,26 @@ test("long strings are cut with a marker counting the dropped characters", () =>
 test("credential-shaped text inside strings is masked", () => {
 	const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.c2lnbmF0dXJlLXBsYWludGV4dA";
 	const redacted = redact({
+		detail: "retry with password=hunter2-plaintext&user=alice, token: tok-plaintext",
 		message: `upstream rejected Authorization: Bearer abc.def-plaintext and ${jwt}`,
 		stack: "Error: connect postgres://app:db-plaintext@db.internal:5432/app failed\n    at connect (file:///srv/token.ts:1:2)",
-		detail: "retry with password=hunter2-plaintext&user=alice, token: tok-plaintext",
 	});
 	expect(leaks(redacted, ["abc.def-plaintext", "c2lnbmF0dXJl", "db-plaintext", "hunter2-plaintext", "tok-plaintext"])).toEqual([]);
 	expect(redacted).toEqual({
+		detail: "retry with password=<redacted>&user=alice, token: <redacted>",
 		message: "upstream rejected Authorization: <redacted> <redacted> and <redacted>",
 		stack: "Error: connect postgres://app:<redacted>@db.internal:5432/app failed\n    at connect (file:///srv/token.ts:1:2)",
-		detail: "retry with password=<redacted>&user=alice, token: <redacted>",
 	});
 });
 
 test("large collections and binary data are summarised instead of walked", () => {
 	const redacted = redact({
-		items: Array.from({ length: 500 }, (_, index) => index),
-		wide: Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`k${index}`, index])),
-		upload: new Uint8Array(4096),
 		buffer: new ArrayBuffer(16),
+		items: Array.from({ length: 500 }, (_, index) => index),
+		upload: new Uint8Array(4096),
+		wide: Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`k${index}`, index])),
 	});
-	expect(redacted).toMatchObject({ upload: "<Uint8Array 4096 bytes>", buffer: "<ArrayBuffer 16 bytes>" });
+	expect(redacted).toMatchObject({ buffer: "<ArrayBuffer 16 bytes>", upload: "<Uint8Array 4096 bytes>" });
 	expect(inspect(redacted, { depth: 5, maxArrayLength: null }).length).toBeLessThan(3_000);
 	expect(redacted).toMatchObject({ items: expect.arrayContaining(["<450 more items>"]) });
 	expect(redacted).toMatchObject({ wide: expect.objectContaining({ "<truncated>": "450 more keys" }) });
@@ -96,8 +96,8 @@ const Crashes = RpcGroup.make(Rpc.make("Crash", { payload: { kind: Schema.String
 const Handlers = Crashes.toLayer({
 	Crash: ({ kind }) =>
 		kind === "object"
-			? Effect.die({ password: "hunter2-plaintext", detail: "object defect" })
-			: Effect.die(new LeakyDefect("leaky defect", { cause: { token: "token-plaintext", reason: "nested" } })),
+			? Effect.die({ detail: "object defect", password: "hunter2-plaintext" })
+			: Effect.die(new LeakyDefect("leaky defect", { cause: { reason: "nested", token: "token-plaintext" } })),
 });
 
 test("defect logs keep the error's shape but redact its fields and cause", async () => {
@@ -113,8 +113,8 @@ test("defect logs keep the error's shape but redact its fields and cause", async
 	expect(defects).toHaveLength(2);
 	expect(leaks(defects, ["hunter2-plaintext", "key-plaintext", "token-plaintext"])).toEqual([]);
 	expect(defects.map((log) => log.annotations["rpc.defect"])).toEqual([
-		[{ password: "<redacted>", detail: "object defect" }],
-		[expect.objectContaining({ name: "Error", message: "leaky defect", apiKey: "<redacted>", cause: { token: "<redacted>", reason: "nested" } })],
+		[{ detail: "object defect", password: "<redacted>" }],
+		[expect.objectContaining({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect", name: "Error" })],
 	]);
 });
 
@@ -153,22 +153,22 @@ test("the cause seen by the client, error reporters and the server span has reda
 	).toEqual([]);
 	const [objectExit, errorExit] = exits;
 	expect(objectExit !== undefined && Exit.isFailure(objectExit) && Cause.squash(objectExit.cause)).toEqual({
-		password: "<redacted>",
 		detail: "object defect",
+		password: "<redacted>",
 	});
 	const defect = errorExit !== undefined && Exit.isFailure(errorExit) ? Cause.squash(errorExit.cause) : undefined;
 	expect(defect).toBeInstanceOf(Error);
-	expect(defect).toMatchObject({ message: "leaky defect", apiKey: "<redacted>", cause: { token: "<redacted>", reason: "nested" } });
+	expect(defect).toMatchObject({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" });
 });
 
 test("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", async () => {
 	const reported: Array<{ readonly error: Error; readonly severity: string; readonly attributes: unknown }> = [];
 	const inner = ErrorReporter.make(({ error, severity, attributes }) => {
-		reported.push({ error, severity, attributes });
+		reported.push({ attributes, error, severity });
 	});
 	const defect = Object.assign(new Error("login failed for password=hunter2-plaintext"), {
 		[ErrorReporter.severity]: "Error",
-		[ErrorReporter.attributes]: { userId: "u1", apiKey: "key-plaintext" },
+		[ErrorReporter.attributes]: { apiKey: "key-plaintext", userId: "u1" },
 	});
 	await Effect.runPromise(
 		Effect.withFiber((fiber) => Effect.sync(() => redactingErrorReporter(inner).report({ cause: Cause.die(defect), fiber, timestamp: 0n }))),
@@ -176,9 +176,9 @@ test("a redacting error reporter hands the wrapped reporter a redacted cause wit
 	expect(leaks(reported, ["hunter2-plaintext", "key-plaintext"])).toEqual([]);
 	expect(reported).toEqual([
 		{
+			attributes: { apiKey: "<redacted>", userId: "u1" },
 			error: expect.objectContaining({ message: "login failed for password=<redacted>" }),
 			severity: "Error",
-			attributes: { userId: "u1", apiKey: "<redacted>" },
 		},
 	]);
 });

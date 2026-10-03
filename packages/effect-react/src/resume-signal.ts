@@ -6,13 +6,13 @@ type ResumeEvent = "online" | "visibilitychange";
 
 export interface ResumeWindow {
 	readonly addEventListener: (type: ResumeEvent, listener: () => void) => void;
-	readonly removeEventListener: (type: ResumeEvent, listener: () => void) => void;
 	readonly document: { readonly visibilityState: string };
+	readonly removeEventListener: (type: ResumeEvent, listener: () => void) => void;
 }
 
 export interface ResumeOptions {
-	readonly window?: ResumeWindow;
 	readonly native?: ResumeSource;
+	readonly window?: ResumeWindow;
 }
 
 const whileVisible =

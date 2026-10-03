@@ -8,9 +8,9 @@ export type Adoption =
 
 export interface Pruned {
 	readonly entries: ReadonlyArray<BaselineEntry>;
+	readonly lowered: number;
 	readonly moved: number;
 	readonly removed: number;
-	readonly lowered: number;
 }
 
 const record = (violations: ReadonlyArray<Violation>): ReadonlyArray<BaselineEntry> =>
@@ -52,8 +52,8 @@ export const adopt = (
 };
 
 export interface Scope {
-	readonly moves: ReadonlyMap<string, string>;
 	readonly files?: ReadonlySet<string> | undefined;
+	readonly moves: ReadonlyMap<string, string>;
 }
 
 const inScope = (entry: BaselineEntry, scope: Scope): boolean =>

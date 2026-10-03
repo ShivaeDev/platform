@@ -17,9 +17,9 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit
 				const sql = yield* SqlClient.SqlClient;
 				const prefix = `pm_${crypto.randomUUID().replaceAll("-", "")}`;
 				const names = {
+					audit: `${prefix}_audit`,
 					ledger: `${prefix}_ledger`,
 					orders: `${prefix}_orders`,
-					audit: `${prefix}_audit`,
 				};
 				yield* Effect.addFinalizer(() =>
 					Effect.gen(function* () {
@@ -33,8 +33,8 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit
 		).pipe(
 			Effect.provide(
 				PgClient.layer({
-					url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 					maxConnections: 4,
+					url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 				}),
 			),
 		),
@@ -49,16 +49,16 @@ integration("migratePostgres initializes, upgrades and reruns without repeating 
 			};
 			expect(
 				yield* migrate({
-					table: ledger,
 					loader: Migrator.fromRecord(initial),
+					table: ledger,
 				}),
 			).toEqual([[1, "create_orders"]]);
 			const loader = Migrator.fromRecord({
 				"2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
 				...initial,
 			});
-			expect(yield* migrate({ table: ledger, loader })).toEqual([[2, "seed_orders"]]);
-			expect(yield* migrate({ table: ledger, loader })).toEqual([]);
+			expect(yield* migrate({ loader, table: ledger })).toEqual([[2, "seed_orders"]]);
+			expect(yield* migrate({ loader, table: ledger })).toEqual([]);
 			expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* sql`select migration_id, name from ${sql(ledger)} order by migration_id`).toEqual([
 				{ migration_id: 1, name: "create_orders" },
@@ -75,9 +75,8 @@ integration("migratePostgres rolls back pending DDL, data and ledger as one batc
 			const initial = {
 				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 			};
-			yield* migrate({ table: ledger, loader: Migrator.fromRecord(initial) });
+			yield* migrate({ loader: Migrator.fromRecord(initial), table: ledger });
 			const exit = yield* migrate({
-				table: ledger,
 				loader: Migrator.fromRecord({
 					...initial,
 					"2_add_audit_and_seed": Effect.gen(function* () {
@@ -86,6 +85,7 @@ integration("migratePostgres rolls back pending DDL, data and ledger as one batc
 					}),
 					"3_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
 				}),
+				table: ledger,
 			}).pipe(Effect.exit);
 			expect(Exit.isFailure(exit)).toBe(true);
 			if (Exit.isFailure(exit)) {
@@ -113,8 +113,8 @@ integration(
 						"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 					};
 					yield* migrate({
-						table: ledger,
 						loader: Migrator.fromRecord(initial),
+						table: ledger,
 					});
 					const entered = yield* Deferred.make<number>();
 					const release = yield* Deferred.make<void>();
@@ -127,9 +127,9 @@ integration(
 							yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
 						}),
 					});
-					const first = yield* migrate({ table: ledger, loader }).pipe(Effect.forkScoped);
+					const first = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
 					const holder = yield* Deferred.await(entered).pipe(Effect.timeout("5 seconds"));
-					const second = yield* migrate({ table: ledger, loader }).pipe(Effect.forkScoped);
+					const second = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
 					yield* Effect.gen(function* () {
 						while (true) {
 							const waiting = yield* sql<{ waiting: boolean }>`select exists (

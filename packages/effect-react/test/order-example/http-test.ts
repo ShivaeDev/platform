@@ -15,9 +15,9 @@ const toRequest = async (incoming: IncomingMessage, signal: AbortSignal): Promis
 	const chunks: Buffer[] = [];
 	for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
 	return new Request(`http://127.0.0.1${incoming.url}`, {
+		headers: toHeaders(incoming.headers),
 		method: incoming.method ?? "GET",
 		signal,
-		headers: toHeaders(incoming.headers),
 		...(chunks.length > 0 ? { body: Buffer.concat(chunks) } : {}),
 	});
 };
@@ -59,7 +59,6 @@ export const startOrderServer = async (options: Parameters<typeof makeOrderWebHa
 		throw new Error("Expected a loopback TCP listener");
 	}
 	return {
-		url: `http://127.0.0.1:${address.port}/rpc`,
 		close: async () => {
 			server.closeAllConnections();
 			try {
@@ -70,5 +69,6 @@ export const startOrderServer = async (options: Parameters<typeof makeOrderWebHa
 				await app.dispose();
 			}
 		},
+		url: `http://127.0.0.1:${address.port}/rpc`,
 	};
 };

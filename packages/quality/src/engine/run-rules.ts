@@ -6,11 +6,11 @@ import type { Finding, Findings, RuleInputs } from "../rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
 
 export interface ActiveRule {
-	readonly id: string;
-	readonly description: string;
-	readonly level: ActiveLevel;
-	readonly family: boolean;
 	readonly check: (inputs: RuleInputs) => Promise<Findings>;
+	readonly description: string;
+	readonly family: boolean;
+	readonly id: string;
+	readonly level: ActiveLevel;
 }
 
 const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
@@ -28,8 +28,8 @@ const violationOf = (rule: ActiveRule, root: string, finding: Finding): Violatio
 const runRule = (rule: ActiveRule, inputs: RuleInputs): Effect.Effect<ReadonlyArray<Violation>, SetupFailure> =>
 	Effect.map(
 		Effect.tryPromise({
-			try: () => rule.check(inputs),
 			catch: (cause) => new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` }),
+			try: () => rule.check(inputs),
 		}),
 		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding)),
 	);

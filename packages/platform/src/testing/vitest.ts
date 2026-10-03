@@ -30,9 +30,9 @@ function platformIt<
 function platformIt(database: AnyDatabase, options: LooseOptions): unknown {
 	const trpcIt = makeTrpcHarnessIt({
 		adapter: options.adapter,
+		around: (effect) => withTestTransaction(database, effect),
 		createCaller: options.createCaller,
 		layer: options.layer,
-		around: (effect) => withTestTransaction(database, effect),
 		makeHarness: (trpc, context) =>
 			Effect.gen(function* () {
 				const services = yield* Effect.context<unknown>();

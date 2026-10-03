@@ -45,15 +45,15 @@ export type MatchingTags<Specs extends RejectionSpecs> = {
 };
 
 export interface RejectionSet<Specs extends RejectionSpecs> {
+	readonly error: RejectionUnion<Specs>;
 	readonly Rejection: Rejections<Specs>;
 	readonly reject: Reject<Specs>;
-	readonly error: RejectionUnion<Specs>;
 }
 
 interface LooseRejectionSet {
+	readonly error: Schema.Top;
 	readonly Rejection: { readonly [tag: string]: TaggedRejection };
 	readonly reject: { readonly [tag: string]: (...args: ReadonlyArray<unknown>) => Effect.Effect<never, unknown> };
-	readonly error: Schema.Top;
 }
 
 export function rejectionSet<const Specs extends RejectionSpecs>(specs: Specs): RejectionSet<Specs>;
@@ -63,11 +63,11 @@ export function rejectionSet(specs: RejectionSpecs): LooseRejectionSet {
 		Schema.isSchema(spec) ? spec : Schema.TaggedError<Cause.YieldableError>()(tag, spec),
 	]);
 	return {
+		error: classes.length === 0 ? Schema.Never : Schema.Union(classes.map(([, schema]) => schema)),
 		Rejection: Object.fromEntries(classes),
 		reject: Object.fromEntries(
 			classes.map(([tag, Rejection]) => [tag, (...args: ReadonlyArray<unknown>) => Effect.fail(Reflect.construct(Rejection, args))]),
 		),
-		error: classes.length === 0 ? Schema.Never : Schema.Union(classes.map(([, schema]) => schema)),
 	};
 }
 

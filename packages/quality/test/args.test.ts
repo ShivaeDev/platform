@@ -27,7 +27,7 @@ describe("command line", () => {
 		[["baseline", "prune", "--rule", "a/b"], "--rule applies only to baseline write"],
 		[["baseline", "write", "--warnings", "all"], "--warnings applies only to lint"],
 		[["baseline"], "baseline takes write, prune, tighten, check or migrate"],
-		[["lint", "--against", "origin/main"], "--against applies only to baseline prune and baseline check"],
+		[["lint", "--against", "origin/main"], "--against applies only to baseline check and baseline prune"],
 		[["baseline", "write", "--staged"], "--staged applies only to baseline tighten"],
 		[["baseline", "check", "--from", "old.json"], "--from applies only to baseline migrate"],
 		[["baseline", "check", "--rule", "a/b"], "--rule applies only to baseline write"],

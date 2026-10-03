@@ -22,11 +22,11 @@ import {
 
 class OrderRow extends Model.Class<OrderRow>("OrderRow")({
 	...Order.fields,
-	id: Model.Field({ select: Order.fields.id, update: Order.fields.id, json: Order.fields.id }),
+	id: Model.Field({ json: Order.fields.id, select: Order.fields.id, update: Order.fields.id }),
 	ownerId: Schema.String,
 }) {}
 const publicOrder = (row: OrderRow) => new Order({ id: row.id, name: row.name, quantity: row.quantity });
-const makeOrdersRepository = makeRepository(OrderRow, { tableName: "orders", idColumn: "id", spanPrefix: "Orders" });
+const makeOrdersRepository = makeRepository(OrderRow, { idColumn: "id", spanPrefix: "Orders", tableName: "orders" });
 class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<typeof makeOrdersRepository>>()("order/Repository") {}
 
 const unavailable = () => new StorageUnavailable();
@@ -41,18 +41,17 @@ const owned = (userId: string, id: number) =>
 
 const OrderService = defineService({
 	id: "order/Service",
-	requires: [OrdersRepository, SqlClient.SqlClient, Reactivity.Reactivity],
 	initialize: Effect.void,
 	methods: () => ({
 		get: (userId: string, id: number) =>
 			owned(userId, id).pipe(
 				Effect.map(publicOrder),
-				Effect.catchTags({ SqlError: () => Effect.fail(unavailable()), SchemaError: () => Effect.fail(unavailable()) }),
+				Effect.catchTags({ SchemaError: () => Effect.fail(unavailable()), SqlError: () => Effect.fail(unavailable()) }),
 			),
 		list: (userId: string) =>
-			OrdersRepository.use((repository) => repository.findMany({ where: { ownerId: userId }, orderBy: { field: "id", direction: "asc" } })).pipe(
+			OrdersRepository.use((repository) => repository.findMany({ orderBy: { direction: "asc", field: "id" }, where: { ownerId: userId } })).pipe(
 				Effect.map((rows) => rows.map((row) => new Order(row))),
-				Effect.catchTags({ SqlError: () => Effect.fail(unavailable()), SchemaError: () => Effect.fail(unavailable()) }),
+				Effect.catchTags({ SchemaError: () => Effect.fail(unavailable()), SqlError: () => Effect.fail(unavailable()) }),
 			),
 		save: (userId: string, input: SaveOrderInput) =>
 			Effect.gen(function* () {
@@ -70,17 +69,18 @@ const OrderService = defineService({
 				transact({ onSqlError: unavailable }),
 			),
 	}),
+	requires: [OrdersRepository, SqlClient.SqlClient, Reactivity.Reactivity],
 });
 
 export interface OrderSession {
-	readonly userId: string;
 	readonly expiresAt: number;
+	readonly userId: string;
 }
 
 export interface OrderServerOptions {
-	readonly sessions?: ReadonlyMap<string, OrderSession>;
-	readonly beforeSave?: (input: SaveOrderInput) => Effect.Effect<void>;
 	readonly beforeGet?: (id: number) => Effect.Effect<void>;
+	readonly beforeSave?: (input: SaveOrderInput) => Effect.Effect<void>;
+	readonly sessions?: ReadonlyMap<string, OrderSession>;
 }
 
 const seeded = Layer.effect(
@@ -97,8 +97,8 @@ export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 	const sessions =
 		options.sessions
 		?? new Map([
-			["alice-session", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
-			["bob-session", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
+			["alice-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
+			["bob-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 		]);
 	const authentication = Layer.succeed(Authentication, (effect, { headers }) =>
 		Effect.gen(function* () {

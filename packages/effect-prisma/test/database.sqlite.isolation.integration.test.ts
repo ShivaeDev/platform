@@ -61,8 +61,8 @@ it.effect("excludes root queries for the lifetime of a SQLite transaction", () =
 						yield* Deferred.succeed(transactionRead, undefined);
 						yield* Deferred.await(continueTransaction);
 						yield* transactionDb.User.create({
-							id: crypto.randomUUID(),
 							email: transactionEmail,
+							id: crypto.randomUUID(),
 							name: "Transaction snapshot",
 						});
 					}),
@@ -75,8 +75,8 @@ it.effect("excludes root queries for the lifetime of a SQLite transaction", () =
 				Deferred.succeed(rootWriteStarted, undefined).pipe(
 					Effect.andThen(
 						db.User.create({
-							id: crypto.randomUUID(),
 							email: rootEmail,
+							id: crypto.randomUUID(),
 							name: "Root snapshot",
 						}),
 					),
@@ -147,8 +147,8 @@ it.effect("uses the transaction Database and rolls back failures", () =>
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id: crypto.randomUUID(),
 							email,
+							id: crypto.randomUUID(),
 							name: "Rolled back",
 						});
 						expect(yield* transactionDb.User.where({ email }).exists()).toBe(true);
@@ -176,8 +176,8 @@ it.effect("rolls back interrupted transactions before returning", () =>
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id: crypto.randomUUID(),
 							email,
+							id: crypto.randomUUID(),
 							name: "Interrupted",
 						});
 						yield* Deferred.succeed(created, undefined);
@@ -206,8 +206,8 @@ it.effect("forces rollback after a successful test transaction and returns its v
 				Effect.gen(function* () {
 					const transactionDb = yield* Database;
 					yield* transactionDb.User.create({
-						id,
 						email: `${id}@example.test`,
+						id,
 						name: "Test transaction",
 					});
 					return 42;
@@ -233,8 +233,8 @@ it.effect("preserves a test transaction failure while rolling back its writes", 
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id,
 							email: `${id}@example.test`,
+							id,
 							name: "Failed test transaction",
 						});
 						return yield* Effect.fail(failure);

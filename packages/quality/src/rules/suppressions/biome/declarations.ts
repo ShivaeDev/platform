@@ -2,9 +2,9 @@ import { Schema } from "effect";
 import { type Decoded, decodeWith } from "../../../decoded.ts";
 
 export const Declaration = Schema.Struct({
-	rule: Schema.NonEmptyString,
 	includes: Schema.NonEmptyArray(Schema.NonEmptyString),
 	reason: Schema.String.check(Schema.isPattern(/\S/, { expected: "a reason that says why the scope needs the rule weakened" })),
+	rule: Schema.NonEmptyString,
 });
 
 export type Declaration = typeof Declaration.Type;
@@ -19,8 +19,8 @@ export const decodeShipped = (text: string | undefined): Promise<Decoded<Readonl
 	text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(shipped, text);
 
 export interface Scoped {
-	readonly rule: string;
 	readonly includes: ReadonlyArray<string>;
+	readonly rule: string;
 }
 
 const sameScope = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean =>

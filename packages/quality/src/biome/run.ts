@@ -4,8 +4,8 @@ import process from "node:process";
 
 export interface BiomeRun {
 	readonly code: number;
-	readonly stdout: string;
 	readonly stderr: string;
+	readonly stdout: string;
 }
 
 const BIN = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");

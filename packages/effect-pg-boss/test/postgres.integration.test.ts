@@ -29,11 +29,11 @@ integration("PostgreSQL integration", () => {
 		let client: PgBoss | undefined;
 		const Jobs = makePgBoss("@test/PostgresJobs");
 		const live = Jobs.layer({
-			connectionString: databaseUrl,
 			clientFactory: (options) => {
 				client = new PgBoss(options);
 				return client;
 			},
+			connectionString: databaseUrl,
 			jobs: [Queue.handle(({ id }) => Effect.sync(() => handled(id)))],
 			schema: "platform_effect_pg_boss",
 		});

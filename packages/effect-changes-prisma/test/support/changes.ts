@@ -4,18 +4,18 @@ import { type ChangeMap, makePrismaChanges, type UnnamedWrite } from "../../src/
 import type { PrismaClient } from "../generated/client.ts";
 
 export interface Change {
-	readonly subject: string;
 	readonly domain: string;
+	readonly subject: string;
 }
 
 export const models = {
-	Order: (order) => [{ subject: order.ownerId, domain: "orders" }],
-	Membership: (membership) => [
-		{ subject: membership.ownerId, domain: "memberships" },
-		{ subject: membership.memberId, domain: "memberships" },
-	],
-	Invoice: (invoice) => [{ subject: invoice.ownerId, domain: "invoices" }],
 	AuditNote: null,
+	Invoice: (invoice) => [{ domain: "invoices", subject: invoice.ownerId }],
+	Membership: (membership) => [
+		{ domain: "memberships", subject: membership.ownerId },
+		{ domain: "memberships", subject: membership.memberId },
+	],
+	Order: (order) => [{ domain: "orders", subject: order.ownerId }],
 } satisfies ChangeMap<PrismaClient, Change>;
 
 export const label = (change: Change) => `${change.subject}:${change.domain}`;
@@ -25,10 +25,10 @@ export const makeChanges = (client: PrismaClient, publish?: (changes: ReadonlyAr
 	const observations: Array<Observation<Change>> = [];
 	const unnamed: Array<UnnamedWrite> = [];
 	const changes = makePrismaChanges({
-		name: "TestChanges",
 		client,
-		models,
 		key: label,
+		models,
+		name: "TestChanges",
 		publish: (batch: ReadonlyArray<Change>) =>
 			Effect.andThen(
 				Effect.sync(() => published.push(batch.map(label))),
@@ -40,5 +40,5 @@ export const makeChanges = (client: PrismaClient, publish?: (changes: ReadonlyAr
 			Effect.provideService(changes.channel.Observer, (observation: Observation<Change>) => Effect.sync(() => observations.push(observation))),
 			Effect.provideService(changes.Unnamed, (write: UnnamedWrite) => Effect.sync(() => unnamed.push(write))),
 		);
-	return { changes, published, observations, unnamed, observe };
+	return { changes, observations, observe, published, unnamed };
 };

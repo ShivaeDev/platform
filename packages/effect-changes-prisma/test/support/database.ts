@@ -55,7 +55,7 @@ export const makeDatabase: Effect.Effect<
 	yield* Effect.acquireRelease(statements(admin, tables(schema)), () => statements(admin, [`drop schema "${schema}" cascade`]));
 	const client = yield* connect(schema);
 	const observer = yield* connect(schema);
-	return { schema, client, observer, execute: (...sql: ReadonlyArray<string>) => statements(admin, sql) };
+	return { client, execute: (...sql: ReadonlyArray<string>) => statements(admin, sql), observer, schema };
 });
 
 export const orderIds = (client: PrismaClient) =>

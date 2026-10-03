@@ -12,7 +12,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const mountEditor = async (url: string, token?: string, id = 1) => {
 	window.location.href = url;
-	const { Client, api, Editor } = makeOrderEditor({ url, token });
+	const { Client, api, Editor } = makeOrderEditor({ token, url });
 	const registry = AtomRegistry.make();
 	const container = document.createElement("div");
 	document.body.append(container);
@@ -27,8 +27,17 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 		return element;
 	};
 	return {
+		click: async (name: string) => {
+			const button = [...container.querySelectorAll("button")].find((button) => button.textContent === name);
+			if (!button) throw new Error(`Missing button ${name}`);
+			await act(async () => button.click());
+		},
+		close: async () => {
+			await act(async () => root.unmount());
+			registry.dispose();
+			container.remove();
+		},
 		container,
-		input,
 		edit: async (name: string, value: string) => {
 			await act(async () => {
 				const element = input(name);
@@ -37,25 +46,16 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 				element.dispatchEvent(new Event("change", { bubbles: true }));
 			});
 		},
-		click: async (name: string) => {
-			const button = [...container.querySelectorAll("button")].find((button) => button.textContent === name);
-			if (!button) throw new Error(`Missing button ${name}`);
-			await act(async () => button.click());
-		},
-		save: (name: string) => {
-			const independent = AtomRegistry.make();
-			const result = Client.runtime.atom(api.save.run({ id, name, quantity: 900 }).pipe(Effect.result));
-			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
-		},
+		input,
 		read: () => {
 			const independent = AtomRegistry.make();
 			const result = Client.runtime.atom(api.get.run({ id }));
 			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
 		},
-		close: async () => {
-			await act(async () => root.unmount());
-			registry.dispose();
-			container.remove();
+		save: (name: string) => {
+			const independent = AtomRegistry.make();
+			const result = Client.runtime.atom(api.save.run({ id, name, quantity: 900 }).pipe(Effect.result));
+			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
 		},
 	};
 };
@@ -68,9 +68,9 @@ const eventually = (assert: () => void) =>
 
 const sessions = () =>
 	new Map([
-		["alice-session", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
-		["bob-session", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
-		["expired-session", { userId: "alice", expiresAt: 0 }],
+		["alice-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
+		["bob-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
+		["expired-session", { expiresAt: 0, userId: "alice" }],
 	]);
 
 test("real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits", async () => {
@@ -122,8 +122,8 @@ test("edits made while a save is in flight survive its response and query refres
 	const resumed = await Effect.runPromise(Deferred.make<void>());
 	const release = () => Effect.runPromise(Deferred.succeed(resumed, undefined));
 	const server = await startOrderServer({
-		sessions: sessions(),
 		beforeSave: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(resumed))),
+		sessions: sessions(),
 	});
 	const view = await mountEditor(server.url, "alice-session");
 	try {
@@ -180,8 +180,8 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 		await alice.click("Save");
 		await eventually(() => expect(alice.container.querySelector('[role="alert"]')?.textContent).toBeTruthy());
 		activeSessions.set("alice-session", {
-			userId: "alice",
 			expiresAt: Number.POSITIVE_INFINITY,
+			userId: "alice",
 		});
 		expect(await alice.read()).toMatchObject({
 			name: "Printer paper",
@@ -201,16 +201,16 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 test("saving one order refreshes it and the list without refetching another mounted order", async () => {
 	const gets = new Map<number, number>();
 	const server = await startOrderServer({
-		sessions: sessions(),
 		beforeGet: (id) =>
 			Effect.sync(() => {
 				gets.set(id, (gets.get(id) ?? 0) + 1);
 			}),
+		sessions: sessions(),
 	});
 	window.location.href = server.url;
 	const { Editor, OrderList } = makeOrderEditor({
-		url: server.url,
 		token: "alice-session",
+		url: server.url,
 	});
 	const registry = AtomRegistry.make();
 	const container = document.createElement("div");

@@ -42,22 +42,22 @@ const relationEffect = (self: object): Effect.Effect<unknown, PrismaError> => {
 		),
 	).pipe(
 		Effect.withSpan(`prisma.${runtime.recipe.model}.${String(runtime.terminal ?? "all")}`, {
-			kind: "client",
 			attributes: {
-				"db.system": "postgresql",
 				"db.model": runtime.recipe.model,
 				"db.operation": String(runtime.terminal ?? "all"),
+				"db.system": "postgresql",
 			},
+			kind: "client",
 		}),
 	);
 };
 
 const RelationPrototype = {
 	...Effectable.Prototype<RelationValue>({
-		label: "EffectPrismaRelation",
 		evaluate() {
 			return relationEffect(this);
 		},
+		label: "EffectPrismaRelation",
 	}),
 	get stream(): Stream.Stream<unknown, PrismaError> {
 		const runtime = runtimeOf(this);

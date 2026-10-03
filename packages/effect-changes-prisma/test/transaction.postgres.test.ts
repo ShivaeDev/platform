@@ -55,7 +55,7 @@ integration("a COMMIT that fails publishes nothing and fails with PrismaError", 
 				const { client, observer } = yield* makeDatabase;
 				const { changes, published } = makeChanges(client);
 				const exit = yield* Effect.exit(
-					changes.use((db) => db.invoice.create({ data: { id: "i1", ownerId: "ada", orderId: "missing" } })).pipe(changes.transaction),
+					changes.use((db) => db.invoice.create({ data: { id: "i1", orderId: "missing", ownerId: "ada" } })).pipe(changes.transaction),
 				);
 				expect(Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof PrismaError).toBe(true);
 				expect(yield* Effect.promise(() => observer.invoice.count())).toBe(0);

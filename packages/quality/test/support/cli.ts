@@ -12,8 +12,8 @@ export const trees = Schema.decodeUnknownSync(
 
 export interface Run {
 	readonly status: number | null;
-	readonly stdout: string;
 	readonly stderr: string;
+	readonly stdout: string;
 }
 
 // The source condition resolves a seeded config's import of the package to its source, so tests need no build.

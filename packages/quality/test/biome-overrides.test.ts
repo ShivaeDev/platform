@@ -65,17 +65,17 @@ describe("suppressions/biome-overrides finds", () => {
 
 	it("no weakening in rules raised, enabled or configured", async () => {
 		const config = {
+			assist: { actions: { source: { useSortedKeys: "on" } } },
 			formatter: { indentStyle: "tab", lineWidth: 150 },
 			linter: { domains: { react: "all" }, rules: { complexity: { noExcessiveCognitiveComplexity: "error" }, preset: "recommended", style: "on" } },
-			assist: { actions: { source: { useSortedKeys: "on" } } },
 		};
 		expect(await weakened(config)).toEqual([]);
 	});
 
 	it("nested configs, scoped below their folder, and the local files a config extends", async () => {
 		const texts = {
-			"biome.json": '{ "extends": ["./biome.base.json"] }',
 			"biome.base.json": JSON.stringify(override(["**/*.test.ts"], { rules: { style: { noNonNullAssertion: "off" } } })),
+			"biome.json": '{ "extends": ["./biome.base.json"] }',
 			"packages/web/biome.jsonc":
 				'// web\n{ "extends": "//", "linter": { "rules": { "a11y": "off" } }, "overrides": [{ "includes": ["!src/**"], "formatter": { "enabled": false } }] }',
 		};

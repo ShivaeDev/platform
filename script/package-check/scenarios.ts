@@ -5,8 +5,8 @@ import type { Package } from "#package-check/model.ts";
 const Scenario = Schema.Struct({
 	entries: Schema.Array(Schema.String),
 	fixtures: Schema.Array(Schema.String),
-	run: Schema.Array(Schema.String),
 	omitOptionalPeers: Schema.Boolean,
+	run: Schema.Array(Schema.String),
 	tsconfig: Schema.optional(Schema.String),
 });
 export type Scenario = typeof Scenario.Type;

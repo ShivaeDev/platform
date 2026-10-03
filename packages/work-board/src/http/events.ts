@@ -4,7 +4,7 @@ import { HttpServerResponse } from "effect/unstable/http";
 import type { Change, Changes } from "../files/changes.ts";
 import { HEADERS } from "./respond.ts";
 
-const event = (name: string, data = ""): Sse.Event => ({ _tag: "Event", event: name, id: undefined, data });
+const event = (name: string, data = ""): Sse.Event => ({ _tag: "Event", data, event: name, id: undefined });
 
 const watching = (up: boolean): Sse.Event => event(up ? "ready" : "down");
 

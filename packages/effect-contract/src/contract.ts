@@ -8,9 +8,9 @@ export type OperationRpc<Contract extends string, Operation> = Operation extends
 	: never;
 
 export interface Declared<Name extends string, Queries extends ReadonlyArray<QueryShape>, Commands extends ReadonlyArray<CommandShape>> {
+	readonly commands: Commands;
 	readonly name: Name;
 	readonly queries: Queries;
-	readonly commands: Commands;
 }
 
 export interface Contract<
@@ -72,7 +72,7 @@ export function contract(
 	const { queries = [], commands = [] } = operations;
 	assertUnique([...queries, ...commands]);
 	const rpcs = [...queries, ...commands].map((operation) =>
-		Rpc.make(`${name}.${operation.name}`, { payload: operation.payload, success: operation.success, error: operation.error }),
+		Rpc.make(`${name}.${operation.name}`, { error: operation.error, payload: operation.payload, success: operation.success }),
 	);
-	return withDeclaration(RpcGroup.make(...rpcs), { name, queries, commands });
+	return withDeclaration(RpcGroup.make(...rpcs), { commands, name, queries });
 }

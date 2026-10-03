@@ -12,15 +12,15 @@ const setup = async () => {
 	const server = await Effect.runPromise(makeServer);
 	class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 		group: Notes,
-		protocol: server.layer,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+		protocol: server.layer,
 	}) {}
 	const api = bind(Notes, NotesClient);
 	const registry = AtomRegistry.make();
 	const run = <A, E>(effect: Effect.Effect<A, E, NotesClient | Reactivity.Reactivity>) =>
 		Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, NotesClient.runtime.atom(effect))));
 	const reads = () => Effect.runSync(Ref.get(server.reads));
-	return { server, api, registry, run, reads };
+	return { api, reads, registry, run, server };
 };
 
 test("queries register their declared read keys and commands invalidate item and list after success only", async () => {
@@ -53,7 +53,7 @@ test("result-dependent invalidation refreshes the item a command created", async
 	const release = registry.mount(three);
 	try {
 		await vi.waitFor(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
-		expect(Result.isSuccess(await run(api.create.run({ title: "Three", body: "" })))).toBe(true);
+		expect(Result.isSuccess(await run(api.create.run({ body: "", title: "Three" })))).toBe(true);
 		await vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
 		expect(reads().filter((read) => read === "get:3")).toHaveLength(2);
 	} finally {

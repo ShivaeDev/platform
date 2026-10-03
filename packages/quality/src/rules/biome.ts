@@ -1,5 +1,5 @@
 import { biomeReport, type Diagnostic } from "../biome/report.ts";
-import { defineRule, type Finding, type RuleInputs, type Rule } from "../rule.ts";
+import { defineRule, type Finding, type Rule, type RuleInputs } from "../rule.ts";
 import { itemsOf, member, parseJsonc, textOf } from "./suppressions/biome/json.ts";
 
 export const PRESET = "@shivaedev/quality/biome";
@@ -35,13 +35,13 @@ async function presetFinding(readText: RuleInputs["readText"]): Promise<Readonly
 }
 
 const bridge = defineRule({
-	id: "biome",
-	description: "Biome's lint, format and assist findings under the shared preset. `quality fix` applies the safe fixes and the formatting.",
-	registrable: false,
 	check: async ({ readText, root }) => {
 		const [preset, report] = await Promise.all([presetFinding(readText), biomeReport(root, ["check"])]);
 		return [...preset, ...report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity)).map(findingOf)];
 	},
+	description: "Biome's lint, format and assist findings under the shared preset. `quality fix` applies the safe fixes and the formatting.",
+	id: "biome",
+	registrable: false,
 });
 
 export const biome: Rule<"biome", undefined> = { ...bridge, family: true };

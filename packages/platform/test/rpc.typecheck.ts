@@ -5,7 +5,7 @@ import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, Preconditio
 import { Authenticated, Identity, OptionalIdentity, RequestId, RequestTracing } from "../src/rpc.ts";
 import { authenticatedLayer, betterAuthSessions, requestTracingLayer, trustedOrigins } from "../src/rpc-server.ts";
 
-const Guarded = RpcGroup.make(Rpc.make("Mine", { success: Schema.String, error: NotFound }))
+const Guarded = RpcGroup.make(Rpc.make("Mine", { error: NotFound, success: Schema.String }))
 	.middleware(Authenticated)
 	.middleware(RequestTracing);
 const Open = RpcGroup.make(Rpc.make("Mine", { success: Schema.String }));
@@ -29,8 +29,8 @@ Effect.gen(function* () {
 	Effect.provide(Handlers),
 	Effect.provide(
 		authenticatedLayer({
-			provider: betterAuthSessions(() => Promise.resolve({ user: { id: "typed" } })),
 			origin: trustedOrigins({ allow: [], missing: "reject" }),
+			provider: betterAuthSessions(() => Promise.resolve({ user: { id: "typed" } })),
 		}),
 	),
 	Effect.provide(requestTracingLayer()),
@@ -39,14 +39,14 @@ Effect.gen(function* () {
 
 type TaggedRejection = Schema.Top & (new (...args: never) => { readonly _tag: string });
 const rejections: Readonly<Record<string, TaggedRejection>> = {
-	NotFound,
-	Unauthorized,
-	Forbidden,
+	AuthUnavailable,
 	BadRequest,
 	Conflict,
+	Forbidden,
+	NotFound,
 	PreconditionFailed,
 	TooManyRequests,
-	AuthUnavailable,
+	Unauthorized,
 };
 void rejections;
 

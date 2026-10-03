@@ -3,12 +3,12 @@ import type { SourceFile } from "../../rule.ts";
 import { parse } from "../syntax.ts";
 
 export interface SourceComment {
-	readonly kind: "block" | "line";
-	readonly text: string;
 	readonly body: ReadonlyArray<string>;
-	readonly line: number;
 	readonly endLine: number;
+	readonly kind: "block" | "line";
+	readonly line: number;
 	readonly ownLine: boolean;
+	readonly text: string;
 }
 
 const DECLARATION = /\.d\.[cm]?ts$/;

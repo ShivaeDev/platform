@@ -43,43 +43,43 @@ test("query renders retained data while refreshing and after a typed failure", a
 		const state = useQuery(query);
 		return createElement(
 			"button",
-			{ type: "button", onClick: state.refresh },
+			{ onClick: state.refresh, type: "button" },
 			JSON.stringify({
 				data: Option.getOrNull(state.data),
+				failed: Option.isSome(state.cause),
 				pending: state.pending,
 				refreshing: state.refreshing,
-				failed: Option.isSome(state.cause),
 			}),
 		);
 	});
 	const snapshot = () => JSON.parse(view.textContent ?? "");
 	expect(snapshot()).toEqual({
 		data: null,
+		failed: false,
 		pending: true,
 		refreshing: false,
-		failed: false,
 	});
 	await finish(gate, Exit.succeed(7));
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: false,
 		pending: false,
 		refreshing: false,
-		failed: false,
 	});
 	gate = Effect.runSync(Deferred.make<number, string>());
 	await act(async () => view.querySelector("button")?.click());
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: false,
 		pending: true,
 		refreshing: true,
-		failed: false,
 	});
 	await finish(gate, Exit.fail("unavailable"));
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: true,
 		pending: false,
 		refreshing: false,
-		failed: true,
 	});
 });
 
@@ -91,37 +91,37 @@ test("action renders ordinary success values and typed failures", async () => {
 		return createElement(
 			"button",
 			{
-				type: "button",
 				onClick: () => {
 					state.dispatch(5);
 				},
+				type: "button",
 			},
 			JSON.stringify({
-				pending: state.pending,
 				data: Option.getOrNull(state.data),
 				failed: Option.isSome(state.cause),
+				pending: state.pending,
 			}),
 		);
 	});
 	await act(async () => view.querySelector("button")?.click());
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: true,
 		data: null,
 		failed: false,
+		pending: true,
 	});
 	await finish(gate, Exit.succeed(2));
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: false,
 		data: 7,
 		failed: false,
+		pending: false,
 	});
 	gate = Effect.runSync(Deferred.make<number, string>());
 	await act(async () => view.querySelector("button")?.click());
 	await finish(gate, Exit.fail("denied"));
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: false,
 		data: 7,
 		failed: true,
+		pending: false,
 	});
 });
 
@@ -179,7 +179,7 @@ test("overlapping dispatches expose the latest native result", async () => {
 		const state = useAction(action);
 		return createElement(
 			"button",
-			{ type: "button", onClick: () => state.dispatch(input++) },
+			{ onClick: () => state.dispatch(input++), type: "button" },
 			Option.getOrElse(state.data, () => -1),
 		);
 	});

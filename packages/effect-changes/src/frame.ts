@@ -8,17 +8,17 @@ export interface Frame {
 }
 
 export interface Buffer<A> {
-	readonly kind: "transaction" | "batch";
 	readonly changes: Map<unknown, A>;
-	readonly parent: Buffer<A> | undefined;
+	readonly kind: "transaction" | "batch";
 	open: boolean;
+	readonly parent: Buffer<A> | undefined;
 }
 
 export const makeBuffer = <A>(kind: Buffer<A>["kind"], parent: Buffer<A> | undefined): Buffer<A> => ({
-	kind,
 	changes: new Map(),
-	parent,
+	kind,
 	open: true,
+	parent,
 });
 
 export const settled = (name: string): Effect.Effect<never> =>

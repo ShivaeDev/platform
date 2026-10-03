@@ -1,8 +1,8 @@
 import type { IncomingMessage } from "node:http";
 
 export interface NodeSubscriptionSignalOptions {
-	readonly request?: Request | undefined;
 	readonly nodeRequest?: IncomingMessage | undefined;
+	readonly request?: Request | undefined;
 	readonly signals?: Iterable<AbortSignal | undefined>;
 }
 

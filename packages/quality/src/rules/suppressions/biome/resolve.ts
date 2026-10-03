@@ -4,9 +4,9 @@ import { decodeWith } from "../../../decoded.ts";
 import type { RuleInputs } from "../../../rule.ts";
 
 const Manifest = Schema.Struct({
-	name: Schema.optionalKey(Schema.String),
-	main: Schema.optionalKey(Schema.String),
 	exports: Schema.optionalKey(Schema.Unknown),
+	main: Schema.optionalKey(Schema.String),
+	name: Schema.optionalKey(Schema.String),
 });
 
 type Manifest = typeof Manifest.Type;

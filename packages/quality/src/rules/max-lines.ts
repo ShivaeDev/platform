@@ -26,13 +26,13 @@ const oversized = (file: SourceFile, limit: number): ReadonlyArray<Finding> =>
 			];
 
 export const maxLines = defineRule({
-	id: "structure/max-lines",
-	description: "Keep each module to one job. Split a long file along its responsibilities; never golf it under the limit.",
-	options: Schema.toStandardSchemaV1(MaxLinesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	check: ({ options, sources }) => {
 		const tests = ignore().add([...options.testFiles]);
 		return sources
 			.filter((file) => !DECLARATION.test(file.path))
 			.flatMap((file) => oversized(file, tests.ignores(file.path) ? options.test : options.source));
 	},
+	description: "Keep each module to one job. Split a long file along its responsibilities; never golf it under the limit.",
+	id: "structure/max-lines",
+	options: Schema.toStandardSchemaV1(MaxLinesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 });

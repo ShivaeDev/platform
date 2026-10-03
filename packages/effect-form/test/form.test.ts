@@ -12,11 +12,11 @@ it.live("invalid submission reveals field errors and never calls the handler", (
 		let calls = 0;
 		const form = make(Schema.Struct({ name: Schema.NonEmptyString }), {
 			initialValues: { name: "" },
-			runtime,
 			onSubmit: () =>
 				Effect.sync(() => {
 					calls++;
 				}),
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.error("name"));
 		expect(registry.get(form.error("name"))).toBeUndefined();
@@ -33,8 +33,8 @@ it.live("changing a field clears its server rejection and a retry submits the ne
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(Schema.Struct({ name: Schema.String }), {
 			initialValues: { name: "taken" },
-			runtime,
 			onSubmit: (value, submitter) => (value.name === "taken" ? submitter.fail("name", "Already used") : Effect.succeed(value.name)),
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.error("name"));
 		registry.set(form.submit, undefined);
@@ -50,8 +50,8 @@ it.live("changing a field clears its server rejection and a retry submits the ne
 it("derives literal choices from the field schema", () => {
 	const form = make(Schema.Struct({ visibility: Schema.Literals(["private", "public"]) }), {
 		initialValues: { visibility: "private" },
-		runtime,
 		onSubmit: Effect.succeed,
+		runtime,
 	});
 	expect(form.choices("visibility")).toEqual(["private", "public"]);
 });
@@ -65,8 +65,8 @@ it("offers encoded literals when the field transforms them", () => {
 	);
 	const form = make(Schema.Struct({ choice }), {
 		initialValues: { choice: "yes" },
-		runtime,
 		onSubmit: Effect.succeed,
+		runtime,
 	});
 	expect(form.choices("choice")).toEqual(["yes", "no"]);
 });
@@ -76,8 +76,8 @@ it.live("prototype-named fields have ordinary choices and validation messages", 
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(Schema.Struct({ toString: Schema.NonEmptyString }), {
 			initialValues: { toString: "" },
-			runtime,
 			onSubmit: Effect.succeed,
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.error("toString"));
 		expect(form.choices("toString")).toBeUndefined();
@@ -97,13 +97,13 @@ it.live("a submit handler reads runtime services and reports a domain failure on
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(Schema.Struct({ slug: Schema.String, title: Schema.String }), {
 			initialValues: { slug: "root", title: "Ops" },
-			runtime: Atom.runtime(
-				Layer.succeed(Slugs)({ claim: (slug) => (slug === "root" ? Effect.fail(new SlugTaken({ slug })) : Effect.succeed(slug)) }),
-			),
 			onSubmit: (values, { fail }) =>
 				Effect.flatMap(Slugs, (slugs) => slugs.claim(values.slug)).pipe(
 					Effect.catchTag("SlugTaken", (taken) => fail("slug", `"${taken.slug}" is already in use`)),
 				),
+			runtime: Atom.runtime(
+				Layer.succeed(Slugs)({ claim: (slug) => (slug === "root" ? Effect.fail(new SlugTaken({ slug })) : Effect.succeed(slug)) }),
+			),
 		});
 		yield* AtomRegistry.mount(registry, form.error("slug"));
 		yield* AtomRegistry.mount(registry, form.error("title"));
@@ -122,8 +122,8 @@ it.live("dirty clears when an edit is undone", () =>
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(Schema.Struct({ name: Schema.String }), {
 			initialValues: { name: "" },
-			runtime,
 			onSubmit: Effect.succeed,
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.dirty);
 		form.change("name", "Ops");

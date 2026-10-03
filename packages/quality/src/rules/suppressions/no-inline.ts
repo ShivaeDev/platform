@@ -47,11 +47,6 @@ const unused = (declaration: Declaration): Finding => ({
 });
 
 export const noInline = defineRule({
-	id: "suppressions/no-inline",
-	description:
-		"A suppression silences a check at one site instead of fixing the cause. Fix the code; where a lint rule truly cannot apply, turn it off for that scope in the Biome config and declare it under suppressions/biome-overrides.",
-	options: Schema.toStandardSchemaV1(NoInlineOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
-	registrable: false,
 	check: async (inputs) => {
 		const { declared } = inputs.options;
 		const sites = [...inputs.sources.flatMap((file) => sitesIn(file.path, scanComments(file))), ...(await stylesheetSites(inputs))];
@@ -60,4 +55,9 @@ export const noInline = defineRule({
 			...declared.filter((declaration) => !sites.some((site) => allows(declaration, site))).map(unused),
 		];
 	},
+	description:
+		"A suppression silences a check at one site instead of fixing the cause. Fix the code; where a lint rule truly cannot apply, turn it off for that scope in the Biome config and declare it under suppressions/biome-overrides.",
+	id: "suppressions/no-inline",
+	options: Schema.toStandardSchemaV1(NoInlineOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	registrable: false,
 });

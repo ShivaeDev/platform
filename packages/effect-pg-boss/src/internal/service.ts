@@ -26,8 +26,8 @@ export const makeService = (client: PgBossClient, names: readonly string[]): PgB
 					);
 				}
 				return Effect.tryPromise({
-					try: () => client.send(queue.name, encoded, options),
 					catch: (error) => toPgBossError("enqueue", error, queue.name),
+					try: () => client.send(queue.name, encoded, options),
 				}).pipe(Effect.map(Option.fromNullishOr));
 			}),
 		),

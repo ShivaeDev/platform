@@ -13,12 +13,12 @@ export const scriptedClock = (startMs: number, onLine: (line: string, lines: Rea
 		let nowMs = startMs;
 		const lines: string[] = [];
 		const clock: Clock.Clock = {
-			currentTimeMillisUnsafe: () => nowMs,
 			currentTimeMillis: Effect.sync(() => nowMs),
-			currentTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
+			currentTimeMillisUnsafe: () => nowMs,
 			currentTimeNanos: Effect.sync(() => BigInt(nowMs) * 1_000_000n),
-			monotonicTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
+			currentTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
 			monotonicTimeNanos: Effect.sync(() => BigInt(nowMs) * 1_000_000n),
+			monotonicTimeNanosUnsafe: () => BigInt(nowMs) * 1_000_000n,
 			sleep: () => Effect.yieldNow,
 		};
 		const output: Console.Console = {

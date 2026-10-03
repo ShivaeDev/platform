@@ -4,8 +4,8 @@ import { SetupFailure } from "../failure.ts";
 
 export interface GitResult {
 	readonly code: number;
-	readonly stdout: string;
 	readonly stderr: string;
+	readonly stdout: string;
 }
 
 export type Git = ChildProcessSpawner.ChildProcessSpawner;

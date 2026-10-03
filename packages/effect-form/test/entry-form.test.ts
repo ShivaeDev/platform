@@ -24,15 +24,15 @@ const QuantityInput = Schema.String.pipe(
 	}),
 );
 const ExpenseEntry = Schema.Struct({
-	payee: Schema.Trim.check(Schema.isMinLength(1)),
-	subtotal: MoneyInput,
-	quantity: QuantityInput,
 	date: Schema.optional(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/))),
+	payee: Schema.Trim.check(Schema.isMinLength(1)),
+	quantity: QuantityInput,
+	subtotal: MoneyInput,
 });
 const initial: typeof ExpenseEntry.Encoded = {
 	payee: "  Northwind Cabs  ",
-	subtotal: "120.5",
 	quantity: "",
+	subtotal: "120.5",
 };
 
 it.live("a delayed save and refresh preserve newer quantity and date edits until explicit revert", () =>
@@ -42,8 +42,8 @@ it.live("a delayed save and refresh preserve newer quantity and date edits until
 		const release = yield* Deferred.make<void>();
 		const form = make(ExpenseEntry, {
 			initialValues: initial,
-			runtime,
 			onSubmit: (value) => Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value)),
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.dirty);
 		const date = fromRef(form.field("date"));
@@ -75,8 +75,8 @@ it.live("a refresh during an unrelated edit submits the refreshed subtotal, not 
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const form = make(ExpenseEntry, {
 			initialValues: { ...initial, subtotal: "300" },
-			runtime,
 			onSubmit: Effect.succeed,
+			runtime,
 		});
 		form.change("payee", "Harbor Hotel");
 		form.receive({ ...initial, subtotal: "350" });
