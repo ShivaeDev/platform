@@ -1,15 +1,15 @@
 {
-	"name": "@shivaedev/quality",
-	"version": "0.3.1",
-	"description": "Repository quality gate with typed rules, a shrink-only baseline and a registry of reasoned exceptions",
+	"name": "@shivaedev/local-postgres",
+	"version": "0.1.0",
+	"description": "Repeatable local PostgreSQL preparation with one shared persistent service",
 	"type": "module",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
-		"directory": "packages/quality"
+		"directory": "packages/local-postgres"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
 	},
@@ -17,13 +17,9 @@
 		"node": ">=24"
 	},
 	"sideEffects": false,
-	"bin": {
-		"quality": "./dist/cli.js"
-	},
 	"files": [
 		"dist",
 		"src",
-		"tsconfig",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -34,8 +30,6 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
-		"./tsconfig/base.json": "./tsconfig/base.json",
-		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
@@ -49,22 +43,10 @@
 		"typecheck": "tsc --noEmit",
 		"ready": "pnpm check && pnpm typecheck && pnpm test && pnpm build"
 	},
-	"dependencies": {
-		"ignore": "catalog:",
-		"typescript": "catalog:"
-	},
-	"peerDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/platform-node-shared": "catalog:",
-		"effect": "catalog:"
-	},
 	"devDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/platform-node-shared": "catalog:",
-		"@effect/vitest": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
-		"effect": "catalog:",
+		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}
 }

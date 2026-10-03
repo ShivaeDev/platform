@@ -6,6 +6,15 @@
 
 - Add tsconfig presets for TypeScript 7. `@shivaedev/quality/tsconfig/base.json` is for type-checking with `noEmit`. `@shivaedev/quality/tsconfig/package.json` is the base plus declaration output, declaration and source maps, and relative `.ts` imports rewritten to `.js`, for building a package. The base sets `target` and `lib` to ESNext with bundler resolution; type-checks JavaScript with `allowJs` and `checkJs`; turns on `strict` (stating `noImplicitAny` and `strictBuiltinIteratorReturn` explicitly), `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, `isolatedModules`, `erasableSyntaxOnly`, `noUncheckedSideEffectImports` and `forceConsistentCasingInFileNames`; and rejects unreachable code and unused labels. Dot access to index signatures stays allowed.
 
+## 0.3.1 - 2026-10-03
+
+### Changed
+
+- `quality baseline check` fetches the full history with `git fetch --unshallow`
+  when a shallow clone does not reach the merge base, and looks for it again
+  before it exits 2. The fetch never stops to ask for a
+  password.
+
 ## 0.3.0 - 2026-10-03
 
 ### Added

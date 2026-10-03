@@ -10,11 +10,11 @@ export interface GitResult {
 
 export type Git = ChildProcessSpawner.ChildProcessSpawner;
 
-export const git = (cwd: string, args: ReadonlyArray<string>): Effect.Effect<GitResult, SetupFailure, Git> =>
+export const git = (cwd: string, args: ReadonlyArray<string>, env?: Readonly<Record<string, string>>): Effect.Effect<GitResult, SetupFailure, Git> =>
 	Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-			const child = yield* spawner.spawn(ChildProcess.make("git", [...args], { cwd, stdin: "ignore" }));
+			const child = yield* spawner.spawn(ChildProcess.make("git", [...args], { cwd, env, extendEnv: true, stdin: "ignore" }));
 			const [stdout, stderr, code] = yield* Effect.all(
 				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 				{ concurrency: "unbounded" },

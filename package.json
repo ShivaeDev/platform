@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"packageManager": "pnpm@11.15.0+sha512.266f8957a30d2be6e9468e5e66bcdedd35a794175f71b067ba8504d686cce1d0c0f429b33c323c3c569ad4891e667574a49ff71d1b89a22cc66f13c65818c578",
+	"packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45",
 	"engines": {
 		"node": ">=24"
 	},
@@ -16,13 +16,15 @@
 		"format": "biome check --write .",
 		"heavy": "node packages/heavy-lock/src/cli.ts --",
 		"lint": "pnpm check && node script/lint.ts && pnpm lint:quality && pnpm lint:boundaries",
-		"lint:boundaries": "depcruise packages --config .dependency-cruiser.mjs",
+		"lint:boundaries": "node script/lint-boundaries.ts",
 		"lint:quality": "node packages/quality/src/cli.ts lint && node packages/quality/src/cli.ts baseline check",
-		"test": "node packages/heavy-lock/src/cli.ts -- pnpm --recursive --workspace-concurrency=1 --if-present test",
+		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
 		"test:package": "node packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
 		"typecheck": "node packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=1 --if-present typecheck'",
 		"typecheck:root": "tsc --noEmit",
-		"ready": "pnpm lint && pnpm build && pnpm typecheck && pnpm test && pnpm test:package"
+		"ready": "pnpm lint && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
+		"setup": "pnpm install --frozen-lockfile && pnpm db:setup",
+		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
@@ -33,6 +35,7 @@
 		"dependency-cruiser": "catalog:",
 		"effect": "catalog:",
 		"ignore": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"@shivaedev/local-postgres": "workspace:*"
 	}
 }
