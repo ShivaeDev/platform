@@ -2,7 +2,7 @@
 import { Effect } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { type ResumeWindow, resumeSignal } from "../src/index.ts";
 
 const syntheticWindow = () => {
@@ -52,7 +52,7 @@ const counted = () => {
 	};
 };
 
-test("visible browser resume, visible reconnect and native resume each refresh a query; hidden events do not", () => {
+it("visible browser resume, visible reconnect and native resume each refresh a query; hidden events do not", () => {
 	const browser = syntheticWindow();
 	const native = syntheticNative();
 	const resume = resumeSignal({ native: native.source, window: browser.window });
@@ -77,7 +77,7 @@ test("visible browser resume, visible reconnect and native resume each refresh a
 	expect(native.listeners.size).toBe(0);
 });
 
-test("swr treats resume as a focus signal and only revalidates stale data", () => {
+it("swr treats resume as a focus signal and only revalidates stale data", () => {
 	const native = syntheticNative();
 	const resume = resumeSignal({ native: native.source });
 	const fresh = counted();
@@ -92,7 +92,7 @@ test("swr treats resume as a focus signal and only revalidates stale data", () =
 	expect(native.listeners.size).toBe(0);
 });
 
-test("the browser window is a resume window", () => {
+it("the browser window is a resume window", () => {
 	const registry = AtomRegistry.make();
 	const resume = resumeSignal({ window });
 	registry.mount(resume);

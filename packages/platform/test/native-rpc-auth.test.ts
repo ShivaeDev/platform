@@ -4,7 +4,7 @@ import { getMigrations } from "better-auth/db/migration";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServerRequest } from "effect/unstable/http";
 import { Rpc, RpcClient, RpcGroup, RpcMiddleware, RpcSerialization, RpcServer } from "effect/unstable/rpc";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 
 const origin = "http://localhost:3000";
 class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
@@ -71,7 +71,7 @@ const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => 
 	);
 };
 
-test("BetterAuth issued cookies authenticate isolated native RPC requests and honor expiry and revocation", async () => {
+it("BetterAuth issued cookies authenticate isolated native RPC requests and honor expiry and revocation", async () => {
 	const { database, auth } = await createProvider();
 	const app = createRpc(auth);
 	const signup = async (name: string) => {

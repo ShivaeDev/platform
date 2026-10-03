@@ -2,12 +2,12 @@ import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Cause, Data, Effect, Layer, Logger } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { SqlClient } from "effect/unstable/sql";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { invalidateOnCommit, transact } from "../src/index.ts";
 
 class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
 
-test("a failing invalidation after commit is logged and the committed result stands", () => {
+it("a failing invalidation after commit is logged and the committed result stands", () => {
 	const logged: Array<{ readonly level: string; readonly message: unknown; readonly cause: string }> = [];
 	const logger = Logger.make((options) => {
 		logged.push({ cause: Cause.pretty(options.cause), level: options.logLevel, message: options.message });

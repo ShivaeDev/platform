@@ -4,7 +4,7 @@ import { Deferred, Effect, Result } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { makeOrderEditor } from "./order-example/frontend.tsx";
 import { startOrderServer } from "./order-example/http-test.ts";
 
@@ -73,7 +73,7 @@ const sessions = () =>
 		["expired-session", { expiresAt: 0, userId: "alice" }],
 	]);
 
-test("real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits", async () => {
+it("real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
 	const view = await mountEditor(server.url, "alice-session");
 	try {
@@ -117,7 +117,7 @@ test("real HTTP saves refetch the view, field rejection preserves storage, and r
 	}
 });
 
-test("edits made while a save is in flight survive its response and query refresh", async () => {
+it("edits made while a save is in flight survive its response and query refresh", async () => {
 	const entered = await Effect.runPromise(Deferred.make<void>());
 	const resumed = await Effect.runPromise(Deferred.make<void>());
 	const release = () => Effect.runPromise(Deferred.succeed(resumed, undefined));
@@ -146,7 +146,7 @@ test("edits made while a save is in flight survive its response and query refres
 	}
 });
 
-test("HTTP sessions isolate owners and a revoked session cannot save", async () => {
+it("HTTP sessions isolate owners and a revoked session cannot save", async () => {
 	const activeSessions = sessions();
 	const server = await startOrderServer({ sessions: activeSessions });
 	const alice = await mountEditor(server.url, "alice-session");
@@ -198,7 +198,7 @@ test("HTTP sessions isolate owners and a revoked session cannot save", async () 
 	}
 });
 
-test("saving one order refreshes it and the list without refetching another mounted order", async () => {
+it("saving one order refreshes it and the list without refetching another mounted order", async () => {
 	const gets = new Map<number, number>();
 	const server = await startOrderServer({
 		beforeGet: (id) =>

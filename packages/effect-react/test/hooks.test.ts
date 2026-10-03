@@ -5,7 +5,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { useAction, useQuery } from "../src/index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -36,7 +36,7 @@ const finish = async <A, E>(gate: Deferred.Deferred<A, E>, result: Exit.Exit<A, 
 	});
 };
 
-test("query renders retained data while refreshing and after a typed failure", async () => {
+it("query renders retained data while refreshing and after a typed failure", async () => {
 	let gate = Effect.runSync(Deferred.make<number, string>());
 	const query = Atom.make(Effect.suspend(() => Deferred.await(gate)));
 	const view = await mount(() => {
@@ -83,7 +83,7 @@ test("query renders retained data while refreshing and after a typed failure", a
 	});
 });
 
-test("action renders ordinary success values and typed failures", async () => {
+it("action renders ordinary success values and typed failures", async () => {
 	let gate = Effect.runSync(Deferred.make<number, string>());
 	const action = Atom.fn<number>()((input) => Effect.map(Deferred.await(gate), (value) => input + value));
 	const view = await mount(() => {
@@ -125,7 +125,7 @@ test("action renders ordinary success values and typed failures", async () => {
 	});
 });
 
-test("changing query identity does not retain data from the previous query", async () => {
+it("changing query identity does not retain data from the previous query", async () => {
 	const first = Atom.make(Effect.succeed("account A"));
 	const next = Atom.make(Effect.never);
 	const registry = AtomRegistry.make();
@@ -152,7 +152,7 @@ test("changing query identity does not retain data from the previous query", asy
 	expect(container.textContent).toBe("loading");
 });
 
-test("consumers of the same query share the native execution", async () => {
+it("consumers of the same query share the native execution", async () => {
 	let calls = 0;
 	const query = Atom.make(Effect.sync(() => ++calls));
 	const Child = () => createElement("span", null, Option.getOrNull(useQuery(query).data));
@@ -161,7 +161,7 @@ test("consumers of the same query share the native execution", async () => {
 	expect(calls).toBe(1);
 });
 
-test("overlapping dispatches expose the latest native result", async () => {
+it("overlapping dispatches expose the latest native result", async () => {
 	const first = Effect.runSync(Deferred.make<number>());
 	const second = Effect.runSync(Deferred.make<number>());
 	let interrupted = false;

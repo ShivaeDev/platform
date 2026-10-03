@@ -10,7 +10,7 @@ import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { useAction, useQuery } from "../src/index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -56,7 +56,7 @@ class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 	protocol: handlers,
 }) {}
 
-test("rendered create persists through RPC and refreshes its query; rejected saves preserve the list", async () => {
+it("rendered create persists through RPC and refreshes its query; rejected saves preserve the list", async () => {
 	const registry = AtomRegistry.make();
 	const container = document.createElement("div");
 	document.body.append(container);

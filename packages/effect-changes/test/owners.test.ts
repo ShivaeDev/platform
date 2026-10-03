@@ -1,5 +1,5 @@
 import { Cause, Effect, Exit } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import type { ChannelOptions } from "../src/index.ts";
 import { type Change, Current, change, harness, makeDatabase } from "./support/fake-database.ts";
 
@@ -9,7 +9,7 @@ const setup = (options: Partial<ChannelOptions<Change, Current>> = {}) => ({
 	other: makeDatabase("other"),
 });
 
-test("a frame on another owner inside a frame is a root for that owner and publishes at its own commit", () =>
+it("a frame on another owner inside a frame is a root for that owner and publishes at its own commit", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, inTransaction, write, main, other } = setup();
@@ -26,7 +26,7 @@ test("a frame on another owner inside a frame is a root for that owner and publi
 		}),
 	));
 
-test("re-entering an owner inside another owner's frame joins the first owner's frame", () =>
+it("re-entering an owner inside another owner's frame joins the first owner's frame", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, inTransaction, write, main, other } = setup();
@@ -46,7 +46,7 @@ test("re-entering an owner inside another owner's frame joins the first owner's 
 		}),
 	));
 
-test("changes follow the owner that recorded them, not the innermost frame", () =>
+it("changes follow the owner that recorded them, not the innermost frame", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, inTransaction, write, main, other } = setup();
@@ -65,7 +65,7 @@ test("changes follow the owner that recorded them, not the innermost frame", () 
 		}),
 	));
 
-test("the unowned guard runs for a record or a root frame without an enclosing transaction frame, never inside one", () =>
+it("the unowned guard runs for a record or a root frame without an enclosing transaction frame, never inside one", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const guarded: Array<string> = [];

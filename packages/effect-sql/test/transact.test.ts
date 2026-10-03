@@ -2,7 +2,7 @@ import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Cause, Context, Data, Deferred, Effect, Exit, Fiber, Layer } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { SqlClient } from "effect/unstable/sql";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { invalidateOnCommit, transact } from "../src/index.ts";
 
 class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
@@ -26,7 +26,7 @@ const setup = Effect.gen(function* () {
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) =>
 	Effect.runPromise(effect.pipe(Effect.provide(Layer.merge(SqliteClient.layer({ filename: ":memory:" }), Reactivity.layer))));
 
-test("a committed transaction invalidates its marked keys once, after the body finishes", () =>
+it("a committed transaction invalidates its marked keys once, after the body finishes", () =>
 	run(
 		Effect.gen(function* () {
 			const { events, insert, count } = yield* setup;
@@ -41,7 +41,7 @@ test("a committed transaction invalidates its marked keys once, after the body f
 		}),
 	));
 
-test("a typed failure or an interruption rolls back without invalidating", () =>
+it("a typed failure or an interruption rolls back without invalidating", () =>
 	run(
 		Effect.gen(function* () {
 			const { events, insert, count } = yield* setup;
@@ -69,7 +69,7 @@ test("a typed failure or an interruption rolls back without invalidating", () =>
 		}),
 	));
 
-test("a failed commit does not invalidate", () =>
+it("a failed commit does not invalidate", () =>
 	run(
 		Effect.gen(function* () {
 			const { sql, events } = yield* setup;
@@ -82,7 +82,7 @@ test("a failed commit does not invalidate", () =>
 		}),
 	));
 
-test("nested transactions flush once at the outermost commit and discard keys from a rolled-back savepoint", () =>
+it("nested transactions flush once at the outermost commit and discard keys from a rolled-back savepoint", () =>
 	run(
 		Effect.gen(function* () {
 			const { events, insert, count } = yield* setup;
@@ -105,7 +105,7 @@ test("nested transactions flush once at the outermost commit and discard keys fr
 		}),
 	));
 
-test("SQL failures map through the caller's mapper and native outer transactions are refused", () =>
+it("SQL failures map through the caller's mapper and native outer transactions are refused", () =>
 	run(
 		Effect.gen(function* () {
 			const { sql, events, insert } = yield* setup;
@@ -123,7 +123,7 @@ test("SQL failures map through the caller's mapper and native outer transactions
 		}),
 	));
 
-test("a transaction on another database inside a transaction announces its own commit even when the outer one rolls back", () =>
+it("a transaction on another database inside a transaction announces its own commit even when the outer one rolls back", () =>
 	run(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -152,7 +152,7 @@ test("a transaction on another database inside a transaction announces its own c
 		),
 	));
 
-test("marking keys from a fiber that outlives its transaction dies instead of dropping them", () =>
+it("marking keys from a fiber that outlives its transaction dies instead of dropping them", () =>
 	run(
 		Effect.gen(function* () {
 			const { events, insert } = yield* setup;
@@ -176,7 +176,7 @@ const secondDatabase = Effect.gen(function* () {
 	return { onMain: Effect.provideService(SqlClient.SqlClient, main), onOther: Effect.provideService(SqlClient.SqlClient, other), other, otherIds };
 });
 
-test("a transaction re-entered on a database inside a transaction on another database joins its own outer transaction", () =>
+it("a transaction re-entered on a database inside a transaction on another database joins its own outer transaction", () =>
 	run(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -203,7 +203,7 @@ test("a transaction re-entered on a database inside a transaction on another dat
 		),
 	));
 
-test("keys follow the database that wrote them, not the innermost transaction", () =>
+it("keys follow the database that wrote them, not the innermost transaction", () =>
 	run(
 		Effect.scoped(
 			Effect.gen(function* () {

@@ -1,11 +1,11 @@
 import { Effect, Layer } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import type { Observation } from "../src/index.ts";
 import { type Change, change, harness, makeDatabase, on } from "./support/fake-database.ts";
 
 const label = (event: Change) => `${event.subject}:${event.domain}`;
 
-test("a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards", () =>
+it("a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
@@ -27,7 +27,7 @@ test("a Layer swaps a channel's sink for its scope; the configured sink is untou
 		}),
 	));
 
-test("an observer sees every recorded change and whether it was published or discarded", () =>
+it("an observer sees every recorded change and whether it was published or discarded", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();

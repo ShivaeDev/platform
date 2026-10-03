@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { makePrismaChanges, type UnnamedWrite } from "../src/index.ts";
 
 interface Row {
@@ -39,7 +39,7 @@ const harness = () => {
 	return { published, record, unnamed };
 };
 
-test("recordWrite applies the map to a write observed by the application's own client", () =>
+it("recordWrite applies the map to a write observed by the application's own client", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, unnamed, record } = harness();

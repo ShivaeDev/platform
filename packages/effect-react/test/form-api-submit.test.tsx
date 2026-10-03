@@ -6,7 +6,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { type Create, type Editor, useCreate, useEditor } from "../src/form.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -52,7 +52,7 @@ const creating = async () => {
 	return { current, names, registry };
 };
 
-test("a create submitted through the form's own API records the result and resets the form", async () => {
+it("a create submitted through the form's own API records the result and resets the form", async () => {
 	const { names, current } = await creating();
 	current().create.form.change("name", "Desk lamps ");
 	await act(async () => current().submit.run());
@@ -62,7 +62,7 @@ test("a create submitted through the form's own API records the result and reset
 	expect(names).toEqual(["Desk lamps ", ""]);
 });
 
-test("a form-API create after an earlier save() compares against its own submission", async () => {
+it("a form-API create after an earlier save() compares against its own submission", async () => {
 	const { registry, current } = await creating();
 	current().create.form.change("name", "Desk lamps");
 	await act(async () => current().create.save());
@@ -72,7 +72,7 @@ test("a form-API create after an earlier save() compares against its own submiss
 	expect(current().create.form.values.value).toEqual({ name: "" });
 });
 
-test("an edit typed while an async schema decodes the submission survives the create reset", async () => {
+it("an edit typed while an async schema decodes the submission survives the create reset", async () => {
 	const decoding = Promise.withResolvers<void>();
 	const decoded = (value: string) =>
 		Effect.as(
@@ -104,7 +104,7 @@ test("an edit typed while an async schema decodes the submission survives the cr
 	expect(current().form.values.value).toEqual({ name: "Desk lamps and chairs" });
 });
 
-test("an edit submitted through the form's own API receives the normalized saved row", async () => {
+it("an edit submitted through the form's own API receives the normalized saved row", async () => {
 	const query = Atom.make(Effect.succeed<Order>({ id: 1, name: "desk lamps" }));
 	const save = (values: { readonly name: string }) => Effect.succeed<Order>({ id: 1, name: values.name.toUpperCase() });
 	const held: { editor?: Editor<NameFields, Order, never, never, never> } = {};

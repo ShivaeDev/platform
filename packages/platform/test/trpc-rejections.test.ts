@@ -5,7 +5,7 @@ import { initTRPC } from "@trpc/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
 import superjson from "superjson";
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, it } from "vitest";
 import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
@@ -58,7 +58,7 @@ const rename = async (name: string): Promise<unknown> => {
 
 afterAll(() => runtime.dispose());
 
-test("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form", async () => {
+it("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form", async () => {
 	const taken = await rename("taken");
 
 	expect(taken).toMatchObject({ data: { code: "CONFLICT", httpStatus: 409 } });
@@ -67,7 +67,7 @@ test("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form
 	expect(Option.flatMap(rejectionOf(await rename("required")), rejectedField)).toEqual(Option.some({ field: "name", message: "Name is required" }));
 });
 
-test("taxonomy errors without a field keep their code and are not field rejections", async () => {
+it("taxonomy errors without a field keep their code and are not field rejections", async () => {
 	const [malformed, stale, busy, missing, outage] = await Promise.all([
 		rename("malformed"),
 		rename("stale"),
@@ -92,7 +92,7 @@ test("taxonomy errors without a field keep their code and are not field rejectio
 	expect(missing).toMatchObject({ data: { code: "NOT_FOUND", httpStatus: 404 } });
 });
 
-test("an input the procedure's schema rejects reaches the form as a BadRequest field rejection", async () => {
+it("an input the procedure's schema rejects reaches the form as a BadRequest field rejection", async () => {
 	const invalid = await rename("");
 
 	expect(invalid).toMatchObject({ data: { code: "BAD_REQUEST", httpStatus: 400 } });

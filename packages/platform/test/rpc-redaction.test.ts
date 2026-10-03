@@ -2,7 +2,7 @@ import { inspect } from "node:util";
 import { Cause, Effect, ErrorReporter, Exit, Layer, Schema } from "effect";
 import { Headers } from "effect/unstable/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { RequestTracing } from "../src/rpc.ts";
 import { betterAuthSessions, redact, redactingErrorReporter, requestTracingLayer } from "../src/rpc-server.ts";
 import { recorder } from "./rpc/support.ts";
@@ -12,7 +12,7 @@ const leaks = (value: unknown, secrets: ReadonlyArray<string>) => {
 	return secrets.filter((secret) => rendered.includes(secret));
 };
 
-test("credential-shaped keys are redacted whatever their casing or separator", () => {
+it("credential-shaped keys are redacted whatever their casing or separator", () => {
 	const keys = [
 		"jwt",
 		"idJwt",
@@ -32,7 +32,7 @@ test("credential-shaped keys are redacted whatever their casing or separator", (
 	expect(redact({ panel: "visible", sessions: 3 })).toEqual({ panel: "visible", sessions: 3 });
 });
 
-test("anti-forgery, one-time code, access key and bank account names are redacted by word", () => {
+it("anti-forgery, one-time code, access key and bank account names are redacted by word", () => {
 	const keys = [
 		"csrf",
 		"csrfToken",
@@ -54,12 +54,12 @@ test("anti-forgery, one-time code, access key and bank account names are redacte
 	expect(redact(visible)).toEqual(visible);
 });
 
-test("long strings are cut with a marker counting the dropped characters", () => {
+it("long strings are cut with a marker counting the dropped characters", () => {
 	expect(redact({ note: `${"a".repeat(2048)}${"b".repeat(952)}` })).toEqual({ note: `${"a".repeat(2048)}…<952 more chars>` });
 	expect(redact("short")).toBe("short");
 });
 
-test("credential-shaped text inside strings is masked", () => {
+it("credential-shaped text inside strings is masked", () => {
 	const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.c2lnbmF0dXJlLXBsYWludGV4dA";
 	const redacted = redact({
 		detail: "retry with password=hunter2-plaintext&user=alice, token: tok-plaintext",
@@ -74,7 +74,7 @@ test("credential-shaped text inside strings is masked", () => {
 	});
 });
 
-test("large collections and binary data are summarised instead of walked", () => {
+it("large collections and binary data are summarised instead of walked", () => {
 	const redacted = redact({
 		buffer: new ArrayBuffer(16),
 		items: Array.from({ length: 500 }, (_, index) => index),
@@ -100,7 +100,7 @@ const Handlers = Crashes.toLayer({
 			: Effect.die(new LeakyDefect("leaky defect", { cause: { reason: "nested", token: "token-plaintext" } })),
 });
 
-test("defect logs keep the error's shape but redact its fields and cause", async () => {
+it("defect logs keep the error's shape but redact its fields and cause", async () => {
 	const recorded = recorder();
 	await Effect.runPromise(
 		Effect.gen(function* () {
@@ -118,7 +118,7 @@ test("defect logs keep the error's shape but redact its fields and cause", async
 	]);
 });
 
-test("provider failures are logged without credential fields", async () => {
+it("provider failures are logged without credential fields", async () => {
 	const recorded = recorder();
 	const failing = betterAuthSessions(() => Promise.reject(Object.assign(new Error("database closed"), { cookie: "session=cookie-plaintext" })));
 	await Effect.runPromise(Effect.exit(failing.get(Headers.empty)).pipe(Effect.provide(recorded.layer)));
@@ -127,7 +127,7 @@ test("provider failures are logged without credential fields", async () => {
 	expect(leaks(recorded.logs, ["cookie-plaintext"])).toEqual([]);
 });
 
-test("the cause seen by the client, error reporters and the server span has redacted defects", async () => {
+it("the cause seen by the client, error reporters and the server span has redacted defects", async () => {
 	const recorded = recorder();
 	const reported: Array<Cause.Cause<unknown>> = [];
 	const reporter = ErrorReporter.make(({ cause }) => {
@@ -161,7 +161,7 @@ test("the cause seen by the client, error reporters and the server span has reda
 	expect(defect).toMatchObject({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" });
 });
 
-test("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", async () => {
+it("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", async () => {
 	const reported: Array<{ readonly error: Error; readonly severity: string; readonly attributes: unknown }> = [];
 	const inner = ErrorReporter.make(({ error, severity, attributes }) => {
 		reported.push({ attributes, error, severity });

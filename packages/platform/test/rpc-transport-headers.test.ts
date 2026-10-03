@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { trustedOrigins } from "../src/rpc-server.ts";
 import { makeApp } from "./rpc/api.ts";
 import { createProvider, origin, signup } from "./rpc/support.ts";
@@ -20,7 +20,7 @@ const post = async (
 	return JSON.stringify(await response.json());
 };
 
-test("client-supplied message headers cannot satisfy the origin policy or carry credentials", async () => {
+it("client-supplied message headers cannot satisfy the origin policy or carry credentials", async () => {
 	const provider = await createProvider();
 	const { app } = makeApp(provider, browser);
 	try {

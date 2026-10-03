@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcTest } from "effect/unstable/rpc";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { bind } from "../src/index.ts";
 import { makeServer, Notes } from "./notes.ts";
 
@@ -23,7 +23,7 @@ const setup = async () => {
 	return { api, reads, registry, run, server };
 };
 
-test("queries register their declared read keys and commands invalidate item and list after success only", async () => {
+it("queries register their declared read keys and commands invalidate item and list after success only", async () => {
 	const { api, registry, run, reads } = await setup();
 	const one = api.get.query({ id: 1 });
 	const two = api.get.query({ id: 2 });
@@ -47,7 +47,7 @@ test("queries register their declared read keys and commands invalidate item and
 	}
 });
 
-test("result-dependent invalidation refreshes the item a command created", async () => {
+it("result-dependent invalidation refreshes the item a command created", async () => {
 	const { api, registry, run, reads } = await setup();
 	const three = api.get.query({ id: 3 });
 	const release = registry.mount(three);
@@ -62,7 +62,7 @@ test("result-dependent invalidation refreshes the item a command created", async
 	}
 });
 
-test("query run performs a one-off typed call without registering keys", async () => {
+it("query run performs a one-off typed call without registering keys", async () => {
 	const { api, registry, run } = await setup();
 	try {
 		const found = await run(api.get.run({ id: 2 }));

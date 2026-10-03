@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 
 interface Client {
 	$transaction<X>(run: (tx: Client) => Promise<X>): Promise<X>;
@@ -14,7 +14,7 @@ const bind = async () => {
 	return makePrismaChanges({ client, models: {}, name: "Same", publish: () => Effect.void });
 };
 
-test("bindings with the same name from two copies of the package keep their clients apart", async () => {
+it("bindings with the same name from two copies of the package keep their clients apart", async () => {
 	const first = await bind();
 	const second = await bind();
 

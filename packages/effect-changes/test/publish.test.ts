@@ -1,5 +1,5 @@
 import { Cause, Effect, Exit } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import type { Publish } from "../src/index.ts";
 import { type Change, type Current, captureLogs, change, harness, makeDatabase } from "./support/fake-database.ts";
 
@@ -24,7 +24,7 @@ const logged = (changes: number, reason: string) => ({
 
 const defect = (exit: Exit.Exit<unknown, unknown>) => (Exit.isFailure(exit) && Cause.hasDies(exit.cause) ? Cause.pretty(exit.cause) : "no defect");
 
-test.each(failing)(
+it.each(failing)(
 	"a sink that fails after commit with %s is logged with its cause by default and the committed result stands",
 	(_, reason, publish) => {
 		const logs = captureLogs();
@@ -42,7 +42,7 @@ test.each(failing)(
 	},
 );
 
-test.each(failing)(
+it.each(failing)(
 	"with onPublishFailure set to die, a sink that fails with %s raises a defect while the data stays committed",
 	(_, reason, publish) => {
 		const logs = captureLogs();

@@ -5,7 +5,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { Activity, act, createElement, StrictMode, useContext, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
 import { startOrderServer } from "./order-example/http-test.ts";
 import { sessions, shell } from "./support/session.ts";
@@ -18,7 +18,7 @@ const eventually = (assert: () => void) =>
 		assert();
 	});
 
-test("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
+it("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
 	const view = shell(server.url);
 	try {
@@ -50,7 +50,7 @@ test("each session generation owns a fresh client and registry; switching, signi
 	expect(view.registries[2]?.getNodes().size).toBe(0);
 });
 
-test("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
+it("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
 	const active = sessions();
 	const server = await startOrderServer({ sessions: active });
 	const view = shell(server.url);
@@ -74,7 +74,7 @@ test("Unauthorized keeps the retained screen and asks the auth owner to re-check
 	}
 });
 
-test("refresh retry recovers without losing the session's dirty form", async () => {
+it("refresh retry recovers without losing the session's dirty form", async () => {
 	const active = sessions();
 	const server = await startOrderServer({ sessions: active });
 	const view = shell(server.url);
@@ -96,7 +96,7 @@ test("refresh retry recovers without losing the session's dirty form", async () 
 	}
 });
 
-test("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
+it("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	const count = Atom.make(Effect.succeed(41));
@@ -174,11 +174,11 @@ const activity = async (hoisted: boolean) => {
 	expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
 };
 
-test("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
+it("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
 
-test("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
+it("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
 
-test("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
+it("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
 	const built: number[] = [];
 	const finalized: number[] = [];
 	const rendered: number[] = [];
@@ -219,7 +219,7 @@ test("a generation re-rendered while hidden by <Activity> and then unmounted dis
 	await eventually(() => expect(finalized).toHaveLength(built.length));
 });
 
-test("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
+it("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
 	interface Rotating {
 		readonly credential: number;
 		readonly id: string;

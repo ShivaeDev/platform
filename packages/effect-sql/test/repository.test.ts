@@ -2,7 +2,7 @@ import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Context, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
-import { expect, expectTypeOf, test } from "vitest";
+import { expect, expectTypeOf, it } from "vitest";
 import { makeRepository } from "../src/index.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
@@ -30,7 +30,7 @@ const setup = Effect.gen(function* () {
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
 	Effect.runPromise(effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:" }))));
 
-test("model variants derive CRUD while field codecs drive filters and selections", async () => {
+it("model variants derive CRUD while field codecs drive filters and selections", async () => {
 	await run(
 		Effect.gen(function* () {
 			const { lines, sql } = yield* setup;
@@ -72,7 +72,7 @@ test("model variants derive CRUD while field codecs drive filters and selections
 	);
 });
 
-test("repository writes participate in the caller's native transaction", async () => {
+it("repository writes participate in the caller's native transaction", async () => {
 	await run(
 		Effect.gen(function* () {
 			const { lines, sql } = yield* setup;
@@ -91,7 +91,7 @@ test("repository writes participate in the caller's native transaction", async (
 	);
 });
 
-test("query decoding and invalid limits remain typed failures", async () => {
+it("query decoding and invalid limits remain typed failures", async () => {
 	await run(
 		Effect.gen(function* () {
 			const { lines, sql } = yield* setup;
@@ -107,7 +107,7 @@ test("query decoding and invalid limits remain typed failures", async () => {
 	);
 });
 
-test("undefined filter values leave that field unconstrained", async () => {
+it("undefined filter values leave that field unconstrained", async () => {
 	await run(
 		Effect.gen(function* () {
 			const { lines } = yield* setup;
@@ -124,7 +124,7 @@ test("undefined filter values leave that field unconstrained", async () => {
 	);
 });
 
-test("unknown runtime field names fail as SchemaError", async () => {
+it("unknown runtime field names fail as SchemaError", async () => {
 	const unknownField = (): "name" => JSON.parse('"missing"');
 	await run(
 		Effect.gen(function* () {
@@ -157,7 +157,7 @@ class Label extends Model.Class<Label>("Label")({
 	name: Prefixed,
 }) {}
 
-test("field codec services remain available when filtering and decoding selected rows", async () => {
+it("field codec services remain available when filtering and decoding selected rows", async () => {
 	const program = Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`create table label (id integer primary key, name text not null)`;

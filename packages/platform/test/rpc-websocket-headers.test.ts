@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { HttpServerRequest } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket } from "effect/unstable/socket";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { trustedOrigins } from "../src/rpc-server.ts";
 import { Api, serverLayer } from "./rpc/api.ts";
 import { createProvider, origin, type Provider, signup } from "./rpc/support.ts";
@@ -35,7 +35,7 @@ const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<stri
 	);
 };
 
-test("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
+it("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
 	const provider = await createProvider();
 	try {
 		const alice = await signup(provider, "alice");

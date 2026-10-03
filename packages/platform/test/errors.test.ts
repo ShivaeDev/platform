@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
 import { httpClient, rpcHttp, serve } from "./rpc/support.ts";
 
@@ -18,7 +18,7 @@ const Handlers = Profiles.toLayer({
 	},
 });
 
-test("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
+it("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
 	const app = serve(rpcHttp(Profiles).pipe(Layer.provide(Handlers)));
 	try {
 		const rename = (name: string) =>
@@ -47,7 +47,7 @@ test("taxonomy errors cross native RPC JSON as decoded instances with their fiel
 
 class Invalid extends Schema.TaggedError<Invalid>()("Invalid", { field: Schema.Literals(["title"]), message: Schema.String }) {}
 
-test("taxonomy errors encode to tagged JSON and any tagged error with a field is a field rejection", () => {
+it("taxonomy errors encode to tagged JSON and any tagged error with a field is a field rejection", () => {
 	expect(Schema.encodeSync(Rejection)(new Conflict({ field: "name", message: "Name is taken" }))).toEqual({
 		_tag: "Conflict",
 		field: "name",

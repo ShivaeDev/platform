@@ -3,7 +3,7 @@ import { RegistryContext } from "@effect/atom-react";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "./invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "./invoice-line-editor/frontend.ts";
@@ -79,7 +79,7 @@ const editing = async (id = 1) => {
 	return { registry: () => registry, server, show, view };
 };
 
-test("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
+it("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "Blue stapler");
 	server.control.mode = "unavailable";
@@ -94,7 +94,7 @@ test("loading, then a refresh failure keeps the data and dirty edits; retry reco
 	expect(view.status()).toBe("Unsaved");
 });
 
-test("a refresh while dirty adopts untouched fields and keeps edited ones", async () => {
+it("a refresh while dirty adopts untouched fields and keeps edited ones", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "Black stapler");
 	server.edit(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
@@ -103,7 +103,7 @@ test("a refresh while dirty adopts untouched fields and keeps edited ones", asyn
 	expect(view.value("name")).toBe("Black stapler");
 });
 
-test("save shows server normalization, keeps edits made while saving and ignores a second submit", async () => {
+it("save shows server normalization, keeps edits made while saving and ignores a second submit", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "  blue stapler ");
 	const release = server.hold();
@@ -119,7 +119,7 @@ test("save shows server normalization, keeps edits made while saving and ignores
 	expect(server.stored(1)).toEqual(new InvoiceLine({ id: 1, name: "Blue stapler", quantity: 150 }));
 });
 
-test("field rejections attach to their field; other failures are exposed separately", async () => {
+it("field rejections attach to their field; other failures are exposed separately", async () => {
 	const { server, view } = await editing();
 	await view.type("quantity", "9000");
 	await view.click("Save");
@@ -134,7 +134,7 @@ test("field rejections attach to their field; other failures are exposed separat
 	expect(server.stored(1)).toEqual(stapler);
 });
 
-test("a different key remounts the form without carrying the previous draft", async () => {
+it("a different key remounts the form without carrying the previous draft", async () => {
 	const { view, show } = await editing();
 	await view.type("name", "Draft");
 	await show(2);
@@ -144,7 +144,7 @@ test("a different key remounts the form without carrying the previous draft", as
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
 });
 
-test("create resets to its initial values after success, keeping fields edited during the save", async () => {
+it("create resets to its initial values after success, keeping fields edited during the save", async () => {
 	const server = makeInvoiceLineServer([stapler]);
 	const { InvoiceLineCreate } = makeInvoiceLineViews(server);
 	const view = mount();
@@ -175,7 +175,7 @@ test("create resets to its initial values after success, keeping fields edited d
 	expect([view.value("name"), view.value("quantity"), view.status()]).toEqual(["", "", "Saved"]);
 });
 
-test("switching session tears down the editor, its draft and its registry; Unauthorized asks for a re-check", async () => {
+it("switching session tears down the editor, its draft and its registry; Unauthorized asks for a re-check", async () => {
 	const servers = {
 		alice: makeInvoiceLineServer([stapler]),
 		bob: makeInvoiceLineServer([new InvoiceLine({ id: 1, name: "Envelope", quantity: 80 })]),

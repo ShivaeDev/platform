@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Redacted, Schema } from "effect";
 import { Rpc, type RpcClient, RpcGroup, RpcTest } from "effect/unstable/rpc";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { Conflict, rejectedField } from "../src/errors.ts";
 import { RequestId, RequestTracing } from "../src/rpc.ts";
 import { isSensitiveKey, type RequestTracingOptions, requestTracingLayer } from "../src/rpc-server.ts";
@@ -45,7 +45,7 @@ const run = async <A, E>(options: RequestTracingOptions, program: (client: RpcCl
 	return { value, ...recorded };
 };
 
-test("a caller's request id reaches handlers, log annotations and the RPC server span", async () => {
+it("a caller's request id reaches handlers, log annotations and the RPC server span", async () => {
 	const { value, logs, spans } = await run({}, (client) => client.Echo(undefined, { headers: { "x-request-id": "trace-7f3a" } }));
 	expect(value).toBe("trace-7f3a");
 	expect(annotationsOf(logs, "echo")).toEqual([{ requestId: "trace-7f3a", "rpc.method": "Echo" }]);
@@ -53,7 +53,7 @@ test("a caller's request id reaches handlers, log annotations and the RPC server
 	expect(Object.fromEntries(span?.attributes ?? [])).toMatchObject({ "request.id": "trace-7f3a", "rpc.method": "Echo" });
 });
 
-test("missing or malformed request ids are replaced with generated ones", async () => {
+it("missing or malformed request ids are replaced with generated ones", async () => {
 	const { value } = await run({ header: "x-correlation-id" }, (client) =>
 		Effect.all([
 			client.Echo(),
@@ -67,7 +67,7 @@ test("missing or malformed request ids are replaced with generated ones", async 
 	expect(value[3]).toBe("accepted-id");
 });
 
-test("failure logs carry a redacted payload while the declared field rejection reaches the caller", async () => {
+it("failure logs carry a redacted payload while the declared field rejection reaches the caller", async () => {
 	const { value, logs } = await run({}, (client) =>
 		Effect.all([Effect.flip(client.Register(registration)), Effect.exit(client.Crash(registration))], { concurrency: 1 }),
 	);
@@ -90,7 +90,7 @@ test("failure logs carry a redacted payload while the declared field rejection r
 	for (const secret of ["hunter2", "key-plaintext", "refresh-plaintext", "note-plaintext"]) expect(serialized).not.toContain(secret);
 });
 
-test("applications extend the sensitive-key policy", async () => {
+it("applications extend the sensitive-key policy", async () => {
 	const { logs } = await run({ sensitive: (key) => isSensitiveKey(key) || key === "email" }, (client) => Effect.flip(client.Register(registration)));
 	expect(annotationsOf(logs, "RPC failure")[0]?.["rpc.payload"]).toMatchObject({ email: "<redacted>", password: "<redacted>" });
 	expect(annotationsOf(logs, "echo")).toEqual([]);
