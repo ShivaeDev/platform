@@ -1,6 +1,6 @@
 import { realpathSync } from "node:fs";
 import { isBuiltin } from "node:module";
-import { relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import ts from "typescript";
 import { posix } from "../inventory/ignore-scope.ts";
 import type { Ambient } from "./ambient.ts";
@@ -28,11 +28,23 @@ export function builtinName(specifier: string): string | undefined {
 	return specifier.startsWith(NODE_PREFIX) ? specifier : `${NODE_PREFIX}${specifier}`;
 }
 
-function nameAt(path: string): string {
-	const [first = "", second] = path.split("/");
-	return first.startsWith("@") && second !== undefined ? `${first}/${second}` : first;
+const TYPES_SCOPE = "@types";
+
+const TYPES_SCOPE_SEPARATOR = "__";
+
+function typedName(name: string): string {
+	return name.includes(TYPES_SCOPE_SEPARATOR) ? `@${name.replace(TYPES_SCOPE_SEPARATOR, "/")}` : name;
 }
 
+function nameAt(path: string): string {
+	const [first = "", second] = path.split("/");
+	if (second === undefined || !first.startsWith("@")) {
+		return first;
+	}
+	return first === TYPES_SCOPE ? typedName(second) : `${first}/${second}`;
+}
+
+// The example checker and the graph name a package through this one function, so a fence example and a real import cannot disagree.
 export function packageNameOf(specifier: string): string {
 	return builtinName(specifier) ?? nameAt(specifier);
 }
@@ -47,24 +59,31 @@ const assetHost: ts.ModuleResolutionHost = {
 	fileExists: (path) => ts.sys.fileExists(path) || (ASSET_DECLARATION.test(path) && ts.sys.fileExists(assetOf(path))),
 };
 
-function declaredPath(declared: string, type: boolean): string | undefined {
-	if (ASSET_DECLARATION.test(declared) && ts.sys.fileExists(assetOf(declared))) {
-		return assetOf(declared);
+function fitting(resolved: string, type: boolean): string | undefined {
+	if (ASSET_DECLARATION.test(resolved) && ts.sys.fileExists(assetOf(resolved))) {
+		return assetOf(resolved);
 	}
-	return type || !DECLARATION.test(declared) ? declared : undefined;
+	return type || !DECLARATION.test(resolved) ? resolved : undefined;
+}
+
+function located(request: ImportRequest, from: string, project: Project): string | undefined {
+	const specifier = request.specifier.replace(QUERY, "");
+	if (request.kind === "type-reference") {
+		return ts.resolveTypeReferenceDirective(specifier, from, project.typesOptions, ts.sys).resolvedTypeReferenceDirective?.resolvedFileName;
+	}
+	if (request.kind === "path-reference") {
+		const path = join(dirname(from), specifier);
+		return ts.sys.fileExists(path) ? path : undefined;
+	}
+	return (
+		ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache).resolvedModule?.resolvedFileName
+		?? ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache).resolvedModule?.resolvedFileName
+	);
 }
 
 function resolvedPath(request: ImportRequest, from: string, project: Project): string | undefined {
-	const specifier = request.specifier.replace(QUERY, "");
-	if (request.kind === "reference") {
-		return ts.resolveTypeReferenceDirective(specifier, from, project.typesOptions, ts.sys).resolvedTypeReferenceDirective?.resolvedFileName;
-	}
-	const runtime = ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache).resolvedModule;
-	if (runtime !== undefined) {
-		return runtime.resolvedFileName;
-	}
-	const declared = ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache).resolvedModule?.resolvedFileName;
-	return declared === undefined ? undefined : declaredPath(declared, request.type);
+	const path = located(request, from, project);
+	return path === undefined ? undefined : fitting(path, request.type);
 }
 
 function endpointAt(root: string, specifier: string, path: string): Endpoint {

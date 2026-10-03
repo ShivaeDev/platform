@@ -9,7 +9,7 @@ const ResolvableOptions = Schema.Struct({
 
 export const importsResolvable = defineRule({
 	check: async ({ options, ...inputs }) => {
-		const unresolved = withoutGenerated(await importGraph(inputs), options.generated);
+		const unresolved = await withoutGenerated(inputs, await importGraph(inputs), options.generated);
 		return unresolved.map((request) => ({
 			file: request.from,
 			line: request.line,

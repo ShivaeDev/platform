@@ -29,6 +29,26 @@
 			"path": "packages/core/src/paths.ts"
 		},
 		{
+			"content": "import type { Root } from \"hast\";\nimport type { Kit } from \"@demo/kit\";\n\nexport type Both = [Root, Kit];\n",
+			"path": "packages/core/src/types.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/hast\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/hast/package.json"
+		},
+		{
+			"content": "export interface Root {}\n",
+			"path": "node_modules/@types/hast/index.d.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/demo__kit\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/demo__kit/package.json"
+		},
+		{
+			"content": "export interface Kit {}\n",
+			"path": "node_modules/@types/demo__kit/index.d.ts"
+		},
+		{
 			"content": "import { Effect } from \"effect\";\n\nexport const plain = Effect;\n",
 			"path": "packages/core/src/plain.ts"
 		},
@@ -95,7 +115,7 @@
 	],
 	"fence": [
 		{
-			"content": "packages:\n  - packages/*\n",
+			"content": "packages:\n  - packages/game\n# the content side\n  - \"packages/cms\" # editors\n  - 'packages/simulation'\n  - packages/vocabulary\n\ncatalog:\n  effect: 4.0.0\n",
 			"path": "pnpm-workspace.yaml"
 		},
 		{
@@ -181,9 +201,35 @@
 			"path": "packages/cms/test/fixtures/draft.ts"
 		}
 	],
+	"pending": [
+		{
+			"content": "packages: [packages/*]\n",
+			"path": "pnpm-workspace.yaml"
+		},
+		{
+			"content": "generated/\n",
+			"path": "packages/cms/.gitignore"
+		},
+		{
+			"content": "{\"name\": \"@demo/cms\"}\n",
+			"path": "packages/cms/package.json"
+		},
+		{
+			"content": "export const edit = 1;\n",
+			"path": "packages/cms/src/edit.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/game\"}\n",
+			"path": "packages/game/package.json"
+		},
+		{
+			"content": "import { client } from \"../../cms/generated/client.ts\";\n\nexport const used = client;\n",
+			"path": "packages/game/src/client.ts"
+		}
+	],
 	"references": [
 		{
-			"content": "/// <reference types=\"present\" />\n/// <reference types=\"absent\" />\n",
+			"content": "/// <reference types=\"present\" />\n/// <reference types=\"absent\" />\n/// <reference path=\"./thing.ts\" />\n/// <reference path=\"./absent.d.ts\" />\n",
 			"path": "src/env.d.ts"
 		},
 		{
@@ -195,7 +241,7 @@
 			"path": "src/thing.ts"
 		},
 		{
-			"content": "export const found = require.resolve(\"./tool.js\");\nexport const lost = require.resolve(\"./nowhere.cjs\");\n",
+			"content": "export const found = require.resolve(\"./tool.js\");\nexport const lost = require.resolve(\"./nowhere.cjs\");\nexport const metaFound = import.meta.resolve(\"./tool.js\");\nexport const metaLost = import.meta.resolve(\"./nowhere.mjs\");\n",
 			"path": "src/where.ts"
 		},
 		{
@@ -269,7 +315,7 @@
 			"path": "tsconfig.json"
 		},
 		{
-			"content": "import { gone } from \"./gone.ts\";\nimport pad from \"left-pad\";\nimport icons from \"virtual:icons\";\nimport \"./style.css\";\nimport logo from \"./logo.svg?url\";\nimport { client } from \"./generated/client.ts\";\nimport { readFileSync } from \"node:fs\";\nimport { join } from \"path\";\nimport \"../dist/does-not-exist.ts\";\nimport \"./node_modules/ghost/index.ts\";\nimport \"./missing.css\";\nimport other from \"other:thing\";\nimport augmented from \"augmented\";\nimport { ghost } from \"./ghost.ts\";\nimport type { Ghost } from \"./ghost.ts\";\nimport { visit } from \"hast\";\nimport type { Root } from \"hast\";\n\nexport const main = [gone, pad, icons, logo, client, readFileSync, join, other, augmented, ghost, visit];\nexport type Main = [Ghost, Root];\n",
+			"content": "import { gone } from \"./gone.ts\";\nimport pad from \"left-pad\";\nimport icons from \"virtual:icons\";\nimport \"./style.css\";\nimport logo from \"./logo.svg?url\";\nimport { client } from \"./generated/client.ts\";\nimport { readFileSync } from \"node:fs\";\nimport { join } from \"path\";\nimport \"../dist/does-not-exist.ts\";\nimport \"./node_modules/ghost/index.ts\";\nimport \"./missing.css\";\nimport other from \"other:thing\";\nimport augmented from \"augmented\";\nimport { ghost } from \"./ghost.ts\";\nimport type { Ghost } from \"./ghost.ts\";\nimport { visit } from \"hast\";\nimport type { Root } from \"hast\";\nimport { only } from \"dts-only\";\nimport type { Only } from \"dts-only\";\n\nexport const main = [gone, pad, icons, logo, client, readFileSync, join, other, augmented, ghost, visit, only];\nexport type Main = [Ghost, Root, Only];\n",
 			"path": "src/main.ts"
 		},
 		{
@@ -299,6 +345,18 @@
 		{
 			"content": "export declare const ghost: number;\nexport type Ghost = number;\n",
 			"path": "src/ghost.d.ts"
+		},
+		{
+			"content": "declare module \"**\";\ndeclare module \"*-*\";\n",
+			"path": "src/globs.d.ts"
+		},
+		{
+			"content": "{\"name\": \"dts-only\", \"exports\": {\".\": {\"source\": \"./index.d.ts\", \"import\": \"./index.d.ts\", \"default\": \"./index.d.ts\"}}}\n",
+			"path": "node_modules/dts-only/package.json"
+		},
+		{
+			"content": "export declare const only: number;\nexport type Only = number;\n",
+			"path": "node_modules/dts-only/index.d.ts"
 		},
 		{
 			"content": "{\"include\": [\".\"]}\n",

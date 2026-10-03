@@ -1,7 +1,10 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { importGraph } from "../src/imports/graph.ts";
 import { importCycles } from "../src/rules/imports/cycles.ts";
 import { importsResolvable } from "../src/rules/imports/resolvable.ts";
+import { git } from "./support/git.ts";
 import { findingsIn, importTree, linkWorkspace, scanned } from "./support/imports.ts";
 import { removeSeededTrees } from "./support/tree.ts";
 
@@ -46,6 +49,7 @@ describe("imports/resolvable", () => {
 			[13, "augmented"],
 			[14, "./ghost.ts"],
 			[16, "hast"],
+			[18, "dts-only"],
 		]);
 		expect(findings[0]?.message).toBe(
 			'Cannot resolve "./gone.ts". Fix the path, install or declare the package, or declare the module in a .d.ts file among the sources.',
@@ -55,25 +59,40 @@ describe("imports/resolvable", () => {
 	it("takes a missing file under a declared generated folder as resolved", async () => {
 		const findings = await findingsIn(importsResolvable, { generated: ["src/generated"] }, importTree("unresolvable"));
 		expect(findings.map((finding) => finding.subject)).not.toContain("./generated/client.ts");
-		expect(findings).toHaveLength(9);
+		expect(findings).toHaveLength(10);
 	});
 
-	it("refuses a generated folder under node_modules or one that no import names", async () => {
-		await expect(findingsIn(importsResolvable, { generated: ["src/node_modules/ghost", "src/unused"] }, importTree("unresolvable"))).rejects.toThrow(
+	it("refuses a generated folder under node_modules, one git does not ignore, and one that no import names", async () => {
+		const folders = ["src/node_modules/ghost", "src", "src/generated/unused"];
+		await expect(findingsIn(importsResolvable, { generated: folders }, importTree("unresolvable"))).rejects.toThrow(
 			[
 				"the generated folders are invalid:",
 				'  - "src/node_modules/ghost" lies in node_modules, which holds installed packages, not generated output',
-				'  - "src/unused" holds no file that an import names',
+				'  - "src" is not ignored by git, so it holds source, not generated output',
+				'  - "src/generated/unused" holds no file that an import names',
 			].join("\n"),
 		);
 	});
 
-	it("checks type references, JSDoc @import tags and require.resolve too", async () => {
+	it("refuses a generated folder that holds files git tracks", async () => {
+		const root = importTree("unresolvable");
+		mkdirSync(join(root, "src", "generated"));
+		writeFileSync(join(root, "src", "generated", "kept.ts"), "export const kept = 1;\n");
+		git(root, "init", "--quiet");
+		git(root, "add", "--force", "src/generated/kept.ts");
+		await expect(findingsIn(importsResolvable, { generated: ["src/generated"] }, root)).rejects.toThrow(
+			'"src/generated" holds files git tracks, such as src/generated/kept.ts, so it is not generated output',
+		);
+	});
+
+	it("checks type and path references, JSDoc @import tags, require.resolve and import.meta.resolve too", async () => {
 		const findings = await findingsIn(importsResolvable, undefined, importTree("references"));
 		expect(findings.map((finding) => [finding.file, finding.line, finding.subject])).toEqual([
 			["src/env.d.ts", 2, "absent"],
+			["src/env.d.ts", 4, "./absent.d.ts"],
 			["src/tool.js", 2, "./gone-type.ts"],
 			["src/where.ts", 2, "./nowhere.cjs"],
+			["src/where.ts", 4, "./nowhere.mjs"],
 		]);
 	});
 });

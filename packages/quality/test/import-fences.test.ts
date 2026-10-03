@@ -43,7 +43,7 @@ const cmsStaysOffDisk = fence("cms-stays-off-disk")
 const coreNeedsNoAuth = fence("core-needs-no-auth")
 	.because("The core runs without the auth packages installed.")
 	.from(folders("packages/core/src"))
-	.mayNotImport(anyOf(modules("better-auth"), scopes("@trpc")))
+	.mayNotImport(anyOf(modules("better-auth", "hast", "@demo/kit"), scopes("@trpc")))
 	.demonstratedBy({ illegal: ["packages/core/src/a.ts", external("better-auth/client")], legal: ["packages/core/src/a.ts", external("effect")] });
 
 function check(fences: readonly Fence[], tree = "fence") {
@@ -82,16 +82,24 @@ describe("imports/fences fires", () => {
 });
 
 describe("imports/fences sees through", () => {
-	it("an alias, a tsconfig path and a relative path to the package an import resolves to", async () => {
+	it("an alias, a tsconfig path, a relative path and a types-only package to the package an import names", async () => {
 		expect((await check([coreNeedsNoAuth], "aliases")).map((finding) => finding.message.split(" across ")[0])).toEqual([
 			"Imports #auth (better-auth)",
 			"Imports auth-kit (better-auth)",
 			"Imports ../../../node_modules/@trpc/server/src/http.ts (@trpc/server)",
+			"Imports hast",
+			"Imports @demo/kit",
 		]);
 	});
 
 	it("a package.json nested in a workspace package, which keeps the files it holds in the workspace package", async () => {
 		expect((await check([gameKeepsOutOfCms], "nested")).map((finding) => finding.file)).toEqual(["packages/game/src/preview.ts"]);
+	});
+
+	it("an import of a file that does not exist yet, such as a client a generator writes", async () => {
+		expect((await check([gameKeepsOutOfCms], "pending")).map((finding) => finding.message.split(" across ")[0])).toEqual([
+			"Imports packages/cms/generated/client.ts",
+		]);
 	});
 });
 

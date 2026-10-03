@@ -1,9 +1,9 @@
 import { realpathSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import type { RuleInputs, SourceFile } from "../rule.ts";
 import { parse } from "../rules/syntax.ts";
 import { ambientModules } from "./ambient.ts";
-import { type ImportKind, importsOf } from "./extract.ts";
+import { type ImportKind, type ImportRequest, importsOf } from "./extract.ts";
 import { projectsFor } from "./projects.ts";
 import { type Endpoint, resolveImport } from "./resolve.ts";
 import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
@@ -17,7 +17,7 @@ export interface ImportEdge {
 	readonly type: boolean;
 }
 
-export type UnresolvedImport = Omit<ImportEdge, "to">;
+export type UnresolvedImport = Omit<ImportEdge, "to"> & { readonly missing: string | undefined };
 
 export interface ImportGraph {
 	readonly edges: readonly ImportEdge[];
@@ -28,8 +28,17 @@ export interface ImportGraph {
 
 const DECLARATION = /\.d\.[cm]?ts$/u;
 
+const QUERY = /\?.*$/u;
+
 const NO_MODULES =
 	"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the code, or turn the imports rules off.";
+
+// A relative import of a missing file still names a path, so fences see it before its generator writes it.
+function missingTarget(from: string, request: ImportRequest): string | undefined {
+	const relative = request.kind === "path-reference" || request.specifier.startsWith("./") || request.specifier.startsWith("../");
+	const target = posix.join(posix.dirname(from), request.specifier.replace(QUERY, ""));
+	return relative && !target.startsWith("../") ? target : undefined;
+}
 
 function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "modules" | "unresolved"> {
 	const projectOf = projectsFor(root);
@@ -45,7 +54,9 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 		for (const request of importsOf(syntax, DECLARATION.test(file.path))) {
 			const to = resolveImport(root, ambient, request, path, project);
 			if (to === undefined) {
-				unresolved.push({ ...request, from: file.path });
+				const missing = missingTarget(file.path, request);
+				unresolved.push({ ...request, from: file.path, missing });
+				edges.push(...(missing === undefined ? [] : [{ ...request, from: file.path, to: { kind: "file" as const, path: missing } }]));
 			} else {
 				edges.push({ ...request, from: file.path, to });
 			}

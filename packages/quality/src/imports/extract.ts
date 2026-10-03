@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-export type ImportKind = "import" | "reference" | "resolve";
+export type ImportKind = "import" | "path-reference" | "resolve" | "type-reference";
 
 export interface ImportRequest {
 	readonly kind: ImportKind;
@@ -15,7 +15,7 @@ interface Found {
 	readonly type: boolean;
 }
 
-const MAY_CALL = /\b(?:import|require)\s*\(|\brequire\.resolve\s*\(/u;
+const MAY_CALL = /\b(?:import|require)\s*\(|\b(?:require|import\.meta)\.resolve\s*\(/u;
 
 const JSDOC_IMPORT = "@import";
 
@@ -40,21 +40,23 @@ function isRequire(call: ts.CallExpression): boolean {
 	return ts.isIdentifier(call.expression) && call.expression.text === "require";
 }
 
-function isRequireResolve(call: ts.CallExpression): boolean {
+function isImportMeta(node: ts.Expression): boolean {
+	return ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";
+}
+
+function isResolve(call: ts.CallExpression): boolean {
 	const callee = call.expression;
-	return (
-		ts.isPropertyAccessExpression(callee)
-		&& ts.isIdentifier(callee.expression)
-		&& callee.expression.text === "require"
-		&& callee.name.text === "resolve"
-	);
+	if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== "resolve") {
+		return false;
+	}
+	return (ts.isIdentifier(callee.expression) && callee.expression.text === "require") || isImportMeta(callee.expression);
 }
 
 function called(call: ts.CallExpression): Found | undefined {
 	if (call.expression.kind === ts.SyntaxKind.ImportKeyword || isRequire(call)) {
 		return { kind: "import", node: call.arguments[0], type: false };
 	}
-	return isRequireResolve(call) ? { kind: "resolve", node: call.arguments[0], type: false } : undefined;
+	return isResolve(call) ? { kind: "resolve", node: call.arguments[0], type: false } : undefined;
 }
 
 function nested(node: ts.Node): Found | undefined {
@@ -99,12 +101,10 @@ function jsDocRequests(source: ts.SourceFile): readonly ImportRequest[] {
 }
 
 function referenceRequests(source: ts.SourceFile): readonly ImportRequest[] {
-	return source.typeReferenceDirectives.map((reference) => ({
-		kind: "reference",
-		line: lineAt(source, reference.pos),
-		specifier: reference.fileName,
-		type: true,
-	}));
+	function requestFor(kind: ImportKind): (reference: ts.FileReference) => ImportRequest {
+		return (reference) => ({ kind, line: lineAt(source, reference.pos), specifier: reference.fileName, type: true });
+	}
+	return [...source.typeReferenceDirectives.map(requestFor("type-reference")), ...source.referencedFiles.map(requestFor("path-reference"))];
 }
 
 export function importsOf(source: ts.SourceFile, declarationFile: boolean): readonly ImportRequest[] {

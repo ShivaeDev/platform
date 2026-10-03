@@ -3,14 +3,18 @@ import { wildcardMatches } from "./glob.ts";
 
 export type Ambient = (specifier: string, projectFiles: ReadonlySet<string>) => boolean;
 
-const CATCH_ALL = "*";
+const WILDCARD = "*";
+
+function isPattern(name: string): boolean {
+	return name !== WILDCARD && name.split(WILDCARD).length <= 2;
+}
 
 function declaredIn(source: ts.SourceFile): readonly string[] {
 	if (ts.isExternalModule(source)) {
 		return [];
 	}
 	return source.statements.flatMap((statement) =>
-		ts.isModuleDeclaration(statement) && ts.isStringLiteral(statement.name) && statement.name.text !== CATCH_ALL ? [statement.name.text] : [],
+		ts.isModuleDeclaration(statement) && ts.isStringLiteral(statement.name) && isPattern(statement.name.text) ? [statement.name.text] : [],
 	);
 }
 
