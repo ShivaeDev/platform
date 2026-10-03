@@ -14,10 +14,6 @@
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts", "!**/prisma-next.config.ts"]
 		},
 		{
-			"path": "./script/lint/plugins/type-assertions.grit",
-			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"]
-		},
-		{
 			"path": "./script/lint/plugins/effect-fn-spans.grit",
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"]
 		},

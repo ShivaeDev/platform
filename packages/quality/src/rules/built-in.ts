@@ -8,6 +8,7 @@ import { maxLines } from "./max-lines.ts";
 import { biomeOverrides } from "./suppressions/biome-overrides.ts";
 import { noDoubleCast } from "./suppressions/no-double-cast.ts";
 import { noInline } from "./suppressions/no-inline.ts";
+import { noTypeAssertion } from "./suppressions/no-type-assertion.ts";
 
 export const builtInRules = [
 	maxLines,
@@ -19,5 +20,6 @@ export const builtInRules = [
 	maxPerFile,
 	noInline,
 	noDoubleCast,
+	noTypeAssertion,
 	biomeOverrides,
 ] as const;
