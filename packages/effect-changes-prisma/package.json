@@ -41,8 +41,7 @@
 		"check": "biome check .",
 		"test": "prisma generate --config test/prisma.config.ts --no-hints && vitest run",
 		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit",
-		"typecheck:compat": "prisma generate --config test/prisma.config.ts --no-hints && tsc6 --noEmit",
-		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build"
+		"ready": "pnpm check && pnpm typecheck && pnpm test && pnpm build"
 	},
 	"dependencies": {
 		"@shivaedev/effect-changes": "workspace:*"

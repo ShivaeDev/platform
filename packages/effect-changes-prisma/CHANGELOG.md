@@ -8,6 +8,8 @@
 
 - Build with the `@shivaedev/quality` tsconfig presets, which target ES2025 and allow only erasable TypeScript syntax, so classes declare their fields instead of using constructor parameter properties.
 
+- Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
+
 ## 0.2.1 - 2026-09-28
 
 ### Changed

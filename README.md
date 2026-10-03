@@ -59,13 +59,12 @@ pnpm ready
 
 ### Heavy runs
 
-`build`, `typecheck`, `typecheck:compat`, `test` and `test:package`, and so
-every step of `ready`, queue on a machine-wide lock shared with other
-repositories; a waiting run names the holder, and CI skips the lock. Run the
-scripts directly: they take the lock themselves, so do not wrap them in a lock
-by hand. Run other heavy commands, such as a focused PostgreSQL suite, through
-`pnpm heavy <command>`. The scripts run
-[`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
+`build`, `typecheck`, `test` and `test:package`, and so every step of `ready`,
+queue on a machine-wide lock shared with other repositories; a waiting run names
+the holder, and CI skips the lock. Run the scripts directly: they take the lock
+themselves, so do not wrap them in a lock by hand. Run other heavy commands,
+such as a focused PostgreSQL suite, through `pnpm heavy <command>`. The scripts
+run [`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
 before anything is built; its README describes the protocol.
 
 ### Packed consumers

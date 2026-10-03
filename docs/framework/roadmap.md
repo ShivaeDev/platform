@@ -63,7 +63,7 @@ These are executable boundary examples, not an application deployment. See the
 - [x] `@shivaedev/quality` engine: typed `quality.config.ts`, the `quality` command line, a report grouped by rule,
   a shrink-only baseline and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
 - [x] `@shivaedev/heavy-lock`: the machine-wide heavy-process lock as a package, with a command line and an Effect API.
-  Platform's `build`, `typecheck`, `typecheck:compat`, `test` and `test:package` scripts run it from source.
+  Platform's `build`, `typecheck`, `test` and `test:package` scripts run it from source.
 - [x] `@shivaedev/quality` comment rules: no JSDoc, line or pull request references, banners or TODOs, and at most
   2 comments per file. `pnpm lint` runs the package's built-in rules, which replace the repository's own line limits.
 - [x] `@shivaedev/quality` suppression rules: no inline suppressions or casts through `unknown`, `any` or `never`, and Biome
