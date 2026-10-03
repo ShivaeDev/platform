@@ -163,13 +163,16 @@ describe("quality baseline check finds its base", { timeout: cliTimeout }, () =>
 		expect(result).toMatchObject({ status: 2, stderr: expect.stringContaining(message) });
 	});
 
-	it("in a shallow clone that does not reach it, by fetching the full history first", () => {
+	it("in a shallow clone that does not reach it, by fetching the full history first without a password prompt", () => {
 		const { clone } = shallowClone();
 		expect(() => git(clone, "merge-base", "HEAD", "origin/main")).toThrow();
+		const prompt = join(clone, ".git", "terminal-prompt");
+		git(clone, "config", "remote.origin.uploadpack", `echo "$GIT_TERMINAL_PROMPT" > '${prompt}'; git-upload-pack`);
 		const result = quality(clone, "baseline", "check", "--against", "origin/main");
 		expect(result).toMatchObject({ status: 0, stdout: expect.stringContaining("holds against origin/main") });
 		expect(result.stderr).toContain("quality: the clone is shallow; fetching its full history");
 		expect(git(clone, "rev-parse", "--is-shallow-repository")).toBe("false\n");
+		expect(readFileSync(prompt, "utf8")).toBe("0\n");
 	});
 
 	it("and exits 2 in a shallow clone whose history cannot be fetched", () => {

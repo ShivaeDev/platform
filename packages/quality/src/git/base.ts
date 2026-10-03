@@ -47,7 +47,7 @@ const unshallow = (root: string, ref: string): Effect.Effect<void, SetupFailure,
 	Effect.gen(function* () {
 		const remote = yield* remoteOf(root, ref);
 		yield* Console.error(`quality: the clone is shallow; fetching its full history to find the merge base of HEAD and ${ref}.`);
-		yield* git(root, ["fetch", "--quiet", "--unshallow", ...remote]);
+		yield* git(root, ["fetch", "--quiet", "--unshallow", ...remote], { GIT_TERMINAL_PROMPT: "0" });
 	});
 
 const missingMergeBase = (root: string, ref: string): Effect.Effect<never, SetupFailure, Git> =>
