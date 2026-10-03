@@ -1,8 +1,9 @@
+import type { IConfiguration, IForbiddenRuleType } from "dependency-cruiser";
 import platformManifest from "./packages/platform/package.json" with { type: "json" };
 
-const alternatives = (names) => `(?:${names.join("|")})`;
+const alternatives = (names: readonly string[]) => `(?:${names.join("|")})`;
 
-const LEAVES = {
+const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	"effect-changes": [],
 	"effect-changes-prisma": ["effect-changes"],
 	"effect-contract": [],
@@ -12,11 +13,12 @@ const LEAVES = {
 	"effect-sql": ["effect-changes"],
 	"effect-test": [],
 	"heavy-lock": [],
+	"local-postgres": [],
 	quality: [],
 	"work-board": [],
 };
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
-const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "platform", "work-board"];
+const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
 const BROWSER_ENTRIES = ["effect-trpc/src/client", "platform/src/errors", "platform/src/rpc"];
 const BROWSER_ENTRY_IMPORTS = ["effect"];
 const PLATFORM_CORE_ENTRIES = ["errors", "node-http", "rpc", "rpc-server", "runtime"];
@@ -25,13 +27,13 @@ const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependencies
 	.map(([name]) => name);
 const WORKSPACE_SCOPE = "@shivaedev/";
 
-const sourceOf = (names) => `^packages/${alternatives(names)}/src/`;
-const entryOf = (entries) => `^packages/${alternatives(entries)}`;
-const packageOf = (name) => `^packages/${name}/`;
+const sourceOf = (names: readonly string[]) => `^packages/${alternatives(names)}/src/`;
+const entryOf = (entries: readonly string[]) => `^packages/${alternatives(entries)}`;
+const packageOf = (name: string) => `^packages/${name}/`;
 
 export default {
 	forbidden: [
-		...Object.entries(LEAVES).map(([name, allowed]) => ({
+		...Object.entries(LEAVES).map<IForbiddenRuleType>(([name, allowed]) => ({
 			name: `leaf-${name}`,
 			comment: `@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.`,
 			severity: "error",
@@ -88,4 +90,4 @@ export default {
 		},
 		tsPreCompilationDeps: true,
 	},
-};
+} satisfies IConfiguration;
