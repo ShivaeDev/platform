@@ -153,6 +153,9 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:packages/quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1

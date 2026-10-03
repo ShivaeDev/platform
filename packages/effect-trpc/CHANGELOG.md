@@ -8,6 +8,8 @@
 
 - Remove a JSDoc block, so the package passes the comment rules of `@shivaedev/quality`.
 
+- Build with the `@shivaedev/quality` tsconfig presets, which target ES2025 and allow only erasable TypeScript syntax, so classes declare their fields instead of using constructor parameter properties.
+
 ## 0.4.1 - 2026-09-26
 
 ### Added

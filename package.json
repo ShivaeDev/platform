@@ -29,6 +29,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"dependency-cruiser": "catalog:",
