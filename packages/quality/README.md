@@ -2,7 +2,7 @@
 
 One quality gate for a repository: typed rules, one report, a baseline that only shrinks and a registry of permanent exceptions, each with its reason.
 
-Every rule is an error by default. A repository adopts the gate at once: it records its existing violations in the baseline, and from then on a baselined file may not get worse, and fixed debt must leave the baseline.
+Every rule is an error by default. A repository adopts the gate at once: it records its existing violations in the baseline, and from then on a baselined file may not get worse, the baseline may not gain an entry or a higher number, and fixed debt leaves it as files change.
 
 ## Setup
 
@@ -42,7 +42,8 @@ export default defineConfig({
 | `exclude` | `[]` | Paths never checked, in `.gitignore` syntax. Files ignored by git, `.git` and `node_modules` are always skipped. |
 | `extensions` | TypeScript and JavaScript modules | Which files rules read as sources. |
 | `registry` | `quality/registry.json` | Permanent exceptions. |
-| `baseline` | `quality/baseline.json` | Existing violations that may only shrink. |
+| `baseline` | `quality/baseline.jsonl` | Existing violations that may only shrink. |
+| `adopt` | `[]` | Rules the baseline takes in for the first time; see [Adopting a rule](#adopting-a-rule). |
 | `local` | `[]` | The repository's own rules, made with `defineRule`. |
 | `rules` | every rule at `error` | A level per rule id, or `{ level, options }`. |
 
@@ -212,28 +213,58 @@ A rule with options declares them with any [Standard Schema](https://standardsch
 
 ## Baseline
 
-```json
-{
-	"structure/max-lines": {
-		"src/server/db.ts": {
-			"count": 1,
-			"measure": 412
-		}
-	},
-	"comments/no-jsdoc": {
-		"src/legacy/sync.ts": {
-			"count": 3
-		}
-	}
-}
+```jsonl
+{"path":"src/legacy/sync.ts","rule":"comments/no-jsdoc","count":3}
+{"path":"src/server/db.ts","rule":"structure/max-lines","count":1,"measure":412}
 ```
 
-Each entry covers the violations of one rule in one file. The gate fails when a baselined file has more violations than its `count`, or a larger measure than its `measure`; the report then lists all of that file's violations for the rule. It also fails when an entry allows more than is left, including a file with no violations left and a rule that is off or unknown. The baseline covers violations at any level.
+The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many there may be, and `measure`, for a rule whose findings carry one, is the largest the file may measure, such as its line count. Entries are sorted by path and then rule, and each tool that changes the file rewrites only the lines it changes, so a diff names exactly the entries that moved and two branches conflict only when they touch the same or neighbouring entries.
 
-- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names rules the baseline does not cover yet: that is how a rule is adopted later. It never raises an entry.
-- `quality baseline prune` drops fixed debt and lowers entries to what is left. It never adds or raises an entry.
+`quality lint` fails when a baselined file has more violations than its `count`, or a larger measure than its `measure`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
 
-The file keeps the indentation it has, and its rules and files are sorted, so its diffs stay small.
+- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names rules the baseline does not cover yet. It never raises an entry.
+- `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
+- `quality baseline prune` does the same for every entry. It carries the entries of files moved since the merge base (see `--against` under [Command line](#command-line)), and prunes without following moves outside a git work tree.
+- `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the configured file, and removes the old one.
+
+Neither `tighten` nor `prune` ever adds or raises an entry, and a moved file's entry keeps the lower of its old numbers and what the file has now. A move is seen when both of its sides are tracked, as after `git mv`; git's rename detection decides what counts as a move.
+
+### Pre-commit
+
+Lowering entries in the commit that fixes them keeps the baseline current without a separate cleanup:
+
+```sh
+quality baseline tighten --staged && git add quality/baseline.jsonl
+quality lint
+quality baseline check
+```
+
+`tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds.
+
+### Baseline check
+
+`quality lint` reads only the working tree, so on its own it cannot tell a raised entry from a recorded one: a hand edit, or deleting the baseline and writing it again, would hide new debt. `quality baseline check` compares the baseline with its version at the merge base of `HEAD` and the target branch, and fails when:
+
+- an entry is new, for a rule the base baseline already covers;
+- an entry's `count` or `measure` is higher than at the base, or its `measure` is gone;
+- a rule is baselined for the first time without `adopt` naming it;
+- `adopt` names a rule with nothing baselined.
+
+It compares with the merge base, never the tip of the target branch, so a branch that is behind never fails for debt the target branch paid off since. An entry whose file git sees as moved since the merge base is compared with the entry at the old path. When the base holds the earlier JSON format at `quality/baseline.json`, the check reads that, so the change that migrates the baseline passes.
+
+The check reads git, not the sources, so it is cheap enough for every commit. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. It exits 2 when there is no git work tree, no target or no merge base. A shallow clone usually has no merge base: in GitHub Actions, check out with `fetch-depth: 0`, or fetch enough history for `git merge-base HEAD <target>` to succeed.
+
+### Adopting a rule
+
+A rule enters the baseline for the first time only while the config names it under `adopt`, so the adoption shows in the config's diff, not only in the baseline's:
+
+```ts
+export default defineConfig({
+	adopt: ["comments/no-jsdoc"],
+});
+```
+
+Run `quality baseline write --rule comments/no-jsdoc` with the rule at `error`, and commit both. `adopt` lets in only rules that the base baseline does not cover: once the adoption is merged, the rule's entries only shrink like any other. Leave the rule in `adopt` while it has debt; when its last entry is gone, the check fails until it is removed, so `adopt` cannot let the rule back in later. The first baseline of a repository adopts each of its rules the same way.
 
 ## Registry
 
@@ -254,17 +285,20 @@ An entry covers a rule's violations in one file, for good, and must say why. Wit
 ```text
 quality lint [--config <file>] [--warnings summary|all]
 quality baseline write [--config <file>] [--rule <id>]...
-quality baseline prune [--config <file>]
+quality baseline prune [--config <file>] [--against <ref>]
+quality baseline tighten [--config <file>] [--staged]
+quality baseline check [--config <file>] [--against <ref>]
+quality baseline migrate [--config <file>] [--from <file>]
 ```
 
-`quality` alone runs `lint`. The report groups violations by rule and states each rule's description once; warnings are summarized per rule with the files that have the most, and `--warnings all` lists each one.
+`quality` alone runs `lint`. `--against <ref>` names the branch the work merges into. The report groups violations by rule and states each rule's description once; warnings are summarized per rule with the files that have the most, and `--warnings all` lists each one.
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Passed. Warnings may remain. |
-| 1 | Failed: an uncovered error-level violation, a baselined file that got worse, or a stale baseline or registry entry. |
-| 2 | Could not run: no or invalid config, an invalid baseline or registry, a missing source, a rule that threw, or a usage error. |
+| 1 | Failed: an uncovered error-level violation, a baselined file that got worse, a stale registry entry, a baseline entry for a rule that is off or unknown, or a baseline that grew against the merge base. |
+| 2 | Could not run: no or invalid config, an invalid baseline or registry, a baseline left in the earlier format, a missing source, a rule that threw, git history the check cannot read, or a usage error. |
 
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories, and an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle.
+`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, and an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle.

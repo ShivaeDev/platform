@@ -21,6 +21,7 @@ export interface BaselineCheck {
 	readonly kept: ReadonlyArray<Violation>;
 	readonly regressions: ReadonlyArray<Regression>;
 	readonly stale: ReadonlyArray<StaleBaselineEntry>;
+	readonly loose: ReadonlyArray<StaleBaselineEntry>;
 	readonly baselined: number;
 }
 
@@ -59,10 +60,15 @@ export const applyBaseline = (
 	const covered = new Set<string>();
 	const regressions: Regression[] = [];
 	const stale: StaleBaselineEntry[] = [];
+	const loose: StaleBaselineEntry[] = [];
 	for (const entry of entries) {
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
 		if (group.length === 0) {
-			stale.push({ entry, problem: unusedEntryProblem(levels, entry.rule, "has no violations left") });
+			const level = levels.get(entry.rule);
+			(level === undefined || level === "off" ? stale : loose).push({
+				entry,
+				problem: unusedEntryProblem(levels, entry.rule, "has no violations left"),
+			});
 			continue;
 		}
 		const tally = tallyOf(group);
@@ -73,9 +79,9 @@ export const applyBaseline = (
 		}
 		covered.add(keyOf(entry.rule, entry.file));
 		if (verdict.loose) {
-			stale.push({ entry, problem: `allows more than is left: ${describeTally(tally)} against ${describeEntry(entry)} baselined` });
+			loose.push({ entry, problem: `allows more than is left: ${describeTally(tally)} against ${describeEntry(entry)} baselined` });
 		}
 	}
 	const kept = violations.filter((violation) => !covered.has(keyOf(violation.rule, violation.file)));
-	return { baselined: violations.length - kept.length, kept, regressions, stale };
+	return { baselined: violations.length - kept.length, kept, loose, regressions, stale };
 };

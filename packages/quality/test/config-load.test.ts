@@ -17,7 +17,8 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 			const root = seedTree([config("{}")]);
 			const loaded = yield* loadConfig(root, undefined);
 			expect(loaded).toMatchObject({
-				baseline: "quality/baseline.json",
+				adopt: [],
+				baseline: "quality/baseline.jsonl",
 				exclude: [],
 				file: join(root, "quality.config.ts"),
 				registry: "quality/registry.json",
@@ -64,6 +65,15 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 		Effect.gen(function* () {
 			const root = seedTree([{ content: "export default {\n", path: "quality.config.ts" }]);
 			expect(yield* failureOf(root)).toContain("cannot load");
+		}),
+	);
+
+	it.effect("refuses to adopt a rule that does not exist", () =>
+		Effect.gen(function* () {
+			const root = seedTree([config('{ adopt: ["comments/no-todos"], rules: { "structure/max-line": "error" } }')]);
+			const text = yield* failureOf(root);
+			expect(text).toContain("rules.structure/max-line: no built-in or local rule has this id");
+			expect(text).toContain("adopt.comments/no-todos: no built-in or local rule has this id");
 		}),
 	);
 

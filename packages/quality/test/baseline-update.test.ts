@@ -53,13 +53,14 @@ describe("baseline prune", () => {
 				{ count: 1, file: "src/big.ts", measure: 412, rule: "structure/max-lines" },
 			],
 			lowered: 2,
+			moved: 0,
 			removed: 1,
 		});
 	});
 
 	it("never raises an entry for a file that got worse", () => {
 		const existing = [{ count: 1, file: "src/big.ts", measure: 300, rule: "structure/max-lines" }];
-		expect(prune(existing, [long], known)).toEqual({ entries: existing, lowered: 0, removed: 0 });
+		expect(prune(existing, [long], known)).toEqual({ entries: existing, lowered: 0, moved: 0, removed: 0 });
 	});
 
 	it("drops entries for unknown and disabled rules", () => {
@@ -68,5 +69,36 @@ describe("baseline prune", () => {
 			{ count: 1, file: "src/a.ts", rule: "local/off" },
 		];
 		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/off" })], known).removed).toBe(2);
+	});
+
+	it("carries the entry of a moved file to its new path, lowered to what is left there", () => {
+		const existing = [{ count: 1, file: "src/old.ts", measure: 500, rule: "structure/max-lines" }];
+		const moved = violation({ file: "lib/new.ts", measure: 480, rule: "structure/max-lines" });
+		expect(prune(existing, [moved], known, { moves: new Map([["src/old.ts", "lib/new.ts"]]) })).toEqual({
+			entries: [{ count: 1, file: "lib/new.ts", measure: 480, rule: "structure/max-lines" }],
+			lowered: 1,
+			moved: 1,
+			removed: 0,
+		});
+	});
+
+	it("never carries an entry onto a path that already has one", () => {
+		const existing = [
+			{ count: 1, file: "src/old.ts", measure: 500, rule: "structure/max-lines" },
+			{ count: 1, file: "lib/new.ts", measure: 300, rule: "structure/max-lines" },
+		];
+		const pruned = prune(existing, [violation({ file: "lib/new.ts", measure: 300, rule: "structure/max-lines" })], known, {
+			moves: new Map([["src/old.ts", "lib/new.ts"]]),
+		});
+		expect(pruned.entries).toEqual([existing[1]]);
+	});
+
+	it("touches only the entries of the files in scope", () => {
+		const existing = [
+			{ count: 3, file: "src/a.ts", rule: "local/new" },
+			{ count: 2, file: "src/gone.ts", rule: "local/new" },
+		];
+		const pruned = prune(existing, [fresh], known, { files: new Set(["src/a.ts"]), moves: new Map() });
+		expect(pruned).toEqual({ entries: [{ count: 1, file: "src/a.ts", rule: "local/new" }, existing[1]], lowered: 1, moved: 0, removed: 0 });
 	});
 });

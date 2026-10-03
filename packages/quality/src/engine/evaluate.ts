@@ -9,6 +9,7 @@ export interface Outcome {
 	readonly warnings: ReadonlyArray<Violation>;
 	readonly regressions: ReadonlyArray<Regression>;
 	readonly staleBaseline: ReadonlyArray<StaleBaselineEntry>;
+	readonly looseBaseline: ReadonlyArray<StaleBaselineEntry>;
 	readonly staleRegistry: ReadonlyArray<StaleRegistryEntry>;
 	readonly baselined: number;
 	readonly registered: number;
@@ -27,6 +28,7 @@ export const evaluate = (
 	return {
 		baselined: baselined.baselined,
 		errors: kept.filter((violation) => violation.level === "error"),
+		looseBaseline: baselined.loose,
 		regressions: baselined.regressions,
 		registered: registered.registered,
 		staleBaseline: baselined.stale,

@@ -28,11 +28,49 @@
   rule, its `includes` and a reason. Both rules report a declaration that
   matches nothing. Coverage hints stay allowed.
 
+- Add `quality baseline check [--against <ref>]`, which compares the baseline
+  with its version at the merge base of `HEAD` and the target branch
+  (`origin/HEAD`, `origin/main` or `origin/master` by default) and fails when it
+  gained an entry, a higher `count` or `measure`, or a rule baselined for the
+  first time. Comparing with the merge base means a branch that is behind never
+  fails. An entry whose file git sees as moved is compared with its old path. It
+  exits 2 without a git work tree, a target or a merge base, and says to fetch
+  more history in a shallow clone.
+
+- Add the `adopt` config key: a rule enters the baseline for the first time only
+  while `adopt` names it, so the adoption shows in the config's diff. The check
+  fails when `adopt` names a rule with nothing baselined.
+
+- Add `quality baseline tighten [--staged]`, which lowers and removes the
+  entries of the files changed since `HEAD`, or staged for the next commit, and
+  leaves every other line as it is. Run it in a pre-commit hook and stage the
+  baseline again.
+
+- Add `quality baseline migrate [--from <file>]`, which moves a baseline from
+  the earlier JSON format to the configured file.
+
+- `quality baseline prune` and `tighten` carry the entry of a file that git
+  sees as moved to its new path, at the lower of its old numbers and what the
+  file has now.
+
 - Add `registrable: false` to `defineRule`, for a rule the registry must never
   excuse. The suppression rules set it, so a registry entry that names one fails
   the gate as stale; existing suppressions are adopted through the baseline.
 
 ### Changed
+
+- **Breaking:** The baseline is a JSON Lines file, `quality/baseline.jsonl` by
+  default, with one entry per line (`{"path":…,"rule":…,"count":…}`, plus
+  `measure` for a measuring rule) sorted by path and then rule. A repository
+  with a `quality/baseline.json` fails to run until it runs
+  `quality baseline migrate`.
+
+- `quality lint` passes a baseline entry that allows more than is left,
+  including a file with no violations left, and lists it as a note. An entry for
+  a rule that is off or unknown still fails.
+
+- `quality baseline write --rule` and `prune` rewrite only the lines they add,
+  lower or remove, and never re-sort or reformat the rest.
 
 - **Breaking:** The comment rules are on by default, so upgrading fails a
   repository with existing comment violations until it fixes them or adopts the
