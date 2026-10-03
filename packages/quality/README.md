@@ -74,6 +74,8 @@ A comment says why, never what the code already says or what it used to be. Six 
 
 The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
 
+The default is no comments at all: a comment states only what the code cannot show, such as a constraint or a reason, and never narrates the code. The limit of `comments/max-per-file` is a crude tripwire against runaway comments, not a budget to fill, so a file that reaches it means something went wrong.
+
 `comments/max-per-file` counts comments this way:
 
 - A block comment counts once, however many lines it spans.
