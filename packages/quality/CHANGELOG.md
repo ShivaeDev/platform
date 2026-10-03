@@ -4,7 +4,25 @@
 
 ### Added
 
+- `suppressions/biome-overrides` follows `extends` entries that name a package,
+  such as a shared Biome preset, resolved from the root's `node_modules` through
+  `exports` (the `biome` and `default` conditions and `*` patterns), `main` or a
+  file inside the package, as Biome resolves them. A non-relative entry that
+  names a file at the repository root is read as that file. The weakenings a
+  preset makes count as declared when a `declarations.json` beside the preset
+  declares them; any other preset weakening is reported at the `extends` line.
+  A repository declaration that repeats one the preset ships is reported, and so
+  is an `extends` entry that cannot be resolved or read.
 - Add tsconfig presets for TypeScript 7. `@shivaedev/quality/tsconfig/base.json` is for type-checking with `noEmit`. `@shivaedev/quality/tsconfig/package.json` is the base plus declaration output, declaration and source maps, and relative `.ts` imports rewritten to `.js`, for building a package. The base sets `target` and `lib` to ESNext with bundler resolution; type-checks JavaScript with `allowJs` and `checkJs`; turns on `strict` (stating `noImplicitAny` and `strictBuiltinIteratorReturn` explicitly), `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, `isolatedModules`, `erasableSyntaxOnly`, `noUncheckedSideEffectImports` and `forceConsistentCasingInFileNames`; and rejects unreachable code and unused labels. Dot access to index signatures stays allowed.
+
+### Changed
+
+- `suppressions/biome-overrides` merges a config with the configs it extends the
+  way Biome does: a later setting of a rule, a group, `recommended` or `enabled`
+  replaces an earlier one, so a weakening that the extending config sets back to
+  `error` is no longer reported, while `overrides` and every `includes` list are
+  appended. The `extends` of an extended config are no longer followed, since
+  Biome does not apply them.
 
 ## 0.3.1 - 2026-10-03
 

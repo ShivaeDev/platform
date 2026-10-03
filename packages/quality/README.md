@@ -74,6 +74,8 @@ A comment says why, never what the code already says or what it used to be. Six 
 
 The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
 
+The default is no comments at all: a comment states only what the code cannot show, such as a constraint or a reason, and never narrates the code. The limit of `comments/max-per-file` is a crude tripwire against runaway comments, not a budget to fill, so a file that reaches it means something went wrong.
+
 `comments/max-per-file` counts comments this way:
 
 - A block comment counts once, however many lines it spans.
@@ -145,7 +147,7 @@ export default defineConfig({
 
 #### Declared Biome overrides
 
-A scope that truly cannot follow a lint rule keeps its exception in the Biome config, and the quality config declares it with a reason. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the local files a config `extends` (an entry that starts with `.`). These settings count as overrides, at the top level and in every `overrides` entry:
+A scope that truly cannot follow a lint rule keeps its exception in the Biome config, and the quality config declares it with a reason. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
 
 | Setting | Declared as |
 | --- | --- |
@@ -187,6 +189,30 @@ export default defineConfig({
 ```
 
 A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. An `includes` list that keeps files out is declared as the whole list, so every pattern added to it needs the declaration to change too. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Patterns in a nested config are relative to its folder, so they are declared with the folder in front: `"src/**"` in `packages/web/biome.json` is declared as `"packages/web/src/**"`, and its top level as `"packages/web/**"`. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
+
+#### Shared presets
+
+A config `extends` its entries the way Biome does:
+
+- An entry that starts with `./` or `../` is a file next to the config. Any other entry is first a file at the repository root, then a package in the root's `node_modules`, resolved through its `exports` (with the `biome` and `default` conditions, and `*` patterns), then its `main`, then a file inside it. A package may also name itself through the repository's own `package.json` `exports`. `"//"` in a nested config extends the root config, which is read on its own.
+- Biome reads only the entries of the config it loads: the `extends` of an extended config are not followed, so they are not read here either.
+- The extended configs apply from left to right and the config itself last. A later setting of a rule, a group, `recommended` or `enabled` replaces an earlier one, so a preset's weakening that the repository sets back to `error` is no override. A group set as a whole (`"suspicious": "error"`) replaces the settings of its rules; a rule set inside a group the preset turned off leaves the rest of the group off.
+- Lists are appended, not replaced: `overrides`, `plugins` and every `includes` list, `files.includes` among them. A repository's `files.includes` adds to the preset's, so each list is declared by whoever wrote it.
+- Patterns in an extended config resolve against the repository root, or against the folder of a nested config that extends it, as patterns in the config itself do.
+
+A package that ships a preset declares the weakenings the preset makes in a `declarations.json` beside the preset file, as an array of the same `{ rule, includes, reason }` entries the `declared` option takes. Its `includes` are written relative to the repository that extends the preset. Those weakenings count as declared, so the repository adds nothing for them:
+
+```json
+[
+	{
+		"rule": "lint/style/noDefaultExport",
+		"includes": ["**/*.config.ts"],
+		"reason": "Tools load their config files through the default export."
+	}
+]
+```
+
+A weakening the preset makes without such a declaration is reported at the line of the repository's `extends` entry, and the repository's own declaration covers it. A weakening the repository adds beyond the preset needs its own declaration, and a repository declaration that repeats one the preset ships is reported until it is removed. A preset entry that cannot be resolved or read, or whose `declarations.json` is invalid, is reported at the `extends` entry as well.
 
 ### Local rules
 

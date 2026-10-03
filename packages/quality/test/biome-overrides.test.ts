@@ -74,10 +74,10 @@ describe("suppressions/biome-overrides finds", () => {
 
 	it("nested configs, scoped below their folder, and the local files a config extends", async () => {
 		const texts = {
-			"biome.json": '{ "extends": ["./biome.base.json", "@acme/biome-config"] }',
+			"biome.json": '{ "extends": ["./biome.base.json"] }',
 			"biome.base.json": JSON.stringify(override(["**/*.test.ts"], { rules: { style: { noNonNullAssertion: "off" } } })),
 			"packages/web/biome.jsonc":
-				'// web\n{ "root": false, "linter": { "rules": { "a11y": "off" } }, "overrides": [{ "includes": ["!src/**"], "formatter": { "enabled": false } }] }',
+				'// web\n{ "extends": "//", "linter": { "rules": { "a11y": "off" } }, "overrides": [{ "includes": ["!src/**"], "formatter": { "enabled": false } }] }',
 		};
 		expect(await check(texts, undefined, ["packages/web/biome.jsonc", "packages/web/src/a.ts"])).toEqual([
 			'biome.base.json:1 Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" without a declaration.',
