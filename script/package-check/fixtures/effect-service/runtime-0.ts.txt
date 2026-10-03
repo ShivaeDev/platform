@@ -1,5 +1,5 @@
-const { defineService } = await import('@shivaedev/effect-service');
-const { Effect } = await import('effect');
+import { defineService } from '@shivaedev/effect-service';
+import { Effect } from 'effect';
 const Service = defineService({ id: 'packed/Service', requires: [], initialize: Effect.succeed(41), methods: n => ({ next: () => Effect.succeed(n + 1) }) });
 const result = await Effect.runPromise(Effect.flatMap(Service, s => s.next()).pipe(Effect.provide(Service.layer)));
 if (result !== 42) throw new Error('Packed service did not execute');
