@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { external, type Fence, fence, folders, modules, packages, workspace } from "../src/index.ts";
+import { anyOf, external, type Fence, fence, folders, modules, packages, scopes, workspace } from "../src/index.ts";
 import { importFences } from "../src/rules/imports/fences.ts";
 import { findingsIn, importTree } from "./support/imports.ts";
 import { removeSeededTrees } from "./support/tree.ts";
@@ -40,8 +40,14 @@ const cmsStaysOffDisk = fence("cms-stays-off-disk")
 	.mayNotImport(modules("node:fs"))
 	.demonstratedBy({ illegal: ["packages/cms/src/a.ts", external("fs/promises")], legal: ["packages/cms/src/a.ts", external("node:path")] });
 
-function check(fences: readonly Fence[]) {
-	return findingsIn(importFences, { fences }, importTree("fence"));
+const coreNeedsNoAuth = fence("core-needs-no-auth")
+	.because("The core runs without the auth packages installed.")
+	.from(folders("packages/core/src"))
+	.mayNotImport(anyOf(modules("better-auth"), scopes("@trpc")))
+	.demonstratedBy({ illegal: ["packages/core/src/a.ts", external("better-auth/client")], legal: ["packages/core/src/a.ts", external("effect")] });
+
+function check(fences: readonly Fence[], tree = "fence") {
+	return findingsIn(importFences, { fences }, importTree(tree));
 }
 
 describe("imports/fences fires", () => {
@@ -72,6 +78,20 @@ describe("imports/fences fires", () => {
 
 	it("on a builtin module, however the import spells it", async () => {
 		expect((await check([cmsStaysOffDisk])).map((finding) => finding.file)).toEqual(["packages/cms/src/edit.ts"]);
+	});
+});
+
+describe("imports/fences sees through", () => {
+	it("an alias, a tsconfig path and a relative path to the package an import resolves to", async () => {
+		expect((await check([coreNeedsNoAuth], "aliases")).map((finding) => finding.message.split(" across ")[0])).toEqual([
+			"Imports #auth (better-auth)",
+			"Imports auth-kit (better-auth)",
+			"Imports ../../../node_modules/@trpc/server/src/http.ts (@trpc/server)",
+		]);
+	});
+
+	it("a package.json nested in a workspace package, which keeps the files it holds in the workspace package", async () => {
+		expect((await check([gameKeepsOutOfCms], "nested")).map((finding) => finding.file)).toEqual(["packages/game/src/preview.ts"]);
 	});
 });
 

@@ -114,6 +114,7 @@ export default defineConfig({
 	adopt: ["biome"],
 	rules: {
 		"imports/fences": { options: { fences } },
+		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/test/generated"] } },
 		"suppressions/biome-overrides": {
 			options: {
 				declared: [

@@ -1,4 +1,4 @@
-import { builtinName, type Endpoint } from "../resolve.ts";
+import { builtinName, type Endpoint, packageNameOf } from "../resolve.ts";
 import { packageOf, type WorkspacePackage } from "../workspace.ts";
 import type { Selector } from "./model.ts";
 
@@ -58,8 +58,13 @@ function fileWhere(accepts: (path: string) => boolean): Matcher {
 	return (endpoint) => endpoint.kind === "file" && accepts(endpoint.path);
 }
 
-function externalWhere(accepts: (specifier: string) => boolean): Matcher {
-	return (endpoint) => endpoint.kind === "external" && accepts(builtinName(endpoint.specifier) ?? endpoint.specifier);
+function externalWhere(accepts: (name: string) => boolean): Matcher {
+	return (endpoint) => endpoint.kind === "external" && accepts(endpoint.package);
+}
+
+function isPackageName(name: string): boolean {
+	const scoped = !name.startsWith("@") || name.includes("/");
+	return name.trim() !== "" && !name.startsWith(".") && !name.startsWith("/") && scoped && packageNameOf(name) === name;
 }
 
 function underAny(prefixes: readonly string[], value: string): boolean {
@@ -85,22 +90,24 @@ function compileFiles(compiler: Compiler, paths: readonly string[], where: strin
 
 function compileModules(compiler: Compiler, names: readonly string[], where: string): Matcher {
 	checkNames(compiler, where, "modules", names, (name) =>
-		name.trim() === "" || name.startsWith(".") || name.startsWith("/") ? "is no package name" : undefined,
+		builtinName(name) !== undefined || isPackageName(name) ? undefined : "is no package name",
 	);
 	const normalized = names.map((name) => builtinName(name) ?? name);
-	return externalWhere((specifier) => underAny(normalized, specifier));
+	return externalWhere((name) => underAny(normalized, name));
 }
 
 function compileScopes(compiler: Compiler, names: readonly string[], where: string): Matcher {
 	checkNames(compiler, where, "scopes", names, (name) =>
 		name.startsWith("@") && name.length > 1 && !name.includes("/") ? undefined : 'is no scope such as "@types"',
 	);
-	return externalWhere((specifier) => names.some((name) => specifier.startsWith(`${name}/`)));
+	return externalWhere((name) => names.some((scope) => name.startsWith(`${scope}/`)));
 }
 
 function compileWorkspace(compiler: Compiler, where: string): Matcher {
 	if (compiler.scope.packages.length === 0) {
-		compiler.issues.push(`${where}: workspace selects nothing, since the sources hold no named package.json`);
+		compiler.issues.push(
+			`${where}: workspace selects nothing, since no named package.json among the sources is a member of the workspace that pnpm-workspace.yaml or the root package.json declares`,
+		);
 	}
 	return fileWhere((path) => packageOf(compiler.scope.packages, path) !== undefined);
 }

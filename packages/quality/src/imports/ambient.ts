@@ -1,26 +1,30 @@
 import ts from "typescript";
+import { wildcardMatches } from "./glob.ts";
 
-export type Ambient = (specifier: string) => boolean;
+export type Ambient = (specifier: string, projectFiles: ReadonlySet<string>) => boolean;
 
-const WILDCARD = "*";
+const CATCH_ALL = "*";
 
 function declaredIn(source: ts.SourceFile): readonly string[] {
+	if (ts.isExternalModule(source)) {
+		return [];
+	}
 	return source.statements.flatMap((statement) =>
-		ts.isModuleDeclaration(statement) && ts.isStringLiteral(statement.name) ? [statement.name.text] : [],
+		ts.isModuleDeclaration(statement) && ts.isStringLiteral(statement.name) && statement.name.text !== CATCH_ALL ? [statement.name.text] : [],
 	);
 }
 
-function matches(pattern: string, specifier: string): boolean {
-	const star = pattern.indexOf(WILDCARD);
-	if (star === -1) {
-		return pattern === specifier;
-	}
-	const prefix = pattern.slice(0, star);
-	const suffix = pattern.slice(star + 1);
-	return specifier.length >= prefix.length + suffix.length && specifier.startsWith(prefix) && specifier.endsWith(suffix);
+function isBare(specifier: string): boolean {
+	return !(specifier.startsWith(".") || specifier.startsWith("/"));
 }
 
-export function ambientModules(sources: readonly ts.SourceFile[]): Ambient {
-	const patterns = [...new Set(sources.flatMap(declaredIn))];
-	return (specifier) => patterns.some((pattern) => matches(pattern, specifier));
+// A module declared in a script, not a module, is ambient: it exists for the files of the project that includes the script.
+export function ambientModules(sources: readonly { readonly path: string; readonly syntax: ts.SourceFile }[]): Ambient {
+	const declarations = sources.flatMap(({ path, syntax }) => {
+		const patterns = declaredIn(syntax);
+		return patterns.length === 0 ? [] : [{ path, patterns }];
+	});
+	return (specifier, projectFiles) =>
+		isBare(specifier)
+		&& declarations.some(({ path, patterns }) => projectFiles.has(path) && patterns.some((pattern) => wildcardMatches(pattern, specifier)));
 }

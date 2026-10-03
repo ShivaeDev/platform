@@ -3,6 +3,7 @@ import ts from "typescript";
 
 export interface Project {
 	readonly cache: ts.ModuleResolutionCache;
+	readonly files: ReadonlySet<string>;
 	readonly options: ts.CompilerOptions;
 	readonly typesCache: ts.ModuleResolutionCache;
 	readonly typesOptions: ts.CompilerOptions;
@@ -37,11 +38,12 @@ function resolutionOptions(options: ts.CompilerOptions, declarations: boolean): 
 	};
 }
 
-function projectOf(root: string, options: ts.CompilerOptions): Project {
-	const runtime = resolutionOptions(options, false);
-	const types = resolutionOptions(options, true);
+function projectOf(root: string, parsed: ParsedProject | undefined): Project {
+	const runtime = resolutionOptions(parsed?.options ?? {}, false);
+	const types = resolutionOptions(parsed?.options ?? {}, true);
 	return {
 		cache: ts.createModuleResolutionCache(root, (file) => file, runtime),
+		files: parsed?.files ?? new Set(),
 		options: runtime,
 		typesCache: ts.createModuleResolutionCache(root, (file) => file, types),
 		typesOptions: types,
@@ -97,7 +99,7 @@ export function projectsFor(root: string): (file: string) => Project {
 		const config = nearestConfig(root, file);
 		const owner = config === undefined ? undefined : (familyAt(config).find((candidate) => candidate.files.has(file)) ?? parsedAt(config));
 		const key = owner?.key ?? "";
-		const project = projects.get(key) ?? projectOf(root, owner?.options ?? {});
+		const project = projects.get(key) ?? projectOf(root, owner);
 		projects.set(key, project);
 		return project;
 	};

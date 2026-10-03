@@ -202,12 +202,22 @@ Three rules read the import graph of the TypeScript and JavaScript modules among
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `imports/cycles` | Modules that import each other at run time | none |
-| `imports/resolvable` | An import that resolves to nothing | none |
+| `imports/resolvable` | An import that resolves to nothing | `generated` |
 | `imports/fences` | An import that crosses a fence the config declares | `fences` |
 
-Each import resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. An import of a stylesheet, an image or JSON resolves to the file. A Node builtin, a module that a declaration among the sources declares (`declare module "virtual:*"`) and a relative import of a path git ignores, such as generated code, count as resolved. A module that resolves into `node_modules` or outside the root is external.
+Each import resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. The graph reads static and dynamic imports, `export ... from`, `require()`, `require.resolve()`, `import()` types, `/// <reference types>` and JSDoc `@import` tags.
 
-`imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type` and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
+- An import of a stylesheet, an image or JSON resolves to the file. A Node builtin resolves.
+- A runtime import must resolve to code: a declaration file (`.d.ts`) satisfies only `import type` and `export type`, so a package that has only its `@types` package installed is reported.
+- A bare import resolves when a declaration file of the importer's tsconfig project declares the module in a script (`declare module "virtual:*"`). A relative import always needs a real file, `declare module "*"` never counts, and a `declare module` inside a module is an augmentation, which declares nothing new.
+- A relative import of a missing file resolves only inside a folder that `generated` names, such as a client a generator writes before the tests run. Each folder must lie outside `node_modules` and hold a file that an import names.
+- A module that resolves into `node_modules` or outside the root is external, and its package is the one it resolves into, whatever alias the import uses.
+
+```ts
+"imports/resolvable": { options: { generated: ["packages/db/test/generated"] } },
+```
+
+`imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 The gate fails closed: when the sources hold no module at all, the imports rules stop the run instead of passing on an empty graph. Point `sources` at the code, or turn the rules off.
 
@@ -238,7 +248,7 @@ A fence has a name, a reason, the modules it holds (`from`) and one prohibition:
 - `mayNotReach(target)`: nothing a module it holds imports, directly or through other modules of the repository, is the target. The finding names the path.
 - `mayImportOnly(...subjects).of(unit)`: the modules it holds import only the named modules or folders directly in a package's `src` folder (or the package folder) or in a folder.
 
-Targets are `packages(...)` (workspace packages by name, with or without their scope), `folders(...)`, `files(...)`, `modules(...)` (external packages and Node builtins), `scopes(...)` (every external package of a scope), `anyOf(...)`, `workspace` (every workspace package) and `anything`. Each takes `.except(...)`.
+Targets are `packages(...)` (workspace packages by name, with or without their scope; a workspace package is a named `package.json` that `pnpm-workspace.yaml` or the root `package.json` `workspaces` includes, and it holds every file below it that no deeper workspace package holds), `folders(...)`, `files(...)`, `modules(...)` (external packages by package name, and Node builtins), `scopes(...)` (every external package of a scope), `anyOf(...)`, `workspace` (every workspace package) and `anything`. Each takes `.except(...)`.
 
 The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
 

@@ -3,14 +3,14 @@ import { join } from "node:path";
 import type { RuleInputs, SourceFile } from "../rule.ts";
 import { parse } from "../rules/syntax.ts";
 import { ambientModules } from "./ambient.ts";
-import { importsOf } from "./extract.ts";
-import { generatedTarget } from "./generated.ts";
+import { type ImportKind, importsOf } from "./extract.ts";
 import { projectsFor } from "./projects.ts";
 import { type Endpoint, resolveImport } from "./resolve.ts";
 import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
 
 export interface ImportEdge {
 	readonly from: string;
+	readonly kind: ImportKind;
 	readonly line: number;
 	readonly specifier: string;
 	readonly to: Endpoint;
@@ -35,16 +35,15 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 	const projectOf = projectsFor(root);
 	const parsed = inputs.sources.flatMap((file) => {
 		const syntax = parse(file);
-		return syntax === undefined ? [] : [{ file, syntax }];
+		return syntax === undefined ? [] : [{ file, path: join(root, file.path), syntax }];
 	});
-	const ambient = ambientModules(parsed.map(({ syntax }) => syntax));
+	const ambient = ambientModules(parsed);
 	const edges: ImportEdge[] = [];
 	const unresolved: UnresolvedImport[] = [];
-	for (const { file, syntax } of parsed) {
-		const from = join(root, file.path);
-		const project = projectOf(from);
+	for (const { file, path, syntax } of parsed) {
+		const project = projectOf(path);
 		for (const request of importsOf(syntax, DECLARATION.test(file.path))) {
-			const to = resolveImport(root, ambient, request.specifier, from, project);
+			const to = resolveImport(root, ambient, request, path, project);
 			if (to === undefined) {
 				unresolved.push({ ...request, from: file.path });
 			} else {
@@ -60,18 +59,7 @@ async function build(inputs: RuleInputs): Promise<ImportGraph> {
 	if (walked.modules.length === 0) {
 		throw new Error(NO_MODULES);
 	}
-	const generated = await Promise.all(
-		walked.unresolved.map(async (request) => ({ request, target: await generatedTarget(inputs, request.from, request.specifier) })),
-	);
-	const generatedEdges = generated.flatMap(({ request, target }): readonly ImportEdge[] =>
-		target === undefined ? [] : [{ ...request, to: { kind: "file", path: target } }],
-	);
-	return {
-		edges: [...walked.edges, ...generatedEdges],
-		modules: walked.modules,
-		packages: await workspacePackages(inputs),
-		unresolved: generated.flatMap(({ request, target }) => (target === undefined ? [request] : [])),
-	};
+	return { ...walked, packages: await workspacePackages(inputs) };
 }
 
 const graphs = new WeakMap<readonly SourceFile[], Promise<ImportGraph>>();

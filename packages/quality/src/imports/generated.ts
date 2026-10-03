@@ -1,35 +1,42 @@
 import { posix } from "node:path";
-import { emptyScope, type IgnoreScope, verdictFor, withIgnoreFile } from "../inventory/ignore-scope.ts";
-import type { RuleInputs } from "../rule.ts";
-
-type Reader = Pick<RuleInputs, "readText" | "root">;
-
-const IGNORE_FILE = ".gitignore";
+import type { ImportGraph, UnresolvedImport } from "./graph.ts";
 
 const QUERY = /\?.*$/u;
 
-async function withIgnoreFileIn(reader: Reader, scope: IgnoreScope, directory: string): Promise<IgnoreScope> {
-	const contents = await reader.readText(posix.join(directory, IGNORE_FILE));
-	return contents === undefined || contents === "" ? scope : withIgnoreFile(scope, posix.join(reader.root, directory), contents);
+const LEADING_DOT = /^\.\//u;
+
+const TRAILING_SLASHES = /\/+$/u;
+
+const NODE_MODULES = "node_modules";
+
+function targetOf(request: UnresolvedImport): string | undefined {
+	const relative = request.specifier.startsWith("./") || request.specifier.startsWith("../");
+	return relative ? posix.join(posix.dirname(request.from), request.specifier.replace(QUERY, "")) : undefined;
 }
 
-async function ignored(reader: Reader, path: string): Promise<boolean> {
-	const parts = path.split("/");
-	let scope = emptyScope;
-	for (const index of parts.keys()) {
-		scope = await withIgnoreFileIn(reader, scope, parts.slice(0, index).join("/") || ".");
-		if (verdictFor(scope, posix.join(reader.root, ...parts.slice(0, index + 1)), index < parts.length - 1) === "ignored") {
-			return true;
-		}
-	}
-	return false;
+function under(folder: string, path: string | undefined): boolean {
+	return path?.startsWith(`${folder}/`) === true;
 }
 
-// A relative import of a path that git ignores names generated output, which resolves once its generator has run.
-export async function generatedTarget(reader: Reader, from: string, specifier: string): Promise<string | undefined> {
-	if (!(specifier.startsWith("./") || specifier.startsWith("../"))) {
-		return undefined;
+function issueOf(graph: ImportGraph, folder: string): string | undefined {
+	if (folder === "" || folder.startsWith("../") || posix.isAbsolute(folder)) {
+		return `"${folder}" is no folder inside the repository`;
 	}
-	const target = posix.join(posix.dirname(from), specifier.replace(QUERY, ""));
-	return !target.startsWith("../") && (await ignored(reader, target)) ? target : undefined;
+	if (folder.split("/").includes(NODE_MODULES)) {
+		return `"${folder}" lies in node_modules, which holds installed packages, not generated output`;
+	}
+	const named =
+		graph.unresolved.some((request) => under(folder, targetOf(request)))
+		|| graph.edges.some((edge) => edge.to.kind === "file" && under(folder, edge.to.path));
+	return named ? undefined : `"${folder}" holds no file that an import names`;
+}
+
+// A generated folder may be empty until its generator runs, so a relative import of a missing file in it resolves.
+export function withoutGenerated(graph: ImportGraph, declared: readonly string[]): readonly UnresolvedImport[] {
+	const folders = declared.map((folder) => posix.normalize(folder).replace(LEADING_DOT, "").replace(TRAILING_SLASHES, ""));
+	const issues = folders.flatMap((folder) => issueOf(graph, folder) ?? []);
+	if (issues.length > 0) {
+		throw new Error(`the generated folders are invalid:\n${issues.map((issue) => `  - ${issue}`).join("\n")}`);
+	}
+	return graph.unresolved.filter((request) => !folders.some((folder) => under(folder, targetOf(request))));
 }

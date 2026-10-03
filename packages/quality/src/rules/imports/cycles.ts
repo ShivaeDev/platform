@@ -6,7 +6,7 @@ import { defineRule, type Finding } from "../../rule.ts";
 type RuntimeEdge = ImportEdge & { readonly to: { readonly kind: "file"; readonly path: string } };
 
 function isRuntime(edge: ImportEdge): edge is RuntimeEdge {
-	return !edge.type && edge.to.kind === "file";
+	return !edge.type && edge.kind === "import" && edge.to.kind === "file";
 }
 
 function runtimeAdjacency(edges: readonly RuntimeEdge[]): ReadonlyMap<string, readonly string[]> {
@@ -25,12 +25,11 @@ function findingOf(edges: readonly RuntimeEdge[], adjacency: ReadonlyMap<string,
 	}
 	const loop = shortestPath(anchor, within, (node) => node === anchor) ?? component;
 	const first = edges.find((edge) => edge.from === anchor && edge.to.path === loop[1]);
-	return {
-		count: component.length,
-		file: anchor,
-		line: first?.line,
-		message: `${component.length} modules import each other at runtime: ${component.join(", ")}. One loop: ${loop.join(" -> ")}. Move what they share into a module that imports neither, or import only types with \`import type\`.`,
-	};
+	const message =
+		component.length === 1
+			? `${anchor} imports itself at runtime. Use its own code directly instead of importing it.`
+			: `${component.length} modules import each other at runtime: ${component.join(", ")}. One loop: ${loop.join(" -> ")}. Move what they share into a module that imports neither, or import only types with \`import type\`.`;
+	return { count: component.length, file: anchor, line: first?.line, message };
 }
 
 export const importCycles = defineRule({

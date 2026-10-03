@@ -14,7 +14,11 @@ interface Trail {
 }
 
 export function labelOf(endpoint: Endpoint): string {
-	return endpoint.kind === "file" ? endpoint.path : endpoint.specifier;
+	if (endpoint.kind === "file") {
+		return endpoint.path;
+	}
+	const named = endpoint.specifier === endpoint.package || endpoint.specifier.startsWith(`${endpoint.package}/`);
+	return named ? endpoint.specifier : `${endpoint.specifier} (${endpoint.package})`;
 }
 
 export function outgoing(edges: readonly ImportEdge[]): ReadonlyMap<string, readonly ImportEdge[]> {

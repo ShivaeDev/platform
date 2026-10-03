@@ -1,31 +1,37 @@
 import ts from "typescript";
 
+export type ImportKind = "import" | "reference" | "resolve";
+
 export interface ImportRequest {
+	readonly kind: ImportKind;
 	readonly line: number;
 	readonly specifier: string;
 	readonly type: boolean;
 }
 
 interface Found {
+	readonly kind: ImportKind;
 	readonly node: ts.Node | undefined;
 	readonly type: boolean;
 }
 
-const MAY_CALL = /\b(?:import|require)\s*\(/u;
+const MAY_CALL = /\b(?:import|require)\s*\(|\brequire\.resolve\s*\(/u;
 
-function lineOf(source: ts.SourceFile, node: ts.Node): number {
-	return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+const JSDOC_IMPORT = "@import";
+
+function lineAt(source: ts.SourceFile, position: number): number {
+	return source.getLineAndCharacterOfPosition(position).line + 1;
 }
 
 function declared(statement: ts.Statement): Found | undefined {
 	if (ts.isImportDeclaration(statement)) {
-		return { node: statement.moduleSpecifier, type: statement.importClause?.isTypeOnly === true };
+		return { kind: "import", node: statement.moduleSpecifier, type: statement.importClause?.isTypeOnly === true };
 	}
 	if (ts.isExportDeclaration(statement)) {
-		return { node: statement.moduleSpecifier, type: statement.isTypeOnly };
+		return { kind: "import", node: statement.moduleSpecifier, type: statement.isTypeOnly };
 	}
 	if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
-		return { node: statement.moduleReference.expression, type: statement.isTypeOnly };
+		return { kind: "import", node: statement.moduleReference.expression, type: statement.isTypeOnly };
 	}
 	return undefined;
 }
@@ -34,13 +40,29 @@ function isRequire(call: ts.CallExpression): boolean {
 	return ts.isIdentifier(call.expression) && call.expression.text === "require";
 }
 
+function isRequireResolve(call: ts.CallExpression): boolean {
+	const callee = call.expression;
+	return (
+		ts.isPropertyAccessExpression(callee)
+		&& ts.isIdentifier(callee.expression)
+		&& callee.expression.text === "require"
+		&& callee.name.text === "resolve"
+	);
+}
+
+function called(call: ts.CallExpression): Found | undefined {
+	if (call.expression.kind === ts.SyntaxKind.ImportKeyword || isRequire(call)) {
+		return { kind: "import", node: call.arguments[0], type: false };
+	}
+	return isRequireResolve(call) ? { kind: "resolve", node: call.arguments[0], type: false } : undefined;
+}
+
 function nested(node: ts.Node): Found | undefined {
 	if (ts.isCallExpression(node)) {
-		const calls = node.expression.kind === ts.SyntaxKind.ImportKeyword || isRequire(node);
-		return calls ? { node: node.arguments[0], type: false } : undefined;
+		return called(node);
 	}
 	if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
-		return { node: node.argument.literal, type: true };
+		return { kind: "import", node: node.argument.literal, type: true };
 	}
 	return undefined;
 }
@@ -49,7 +71,7 @@ function requestOf(source: ts.SourceFile, at: ts.Node, found: Found | undefined)
 	if (found?.node === undefined || !ts.isStringLiteralLike(found.node)) {
 		return [];
 	}
-	return [{ line: lineOf(source, at), specifier: found.node.text, type: found.type }];
+	return [{ kind: found.kind, line: lineAt(source, at.getStart(source)), specifier: found.node.text, type: found.type }];
 }
 
 function nestedRequests(source: ts.SourceFile): readonly ImportRequest[] {
@@ -65,7 +87,32 @@ function nestedRequests(source: ts.SourceFile): readonly ImportRequest[] {
 	return requests;
 }
 
+function jsDocRequests(source: ts.SourceFile): readonly ImportRequest[] {
+	if (!source.text.includes(JSDOC_IMPORT)) {
+		return [];
+	}
+	const tags = [...source.statements, source.endOfFileToken]
+		.flatMap((node) => ts.getJSDocCommentsAndTags(node))
+		.flatMap((doc) => (ts.isJSDoc(doc) ? (doc.tags ?? []) : [doc]))
+		.filter(ts.isJSDocImportTag);
+	return tags.flatMap((tag) => requestOf(source, tag, { kind: "import", node: tag.moduleSpecifier, type: true }));
+}
+
+function referenceRequests(source: ts.SourceFile): readonly ImportRequest[] {
+	return source.typeReferenceDirectives.map((reference) => ({
+		kind: "reference",
+		line: lineAt(source, reference.pos),
+		specifier: reference.fileName,
+		type: true,
+	}));
+}
+
 export function importsOf(source: ts.SourceFile, declarationFile: boolean): readonly ImportRequest[] {
-	const all = [...source.statements.flatMap((statement) => requestOf(source, statement, declared(statement))), ...nestedRequests(source)];
+	const all = [
+		...referenceRequests(source),
+		...source.statements.flatMap((statement) => requestOf(source, statement, declared(statement))),
+		...jsDocRequests(source),
+		...nestedRequests(source),
+	];
 	return declarationFile ? all.map((request) => ({ ...request, type: true })) : all;
 }

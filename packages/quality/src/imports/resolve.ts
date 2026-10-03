@@ -4,13 +4,20 @@ import { relative } from "node:path";
 import ts from "typescript";
 import { posix } from "../inventory/ignore-scope.ts";
 import type { Ambient } from "./ambient.ts";
+import type { ImportRequest } from "./extract.ts";
 import type { Project } from "./projects.ts";
 
-export type Endpoint = { readonly kind: "file"; readonly path: string } | { readonly kind: "external"; readonly specifier: string };
+export type Endpoint =
+	| { readonly kind: "file"; readonly path: string }
+	| { readonly kind: "external"; readonly package: string; readonly specifier: string };
 
 const NODE_PREFIX = "node:";
 
+const NODE_MODULES = "/node_modules/";
+
 const ASSET_DECLARATION = /\.d(?<extension>\.[^./]+)\.ts$/u;
+
+const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const QUERY = /\?.*$/u;
 
@@ -19,6 +26,15 @@ export function builtinName(specifier: string): string | undefined {
 		return undefined;
 	}
 	return specifier.startsWith(NODE_PREFIX) ? specifier : `${NODE_PREFIX}${specifier}`;
+}
+
+function nameAt(path: string): string {
+	const [first = "", second] = path.split("/");
+	return first.startsWith("@") && second !== undefined ? `${first}/${second}` : first;
+}
+
+export function packageNameOf(specifier: string): string {
+	return builtinName(specifier) ?? nameAt(specifier);
 }
 
 function assetOf(declaration: string): string {
@@ -31,28 +47,46 @@ const assetHost: ts.ModuleResolutionHost = {
 	fileExists: (path) => ts.sys.fileExists(path) || (ASSET_DECLARATION.test(path) && ts.sys.fileExists(assetOf(path))),
 };
 
-function resolvedPath(specifier: string, from: string, project: Project): string | undefined {
+function declaredPath(declared: string, type: boolean): string | undefined {
+	if (ASSET_DECLARATION.test(declared) && ts.sys.fileExists(assetOf(declared))) {
+		return assetOf(declared);
+	}
+	return type || !DECLARATION.test(declared) ? declared : undefined;
+}
+
+function resolvedPath(request: ImportRequest, from: string, project: Project): string | undefined {
+	const specifier = request.specifier.replace(QUERY, "");
+	if (request.kind === "reference") {
+		return ts.resolveTypeReferenceDirective(specifier, from, project.typesOptions, ts.sys).resolvedTypeReferenceDirective?.resolvedFileName;
+	}
 	const runtime = ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache).resolvedModule;
 	if (runtime !== undefined) {
 		return runtime.resolvedFileName;
 	}
 	const declared = ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache).resolvedModule?.resolvedFileName;
-	return declared !== undefined && !ts.sys.fileExists(declared) ? assetOf(declared) : declared;
+	return declared === undefined ? undefined : declaredPath(declared, request.type);
 }
 
 function endpointAt(root: string, specifier: string, path: string): Endpoint {
-	const real = posix(relative(root, realpathSync(path)));
-	return real.startsWith("../") || real.split("/").includes("node_modules") ? { kind: "external", specifier } : { kind: "file", path: real };
+	const real = posix(realpathSync(path));
+	const installed = real.lastIndexOf(NODE_MODULES);
+	if (installed !== -1) {
+		return { kind: "external", package: nameAt(real.slice(installed + NODE_MODULES.length)), specifier };
+	}
+	const inRoot = posix(relative(root, real));
+	return inRoot.startsWith("../") ? { kind: "external", package: packageNameOf(specifier), specifier } : { kind: "file", path: inRoot };
 }
 
-export function resolveImport(root: string, ambient: Ambient, specifier: string, from: string, project: Project): Endpoint | undefined {
-	const builtin = builtinName(specifier);
+export function resolveImport(root: string, ambient: Ambient, request: ImportRequest, from: string, project: Project): Endpoint | undefined {
+	const builtin = builtinName(request.specifier);
 	if (builtin !== undefined) {
-		return { kind: "external", specifier: builtin };
+		return { kind: "external", package: builtin, specifier: builtin };
 	}
-	const path = resolvedPath(specifier.replace(QUERY, ""), from, project);
+	const path = resolvedPath(request, from, project);
 	if (path !== undefined) {
-		return endpointAt(root, specifier, path);
+		return endpointAt(root, request.specifier, path);
 	}
-	return ambient(specifier) ? { kind: "external", specifier } : undefined;
+	return ambient(request.specifier, project.files)
+		? { kind: "external", package: packageNameOf(request.specifier), specifier: request.specifier }
+		: undefined;
 }

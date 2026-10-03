@@ -1,11 +1,13 @@
 import type { ImportEdge } from "../graph.ts";
-import type { Endpoint } from "../resolve.ts";
+import { type Endpoint, packageNameOf } from "../resolve.ts";
 import { type CompiledFence, compileFence, type FenceGraph } from "./evaluate.ts";
 import type { PolicyScope } from "./match.ts";
 import type { Chain, ExampleStep, Fence } from "./model.ts";
 
 function endpointOf(step: ExampleStep): Endpoint {
-	return typeof step === "string" ? { kind: "file", path: step } : { kind: "external", specifier: step.external };
+	return typeof step === "string"
+		? { kind: "file", path: step }
+		: { kind: "external", package: packageNameOf(step.external), specifier: step.external };
 }
 
 function chainLabel(chain: Chain): string {
@@ -18,7 +20,9 @@ function graphOf(chain: Chain): FenceGraph | undefined {
 	if (files.length !== importers.length) {
 		return undefined;
 	}
-	const edges = files.map((from, index): ImportEdge => ({ from, line: 1, specifier: "", to: endpointOf(chain[index + 1] ?? from), type: false }));
+	const edges = files.map(
+		(from, index): ImportEdge => ({ from, kind: "import", line: 1, specifier: "", to: endpointOf(chain[index + 1] ?? from), type: false }),
+	);
 	return { edges, modules: files };
 }
 
