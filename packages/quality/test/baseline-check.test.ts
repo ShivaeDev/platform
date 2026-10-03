@@ -17,6 +17,21 @@ const baselined = (): string => {
 
 const baselinePath = (root: string): string => join(root, "quality/baseline.jsonl");
 
+const shallowClone = (): { readonly clone: string; readonly origin: string } => {
+	const origin = baselined();
+	for (const content of ["2\n", "3\n", "4\n"]) {
+		writeFileSync(join(origin, "src/short.ts"), content);
+		commitAll(origin, "Work");
+	}
+	git(origin, "switch", "--quiet", "main");
+	writeFileSync(join(origin, "src/main.ts"), "1\n");
+	commitAll(origin, "Main moves on");
+	git(origin, "switch", "--quiet", "work");
+	const clone = seedTree([]);
+	git(clone, "clone", "--quiet", "--depth=2", "--no-single-branch", `file://${origin}`, ".");
+	return { clone, origin };
+};
+
 const check = (root: string) => quality(root, "baseline", "check", "--against", "main");
 
 describe("quality baseline check", { timeout: cliTimeout }, () => {
@@ -148,15 +163,33 @@ describe("quality baseline check finds its base", { timeout: cliTimeout }, () =>
 		expect(result).toMatchObject({ status: 2, stderr: expect.stringContaining(message) });
 	});
 
-	it("and exits 2 in a shallow clone that does not reach the merge base", () => {
-		const origin = baselined();
-		writeFileSync(join(origin, "src/short.ts"), "2\n");
-		commitAll(origin, "Work");
-		const clone = seedTree([]);
-		git(clone, "clone", "--quiet", "--depth=1", "--no-single-branch", `file://${origin}`, ".");
+	it("in a shallow clone that does not reach it, by fetching the full history first without a password prompt", () => {
+		const { clone } = shallowClone();
+		expect(() => git(clone, "merge-base", "HEAD", "origin/main")).toThrow();
+		const prompt = join(clone, ".git", "terminal-prompt");
+		git(clone, "config", "remote.origin.uploadpack", `echo "$GIT_TERMINAL_PROMPT" > '${prompt}'; git-upload-pack`);
 		const result = quality(clone, "baseline", "check", "--against", "origin/main");
-		expect(result).toMatchObject({ status: 2, stderr: expect.stringContaining("the clone is shallow") });
+		expect(result).toMatchObject({ status: 0, stdout: expect.stringContaining("holds against origin/main") });
+		expect(result.stderr).toContain("quality: the clone is shallow; fetching its full history");
+		expect(git(clone, "rev-parse", "--is-shallow-repository")).toBe("false\n");
+		expect(readFileSync(prompt, "utf8")).toBe("0\n");
+	});
+
+	it("and exits 2 in a shallow clone whose history cannot be fetched", () => {
+		const { clone, origin } = shallowClone();
+		rmSync(origin, { force: true, recursive: true });
+		const result = quality(clone, "baseline", "check", "--against", "origin/main");
+		expect(result).toMatchObject({ status: 2, stderr: expect.stringContaining("the clone is shallow and does not reach the merge base") });
 		expect(result.stderr).toContain("fetch-depth: 0");
+	});
+
+	it("and exits 2 without fetching when a full clone shares no history with the target", () => {
+		const root = baselined();
+		git(root, "checkout", "--quiet", "--orphan", "unrelated");
+		commitAll(root, "Unrelated");
+		const result = check(root);
+		expect(result).toMatchObject({ status: 2, stderr: expect.stringContaining("HEAD and main share no history.") });
+		expect(result.stderr).not.toContain("fetching");
 	});
 
 	it("and exits 2 outside a git work tree", () => {

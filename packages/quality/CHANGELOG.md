@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `quality baseline check` fetches the full history with `git fetch --unshallow`
+  when a shallow clone does not reach the merge base, and looks for it again
+  before it exits 2. The fetch never stops to ask for a
+  password.
+
 ## 0.3.0 - 2026-10-03
 
 ### Added
