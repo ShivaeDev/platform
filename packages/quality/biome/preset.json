@@ -164,7 +164,6 @@
 				"noUselessTernary": "error",
 				"noUselessThisAlias": "error",
 				"noUselessTypeConstraint": "error",
-				"noUselessUndefined": "error",
 				"noUselessUndefinedInitialization": "error",
 				"useArrayFind": "error",
 				"useArrowFunction": "error",
