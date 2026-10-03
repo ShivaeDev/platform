@@ -3,8 +3,8 @@ import { linesOf } from "../../src/inventory/collect.ts";
 import type { SeedFile } from "./tree.ts";
 
 export interface Seed {
-	readonly files?: ReadonlyArray<string>;
-	readonly sources?: ReadonlyArray<SeedFile>;
+	readonly files?: readonly string[];
+	readonly sources?: readonly SeedFile[];
 	readonly texts?: Readonly<Record<string, string>>;
 }
 
@@ -26,7 +26,7 @@ export const checkRule = async <Input>(rule: Rule<string, Input>, options: Input
 	return configured.check(inputsOf(seed));
 };
 
-export const issuesOf = async (rule: Rule, options: unknown): Promise<ReadonlyArray<string>> => {
+export const issuesOf = async (rule: Rule, options: unknown): Promise<readonly string[]> => {
 	const configured = await rule.configure(options);
 	return configured._tag === "Invalid" ? configured.issues : [];
 };

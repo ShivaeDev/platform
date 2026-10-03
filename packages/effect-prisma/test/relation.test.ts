@@ -14,10 +14,10 @@ interface User {
 }
 
 class FakeCollection<Row extends object> {
-	private readonly rows: ReadonlyArray<Row>;
+	private readonly rows: readonly Row[];
 	private readonly limit: number | undefined;
 
-	constructor(rows: ReadonlyArray<Row>, limit?: number) {
+	constructor(rows: readonly Row[], limit?: number) {
 		this.rows = rows;
 		this.limit = limit;
 	}
@@ -46,7 +46,7 @@ interface Models {
 	readonly User: FakeCollection<User>;
 }
 
-const rows: ReadonlyArray<User> = [
+const rows: readonly User[] = [
 	{ active: true, id: 1 },
 	{ active: false, id: 2 },
 	{ active: true, id: 3 },

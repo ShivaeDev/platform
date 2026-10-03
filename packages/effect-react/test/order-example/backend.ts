@@ -57,9 +57,12 @@ const OrderService = defineService({
 			Effect.gen(function* () {
 				const found = yield* owned(userId, input.id);
 				const name = input.name.trim();
-				if (name.length === 0) return yield* SaveOrder.reject.OrderValidation({ field: "name", message: "Enter an order name" });
-				if (!Number.isInteger(input.quantity) || input.quantity < 0 || input.quantity > 5000)
+				if (name.length === 0) {
+					return yield* SaveOrder.reject.OrderValidation({ field: "name", message: "Enter an order name" });
+				}
+				if (!Number.isInteger(input.quantity) || input.quantity < 0 || input.quantity > 5000) {
 					return yield* SaveOrder.reject.OrderValidation({ field: "quantity", message: "Quantity must be a whole number between 0 and 5000" });
+				}
 				const repository = yield* OrdersRepository;
 				const saved = publicOrder(yield* repository.update({ ...found, name, quantity: input.quantity }));
 				yield* invalidateOnCommit(invalidationKeys(SaveOrder.invalidates(input, saved)));
@@ -105,7 +108,9 @@ export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 			const authorization = headers.authorization;
 			const session = authorization?.startsWith("Bearer ") ? sessions.get(authorization.slice(7)) : undefined;
 			const now = yield* Clock.currentTimeMillis;
-			if (session === undefined || session.expiresAt <= now) return yield* new Unauthorized();
+			if (session === undefined || session.expiresAt <= now) {
+				return yield* new Unauthorized();
+			}
 			return yield* Effect.provideService(effect, Principal, { userId: session.userId });
 		}),
 	);
@@ -118,14 +123,18 @@ export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						const { userId } = yield* Principal;
-						if (options.beforeGet) yield* options.beforeGet(id);
+						if (options.beforeGet) {
+							yield* options.beforeGet(id);
+						}
 						return yield* orders.get(userId, id);
 					}),
 				"orders.list": () => Effect.flatMap(Principal, ({ userId }) => orders.list(userId)),
 				"orders.save": (input) =>
 					Effect.gen(function* () {
 						const { userId } = yield* Principal;
-						if (options.beforeSave) yield* options.beforeSave(input);
+						if (options.beforeSave) {
+							yield* options.beforeSave(input);
+						}
 						return yield* orders.save(userId, input);
 					}),
 			});

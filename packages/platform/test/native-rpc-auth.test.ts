@@ -40,14 +40,20 @@ const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => 
 	const authentication = Layer.succeed(Authentication, (effect) =>
 		Effect.gen(function* () {
 			const request = yield* Effect.serviceOption(HttpServerRequest.HttpServerRequest);
-			if (Option.isNone(request)) return yield* new Forbidden();
+			if (Option.isNone(request)) {
+				return yield* new Forbidden();
+			}
 			const { headers } = request.value;
-			if (headers.origin !== origin) return yield* new Forbidden();
+			if (headers.origin !== origin) {
+				return yield* new Forbidden();
+			}
 			const session = yield* Effect.tryPromise({
 				catch: () => new AuthUnavailable(),
 				try: () => auth.api.getSession({ headers: new Headers(headers) }),
 			});
-			if (session === null) return yield* new Unauthorized();
+			if (session === null) {
+				return yield* new Unauthorized();
+			}
 			return yield* Effect.provideService(effect, Principal, {
 				userId: session.user.id,
 			});
@@ -57,7 +63,9 @@ const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => 
 		ReadOwnAccount: ({ userId }) =>
 			Effect.gen(function* () {
 				const principal = yield* Principal;
-				if (principal.userId !== userId) return yield* new Forbidden();
+				if (principal.userId !== userId) {
+					return yield* new Forbidden();
+				}
 				return principal.userId;
 			}),
 	});
@@ -95,7 +103,9 @@ it("BetterAuth issued cookies authenticate isolated native RPC requests and hono
 		const session = await auth.api.getSession({
 			headers: new Headers({ cookie }),
 		});
-		if (session === null) throw new Error("Sign-up did not create a session");
+		if (session === null) {
+			throw new Error("Sign-up did not create a session");
+		}
 		return { cookie, token: session.session.token, userId: session.user.id };
 	};
 	const read = (cookie: string, userId: string, requestOrigin = origin) =>

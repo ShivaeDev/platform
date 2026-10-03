@@ -37,7 +37,7 @@ export interface Started {
 }
 
 // A run that deadlocks is killed so the test fails instead of hanging; its command, in a process group of its own, ends through its own bound.
-export const start = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Started => {
+export const start = (args: readonly string[], env: Record<string, string>, cwd?: string): Started => {
 	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: ["ignore", "ignore", "pipe"] });
 	let running = true;
 	const stop = () => {
@@ -61,13 +61,13 @@ export const start = (args: ReadonlyArray<string>, env: Record<string, string>, 
 	return { exited, pid: child.pid ?? 0, stderr: () => stderr, stop };
 };
 
-export const runCli = (args: ReadonlyArray<string>, env: Record<string, string>, cwd?: string): Promise<Exit> => start(args, env, cwd).exited;
+export const runCli = (args: readonly string[], env: Record<string, string>, cwd?: string): Promise<Exit> => start(args, env, cwd).exited;
 
 // The command runs outside the test's process group, so a test run that dies without cleaning up cannot stop it; the loop gives up on its own after about the test timeout.
 export const pollWhile = (condition: string): string =>
 	`give_up=$(($(date +%s) + ${TEST_TIMEOUT_MS / 1000})); while ${condition} && [ "$(date +%s)" -lt "$give_up" ]; do sleep 0.02; done`;
 
-export const holdUntilReleasedOrAbandoned = (release: string): ReadonlyArray<string> => [
+export const holdUntilReleasedOrAbandoned = (release: string): readonly string[] => [
 	"/bin/sh",
 	"-c",
 	`${pollWhile(`[ ! -e "${release}" ] && [ -d "${dirname(release)}" ]`)}; test -e "${release}"`,

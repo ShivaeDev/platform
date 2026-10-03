@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import ignore from "ignore";
 import { defineRule, type Finding, type SourceFile } from "../rule.ts";
 
-const DEFAULT_TEST_FILES: ReadonlyArray<string> = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
+const DEFAULT_TEST_FILES: readonly string[] = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
 const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const Limit = Schema.Int.check(Schema.isGreaterThan(0));
@@ -13,7 +13,7 @@ const MaxLinesOptions = Schema.Struct({
 	testFiles: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TEST_FILES))),
 });
 
-const oversized = (file: SourceFile, limit: number): ReadonlyArray<Finding> =>
+const oversized = (file: SourceFile, limit: number): readonly Finding[] =>
 	file.lines.length <= limit
 		? []
 		: [

@@ -137,7 +137,9 @@ const activity = async (hoisted: boolean) => {
 	const registries: AtomRegistry.AtomRegistry[] = [];
 	const Probe = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		const [draft] = useState(() => `draft-${registries.length}`);
 		const value = useAtomValue(count);
 		return createElement("output", null, `${draft}:${value._tag === "Success" ? value.value + 1 : "…"}`);

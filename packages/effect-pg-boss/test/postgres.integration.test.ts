@@ -11,7 +11,9 @@ const until = <A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_0
 	vi.waitFor(
 		async () => {
 			const value = await read();
-			if (value === undefined) throw new Error("Timed out waiting for pg-boss");
+			if (value === undefined) {
+				throw new Error("Timed out waiting for pg-boss");
+			}
 			return value;
 		},
 		{ interval: 50, timeout: timeoutMilliseconds },
@@ -46,7 +48,9 @@ integration("PostgreSQL integration", () => {
 					yield* Effect.promise(() => until(async () => (handled.mock.calls.length === 1 ? true : undefined)));
 					expect(handled).toHaveBeenCalledWith(42);
 
-					if (client === undefined) throw new Error("Client was not created");
+					if (client === undefined) {
+						throw new Error("Client was not created");
+					}
 					const startedClient = client;
 					yield* Effect.promise(() => startedClient.send(queueName, { id: null }));
 					const deadLetter = yield* Effect.promise(() =>

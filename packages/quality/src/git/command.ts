@@ -10,7 +10,7 @@ export interface GitResult {
 
 export type Git = ChildProcessSpawner.ChildProcessSpawner;
 
-export const git = (cwd: string, args: ReadonlyArray<string>, env?: Readonly<Record<string, string>>): Effect.Effect<GitResult, SetupFailure, Git> =>
+export const git = (cwd: string, args: readonly string[], env?: Readonly<Record<string, string>>): Effect.Effect<GitResult, SetupFailure, Git> =>
 	Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -23,7 +23,7 @@ export const git = (cwd: string, args: ReadonlyArray<string>, env?: Readonly<Rec
 		}),
 	).pipe(Effect.mapError((error) => new SetupFailure({ message: `cannot run git: ${error.message}` })));
 
-export const gitOrFail = (cwd: string, args: ReadonlyArray<string>): Effect.Effect<string, SetupFailure, Git> =>
+export const gitOrFail = (cwd: string, args: readonly string[]): Effect.Effect<string, SetupFailure, Git> =>
 	Effect.flatMap(git(cwd, args), (result) =>
 		result.code === 0
 			? Effect.succeed(result.stdout)

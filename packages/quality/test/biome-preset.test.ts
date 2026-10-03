@@ -16,7 +16,7 @@ interface Preset {
 
 const preset: Preset = JSON.parse(shipped("biome/preset.json"));
 
-const declaredOff: ReadonlyArray<string> = JSON.parse(shipped("biome/declarations.json")).map((declaration: { rule: string }) => declaration.rule);
+const declaredOff: readonly string[] = JSON.parse(shipped("biome/declarations.json")).map((declaration: { rule: string }) => declaration.rule);
 
 function levelIn(rule: string): unknown {
 	const [group = "", name = ""] = rule.split("/");

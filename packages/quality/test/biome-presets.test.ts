@@ -22,7 +22,7 @@ const presetTexts = (preset: unknown, declarations?: unknown): Readonly<Record<s
 
 const consumer = (config: object) => JSON.stringify({ extends: ["@acme/lint/biome"], ...config }, null, "\t");
 
-const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: ReadonlyArray<string>) =>
+const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) =>
 	(await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
 		(finding) => `${finding.file}${finding.line === undefined ? "" : `:${finding.line}`} ${finding.message}`,
 	);

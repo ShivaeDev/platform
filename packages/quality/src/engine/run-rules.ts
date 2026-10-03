@@ -25,7 +25,7 @@ const violationOf = (rule: ActiveRule, root: string, finding: Finding): Violatio
 	rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
 });
 
-const runRule = (rule: ActiveRule, inputs: RuleInputs): Effect.Effect<ReadonlyArray<Violation>, SetupFailure> =>
+const runRule = (rule: ActiveRule, inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> =>
 	Effect.map(
 		Effect.tryPromise({
 			catch: (cause) => new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` }),
@@ -34,7 +34,7 @@ const runRule = (rule: ActiveRule, inputs: RuleInputs): Effect.Effect<ReadonlyAr
 		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding)),
 	);
 
-export const runRules = (rules: ReadonlyArray<ActiveRule>, inputs: RuleInputs): Effect.Effect<ReadonlyArray<Violation>, SetupFailure> =>
+export const runRules = (rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> =>
 	Effect.map(
 		Effect.forEach(rules, (rule) => runRule(rule, inputs), { concurrency: "unbounded" }),
 		(results) => results.flat(),

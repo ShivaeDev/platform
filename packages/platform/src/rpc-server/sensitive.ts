@@ -26,7 +26,7 @@ const SENSITIVE_NAMES = ["session", "pan"];
 
 export type SensitiveKey = (key: string) => boolean;
 
-const wordsOf = (key: string): Array<string> =>
+const wordsOf = (key: string): string[] =>
 	key
 		.replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
 		.replaceAll(/([A-Z])([A-Z][a-z])/gu, "$1 $2")

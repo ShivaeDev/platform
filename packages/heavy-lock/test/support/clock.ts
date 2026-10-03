@@ -2,12 +2,12 @@ import { Clock, Console, Effect } from "effect";
 import { TestConsole } from "effect/testing";
 
 export interface Scripted {
-	readonly lines: ReadonlyArray<string>;
+	readonly lines: readonly string[];
 	readonly provide: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
 }
 
 // Time moves only when the waiter prints, so the reminder schedule is exercised without real waiting.
-export const scriptedClock = (startMs: number, onLine: (line: string, lines: ReadonlyArray<string>) => number): Effect.Effect<Scripted> =>
+export const scriptedClock = (startMs: number, onLine: (line: string, lines: readonly string[]) => number): Effect.Effect<Scripted> =>
 	Effect.gen(function* () {
 		const base = yield* TestConsole.make;
 		let nowMs = startMs;

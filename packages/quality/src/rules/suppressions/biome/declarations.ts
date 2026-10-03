@@ -15,15 +15,15 @@ const shipped = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(Dec
 	parseOptions: { errors: "all", onExcessProperty: "error" },
 });
 
-export const decodeShipped = (text: string | undefined): Promise<Decoded<ReadonlyArray<Declaration>>> =>
+export const decodeShipped = (text: string | undefined): Promise<Decoded<readonly Declaration[]>> =>
 	text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(shipped, text);
 
 export interface Scoped {
-	readonly includes: ReadonlyArray<string>;
+	readonly includes: readonly string[];
 	readonly rule: string;
 }
 
-const sameScope = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean =>
+const sameScope = (left: readonly string[], right: readonly string[]): boolean =>
 	new Set(left).size === new Set(right).size && left.every((glob) => right.includes(glob));
 
 export const matches = (declaration: Scoped, weakening: Scoped): boolean =>
@@ -34,4 +34,4 @@ export const scoped = (base: string, glob: string): string => {
 	return base === "" ? glob : `${negation}${base}/${path}`;
 };
 
-export const scopeText = (includes: ReadonlyArray<string>): string => includes.map((glob) => `"${glob}"`).join(", ");
+export const scopeText = (includes: readonly string[]): string => includes.map((glob) => `"${glob}"`).join(", ");

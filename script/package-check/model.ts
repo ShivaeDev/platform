@@ -28,7 +28,11 @@ export const effectPackage = (name: string): boolean => name === "effect" || nam
 export const bins = (manifest: Manifest): Readonly<Record<string, string>> =>
 	typeof manifest.bin === "string" ? { [manifest.name.split("/").at(-1) ?? manifest.name]: manifest.bin } : (manifest.bin ?? {});
 export const targets = (value: unknown): string[] => {
-	if (typeof value === "string") return [value];
-	if (typeof value !== "object" || value === null) return [];
+	if (typeof value === "string") {
+		return [value];
+	}
+	if (typeof value !== "object" || value === null) {
+		return [];
+	}
 	return Object.values(value).flatMap(targets);
 };

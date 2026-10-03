@@ -17,7 +17,9 @@ const contract = (source: string) => {
 };
 const normalize = (path: string) => spawnSync(process.execPath, [cli, path], { encoding: "utf8" });
 afterEach(() => {
-	for (const directory of directories.splice(0)) rmSync(directory, { force: true, recursive: true });
+	for (const directory of directories.splice(0)) {
+		rmSync(directory, { force: true, recursive: true });
+	}
 });
 
 it("normalizes generated timestamps, preserves other fields and can run twice", () => {

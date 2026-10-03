@@ -30,7 +30,7 @@ const report = (cause: Cause.Cause<unknown>) => {
 	return Console.error(error instanceof HeavyLockError ? `heavy-lock: ${error.message}` : `heavy-lock: ${Cause.pretty(cause)}`);
 };
 
-export const program = (args: ReadonlyArray<string>) => {
+export const program = (args: readonly string[]) => {
 	const commandLine = parseCommandLine(args);
 	if (Option.isNone(commandLine)) {
 		return Effect.as(Console.error(USAGE), USAGE_ERROR);

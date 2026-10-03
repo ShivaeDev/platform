@@ -2,26 +2,26 @@ import { all } from "@shivaedev/effect-prisma";
 import type { Effect, Option } from "effect";
 import { type CleanedWhere, type DynamicField, type Expression, whereExpression } from "./where.ts";
 
-export interface DynamicRelation<Requirements> extends Effect.Effect<ReadonlyArray<Record<string, unknown>>, unknown, Requirements> {
+export interface DynamicRelation<Requirements> extends Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements> {
 	count(): Effect.Effect<number, unknown, Requirements>;
 	create(data: Record<string, unknown>): Effect.Effect<Record<string, unknown>, unknown, Requirements>;
 	delete(): Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
-	deleteAll(): Effect.Effect<ReadonlyArray<Record<string, unknown>>, unknown, Requirements>;
+	deleteAll(): Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
 	first(): Effect.Effect<Option.Option<Record<string, unknown>>, unknown, Requirements>;
 	orderBy(ordering: (fields: Record<string, DynamicField>) => unknown): DynamicRelation<Requirements>;
-	select(...fields: ReadonlyArray<string>): DynamicRelation<Requirements>;
+	select(...fields: readonly string[]): DynamicRelation<Requirements>;
 	skip(count: number): DynamicRelation<Requirements>;
 	take(count: number): DynamicRelation<Requirements>;
 	update(data: Record<string, unknown>): Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
-	updateAll(data: Record<string, unknown>): Effect.Effect<ReadonlyArray<Record<string, unknown>>, unknown, Requirements>;
+	updateAll(data: Record<string, unknown>): Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
 	where(predicate: (fields: Record<string, DynamicField>) => Expression): DynamicRelation<Requirements>;
 }
 
 export const refineRelation = <Requirements>(
 	relation: DynamicRelation<Requirements>,
 	options: {
-		readonly where?: ReadonlyArray<CleanedWhere> | undefined;
-		readonly select?: ReadonlyArray<string> | undefined;
+		readonly where?: readonly CleanedWhere[] | undefined;
+		readonly select?: readonly string[] | undefined;
 		readonly limit?: number | undefined;
 		readonly offset?: number | undefined;
 		readonly sortBy?:
@@ -48,8 +48,12 @@ export const refineRelation = <Requirements>(
 			return options.sortBy?.direction === "desc" ? field.desc() : field.asc();
 		});
 	}
-	if (options.offset !== undefined) refined = refined.skip(options.offset);
-	if (options.limit !== undefined) refined = refined.take(options.limit);
+	if (options.offset !== undefined) {
+		refined = refined.skip(options.offset);
+	}
+	if (options.limit !== undefined) {
+		refined = refined.take(options.limit);
+	}
 	if (options.select !== undefined && options.select.length > 0) {
 		refined = refined.select(...options.select);
 	}

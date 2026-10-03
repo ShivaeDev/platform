@@ -135,7 +135,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const rejected = yield* sql.withTransaction(rejectedProgram).pipe(Effect.result);
 					expect(rejected._tag).toBe("Failure");
-					if (rejected._tag === "Failure") expect(Schema.isSchemaError(rejected.failure)).toBe(true);
+					if (rejected._tag === "Failure") {
+						expect(Schema.isSchemaError(rejected.failure)).toBe(true);
+					}
 					expect((yield* payments.findById(inserted.id)).details).toEqual(input.details);
 					const invalidNumericProgram = Effect.gen(function* () {
 						yield* sql`update ${sql(tableName)} set amount = 'NaN'::numeric where id = ${inserted.id}`;
@@ -143,7 +145,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const invalidNumeric = yield* sql.withTransaction(invalidNumericProgram).pipe(Effect.result);
 					expect(invalidNumeric._tag).toBe("Failure");
-					if (invalidNumeric._tag === "Failure") expect(Schema.isSchemaError(invalidNumeric.failure)).toBe(true);
+					if (invalidNumeric._tag === "Failure") {
+						expect(Schema.isSchemaError(invalidNumeric.failure)).toBe(true);
+					}
 					expect(BigDecimal.format((yield* payments.findById(inserted.id)).amount)).toBe("9007199254740993.123456789012");
 					const invalidReadProgram = Effect.gen(function* () {
 						yield* sql`update ${sql(tableName)} set details = 'null'::jsonb where id = ${inserted.id}`;
@@ -151,7 +155,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const invalidRead = yield* sql.withTransaction(invalidReadProgram).pipe(Effect.result);
 					expect(invalidRead._tag).toBe("Failure");
-					if (invalidRead._tag === "Failure") expect(Schema.isSchemaError(invalidRead.failure)).toBe(true);
+					if (invalidRead._tag === "Failure") {
+						expect(Schema.isSchemaError(invalidRead.failure)).toBe(true);
+					}
 					expect((yield* payments.findById(inserted.id)).details).toEqual(input.details);
 				}),
 			);

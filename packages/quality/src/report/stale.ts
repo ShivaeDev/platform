@@ -8,7 +8,7 @@ interface StaleFiles {
 	readonly registry: string;
 }
 
-const section = (label: string, file: string, guidance: string, lines: ReadonlyArray<string>): ReadonlyArray<string> =>
+const section = (label: string, file: string, guidance: string, lines: readonly string[]): readonly string[] =>
 	lines.length === 0 ? [] : [[`${label} ${file}: ${plural(lines.length, "stale entry", "stale entries")}`, `  ${guidance}`, ...lines].join("\n")];
 
 const baselineLine = ({ entry, problem }: StaleBaselineEntry): string => `  ${entry.rule} ${entry.file} ${problem}.`;
@@ -16,7 +16,7 @@ const baselineLine = ({ entry, problem }: StaleBaselineEntry): string => `  ${en
 const registryLine = ({ entry, problem }: StaleRegistryEntry): string =>
 	`  ${entry.rule} ${entry.file}${entry.subject === undefined ? "" : ` (${entry.subject})`} ${problem}.`;
 
-export const staleSections = (outcome: Outcome, files: StaleFiles): ReadonlyArray<string> => [
+export const staleSections = (outcome: Outcome, files: StaleFiles): readonly string[] => [
 	...section(
 		"error",
 		files.baseline,

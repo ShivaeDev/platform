@@ -35,7 +35,9 @@ const syntheticNative = () => {
 	return {
 		listeners,
 		resume: () => {
-			for (const listener of listeners) listener();
+			for (const listener of listeners) {
+				listener();
+			}
 		},
 		source: (resume: () => void) => {
 			listeners.add(resume);

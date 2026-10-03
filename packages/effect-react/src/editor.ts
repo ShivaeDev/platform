@@ -49,7 +49,9 @@ export const useEditor = <F extends Fields, Row, QE, SE, R, ER>(config: EditorCo
 	const form = current?.form;
 	const values = current?.values;
 	useEffect(() => {
-		if (form && values && row !== undefined) form.receive(values(row));
+		if (form && values && row !== undefined) {
+			form.receive(values(row));
+		}
 	}, [form, values, row]);
 	const settled = useCallback((saved: Row) => (form && values ? form.receive(values(saved)) : undefined), [form, values]);
 	return { ...useSaveState(form, settled), form, query };

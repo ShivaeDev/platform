@@ -21,8 +21,8 @@ interface Client {
 const client: Client = { $transaction: (run) => run(client), auditNote: {}, invoice: {}, membership: {} };
 
 const harness = () => {
-	const published: Array<ReadonlyArray<string>> = [];
-	const unnamed: Array<UnnamedWrite> = [];
+	const published: (readonly string[])[] = [];
+	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
 		client,
 		models: {
@@ -30,7 +30,7 @@ const harness = () => {
 			Membership: (row) => [row.ownerId, row.memberId],
 		},
 		name: "Writes",
-		publish: (batch: ReadonlyArray<string>) => Effect.sync(() => published.push(batch)),
+		publish: (batch: readonly string[]) => Effect.sync(() => published.push(batch)),
 	});
 	const record = (model: string, operation: string, result: unknown) =>
 		changes

@@ -36,7 +36,7 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 	const guard = options.unowned ?? Effect.void;
 	const unguarded = (frame: Buffer<A> | undefined) => frame === undefined || frame.kind === "batch";
 	const observe = (observation: Observation<A>) => Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation));
-	const deliver = (changes: ReadonlyArray<A>) =>
+	const deliver = (changes: readonly A[]) =>
 		Effect.andThen(
 			observe({ _tag: "Published", changes }),
 			Effect.flatMap(Effect.service(CurrentSink), (sink) => publish(sink, changes)),
@@ -50,20 +50,32 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 
 	const record = Effect.fn("Changes.record")(function* (changes: Iterable<A>) {
 		const { frame } = yield* locate;
-		if (unguarded(frame)) yield* guard;
+		if (unguarded(frame)) {
+			yield* guard;
+		}
 		const entries = keyed(changes, keyOf);
-		if (frame !== undefined) yield* add(name, frame, entries);
-		if (entries.size === 0) return;
+		if (frame !== undefined) {
+			yield* add(name, frame, entries);
+		}
+		if (entries.size === 0) {
+			return;
+		}
 		const distinct = [...entries.values()];
 		yield* observe({ _tag: "Recorded", changes: distinct });
-		if (frame === undefined) yield* deliver(distinct);
+		if (frame === undefined) {
+			yield* deliver(distinct);
+		}
 	});
 
 	const openAs = (kind: Buffer<A>["kind"]) =>
 		Effect.gen(function* () {
 			const { owner, frames, frame: parent } = yield* locate;
-			if (parent !== undefined && !parent.open) return yield* settled(name);
-			if (kind === "transaction" && unguarded(parent)) yield* guard;
+			if (parent !== undefined && !parent.open) {
+				return yield* settled(name);
+			}
+			if (kind === "transaction" && unguarded(parent)) {
+				yield* guard;
+			}
 			const buffer = makeBuffer(kind, parent);
 			const inner = new Map(frames).set(owner, buffer);
 			const context = yield* Effect.context<R>();

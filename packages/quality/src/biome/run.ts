@@ -10,7 +10,7 @@ export interface BiomeRun {
 
 const BIN = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 
-export function runBiome(root: string, args: ReadonlyArray<string>): Promise<BiomeRun> {
+export function runBiome(root: string, args: readonly string[]): Promise<BiomeRun> {
 	return new Promise((resolve, reject) => {
 		execFile(process.execPath, [BIN, ...args, "--colors=off"], { cwd: root, maxBuffer: 2 ** 30 }, (error, stdout, stderr) => {
 			if (error !== null && typeof error.code !== "number") {

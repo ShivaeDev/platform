@@ -135,7 +135,9 @@ integration(
 							const waiting = yield* sql<{ waiting: boolean }>`select exists (
 					select 1 from pg_stat_activity where ${holder} = any(pg_blocking_pids(pid))
 				) as waiting`;
-							if (waiting[0]?.waiting) return;
+							if (waiting[0]?.waiting) {
+								return;
+							}
 							yield* Effect.sleep("10 millis");
 						}
 					}).pipe(Effect.timeout("5 seconds"));

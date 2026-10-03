@@ -6,9 +6,12 @@ type Docker = (args: readonly string[], options?: ExecFileSyncOptionsWithStringE
 
 export function sqlInContainer(docker: Docker, url: URL, args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding) {
 	const id = docker(["ps", "--filter", "publish=55432", "--format", "{{.ID}}"], options).trim();
-	if (!id || id.includes("\n")) throw new Error("Install psql or start the shared PostgreSQL service with Docker.");
-	if (docker(["inspect", "--format", "{{.Config.Image}}", id], options).trim() !== image)
+	if (!id || id.includes("\n")) {
+		throw new Error("Install psql or start the shared PostgreSQL service with Docker.");
+	}
+	if (docker(["inspect", "--format", "{{.Config.Image}}", id], options).trim() !== image) {
 		throw new Error("The shared PostgreSQL image differs from the pinned baseline. Upgrade explicitly, preserving data.");
+	}
 	const inside = new URL(url);
 	inside.hostname = "127.0.0.1";
 	inside.port = "5432";
@@ -23,8 +26,9 @@ export function startContainer(docker: Docker) {
 		existing = true;
 	} catch {}
 	if (existing) {
-		if (docker(["inspect", "--format", "{{.Config.Image}}", container]).trim() !== image)
+		if (docker(["inspect", "--format", "{{.Config.Image}}", container]).trim() !== image) {
 			throw new Error("The shared PostgreSQL container uses a different image. Preserve its volume and upgrade it explicitly.");
+		}
 		docker(["start", container]);
 	} else {
 		docker([

@@ -21,12 +21,12 @@ const locate = (violation: Violation): string => (violation.line === undefined ?
 const regressionNote = (regression: Regression): string =>
 	`  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
 
-const heading = (label: string, rule: string, violations: ReadonlyArray<Violation>, context: ReportContext): ReadonlyArray<string> => {
+const heading = (label: string, rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] => {
 	const description = context.descriptions.get(rule);
 	return [`${label} ${rule} (${violations.length})`, ...(description === undefined ? [] : [`  ${description}`])];
 };
 
-const detailed = (violations: ReadonlyArray<Violation>, regressions: ReadonlyMap<string, Regression>): ReadonlyArray<string> =>
+const detailed = (violations: readonly Violation[], regressions: ReadonlyMap<string, Regression>): readonly string[] =>
 	[...groupBy(violations, (violation) => violation.file).values()].flatMap((inFile) => {
 		const first = inFile[0];
 		const regression = first === undefined ? undefined : regressions.get(keyOf(first.rule, first.file));
@@ -36,7 +36,7 @@ const detailed = (violations: ReadonlyArray<Violation>, regressions: ReadonlyMap
 		];
 	});
 
-const summarized = (violations: ReadonlyArray<Violation>): ReadonlyArray<string> => {
+const summarized = (violations: readonly Violation[]): readonly string[] => {
 	const files = [...groupBy(violations, (violation) => violation.file).entries()].sort(([, left], [, right]) => right.length - left.length);
 	const listed = files.slice(0, LISTED_FILES).map(([file, inFile]) => `${file} (${inFile.length})`);
 	const rest = files.length - listed.length;
@@ -45,10 +45,10 @@ const summarized = (violations: ReadonlyArray<Violation>): ReadonlyArray<string>
 
 const ruleSections = (
 	label: string,
-	violations: ReadonlyArray<Violation>,
+	violations: readonly Violation[],
 	context: ReportContext,
-	body: (inRule: ReadonlyArray<Violation>) => ReadonlyArray<string>,
-): ReadonlyArray<string> =>
+	body: (inRule: readonly Violation[]) => readonly string[],
+): readonly string[] =>
 	[...groupBy(violations, (violation) => violation.rule).entries()].map(([rule, inRule]) =>
 		[...heading(label, rule, inRule, context), ...body(inRule)].join("\n"),
 	);
@@ -75,7 +75,7 @@ const summary = (outcome: Outcome, context: ReportContext): string => {
 
 export const render = (outcome: Outcome, context: ReportContext): string => {
 	const regressions = new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
-	const warningBody = context.warnings === "all" ? (inRule: ReadonlyArray<Violation>) => detailed(inRule, regressions) : summarized;
+	const warningBody = context.warnings === "all" ? (inRule: readonly Violation[]) => detailed(inRule, regressions) : summarized;
 	return [
 		...ruleSections("error", outcome.errors, context, (inRule) => detailed(inRule, regressions)),
 		...ruleSections("warn", outcome.warnings, context, warningBody),

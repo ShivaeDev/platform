@@ -34,7 +34,9 @@ interface Saving<E, ER> {
 }
 
 const saveStatus = ({ saving, dirty }: { readonly saving: boolean; readonly dirty: boolean }): string => {
-	if (saving) return "Saving";
+	if (saving) {
+		return "Saving";
+	}
 	return dirty ? "Unsaved" : "Saved";
 };
 

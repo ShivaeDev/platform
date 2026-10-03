@@ -19,7 +19,7 @@ export interface LegacyEntry extends BaselineEntry {
 	readonly measure?: number | undefined;
 }
 
-export const decodeLegacyBaseline = async (raw: string): Promise<Decoded<ReadonlyArray<LegacyEntry>>> => {
+export const decodeLegacyBaseline = async (raw: string): Promise<Decoded<readonly LegacyEntry[]>> => {
 	const decoded = await decodeWith(standard, raw);
 	if (decoded._tag === "Invalid") {
 		return decoded;
@@ -30,9 +30,9 @@ export const decodeLegacyBaseline = async (raw: string): Promise<Decoded<Readonl
 	return { _tag: "Valid", value: entries };
 };
 
-export const measured = (legacy: ReadonlyArray<LegacyEntry>): boolean => legacy.some((entry) => entry.measure !== undefined);
+export const measured = (legacy: readonly LegacyEntry[]): boolean => legacy.some((entry) => entry.measure !== undefined);
 
-export const convertLegacy = (legacy: ReadonlyArray<LegacyEntry>, violations: ReadonlyArray<Violation>): ReadonlyArray<BaselineEntry> => {
+export const convertLegacy = (legacy: readonly LegacyEntry[], violations: readonly Violation[]): readonly BaselineEntry[] => {
 	const current = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	return legacy.flatMap(({ count, file, measure, rule }) => {
 		if (measure === undefined) {

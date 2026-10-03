@@ -12,7 +12,9 @@ import { type Create, type Editor, useCreate, useEditor } from "../src/form.ts";
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+	for (const cleanup of cleanups.splice(0).reverse()) {
+		await cleanup();
+	}
 });
 
 const fields = Schema.Struct({ name: Schema.String });
@@ -46,7 +48,9 @@ const creating = async () => {
 		return null;
 	});
 	const current = () => {
-		if (held.create === undefined || held.submit === undefined) throw new Error("Create hook did not render");
+		if (held.create === undefined || held.submit === undefined) {
+			throw new Error("Create hook did not render");
+		}
 		return { create: held.create, submit: held.submit };
 	};
 	return { current, names, registry };
@@ -93,7 +97,9 @@ it("an edit typed while an async schema decodes the submission survives the crea
 		return null;
 	});
 	const current = () => {
-		if (held.create === undefined) throw new Error("Create hook did not render");
+		if (held.create === undefined) {
+			throw new Error("Create hook did not render");
+		}
 		return held.create;
 	};
 	await act(async () => current().form.change("name", "Desk lamps"));
@@ -113,7 +119,9 @@ it("an edit submitted through the form's own API receives the normalized saved r
 		return null;
 	});
 	const form = held.editor?.form;
-	if (form === undefined) throw new Error("Editor form did not load");
+	if (form === undefined) {
+		throw new Error("Editor form did not load");
+	}
 	form.change("name", "toner");
 	await act(async () => registry.set(form.submit, undefined));
 	expect(form.values.value).toEqual({ name: "TONER" });

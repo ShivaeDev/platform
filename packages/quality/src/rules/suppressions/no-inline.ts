@@ -22,13 +22,13 @@ interface Site extends Finding {
 	readonly subject: string;
 }
 
-const sitesIn = (file: string, comments: ReadonlyArray<SourceComment>): ReadonlyArray<Site> =>
+const sitesIn = (file: string, comments: readonly SourceComment[]): readonly Site[] =>
 	comments.flatMap((comment) => {
 		const directive = suppressionIn(comment);
 		return directive === undefined ? [] : [{ file, line: comment.line, message: `Suppresses a check: "${directive}".`, subject: directive }];
 	});
 
-const stylesheetSites = async ({ files, readText, sources }: RuleInputs): Promise<ReadonlyArray<Site>> => {
+const stylesheetSites = async ({ files, readText, sources }: RuleInputs): Promise<readonly Site[]> => {
 	const read = files.filter((path) => STYLESHEET.test(path));
 	const texts = await Promise.all(read.map(async (path) => sources.find((source) => source.path === path)?.text ?? (await readText(path))));
 	return read.flatMap((path, index) => sitesIn(path, stylesheetComments(path, texts[index] ?? "")));

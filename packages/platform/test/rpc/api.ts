@@ -29,7 +29,9 @@ const Handlers = Api.toLayer({
 	ReadOwn: ({ userId }) =>
 		Effect.gen(function* () {
 			const identity = yield* Identity;
-			if (identity.id !== userId) return yield* new Forbidden({ message: "Not your account" });
+			if (identity.id !== userId) {
+				return yield* new Forbidden({ message: "Not your account" });
+			}
 			return identity.id;
 		}),
 	Whoami: () =>

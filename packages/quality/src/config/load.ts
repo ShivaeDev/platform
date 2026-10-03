@@ -11,7 +11,7 @@ import { type ResolvedRules, resolveRules } from "./resolve.ts";
 const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
-	readonly adopt: ReadonlyArray<string>;
+	readonly adopt: readonly string[];
 	readonly baseline: string;
 	readonly file: string;
 	readonly registry: string;

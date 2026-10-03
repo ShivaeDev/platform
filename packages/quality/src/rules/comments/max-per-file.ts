@@ -17,10 +17,10 @@ const continues = (previous: SourceComment | undefined, comment: SourceComment):
 	&& comment.ownLine
 	&& comment.line === previous.endLine + 1;
 
-const commentBlocks = (comments: ReadonlyArray<SourceComment>): ReadonlyArray<SourceComment> =>
+const commentBlocks = (comments: readonly SourceComment[]): readonly SourceComment[] =>
 	comments.filter((comment, index) => !continues(comments[index - 1], comment));
 
-const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): ReadonlyArray<Finding> => {
+const overCap = (file: SourceFile, max: number, allow: readonly string[]): readonly Finding[] => {
 	const counted = commentsOf(file).filter((comment) => !(isDirective(comment) || isPragma(comment, allow)));
 	const blocks = commentBlocks(counted);
 	const first = blocks[max];

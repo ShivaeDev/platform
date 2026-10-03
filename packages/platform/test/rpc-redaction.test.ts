@@ -7,7 +7,7 @@ import { RequestTracing } from "../src/rpc.ts";
 import { betterAuthSessions, redact, redactingErrorReporter, requestTracingLayer } from "../src/rpc-server.ts";
 import { recorder } from "./rpc/support.ts";
 
-const leaks = (value: unknown, secrets: ReadonlyArray<string>) => {
+const leaks = (value: unknown, secrets: readonly string[]) => {
 	const rendered = inspect(value, { depth: 20 });
 	return secrets.filter((secret) => rendered.includes(secret));
 };
@@ -129,7 +129,7 @@ it("provider failures are logged without credential fields", async () => {
 
 it("the cause seen by the client, error reporters and the server span has redacted defects", async () => {
 	const recorded = recorder();
-	const reported: Array<Cause.Cause<unknown>> = [];
+	const reported: Cause.Cause<unknown>[] = [];
 	const reporter = ErrorReporter.make(({ cause }) => {
 		reported.push(cause);
 	});

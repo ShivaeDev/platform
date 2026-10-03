@@ -40,7 +40,7 @@ export const makeServer = Effect.gen(function* () {
 			[2, new Note({ body: "", id: 2, title: "Two" })],
 		]),
 	);
-	const reads = yield* Ref.make<ReadonlyArray<string>>([]);
+	const reads = yield* Ref.make<readonly string[]>([]);
 	const denied = yield* Ref.make(false);
 	const read = (label: string) => Ref.update(reads, (all) => [...all, label]);
 	const find = (id: number) =>

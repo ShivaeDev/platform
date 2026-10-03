@@ -10,7 +10,7 @@ export interface OriginRequest {
 export type OriginPolicy = (request: OriginRequest) => boolean;
 
 export interface TrustedOriginsOptions {
-	readonly allow: ReadonlyArray<string>;
+	readonly allow: readonly string[];
 	readonly missing: "allow" | "reject";
 }
 

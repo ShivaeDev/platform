@@ -34,7 +34,7 @@ const parse = (output: string): Changes => {
 };
 
 // Paths are relative to the root, and only tracked files count: a move is seen once both of its sides are staged.
-export const changesSince = (root: string, revision: ReadonlyArray<string>): Effect.Effect<Changes, SetupFailure, Git> =>
+export const changesSince = (root: string, revision: readonly string[]): Effect.Effect<Changes, SetupFailure, Git> =>
 	Effect.map(
 		gitOrFail(root, ["diff", "--no-color", "--no-ext-diff", "--find-renames", "--name-status", "-z", "--relative", ...revision, "--"]),
 		parse,

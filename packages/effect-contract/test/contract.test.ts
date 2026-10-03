@@ -6,9 +6,9 @@ import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "./not
 
 describe("contract", () => {
 	it("rejects duplicate operation names at construction when the compiler cannot see them", () => {
-		const queries: ReadonlyArray<QueryShape> = [List, Get, List];
+		const queries: readonly QueryShape[] = [List, Get, List];
 		expect(() => contract("dupes", { queries })).toThrow("Operation names must be unique; duplicated: list");
-		const commands: ReadonlyArray<CommandShape> = [command("get", { invalidates: () => [] })];
+		const commands: readonly CommandShape[] = [command("get", { invalidates: () => [] })];
 		expect(() => contract("dupes", { commands, queries: [Get] })).toThrow("Operation names must be unique; duplicated: get");
 	});
 

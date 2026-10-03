@@ -19,7 +19,7 @@ const bridgeOf = (node: Assertion): string | undefined => {
 	return isAssertion(inner) ? BRIDGES.get(inner.type.kind) : undefined;
 };
 
-const castsIn = (path: string, source: ts.SourceFile): ReadonlyArray<Finding> => {
+const castsIn = (path: string, source: ts.SourceFile): readonly Finding[] => {
 	const findings: Finding[] = [];
 	const visit = (node: ts.Node): void => {
 		const bridge = isAssertion(node) ? bridgeOf(node) : undefined;
@@ -33,7 +33,7 @@ const castsIn = (path: string, source: ts.SourceFile): ReadonlyArray<Finding> =>
 	return findings;
 };
 
-const doubleCasts = (file: SourceFile): ReadonlyArray<Finding> => {
+const doubleCasts = (file: SourceFile): readonly Finding[] => {
 	const source = parse(file);
 	return source === undefined ? [] : castsIn(file.path, source);
 };

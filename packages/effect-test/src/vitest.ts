@@ -110,7 +110,7 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 
 	const effectApp: EffectTester<Harness, Provided> = Object.assign(register(fixtureIt), {
 		each:
-			<Item>(cases: ReadonlyArray<Item>) =>
+			<Item>(cases: readonly Item[]) =>
 			<A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
 				name: string,
 				body: (item: Item, harness: Harness, context: TestContext) => Generator<Eff, A, never>,

@@ -11,7 +11,9 @@ import { useAction, useQuery } from "../src/index.ts";
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+	for (const cleanup of cleanups.splice(0).reverse()) {
+		await cleanup();
+	}
 });
 
 const mount = async (Component: () => React.ReactNode) => {

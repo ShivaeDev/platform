@@ -46,13 +46,17 @@ export const makePrismaChanges = <Tx extends Transactional<Tx>, A, R = never>(op
 
 	const recordWrite = Effect.fn("PrismaChanges.recordWrite")(function* (write: Write) {
 		const { changes, unnamed } = interpret(models, write);
-		if (unnamed !== undefined) yield* Effect.flatMap(Effect.service(Unnamed), (observe) => observe(unnamed));
-		if (changes.length > 0) yield* channel.record(changes);
+		if (unnamed !== undefined) {
+			yield* Effect.flatMap(Effect.service(Unnamed), (observe) => observe(unnamed));
+		}
+		if (changes.length > 0) {
+			yield* channel.record(changes);
+		}
 	});
 
 	const use = Effect.fn("PrismaChanges.use")(function* <X>(query: (client: Tx) => PromiseLike<X>) {
 		const current = yield* Client;
-		const writes: Array<Write> = [];
+		const writes: Write[] = [];
 		const recording = recordingClient(current, delegates, (write) => writes.push(write));
 		const exit = yield* Effect.exit(Effect.tryPromise({ catch: (cause) => new PrismaError({ cause }), try: () => query(recording) }));
 		yield* Effect.forEach(writes, recordWrite, { discard: true });

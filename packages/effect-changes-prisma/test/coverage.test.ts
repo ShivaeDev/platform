@@ -13,10 +13,10 @@ const tables = new Map([
 ]);
 const models = { AuditNote: null, Invoice: () => [], Order: () => [] };
 const covers = (model: string, change: Change) => change.domain === model.toLowerCase();
-const recorded = (...domains: ReadonlyArray<string>): Observation<Change> => ({ _tag: "Recorded", changes: domains.map((domain) => ({ domain })) });
+const recorded = (...domains: readonly string[]): Observation<Change> => ({ _tag: "Recorded", changes: domains.map((domain) => ({ domain })) });
 
 it("a written table is covered by a recorded change of its model, including changes that were later discarded", () => {
-	const observations: ReadonlyArray<Observation<Change>> = [
+	const observations: readonly Observation<Change>[] = [
 		recorded("order"),
 		{ _tag: "Discarded", changes: [{ domain: "order" }] },
 		recorded("invoice"),
@@ -26,7 +26,7 @@ it("a written table is covered by a recorded change of its model, including chan
 });
 
 it("a written table without a covering change, or without a model, is reported once", () => {
-	const observations: ReadonlyArray<Observation<Change>> = [recorded("order"), { _tag: "Published", changes: [{ domain: "invoice" }] }];
+	const observations: readonly Observation<Change>[] = [recorded("order"), { _tag: "Published", changes: [{ domain: "invoice" }] }];
 	expect(checkCoverage({ covers, models, observations, tables, unnamed: [], written: ["orders", "invoices", "invoices", "_OrderToTag"] })).toEqual([
 		{ _tag: "Unrecorded", model: "Invoice", table: "invoices" },
 		{ _tag: "Unrecorded", model: undefined, table: "_OrderToTag" },

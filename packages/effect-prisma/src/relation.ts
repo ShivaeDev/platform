@@ -2,7 +2,7 @@ import type { Effect } from "effect";
 import type { PrismaError } from "./error.ts";
 import type { PrismaRelationMethods } from "./relation/prisma-methods.ts";
 
-type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
+type AnyFunction = (...arguments_: readonly never[]) => unknown;
 
 export type CollectionResult<Collection> = Collection extends {
 	all(): infer Result;

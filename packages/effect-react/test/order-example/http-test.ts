@@ -5,7 +5,9 @@ const toHeaders = (incoming: IncomingHttpHeaders): Headers => {
 	const headers = new Headers();
 	for (const [name, value] of Object.entries(incoming)) {
 		for (const item of Array.isArray(value) ? value : [value]) {
-			if (item !== undefined) headers.append(name, item);
+			if (item !== undefined) {
+				headers.append(name, item);
+			}
 		}
 	}
 	return headers;
@@ -13,7 +15,9 @@ const toHeaders = (incoming: IncomingHttpHeaders): Headers => {
 
 const toRequest = async (incoming: IncomingMessage, signal: AbortSignal): Promise<Request> => {
 	const chunks: Buffer[] = [];
-	for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
+	for await (const chunk of incoming) {
+		chunks.push(Buffer.from(chunk));
+	}
 	return new Request(`http://127.0.0.1${incoming.url}`, {
 		headers: toHeaders(incoming.headers),
 		method: incoming.method ?? "GET",
@@ -27,17 +31,23 @@ export const startOrderServer = async (options: Parameters<typeof makeOrderWebHa
 	const server = createServer(async (incoming, outgoing) => {
 		const controller = new AbortController();
 		const abort = () => {
-			if (!outgoing.writableFinished) controller.abort();
+			if (!outgoing.writableFinished) {
+				controller.abort();
+			}
 		};
 		incoming.once("aborted", abort);
 		outgoing.once("close", abort);
 		try {
 			const response = await app.handler(await toRequest(incoming, controller.signal));
-			if (outgoing.destroyed) return;
+			if (outgoing.destroyed) {
+				return;
+			}
 			outgoing.writeHead(response.status, Object.fromEntries(response.headers));
 			outgoing.end(Buffer.from(await response.arrayBuffer()));
 		} catch (error) {
-			if (outgoing.destroyed) return;
+			if (outgoing.destroyed) {
+				return;
+			}
 			outgoing.writeHead(500);
 			outgoing.end(String(error));
 		} finally {

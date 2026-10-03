@@ -9,19 +9,19 @@ export interface Finding {
 	readonly threshold?: number | undefined;
 }
 
-export type Findings = ReadonlyArray<Finding>;
+export type Findings = readonly Finding[];
 
 export interface SourceFile {
-	readonly lines: ReadonlyArray<string>;
+	readonly lines: readonly string[];
 	readonly path: string;
 	readonly text: string;
 }
 
 export interface RuleInputs {
-	readonly files: ReadonlyArray<string>;
+	readonly files: readonly string[];
 	readonly readText: (path: string) => Promise<string | undefined>;
 	readonly root: string;
-	readonly sources: ReadonlyArray<SourceFile>;
+	readonly sources: readonly SourceFile[];
 }
 
 export interface RuleContext<Options> extends RuleInputs {
@@ -29,7 +29,7 @@ export interface RuleContext<Options> extends RuleInputs {
 }
 
 export type Configured =
-	| { readonly _tag: "Invalid"; readonly issues: ReadonlyArray<string> }
+	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
 	| { readonly _tag: "Ready"; readonly check: (inputs: RuleInputs) => Promise<Findings> };
 
 export interface Rule<Id extends string = string, Input = unknown> {

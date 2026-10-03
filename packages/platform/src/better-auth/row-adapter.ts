@@ -12,7 +12,7 @@ type Refinement = Parameters<typeof refineRelation>[1];
 
 interface RowMethods {
 	readonly create: (input: { readonly data: Row; readonly model: string; readonly select?: string[] | undefined }) => Promise<Row>;
-	readonly findMany: (input: FindManyInput) => Promise<ReadonlyArray<Row>>;
+	readonly findMany: (input: FindManyInput) => Promise<readonly Row[]>;
 	readonly findOne: (input: FindOneInput) => Promise<Row | null>;
 	readonly update: (input: { readonly model: string; readonly update: Row; readonly where: CleanedWhere[] }) => Promise<Row | null>;
 }
@@ -67,7 +67,9 @@ export const makeRowAdapter =
 			},
 			options: { usePlural },
 			update: ({ model, update, where }) => {
-				if (where.length === 0) return Promise.resolve(null);
+				if (where.length === 0) {
+					return Promise.resolve(null);
+				}
 				const unique = where.some((condition) => isUnique(model, condition));
 				return query(model, { where }, (relation) =>
 					unique ? relation.update(update) : Effect.map(relation.updateAll(update), (rows) => rows[0] ?? null),

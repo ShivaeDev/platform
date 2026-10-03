@@ -6,7 +6,7 @@ type Options = Parameters<typeof biomeOverrides.configure>[0];
 
 const reason = "Vitest reads the fixture's first parameter and needs an object pattern.";
 
-const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: ReadonlyArray<string>) =>
+const check = async (texts: Readonly<Record<string, string>>, options?: Options, files?: readonly string[]) =>
 	(await checkRule(biomeOverrides, options, { files: files ?? [], texts })).map(
 		(finding) => `${finding.file}${finding.line === undefined ? "" : `:${finding.line}`} ${finding.message}`,
 	);
@@ -14,7 +14,7 @@ const check = async (texts: Readonly<Record<string, string>>, options?: Options,
 const weakened = async (config: unknown) =>
 	(await check({ "biome.json": JSON.stringify(config, null, "\t") })).map((line) => /"([^"]+)"/u.exec(line)?.[1]);
 
-const override = (includes: ReadonlyArray<string>, linter: unknown) => ({ overrides: [{ includes, linter }] });
+const override = (includes: readonly string[], linter: unknown) => ({ overrides: [{ includes, linter }] });
 
 describe("suppressions/biome-overrides finds", () => {
 	it("a rule turned off at the top level, at its line, scoped to the whole repository", async () => {

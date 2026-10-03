@@ -61,7 +61,9 @@ const mapCause = (cause: Cause.Cause<unknown>, procedure: ProcedureInfo, consume
 };
 
 const interruptOn = (signal: AbortSignal | undefined): Effect.Effect<void> => {
-	if (signal === undefined) return Effect.never;
+	if (signal === undefined) {
+		return Effect.never;
+	}
 	return Effect.callback<void>((resume) => {
 		if (signal.aborted) {
 			resume(Effect.void);

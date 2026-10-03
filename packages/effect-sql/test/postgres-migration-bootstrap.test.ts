@@ -36,7 +36,9 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string }) => 
 
 const waitUntil = (condition: Effect.Effect<boolean, unknown, SqlClient.SqlClient>) =>
 	Effect.gen(function* () {
-		while (!(yield* condition)) yield* Effect.sleep("10 millis");
+		while (!(yield* condition)) {
+			yield* Effect.sleep("10 millis");
+		}
 	}).pipe(Effect.timeout("5 seconds"));
 
 const heldSeed = (orders: string) =>

@@ -42,7 +42,9 @@ it("queries register their declared read keys and commands invalidate item and l
 		expect(reads().filter((read) => read === "list")).toHaveLength(2);
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
 	} finally {
-		for (const release of unmount) release();
+		for (const release of unmount) {
+			release();
+		}
 		registry.dispose();
 	}
 });

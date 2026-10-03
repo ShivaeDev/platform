@@ -2,7 +2,7 @@ import ts from "typescript";
 
 export type Json =
 	| { readonly _tag: "Object"; readonly line: number; readonly entries: ReadonlyMap<string, Json> }
-	| { readonly _tag: "Array"; readonly line: number; readonly items: ReadonlyArray<Json> }
+	| { readonly _tag: "Array"; readonly line: number; readonly items: readonly Json[] }
 	| { readonly _tag: "Value"; readonly line: number; readonly value: string | boolean | undefined };
 
 export type Parsed = { readonly _tag: "Parsed"; readonly json: Json } | { readonly _tag: "Unreadable"; readonly reason: string };
@@ -47,7 +47,7 @@ export const member = (node: Json | undefined, key: string): Json | undefined =>
 
 export const entriesOf = (node: Json | undefined): ReadonlyArray<readonly [string, Json]> => (node?._tag === "Object" ? [...node.entries] : []);
 
-export const itemsOf = (node: Json | undefined): ReadonlyArray<Json> => (node?._tag === "Array" ? node.items : []);
+export const itemsOf = (node: Json | undefined): readonly Json[] => (node?._tag === "Array" ? node.items : []);
 
 export const textOf = (node: Json | undefined): string | undefined =>
 	node?._tag === "Value" && typeof node.value === "string" ? node.value : undefined;

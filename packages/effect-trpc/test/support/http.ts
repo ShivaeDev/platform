@@ -20,7 +20,7 @@ export interface Exchange {
 }
 
 export const inProcess = (router: AnyTRPCRouter) => {
-	const exchanges: Array<Exchange> = [];
+	const exchanges: Exchange[] = [];
 	const fetch = async (input: RequestInfo | URL, init?: RequestInit | { readonly signal?: AbortSignal | null | undefined }) => {
 		const request = new Request(input, { ...init, signal: init?.signal ?? null });
 		const response = await fetchRequestHandler({ createContext: () => ({}), endpoint: "/trpc", req: request, router });

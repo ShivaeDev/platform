@@ -23,5 +23,5 @@ const toComment = (text: string, token: string, offset: number): SourceComment =
 	};
 };
 
-export const stylesheetComments = (path: string, text: string): ReadonlyArray<SourceComment> =>
+export const stylesheetComments = (path: string, text: string): readonly SourceComment[] =>
 	[...text.matchAll(tokensOf(path))].flatMap((match) => (match[0].startsWith("/") ? [toComment(text, match[0], match.index)] : []));

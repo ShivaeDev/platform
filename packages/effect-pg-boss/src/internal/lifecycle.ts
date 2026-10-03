@@ -90,7 +90,9 @@ export const acquireClient = (options: AcquireClientOptions): Effect.Effect<Acqu
 					reused: false,
 				};
 			} catch (error) {
-				if (clientCache.get(cacheKey) === entry) clientCache.delete(cacheKey);
+				if (clientCache.get(cacheKey) === entry) {
+					clientCache.delete(cacheKey);
+				}
 				throw error;
 			}
 		},
@@ -106,9 +108,13 @@ export const releaseClient = (acquired: AcquiredClient, stopOptions?: StopOption
 			}
 
 			const entry = cachedClient(acquired.cacheKey);
-			if (entry === undefined) return;
+			if (entry === undefined) {
+				return;
+			}
 			entry.references -= 1;
-			if (entry.references > 0) return;
+			if (entry.references > 0) {
+				return;
+			}
 			clientCache.delete(acquired.cacheKey);
 			await acquired.client.stop(stopOptions);
 		},

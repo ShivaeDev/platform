@@ -14,18 +14,22 @@ export interface Coverage<A> {
 	readonly written: Iterable<string>;
 }
 
-const recordedIn = <A>(observations: Iterable<Observation<A>>): ReadonlyArray<A> =>
+const recordedIn = <A>(observations: Iterable<Observation<A>>): readonly A[] =>
 	[...observations].flatMap((observation) => (observation._tag === "Recorded" ? observation.changes : []));
 
 const identify = (write: UnnamedWrite): string =>
 	write.reason === "narrowed" ? `${write.model}.${write.operation}.${write.field}` : `${write.model}.${write.operation}`;
 
-export const checkCoverage = <A>(coverage: Coverage<A>): ReadonlyArray<CoverageViolation> => {
+export const checkCoverage = <A>(coverage: Coverage<A>): readonly CoverageViolation[] => {
 	const recorded = recordedIn(coverage.observations);
-	const unrecorded = [...new Set(coverage.written)].flatMap((table): ReadonlyArray<CoverageViolation> => {
+	const unrecorded = [...new Set(coverage.written)].flatMap((table): readonly CoverageViolation[] => {
 		const model = coverage.tables.get(table);
-		if (model !== undefined && coverage.models[model] === null) return [];
-		if (model !== undefined && recorded.some((change) => coverage.covers(model, change))) return [];
+		if (model !== undefined && coverage.models[model] === null) {
+			return [];
+		}
+		if (model !== undefined && recorded.some((change) => coverage.covers(model, change))) {
+			return [];
+		}
 		return [{ _tag: "Unrecorded", model, table }];
 	});
 	const unnamed = new Map([...coverage.unnamed].map((write) => [identify(write), write] as const));

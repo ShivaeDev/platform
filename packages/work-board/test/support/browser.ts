@@ -18,7 +18,7 @@ export default {
 const ERROR_PAGE = "<p>An error page from a proxy</p>";
 
 export interface MermaidControl {
-	readonly calls: Array<string>;
+	readonly calls: string[];
 	readonly configs: Array<{ readonly themeVariables: { readonly darkMode: boolean } }>;
 	gate: Promise<void>;
 }
@@ -41,20 +41,20 @@ export interface OpenPage {
 	readonly close: () => Promise<void>;
 	readonly document: BrowserWindow["document"];
 	readonly mermaid: MermaidControl;
-	readonly mermaidRequests: ReadonlyArray<string>;
+	readonly mermaidRequests: readonly string[];
 	readonly pageRequests: PageRequests;
 	readonly prefer: (scheme: "light" | "dark") => void;
-	readonly streams: ReadonlyArray<LiveStream>;
+	readonly streams: readonly LiveStream[];
 	readonly window: BrowserWindow;
 }
 
-const eventNames = (buffer: string): { readonly names: ReadonlyArray<string>; readonly rest: string } => {
+const eventNames = (buffer: string): { readonly names: readonly string[]; readonly rest: string } => {
 	const blocks = buffer.split("\n\n");
 	const rest = blocks.pop() ?? "";
 	return { names: blocks.map((block) => /^event: (.*)$/mu.exec(block)?.[1] ?? "message"), rest };
 };
 
-const eventSourceOver = (window: BrowserWindow, streams: Array<LiveStream>) =>
+const eventSourceOver = (window: BrowserWindow, streams: LiveStream[]) =>
 	class ServerEvents extends window.EventTarget implements LiveStream {
 		readonly url: string;
 		#controller = new AbortController();
@@ -109,7 +109,7 @@ const answer = async (pageRequests: PageRequests, window: BrowserWindow) => {
 		: new window.Response(ERROR_PAGE, { headers: { "content-type": "text/html" }, status: pageRequests.failWith });
 };
 
-const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: Array<string>): IFetchInterceptor => ({
+const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: string[]): IFetchInterceptor => ({
 	afterAsyncResponse: async ({ request }) => {
 		if (new URL(request.url).pathname === path) {
 			pageRequests.answered += 1;
@@ -130,9 +130,9 @@ const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: 
 });
 
 export const openPage = async (board: RunningBoard, path = "/", beforeScripts = async () => {}): Promise<OpenPage> => {
-	const mermaidRequests: Array<string> = [];
+	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
-	const streams: Array<LiveStream> = [];
+	const streams: LiveStream[] = [];
 	const browser = new Browser({
 		settings: {
 			enableJavaScriptEvaluation: true,

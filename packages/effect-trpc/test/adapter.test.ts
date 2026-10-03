@@ -24,7 +24,7 @@ interface RequestContext {
 const runtime = ManagedRuntime.make(Layer.merge(Layer.succeed(RuntimeValue, "runtime"), Layer.succeed(RuntimeOnlyValue, "runtime-only")));
 const instrumented: Array<{ path: string; type: string }> = [];
 const instrumentedStreams: Array<{ path: string; type: string }> = [];
-const instrumentedRequestValues: Array<string> = [];
+const instrumentedRequestValues: string[] = [];
 const finalizedStreams: string[] = [];
 let markInterruptibleStarted: () => void = () => undefined;
 const interruptibleStarted = new Promise<void>((resolve) => {
@@ -179,7 +179,9 @@ describe("makeEffectTRPC", () => {
 		const caller = router.createCaller({ requestId: "stream" });
 		const values: string[] = [];
 
-		for await (const value of await caller.stream(undefined)) values.push(value);
+		for await (const value of await caller.stream(undefined)) {
+			values.push(value);
+		}
 
 		expect(values).toEqual(["stream:one", "stream:two", "undefined"]);
 		expect(finalizedStreams).toContain("stream");

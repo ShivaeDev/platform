@@ -27,7 +27,7 @@ export const linesOf = (raw: string | undefined): ReadonlyArray<{ readonly line:
 		.map((text, index) => ({ line: index + 1, text }))
 		.filter((row) => row.text.trim() !== "");
 
-export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<ReadonlyArray<BaselineEntry>>> => {
+export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<readonly BaselineEntry[]>> => {
 	const issues: string[] = [];
 	const entries: BaselineEntry[] = [];
 	const seen = new Set<string>();
@@ -51,7 +51,7 @@ const LINE_KEYS = ["path", "rule", "count"];
 
 export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ count: entry.count, path: entry.file, rule: entry.rule }, LINE_KEYS);
 
-export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>): string =>
+export const encodeBaseline = (entries: readonly BaselineEntry[]): string =>
 	[...entries]
 		.sort(byPathAndRule)
 		.map((entry) => `${encodeEntry(entry)}\n`)

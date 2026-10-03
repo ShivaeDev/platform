@@ -12,7 +12,9 @@ const gated = Effect.gen(function* () {
 	const released = new Map<string, Deferred.Deferred<string | undefined>>();
 	const entry = <V>(map: Map<string, Deferred.Deferred<V>>, value: string): Deferred.Deferred<V> => {
 		const known = map.get(value);
-		if (known !== undefined) return known;
+		if (known !== undefined) {
+			return known;
+		}
 		const made = Deferred.makeUnsafe<V>();
 		map.set(value, made);
 		return made;

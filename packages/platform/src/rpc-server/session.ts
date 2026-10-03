@@ -27,7 +27,9 @@ export const resolveSession: <Session extends SessionShape>(
 	Session extends SessionShape,
 >(policy: SessionPolicy<Session>, headers: Headers.Headers, rpc: string) {
 	const transport = yield* transportHeaders(headers);
-	if (!policy.origin(originRequest(transport, rpc))) return yield* new Forbidden({ message: "Origin not allowed" });
+	if (!policy.origin(originRequest(transport, rpc))) {
+		return yield* new Forbidden({ message: "Origin not allowed" });
+	}
 	return yield* policy.provider.get(transport);
 });
 
@@ -37,7 +39,9 @@ export const authenticatedLayer = <Session extends SessionShape>(policy: Session
 	Layer.succeed(Authenticated, (effect, { headers, rpc }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
-			if (Option.isNone(session)) return yield* new Unauthorized({ message: "Authentication required" });
+			if (Option.isNone(session)) {
+				return yield* new Unauthorized({ message: "Authentication required" });
+			}
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(Effect.provideService(Identity, { id }), Effect.annotateLogs({ userId: id }));
 		}),
@@ -47,7 +51,9 @@ export const maybeAuthenticatedLayer = <Session extends SessionShape>(policy: Se
 	Layer.succeed(MaybeAuthenticated, (effect, { headers, rpc }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
-			if (Option.isNone(session)) return yield* Effect.provideService(effect, OptionalIdentity, Option.none());
+			if (Option.isNone(session)) {
+				return yield* Effect.provideService(effect, OptionalIdentity, Option.none());
+			}
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(Effect.provideService(OptionalIdentity, Option.some({ id })), Effect.annotateLogs({ userId: id }));
 		}),

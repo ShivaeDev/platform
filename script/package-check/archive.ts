@@ -25,11 +25,12 @@ export const checkPackedArchive = (pkg: Package) =>
 			}
 		}
 		const nodeVersion = manifest.peerDependencies?.["@effect/platform-node"] ?? manifest.dependencies?.["@effect/platform-node"];
-		if (Object.keys(bins(manifest)).length > 0 && nodeVersion !== undefined)
+		if (Object.keys(bins(manifest)).length > 0 && nodeVersion !== undefined) {
 			yield* requireThat(
 				manifest.peerDependencies?.["@effect/platform-node-shared"] === nodeVersion,
 				`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
 			);
+		}
 		const required = [...targets(manifest.exports), ...targets(manifest.types), ...Object.values(bins(manifest))];
 		for (const target of required) {
 			yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
@@ -48,7 +49,9 @@ const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<str
 	Effect.gen(function* () {
 		for (const path of contents) {
 			yield* requireThat(!/(^|\/)tests?\//u.test(path), `packed test file ${path}`);
-			if (!path.endsWith(".map")) continue;
+			if (!path.endsWith(".map")) {
+				continue;
+			}
 			const map = decodeMap(yield* command(directory, "tar", ["-xOzf", tarball, path]));
 			for (const source of map.sources) {
 				const target = posix.join(posix.dirname(path), map.sourceRoot ?? "", source);

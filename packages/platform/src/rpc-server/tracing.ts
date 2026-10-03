@@ -33,9 +33,13 @@ const failureTag = (cause: Cause.Cause<unknown>): string =>
 	});
 
 const logFailure = (cause: Cause.Cause<unknown>, payload: unknown, sensitive: SensitiveKey | undefined): Effect.Effect<void> => {
-	if (Cause.hasInterruptsOnly(cause)) return Effect.void;
+	if (Cause.hasInterruptsOnly(cause)) {
+		return Effect.void;
+	}
 	const annotations = { "rpc.payload": redact(payload, sensitive) };
-	if (!Cause.hasDies(cause)) return Effect.annotateLogs(Effect.logInfo("RPC failure"), { ...annotations, "rpc.failure": failureTag(cause) });
+	if (!Cause.hasDies(cause)) {
+		return Effect.annotateLogs(Effect.logInfo("RPC failure"), { ...annotations, "rpc.failure": failureTag(cause) });
+	}
 	const defects = cause.reasons.filter(Cause.isDieReason).map((reason) => redact(reason.defect, sensitive));
 	return Effect.annotateLogs(Effect.logError("RPC defect"), { ...annotations, "rpc.defect": defects });
 };

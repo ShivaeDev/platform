@@ -16,7 +16,7 @@ export type EffectTest<Harness, Provided> = <A, Eff extends Effect.Effect<unknow
 
 export interface EffectTester<Harness, Provided> extends EffectTest<Harness, Provided> {
 	readonly each: <Item>(
-		cases: ReadonlyArray<Item>,
+		cases: readonly Item[],
 	) => <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
 		name: string,
 		body: (item: Item, harness: Harness, context: TestContext) => Generator<Eff, A, never>,

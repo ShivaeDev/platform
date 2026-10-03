@@ -32,8 +32,8 @@ export const collection = <const Name extends string, Id extends Schema.Top & { 
 
 const own = (key: Key): string => (key._tag === "List" ? key.collection : `${key.collection}:${key.id}`);
 
-export const readKeys = (keys: ReadonlyArray<Key>): ReadonlyArray<string> => [...new Set(keys.map(own))];
+export const readKeys = (keys: readonly Key[]): readonly string[] => [...new Set(keys.map(own))];
 
-export const invalidationKeys = (keys: ReadonlyArray<Key>): ReadonlyArray<string> => [
+export const invalidationKeys = (keys: readonly Key[]): readonly string[] => [
 	...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection]))),
 ];

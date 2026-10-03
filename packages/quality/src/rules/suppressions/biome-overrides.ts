@@ -12,7 +12,7 @@ interface Shipped extends Scoped {
 	readonly specifier: string;
 }
 
-const shippedBy = ({ base, layers }: Chain): ReadonlyArray<Shipped> =>
+const shippedBy = ({ base, layers }: Chain): readonly Shipped[] =>
 	layers.flatMap(({ preset }) =>
 		preset === undefined
 			? []
@@ -41,7 +41,7 @@ const repeated = (file: string, declaration: Scoped, shipped: Shipped): Finding 
 	subject: declaration.rule,
 });
 
-const staleOrRepeated = (file: string, weakenings: ReadonlyArray<Weakening>, shipped: ReadonlyArray<Shipped>) => (declaration: Scoped) => {
+const staleOrRepeated = (file: string, weakenings: readonly Weakening[], shipped: readonly Shipped[]) => (declaration: Scoped) => {
 	if (!weakenings.some((weakening) => matches(declaration, weakening))) {
 		return [unused(file, declaration)];
 	}

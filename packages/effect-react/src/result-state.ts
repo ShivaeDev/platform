@@ -30,7 +30,9 @@ export const isUnauthorized = <E>(cause: Cause.Cause<E>): boolean =>
 const useRecheckOnUnauthorized = <A, E>(result: AsyncResult.AsyncResult<A, E>): void => {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) recheck();
+		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+			recheck();
+		}
 	}, [recheck, result]);
 };
 

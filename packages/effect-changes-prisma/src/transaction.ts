@@ -25,13 +25,19 @@ const commit = <Tx extends Transactional<Tx>, X, E, R>(
 	const run = async (tx: Tx) => {
 		started = true;
 		const exit = await Effect.runPromiseExitWith(context)(body(tx), { signal });
-		if (Exit.isSuccess(exit)) return exit.value;
+		if (Exit.isSuccess(exit)) {
+			return exit.value;
+		}
 		failed = exit;
 		throw new BodyFailed();
 	};
 	const rejected = (cause: unknown): Settled<X, E> => {
-		if (failed !== undefined) return { committed: false, exit: failed };
-		if (!(isTransactionClosed(cause) && (started || savepoint))) return { committed: false, exit: Exit.fail(new PrismaError({ cause })) };
+		if (failed !== undefined) {
+			return { committed: false, exit: failed };
+		}
+		if (!(isTransactionClosed(cause) && (started || savepoint))) {
+			return { committed: false, exit: Exit.fail(new PrismaError({ cause })) };
+		}
 		const closed = new TransactionExpired({ cause, message: "The transaction was closed before it could finish" });
 		return { closed, committed: false, exit: Exit.fail(closed) };
 	};

@@ -27,18 +27,24 @@ export const useSaveState = <F extends Fields, A, E, ER>(
 	const result: AsyncResult.AsyncResult<A, E | ER | FieldFailure | Invalid> = useAtomValue(form?.submit ?? idle);
 	const dirty = useAtomValue(form?.dirty ?? clean);
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) recheck();
+		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+			recheck();
+		}
 	}, [recheck, result]);
 	useEffect(
 		() =>
 			form
 			&& registry.subscribe(form.submit, (next) => {
-				if (AsyncResult.isSuccess(next) && !next.waiting) settled(next.value);
+				if (AsyncResult.isSuccess(next) && !next.waiting) {
+					settled(next.value);
+				}
 			}),
 		[form, registry, settled],
 	);
 	const save = useCallback(() => {
-		if (form === undefined || registry.get(form.submit).waiting) return;
+		if (form === undefined || registry.get(form.submit).waiting) {
+			return;
+		}
 		registry.set(form.submit, undefined);
 	}, [form, registry]);
 	const revert = useCallback(() => form?.revert(), [form]);

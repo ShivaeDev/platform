@@ -7,19 +7,19 @@ import { posix } from "./ignore-scope.ts";
 import { scopeAbove, walk } from "./walk.ts";
 
 export interface InventoryScope {
-	readonly exclude: ReadonlyArray<string>;
-	readonly extensions: ReadonlyArray<string>;
-	readonly sources: ReadonlyArray<string>;
+	readonly exclude: readonly string[];
+	readonly extensions: readonly string[];
+	readonly sources: readonly string[];
 }
 
 export interface Inventory {
-	readonly files: ReadonlyArray<string>;
-	readonly sources: ReadonlyArray<SourceFile>;
+	readonly files: readonly string[];
+	readonly sources: readonly SourceFile[];
 }
 
 const READ_CONCURRENCY = 16;
 
-export const linesOf = (text: string): ReadonlyArray<string> => {
+export const linesOf = (text: string): readonly string[] => {
 	const lines = text.split("\n");
 	return lines.at(-1) === "" ? lines.slice(0, -1) : lines;
 };

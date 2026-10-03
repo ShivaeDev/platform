@@ -39,7 +39,7 @@ export const Ordinary = defineService({
 	id: "fixture/Ordinary",
 	initialize,
 	methods: (_state) => ({
-		read: Effect.fn("Ordinary.read")(function* (...values: Array<number>): Requirements<number, MethodFailure> {
+		read: Effect.fn("Ordinary.read")(function* (...values: number[]): Requirements<number, MethodFailure> {
 			yield* Declared;
 			const residual = yield* Residual;
 			return values.reduce((sum, value) => sum + value, residual.value);

@@ -17,7 +17,7 @@ const preset = biome('{ "extends": ["@shivaedev/quality/biome"] }');
 
 const nullCheck: SeedFile = { content: "export function isMissing(value: number | null): boolean {\n\treturn value == null;\n}\n", path: "src/a.ts" };
 
-function repository(...files: ReadonlyArray<SeedFile>): string {
+function repository(...files: readonly SeedFile[]): string {
 	const root = seedTree([config('{ sources: ["src"] }'), { content: "node_modules/\n", path: ".gitignore" }, ...files]);
 	linkPackage(root);
 	git(root, "init", "--quiet");

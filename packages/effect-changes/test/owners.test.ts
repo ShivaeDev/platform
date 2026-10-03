@@ -68,7 +68,7 @@ it("changes follow the owner that recorded them, not the innermost frame", () =>
 it("the unowned guard runs for a record or a root frame without an enclosing transaction frame, never inside one", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
-			const guarded: Array<string> = [];
+			const guarded: string[] = [];
 			const unowned = Effect.map(Effect.service(Current), (database) => {
 				guarded.push(database.name);
 			});

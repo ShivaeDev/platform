@@ -3,7 +3,7 @@ import { markdownToMdast } from "satteri";
 
 export interface Section {
 	readonly heading: string;
-	readonly items: ReadonlyArray<string>;
+	readonly items: readonly string[];
 	readonly notes: string;
 	readonly title: string;
 }
@@ -12,7 +12,7 @@ export interface Board {
 	readonly definitions: string;
 	readonly footer: string;
 	readonly intro: string;
-	readonly sections: ReadonlyArray<Section>;
+	readonly sections: readonly Section[];
 	readonly title: string;
 }
 
@@ -54,7 +54,7 @@ const place = (draft: Draft, node: RootContent, source: string, closing: boolean
 	}
 };
 
-const joined = (blocks: ReadonlyArray<string>): string => blocks.join("\n\n");
+const joined = (blocks: readonly string[]): string => blocks.join("\n\n");
 
 export const boardOf = (source: string): Board => {
 	const draft: Draft = { definitions: [], footer: undefined, intro: [], sections: [], title: "" };
@@ -78,5 +78,5 @@ export interface Count {
 	readonly title: string;
 }
 
-export const countsOf = (board: Board): ReadonlyArray<Count> =>
+export const countsOf = (board: Board): readonly Count[] =>
 	board.sections.flatMap((section) => (section.items.length === 0 ? [] : [{ count: section.items.length, title: section.title }]));

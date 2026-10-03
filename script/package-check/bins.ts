@@ -22,7 +22,9 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 		const cases = decode(yield* fs.readFileString(join(root, "script/package-check/bin-cases.json")));
 		for (const name of Object.keys(bins(pkg.manifest))) {
 			const scenario = cases[name];
-			if (scenario === undefined) return yield* Effect.fail(new Error(`${name}: add a real-work bin scenario`));
+			if (scenario === undefined) {
+				return yield* Effect.fail(new Error(`${name}: add a real-work bin scenario`));
+			}
 			for (const [path, content] of Object.entries(scenario.files)) {
 				yield* fs.makeDirectory(dirname(join(consumer, path)), { recursive: true });
 				yield* fs.writeFileString(join(consumer, path), content);
@@ -32,14 +34,18 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 			if (scenario.pages === undefined) {
 				const output = yield* runBin(consumer, bin, scenario);
 				yield* requireThat(output.includes(scenario.output ?? ""), `${name}: missing output ${scenario.output}`);
-			} else yield* checkServer(consumer, bin, scenario.args, scenario.pages);
+			} else {
+				yield* checkServer(consumer, bin, scenario.args, scenario.pages);
+			}
 			yield* checkResults(consumer, name, scenario);
 		}
 	});
 
 const checkVersion = (consumer: string, bin: string, version: string, enabled: boolean | undefined) =>
 	Effect.gen(function* () {
-		if (!enabled) return;
+		if (!enabled) {
+			return;
+		}
 		const output = stripVTControlCharacters(yield* command(consumer, bin, ["--version"])).trim();
 		yield* requireThat(
 			output === `${basename(bin)} v${version}`,
@@ -57,7 +63,9 @@ const runBin = (consumer: string, bin: string, scenario: typeof Case.Type) => {
 const checkResults = (consumer: string, name: string, scenario: typeof Case.Type) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		for (const path of scenario.absent ?? []) yield* requireThat(!(yield* fs.exists(join(consumer, path))), `${name}: left ${path}`);
+		for (const path of scenario.absent ?? []) {
+			yield* requireThat(!(yield* fs.exists(join(consumer, path))), `${name}: left ${path}`);
+		}
 		for (const [path, expected] of Object.entries(scenario.expectedFiles)) {
 			const content = yield* fs.readFileString(join(consumer, path));
 			yield* requireThat(content.includes(expected), `${name}: ${path} did not contain ${expected}`);

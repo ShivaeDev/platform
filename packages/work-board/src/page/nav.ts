@@ -13,13 +13,13 @@ const link = (file: MarkdownFile, current: string): string => {
 	return `<a href="${hrefOf(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
 };
 
-const folder = (name: string, files: ReadonlyArray<MarkdownFile>, current: string): string => {
+const folder = (name: string, files: readonly MarkdownFile[], current: string): string => {
 	const links = files.map((file) => `<li>${link(file, current)}</li>`).join("");
 	const open = files.some((file) => file.path === current) ? " open" : "";
 	return `<details data-key="folder:${escapeHtml(name)}"${open}><summary>${escapeHtml(name)}/ (${files.length})</summary><ul>${links}</ul></details>`;
 };
 
-export const navHtml = (files: ReadonlyArray<MarkdownFile>, current: string, home: string | undefined): string => {
+export const navHtml = (files: readonly MarkdownFile[], current: string, home: string | undefined): string => {
 	const ordered = [...files.filter((file) => file.path === home), ...files.filter((file) => file.path !== home)];
 	const folders = Map.groupBy(ordered, (file) => (file.path === home ? "" : folderOf(file.path)));
 	return [...folders]

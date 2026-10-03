@@ -28,11 +28,15 @@ const hidden = <Client>(client: Client): Owned<Client> => {
 	const owned = owning(client);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
-		if (reaping || owned.mounted > 0) return;
+		if (reaping || owned.mounted > 0) {
+			return;
+		}
 		reaping = true;
 		setTimeout(() => {
 			reaping = false;
-			if (owned.mounted === 0) owned.registry.reset();
+			if (owned.mounted === 0) {
+				owned.registry.reset();
+			}
 		}, 0);
 	};
 	return owned;
@@ -52,7 +56,9 @@ const Generation = <S, Client>({ session, connect, recheck, children }: Generati
 		return () => {
 			owned.mounted -= 1;
 			queueMicrotask(() => {
-				if (owned.mounted > 0) return;
+				if (owned.mounted > 0) {
+					return;
+				}
 				owned.registry.dispose();
 				own((current) => (current === owned ? hidden(owned.client) : current));
 			});

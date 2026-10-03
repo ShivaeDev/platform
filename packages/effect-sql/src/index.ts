@@ -50,11 +50,7 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 			limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
 		function findMany<K extends Key<S> = Key<S>>(
 			query?: FindMany<S, K>,
-		): Effect.Effect<
-			Array<Pick<Row<S>, K>>,
-			SqlError | Schema.SchemaError,
-			S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]
-		>;
+		): Effect.Effect<Pick<Row<S>, K>[], SqlError | Schema.SchemaError, S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]>;
 		// Object.fromEntries erases the selected key-to-schema correspondence, so the typed overload restates it.
 		function findMany(query: FindMany<S, Key<S>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
 			return Effect.gen(function* () {

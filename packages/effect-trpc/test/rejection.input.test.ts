@@ -19,7 +19,9 @@ const router = t.router({
 		return to - from;
 	}),
 	save: procedure.input(Profile).mutation(function* ({ name }) {
-		if (name === "taken") return yield* Effect.fail(new BadRequest({ field: "name", message: "Name is taken" })).pipe(rejectWith(BadRequest));
+		if (name === "taken") {
+			return yield* Effect.fail(new BadRequest({ field: "name", message: "Name is taken" })).pipe(rejectWith(BadRequest));
+		}
 		return name;
 	}),
 });

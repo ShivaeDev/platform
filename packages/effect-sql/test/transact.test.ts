@@ -16,8 +16,10 @@ const setup = Effect.gen(function* () {
 	yield* sql`pragma foreign_keys = on`;
 	yield* sql`create table orders (id integer primary key, name text not null)`;
 	yield* sql`create table notes (id integer primary key, order_id integer references orders (id) deferrable initially deferred)`;
-	const events: Array<string> = [];
-	for (const key of ["orders", "orders:1", "orders:2"]) reactivity.registerUnsafe([key], () => events.push(key));
+	const events: string[] = [];
+	for (const key of ["orders", "orders:1", "orders:2"]) {
+		reactivity.registerUnsafe([key], () => events.push(key));
+	}
 	const insert = (id: number) => sql`insert into orders (id, name) values (${id}, ${`order ${id}`})`;
 	const count = Effect.map(sql<{ readonly total: number }>`select count(*) as total from orders`, ([row]) => row?.total);
 	return { count, events, insert, sql };

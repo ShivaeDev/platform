@@ -41,14 +41,17 @@ export const checkServer = (cwd: string, bin: string, args: readonly string[], p
 		({ server }) =>
 			Effect.gen(function* () {
 				const address = yield* listening(server);
-				for (const [path, expected] of Object.entries(pages))
+				for (const [path, expected] of Object.entries(pages)) {
 					yield* Effect.tryPromise({
 						catch: (cause) => new Error(`Packed server request failed: ${path}`, { cause }),
 						try: async (signal) => {
 							const response = await fetch(`${address}${path}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
-							if (!(response.ok && (await response.text()).includes(expected))) throw new Error(`${bin}: ${path} did not serve ${expected}`);
+							if (!(response.ok && (await response.text()).includes(expected))) {
+								throw new Error(`${bin}: ${path} did not serve ${expected}`);
+							}
 						},
 					});
+				}
 			}),
 		({ server, exited }) =>
 			Effect.promise(async () => {

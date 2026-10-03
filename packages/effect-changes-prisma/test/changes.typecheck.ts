@@ -21,7 +21,7 @@ void ({
 	Order: (order) => [{ domain: "orders", subject: order.memberId }],
 } satisfies ChangeMap<PrismaClient, Change>);
 
-const changes = makePrismaChanges({ client: prisma, models, name: "Typed", publish: (_: ReadonlyArray<Change>) => Effect.void });
+const changes = makePrismaChanges({ client: prisma, models, name: "Typed", publish: (_: readonly Change[]) => Effect.void });
 
 expectTypeOf(changes.Client).toEqualTypeOf<Context.Reference<Omit<PrismaClient, ITXClientDenyList>>>();
 expectTypeOf(changes.transaction(Effect.fail(new Rejected()).pipe(Effect.as("done")))).toEqualTypeOf<

@@ -11,7 +11,9 @@ import { makeInvoiceLineViews } from "./invoice-line-editor/frontend.ts";
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+	for (const cleanup of cleanups.splice(0).reverse()) {
+		await cleanup();
+	}
 });
 
 const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
@@ -37,7 +39,9 @@ const mount = () => {
 		type: (name: string, value: string) =>
 			act(async () => {
 				const field = input(name);
-				if (!field) throw new Error(`Missing ${name}`);
+				if (!field) {
+					throw new Error(`Missing ${name}`);
+				}
 				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
@@ -185,7 +189,9 @@ it("switching session tears down the editor, its draft and its registry; Unautho
 	const view = mount();
 	const Probe = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		return null;
 	};
 	const show = (session: "alice" | "bob" | undefined) =>

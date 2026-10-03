@@ -23,13 +23,17 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 	const input = (name: string) => {
 		const label = [...container.querySelectorAll("label")].find((label) => label.textContent?.startsWith(name));
 		const element = label?.htmlFor ? container.querySelector<HTMLInputElement>(`#${label.htmlFor}`) : label?.querySelector("input");
-		if (!element) throw new Error(`Missing input ${name}`);
+		if (!element) {
+			throw new Error(`Missing input ${name}`);
+		}
 		return element;
 	};
 	return {
 		click: async (name: string) => {
 			const button = [...container.querySelectorAll("button")].find((button) => button.textContent === name);
-			if (!button) throw new Error(`Missing button ${name}`);
+			if (!button) {
+				throw new Error(`Missing button ${name}`);
+			}
 			await act(async () => button.click());
 		},
 		close: async () => {
@@ -218,7 +222,9 @@ it("saving one order refreshes it and the list without refetching another mounte
 	const root = createRoot(container);
 	const editor = (index: number) => {
 		const section = container.querySelectorAll("section")[index];
-		if (!section) throw new Error(`Missing editor ${index}`);
+		if (!section) {
+			throw new Error(`Missing editor ${index}`);
+		}
 		return section;
 	};
 	const list = () => [...container.querySelectorAll('[data-testid="order-list"] li')].map((item) => item.textContent);
@@ -246,7 +252,9 @@ it("saving one order refreshes it and the list without refetching another mounte
 		);
 		await act(async () => {
 			const input = editor(1).querySelector("input");
-			if (!input) throw new Error("Missing name input");
+			if (!input) {
+				throw new Error("Missing name input");
+			}
 			Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "Black toner");
 			input.dispatchEvent(new Event("input", { bubbles: true }));
 		});

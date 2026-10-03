@@ -46,7 +46,7 @@ export const writeLock = (lock: string, content: string): void => {
 
 export const readLock = (lock: string): string | undefined => (existsSync(lock) ? readFileSync(lock, "utf8") : undefined);
 
-export const lockDirectory = (lock: string): ReadonlyArray<string> => readdirSync(dirname(lock));
+export const lockDirectory = (lock: string): readonly string[] => readdirSync(dirname(lock));
 
 // An explicit environment keeps a test from reading the machine's `CI` or lock variables.
 export const services = (env: Record<string, string> = {}) =>

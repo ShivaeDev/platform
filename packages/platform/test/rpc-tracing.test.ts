@@ -87,7 +87,9 @@ it("failure logs carry a redacted payload while the declared field rejection rea
 	const defect = logs.find((log) => log.level === "Error");
 	expect(defect?.annotations).toMatchObject({ "rpc.method": "Crash", "rpc.payload": failure?.["rpc.payload"] });
 	const serialized = JSON.stringify(logs.map((log) => log.annotations));
-	for (const secret of ["hunter2", "key-plaintext", "refresh-plaintext", "note-plaintext"]) expect(serialized).not.toContain(secret);
+	for (const secret of ["hunter2", "key-plaintext", "refresh-plaintext", "note-plaintext"]) {
+		expect(serialized).not.toContain(secret);
+	}
 });
 
 it("applications extend the sensitive-key policy", async () => {

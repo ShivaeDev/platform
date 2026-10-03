@@ -3,17 +3,17 @@ import { countOf } from "./compare.ts";
 import type { BaselineEntry } from "./format.ts";
 
 export type Adoption =
-	| { readonly _tag: "Refused"; readonly reasons: ReadonlyArray<string> }
-	| { readonly _tag: "Adopted"; readonly entries: ReadonlyArray<BaselineEntry>; readonly added: number; readonly replaced: number };
+	| { readonly _tag: "Refused"; readonly reasons: readonly string[] }
+	| { readonly _tag: "Adopted"; readonly entries: readonly BaselineEntry[]; readonly added: number; readonly replaced: number };
 
 export interface Pruned {
-	readonly entries: ReadonlyArray<BaselineEntry>;
+	readonly entries: readonly BaselineEntry[];
 	readonly lowered: number;
 	readonly moved: number;
 	readonly removed: number;
 }
 
-const record = (violations: ReadonlyArray<Violation>): ReadonlyArray<BaselineEntry> =>
+const record = (violations: readonly Violation[]): readonly BaselineEntry[] =>
 	[...groupBy(violations, (violation) => keyOf(violation.rule, violation.file)).values()].flatMap((group) => {
 		const first = group[0];
 		if (first === undefined) {
@@ -23,7 +23,7 @@ const record = (violations: ReadonlyArray<Violation>): ReadonlyArray<BaselineEnt
 		return count > 0 ? [{ count, file: first.file, rule: first.rule }] : [];
 	});
 
-const refusal = (id: string, index: RuleIndex): ReadonlyArray<string> => {
+const refusal = (id: string, index: RuleIndex): readonly string[] => {
 	const level = levelOf(index, id);
 	if (level === undefined) {
 		return [`${id}: no built-in or local rule has this id.`];
@@ -32,9 +32,9 @@ const refusal = (id: string, index: RuleIndex): ReadonlyArray<string> => {
 };
 
 export const adopt = (
-	existing: ReadonlyArray<BaselineEntry> | undefined,
-	rules: ReadonlyArray<string>,
-	violations: ReadonlyArray<Violation>,
+	existing: readonly BaselineEntry[] | undefined,
+	rules: readonly string[],
+	violations: readonly Violation[],
 	index: RuleIndex,
 ): Adoption => {
 	if (existing !== undefined && rules.length === 0) {
@@ -71,8 +71,8 @@ const destination = (
 };
 
 export const prune = (
-	existing: ReadonlyArray<BaselineEntry>,
-	violations: ReadonlyArray<Violation>,
+	existing: readonly BaselineEntry[],
+	violations: readonly Violation[],
 	index: RuleIndex,
 	scope: Scope = { moves: new Map() },
 ): Pruned => {

@@ -18,9 +18,13 @@ const program = Effect.gen(function* () {
 	const packages: Package[] = [];
 	for (const name of yield* fs.readDirectory(join(root, "packages"))) {
 		const directory = join(root, "packages", name);
-		if (!(yield* fs.exists(join(directory, "package.json")))) continue;
+		if (!(yield* fs.exists(join(directory, "package.json")))) {
+			continue;
+		}
 		const manifest = decodeManifest(yield* fs.readFileString(join(directory, "package.json")));
-		if (manifest.private === true) continue;
+		if (manifest.private === true) {
+			continue;
+		}
 		const pkg = { directory, manifest, tarball: join(temporary, `${name}.tgz`) };
 		yield* checkArchive(pkg);
 		packages.push(pkg);
@@ -31,7 +35,9 @@ const program = Effect.gen(function* () {
 		yield* checkConsumer(root, pkg, packages, catalog, consumer);
 		yield* checkBins(root, pkg, consumer);
 		let index = 0;
-		for (const scenario of yield* scenarios(root, pkg)) yield* checkConsumer(root, pkg, packages, catalog, `${consumer}-${index++}`, scenario);
+		for (const scenario of yield* scenarios(root, pkg)) {
+			yield* checkConsumer(root, pkg, packages, catalog, `${consumer}-${index++}`, scenario);
+		}
 		yield* Console.log(`Passed packed ${pkg.manifest.name}`);
 	}
 	yield* checkSharedPeerRegression(packages);

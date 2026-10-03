@@ -14,8 +14,8 @@ export interface Session {
 	readonly baseline: BaselineFile;
 	readonly config: ResolvedConfig;
 	readonly inventory: Inventory;
-	readonly registry: ReadonlyArray<RegistryEntry>;
-	readonly violations: ReadonlyArray<Violation>;
+	readonly registry: readonly RegistryEntry[];
+	readonly violations: readonly Violation[];
 }
 
 const setup = <Value, Requirements>(

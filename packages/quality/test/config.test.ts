@@ -12,7 +12,7 @@ const resolve = async (config: unknown) => {
 	return decoded._tag === "Invalid" ? decoded : Effect.runPromise(resolveRules(decoded.value));
 };
 
-const issues = async (config: unknown): Promise<ReadonlyArray<string>> => {
+const issues = async (config: unknown): Promise<readonly string[]> => {
 	const resolved = await resolve(config);
 	return resolved._tag === "Invalid" ? resolved.issues : [];
 };

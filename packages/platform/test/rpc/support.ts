@@ -15,8 +15,8 @@ export interface LogRecord {
 }
 
 export const recorder = () => {
-	const logs: Array<LogRecord> = [];
-	const spans: Array<Tracer.NativeSpan> = [];
+	const logs: LogRecord[] = [];
+	const spans: Tracer.NativeSpan[] = [];
 	const logger = Logger.make((options) => {
 		logs.push({
 			annotations: options.fiber.getRef(References.CurrentLogAnnotations),
@@ -88,5 +88,5 @@ export const httpClient = (app: { readonly handler: (request: Request) => Promis
 		Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
 	);
 
-export const annotationsOf = (logs: ReadonlyArray<LogRecord>, message: string) =>
+export const annotationsOf = (logs: readonly LogRecord[], message: string) =>
 	logs.filter((log) => (Array.isArray(log.message) ? log.message.includes(message) : log.message === message)).map((log) => log.annotations);

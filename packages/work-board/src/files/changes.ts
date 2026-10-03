@@ -1,17 +1,17 @@
 import { Data, Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule, Stream } from "effect";
 import { isMarkdown, listMarkdown, type MarkdownFile } from "./list.ts";
 
-export type Change = { readonly _tag: "Changed"; readonly paths: ReadonlyArray<string> } | { readonly _tag: "Watching"; readonly watching: boolean };
+export type Change = { readonly _tag: "Changed"; readonly paths: readonly string[] } | { readonly _tag: "Watching"; readonly watching: boolean };
 
 export interface Changes {
 	readonly events: PubSub.PubSub<Change>;
-	readonly files: Effect.Effect<ReadonlyArray<MarkdownFile>, PlatformError.PlatformError>;
+	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 	readonly realRoot: string;
 	readonly watching: Ref.Ref<boolean>;
 }
 
 interface Cached {
-	readonly files: ReadonlyArray<MarkdownFile>;
+	readonly files: readonly MarkdownFile[];
 	readonly generation: number;
 }
 

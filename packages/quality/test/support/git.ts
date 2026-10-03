@@ -8,7 +8,7 @@ const SETTINGS = [
 	"core.hooksPath=/dev/null",
 ];
 
-export const git = (root: string, ...args: ReadonlyArray<string>): string =>
+export const git = (root: string, ...args: readonly string[]): string =>
 	execFileSync("git", [...SETTINGS.flatMap((setting) => ["-c", setting]), ...args], {
 		cwd: root,
 		encoding: "utf8",

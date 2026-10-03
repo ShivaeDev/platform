@@ -11,9 +11,9 @@ const domains: Readonly<Record<string, string>> = { Invoice: "invoices", Members
 const covers = (model: string, change: Change) => domains[model] === change.domain;
 
 class RolledBack {
-	readonly written: ReadonlyArray<string>;
+	readonly written: readonly string[];
 
-	constructor(written: ReadonlyArray<string>) {
+	constructor(written: readonly string[]) {
 		this.written = written;
 	}
 }

@@ -53,7 +53,7 @@ it("transactions inside a batch merge into it on commit and are discarded on rol
 it("a batch does not own a transaction, so records in it and transactions opened in it still run the unowned guard", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
-			const guarded: Array<string> = [];
+			const guarded: string[] = [];
 			const unowned = Effect.map(Effect.service(Current), (database) => {
 				guarded.push(database.name);
 			});

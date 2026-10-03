@@ -13,7 +13,7 @@ const limited = defineRule({
 	options: Schema.toStandardSchemaV1(Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) })),
 });
 
-const rules: ReadonlyArray<Rule> = [todo, limited];
+const rules: readonly Rule[] = [todo, limited];
 
 export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defineConfig({
 	adopt: ["local/no-todo", "comments/no-jsdoc"],

@@ -14,7 +14,7 @@ export type DatabaseTest<Database extends AnyDatabase, Provided> = <A, Eff exten
 
 export interface DatabaseTester<Database extends AnyDatabase, Provided> extends DatabaseTest<Database, Provided> {
 	readonly each: <Item>(
-		cases: ReadonlyArray<Item>,
+		cases: readonly Item[],
 	) => <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
 		name: string,
 		body: (item: Item, database: DatabaseService<Database>, context: TestContext) => Generator<Eff, A, never>,

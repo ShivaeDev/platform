@@ -9,7 +9,7 @@ import { SetupFailure } from "../failure.ts";
 import { writeText } from "../inventory/filesystem.ts";
 import { plural } from "../report/plural.ts";
 
-const save = (session: Session, entries: ReadonlyArray<BaselineEntry>): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
+const save = (session: Session, entries: readonly BaselineEntry[]): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
 	Effect.mapError(
 		writeText(join(session.config.root, session.config.baseline), rewriteBaseline(session.baseline.raw, session.baseline.entries, entries)),
 		(failure) => new SetupFailure({ message: failure.message }),
@@ -20,7 +20,7 @@ const unregistered = (session: Session) => applyRegistry(session.violations, ses
 export const writeBaseline = (
 	cwd: string,
 	config: string | undefined,
-	rules: ReadonlyArray<string>,
+	rules: readonly string[],
 ): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
 	Effect.gen(function* () {
 		const session = yield* openSession(cwd, config);

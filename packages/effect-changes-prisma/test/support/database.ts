@@ -35,9 +35,11 @@ export const connect = (schema: string, options: ConnectOptions = {}) =>
 		(client) => Effect.promise(() => client.$disconnect()),
 	);
 
-const statements = (client: PrismaClient, sql: ReadonlyArray<string>) =>
+const statements = (client: PrismaClient, sql: readonly string[]) =>
 	Effect.promise(async () => {
-		for (const statement of sql) await client.$executeRawUnsafe(statement);
+		for (const statement of sql) {
+			await client.$executeRawUnsafe(statement);
+		}
 	});
 
 export const makeDatabase: Effect.Effect<
@@ -45,7 +47,7 @@ export const makeDatabase: Effect.Effect<
 		readonly schema: string;
 		readonly client: PrismaClient;
 		readonly observer: PrismaClient;
-		readonly execute: (...sql: ReadonlyArray<string>) => Effect.Effect<void>;
+		readonly execute: (...sql: readonly string[]) => Effect.Effect<void>;
 	},
 	never,
 	Scope.Scope
@@ -55,7 +57,7 @@ export const makeDatabase: Effect.Effect<
 	yield* Effect.acquireRelease(statements(admin, tables(schema)), () => statements(admin, [`drop schema "${schema}" cascade`]));
 	const client = yield* connect(schema);
 	const observer = yield* connect(schema);
-	return { client, execute: (...sql: ReadonlyArray<string>) => statements(admin, sql), observer, schema };
+	return { client, execute: (...sql: readonly string[]) => statements(admin, sql), observer, schema };
 });
 
 export const orderIds = (client: PrismaClient) =>

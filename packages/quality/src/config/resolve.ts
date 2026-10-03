@@ -8,7 +8,7 @@ import { builtInRules } from "../rules/built-in.ts";
 import type { ConfigInput } from "./decode.ts";
 
 export interface ResolvedRules extends RuleIndex {
-	readonly active: ReadonlyArray<ActiveRule>;
+	readonly active: readonly ActiveRule[];
 }
 
 type Setting = NonNullable<ConfigInput["rules"]>[string];
@@ -19,7 +19,7 @@ const levelOf = (setting: Setting | undefined): Level => (typeof setting === "st
 
 const optionsOf = (setting: Setting | undefined): unknown => (typeof setting === "object" ? setting.options : undefined);
 
-const duplicateIssues = (rules: ReadonlyArray<Rule>): ReadonlyArray<string> =>
+const duplicateIssues = (rules: readonly Rule[]): readonly string[] =>
 	rules.flatMap((rule, index) =>
 		rules.findIndex((other) => other.id === rule.id) === index ? [] : [`local: rule id "${rule.id}" is already defined`],
 	);
@@ -44,7 +44,7 @@ const activate = (rule: Rule, setting: Setting | undefined): Effect.Effect<Decod
 
 export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<ResolvedRules>> =>
 	Effect.gen(function* () {
-		const rules: ReadonlyArray<Rule> = [...builtInRules, ...(config.local ?? [])];
+		const rules: readonly Rule[] = [...builtInRules, ...(config.local ?? [])];
 		const settings = config.rules ?? {};
 		const known = new Set(rules.map((rule) => rule.id));
 		const families = new Set(rules.filter((rule) => rule.family === true).map((rule) => rule.id));

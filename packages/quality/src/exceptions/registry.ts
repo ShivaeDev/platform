@@ -15,7 +15,7 @@ const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(Re
 	parseOptions: { errors: "all", onExcessProperty: "error" },
 });
 
-export const decodeRegistry = (raw: string | undefined): Promise<Decoded<ReadonlyArray<RegistryEntry>>> =>
+export const decodeRegistry = (raw: string | undefined): Promise<Decoded<readonly RegistryEntry[]>> =>
 	raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(standard, raw);
 
 export interface StaleRegistryEntry {
@@ -24,9 +24,9 @@ export interface StaleRegistryEntry {
 }
 
 export interface RegistryCheck {
-	readonly kept: ReadonlyArray<Violation>;
+	readonly kept: readonly Violation[];
 	readonly registered: number;
-	readonly stale: ReadonlyArray<StaleRegistryEntry>;
+	readonly stale: readonly StaleRegistryEntry[];
 }
 
 const covers = (entry: RegistryEntry, violation: Violation): boolean =>
@@ -34,12 +34,12 @@ const covers = (entry: RegistryEntry, violation: Violation): boolean =>
 
 const UNREGISTRABLE = "names a rule that takes no exceptions. Fix the code, or baseline the violations while the repository adopts the rule";
 
-const coveringEntry = (entries: ReadonlyArray<RegistryEntry>, violation: Violation): RegistryEntry | undefined => {
+const coveringEntry = (entries: readonly RegistryEntry[], violation: Violation): RegistryEntry | undefined => {
 	const matching = entries.filter((entry) => covers(entry, violation));
 	return matching.find((entry) => entry.subject !== undefined) ?? matching[0];
 };
 
-export const applyRegistry = (violations: ReadonlyArray<Violation>, entries: ReadonlyArray<RegistryEntry>, rules: RuleIndex): RegistryCheck => {
+export const applyRegistry = (violations: readonly Violation[], entries: readonly RegistryEntry[], rules: RuleIndex): RegistryCheck => {
 	const usable = entries.filter((entry) => registrable(rules, entry.rule));
 	const used = new Set<RegistryEntry>();
 	const kept = violations.filter((violation) => {

@@ -20,8 +20,12 @@ const Place = command("place", {
 const Forget = command("forget", { invalidates: () => [] });
 
 const place = ({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typeof Place.error.Type> => {
-	if (name === "missing") return Place.reject.OrderNotFound();
-	if (quantity < 0) return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
+	if (name === "missing") {
+		return Place.reject.OrderNotFound();
+	}
+	if (quantity < 0) {
+		return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
+	}
 	return Effect.succeed(`placed:${name}`);
 };
 

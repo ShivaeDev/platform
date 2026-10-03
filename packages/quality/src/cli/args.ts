@@ -5,7 +5,7 @@ import type { WarningDetail } from "../report/render.ts";
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
-	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: ReadonlyArray<string> }
+	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineCheck"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
@@ -54,9 +54,9 @@ type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositi
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: ReadonlyArray<Option> = ["against", "from", "rule", "staged", "warnings"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "from", "rule", "staged", "warnings"];
 
-const ACCEPTS: Readonly<Record<string, ReadonlyArray<Option>>> = {
+const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline check": ["against"],
 	"baseline migrate": ["from"],
 	"baseline prune": ["against"],
@@ -99,7 +99,7 @@ const commandFor = (name: string, values: Values): Parsed => {
 	}
 };
 
-export const parseCommand = (args: ReadonlyArray<string>): Parsed => {
+export const parseCommand = (args: readonly string[]): Parsed => {
 	const result = Result.try({
 		catch: (error) => (error instanceof Error ? error.message : String(error)),
 		try: () => parseArgs({ allowPositionals: true, args: [...args], options: OPTIONS, strict: true }),

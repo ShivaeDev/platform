@@ -7,7 +7,7 @@ it("a committed root frame publishes its distinct changes once, after the body, 
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
 			const database = makeDatabase("main");
-			const trail: Array<string> = [];
+			const trail: string[] = [];
 			yield* Effect.gen(function* () {
 				yield* write(database, "order 1", change("ada"), change("bob"));
 				yield* channel.record([change("ada"), change("ada", "invoices")]);

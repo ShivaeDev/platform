@@ -19,7 +19,9 @@ export const shell = (url: string) => {
 	const rechecks: string[] = [];
 	const Registry = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		return null;
 	};
 	const show = (session: Session | undefined, id: number) =>
@@ -45,7 +47,9 @@ export const shell = (url: string) => {
 		edit: (value: string) =>
 			act(async () => {
 				const field = input();
-				if (!field) throw new Error("Missing name input");
+				if (!field) {
+					throw new Error("Missing name input");
+				}
 				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),

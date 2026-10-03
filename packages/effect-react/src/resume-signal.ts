@@ -19,7 +19,9 @@ const whileVisible =
 	(target: ResumeWindow, type: ResumeEvent): ResumeSource =>
 	(resume) => {
 		const visible = () => {
-			if (target.document.visibilityState === "visible") resume();
+			if (target.document.visibilityState === "visible") {
+				resume();
+			}
 		};
 		target.addEventListener(type, visible);
 		return () => target.removeEventListener(type, visible);
@@ -31,7 +33,9 @@ export const resumeSignal = ({ window, native }: ResumeOptions): Atom.Atom<numbe
 	return Atom.readable((get) => {
 		let count = 0;
 		const resume = () => get.setSelf(++count);
-		for (const source of sources) get.addFinalizer(source(resume));
+		for (const source of sources) {
+			get.addFinalizer(source(resume));
+		}
 		return count;
 	});
 };

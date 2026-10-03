@@ -2,7 +2,7 @@ import { hasMethod, invokeMethod } from "./dynamic.ts";
 import { getRelationPlan, type RelationPlan } from "./relation-plan.ts";
 
 export interface RelationOperation {
-	readonly arguments: ReadonlyArray<unknown>;
+	readonly arguments: readonly unknown[];
 	readonly name: PropertyKey;
 }
 
@@ -14,7 +14,7 @@ export interface RelationRecipe {
 
 export const rootRecipe = (model: string): RelationRecipe => ({ model });
 
-export const appendOperation = (parent: RelationRecipe, name: PropertyKey, arguments_: ReadonlyArray<unknown>): RelationRecipe => ({
+export const appendOperation = (parent: RelationRecipe, name: PropertyKey, arguments_: readonly unknown[]): RelationRecipe => ({
 	model: parent.model,
 	operation: {
 		arguments: arguments_,
@@ -23,8 +23,8 @@ export const appendOperation = (parent: RelationRecipe, name: PropertyKey, argum
 	parent,
 });
 
-const operations = (recipe: RelationRecipe): ReadonlyArray<RelationOperation> => {
-	const reversed: Array<RelationOperation> = [];
+const operations = (recipe: RelationRecipe): readonly RelationOperation[] => {
+	const reversed: RelationOperation[] = [];
 	let current: RelationRecipe | undefined = recipe;
 
 	while (current !== undefined) {
@@ -37,7 +37,7 @@ const operations = (recipe: RelationRecipe): ReadonlyArray<RelationOperation> =>
 	return reversed.reverse();
 };
 
-const applyMethod = (current: unknown, name: PropertyKey, arguments_: ReadonlyArray<unknown>, model: string): unknown => {
+const applyMethod = (current: unknown, name: PropertyKey, arguments_: readonly unknown[], model: string): unknown => {
 	if (!hasMethod(current, name)) {
 		throw new TypeError(`Cannot call ${String(name)} while replaying ${model}`);
 	}

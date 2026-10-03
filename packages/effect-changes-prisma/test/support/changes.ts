@@ -20,16 +20,16 @@ export const models = {
 
 export const label = (change: Change) => `${change.subject}:${change.domain}`;
 
-export const makeChanges = (client: PrismaClient, publish?: (changes: ReadonlyArray<Change>) => Effect.Effect<void>) => {
-	const published: Array<ReadonlyArray<string>> = [];
-	const observations: Array<Observation<Change>> = [];
-	const unnamed: Array<UnnamedWrite> = [];
+export const makeChanges = (client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>) => {
+	const published: (readonly string[])[] = [];
+	const observations: Observation<Change>[] = [];
+	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
 		client,
 		key: label,
 		models,
 		name: "TestChanges",
-		publish: (batch: ReadonlyArray<Change>) =>
+		publish: (batch: readonly Change[]) =>
 			Effect.andThen(
 				Effect.sync(() => published.push(batch.map(label))),
 				publish === undefined ? Effect.void : publish(batch),

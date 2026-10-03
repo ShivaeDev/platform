@@ -13,11 +13,11 @@ const messagesFor = async (rule: Rule<string, undefined>, comment: string) =>
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;
-	readonly quiet: ReadonlyArray<string>;
+	readonly quiet: readonly string[];
 	readonly rule: Rule<string, undefined>;
 }
 
-const cases: ReadonlyArray<Case> = [
+const cases: readonly Case[] = [
 	{
 		fires: [
 			["// see src/a.ts:42", "src/a.ts:42"],

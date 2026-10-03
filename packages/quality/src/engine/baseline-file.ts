@@ -8,7 +8,7 @@ import { SetupFailure } from "../failure.ts";
 import { readOptionalText } from "../inventory/filesystem.ts";
 
 export interface BaselineFile {
-	readonly entries: ReadonlyArray<BaselineEntry>;
+	readonly entries: readonly BaselineEntry[];
 	readonly raw: string | undefined;
 }
 

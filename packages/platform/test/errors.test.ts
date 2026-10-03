@@ -9,11 +9,21 @@ const Profiles = RpcGroup.make(Rpc.make("Rename", { error: Rejection, payload: {
 
 const Handlers = Profiles.toLayer({
 	Rename: ({ name }) => {
-		if (name === "") return Effect.fail(new BadRequest({ field: "name", message: "Name is required" }));
-		if (name === "taken") return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
-		if (name === "stale") return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
-		if (name === "missing") return Effect.fail(new NotFound({ message: "No profile" }));
-		if (name === "busy") return Effect.fail(new TooManyRequests({ message: "Slow down" }));
+		if (name === "") {
+			return Effect.fail(new BadRequest({ field: "name", message: "Name is required" }));
+		}
+		if (name === "taken") {
+			return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
+		}
+		if (name === "stale") {
+			return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
+		}
+		if (name === "missing") {
+			return Effect.fail(new NotFound({ message: "No profile" }));
+		}
+		if (name === "busy") {
+			return Effect.fail(new TooManyRequests({ message: "Slow down" }));
+		}
 		return Effect.succeed(name);
 	},
 });

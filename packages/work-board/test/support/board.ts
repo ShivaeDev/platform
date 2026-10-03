@@ -96,8 +96,8 @@ export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
 	return { close: () => controller.abort(), next };
 };
 
-export const changesUntil = async (events: EventStream, path: string): Promise<ReadonlyArray<ReadonlyArray<string>>> => {
-	const seen: Array<ReadonlyArray<string>> = [];
+export const changesUntil = async (events: EventStream, path: string): Promise<ReadonlyArray<readonly string[]>> => {
+	const seen: Array<readonly string[]> = [];
 	while (!seen.at(-1)?.includes(path)) {
 		const event = await events.next();
 		const data = /^event: change\ndata: (.*)$/u.exec(event)?.[1];

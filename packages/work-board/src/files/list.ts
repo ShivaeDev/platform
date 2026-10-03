@@ -15,7 +15,7 @@ const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIn
 
 const byFolder = (left: string, right: string): number => folderOf(left).localeCompare(folderOf(right)) || left.localeCompare(right);
 
-type Listing = Effect.Effect<ReadonlyArray<MarkdownFile>, PlatformError.PlatformError>;
+type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
 export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root: string, realRoot: string) {
 	const fs = yield* FileSystem.FileSystem;

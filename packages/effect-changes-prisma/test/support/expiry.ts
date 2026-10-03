@@ -40,14 +40,14 @@ export const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 export const harnessed = <X, E>(changes: Changes, body: Effect.Effect<X, E>) =>
 	Effect.gen(function* () {
 		const context = yield* Effect.context<never>();
-		const exits: Array<Exit.Exit<X, E | TransactionExpired | PrismaError>> = [];
+		const exits: Exit.Exit<X, E | TransactionExpired | PrismaError>[] = [];
 		const run = async (tx: HarnessTx) => {
 			exits.push(await Effect.runPromiseExitWith(context)(changes.transaction(body).pipe(Effect.provideService(changes.Client, tx))));
 		};
 		return { exits, run };
 	});
 
-export const expiredIn = (exits: ReadonlyArray<Exit.Exit<unknown, unknown>>) => {
+export const expiredIn = (exits: readonly Exit.Exit<unknown, unknown>[]) => {
 	const [exit] = exits;
 	return exit !== undefined && Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof TransactionExpired;
 };

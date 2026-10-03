@@ -42,7 +42,7 @@ interface Control {
 	saves: number;
 }
 
-export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
+export const makeInvoiceLineServer = (initial: readonly InvoiceLine[]) => {
 	const store = new Map(initial.map((line) => [line.id, line]));
 	const control: Control = { gets: 0, held: undefined, mode: "ok", saves: 0 };
 	const hold = () => {
@@ -53,15 +53,21 @@ export const makeInvoiceLineServer = (initial: ReadonlyArray<InvoiceLine>) => {
 	const admitted = Effect.suspend((): Effect.Effect<void, Unavailable> => {
 		const gate = control.held;
 		control.held = undefined;
-		if (control.mode === "unavailable") return Effect.fail(new Unavailable());
+		if (control.mode === "unavailable") {
+			return Effect.fail(new Unavailable());
+		}
 		return gate === undefined ? Effect.void : Deferred.await(gate);
 	});
 	const normalized = (
 		draft: typeof InvoiceLineDraft.Type,
 	): Effect.Effect<typeof InvoiceLineDraft.Type, { readonly field: "name" | "quantity"; readonly message: string }> => {
 		const name = draft.name.trim();
-		if (name.length > 20) return Effect.fail({ field: "name", message: "Name is too long" });
-		if (draft.quantity > 5000) return Effect.fail({ field: "quantity", message: "Quantity is too large" });
+		if (name.length > 20) {
+			return Effect.fail({ field: "name", message: "Name is too long" });
+		}
+		if (draft.quantity > 5000) {
+			return Effect.fail({ field: "quantity", message: "Quantity is too large" });
+		}
 		return Effect.succeed({ name: name.charAt(0).toUpperCase() + name.slice(1), quantity: draft.quantity });
 	};
 	const stored = (line: InvoiceLine) => Effect.sync(() => store.set(line.id, line)).pipe(Effect.as(line));

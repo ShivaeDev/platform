@@ -8,13 +8,13 @@ import { describe, expect, it } from "vitest";
 const compilerTimeout = 60_000;
 const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
 
-const compile = (arguments_: ReadonlyArray<string>) =>
+const compile = (arguments_: readonly string[]) =>
 	spawnSync(join(packageDirectory, "node_modules", ".bin", "tsc"), arguments_, {
 		cwd: packageDirectory,
 		encoding: "utf8",
 	});
 
-const invalidArguments = (fixtures: ReadonlyArray<string>) => [
+const invalidArguments = (fixtures: readonly string[]) => [
 	"--ignoreConfig",
 	"--noEmit",
 	"--noErrorTruncation",

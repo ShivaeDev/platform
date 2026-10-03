@@ -1,6 +1,6 @@
 import type { SourceComment } from "../comments/scan.ts";
 
-export const SUPPRESSIONS: ReadonlyArray<RegExp> = [
+export const SUPPRESSIONS: readonly RegExp[] = [
 	/^biome-ignore(?:-all|-start)?(?![\w-])/u,
 	/^@ts-(?:ignore|expect-error|nocheck)(?![\w-])/u,
 	/^(?:eslint|oxlint|stylelint)-disable(?:-next-line|-line)?(?![\w-])/u,

@@ -89,7 +89,7 @@ const makeRelationProxy = (runtime: AnyRelationRuntime): object => {
 						terminal: "count",
 					});
 			}
-			return (...arguments_: ReadonlyArray<unknown>) =>
+			return (...arguments_: readonly unknown[]) =>
 				makeRelationProxy({
 					...runtime,
 					recipe: appendOperation(runtime.recipe, property, arguments_),

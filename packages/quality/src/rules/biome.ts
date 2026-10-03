@@ -4,7 +4,7 @@ import { itemsOf, member, parseJsonc, textOf } from "./suppressions/biome/json.t
 
 export const PRESET = "@shivaedev/quality/biome";
 
-const ROOT_CONFIGS: ReadonlyArray<string> = ["biome.json", "biome.jsonc"];
+const ROOT_CONFIGS: readonly string[] = ["biome.json", "biome.jsonc"];
 
 const FAILING: ReadonlySet<string> = new Set(["error", "fatal"]);
 
@@ -24,7 +24,7 @@ function findingOf(diagnostic: Diagnostic): Finding {
 	};
 }
 
-async function presetFinding(readText: RuleInputs["readText"]): Promise<ReadonlyArray<Finding>> {
+async function presetFinding(readText: RuleInputs["readText"]): Promise<readonly Finding[]> {
 	const texts = await Promise.all(ROOT_CONFIGS.map(async (path) => ({ path, text: await readText(path) })));
 	const found = texts.find((candidate) => candidate.text !== undefined);
 	const parsed = found?.text === undefined ? undefined : parseJsonc(found.path, found.text);

@@ -8,16 +8,16 @@ export type GuardProblem =
 	| { readonly _tag: "NothingAdopted"; readonly rule: string };
 
 export interface GuardResult {
-	readonly adopted: ReadonlyArray<string>;
+	readonly adopted: readonly string[];
 	readonly moved: number;
-	readonly problems: ReadonlyArray<GuardProblem>;
+	readonly problems: readonly GuardProblem[];
 }
 
 export const guardBaseline = (
-	base: ReadonlyArray<BaselineEntry>,
-	working: ReadonlyArray<BaselineEntry>,
+	base: readonly BaselineEntry[],
+	working: readonly BaselineEntry[],
 	renames: ReadonlyMap<string, string>,
-	adopt: ReadonlyArray<string>,
+	adopt: readonly string[],
 ): GuardResult => {
 	const before = new Map(base.map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const covered = new Set(base.map((entry) => entry.rule));

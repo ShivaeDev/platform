@@ -79,8 +79,12 @@ export const checkConsumer = (
 		yield* command(consumer, "pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(root, ".pnpm-store")]);
 		yield* checkEffectCopies(consumer, catalog);
 		yield* checkBrowserEntries(root, pkg, consumer);
-		if (scenario?.omitOptionalPeers) yield* checkOptionalPeers(pkg, consumer);
-		for (const script of ["typecheck", "typecheck:nodenext"]) yield* command(consumer, "pnpm", ["run", script]);
+		if (scenario?.omitOptionalPeers) {
+			yield* checkOptionalPeers(pkg, consumer);
+		}
+		for (const script of ["typecheck", "typecheck:nodenext"]) {
+			yield* command(consumer, "pnpm", ["run", script]);
+		}
 		yield* command(consumer, "node", [
 			"--input-type=module",
 			"--eval",
@@ -95,17 +99,21 @@ export const checkConsumer = (
 const checkOptionalPeers = (pkg: Package, consumer: string) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		for (const [name, meta] of Object.entries(pkg.manifest.peerDependenciesMeta ?? {}))
-			if (meta.optional)
+		for (const [name, meta] of Object.entries(pkg.manifest.peerDependenciesMeta ?? {})) {
+			if (meta.optional) {
 				yield* requireThat(
 					!(yield* fs.exists(join(consumer, "node_modules", name))),
 					`${pkg.manifest.name}: minimal consumer installed optional peer ${name}`,
 				);
+			}
+		}
 	});
 
 const runFixtures = (consumer: string, selected: readonly string[]) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const runtime = (yield* fs.readDirectory(consumer)).filter((file) => file.startsWith("runtime-"));
-		for (const file of new Set([...runtime, ...selected])) yield* command(consumer, "node", [file]);
+		for (const file of new Set([...runtime, ...selected])) {
+			yield* command(consumer, "node", [file]);
+		}
 	});

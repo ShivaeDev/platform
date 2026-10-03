@@ -16,8 +16,12 @@ const isQueueWorker = (registration: JobRegistration): registration is QueueWork
 const isScheduledWorker = (registration: JobRegistration): registration is ScheduledWorker => registration._tag === "ScheduledWorker";
 
 export const registrationName = (registration: JobRegistration): string => {
-	if (isQueueWorker(registration)) return registration.queue.name;
-	if (isScheduledWorker(registration)) return registration.schedule.name;
+	if (isQueueWorker(registration)) {
+		return registration.queue.name;
+	}
+	if (isScheduledWorker(registration)) {
+		return registration.schedule.name;
+	}
 	throw new TypeError(`Unknown pg-boss registration: ${registration._tag}`);
 };
 
@@ -47,14 +51,18 @@ const runQueueWorker = (worker: QueueWorker, job: Job<unknown>, context: Context
 const registerQueue = async (client: PgBossClient, worker: QueueWorker, context: Context.Context<unknown>, replaceWorker: boolean): Promise<void> => {
 	const name = worker.queue.name;
 	const deadLetter = deadLetterQueueName(name);
-	if (replaceWorker) await client.offWork(name);
+	if (replaceWorker) {
+		await client.offWork(name);
+	}
 	await client.createQueue(deadLetter);
 	await client.createQueue(name, {
 		...queueOptions(worker.queue.queueOptions),
 		deadLetter,
 	});
 	await client.work(name, worker.queue.workerOptions, async (jobs) => {
-		for (const job of jobs) await runQueueWorker(worker, job, context);
+		for (const job of jobs) {
+			await runQueueWorker(worker, job, context);
+		}
 	});
 };
 
@@ -66,7 +74,9 @@ const registerSchedule = async (
 ): Promise<void> => {
 	const { schedule } = worker;
 	const deadLetter = deadLetterQueueName(schedule.name);
-	if (replaceWorker) await client.offWork(schedule.name);
+	if (replaceWorker) {
+		await client.offWork(schedule.name);
+	}
 	await client.createQueue(deadLetter);
 	await client.createQueue(schedule.name, {
 		...queueOptions(schedule.queueOptions),

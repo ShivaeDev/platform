@@ -57,7 +57,7 @@ export function defineService<State>(definition: RuntimeDefinition<State>): unkn
 			const state = yield* Effect.provide(definition.initialize, declared);
 			return Record.map(definition.methods(state), (entry: MethodEntry) => {
 				const method: AnyMethod = typeof entry === "function" ? entry : entry.method;
-				return (...arguments_: ReadonlyArray<never>) => Effect.provide(method(...arguments_), declared);
+				return (...arguments_: readonly never[]) => Effect.provide(method(...arguments_), declared);
 			});
 		}),
 	);

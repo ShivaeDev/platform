@@ -21,7 +21,9 @@ const valuesOf = (order: Order) => ({
 });
 
 const saveStatus = (submitting: boolean, dirty: boolean): string => {
-	if (submitting) return "Saving…";
+	if (submitting) {
+		return "Saving…";
+	}
 	return dirty ? "Unsaved changes" : "Saved";
 };
 
@@ -62,7 +64,9 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 			{
 				onSubmit: (event) => {
 					event.preventDefault();
-					if (!submit.submitting) submit.run();
+					if (!submit.submitting) {
+						submit.run();
+					}
 				},
 			},
 			createElement(

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type BaselineEntry, decodeBaseline, encodeBaseline } from "../src/baseline/format.ts";
 import { rewriteBaseline } from "../src/baseline/rewrite.ts";
 
-const lines = (...rows: ReadonlyArray<string>): string => rows.map((row) => `${row}\n`).join("");
+const lines = (...rows: readonly string[]): string => rows.map((row) => `${row}\n`).join("");
 
 const unsorted = lines(
 	'{"path":"src/z.ts","rule":"comments/no-jsdoc","count":2}',
@@ -11,13 +11,13 @@ const unsorted = lines(
 	'{"path":"src/m.ts","rule":"comments/no-todo","count":1}',
 );
 
-const rewrite = async (raw: string, edit: (entries: ReadonlyArray<BaselineEntry>) => ReadonlyArray<BaselineEntry>) => {
+const rewrite = async (raw: string, edit: (entries: readonly BaselineEntry[]) => readonly BaselineEntry[]) => {
 	const decoded = await decodeBaseline(raw);
 	const before = decoded._tag === "Valid" ? decoded.value : [];
 	return rewriteBaseline(raw, before, edit(before));
 };
 
-const lowered = (entry: BaselineEntry): ReadonlyArray<BaselineEntry> => (entry.file === "src/big.ts" ? [{ ...entry, count: 250 }] : [entry]);
+const lowered = (entry: BaselineEntry): readonly BaselineEntry[] => (entry.file === "src/big.ts" ? [{ ...entry, count: 250 }] : [entry]);
 
 describe("baseline rewrite", () => {
 	it("keeps every line byte for byte when nothing changed", async () => {

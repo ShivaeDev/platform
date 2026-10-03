@@ -2,7 +2,7 @@ import { Cause, Context, Effect, Exit, Logger, References } from "effect";
 import { type ChannelOptions, makeChannel } from "../../src/index.ts";
 
 export interface FakeDatabase {
-	readonly committed: ReadonlyArray<string>;
+	readonly committed: readonly string[];
 	readonly name: string;
 	readonly transaction: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
 	readonly write: (row: string) => Effect.Effect<void>;
@@ -10,10 +10,10 @@ export interface FakeDatabase {
 
 export class Current extends Context.Service<Current, FakeDatabase>()("test/Current") {}
 
-const Staging = Context.Reference<ReadonlyMap<FakeDatabase, Array<string>>>("test/Staging", { defaultValue: () => new Map() });
+const Staging = Context.Reference<ReadonlyMap<FakeDatabase, string[]>>("test/Staging", { defaultValue: () => new Map() });
 
 export const makeDatabase = (name: string, commit: Effect.Effect<void> = Effect.void): FakeDatabase => {
-	const committed: Array<string> = [];
+	const committed: string[] = [];
 	const database: FakeDatabase = {
 		committed,
 		name,
@@ -22,10 +22,12 @@ export const makeDatabase = (name: string, commit: Effect.Effect<void> = Effect.
 				Effect.gen(function* () {
 					const staging = yield* Staging;
 					const parent = staging.get(database);
-					const staged: Array<string> = [];
+					const staged: string[] = [];
 					const exit = yield* Effect.exit(restore(Effect.provideService(body, Staging, new Map(staging).set(database, staged))));
 					if (Exit.isSuccess(exit)) {
-						if (parent === undefined) yield* commit;
+						if (parent === undefined) {
+							yield* commit;
+						}
 						(parent ?? committed).push(...staged);
 					}
 					return yield* exit;
@@ -47,7 +49,7 @@ export interface Change {
 export const change = (subject: string, domain = "orders"): Change => ({ domain, subject });
 
 export const makeTestChannel = (options: Partial<ChannelOptions<Change, Current>> = {}) => {
-	const published: Array<ReadonlyArray<string>> = [];
+	const published: Array<readonly string[]> = [];
 	const channel = makeChannel<Change, Current>({
 		key: (event) => `${event.subject}:${event.domain}`,
 		name: "Test",
@@ -66,7 +68,7 @@ export interface LogEntry {
 }
 
 export const captureLogs = () => {
-	const entries: Array<LogEntry> = [];
+	const entries: LogEntry[] = [];
 	const logger = Logger.make((options) => {
 		entries.push({
 			annotations: options.fiber.getRef(References.CurrentLogAnnotations),
@@ -89,7 +91,7 @@ export const harness = (options: Partial<ChannelOptions<Change, Current>> = {}) 
 		(database: FakeDatabase) =>
 		<X, E, R>(body: Effect.Effect<X, E, R>) =>
 			on(database)(channel.within(database.transaction)(body));
-	const write = (database: FakeDatabase, row: string, ...changes: ReadonlyArray<Change>) =>
+	const write = (database: FakeDatabase, row: string, ...changes: readonly Change[]) =>
 		on(database)(Effect.andThen(database.write(row), channel.record(changes)));
 	return { channel, inTransaction, published, write };
 };

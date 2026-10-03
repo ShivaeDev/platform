@@ -27,7 +27,11 @@ export const settled = (name: string): Effect.Effect<never> =>
 export const add = <A>(name: string, buffer: Buffer<A>, entries: Iterable<readonly [unknown, A]>): Effect.Effect<void> =>
 	buffer.open
 		? Effect.sync(() => {
-				for (const [key, change] of entries) if (!buffer.changes.has(key)) buffer.changes.set(key, change);
+				for (const [key, change] of entries) {
+					if (!buffer.changes.has(key)) {
+						buffer.changes.set(key, change);
+					}
+				}
 			})
 		: settled(name);
 
@@ -35,7 +39,9 @@ export const keyed = <A>(changes: Iterable<A>, keyOf: (change: A) => unknown): M
 	const entries = new Map<unknown, A>();
 	for (const change of changes) {
 		const key = keyOf(change);
-		if (!entries.has(key)) entries.set(key, change);
+		if (!entries.has(key)) {
+			entries.set(key, change);
+		}
 	}
 	return entries;
 };
@@ -44,16 +50,22 @@ export const makeFrame = <A>(options: {
 	readonly name: string;
 	readonly buffer: Buffer<A>;
 	readonly provide: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
-	readonly publish: (changes: ReadonlyArray<A>) => Effect.Effect<void>;
-	readonly discard: (changes: ReadonlyArray<A>) => Effect.Effect<void>;
+	readonly publish: (changes: readonly A[]) => Effect.Effect<void>;
+	readonly discard: (changes: readonly A[]) => Effect.Effect<void>;
 }): Frame => {
 	const { name, buffer } = options;
 	const settle = Effect.fn("Changes.settle")(function* (outcome: Outcome) {
-		if (!buffer.open) return;
+		if (!buffer.open) {
+			return;
+		}
 		buffer.open = false;
-		if (outcome === "committed" && buffer.parent !== undefined) return yield* add(name, buffer.parent, buffer.changes);
+		if (outcome === "committed" && buffer.parent !== undefined) {
+			return yield* add(name, buffer.parent, buffer.changes);
+		}
 		const changes = [...buffer.changes.values()];
-		if (changes.length === 0) return;
+		if (changes.length === 0) {
+			return;
+		}
 		yield* outcome === "committed" ? options.publish(changes) : options.discard(changes);
 	}, Effect.uninterruptible);
 	return { provide: options.provide, settle };

@@ -40,8 +40,10 @@ export const setup = Effect.gen(function* () {
 		]),
 		() => Effect.orDie(sql`drop table ${sql(tables.notes)}, ${sql(tables.orders)}, ${sql(tables.others)}`),
 	);
-	const events: Array<string> = [];
-	for (const key of ["orders", "orders:1", "orders:2"]) reactivity.registerUnsafe([key], () => events.push(key));
+	const events: string[] = [];
+	for (const key of ["orders", "orders:1", "orders:2"]) {
+		reactivity.registerUnsafe([key], () => events.push(key));
+	}
 	const insert = (id: number) => sql`insert into ${sql(tables.orders)} (id, name) values (${id}, ${`order ${id}`})`;
 	const count = Effect.map(sql<{ readonly total: number }>`select count(*)::int as total from ${sql(tables.orders)}`, ([row]) => row?.total);
 	const orderIds = (client: SqlClient.SqlClient) =>

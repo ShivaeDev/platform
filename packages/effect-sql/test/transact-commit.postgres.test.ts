@@ -53,7 +53,7 @@ integration("invalidation runs after COMMIT: the sink sees the committed rows fr
 		Effect.gen(function* () {
 			const { insert, orderIds, reactivity } = yield* setup;
 			const observer = yield* secondPool;
-			const observed: Array<ReadonlyArray<number>> = [];
+			const observed: Array<readonly number[]> = [];
 			const observing = Reactivity.Reactivity.of({
 				...reactivity,
 				invalidate: (keys) => Effect.andThen(Effect.orDie(Effect.map(orderIds(observer), (ids) => observed.push(ids))), reactivity.invalidate(keys)),

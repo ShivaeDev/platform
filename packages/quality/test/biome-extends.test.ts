@@ -6,7 +6,7 @@ const PACKAGE = "node_modules/@acme/lint";
 
 const weak = (rule: string) => JSON.stringify({ linter: { rules: { suspicious: { [rule]: "off" } } } });
 
-const extending = (...entries: ReadonlyArray<string>) => JSON.stringify({ extends: entries });
+const extending = (...entries: readonly string[]) => JSON.stringify({ extends: entries });
 
 const found = async (texts: Readonly<Record<string, string>>) =>
 	(await checkRule(biomeOverrides, undefined, { texts })).map(
