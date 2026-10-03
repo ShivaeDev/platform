@@ -12,6 +12,8 @@
 
 - Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
 
+- Run tests through the `@shivaedev/quality` Vitest projects, which take a test's environment from its file name. Type tests are named `*.typecheck.test.ts`.
+
 ## 0.1.1 - 2026-09-26
 
 ### Changed

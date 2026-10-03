@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { RegistryContext } from "@effect/atom-react";
 import { type Submit, useSubmit } from "@shivaedev/effect-form/react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";

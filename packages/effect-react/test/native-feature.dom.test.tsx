@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { RegistryContext } from "@effect/atom-react";
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { makeRepository } from "@shivaedev/effect-sql";

@@ -113,6 +113,7 @@
 		"@prisma-next/target-postgres": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

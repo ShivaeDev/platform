@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { Effect } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
