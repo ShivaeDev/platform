@@ -1,6 +1,24 @@
 import { defineConfig } from "./packages/quality/src/config.ts";
 
+const PACKAGE_ENTRIES = [
+	"packages/*/src/index.ts",
+	"packages/effect-form/src/react.ts",
+	"packages/effect-react/src/form.ts",
+	"packages/effect-prisma/src/sqlite.ts",
+	"packages/effect-prisma/src/testing.ts",
+	"packages/effect-trpc/src/client.ts",
+	"packages/effect-trpc/src/testing.ts",
+	"packages/platform/src/better-auth.ts",
+	"packages/platform/src/errors.ts",
+	"packages/platform/src/node-http.ts",
+	"packages/platform/src/rpc-server.ts",
+	"packages/platform/src/rpc.ts",
+	"packages/platform/src/runtime.ts",
+	"packages/platform/src/testing.ts",
+] as const;
+
 export default defineConfig({
+	adopt: ["biome"],
 	sources: ["packages", "script"],
 	rules: {
 		"suppressions/no-inline": {
@@ -20,8 +38,23 @@ export default defineConfig({
 				declared: [
 					{
 						rule: "files/includes",
-						includes: ["**", "!**/.pnpm-store", "!**/dist", "!**/coverage", "!**/test/generated", "!**/test/*/generated", "!!.worktrees"],
-						reason: "Package-manager stores, build output, coverage reports, generated test clients and linked worktrees are not source.",
+						includes: ["**", "!**/test/generated", "!**/test/*/generated"],
+						reason: "Generated test clients are not source.",
+					},
+					{
+						rule: "lint/performance/noBarrelFile",
+						includes: PACKAGE_ENTRIES,
+						reason: "Package entry points are the files that re-export a package's public modules.",
+					},
+					{
+						rule: "lint/performance/noReExportAll",
+						includes: PACKAGE_ENTRIES,
+						reason: "Package entry points are the files that re-export a package's public modules.",
+					},
+					{
+						rule: "lint/style/noDefaultExport",
+						includes: [".dependency-cruiser.ts"],
+						reason: "dependency-cruiser loads its config file through the default export.",
 					},
 					{
 						rule: "lint/suspicious/noExplicitAny",

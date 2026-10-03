@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add the Biome preset `@shivaedev/quality/biome`. It sets the formatting (tabs, a line width of 150, double quotes), every rule Biome recommends at `error`, a list of stricter rules such as `noUnsafeTypeAssertion`, `useBlockStatements`, `noEqualsToNull`, `useConsistentArrayType` with `readonly T[]`, `noFloatingPromises` and `useExhaustiveSwitchCases`, sorted keys in JSON and object literals, and the GritQL plugins that ban ambient time, randomness, `console` and `process.env` and check `Effect.fn` span names. Its `declarations.json` declares the rules it turns off.
+- Add the `biome` rule. It runs Biome, now a dependency pinned to 2.5.14, and reports each finding as `biome/<category>`, so Biome's findings take part in the baseline. `adopt: ["biome"]` adopts all of them. It also asks for a root Biome config that extends the preset. Like every rule it is an error by default, so a repository that upgrades extends the preset and adopts `biome` into its baseline.
+- Add `quality fix`, which applies Biome's safe fixes, assist actions and formatting.
+
+### Fixed
+
+- Write all of a long report before exiting when the output is a pipe, instead of cutting it off.
+
 ## 0.4.0 - 2026-10-03
 
 ### Added

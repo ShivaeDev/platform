@@ -1,5 +1,4 @@
-import type { Level } from "../config.ts";
-import { groupBy, keyOf, type Violation } from "../engine/violation.ts";
+import { covers, groupBy, keyOf, levelOf, type RuleIndex, type Violation } from "../engine/violation.ts";
 import { countOf } from "./compare.ts";
 import type { BaselineEntry } from "./format.ts";
 
@@ -24,8 +23,8 @@ const record = (violations: ReadonlyArray<Violation>): ReadonlyArray<BaselineEnt
 		return count > 0 ? [{ count, file: first.file, rule: first.rule }] : [];
 	});
 
-const refusal = (id: string, levels: ReadonlyMap<string, Level>): ReadonlyArray<string> => {
-	const level = levels.get(id);
+const refusal = (id: string, index: RuleIndex): ReadonlyArray<string> => {
+	const level = levelOf(index, id);
 	if (level === undefined) {
 		return [`${id}: no built-in or local rule has this id.`];
 	}
@@ -36,17 +35,18 @@ export const adopt = (
 	existing: ReadonlyArray<BaselineEntry> | undefined,
 	rules: ReadonlyArray<string>,
 	violations: ReadonlyArray<Violation>,
-	levels: ReadonlyMap<string, Level>,
+	index: RuleIndex,
 ): Adoption => {
 	if (existing !== undefined && rules.length === 0) {
 		return { _tag: "Refused", reasons: ["a baseline exists. Record a rule with --rule <id>, or drop fixed debt with prune."] };
 	}
-	const reasons = rules.flatMap((id) => refusal(id, levels));
+	const reasons = rules.flatMap((id) => refusal(id, index));
 	if (reasons.length > 0) {
 		return { _tag: "Refused", reasons };
 	}
-	const kept = (existing ?? []).filter((entry) => !rules.includes(entry.rule));
-	const adopted = violations.filter((violation) => violation.level === "error" && (rules.length === 0 || rules.includes(violation.rule)));
+	const named = (rule: string): boolean => rules.some((name) => covers(name, rule));
+	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
+	const adopted = violations.filter((violation) => violation.level === "error" && (rules.length === 0 || named(violation.rule)));
 	const added = record(adopted);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
 };
@@ -73,7 +73,7 @@ const destination = (
 export const prune = (
 	existing: ReadonlyArray<BaselineEntry>,
 	violations: ReadonlyArray<Violation>,
-	levels: ReadonlyMap<string, Level>,
+	index: RuleIndex,
 	scope: Scope = { moves: new Map() },
 ): Pruned => {
 	const current = new Map(record(violations).map((entry) => [keyOf(entry.rule, entry.file), entry]));
@@ -83,7 +83,7 @@ export const prune = (
 		if (!inScope(before, scope)) {
 			return [{ after: before, before }];
 		}
-		const level = levels.get(before.rule);
+		const level = levelOf(index, before.rule);
 		const now = current.get(keyOf(before.rule, before.file)) ?? destination(before, current, scope.moves, taken);
 		if (now === undefined || level === undefined || level === "off") {
 			return [];

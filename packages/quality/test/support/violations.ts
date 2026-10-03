@@ -1,5 +1,5 @@
 import type { Level } from "../../src/config.ts";
-import type { Violation } from "../../src/engine/violation.ts";
+import type { RuleIndex, Violation } from "../../src/engine/violation.ts";
 
 export const violation = (fields: Partial<Violation> & Pick<Violation, "file" | "rule">): Violation => ({
 	level: "error",
@@ -7,4 +7,7 @@ export const violation = (fields: Partial<Violation> & Pick<Violation, "file" | 
 	...fields,
 });
 
-export const levels = (entries: Readonly<Record<string, Level>>): ReadonlyMap<string, Level> => new Map(Object.entries(entries));
+export const levels = (
+	entries: Readonly<Record<string, Level>>,
+	more: { readonly families?: ReadonlyArray<string>; readonly unregistrable?: ReadonlyArray<string> } = {},
+): RuleIndex => ({ families: new Set(more.families), levels: new Map(Object.entries(entries)), unregistrable: new Set(more.unregistrable) });

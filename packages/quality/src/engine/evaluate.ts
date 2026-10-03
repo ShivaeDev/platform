@@ -1,8 +1,7 @@
 import { applyBaseline, type Regression, type StaleBaselineEntry } from "../baseline/compare.ts";
 import type { BaselineEntry } from "../baseline/format.ts";
-import type { Level } from "../config.ts";
 import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "../exceptions/registry.ts";
-import { byLocation, type Violation } from "./violation.ts";
+import { byLocation, type RuleIndex, type Violation } from "./violation.ts";
 
 export interface Outcome {
 	readonly errors: ReadonlyArray<Violation>;
@@ -19,11 +18,10 @@ export const evaluate = (
 	violations: ReadonlyArray<Violation>,
 	registry: ReadonlyArray<RegistryEntry>,
 	baseline: ReadonlyArray<BaselineEntry>,
-	levels: ReadonlyMap<string, Level>,
-	unregistrable: ReadonlySet<string>,
+	rules: RuleIndex,
 ): Outcome => {
-	const registered = applyRegistry(violations, registry, levels, unregistrable);
-	const baselined = applyBaseline(registered.kept, baseline, levels);
+	const registered = applyRegistry(violations, registry, rules);
+	const baselined = applyBaseline(registered.kept, baseline, rules);
 	const kept = [...baselined.kept].sort(byLocation);
 	return {
 		baselined: baselined.baselined,

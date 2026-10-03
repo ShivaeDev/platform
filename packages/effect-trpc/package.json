@@ -50,10 +50,9 @@
 	},
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
-		"check": "biome check .",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit",
-		"ready": "pnpm check && pnpm typecheck && pnpm test && pnpm build"
+		"ready": "pnpm typecheck && pnpm test && pnpm build"
 	},
 	"dependencies": {
 		"@shivaedev/effect-test": "workspace:*"

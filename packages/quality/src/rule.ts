@@ -36,6 +36,7 @@ export interface Rule<Id extends string = string, Input = unknown> {
 	readonly id: Id;
 	readonly description: string;
 	readonly registrable?: boolean;
+	readonly family?: boolean;
 	// Method syntax keeps rules with different options in one list; configure validates its input at runtime.
 	configure(options: Input | undefined): Promise<Configured>;
 }

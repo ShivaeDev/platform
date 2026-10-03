@@ -1,5 +1,4 @@
-import type { Level } from "../config.ts";
-import { groupBy, keyOf, unusedEntryProblem, type Violation } from "../engine/violation.ts";
+import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Violation } from "../engine/violation.ts";
 import type { BaselineEntry } from "./format.ts";
 
 export interface Regression {
@@ -25,7 +24,7 @@ export const countOf = (violations: ReadonlyArray<Violation>): number => violati
 export const applyBaseline = (
 	violations: ReadonlyArray<Violation>,
 	entries: ReadonlyArray<BaselineEntry>,
-	levels: ReadonlyMap<string, Level>,
+	rules: RuleIndex,
 ): BaselineCheck => {
 	const groups = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	const covered = new Set<string>();
@@ -35,10 +34,10 @@ export const applyBaseline = (
 	for (const entry of entries) {
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
 		if (group.length === 0) {
-			const level = levels.get(entry.rule);
+			const level = levelOf(rules, entry.rule);
 			(level === undefined || level === "off" ? stale : loose).push({
 				entry,
-				problem: unusedEntryProblem(levels, entry.rule, "has no violations left"),
+				problem: unusedEntryProblem(rules, entry.rule, "has no violations left"),
 			});
 			continue;
 		}

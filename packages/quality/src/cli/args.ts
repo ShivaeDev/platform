@@ -4,6 +4,7 @@ import type { WarningDetail } from "../report/render.ts";
 
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }
+	| { readonly _tag: "Fix"; readonly config: string | undefined }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: ReadonlyArray<string> }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineCheck"; readonly config: string | undefined; readonly against: string | undefined }
@@ -15,6 +16,7 @@ export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { 
 
 export const USAGE = `Usage:
   quality lint [--config <file>] [--warnings summary|all]
+  quality fix [--config <file>]
   quality baseline write [--config <file>] [--rule <id>]...
   quality baseline prune [--config <file>] [--against <ref>]
   quality baseline tighten [--config <file>] [--staged]
@@ -23,6 +25,7 @@ export const USAGE = `Usage:
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for a rule that is off or unknown.
+fix               Apply Biome's safe fixes, assist actions and formatting.
 baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
@@ -55,6 +58,7 @@ const COMMAND_OPTIONS: ReadonlyArray<Option> = ["against", "from", "rule", "stag
 
 const ACCEPTS: Readonly<Record<string, ReadonlyArray<Option>>> = {
 	lint: ["warnings"],
+	fix: [],
 	"baseline write": ["rule"],
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
@@ -80,6 +84,8 @@ const commandFor = (name: string, values: Values): Parsed => {
 				? parsed({ _tag: "Lint", config, warnings })
 				: usage(`--warnings takes summary or all, not "${warnings}".`);
 		}
+		case "fix":
+			return parsed({ _tag: "Fix", config });
 		case "baseline write":
 			return parsed({ _tag: "BaselineWrite", config, rules: values.rule ?? [] });
 		case "baseline prune":

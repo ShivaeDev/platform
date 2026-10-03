@@ -68,6 +68,23 @@ describe("baseline check", () => {
 		);
 		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule", "names a rule that is off"]);
 	});
+
+	it("knows the rules a family reports under its own name", () => {
+		const family = levels({ tool: "error" }, { families: ["tool"] });
+		const finding = violation({ file: "src/a.ts", rule: "tool/lint/eqeq" });
+		const checked = applyBaseline(
+			[finding],
+			[
+				{ count: 1, file: "src/a.ts", rule: "tool/lint/eqeq" },
+				{ count: 1, file: "src/a.ts", rule: "tool/format" },
+				{ count: 1, file: "src/a.ts", rule: "toolkit/x" },
+			],
+			family,
+		);
+		expect(checked.baselined).toBe(1);
+		expect(checked.loose.map((loose) => loose.problem)).toEqual(["has no violations left"]);
+		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule"]);
+	});
 });
 
 describe("baseline file", () => {

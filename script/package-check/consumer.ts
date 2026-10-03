@@ -5,7 +5,7 @@ import { consumerDependencies } from "#package-check/dependencies.ts";
 import { checkEffectCopies } from "#package-check/effect-copies.ts";
 import { writeFixtures } from "#package-check/fixtures.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
-import type { Package } from "#package-check/model.ts";
+import { type Package, targets } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
 import { consumerWorkspace } from "#package-check/workspace.ts";
 
@@ -63,13 +63,16 @@ export const checkConsumer = (
 			Object.entries(pkg.manifest.exports ?? {})
 				.filter(([, target]) => target !== null)
 				.map(([key]) => key)
-		).map((key) => (key === "." ? pkg.manifest.name : `${pkg.manifest.name}${key.slice(1)}`));
+		).map((key) => ({
+			json: targets(pkg.manifest.exports?.[key]).some((target) => target.endsWith(".json")),
+			specifier: key === "." ? pkg.manifest.name : `${pkg.manifest.name}${key.slice(1)}`,
+		}));
 		yield* fs.writeFileString(
 			join(consumer, "entries.ts"),
 			entries
 				.map(
 					(entry, i) =>
-						`import * as entry${i} from ${JSON.stringify(entry)}${entry.endsWith(".json") ? ' with { type: "json" }' : ""};\nvoid entry${i};`,
+						`import * as entry${i} from ${JSON.stringify(entry.specifier)}${entry.json ? ' with { type: "json" }' : ""};\nvoid entry${i};`,
 				)
 				.join("\n"),
 		);
@@ -82,8 +85,8 @@ export const checkConsumer = (
 			"--input-type=module",
 			"--eval",
 			entries
-				.filter((entry) => !entry.endsWith(".json"))
-				.map((entry) => `await import(${JSON.stringify(entry)});`)
+				.filter((entry) => !entry.json)
+				.map((entry) => `await import(${JSON.stringify(entry.specifier)});`)
 				.join("\n"),
 		]);
 		yield* runFixtures(consumer, scenario?.run ?? []);

@@ -1,7 +1,7 @@
 {
 	"clean": [
 		{
-			"content": "export default { rules: { \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\", \"test\"] };\n",
+			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\", \"test\"] };\n",
 			"path": "quality.config.ts"
 		},
 		{ "content": "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", "path": "src/full.ts" },
@@ -12,14 +12,14 @@
 	],
 	"warned": [
 		{
-			"content": "export default { rules: { \"structure/max-lines\": { level: \"warn\", options: { source: 3 } } }, sources: [\"src\"] };\n",
+			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { level: \"warn\", options: { source: 3 } } }, sources: [\"src\"] };\n",
 			"path": "quality.config.ts"
 		},
 		{ "content": "1\n2\n3\n4\n", "path": "src/long.ts" }
 	],
 	"dirty": [
 		{
-			"content": "export default { rules: { \"structure/max-lines\": { options: { source: 3 } } }, sources: [\"src\"] };\n",
+			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3 } } }, sources: [\"src\"] };\n",
 			"path": "quality.config.ts"
 		},
 		{ "content": "1\n2\n3\n4\n", "path": "src/long.ts" },

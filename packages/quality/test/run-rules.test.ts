@@ -4,7 +4,7 @@ import { type ActiveRule, runRules } from "../src/engine/run-rules.ts";
 import type { Findings } from "../src/index.ts";
 import { inputsOf } from "./support/inputs.ts";
 
-const rule = (id: string, level: ActiveRule["level"], check: () => Promise<Findings>): ActiveRule => ({ check, description: id, id, level });
+const rule = (id: string, level: ActiveRule["level"], check: () => Promise<Findings>): ActiveRule => ({ check, description: id, family: false, id, level });
 
 describe("running rules", () => {
 	it("tags each finding with its rule and level", async () => {

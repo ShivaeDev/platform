@@ -16,7 +16,7 @@ const save = (session: Session, entries: ReadonlyArray<BaselineEntry>): Effect.E
 	);
 
 const unregistered = (session: Session) =>
-	applyRegistry(session.violations, session.registry, session.config.levels, session.config.unregistrable).kept;
+	applyRegistry(session.violations, session.registry, session.config).kept;
 
 export const writeBaseline = (
 	cwd: string,
@@ -26,7 +26,7 @@ export const writeBaseline = (
 	Effect.gen(function* () {
 		const session = yield* openSession(cwd, config);
 		const existing = session.baseline.raw === undefined ? undefined : session.baseline.entries;
-		const adoption = adopt(existing, rules, unregistered(session), session.config.levels);
+		const adoption = adopt(existing, rules, unregistered(session), session.config);
 		if (adoption._tag === "Refused") {
 			return yield* new SetupFailure({ message: `baseline write refused:\n${adoption.reasons.map((reason) => `  - ${reason}`).join("\n")}` });
 		}
@@ -57,7 +57,7 @@ export const shrinkBaseline = <Requirements>(
 		if (session.baseline.raw === undefined) {
 			return yield* Console.log(`quality: no baseline at ${session.config.baseline}; nothing to lower.`);
 		}
-		const pruned = prune(session.baseline.entries, unregistered(session), session.config.levels, yield* scopeOf(session));
+		const pruned = prune(session.baseline.entries, unregistered(session), session.config, yield* scopeOf(session));
 		if (pruned.removed === 0 && pruned.lowered === 0 && pruned.moved === 0) {
 			return yield* Console.log(`quality: ${session.config.baseline} is current.`);
 		}

@@ -9,6 +9,7 @@ export interface ActiveRule {
 	readonly id: string;
 	readonly description: string;
 	readonly level: ActiveLevel;
+	readonly family: boolean;
 	readonly check: (inputs: RuleInputs) => Promise<Findings>;
 }
 
@@ -21,7 +22,7 @@ const violationOf = (rule: ActiveRule, root: string, finding: Finding): Violatio
 	...finding,
 	file: repositoryPath(root, finding.file),
 	level: rule.level,
-	rule: rule.id,
+	rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
 });
 
 const runRule = (rule: ActiveRule, inputs: RuleInputs): Effect.Effect<ReadonlyArray<Violation>, SetupFailure> =>

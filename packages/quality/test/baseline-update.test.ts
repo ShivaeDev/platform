@@ -40,6 +40,21 @@ describe("baseline write", () => {
 		});
 	});
 
+	it("adopts and replaces every rule of a family through the family's name", () => {
+		const family = levels({ tool: "error" }, { families: ["tool"] });
+		const eqeq = violation({ file: "src/a.ts", rule: "tool/lint/eqeq" });
+		const existing = [
+			{ count: 4, file: "src/gone.ts", rule: "tool/format" },
+			{ count: 250, file: "src/big.ts", rule: "structure/max-lines" },
+		];
+		expect(adopt(existing, ["tool"], [eqeq], family)).toEqual({
+			_tag: "Adopted",
+			added: 1,
+			entries: [existing[1], { count: 1, file: "src/a.ts", rule: "tool/lint/eqeq" }],
+			replaced: 1,
+		});
+	});
+
 	it("never records a finding that counts no violations", () => {
 		const within = violation({ count: 0, file: "src/a.ts", rule: "local/new" });
 		expect(adopt(undefined, [], [within], known)).toEqual({ _tag: "Adopted", added: 0, entries: [], replaced: 0 });
