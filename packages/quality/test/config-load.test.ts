@@ -35,15 +35,9 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"comments/max-per-file",
 				"suppressions/no-inline",
 				"suppressions/no-double-cast",
-				"suppressions/no-type-assertion",
 				"suppressions/biome-overrides",
 			]);
-			expect([...loaded.unregistrable]).toEqual([
-				"suppressions/no-inline",
-				"suppressions/no-double-cast",
-				"suppressions/no-type-assertion",
-				"suppressions/biome-overrides",
-			]);
+			expect([...loaded.unregistrable]).toEqual(["suppressions/no-inline", "suppressions/no-double-cast", "suppressions/biome-overrides"]);
 		}),
 	);
 

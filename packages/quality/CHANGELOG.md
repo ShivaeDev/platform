@@ -4,13 +4,6 @@
 
 ### Added
 
-- Add `suppressions/no-type-assertion`, an error by default that takes no
-  registry exceptions: it reports every `x as T` and `<T>x`, while `as const`,
-  `<const>` and `satisfies` stay allowed and the parts of a double cast are left
-  to `suppressions/no-double-cast`. Its `declared` option allows assertions in
-  the files a declaration includes, each with a reason, and a declaration whose
-  files have no assertion left is reported.
-
 - `suppressions/biome-overrides` follows `extends` entries that name a package,
   such as a shared Biome preset, resolved from the root's `node_modules` through
   `exports` (the `biome` and `default` conditions and `*` patterns), `main` or a

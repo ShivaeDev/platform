@@ -99,13 +99,12 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Four rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline, which only shrinks.
+A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline, which only shrinks.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except a declared `@ts-expect-error` | `declared` |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
-| `suppressions/no-type-assertion` | Every other type assertion, `x as T` and `<T>x`, outside the files the config declares; `as const` and `satisfies` are allowed | `declared` |
 | `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
 
 `suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
@@ -142,32 +141,7 @@ export default defineConfig({
 
 `includes` takes `.gitignore` patterns, like `exclude`. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in those files. A declaration that matches no `@ts-expect-error` is reported against `quality.config.ts` until it is removed. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
 
-`suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax, and `as const` is not a cast.
-
-#### Declared type assertions
-
-`suppressions/no-type-assertion` reports every `x as T` and `<T>x` in the sources, found with the TypeScript parser. `as const` and `<const>` are not assertions, and `satisfies` checks a type instead of asserting it. Each part of a double cast is left to `suppressions/no-double-cast`, so a cast is reported once. Decode the value at its boundary with Schema, narrow it, or fix the type that disagrees. A scope that truly cannot prove its types, such as the output of a code generator, is declared with a reason, never marked inline:
-
-```ts
-export default defineConfig({
-	rules: {
-		"suppressions/no-type-assertion": {
-			options: {
-				declared: [
-					{
-						includes: ["src/generated/"],
-						reason: "The generated client returns rows its generator already validated against the schema.",
-					},
-				],
-			},
-		},
-	},
-});
-```
-
-`includes` takes `.gitignore` patterns, like `exclude`. A declaration whose files have no assertion left is reported against `quality.config.ts` until it is removed. Double casts stay reported in declared files.
-
-The ban is a quality rule rather than a Biome GritQL plugin because Biome can lift a plugin for one scope only through an inline `biome-ignore`, which `suppressions/no-inline` refuses.
+`suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
 
 #### Declared Biome overrides
 
