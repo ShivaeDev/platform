@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 - 2026-10-03
+## Unreleased
 
 ### Added
 
@@ -22,6 +22,10 @@
   `error` is no longer reported, while `overrides` and every `includes` list are
   appended. The `extends` of an extended config are no longer followed, since
   Biome does not apply them.
+
+## 0.3.1 - 2026-10-03
+
+### Changed
 
 - `quality baseline check` fetches the full history with `git fetch --unshallow`
   when a shallow clone does not reach the merge base, and looks for it again
