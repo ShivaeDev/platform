@@ -7,7 +7,7 @@ type Options = Parameters<typeof maxPerFile.configure>[0];
 
 const countOf = async (content: ReadonlyArray<string>, options: Options = { max: 0 }) => {
 	const findings = await checkRule(maxPerFile, options, { sources: [{ content: content.join("\n"), path: "src/a.ts" }] });
-	return findings[0]?.measure ?? 0;
+	return findings[0]?.count ?? 0;
 };
 
 describe("comments/max-per-file counts", () => {
@@ -57,17 +57,17 @@ describe("comments/max-per-file counts", () => {
 });
 
 describe("comments/max-per-file fires", () => {
-	it("on a file with more than 2 comments, at the first comment over the limit, measuring the count", async () => {
+	it("on a file with more than 2 comments, at the first comment over the limit, counting the comments above it", async () => {
 		const content = "// one\nexport const a = 1;\n/* two */\nexport const b = 2;\n// three\n";
 		expect(await checkRule(maxPerFile, undefined, { sources: [{ content, path: "src/a.ts" }] })).toEqual([
-			{ file: "src/a.ts", line: 5, measure: 3, message: "3 comments against a limit of 2." },
+			{ count: 1, file: "src/a.ts", line: 5, message: "3 comments against a limit of 2.", threshold: 2 },
 		]);
 	});
 
 	it("at the configured limit", async () => {
 		const sources = [{ content: "// one\n", path: "src/a.ts" }];
 		expect(await checkRule(maxPerFile, { max: 0 }, { sources })).toEqual([
-			{ file: "src/a.ts", line: 1, measure: 1, message: "1 comment against a limit of 0." },
+			{ count: 1, file: "src/a.ts", line: 1, message: "1 comment against a limit of 0.", threshold: 0 },
 		]);
 	});
 });

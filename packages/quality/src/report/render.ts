@@ -1,4 +1,4 @@
-import { describeEntry, describeTally, type Regression } from "../baseline/compare.ts";
+import type { Regression } from "../baseline/compare.ts";
 import { type Outcome, passes } from "../engine/evaluate.ts";
 import { groupBy, keyOf, type Violation } from "../engine/violation.ts";
 import { plural } from "./plural.ts";
@@ -19,7 +19,7 @@ const LISTED_FILES = 5;
 const locate = (violation: Violation): string => (violation.line === undefined ? violation.file : `${violation.file}:${violation.line}`);
 
 const regressionNote = (regression: Regression): string =>
-	`  ${regression.entry.file} is over its baseline: ${describeTally(regression.tally)} against ${describeEntry(regression.entry)} baselined.`;
+	`  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
 
 const heading = (label: string, rule: string, violations: ReadonlyArray<Violation>, context: ReportContext): ReadonlyArray<string> => {
 	const description = context.descriptions.get(rule);

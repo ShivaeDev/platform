@@ -23,10 +23,10 @@ export const USAGE = `Usage:
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for a rule that is off or unknown.
-baseline write    Record current error-level violations. Creates the baseline, or adopts named rules into an existing one.
+baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
-baseline check    Compare the baseline with its version at the merge base. Exits 1 when it gained an entry, a count or a measure.
+baseline check    Compare the baseline with its version at the merge base. Exits 1 when it gained an entry or a higher count.
 baseline migrate  Move a baseline from the earlier JSON format (--from, quality/baseline.json by default) to the configured file.
 
 --config <file>  Config file; its directory is the repository root. Defaults to ./quality.config.ts.

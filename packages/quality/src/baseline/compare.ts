@@ -2,14 +2,9 @@ import type { Level } from "../config.ts";
 import { groupBy, keyOf, unusedEntryProblem, type Violation } from "../engine/violation.ts";
 import type { BaselineEntry } from "./format.ts";
 
-export interface Tally {
-	readonly count: number;
-	readonly measure: number | undefined;
-}
-
 export interface Regression {
 	readonly entry: BaselineEntry;
-	readonly tally: Tally;
+	readonly count: number;
 }
 
 export interface StaleBaselineEntry {
@@ -25,31 +20,7 @@ export interface BaselineCheck {
 	readonly baselined: number;
 }
 
-type Verdict = { readonly _tag: "Covered"; readonly loose: boolean } | { readonly _tag: "Regressed" };
-
-const measures = (violations: ReadonlyArray<Violation>): ReadonlyArray<number> =>
-	violations.flatMap((violation) => (violation.measure === undefined ? [] : [violation.measure]));
-
-export const tallyOf = (violations: ReadonlyArray<Violation>): Tally => {
-	const found = measures(violations);
-	return { count: violations.length, measure: found.length === 0 ? undefined : Math.max(...found) };
-};
-
-const measureTrend = (entry: BaselineEntry, tally: Tally): number =>
-	entry.measure === undefined || tally.measure === undefined ? 0 : Math.sign(tally.measure - entry.measure);
-
-const verdictOf = (entry: BaselineEntry, tally: Tally): Verdict => {
-	const trend = measureTrend(entry, tally);
-	if (tally.count > entry.count || trend > 0) {
-		return { _tag: "Regressed" };
-	}
-	return { _tag: "Covered", loose: tally.count < entry.count || trend < 0 };
-};
-
-export const describeTally = (tally: Tally): string =>
-	`${tally.count} violation${tally.count === 1 ? "" : "s"}${tally.measure === undefined ? "" : ` measuring ${tally.measure}`}`;
-
-export const describeEntry = (entry: BaselineEntry): string => describeTally({ count: entry.count, measure: entry.measure });
+export const countOf = (violations: ReadonlyArray<Violation>): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
 
 export const applyBaseline = (
 	violations: ReadonlyArray<Violation>,
@@ -71,15 +42,14 @@ export const applyBaseline = (
 			});
 			continue;
 		}
-		const tally = tallyOf(group);
-		const verdict = verdictOf(entry, tally);
-		if (verdict._tag === "Regressed") {
-			regressions.push({ entry, tally });
+		const count = countOf(group);
+		if (count > entry.count) {
+			regressions.push({ count, entry });
 			continue;
 		}
 		covered.add(keyOf(entry.rule, entry.file));
-		if (verdict.loose) {
-			loose.push({ entry, problem: `allows more than is left: ${describeTally(tally)} against ${describeEntry(entry)} baselined` });
+		if (count < entry.count) {
+			loose.push({ entry, problem: `allows more than is left: ${count} against ${entry.count} baselined` });
 		}
 	}
 	const kept = violations.filter((violation) => !covered.has(keyOf(violation.rule, violation.file)));

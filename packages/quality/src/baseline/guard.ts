@@ -13,9 +13,6 @@ export interface GuardResult {
 	readonly adopted: ReadonlyArray<string>;
 }
 
-const raises = (base: BaselineEntry, entry: BaselineEntry): boolean =>
-	entry.count > base.count || (base.measure !== undefined && (entry.measure === undefined || entry.measure > base.measure));
-
 export const guardBaseline = (
 	base: ReadonlyArray<BaselineEntry>,
 	working: ReadonlyArray<BaselineEntry>,
@@ -33,7 +30,7 @@ export const guardBaseline = (
 		const matched = exact ?? (origin === undefined ? undefined : before.get(keyOf(entry.rule, origin)));
 		if (matched === undefined) {
 			problems.push({ _tag: "Added", entry });
-		} else if (raises(matched, entry)) {
+		} else if (entry.count > matched.count) {
 			problems.push({ _tag: "Raised", base: matched, entry });
 		} else if (exact === undefined) {
 			moved += 1;

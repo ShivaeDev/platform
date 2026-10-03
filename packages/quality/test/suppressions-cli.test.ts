@@ -63,6 +63,6 @@ describe("quality lint with the suppression rules", { timeout: cliTimeout }, () 
 		writeFileSync(join(root, "src/a.ts"), `${source.content}// @ts-ignore\n`);
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
-		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 violations against 1 violation baselined.");
+		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
 	});
 });

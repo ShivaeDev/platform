@@ -84,7 +84,7 @@ describe("quality baseline", { timeout: cliTimeout }, () => {
 		writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n6\n7\n");
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
-		expect(grown.stdout).toContain("src/longer.ts is over its baseline: 1 violation measuring 7 against 1 violation measuring 6 baselined.");
+		expect(grown.stdout).toContain("src/longer.ts is over its baseline: 4 against 3 baselined.");
 
 		writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n");
 		writeFileSync(join(root, "src/long.ts"), "1\n");
@@ -98,11 +98,11 @@ describe("quality baseline", { timeout: cliTimeout }, () => {
 		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.not.stringContaining("note") });
 	});
 
-	it("refuses to regenerate an existing baseline", () => {
+	it("refuses to regenerate an existing baseline without naming a rule", () => {
 		const root = seedTree(trees.dirty, [{ content: "", path: "quality/baseline.jsonl" }]);
 		const result = quality(root, "baseline", "write");
 		expect(result.status).toBe(2);
-		expect(result.stderr).toContain("a baseline exists and only shrinks");
+		expect(result.stderr).toContain("a baseline exists. Record a rule with --rule <id>");
 	});
 });
 

@@ -30,11 +30,12 @@ export const writeBaseline = (
 		if (adoption._tag === "Refused") {
 			return yield* new SetupFailure({ message: `baseline write refused:\n${adoption.reasons.map((reason) => `  - ${reason}`).join("\n")}` });
 		}
-		if (adoption.added === 0) {
+		if (adoption.added === 0 && adoption.replaced === 0) {
 			return yield* Console.log(`quality: no error-level violations to record; ${session.config.baseline} is unchanged.`);
 		}
 		yield* save(session, adoption.entries);
-		yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}.`);
+		const replaced = adoption.replaced > 0 ? `, replacing ${plural(adoption.replaced, "entry", "entries")}` : "";
+		yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}${replaced}.`);
 	});
 
 const changes = (pruned: Pruned): string => {

@@ -27,14 +27,14 @@ describe("quality baseline tighten", { timeout: cliTimeout }, () => {
 		expect(quality(root, "baseline", "tighten", "--staged").stdout).toBe(
 			"quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n",
 		);
-		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":1,"measure":6}\n');
+		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n');
 		expect(quality(root, "lint").status).toBe(0);
 	});
 
 	it("without --staged, covers every file changed since HEAD", () => {
 		const root = shrunkTwice();
 		expect(quality(root, "baseline", "tighten").stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
-		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":1,"measure":5}\n');
+		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n');
 	});
 
 	it("drops the entries of a deleted file", () => {
@@ -64,11 +64,9 @@ describe("quality baseline prune", { timeout: cliTimeout }, () => {
 			"quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality/baseline.jsonl.\n",
 		);
 		expect(baseline(root)).toBe(
-			[
-				'{"path":"src/a-longer.ts","rule":"structure/max-lines","count":1,"measure":6}',
-				'{"path":"src/long.ts","rule":"structure/max-lines","count":1,"measure":4}',
-				"",
-			].join("\n"),
+			['{"path":"src/a-longer.ts","rule":"structure/max-lines","count":3}', '{"path":"src/long.ts","rule":"structure/max-lines","count":1}', ""].join(
+				"\n",
+			),
 		);
 	});
 

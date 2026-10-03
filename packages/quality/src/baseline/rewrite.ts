@@ -6,8 +6,6 @@ interface Row {
 	readonly text: string;
 }
 
-const same = (left: BaselineEntry, right: BaselineEntry): boolean => left.count === right.count && left.measure === right.measure;
-
 // An untouched entry keeps its exact line and a new one goes before the first line that sorts after it, so two branches conflict only on the same or neighbouring entries.
 export const rewriteBaseline = (raw: string | undefined, before: ReadonlyArray<BaselineEntry>, after: ReadonlyArray<BaselineEntry>): string => {
 	const wanted = new Map(after.map((entry) => [keyOf(entry.rule, entry.file), entry]));
@@ -16,7 +14,7 @@ export const rewriteBaseline = (raw: string | undefined, before: ReadonlyArray<B
 		const entry = wanted.get(keyOf(old.rule, old.file));
 		const line = lines[index];
 		wanted.delete(keyOf(old.rule, old.file));
-		return entry === undefined ? [] : [{ entry, text: line !== undefined && same(old, entry) ? line.text : encodeEntry(entry) }];
+		return entry === undefined ? [] : [{ entry, text: line !== undefined && old.count === entry.count ? line.text : encodeEntry(entry) }];
 	});
 	for (const entry of [...wanted.values()].sort(byPathAndRule)) {
 		const at = rows.findIndex((row) => byPathAndRule(row.entry, entry) > 0);

@@ -31,8 +31,7 @@
 - Add `quality baseline check [--against <ref>]`, which compares the baseline
   with its version at the merge base of `HEAD` and the target branch
   (`origin/HEAD`, `origin/main` or `origin/master` by default) and fails when it
-  gained an entry, a higher `count` or `measure`, or a rule baselined for the
-  first time. Comparing with the merge base means a branch that is behind never
+  gained an entry, a higher `count`, or a rule baselined for the first time. Comparing with the merge base means a branch that is behind never
   fails. An entry whose file git sees as moved is compared with its old path. It
   exits 2 without a git work tree, a target or a merge base, and says to fetch
   more history in a shallow clone.
@@ -47,10 +46,12 @@
   baseline again.
 
 - Add `quality baseline migrate [--from <file>]`, which moves a baseline from
-  the earlier JSON format to the configured file.
+  the earlier JSON format to the configured file. An old entry that stored a
+  size becomes that size less the rule's current limit, and an entry whose file
+  is now within the limit is dropped.
 
 - `quality baseline prune` and `tighten` carry the entry of a file that git
-  sees as moved to its new path, at the lower of its old numbers and what the
+  sees as moved to its new path, at the lower of its old count and what the
   file has now.
 
 - Add `registrable: false` to `defineRule`, for a rule the registry must never
@@ -60,10 +61,20 @@
 ### Changed
 
 - **Breaking:** The baseline is a JSON Lines file, `quality/baseline.jsonl` by
-  default, with one entry per line (`{"path":…,"rule":…,"count":…}`, plus
-  `measure` for a measuring rule) sorted by path and then rule. A repository
-  with a `quality/baseline.json` fails to run until it runs
+  default, with one entry per line (`{"path":…,"rule":…,"count":…}`) sorted by
+  path and then rule. `count` is the number of violations; for a rule with a
+  limit, such as `structure/max-lines` or `comments/max-per-file`, it is the
+  amount over the limit, so changing a limit shifts every count of the rule. A
+  repository with a `quality/baseline.json` fails to run until it runs
   `quality baseline migrate`.
+
+- **Breaking:** A finding reports `count` (the violations it stands for, 1 by
+  default) and `threshold` (the limit it applied) instead of `measure`. A local
+  rule that set `measure` reports the amount over its limit as `count`.
+
+- `quality baseline write --rule <id>` records a rule that the baseline already
+  covers again, replacing its entries, for example after a limit change.
+  `quality baseline check` fails on any entry this raises.
 
 - `quality lint` passes a baseline entry that allows more than is left,
   including a file with no violations left, and lists it as a note. An entry for

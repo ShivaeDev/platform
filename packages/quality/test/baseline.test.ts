@@ -5,7 +5,7 @@ import { levels, violation } from "./support/violations.ts";
 
 const known = levels({ "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
 const todo = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });
-const long = (lines: number) => violation({ file: "src/big.ts", measure: lines, rule: "structure/max-lines" });
+const long = (lines: number) => violation({ count: lines - 150, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
 
 describe("baseline check", () => {
 	it("covers a file that holds its baselined count", () => {
@@ -16,13 +16,17 @@ describe("baseline check", () => {
 	it("fails a file that gained a violation and keeps all of them", () => {
 		const checked = applyBaseline([todo, todo, todo], [{ count: 2, file: "src/a.ts", rule: "local/todo" }], known);
 		expect(checked.kept).toHaveLength(3);
-		expect(checked.regressions).toEqual([{ entry: { count: 2, file: "src/a.ts", rule: "local/todo" }, tally: { count: 3, measure: undefined } }]);
+		expect(checked.regressions).toEqual([{ entry: { count: 2, file: "src/a.ts", rule: "local/todo" }, count: 3 }]);
 	});
 
-	it("fails a file that grew past its baselined measure", () => {
-		const checked = applyBaseline([long(420)], [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }], known);
+	it("fails a file that grew further above its limit than its baselined count", () => {
+		const checked = applyBaseline([long(420)], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known);
 		expect(checked.kept).toEqual([long(420)]);
-		expect(checked.regressions[0]?.tally).toEqual({ count: 1, measure: 420 });
+		expect(checked.regressions[0]?.count).toBe(270);
+	});
+
+	it("covers a file at its baselined count, whatever a finding counts for", () => {
+		expect(applyBaseline([long(400)], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known).loose).toEqual([]);
 	});
 
 	it("keeps violations in files the baseline does not name", () => {
@@ -36,20 +40,20 @@ describe("baseline check", () => {
 		expect(checked.stale).toEqual([]);
 	});
 
-	it("covers a file that shrank and reports its entry as loose, by count or by measure", () => {
+	it("covers a file that shrank and reports its entry as loose", () => {
 		const checked = applyBaseline(
 			[todo, long(380)],
 			[
 				{ count: 3, file: "src/a.ts", rule: "local/todo" },
-				{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" },
+				{ count: 250, file: "src/big.ts", rule: "structure/max-lines" },
 			],
 			known,
 		);
 		expect(checked.baselined).toBe(2);
 		expect(checked.kept).toEqual([]);
 		expect(checked.loose.map((loose) => loose.problem)).toEqual([
-			"allows more than is left: 1 violation against 3 violations baselined",
-			"allows more than is left: 1 violation measuring 380 against 1 violation measuring 400 baselined",
+			"allows more than is left: 1 against 3 baselined",
+			"allows more than is left: 230 against 250 baselined",
 		]);
 	});
 
@@ -68,17 +72,17 @@ describe("baseline check", () => {
 
 describe("baseline file", () => {
 	const entries = [
-		{ count: 1, file: "src/b.ts", measure: 412, rule: "structure/max-lines" },
+		{ count: 262, file: "src/b.ts", rule: "structure/max-lines" },
 		{ count: 3, file: "src/a.ts", rule: "local/todo" },
-		{ count: 1, file: "src/a.ts", measure: 380, rule: "structure/max-lines" },
+		{ count: 230, file: "src/a.ts", rule: "structure/max-lines" },
 	];
 
 	it("writes one entry per line, sorted by path and then rule", () => {
 		expect(encodeBaseline(entries)).toBe(
 			[
 				'{"path":"src/a.ts","rule":"local/todo","count":3}',
-				'{"path":"src/a.ts","rule":"structure/max-lines","count":1,"measure":380}',
-				'{"path":"src/b.ts","rule":"structure/max-lines","count":1,"measure":412}',
+				'{"path":"src/a.ts","rule":"structure/max-lines","count":230}',
+				'{"path":"src/b.ts","rule":"structure/max-lines","count":262}',
 				"",
 			].join("\n"),
 		);
@@ -97,6 +101,7 @@ describe("baseline file", () => {
 		["a zero count", '{"path":"src/a.ts","rule":"local/todo","count":0}', "line 2: count"],
 		["a fractional count", '{"path":"src/a.ts","rule":"local/todo","count":1.5}', "line 2: count"],
 		["an unknown field", '{"path":"src/a.ts","rule":"local/todo","count":1,"line":3}', "line 2: line"],
+		["a measure next to the count", '{"path":"src/a.ts","rule":"structure/max-lines","count":1,"measure":168}', "line 2: measure"],
 		["a missing path", '{"rule":"local/todo","count":1}', "line 2: path"],
 		["a line that is not JSON", "src/a.ts local/todo 1", "line 2:"],
 		["a repeated entry", '{"path":"src/z.ts","rule":"local/todo","count":2}', "line 2: repeats the entry for local/todo in src/z.ts"],

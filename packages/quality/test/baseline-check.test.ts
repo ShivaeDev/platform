@@ -34,11 +34,11 @@ describe("quality baseline check", { timeout: cliTimeout }, () => {
 	it("fails a hand edit that raises an entry to fit a grown file", () => {
 		const root = baselined();
 		appendFileSync(join(root, "src/longer.ts"), "7\n");
-		writeFileSync(baselinePath(root), readFileSync(baselinePath(root), "utf8").replace('"measure":6', '"measure":7'));
+		writeFileSync(baselinePath(root), readFileSync(baselinePath(root), "utf8").replace('"count":3', '"count":4'));
 		expect(quality(root, "lint").status).toBe(0);
 		const result = check(root);
 		expect(result.status).toBe(1);
-		expect(result.stdout).toContain("structure/max-lines src/longer.ts rose to 1 violation measuring 7 from 1 violation measuring 6.");
+		expect(result.stdout).toContain("structure/max-lines src/longer.ts rose to 4 from 3.");
 		expect(result.stdout).toContain("quality: baseline check failed with 1 problem.");
 	});
 
@@ -49,7 +49,7 @@ describe("quality baseline check", { timeout: cliTimeout }, () => {
 		expect(quality(root, "baseline", "write").status).toBe(0);
 		const result = check(root);
 		expect(result.status).toBe(1);
-		expect(result.stdout).toContain("structure/max-lines src/new.ts is new: 1 violation measuring 5.");
+		expect(result.stdout).toContain("structure/max-lines src/new.ts is new, at 2.");
 	});
 
 	it("never fails a branch for being behind, since it compares with the merge base", () => {
@@ -74,8 +74,8 @@ describe("quality baseline check", { timeout: cliTimeout }, () => {
 
 		appendFileSync(join(root, "src/moved.ts"), "7\n");
 		expect(quality(root, "lint").status).toBe(1);
-		writeFileSync(baselinePath(root), readFileSync(baselinePath(root), "utf8").replace('"measure":6', '"measure":7'));
-		expect(check(root).stdout).toContain("structure/max-lines src/moved.ts rose to 1 violation measuring 7 from 1 violation measuring 6.");
+		writeFileSync(baselinePath(root), readFileSync(baselinePath(root), "utf8").replace('"count":3', '"count":4'));
+		expect(check(root).stdout).toContain("structure/max-lines src/moved.ts rose to 4 from 3.");
 	});
 
 	it("admits a rule's first baseline only while adopt names it", () => {
@@ -92,19 +92,39 @@ describe("quality baseline check", { timeout: cliTimeout }, () => {
 		expect(check(root).stdout).toContain("`adopt` in quality.config.ts names comments/no-todo, which has nothing baselined. Remove it.");
 	});
 
+	it("fails a limit change that re-records a rule's entries higher, which only an owner's merge lets through", () => {
+		const root = baselined();
+		const config = readFileSync(join(root, "quality.config.ts"), "utf8");
+		writeFileSync(join(root, "quality.config.ts"), config.replace("source: 3", "source: 2"));
+		expect(quality(root, "lint").status).toBe(1);
+		expect(quality(root, "baseline", "write", "--rule", "structure/max-lines").stdout).toBe(
+			"quality: recorded 2 entries in quality/baseline.jsonl, replacing 2 entries.\n",
+		);
+		expect(quality(root, "lint").status).toBe(0);
+		const result = check(root);
+		expect(result.status).toBe(1);
+		expect(result.stdout).toContain("structure/max-lines src/long.ts rose to 2 from 1.");
+		expect(result.stdout).toContain("structure/max-lines src/longer.ts rose to 4 from 3.");
+	});
+
 	it("compares a baseline migrated in this branch with the earlier format at the base", () => {
-		const root = seedTree(trees.dirty, [
-			{
-				content: JSON.stringify({ "structure/max-lines": { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 6 } } }),
-				path: "quality/baseline.json",
-			},
-		]);
+		const legacy = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 7 }, "src/short.ts": { count: 1, measure: 5 } };
+		const root = seedTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);
 		branchOff(root);
 		expect(quality(root, "lint")).toMatchObject({ status: 2, stderr: expect.stringContaining("Run `quality baseline migrate`") });
-		expect(quality(root, "baseline", "migrate").stdout).toBe("quality: moved 2 entries from quality/baseline.json to quality/baseline.jsonl.\n");
+		expect(quality(root, "baseline", "migrate").stdout).toBe(
+			"quality: moved 2 entries from quality/baseline.json to quality/baseline.jsonl, dropping 1 fixed entry.\n",
+		);
+		expect(readFileSync(baselinePath(root), "utf8")).toBe(
+			['{"path":"src/long.ts","rule":"structure/max-lines","count":1}', '{"path":"src/longer.ts","rule":"structure/max-lines","count":4}', ""].join(
+				"\n",
+			),
+		);
 		expect(quality(root, "lint").status).toBe(0);
 		git(root, "add", "--all");
 		expect(check(root).status).toBe(0);
+		writeFileSync(baselinePath(root), readFileSync(baselinePath(root), "utf8").replace('"count":4', '"count":5'));
+		expect(check(root).stdout).toContain("structure/max-lines src/longer.ts rose to 5 from 4.");
 	});
 });
 

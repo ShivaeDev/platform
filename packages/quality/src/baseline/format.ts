@@ -6,7 +6,6 @@ const Line = Schema.Struct({
 	path: Schema.NonEmptyString,
 	rule: Schema.NonEmptyString,
 	count: Schema.Int.check(Schema.isGreaterThan(0)),
-	measure: Schema.optionalKey(Schema.Finite),
 });
 
 const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Line), { parseOptions: { errors: "all", onExcessProperty: "error" } });
@@ -15,7 +14,6 @@ export interface BaselineEntry {
 	readonly rule: string;
 	readonly file: string;
 	readonly count: number;
-	readonly measure?: number | undefined;
 }
 
 const codepoints = (left: string, right: string): number => (left < right ? -1 : Number(left > right));
@@ -49,12 +47,7 @@ export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<R
 	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
 };
 
-export const encodeEntry = (entry: BaselineEntry): string =>
-	JSON.stringify(
-		entry.measure === undefined
-			? { path: entry.file, rule: entry.rule, count: entry.count }
-			: { path: entry.file, rule: entry.rule, count: entry.count, measure: entry.measure },
-	);
+export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ path: entry.file, rule: entry.rule, count: entry.count });
 
 export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>): string =>
 	[...entries]

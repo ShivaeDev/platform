@@ -57,7 +57,7 @@ The config is typed: an unknown rule id, a misspelled option or an option of the
 
 ## Rules
 
-`structure/max-lines` keeps each module to one job: a source file may have 150 lines and a test file 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns that mark test files (`*.test.*`, `*.spec.*`, `test/`, `tests/` and `__tests__/` by default). A violation's measure is the file's line count, so a baselined file may shrink but never grow.
+`structure/max-lines` keeps each module to one job: a source file may have 150 lines and a test file 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns that mark test files (`*.test.*`, `*.spec.*`, `test/`, `tests/` and `__tests__/` by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
 
 ### Comments
 
@@ -80,7 +80,7 @@ The rules find comments with the TypeScript parser, so text inside strings, temp
 - Line comments that each stand alone on adjacent lines form one run and count once. A blank line, code, a directive, or a comment after code on the same line starts a new one.
 - Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `oxlint-…`, `stylelint-…`, `deno-lint-ignore…`, `tslint:disable…`, `prettier-ignore`, Flow's `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`). The suppression rules below report the directives that silence a check.
 
-The measure of `comments/max-per-file` is the count, so a baselined file may lose comments but never gain one. A finding names the first comment over the limit.
+A file over the limit counts one violation for each comment above it: 5 comments against a limit of 2 count 3. A finding names the first comment over the limit.
 
 A tool pragma is a comment whose every line starts with an allowed tag, such as `/** @vitest-environment happy-dom */`. `allow` lists the tags and defaults to `@vitest-environment`, `@vitest-environment-options`, `@jest-environment`, `@jsx`, `@jsxFrag`, `@jsxImportSource` and `@jsxRuntime`. A list given replaces the default, and `comments/no-jsdoc` and `comments/max-per-file` each take their own, so give both the same list:
 
@@ -207,7 +207,7 @@ export const noConsoleLog = defineRule({
 
 A rule that must never be excused, like the suppression rules, sets `registrable: false`; the registry then refuses entries for it.
 
-`check` receives the repository `root`, every checked path in `files`, the `sources` with their `text` and `lines`, `readText(path)` for any other file (undefined when absent) and the validated `options`. It returns findings, or a promise of them. A finding names its `file`, relative to the root (an absolute path under it is made relative), and its `message`, and optionally a `line`, a `subject` that tells apart exceptions of one rule in one file, and a `measure` where larger is worse.
+`check` receives the repository `root`, every checked path in `files`, the `sources` with their `text` and `lines`, `readText(path)` for any other file (undefined when absent) and the validated `options`. It returns findings, or a promise of them. A finding names its `file`, relative to the root (an absolute path under it is made relative), and its `message`, and optionally a `line`, a `subject` that tells apart exceptions of one rule in one file, a `count` of the violations it stands for (1 by default) and the `threshold` it applied. A rule with a limit reports one finding per file, with the amount over the limit as its `count` and the limit as its `threshold`.
 
 A rule with options declares them with any [Standard Schema](https://standardschema.dev), such as `Schema.toStandardSchemaV1(...)` from Effect. Options are an object: when the config gives none, the schema validates `{}`, so give each option a default or make it optional. A rule without an options schema refuses options.
 
@@ -215,19 +215,19 @@ A rule with options declares them with any [Standard Schema](https://standardsch
 
 ```jsonl
 {"path":"src/legacy/sync.ts","rule":"comments/no-jsdoc","count":3}
-{"path":"src/server/db.ts","rule":"structure/max-lines","count":1,"measure":412}
+{"path":"src/server/db.ts","rule":"structure/max-lines","count":262}
 ```
 
-The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many there may be, and `measure`, for a rule whose findings carry one, is the largest the file may measure, such as its line count. Entries are sorted by path and then rule, and each tool that changes the file rewrites only the lines it changes, so a diff names exactly the entries that moved and two branches conflict only when they touch the same or neighbouring entries.
+The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. Entries are sorted by path and then rule, and each tool that changes the file rewrites only the lines it changes, so a diff names exactly the entries that moved and two branches conflict only when they touch the same or neighbouring entries.
 
-`quality lint` fails when a baselined file has more violations than its `count`, or a larger measure than its `measure`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
+`quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
 
-- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names rules the baseline does not cover yet. It never raises an entry.
+- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names the rules to record: it then replaces the entries of those rules with what the files have now, and leaves every other entry as it is.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
 - `quality baseline prune` does the same for every entry. It carries the entries of files moved since the merge base (see `--against` under [Command line](#command-line)), and prunes without following moves outside a git work tree.
-- `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the configured file, and removes the old one.
+- `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the configured file, and removes the old one. An old entry that stored a size, such as a line count, becomes that size less the rule's current limit; an entry whose file is now within the limit is dropped.
 
-Neither `tighten` nor `prune` ever adds or raises an entry, and a moved file's entry keeps the lower of its old numbers and what the file has now. A move is seen when both of its sides are tracked, as after `git mv`; git's rename detection decides what counts as a move.
+Neither `tighten` nor `prune` ever adds or raises an entry. They lower an entry to what its file has now, and remove it when that is 0. A moved file's entry keeps the lower of its old count and what the file has now. A move is seen when both of its sides are tracked, as after `git mv`; git's rename detection decides what counts as a move.
 
 ### Pre-commit
 
@@ -246,13 +246,13 @@ quality baseline check
 `quality lint` reads only the working tree, so on its own it cannot tell a raised entry from a recorded one: a hand edit, or deleting the baseline and writing it again, would hide new debt. `quality baseline check` compares the baseline with its version at the merge base of `HEAD` and the target branch, and fails when:
 
 - an entry is new, for a rule the base baseline already covers;
-- an entry's `count` or `measure` is higher than at the base, or its `measure` is gone;
+- an entry's `count` is higher than at the base;
 - a rule is baselined for the first time without `adopt` naming it;
 - `adopt` names a rule with nothing baselined.
 
-It compares with the merge base, never the tip of the target branch, so a branch that is behind never fails for debt the target branch paid off since. An entry whose file git sees as moved since the merge base is compared with the entry at the old path. When the base holds the earlier JSON format at `quality/baseline.json`, the check reads that, so the change that migrates the baseline passes.
+It compares with the merge base, never the tip of the target branch, so a branch that is behind never fails for debt the target branch paid off since. An entry whose file git sees as moved since the merge base is compared with the entry at the old path. When the base holds the earlier JSON format at `quality/baseline.json`, the check converts it the way `migrate` does, so the change that migrates the baseline passes.
 
-The check reads git, not the sources, so it is cheap enough for every commit. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. It exits 2 when there is no git work tree, no target or no merge base. A shallow clone usually has no merge base: in GitHub Actions, check out with `fetch-depth: 0`, or fetch enough history for `git merge-base HEAD <target>` to succeed.
+The check reads git, not the sources, so it is cheap enough for every commit; only a base in the earlier format makes it run the rules. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. It exits 2 when there is no git work tree, no target or no merge base. A shallow clone usually has no merge base: in GitHub Actions, check out with `fetch-depth: 0`, or fetch enough history for `git merge-base HEAD <target>` to succeed.
 
 ### Adopting a rule
 
@@ -265,6 +265,10 @@ export default defineConfig({
 ```
 
 Run `quality baseline write --rule comments/no-jsdoc` with the rule at `error`, and commit both. `adopt` lets in only rules that the base baseline does not cover: once the adoption is merged, the rule's entries only shrink like any other. Leave the rule in `adopt` while it has debt; when its last entry is gone, the check fails until it is removed, so `adopt` cannot let the rule back in later. The first baseline of a repository adopts each of its rules the same way.
+
+### Changing a limit
+
+A count depends on the configured limit, so changing a limit shifts every count of the rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit makes the rule's files fail `quality lint`, since each is now further over the limit. Run `quality baseline write --rule <id>` to record the rule again under the new limit, and commit it with the config change. `quality baseline check` then fails on the raised entries, as it does for any growth; the change merges only when an owner of the repository merges it over the failed check on purpose.
 
 ## Registry
 

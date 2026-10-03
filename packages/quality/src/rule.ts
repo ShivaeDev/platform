@@ -5,7 +5,8 @@ export interface Finding {
 	readonly line?: number | undefined;
 	readonly message: string;
 	readonly subject?: string | undefined;
-	readonly measure?: number | undefined;
+	readonly count?: number | undefined;
+	readonly threshold?: number | undefined;
 }
 
 export type Findings = ReadonlyArray<Finding>;

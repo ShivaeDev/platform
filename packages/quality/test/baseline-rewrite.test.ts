@@ -7,7 +7,7 @@ const lines = (...rows: ReadonlyArray<string>): string => rows.map((row) => `${r
 const unsorted = lines(
 	'{"path":"src/z.ts","rule":"comments/no-jsdoc","count":2}',
 	'{ "path": "src/a.ts", "rule": "comments/no-jsdoc", "count": 4 }',
-	'{"path":"src/big.ts","rule":"structure/max-lines","count":1,"measure":420}',
+	'{"path":"src/big.ts","rule":"structure/max-lines","count":270}',
 	'{"path":"src/m.ts","rule":"comments/no-todo","count":1}',
 );
 
@@ -17,7 +17,7 @@ const rewrite = async (raw: string, edit: (entries: ReadonlyArray<BaselineEntry>
 	return rewriteBaseline(raw, before, edit(before));
 };
 
-const lowered = (entry: BaselineEntry): ReadonlyArray<BaselineEntry> => (entry.file === "src/big.ts" ? [{ ...entry, measure: 400 }] : [entry]);
+const lowered = (entry: BaselineEntry): ReadonlyArray<BaselineEntry> => (entry.file === "src/big.ts" ? [{ ...entry, count: 250 }] : [entry]);
 
 describe("baseline rewrite", () => {
 	it("keeps every line byte for byte when nothing changed", async () => {
@@ -30,7 +30,7 @@ describe("baseline rewrite", () => {
 			lines(
 				'{"path":"src/z.ts","rule":"comments/no-jsdoc","count":2}',
 				'{ "path": "src/a.ts", "rule": "comments/no-jsdoc", "count": 4 }',
-				'{"path":"src/big.ts","rule":"structure/max-lines","count":1,"measure":400}',
+				'{"path":"src/big.ts","rule":"structure/max-lines","count":250}',
 			),
 		);
 	});
@@ -38,7 +38,7 @@ describe("baseline rewrite", () => {
 	it("puts a new or moved entry before the first line that sorts after it", async () => {
 		const sorted = encodeBaseline([
 			{ count: 1, file: "src/a.ts", rule: "comments/no-todo" },
-			{ count: 1, file: "src/c.ts", measure: 300, rule: "structure/max-lines" },
+			{ count: 150, file: "src/c.ts", rule: "structure/max-lines" },
 			{ count: 2, file: "src/e.ts", rule: "comments/no-todo" },
 		]);
 		const text = await rewrite(sorted, (entries) => [
@@ -49,7 +49,7 @@ describe("baseline rewrite", () => {
 			lines(
 				'{"path":"lib/e.ts","rule":"comments/no-todo","count":2}',
 				'{"path":"src/a.ts","rule":"comments/no-todo","count":1}',
-				'{"path":"src/c.ts","rule":"structure/max-lines","count":1,"measure":300}',
+				'{"path":"src/c.ts","rule":"structure/max-lines","count":150}',
 				'{"path":"src/d.ts","rule":"comments/no-jsdoc","count":1}',
 			),
 		);

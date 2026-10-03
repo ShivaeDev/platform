@@ -22,15 +22,21 @@ const setup = <Value, Requirements>(
 	effect: Effect.Effect<Value, FilesystemFailure, Requirements>,
 ): Effect.Effect<Value, SetupFailure, Requirements> => Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
 
-export const openSession = (cwd: string, configPath: string | undefined): Effect.Effect<Session, SetupFailure, FileSystem.FileSystem> =>
+export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> =>
 	Effect.gen(function* () {
-		const config = yield* loadConfig(cwd, configPath);
 		const inventory = yield* setup(collectInventory(config.root, config));
-		const registryRaw = yield* readInput(config.root, config.registry);
-		const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
-		const baseline = yield* readBaseline(config);
 		const services = yield* Effect.context<FileSystem.FileSystem>();
 		const readText = (path: string): Promise<string | undefined> => Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
 		const violations = yield* runRules(config.active, { files: inventory.files, readText, root: config.root, sources: inventory.sources });
+		return { inventory, violations };
+	});
+
+export const openSession = (cwd: string, configPath: string | undefined): Effect.Effect<Session, SetupFailure, FileSystem.FileSystem> =>
+	Effect.gen(function* () {
+		const config = yield* loadConfig(cwd, configPath);
+		const registryRaw = yield* readInput(config.root, config.registry);
+		const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
+		const baseline = yield* readBaseline(config);
+		const { inventory, violations } = yield* scan(config);
 		return { baseline, config, inventory, registry, violations };
 	});

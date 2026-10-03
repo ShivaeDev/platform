@@ -1,4 +1,3 @@
-import { describeEntry } from "../baseline/compare.ts";
 import type { GuardProblem, GuardResult } from "../baseline/guard.ts";
 import type { Base } from "../git/base.ts";
 import { plural } from "./plural.ts";
@@ -12,9 +11,9 @@ export interface GuardContext {
 const problemLine = (problem: GuardProblem, context: GuardContext): string => {
 	switch (problem._tag) {
 		case "Added":
-			return `${problem.entry.rule} ${problem.entry.file} is new: ${describeEntry(problem.entry)}.`;
+			return `${problem.entry.rule} ${problem.entry.file} is new, at ${problem.entry.count}.`;
 		case "Raised":
-			return `${problem.entry.rule} ${problem.entry.file} rose to ${describeEntry(problem.entry)} from ${describeEntry(problem.base)}.`;
+			return `${problem.entry.rule} ${problem.entry.file} rose to ${problem.entry.count} from ${problem.base.count}.`;
 		case "Unadopted":
 			return `${problem.rule} is newly baselined in ${plural(problem.entries, "file")} without being named under \`adopt\` in ${context.config}.`;
 		case "NothingAdopted":

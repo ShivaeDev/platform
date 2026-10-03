@@ -14,8 +14,8 @@ const context = (overrides: Partial<ReportContext> = {}): ReportContext => ({
 	...overrides,
 });
 
-const long = (file: string, measure: number) =>
-	violation({ file, measure, message: `${measure} lines exceeds the 150-line limit.`, rule: "structure/max-lines" });
+const long = (file: string, lines: number) =>
+	violation({ count: lines - 150, file, message: `${lines} lines exceeds the 150-line limit.`, rule: "structure/max-lines", threshold: 150 });
 const todo = (file: string, line: number) => violation({ file, level: "warn", line, message: "Resolve this TODO.", rule: "local/todo" });
 const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 	Array.from({ length: 7 - index }, (_, line) => todo(`src/${name}.ts`, line + 1)),
@@ -61,10 +61,10 @@ describe("report", () => {
 
 	it("notes when a baselined file got worse", () => {
 		const text = render(
-			evaluate([long("src/big.ts", 420)], [], [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }], known, new Set()),
+			evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set()),
 			context(),
 		);
-		expect(text).toContain("  src/big.ts is over its baseline: 1 violation measuring 420 against 1 violation measuring 400 baselined.");
+		expect(text).toContain("  src/big.ts is over its baseline: 270 against 250 baselined.");
 	});
 
 	it("summarizes warnings by file, busiest first", () => {
@@ -106,7 +106,7 @@ describe("report", () => {
 		const outcome = evaluate(
 			[long("src/a.ts", 151), long("src/b.ts", 151)],
 			[{ file: "src/a.ts", reason: "Generated.", rule: "structure/max-lines" }],
-			[{ count: 1, file: "src/b.ts", measure: 151, rule: "structure/max-lines" }],
+			[{ count: 1, file: "src/b.ts", rule: "structure/max-lines" }],
 			known,
 			new Set(),
 		);
