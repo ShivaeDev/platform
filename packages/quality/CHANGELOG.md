@@ -9,6 +9,8 @@
 - Add `quality fix`, which applies Biome's safe fixes, assist actions and formatting.
 - Add `@shivaedev/quality/vitest`. Its `testProjects()` sets up Vitest projects by file name: `unit` runs `*.test.ts` files in Node, `dom` runs `*.dom.test.ts` and `*.dom.test.tsx` files in happy-dom, and `slow` runs `*.slow.test.ts` files only when `--project slow` asks for it. Type tests (`*.typecheck.test.ts`) never run. `vitest` is an optional peer dependency.
 - Add `comments/no-environment-pragma`, which reports a test environment set by a Vitest or Jest environment pragma. A DOM test is named `*.dom.test.ts` instead.
+- Add `imports/cycles` and `imports/resolvable`, which read the import graph of the sources with the TypeScript compiler. `imports/cycles` reports each group of modules that import each other at run time, ignoring type-only imports, and takes no registry exceptions. `imports/resolvable` reports an import that resolves to nothing. Like every rule they are errors by default, so a repository that upgrades baselines what they find. A run whose sources hold no module fails instead of passing on an empty graph.
+- Add `imports/fences` and the `fence()` builder for declaring import fences in the config without patterns: `fence(name).because(reason).from(target)` with `mayNotImport`, `mayNotReach` or `mayImportOnly(...).of(...)`, demonstrated by an illegal and a legal example that the rule checks against the policy. Targets are `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace` and `anything`, each with `.except`, and every name must exist.
 
 ### Changed
 

@@ -30,7 +30,7 @@ A senior engineer who owns the quality of every line you touch.
 
 ```sh
 pnpm install
-pnpm lint                                         # formatting, repository rules, package boundaries
+pnpm lint                                         # formatting, repository rules, import fences
 pnpm ready                                        # everything CI runs, including packed-package consumers
 pnpm --filter @shivaedev/<package> test <paths>   # focused tests
 ```
@@ -38,5 +38,5 @@ pnpm --filter @shivaedev/<package> test <paths>   # focused tests
 - One branch per change, in a worktree under `.worktrees/<name>`. Do not use Claude Code's worktree isolation.
 - Push and open pull requests only when asked. CI runs the `pnpm ready` steps against PostgreSQL on every pull request (`.github/workflows/ci.yml`). The maintainer merges.
 - Every package change adds a `CHANGELOG.md` entry. A release bumps the package version in the same pull request; on `main`, `.github/workflows/publish.yml` publishes every version not yet on npm.
-- Quality gates: `pnpm lint` runs the repository rules in `script/lint/rules/`, the `@shivaedev/quality` rules set in `quality.config.ts` with its baseline check against the merge base, and the boundaries in `.dependency-cruiser.ts`. The quality rules include Biome under the shared `@shivaedev/quality/biome` preset, which `biome.json` extends with Platform's GritQL rule in `script/lint/plugins/`. `pnpm format` applies Biome's safe fixes and formatting. Each message says how to fix it. Inline suppressions and double casts are banned. The few scoped Biome overrides are declared, each with its reason, in `quality.config.ts`. `@ts-expect-error` is allowed only in type tests, named `*.typecheck.test.ts`. Each package's `vitest.config.ts` uses the `@shivaedev/quality/vitest` projects: a DOM test is named `*.dom.test.ts(x)` and a slow test `*.slow.test.ts`, which runs only with `vitest run --project slow`.
+- Quality gates: `pnpm lint` runs the repository rules in `script/lint/rules/` and the `@shivaedev/quality` rules set in `quality.config.ts` with its baseline check against the merge base, among them the import fences between packages. The quality rules include Biome under the shared `@shivaedev/quality/biome` preset, which `biome.json` extends with Platform's GritQL rule in `script/lint/plugins/`. `pnpm format` applies Biome's safe fixes and formatting. Each message says how to fix it. Inline suppressions and double casts are banned. The few scoped Biome overrides are declared, each with its reason, in `quality.config.ts`. `@ts-expect-error` is allowed only in type tests, named `*.typecheck.test.ts`. Each package's `vitest.config.ts` uses the `@shivaedev/quality/vitest` projects: a DOM test is named `*.dom.test.ts(x)` and a slow test `*.slow.test.ts`, which runs only with `vitest run --project slow`.
 - References: `docs/framework/README.md`, `docs/framework/roadmap.md`, `docs/framework/boundary-validation.md`, and each package's `README.md` and `CHANGELOG.md`.

@@ -60,16 +60,6 @@
 					}
 				}
 			}
-		},
-		{
-			"includes": [".dependency-cruiser.ts"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noDefaultExport": "off"
-					}
-				}
-			}
 		}
 	],
 	"plugins": [

@@ -38,8 +38,17 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"suppressions/no-double-cast",
 				"suppressions/biome-overrides",
 				"biome",
+				"imports/cycles",
+				"imports/fences",
+				"imports/resolvable",
 			]);
-			expect([...loaded.unregistrable]).toEqual(["suppressions/no-inline", "suppressions/no-double-cast", "suppressions/biome-overrides", "biome"]);
+			expect([...loaded.unregistrable]).toEqual([
+				"suppressions/no-inline",
+				"suppressions/no-double-cast",
+				"suppressions/biome-overrides",
+				"biome",
+				"imports/cycles",
+			]);
 			expect([...loaded.families]).toEqual(["biome"]);
 		}),
 	);

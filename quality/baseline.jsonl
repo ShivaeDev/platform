@@ -1,4 +1,3 @@
-{"path":".dependency-cruiser.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/effect-changes-prisma/src/changes.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-changes-prisma/src/coverage.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-changes-prisma/src/expiry.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}

@@ -59,7 +59,7 @@ These are executable boundary examples, not an application deployment. See the
 - [x] Repository rules: nesting depth, `index.ts` only as package entry.
 - [x] Manifests: `catalog:`/`workspace:*` dependencies with exact catalog versions.
 - [x] Browser-safe sources for effect-contract, effect-form and effect-react.
-- [x] dependency-cruiser boundaries: leaf packages stay leaves; browser packages never import server packages.
+- [x] Package boundaries: leaf packages stay leaves; browser packages never import server packages.
 - [x] `@shivaedev/quality` engine: typed `quality.config.ts`, the `quality` command line, a report grouped by rule,
   a shrink-only baseline and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
 - [x] `@shivaedev/heavy-lock`: the machine-wide heavy-process lock as a package, with a command line and an Effect API.
@@ -68,6 +68,8 @@ These are executable boundary examples, not an application deployment. See the
   2 comments per file. `pnpm lint` runs the package's built-in rules, which replace the repository's own line limits.
 - [x] `@shivaedev/quality` suppression rules: no inline suppressions or casts through `unknown`, `any` or `never`, and Biome
   overrides only where `quality.config.ts` declares them with a reason. They replace the repository's pragma registry.
+- [x] `@shivaedev/quality` import rules: no runtime import cycles, every import resolves, and the package boundaries as
+  fences in `quality.config.ts`, each with an illegal and a legal example. They replace dependency-cruiser.
 - [x] `@shivaedev/quality` baseline guard: a JSON Lines baseline, `quality baseline check` against the merge base,
   first-time adoption through `adopt`, moves carried by git's rename detection, and `tighten` for pre-commit.
   `pnpm lint` runs the check.
