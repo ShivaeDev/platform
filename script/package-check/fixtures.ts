@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import ts from "typescript";
 import { type Package, Versions } from "#package-check/model.ts";
@@ -12,10 +12,9 @@ export const writeFixtures = (root: string, pkg: Package, consumer: string, sele
 		const imports = new Set<string>();
 		const references = new Set<string>();
 		if (!(yield* fs.exists(directory))) return imports;
-		for (const file of yield* fs.readDirectory(directory)) {
-			if (selected !== undefined && !selected.includes(file)) continue;
+		for (const file of selected ?? (yield* topLevelFiles(directory))) {
 			const source = yield* fs.readFileString(join(directory, file));
-			yield* fs.writeFileString(join(consumer, file.replace(/\.txt$/, "")), source);
+			yield* fs.writeFileString(join(consumer, basename(file).replace(/\.txt$/, "")), source);
 			for (const name of importedPackages(source)) imports.add(name);
 			ts.preProcessFile(source).importedFiles.forEach(({ fileName }) => {
 				references.add(fileName);
@@ -23,6 +22,14 @@ export const writeFixtures = (root: string, pkg: Package, consumer: string, sele
 		}
 		for (const name of yield* copyFixtureFiles(root, pkg, consumer, references)) imports.add(name);
 		return imports;
+	});
+
+const topLevelFiles = (directory: string) =>
+	Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
+		const files: string[] = [];
+		for (const name of yield* fs.readDirectory(directory)) if ((yield* fs.stat(join(directory, name))).type === "File") files.push(name);
+		return files;
 	});
 
 const importedPackages = (source: string): string[] =>

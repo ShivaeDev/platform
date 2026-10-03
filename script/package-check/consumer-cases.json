@@ -14,5 +14,21 @@
 			"run": [],
 			"omitOptionalPeers": true
 		}
+	],
+	"quality": [
+		{
+			"entries": ["."],
+			"fixtures": ["tsconfig/flags.ts.txt"],
+			"run": [],
+			"omitOptionalPeers": false,
+			"tsconfig": "@shivaedev/quality/tsconfig/base.json"
+		},
+		{
+			"entries": ["."],
+			"fixtures": ["tsconfig/flags.ts.txt", "tsconfig/emit-main.ts.txt", "tsconfig/emit-helper.ts.txt"],
+			"run": ["dist/emit-main.js"],
+			"omitOptionalPeers": false,
+			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
+		}
 	]
 }

@@ -23,6 +23,7 @@
 	"files": [
 		"dist",
 		"src",
+		"tsconfig",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -33,6 +34,8 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./tsconfig/base.json": "./tsconfig/base.json",
+		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
