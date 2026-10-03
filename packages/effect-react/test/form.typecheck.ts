@@ -43,7 +43,7 @@ export const useRejectionExample = () => {
 	const mapped = useEditor({
 		fields,
 		query,
-		rejectField: (error) => ({ field: "title", message: error.message }),
+		rejectField: (error: StaleRejected) => ({ field: "title", message: error.message }),
 		runtime,
 		save: (values) => Effect.as(saveStale(values), { id: 1, title: values.title }),
 		values: (row) => ({ title: row.title }),
