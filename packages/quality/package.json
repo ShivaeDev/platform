@@ -23,6 +23,7 @@
 	"files": [
 		"dist",
 		"src",
+		"tsconfig",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -33,6 +34,8 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./tsconfig/base.json": "./tsconfig/base.json",
+		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
@@ -44,8 +47,7 @@
 		"check": "biome check .",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit",
-		"typecheck:compat": "tsc6 --noEmit",
-		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build"
+		"ready": "pnpm check && pnpm typecheck && pnpm test && pnpm build"
 	},
 	"dependencies": {
 		"ignore": "catalog:",

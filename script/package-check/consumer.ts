@@ -45,11 +45,15 @@ export const checkConsumer = (
 			scripts: {
 				typecheck: "tsc --project tsconfig.json",
 				"typecheck:nodenext": "tsc --project tsconfig.nodenext.json",
-				"typecheck:compat": "tsc6 --project tsconfig.json",
 			},
 		});
 		yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs));
-		yield* writeJson(join(consumer, "tsconfig.json"), { compilerOptions, include: ["*.ts"] });
+		yield* writeJson(
+			join(consumer, "tsconfig.json"),
+			scenario?.tsconfig === undefined
+				? { compilerOptions, include: ["*.ts"] }
+				: { extends: scenario.tsconfig, compilerOptions: { types: ["node"], outDir: "dist" }, include: ["*.ts"] },
+		);
 		yield* writeJson(join(consumer, "tsconfig.nodenext.json"), {
 			extends: "./tsconfig.json",
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
@@ -73,7 +77,7 @@ export const checkConsumer = (
 		yield* checkEffectCopies(consumer, catalog);
 		yield* checkBrowserEntries(root, pkg, consumer);
 		if (scenario?.omitOptionalPeers) yield* checkOptionalPeers(pkg, consumer);
-		for (const script of ["typecheck", "typecheck:nodenext", "typecheck:compat"]) yield* command(consumer, "pnpm", ["run", script]);
+		for (const script of ["typecheck", "typecheck:nodenext"]) yield* command(consumer, "pnpm", ["run", script]);
 		yield* command(consumer, "node", [
 			"--input-type=module",
 			"--eval",
@@ -99,6 +103,6 @@ const checkOptionalPeers = (pkg: Package, consumer: string) =>
 const runFixtures = (consumer: string, selected: readonly string[]) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		for (const file of yield* fs.readDirectory(consumer))
-			if (file.startsWith("runtime-") || selected.includes(file)) yield* command(consumer, "node", [file]);
+		const runtime = (yield* fs.readDirectory(consumer)).filter((file) => file.startsWith("runtime-"));
+		for (const file of new Set([...runtime, ...selected])) yield* command(consumer, "node", [file]);
 	});

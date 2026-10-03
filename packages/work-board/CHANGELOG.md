@@ -8,6 +8,10 @@
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
+- Build with the `@shivaedev/quality` tsconfig presets, which target ESNext and allow only erasable TypeScript syntax.
+
+- Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
+
 ## 0.2.0 - 2026-09-28
 
 ### Changed

@@ -13,6 +13,7 @@
   declares them; any other preset weakening is reported at the `extends` line.
   A repository declaration that repeats one the preset ships is reported, and so
   is an `extends` entry that cannot be resolved or read.
+- Add tsconfig presets for TypeScript 7. `@shivaedev/quality/tsconfig/base.json` is for type-checking with `noEmit`. `@shivaedev/quality/tsconfig/package.json` is the base plus declaration output, declaration and source maps, and relative `.ts` imports rewritten to `.js`, for building a package. The base sets `target` and `lib` to ESNext with bundler resolution; type-checks JavaScript with `allowJs` and `checkJs`; turns on `strict` (stating `noImplicitAny` and `strictBuiltinIteratorReturn` explicitly), `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, `isolatedModules`, `erasableSyntaxOnly`, `noUncheckedSideEffectImports` and `forceConsistentCasingInFileNames`; and rejects unreachable code and unused labels. Dot access to index signatures stays allowed.
 
 ### Changed
 

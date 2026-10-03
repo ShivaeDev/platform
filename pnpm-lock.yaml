@@ -314,6 +314,9 @@ importers:
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:packages/local-postgres
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:packages/quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1

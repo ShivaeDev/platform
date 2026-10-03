@@ -8,6 +8,10 @@
 
 - Replace JSDoc blocks with a short reason comment, so the package passes the comment rules of `@shivaedev/quality`.
 
+- Build with the `@shivaedev/quality` tsconfig presets, which target ESNext and allow only erasable TypeScript syntax.
+
+- Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
+
 ## 0.2.0 - 2026-09-26
 
 ### Changed

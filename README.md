@@ -37,7 +37,8 @@ implementation and acceptance criteria.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
-  rules, a shrink-only baseline and a registry of reasoned exceptions.
+  rules, a shrink-only baseline, a registry of reasoned exceptions and shared
+  tsconfig presets.
 - [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
   heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
@@ -81,13 +82,12 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using 
 
 ### Heavy runs
 
-`build`, `typecheck`, `typecheck:compat`, `test` and `test:package`, and so
-every step of `ready`, queue on a machine-wide lock shared with other
-repositories; a waiting run names the holder, and CI skips the lock. Run the
-scripts directly: they take the lock themselves, so do not wrap them in a lock
-by hand. Run other heavy commands, such as a focused PostgreSQL suite, through
-`pnpm heavy <command>`. The scripts run
-[`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
+`build`, `typecheck`, `test` and `test:package`, and so every step of `ready`,
+queue on a machine-wide lock shared with other repositories; a waiting run names
+the holder, and CI skips the lock. Run the scripts directly: they take the lock
+themselves, so do not wrap them in a lock by hand. Run other heavy commands,
+such as a focused PostgreSQL suite, through `pnpm heavy <command>`. The scripts
+run [`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
 before anything is built; its README describes the protocol.
 
 ### Packed consumers

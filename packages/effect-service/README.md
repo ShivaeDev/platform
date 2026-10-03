@@ -50,4 +50,4 @@ This package only defines services. It does not register RPC operations, manage 
 
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, runtime binding/lifetime behavior, positive and negative compiler fixtures, declaration generation, and an installed tarball consumer. Compiler fixtures cover undeclared dependencies, caller scopes, generic signatures, invalid members, and the public/private boundary.
+`pnpm ready` checks formatting, TypeScript 7, runtime binding/lifetime behavior, positive and negative compiler fixtures, declaration generation, and an installed tarball consumer. Compiler fixtures cover undeclared dependencies, caller scopes, generic signatures, invalid members, and the public/private boundary.

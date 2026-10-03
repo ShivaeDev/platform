@@ -64,9 +64,6 @@ jobs:
       - name: Type-check with TypeScript 7
         run: pnpm typecheck
 
-      - name: Type-check with TypeScript 6
-        run: pnpm typecheck:compat
-
       - name: Test
         run: pnpm test
 

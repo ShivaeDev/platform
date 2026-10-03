@@ -14,6 +14,14 @@ import { captureStackTrace } from "./internal/stack-trace.ts";
 import { makeSubscriptionHandler } from "./internal/subscription-handler.ts";
 import type { EffectProcedureRequestServices } from "./request-services.ts";
 
+interface ProcedureParts<Context, Meta, ContextOverrides, ProvidedServices, LayerError, RuntimeRequirements> {
+	readonly builder: ProcedureBuilderSurface<ResolverContext<Context, Meta, ContextOverrides>>;
+	readonly requestServices: EffectProcedureRequestServices<ResolverContext<Context, Meta, ContextOverrides>, ProvidedServices, LayerError>;
+	readonly runtime: RuntimeBridge<RuntimeRequirements>;
+	readonly subscriptionBuilder: ProcedureBuilderSurface<ResolverContext<Context, Meta, ContextOverrides>>;
+	readonly subscriptionOutput?: Schema.ConstraintDecoder<unknown> | undefined;
+}
+
 export class EffectProcedureBuilder<
 	Context,
 	Meta,
@@ -26,13 +34,11 @@ export class EffectProcedureBuilder<
 	LayerError,
 	RuntimeRequirements,
 > {
-	constructor(
-		private readonly builder: ProcedureBuilderSurface<ResolverContext<Context, Meta, ContextOverrides>>,
-		private readonly requestServices: EffectProcedureRequestServices<ResolverContext<Context, Meta, ContextOverrides>, ProvidedServices, LayerError>,
-		private readonly runtime: RuntimeBridge<RuntimeRequirements>,
-		private readonly subscriptionBuilder = builder,
-		private readonly subscriptionOutput?: Schema.ConstraintDecoder<unknown>,
-	) {}
+	private readonly parts: ProcedureParts<Context, Meta, ContextOverrides, ProvidedServices, LayerError, RuntimeRequirements>;
+
+	constructor(parts: ProcedureParts<Context, Meta, ContextOverrides, ProvidedServices, LayerError, RuntimeRequirements>) {
+		this.parts = parts;
+	}
 
 	input<SchemaValue extends Schema.ConstraintDecoder<unknown>>(
 		schema: SchemaValue,
@@ -49,13 +55,11 @@ export class EffectProcedureBuilder<
 		RuntimeRequirements
 	> {
 		const parser = Schema.toStandardSchemaV1(schema);
-		return new EffectProcedureBuilder(
-			this.builder.input(parser),
-			this.requestServices,
-			this.runtime,
-			this.subscriptionBuilder.input(parser),
-			this.subscriptionOutput,
-		);
+		return new EffectProcedureBuilder({
+			...this.parts,
+			builder: this.parts.builder.input(parser),
+			subscriptionBuilder: this.parts.subscriptionBuilder.input(parser),
+		});
 	}
 
 	output<SchemaValue extends Schema.ConstraintDecoder<unknown>>(
@@ -72,13 +76,11 @@ export class EffectProcedureBuilder<
 		LayerError,
 		RuntimeRequirements
 	> {
-		return new EffectProcedureBuilder(
-			this.builder.output(Schema.toStandardSchemaV1(schema)),
-			this.requestServices,
-			this.runtime,
-			this.subscriptionBuilder,
-			schema,
-		);
+		return new EffectProcedureBuilder({
+			...this.parts,
+			builder: this.parts.builder.output(Schema.toStandardSchemaV1(schema)),
+			subscriptionOutput: schema,
+		});
 	}
 
 	query<Output>(
@@ -93,7 +95,7 @@ export class EffectProcedureBuilder<
 		meta: Meta;
 	}>;
 	query(resolver: EffectProcedureResolver<never, ProvidedServices | RuntimeRequirements, unknown>): unknown {
-		return this.builder.query(this.handler("query", resolver));
+		return this.parts.builder.query(this.handler("query", resolver));
 	}
 
 	mutation<Output>(
@@ -108,7 +110,7 @@ export class EffectProcedureBuilder<
 		meta: Meta;
 	}>;
 	mutation(resolver: EffectProcedureResolver<never, ProvidedServices | RuntimeRequirements, unknown>): unknown {
-		return this.builder.mutation(this.handler("mutation", resolver));
+		return this.parts.builder.mutation(this.handler("mutation", resolver));
 	}
 
 	subscription<Output>(
@@ -123,18 +125,18 @@ export class EffectProcedureBuilder<
 		meta: Meta;
 	}>;
 	subscription(resolver: EffectSubscriptionResolver<never, ProvidedServices | RuntimeRequirements, unknown>): unknown {
-		return this.subscriptionBuilder.subscription(
+		return this.parts.subscriptionBuilder.subscription(
 			makeSubscriptionHandler(
-				this.runtime,
+				this.parts.runtime,
 				resolver,
-				this.requestServices,
+				this.parts.requestServices,
 				{ captureStackTrace: captureStackTrace(), type: "subscription" },
-				this.subscriptionOutput,
+				this.parts.subscriptionOutput,
 			),
 		);
 	}
 
 	private handler(type: "mutation" | "query", resolver: EffectProcedureResolver<never, ProvidedServices | RuntimeRequirements, unknown>) {
-		return makeProcedureHandler(this.runtime, resolver, this.requestServices, { captureStackTrace: captureStackTrace(), type });
+		return makeProcedureHandler(this.parts.runtime, resolver, this.parts.requestServices, { captureStackTrace: captureStackTrace(), type });
 	}
 }

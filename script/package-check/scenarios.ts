@@ -7,6 +7,7 @@ const Scenario = Schema.Struct({
 	fixtures: Schema.Array(Schema.String),
 	run: Schema.Array(Schema.String),
 	omitOptionalPeers: Schema.Boolean,
+	tsconfig: Schema.optional(Schema.String),
 });
 export type Scenario = typeof Scenario.Type;
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Array(Scenario))));

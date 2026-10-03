@@ -11,7 +11,11 @@ const domains: Readonly<Record<string, string>> = { Order: "orders", Membership:
 const covers = (model: string, change: Change) => domains[model] === change.domain;
 
 class RolledBack {
-	constructor(readonly written: ReadonlyArray<string>) {}
+	readonly written: ReadonlyArray<string>;
+
+	constructor(written: ReadonlyArray<string>) {
+		this.written = written;
+	}
 }
 
 integration("the coverage check reads the tables a test transaction wrote and reports the writes no change covers", () =>
