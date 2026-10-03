@@ -305,7 +305,7 @@ quality baseline migrate [--config <file>] [--from <file>]
 
 ## tsconfig presets
 
-Two presets hold one strict TypeScript setup for every repository. They target TypeScript 7 and are also checked with TypeScript 6.
+Two presets hold one strict, current TypeScript setup for every repository. They target TypeScript 7.
 
 | Preset | Use |
 | --- | --- |
@@ -316,7 +316,7 @@ Two presets hold one strict TypeScript setup for every repository. They target T
 {
 	"extends": "@shivaedev/quality/tsconfig/base.json",
 	"compilerOptions": {
-		"lib": ["ES2025", "DOM"],
+		"lib": ["ESNext", "DOM"],
 		"types": ["node"]
 	},
 	"include": ["src", "test"]
@@ -325,12 +325,14 @@ Two presets hold one strict TypeScript setup for every repository. They target T
 
 The base sets:
 
-- **Modules:** `target` ES2025, `module` ESNext, `moduleResolution` bundler, `moduleDetection` force, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `resolveJsonModule`, `noUncheckedSideEffectImports` and `libReplacement: false`.
+- **Language:** `target` and `lib` ESNext, so the newest syntax is emitted as written and the newest built-ins are typed.
+- **Modules:** `module` ESNext, `moduleResolution` bundler, `moduleDetection` force, `verbatimModuleSyntax`, `isolatedModules`, `allowImportingTsExtensions`, `resolveJsonModule`, `noUncheckedSideEffectImports`, `forceConsistentCasingInFileNames` and `libReplacement: false`.
+- **JavaScript:** `allowJs` and `checkJs`, so JavaScript files are type-checked with the TypeScript ones.
 - **Erasable syntax only:** `erasableSyntaxOnly` rejects syntax that type stripping cannot erase, such as parameter properties.
-- **Checks:** `strict` with `useUnknownInCatchVariables`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `allowUnreachableCode: false` and `allowUnusedLabels: false`.
-- **Compilers:** `stableTypeOrdering`, so TypeScript 6 orders types the way TypeScript 7 does, and `skipLibCheck`.
+- **Checks:** `strict`, with `noImplicitAny`, `strictBuiltinIteratorReturn` and `useUnknownInCatchVariables` stated explicitly, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `allowUnreachableCode: false` and `allowUnusedLabels: false`.
+- **Compilers:** `stableTypeOrdering`, so a TypeScript 6 build orders types the way TypeScript 7 does, and `skipLibCheck`.
 
-`noPropertyAccessFromIndexSignature` stays off, so a map-like key is read with dot access, and `isolatedDeclarations` stays off, so exported values keep their inferred types. `lib`, `types`, `jsx`, `paths`, `include` and the output directories belong to each project.
+`noPropertyAccessFromIndexSignature` stays off, so a map-like key is read with dot access, and `isolatedDeclarations` stays off, so exported values keep their inferred types. `types`, `jsx`, `paths`, `include` and the output directories belong to each project. A project that needs more built-ins, such as the DOM, sets `lib` itself and keeps `ESNext` in it.
 
 A package that type-checks its tests with one config and builds `src` with another extends both, the package preset last:
 
@@ -344,4 +346,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, prove every check the base turns on with both compilers, and run the package preset's build output.
+`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

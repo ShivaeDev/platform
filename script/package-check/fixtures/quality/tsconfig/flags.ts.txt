@@ -3,10 +3,11 @@ import { defineConfig } from "@shivaedev/quality"
 import { Level } from "@shivaedev/quality"
 // @ts-expect-error noUncheckedSideEffectImports resolves side-effect imports.
 import "./missing-side-effect.ts"
+import { checkedLength } from "./checked.js"
 
 export const config = defineConfig({ sources: ["src"] })
 export const level: Level = "error"
-export const union: Set<number> = new Set([1]).union(new Set([2]))
+export const isError: boolean = Error.isError(checkedLength)
 
 const scores: Record<string, number> = { first: 1 }
 export const dotted: number | undefined = scores.first
@@ -29,6 +30,13 @@ export const caught = (): string => {
     // @ts-expect-error useUnknownInCatchVariables types a caught value as unknown.
     return error.message
   }
+}
+
+export const firstValue = (): number => {
+  const step = [1].values().next()
+  // @ts-expect-error strictBuiltinIteratorReturn types a finished built-in iterator's value as undefined.
+  if (step.done) return step.value
+  return step.value
 }
 
 // @ts-expect-error noImplicitReturns needs a return on every path.

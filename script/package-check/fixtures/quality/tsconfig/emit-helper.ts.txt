@@ -1,1 +1,5 @@
-export const greeting = "packed"
+export const released: string[] = []
+{
+  using resource = { [Symbol.dispose]: () => released.push("resource") }
+  void resource
+}

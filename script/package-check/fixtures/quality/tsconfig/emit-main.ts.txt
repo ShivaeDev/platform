@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs"
-import { greeting } from "./emit-helper.ts"
+import { existsSync, readFileSync } from "node:fs"
+import { released } from "./emit-helper.ts"
 
 const missing = ["emit-main.d.ts", "emit-main.d.ts.map", "emit-main.js.map"].filter((file) => !existsSync(new URL(file, import.meta.url)))
-if (greeting !== "packed" || missing.length > 0) throw new Error(`tsconfig/package.json did not emit ${missing.join(", ")}`)
+if (missing.length > 0) throw new Error(`tsconfig/package.json did not emit ${missing.join(", ")}`)
+if (!readFileSync(new URL("emit-helper.js", import.meta.url), "utf8").includes("using resource")) throw new Error("target ESNext lowered a using declaration")
+if (released.join() !== "resource") throw new Error("the emitted helper did not run")

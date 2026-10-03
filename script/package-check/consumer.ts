@@ -78,7 +78,9 @@ export const checkConsumer = (
 		yield* checkEffectCopies(consumer, catalog);
 		yield* checkBrowserEntries(root, pkg, consumer);
 		if (scenario?.omitOptionalPeers) yield* checkOptionalPeers(pkg, consumer);
-		for (const script of ["typecheck", "typecheck:nodenext", "typecheck:compat"]) yield* command(consumer, "pnpm", ["run", script]);
+		const typechecks =
+			scenario?.tsconfig === undefined ? ["typecheck", "typecheck:nodenext", "typecheck:compat"] : ["typecheck", "typecheck:nodenext"];
+		for (const script of typechecks) yield* command(consumer, "pnpm", ["run", script]);
 		yield* command(consumer, "node", [
 			"--input-type=module",
 			"--eval",

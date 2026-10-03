@@ -1,0 +1,2 @@
+// @ts-expect-error checkJs type-checks JavaScript.
+export const checkedLength = "text".size

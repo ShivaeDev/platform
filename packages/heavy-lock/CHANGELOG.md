@@ -8,7 +8,7 @@
 
 - Trim test support comments, so the package passes the comment rules of `@shivaedev/quality`.
 
-- Build with the `@shivaedev/quality` tsconfig presets, which target ES2025 and allow only erasable TypeScript syntax.
+- Build with the `@shivaedev/quality` tsconfig presets, which target ESNext and allow only erasable TypeScript syntax.
 
 - Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
 
