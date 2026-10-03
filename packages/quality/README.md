@@ -303,6 +303,45 @@ quality baseline migrate [--config <file>] [--from <file>]
 | 1 | Failed: an uncovered error-level violation, a baselined file that got worse, a stale registry entry, a baseline entry for a rule that is off or unknown, or a baseline that grew against the merge base. |
 | 2 | Could not run: no or invalid config, an invalid baseline or registry, a baseline left in the earlier format, a missing source, a rule that threw, git history the check cannot read, or a usage error. |
 
+## tsconfig presets
+
+Two presets hold one strict TypeScript setup for every repository. They target TypeScript 7 and are also checked with TypeScript 6.
+
+| Preset | Use |
+| --- | --- |
+| `@shivaedev/quality/tsconfig/base.json` | Type-checking with `noEmit`: applications, tests and scripts. |
+| `@shivaedev/quality/tsconfig/package.json` | Building a package: the base plus `declaration`, `declarationMap`, `sourceMap` and `rewriteRelativeImportExtensions`, so relative `.ts` imports are emitted as `.js`. |
+
+```json
+{
+	"extends": "@shivaedev/quality/tsconfig/base.json",
+	"compilerOptions": {
+		"lib": ["ES2025", "DOM"],
+		"types": ["node"]
+	},
+	"include": ["src", "test"]
+}
+```
+
+The base sets:
+
+- **Modules:** `target` ES2025, `module` ESNext, `moduleResolution` bundler, `moduleDetection` force, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `resolveJsonModule`, `noUncheckedSideEffectImports` and `libReplacement: false`.
+- **Erasable syntax only:** `erasableSyntaxOnly` rejects syntax that type stripping cannot erase, such as parameter properties.
+- **Checks:** `strict` with `useUnknownInCatchVariables`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `allowUnreachableCode: false` and `allowUnusedLabels: false`.
+- **Compilers:** `stableTypeOrdering`, so TypeScript 6 orders types the way TypeScript 7 does, and `skipLibCheck`.
+
+`noPropertyAccessFromIndexSignature` stays off, so a map-like key is read with dot access, and `isolatedDeclarations` stays off, so exported values keep their inferred types. `lib`, `types`, `jsx`, `paths`, `include` and the output directories belong to each project.
+
+A package that type-checks its tests with one config and builds `src` with another extends both, the package preset last:
+
+```json
+{
+	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"],
+	"compilerOptions": { "outDir": "dist", "rootDir": "src" },
+	"include": ["src"]
+}
+```
+
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, and an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle.
+`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, prove every check the base turns on with both compilers, and run the package preset's build output.

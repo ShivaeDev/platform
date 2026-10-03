@@ -66,15 +66,16 @@ const pattern = (field: DynamicField, where: CleanedWhere): Expression => {
 
 const insensitiveEquality = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
 	const value = where.value;
+	const operator = where.operator ?? "eq";
 	if (where.mode !== "insensitive" || typeof value !== "string" || field.ilike === undefined) return undefined;
-	if (where.operator === "eq") return field.ilike(escapeLike(value));
-	if (where.operator === "ne") return not(field.ilike(escapeLike(value)));
+	if (operator === "eq") return field.ilike(escapeLike(value));
+	if (operator === "ne") return not(field.ilike(escapeLike(value)));
 	return undefined;
 };
 
 const comparison = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
 	const value = where.value;
-	switch (where.operator) {
+	switch (where.operator ?? "eq") {
 		case "eq":
 			return value === null ? field.isNull() : field.eq(value);
 		case "ne":

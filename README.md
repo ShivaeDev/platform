@@ -37,7 +37,8 @@ implementation and acceptance criteria.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
-  rules, a shrink-only baseline and a registry of reasoned exceptions.
+  rules, a shrink-only baseline, a registry of reasoned exceptions and shared
+  tsconfig presets.
 - [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
   heavy commands one at a time across repositories.
 - [`@shivaedev/work-board`](./packages/work-board): A local server that shows a

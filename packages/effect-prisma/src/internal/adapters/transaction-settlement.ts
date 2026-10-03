@@ -13,8 +13,11 @@ const runtimeFailure = (code: string, cause: unknown, details?: Readonly<Record<
 
 class ConnectionDisposal {
 	disposed = false;
+	private readonly connection: SettledConnection;
 
-	constructor(private readonly connection: SettledConnection) {}
+	constructor(connection: SettledConnection) {
+		this.connection = connection;
+	}
 
 	async destroy(reason: unknown): Promise<void> {
 		if (this.disposed) {

@@ -1,0 +1,87 @@
+import { defineConfig } from "@shivaedev/quality"
+// @ts-expect-error verbatimModuleSyntax needs a type-only import for a type.
+import { Level } from "@shivaedev/quality"
+// @ts-expect-error noUncheckedSideEffectImports resolves side-effect imports.
+import "./missing-side-effect.ts"
+
+export const config = defineConfig({ sources: ["src"] })
+export const level: Level = "error"
+export const union: Set<number> = new Set([1]).union(new Set([2]))
+
+const scores: Record<string, number> = { first: 1 }
+export const dotted: number | undefined = scores.first
+// @ts-expect-error noUncheckedIndexedAccess types an index read as possibly undefined.
+export const unchecked: number = scores.first
+
+interface Labelled {
+  readonly label?: string
+}
+// @ts-expect-error exactOptionalPropertyTypes keeps undefined out of an optional property.
+export const unlabelled: Labelled = { label: undefined }
+
+// @ts-expect-error strict rejects an implicit any.
+export const identity = (value) => value
+
+export const caught = (): string => {
+  try {
+    return "fine"
+  } catch (error) {
+    // @ts-expect-error useUnknownInCatchVariables types a caught value as unknown.
+    return error.message
+  }
+}
+
+// @ts-expect-error noImplicitReturns needs a return on every path.
+export const sign = (value: number): number | undefined => {
+  if (value > 0) return 1
+}
+
+class Base {
+  greet(): string {
+    return "hello"
+  }
+}
+
+export class Child extends Base {
+  // @ts-expect-error noImplicitOverride needs override on a redefined member.
+  greet(): string {
+    return "hi"
+  }
+}
+
+export const size = (value: number): string => {
+  switch (value) {
+    // @ts-expect-error noFallthroughCasesInSwitch rejects a case that falls through.
+    case 0:
+      void value
+    case 1:
+      return "small"
+    default:
+      return "large"
+  }
+}
+
+export const unusedLocal = (): number => {
+  // @ts-expect-error noUnusedLocals rejects an unused local.
+  const unused = 1
+  return 0
+}
+
+// @ts-expect-error noUnusedParameters rejects an unused parameter.
+export const unusedParameter = (ignored: number): number => 0
+
+export const unreachable = (): number => {
+  return 0
+  // @ts-expect-error allowUnreachableCode false rejects unreachable code.
+  void 0
+}
+
+export const unusedLabel = (): void => {
+  // @ts-expect-error allowUnusedLabels false rejects an unused label.
+  loop: for (const item of [1]) void item
+}
+
+export class Point {
+  // @ts-expect-error erasableSyntaxOnly rejects a parameter property, which type stripping cannot run.
+  constructor(readonly x: number) {}
+}

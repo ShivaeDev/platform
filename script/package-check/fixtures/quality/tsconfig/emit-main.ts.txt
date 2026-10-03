@@ -1,0 +1,5 @@
+import { existsSync } from "node:fs"
+import { greeting } from "./emit-helper.ts"
+
+const missing = ["emit-main.d.ts", "emit-main.d.ts.map", "emit-main.js.map"].filter((file) => !existsSync(new URL(file, import.meta.url)))
+if (greeting !== "packed" || missing.length > 0) throw new Error(`tsconfig/package.json did not emit ${missing.join(", ")}`)

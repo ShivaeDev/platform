@@ -6,6 +6,8 @@
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
+- Build with the `@shivaedev/quality` tsconfig presets, which target ES2025 and allow only erasable TypeScript syntax.
+
 ## 0.1.0 - 2026-09-26
 
 ### Added

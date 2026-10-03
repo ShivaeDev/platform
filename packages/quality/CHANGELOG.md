@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add tsconfig presets for TypeScript 7, also checked with TypeScript 6. `@shivaedev/quality/tsconfig/base.json` is for type-checking with `noEmit`. `@shivaedev/quality/tsconfig/package.json` is the base plus declaration output, declaration and source maps, and relative `.ts` imports rewritten to `.js`, for building a package. The base targets ES2025 with bundler resolution; turns on `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, `erasableSyntaxOnly` and `noUncheckedSideEffectImports`; and rejects unreachable code and unused labels. Dot access to index signatures stays allowed.
+
 ## 0.3.0 - 2026-10-03
 
 ### Added
