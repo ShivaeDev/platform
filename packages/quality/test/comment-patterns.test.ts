@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Rule } from "../src/index.ts";
 import { noBanner } from "../src/rules/comments/no-banner.ts";
+import { noEnvironmentPragma } from "../src/rules/comments/no-environment-pragma.ts";
 import { noLineReference } from "../src/rules/comments/no-line-reference.ts";
 import { noPrReference } from "../src/rules/comments/no-pr-reference.ts";
 import { noTodo } from "../src/rules/comments/no-todo.ts";
 import { checkRule, issuesOf } from "./support/inputs.ts";
+import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "./support/pragmas.ts";
 
 const messagesFor = async (rule: Rule<string, undefined>, comment: string) =>
 	(await checkRule(rule, undefined, { sources: [{ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" }] })).map(
@@ -72,6 +74,16 @@ const cases: readonly Case[] = [
 		],
 		quiet: ["// a todo list", "// TODOS are tracked elsewhere", "// sizes up to XXXL"],
 		rule: noTodo,
+	},
+	{
+		fires: [
+			[`// ${VITEST_ENVIRONMENT} happy-dom`, VITEST_ENVIRONMENT],
+			[`/** ${VITEST_ENVIRONMENT} jsdom */`, VITEST_ENVIRONMENT],
+			[`/**\n * ${VITEST_ENVIRONMENT}-options {}\n */`, `${VITEST_ENVIRONMENT}-options`],
+			[`// ${JEST_ENVIRONMENT} node`, JEST_ENVIRONMENT],
+		],
+		quiet: [`// runs where ${VITEST_ENVIRONMENT} would have pointed`, "// @vitest is the runner", "/** @jsxImportSource preact */"],
+		rule: noEnvironmentPragma,
 	},
 ];
 

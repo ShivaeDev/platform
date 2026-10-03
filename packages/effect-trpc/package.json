@@ -53,6 +53,7 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

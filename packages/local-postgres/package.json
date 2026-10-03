@@ -36,6 +36,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"typescript": "catalog:",

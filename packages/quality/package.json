@@ -22,6 +22,12 @@
 			"default": "./dist/index.js"
 		},
 		"./biome": "./biome/preset.json",
+		"./vitest": {
+			"types": "./dist/vitest.d.ts",
+			"source": "./src/vitest.ts",
+			"import": "./dist/vitest.js",
+			"default": "./dist/vitest.js"
+		},
 		"./tsconfig/base.json": "./tsconfig/base.json",
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
@@ -61,7 +67,13 @@
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
-		"effect": "catalog:"
+		"effect": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"vitest": {
+			"optional": true
+		}
 	},
 	"engines": {
 		"node": ">=24"

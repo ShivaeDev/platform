@@ -44,6 +44,7 @@
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@typescript/native": "catalog:",

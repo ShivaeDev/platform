@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { RegistryContext } from "@effect/atom-react";
 import { Deferred, Effect, Result } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";

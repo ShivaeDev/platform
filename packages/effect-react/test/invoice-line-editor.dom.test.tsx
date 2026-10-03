@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { RegistryContext } from "@effect/atom-react";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";

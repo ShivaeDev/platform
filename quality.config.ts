@@ -64,18 +64,6 @@ export default defineConfig({
 				],
 			},
 		},
-		"suppressions/no-inline": {
-			options: {
-				declared: [
-					{
-						directive: "@ts-expect-error",
-						includes: ["*.typecheck.ts"],
-						reason:
-							"Type tests prove that an API rejects what its types forbid. TypeScript has no other way to assert a compile error, and each directive fails typecheck as soon as the error it expects goes away.",
-					},
-				],
-			},
-		},
 	},
 	sources: ["packages", "script"],
 });

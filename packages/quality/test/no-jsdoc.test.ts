@@ -18,7 +18,11 @@ describe("comments/no-jsdoc fires", () => {
 	});
 
 	it("on a docblock that mixes prose with an allowed pragma", async () => {
-		expect(await jsdoc(`/**\n * Runs in a browser.\n * ${VITEST_ENVIRONMENT} happy-dom\n */\n`)).toEqual([1]);
+		expect(await jsdoc(`/**\n * Runs in a browser.\n * ${VITEST_ENVIRONMENT} happy-dom\n */\n`, { allow: [VITEST_ENVIRONMENT] })).toEqual([1]);
+	});
+
+	it("on a tool pragma when the config allows none, as by default", async () => {
+		expect(await jsdoc(`/** ${VITEST_ENVIRONMENT} happy-dom */\n/** @jsxImportSource preact */\n`)).toEqual([1, 2]);
 	});
 
 	it("on a pragma the configured list leaves out", async () => {
@@ -35,7 +39,8 @@ describe("comments/no-jsdoc stays quiet", () => {
 		expect(await jsdoc("export const a = /** @__PURE__ */ make();\n/** @ts-expect-error A wrong type. */\n")).toEqual([]);
 	});
 
-	it("on tool pragmas allowed by default", async () => {
+	it("on tool pragmas the config allows", async () => {
+		const allow = [VITEST_ENVIRONMENT, `${VITEST_ENVIRONMENT}-options`, JEST_ENVIRONMENT, "@jsxImportSource", "@jsx", "@jsxFrag", "@jsxRuntime"];
 		const pragmas = [
 			`/** ${VITEST_ENVIRONMENT} happy-dom */`,
 			`/**\n * ${VITEST_ENVIRONMENT} jsdom\n * ${VITEST_ENVIRONMENT}-options {}\n */`,
@@ -45,7 +50,7 @@ describe("comments/no-jsdoc stays quiet", () => {
 			"/** @jsxFrag Fragment */",
 			"/** @jsxRuntime classic */",
 		];
-		expect(await jsdoc(pragmas.join("\n"))).toEqual([]);
+		expect(await jsdoc(pragmas.join("\n"), { allow })).toEqual([]);
 	});
 });
 
