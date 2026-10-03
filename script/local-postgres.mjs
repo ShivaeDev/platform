@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { docker as localDocker } from "./local-docker.mjs";
 
 const image = "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873";
 const container = "development-postgres";
@@ -28,15 +29,15 @@ export function sql(url, query) {
 		return execFileSync("psql", [...args, "--dbname", String(url)], options).trim();
 	} catch (error) {
 		if (error.code !== "ENOENT") throw new Error(error.stderr?.toString() ?? "PostgreSQL query failed.");
-		const id = execFileSync("docker", ["ps", "--filter", "publish=55432", "--format", "{{.ID}}"], options).trim();
+		const id = localDocker(["ps", "--filter", "publish=55432", "--format", "{{.ID}}"], options).trim();
 		if (!id || id.includes("\n")) throw new Error("Install psql or start the shared PostgreSQL service with Docker.");
-		const configuredImage = execFileSync("docker", ["inspect", "--format", "{{.Config.Image}}", id], options).trim();
+		const configuredImage = localDocker(["inspect", "--format", "{{.Config.Image}}", id], options).trim();
 		if (configuredImage !== image)
 			throw new Error("The shared PostgreSQL image differs from the pinned baseline. Upgrade explicitly, preserving data.");
 		const inside = new URL(url);
 		inside.hostname = "127.0.0.1";
 		inside.port = "5432";
-		return execFileSync("docker", ["exec", id, "psql", ...args, "--dbname", inside.toString()], {
+		return localDocker(["exec", id, "psql", ...args, "--dbname", inside.toString()], {
 			...options,
 			env: { ...options.env, PGDATABASE: inside.toString() },
 		}).trim();
@@ -50,7 +51,7 @@ export function startPostgres(connection = localServer) {
 	try {
 		version = sql(server, "SHOW server_version");
 	} catch {
-		const docker = (args) => execFileSync("docker", args, { encoding: "utf8" }).trim();
+		const docker = (args) => localDocker(args, { encoding: "utf8" }).trim();
 		docker(["info"]);
 		let existing = false;
 		try {
