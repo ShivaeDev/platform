@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `@shivaedev/quality/vitest`. Its `testProjects()` sets up Vitest projects by file name: `unit` runs `*.test.ts` files in Node, `dom` runs `*.dom.test.ts` and `*.dom.test.tsx` files in happy-dom, and `slow` runs `*.slow.test.ts` files only when `--project slow` asks for it. Type tests (`*.typecheck.test.ts`) never run. `vitest` is an optional peer dependency.
+- Add `comments/no-environment-pragma`, which reports a test environment set by a Vitest or Jest environment pragma. A DOM test is named `*.dom.test.ts` instead.
+
+### Changed
+
+- `suppressions/no-inline` allows `@ts-expect-error` in type tests by their file name, `*.typecheck.test.ts` or `typecheck.test.ts`, and takes no options. The `declared` option is gone, so a config that sets it fails to load until it is removed.
+- The `allow` lists of `comments/no-jsdoc` and `comments/max-per-file` are empty by default, so a tool pragma counts as a comment until the config allows its tag.
+
 ## 0.4.0 - 2026-10-03
 
 ### Added

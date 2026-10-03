@@ -78,10 +78,10 @@ export const localOnlyWithLocal = defineConfig({
 	rules: { "local/max-files": { options: { max: 3 } } },
 });
 
-export const declaredIgnore = defineConfig({
+export const declaredTypeTests = defineConfig({
 	rules: {
-		// @ts-expect-error Only @ts-expect-error can be declared for type tests.
-		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason: "No." }] } },
+		// @ts-expect-error Type tests are allowed by their file name, so no-inline takes no declarations.
+		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-expect-error", includes: ["*.ts"], reason: "No." }] } },
 	},
 });
 

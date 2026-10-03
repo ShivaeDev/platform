@@ -2,17 +2,7 @@ import { Effect, Schema } from "effect";
 import { SUPPRESSIONS } from "../suppressions/directives.ts";
 import type { SourceComment } from "./scan.ts";
 
-export const DEFAULT_PRAGMAS: ReadonlyArray<string> = [
-	"@vitest-environment",
-	"@vitest-environment-options",
-	"@jest-environment",
-	"@jsx",
-	"@jsxFrag",
-	"@jsxImportSource",
-	"@jsxRuntime",
-];
-
-export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_PRAGMAS)));
+export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed<ReadonlyArray<string>>([])));
 
 const DIRECTIVES: ReadonlyArray<RegExp> = [
 	...SUPPRESSIONS,

@@ -61,15 +61,16 @@ The config is typed: an unknown rule id, a misspelled option or an option of the
 
 ### Comments
 
-A comment says why, never what the code already says or what it used to be. Six rules hold every comment to that:
+A comment says why, never what the code already says or what it used to be. Seven rules hold every comment to that:
 
 | Rule | Reports | Options |
 | --- | --- | --- |
-| `comments/no-jsdoc` | Every `/** */` block, except a tool pragma | `allow` |
+| `comments/no-jsdoc` | Every `/** */` block, except a tool pragma the config allows | `allow` |
 | `comments/no-line-reference` | A line number: `file.ts:42`, `file.ts#L42`, `line 42` | none |
 | `comments/no-pr-reference` | A pull request or issue: `#123`, `PR 123`, `MR 123`, `pull request 123`, `merge request 123`, `issue 123`, `ticket 123`, `/pull/123`, `/pulls/123`, `/issues/123`, `/merge_requests/123`, `GH-123` | none |
 | `comments/no-banner` | A banner, divider or region: a line that starts or ends with three or more of `- = * # ~ _ + / \ ─ ━ ═ ┄ ┈`, `#region`, `#endregion` | none |
 | `comments/no-todo` | `TODO`, `FIXME`, `XXX` and `@todo` | none |
+| `comments/no-environment-pragma` | A test environment set by a `@vitest-environment` or `@jest-environment` pragma (and its `-options`); name the file `*.dom.test.ts` instead, see [Vitest projects](#vitest-projects) | none |
 | `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max`, `allow` |
 
 The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
@@ -80,14 +81,14 @@ The default is no comments at all: a comment states only what the code cannot sh
 
 - A block comment counts once, however many lines it spans.
 - Line comments that each stand alone on adjacent lines form one run and count once. A blank line, code, a directive, or a comment after code on the same line starts a new one.
-- Tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `oxlint-…`, `stylelint-…`, `deno-lint-ignore…`, `tslint:disable…`, `prettier-ignore`, Flow's `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`). The suppression rules below report the directives that silence a check.
+- Allowed tool pragmas and directives are not counted: compiler and linter directives (`@ts-…`, triple-slash directives such as `/// <reference …>`, `biome-ignore…`, `eslint-disable…`, `eslint-enable…`, `oxlint-…`, `stylelint-…`, `deno-lint-ignore…`, `tslint:disable…`, `prettier-ignore`, Flow's `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`), bundler annotations (`#__PURE__`, `@__PURE__`, `#__NO_SIDE_EFFECTS__`, `@__NO_SIDE_EFFECTS__`) and coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`). The suppression rules below report the directives that silence a check.
 
 A file over the limit counts one violation for each comment above it: 5 comments against a limit of 2 count 3. A finding names the first comment over the limit.
 
-A tool pragma is a comment whose every line starts with an allowed tag, such as `/** @vitest-environment happy-dom */`. `allow` lists the tags and defaults to `@vitest-environment`, `@vitest-environment-options`, `@jest-environment`, `@jsx`, `@jsxFrag`, `@jsxImportSource` and `@jsxRuntime`. A list given replaces the default, and `comments/no-jsdoc` and `comments/max-per-file` each take their own, so give both the same list:
+A tool pragma is a comment whose every line starts with an allowed tag, such as `/** @jsxImportSource preact */`. `allow` lists the tags and is empty by default, so a pragma counts as a comment until the config allows its tag. Settings that a pragma would repeat in each file belong in the tool's config. `comments/no-jsdoc` and `comments/max-per-file` each take their own list, so give both the same one:
 
 ```ts
-const pragmas = ["@vitest-environment", "@license"];
+const pragmas = ["@jsxImportSource", "@license"];
 
 export default defineConfig({
 	rules: {
@@ -105,7 +106,7 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 
 | Rule | Reports | Options |
 | --- | --- | --- |
-| `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except a declared `@ts-expect-error` | `declared` |
+| `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except `@ts-expect-error` in a type test | none |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
 | `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
 
@@ -119,29 +120,9 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 
 Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
 
-#### Declared type tests
+#### Type tests
 
-A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, may be declared for a set of files:
-
-```ts
-export default defineConfig({
-	rules: {
-		"suppressions/no-inline": {
-			options: {
-				declared: [
-					{
-						directive: "@ts-expect-error",
-						includes: ["*.typecheck.ts"],
-						reason: "Type tests assert the compile errors the public types must raise.",
-					},
-				],
-			},
-		},
-	},
-});
-```
-
-`includes` takes `.gitignore` patterns, like `exclude`. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in those files. A declaration that matches no `@ts-expect-error` is reported against `quality.config.ts` until it is removed. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
+A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, is allowed in a type test: a file named `*.typecheck.test.ts` or `typecheck.test.ts` (or `.tsx`). The compiler checks these files; [Vitest projects](#vitest-projects) never run them. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in them. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
 
 `suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
 
@@ -329,6 +310,26 @@ quality baseline migrate [--config <file>] [--from <file>]
 | 1 | Failed: an uncovered error-level violation, a baselined file that got worse, a stale registry entry, a baseline entry for a rule that is off or unknown, or a baseline that grew against the merge base. |
 | 2 | Could not run: no or invalid config, an invalid baseline or registry, a baseline left in the earlier format, a missing source, a rule that threw, git history the check cannot read, or a usage error. |
 
+## Vitest projects
+
+`@shivaedev/quality/vitest` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
+
+```ts
+// vitest.config.ts
+import { testProjects } from "@shivaedev/quality/vitest";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({ test: testProjects() });
+```
+
+| Project | Files | Environment | Runs |
+| --- | --- | --- | --- |
+| `unit` | `*.test.ts` and the other test files | Node | By default |
+| `dom` | `*.dom.test.ts`, `*.dom.test.tsx` | happy-dom | By default |
+| `slow` | `*.slow.test.ts`, `*.slow.test.tsx` | Node | Only with `vitest run --project slow` |
+
+Type tests (`*.typecheck.test.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
+
 ## tsconfig presets
 
 Two presets hold one strict, current TypeScript setup for every repository. They target TypeScript 7.
@@ -372,4 +373,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

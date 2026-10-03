@@ -1,5 +1,6 @@
 import { maxPerFile } from "./comments/max-per-file.ts";
 import { noBanner } from "./comments/no-banner.ts";
+import { noEnvironmentPragma } from "./comments/no-environment-pragma.ts";
 import { noJsdoc } from "./comments/no-jsdoc.ts";
 import { noLineReference } from "./comments/no-line-reference.ts";
 import { noPrReference } from "./comments/no-pr-reference.ts";
@@ -16,6 +17,7 @@ export const builtInRules = [
 	noPrReference,
 	noBanner,
 	noTodo,
+	noEnvironmentPragma,
 	maxPerFile,
 	noInline,
 	noDoubleCast,

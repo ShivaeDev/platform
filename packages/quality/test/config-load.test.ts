@@ -32,6 +32,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"comments/no-pr-reference",
 				"comments/no-banner",
 				"comments/no-todo",
+				"comments/no-environment-pragma",
 				"comments/max-per-file",
 				"suppressions/no-inline",
 				"suppressions/no-double-cast",

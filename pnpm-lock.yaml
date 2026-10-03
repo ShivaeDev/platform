@@ -338,6 +338,9 @@ importers:
 
   packages/effect-changes:
     devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -366,6 +369,9 @@ importers:
       '@prisma/client':
         specifier: 'catalog:'
         version: 7.10.0(@typescript/typescript6@6.0.2)(prisma@7.10.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(@typescript/typescript6@6.0.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -390,6 +396,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -414,6 +423,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -438,6 +450,9 @@ importers:
 
   packages/effect-pg-boss:
     devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -502,6 +517,9 @@ importers:
       '@prisma-next/target-sqlite':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -541,6 +559,9 @@ importers:
       '@shivaedev/effect-sql':
         specifier: workspace:*
         version: link:../effect-sql
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -577,6 +598,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -605,6 +629,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -626,6 +653,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -654,6 +684,9 @@ importers:
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@trpc/client':
         specifier: 'catalog:'
         version: 11.18.0(@trpc/server@11.18.0(@typescript/typescript6@6.0.2))(@typescript/typescript6@6.0.2)
@@ -690,6 +723,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.9(@types/node@24.10.1)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -708,6 +744,9 @@ importers:
 
   packages/local-postgres:
     devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
@@ -747,6 +786,9 @@ importers:
       '@shivaedev/effect-trpc':
         specifier: workspace:*
         version: link:../effect-trpc
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@trpc/client':
         specifier: 'catalog:'
         version: 11.18.0(@trpc/server@11.18.0(@typescript/typescript6@6.0.2))(@typescript/typescript6@6.0.2)
@@ -824,6 +866,9 @@ importers:
       '@effect/platform-node-shared':
         specifier: 4.0.0-rc.112
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@types/hast':
         specifier: 'catalog:'
         version: 3.0.5
@@ -1416,6 +1461,7 @@ packages:
   '@prisma-next/driver-postgres@0.15.0':
     resolution: {integrity: sha512-Ceb8L609rCkXk97QFsYmVmrifJoYETeU24gWWAdGRXbP2O3MRx1ZFtQGQxs5yfQstzpLu4auMgVQzqYEdEl+KQ==}
     engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
@@ -1506,6 +1552,7 @@ packages:
   '@prisma-next/postgres@0.15.0':
     resolution: {integrity: sha512-07oq8oAw2gG7LYc7Y8vGwjUmNk15Br0mJUh2f66jBN5Ps8u79HAypg+eiYuhpLmCyq/WqiY5Z/weMaDz7N/P8Q==}
     engines: {node: '>=24'}
+    deprecated: The @prisma-next scope is retired. Prisma Next continues as Prisma ORM v8, published as the prisma package from https://github.com/prisma/prisma. To upgrade, run npm install prisma and follow the docs at https://docs.prisma.io/docs/orm.
     peerDependencies:
       typescript: '>=5.9'
     peerDependenciesMeta:
