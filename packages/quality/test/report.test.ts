@@ -6,7 +6,7 @@ import { levels, violation } from "./support/violations.ts";
 const known = levels({ "local/todo": "warn", "structure/max-lines": "error" });
 
 const context = (overrides: Partial<ReportContext> = {}): ReportContext => ({
-	baseline: "quality/baseline.json",
+	baseline: "quality/baseline.jsonl",
 	checked: 12,
 	descriptions: new Map([["structure/max-lines", "Keep each module to one job."]]),
 	registry: "quality/registry.json",
@@ -14,24 +14,28 @@ const context = (overrides: Partial<ReportContext> = {}): ReportContext => ({
 	...overrides,
 });
 
-const long = (file: string, measure: number) =>
-	violation({ file, measure, message: `${measure} lines exceeds the 150-line limit.`, rule: "structure/max-lines" });
+const long = (file: string, lines: number) =>
+	violation({ count: lines - 150, file, message: `${lines} lines exceeds the 150-line limit.`, rule: "structure/max-lines", threshold: 150 });
 const todo = (file: string, line: number) => violation({ file, level: "warn", line, message: "Resolve this TODO.", rule: "local/todo" });
 const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 	Array.from({ length: 7 - index }, (_, line) => todo(`src/${name}.ts`, line + 1)),
 );
 
 describe("evaluation", () => {
-	it("fails on a stale baseline or registry entry alone", () => {
-		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known, new Set()))).toBe(false);
+	it("passes a baseline entry that allows more than is left", () => {
+		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known, new Set()))).toBe(true);
+	});
+
+	it("fails on a stale registry entry or a baseline entry for an unknown rule alone", () => {
 		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known, new Set()))).toBe(false);
+		expect(passes(evaluate([], [], [{ count: 1, file: "src/a.ts", rule: "local/typo" }], known, new Set()))).toBe(false);
 	});
 
 	it("applies the registry before the baseline", () => {
 		const registry = [{ file: "src/big.ts", reason: "Generated upstream.", rule: "structure/max-lines" }];
 		const outcome = evaluate([long("src/big.ts", 151)], registry, [{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set());
 		expect(outcome.registered).toBe(1);
-		expect(outcome.staleBaseline.map((stale) => stale.problem)).toEqual(["has no violations left"]);
+		expect(outcome.looseBaseline.map((loose) => loose.problem)).toEqual(["has no violations left"]);
 	});
 });
 
@@ -57,10 +61,10 @@ describe("report", () => {
 
 	it("notes when a baselined file got worse", () => {
 		const text = render(
-			evaluate([long("src/big.ts", 420)], [], [{ count: 1, file: "src/big.ts", measure: 400, rule: "structure/max-lines" }], known, new Set()),
+			evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set()),
 			context(),
 		);
-		expect(text).toContain("  src/big.ts is over its baseline: 1 violation measuring 420 against 1 violation measuring 400 baselined.");
+		expect(text).toContain("  src/big.ts is over its baseline: 270 against 250 baselined.");
 	});
 
 	it("summarizes warnings by file, busiest first", () => {
@@ -77,17 +81,21 @@ describe("report", () => {
 		expect(text.split("\n").filter((line) => line.endsWith("Resolve this TODO."))).toHaveLength(28);
 	});
 
-	it("lists stale entries with what to do about them", () => {
+	it("lists stale entries with what to do about them, and notes loose ones without failing", () => {
 		const outcome = evaluate(
 			[],
 			[{ file: "src/a.ts", reason: "Kept.", rule: "local/todo", subject: "legacy" }],
-			[{ count: 2, file: "src/gone.ts", rule: "structure/max-lines" }],
+			[
+				{ count: 2, file: "src/gone.ts", rule: "structure/max-lines" },
+				{ count: 1, file: "src/a.ts", rule: "local/typo" },
+			],
 			known,
 			new Set(),
 		);
 		expect(render(outcome, context())).toBe(
 			[
-				"error quality/baseline.json: 1 stale entry\n  The baseline only shrinks. Run `quality baseline prune` to drop fixed debt; prune never adds or raises an entry.\n  structure/max-lines src/gone.ts has no violations left.",
+				"error quality/baseline.jsonl: 1 stale entry\n  An entry for a rule that is off or unknown covers nothing. Run `quality baseline prune` to drop it.\n  local/typo src/a.ts names no known rule.",
+				"note quality/baseline.jsonl: 1 stale entry\n  These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.\n  structure/max-lines src/gone.ts has no violations left.",
 				"error quality/registry.json: 1 stale entry\n  Every registered exception must still apply. Remove the entries whose exception is gone.\n  local/todo src/a.ts (legacy) matches no violation.",
 				"quality: failed with 2 stale entries. 12 source files checked.",
 			].join("\n\n"),
@@ -98,7 +106,7 @@ describe("report", () => {
 		const outcome = evaluate(
 			[long("src/a.ts", 151), long("src/b.ts", 151)],
 			[{ file: "src/a.ts", reason: "Generated.", rule: "structure/max-lines" }],
-			[{ count: 1, file: "src/b.ts", measure: 151, rule: "structure/max-lines" }],
+			[{ count: 1, file: "src/b.ts", rule: "structure/max-lines" }],
 			known,
 			new Set(),
 		);

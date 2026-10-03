@@ -1,7 +1,10 @@
+import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Cause, Console, Effect, Exit, type FileSystem, Runtime } from "effect";
+import { Cause, Console, Effect, Exit, type FileSystem, Layer, Runtime } from "effect";
 import { SetupFailure } from "../failure.ts";
+import type { Git } from "../git/command.ts";
 
 const INTERRUPTED = 130;
 const COULD_NOT_RUN = 2;
@@ -24,7 +27,9 @@ const teardown: Runtime.Teardown = (exit, onExit) => {
 	return onExit(Cause.hasInterruptsOnly(exit.cause) ? INTERRUPTED : exitCodeOf(Cause.squash(exit.cause)));
 };
 
-export const runMain = <Value, Error>(program: Effect.Effect<Value, Error, FileSystem.FileSystem>): void => {
+const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
+
+export const runMain = <Value, Error>(program: Effect.Effect<Value, Error, FileSystem.FileSystem | Git>): void => {
 	const explained = Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
-	NodeRuntime.runMain(Effect.provide(explained, NodeFileSystem.layer), { disableErrorReporting: true, teardown });
+	NodeRuntime.runMain(Effect.provide(explained, services), { disableErrorReporting: true, teardown });
 };

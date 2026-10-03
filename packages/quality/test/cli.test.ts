@@ -78,30 +78,31 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 describe("quality baseline", { timeout: cliTimeout }, () => {
 	it("adopts existing violations, holds them and shrinks with the code", () => {
 		const root = seedTree(trees.dirty);
-		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.json.\n" });
+		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.jsonl.\n" });
 		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("2 baselined violations not shown") });
 
 		writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n6\n7\n");
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
-		expect(grown.stdout).toContain("src/longer.ts is over its baseline: 1 violation measuring 7 against 1 violation measuring 6 baselined.");
+		expect(grown.stdout).toContain("src/longer.ts is over its baseline: 4 against 3 baselined.");
 
 		writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n");
 		writeFileSync(join(root, "src/long.ts"), "1\n");
 		const improved = quality(root, "lint");
-		expect(improved.status).toBe(1);
+		expect(improved.status).toBe(0);
+		expect(improved.stdout).toContain("note quality/baseline.jsonl: 2 stale entries");
 		expect(improved.stdout).toContain("structure/max-lines src/long.ts has no violations left.");
 		expect(improved.stdout).toContain("structure/max-lines src/longer.ts allows more than is left");
 
-		expect(quality(root, "baseline", "prune").stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.json.\n");
-		expect(quality(root, "lint").status).toBe(0);
+		expect(quality(root, "baseline", "prune").stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality/baseline.jsonl.\n");
+		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.not.stringContaining("note") });
 	});
 
-	it("refuses to regenerate an existing baseline", () => {
-		const root = seedTree(trees.dirty, [{ content: "{}\n", path: "quality/baseline.json" }]);
+	it("refuses to regenerate an existing baseline without naming a rule", () => {
+		const root = seedTree(trees.dirty, [{ content: "", path: "quality/baseline.jsonl" }]);
 		const result = quality(root, "baseline", "write");
 		expect(result.status).toBe(2);
-		expect(result.stderr).toContain("a baseline exists and only shrinks");
+		expect(result.stderr).toContain("a baseline exists. Record a rule with --rule <id>");
 	});
 });
 
@@ -114,7 +115,12 @@ describe("quality exits 2 when it cannot run", { timeout: cliTimeout }, () => {
 			"rules.structure/max-line: no built-in or local rule has this id",
 		],
 		["with a missing source", [config('{ sources: ["srcc"] }')], 'source "srcc" does not exist'],
-		["with an unreadable baseline", [config("{}"), { content: "[]", path: "quality/baseline.json" }], "quality/baseline.json is invalid"],
+		["with an unreadable baseline", [config("{}"), { content: "[]", path: "quality/baseline.jsonl" }], "quality/baseline.jsonl is invalid"],
+		[
+			"with only a baseline in the earlier format",
+			[config("{}"), { content: "{}\n", path: "quality/baseline.json" }],
+			"Run `quality baseline migrate` to move it to quality/baseline.jsonl",
+		],
 		[
 			"when a rule throws",
 			[

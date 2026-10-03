@@ -15,6 +15,7 @@ export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly file: string;
 	readonly registry: string;
 	readonly baseline: string;
+	readonly adopt: ReadonlyArray<string>;
 }
 
 const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
@@ -33,7 +34,8 @@ const importDefault = (file: string): Effect.Effect<unknown, SetupFailure> =>
 
 const resolved = (root: string, file: string, config: ConfigInput, rules: ResolvedRules): ResolvedConfig => ({
 	...rules,
-	baseline: config.baseline ?? "quality/baseline.json",
+	adopt: config.adopt ?? [],
+	baseline: config.baseline ?? "quality/baseline.jsonl",
 	exclude: config.exclude ?? [],
 	extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 	file,

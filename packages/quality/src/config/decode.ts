@@ -24,6 +24,7 @@ const ConfigInput = Schema.Struct({
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	registry: Schema.optionalKey(Schema.String),
 	baseline: Schema.optionalKey(Schema.String),
+	adopt: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
 });

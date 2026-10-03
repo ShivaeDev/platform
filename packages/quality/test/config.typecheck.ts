@@ -30,6 +30,7 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 		"suppressions/no-double-cast": "warn",
 	},
 	sources: ["src"],
+	adopt: ["local/no-todo", "comments/no-jsdoc"],
 });
 
 export const loose = defineConfig({ local: rules });
@@ -82,4 +83,9 @@ export const declaredIgnore = defineConfig({
 		// @ts-expect-error Only @ts-expect-error can be declared for type tests.
 		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason: "No." }] } },
 	},
+});
+
+export const adoptUnknown = defineConfig({
+	// @ts-expect-error Only a known rule can be adopted.
+	adopt: ["comments/no-todos"],
 });

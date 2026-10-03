@@ -33,7 +33,7 @@
 			"sample/long.ts": "export const a = 1\nexport const b = 2\n"
 		},
 		"expectedFiles": {
-			"quality/baseline.json": "sample/long.ts"
+			"quality/baseline.jsonl": "sample/long.ts"
 		},
 		"output": "recorded 1 entry"
 	},

@@ -6,9 +6,9 @@ import { lines } from "./support/tree.ts";
 const source = (path: string, count: number) => ({ content: lines(count), path });
 
 describe("structure/max-lines fires", () => {
-	it("on a source file over 150 lines, measuring its line count", async () => {
-		const findings = await checkRule(maxLines, undefined, { sources: [source("src/big.ts", 151)] });
-		expect(findings).toEqual([{ file: "src/big.ts", measure: 151, message: "151 lines exceeds the 150-line limit." }]);
+	it("on a source file over 150 lines, counting the lines above the limit", async () => {
+		const findings = await checkRule(maxLines, undefined, { sources: [source("src/big.ts", 168)] });
+		expect(findings).toEqual([{ count: 18, file: "src/big.ts", message: "168 lines exceeds the 150-line limit.", threshold: 150 }]);
 	});
 
 	it("on a test file over 300 lines, wherever tests live", async () => {
@@ -30,7 +30,7 @@ describe("structure/max-lines fires", () => {
 
 	it("counts a final line without a newline", async () => {
 		const findings = await checkRule(maxLines, { source: 2 }, { sources: [{ content: "a\nb\nc", path: "src/a.ts" }] });
-		expect(findings[0]?.measure).toBe(3);
+		expect(findings[0]?.count).toBe(1);
 	});
 });
 

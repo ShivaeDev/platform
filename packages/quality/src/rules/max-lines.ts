@@ -16,7 +16,14 @@ const MaxLinesOptions = Schema.Struct({
 const oversized = (file: SourceFile, limit: number): ReadonlyArray<Finding> =>
 	file.lines.length <= limit
 		? []
-		: [{ file: file.path, measure: file.lines.length, message: `${file.lines.length} lines exceeds the ${limit}-line limit.` }];
+		: [
+				{
+					count: file.lines.length - limit,
+					file: file.path,
+					message: `${file.lines.length} lines exceeds the ${limit}-line limit.`,
+					threshold: limit,
+				},
+			];
 
 export const maxLines = defineRule({
 	id: "structure/max-lines",

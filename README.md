@@ -62,9 +62,18 @@ pnpm ready
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using `postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`. A new service stores data in the named `development-postgres` volume. Setup never stops or removes an existing service or volume.
 
-`DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`; `TEST_DATABASE_URL` defaults to the same server with `platform_test`. Shell settings take precedence over `.env.local`. Local preparation validates these names and refuses remote hosts or connection overrides. It creates missing databases and initializes the integration and auth schemas without dropping tables.
+`DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`. `TEST_DATABASE_URL` supplies the connection settings for tests, with a base name of `platform_test`; each package receives its own suffixed database. Shell settings take precedence over `.env.local`.
 
-`pnpm test` maps the test URL to `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`, `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`, `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL`, and `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL`. Individual package test commands still accept those variables directly; set them to the local `platform_test` URL to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
+| Test variable | Database |
+| --- | --- |
+| `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL` | `platform_test_effect_prisma` |
+| `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` | `platform_test_effect_sql` |
+| `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL` | `platform_test_effect_pg_boss` |
+| `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL` | `platform_test_effect_changes_prisma` |
+
+`pnpm db:setup` creates missing development and package-specific test databases, then initializes the integration and auth schemas in the Prisma test database without dropping tables. SQL, pg-boss and changes-prisma tests prepare their own objects in their separate databases. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.
+
+`pnpm test` sets the package variables from these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
 ### Heavy runs
 
