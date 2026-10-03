@@ -100,7 +100,7 @@ export const changesUntil = async (events: EventStream, path: string): Promise<R
 	const seen: Array<ReadonlyArray<string>> = [];
 	while (!seen.at(-1)?.includes(path)) {
 		const event = await events.next();
-		const data = /^event: change\ndata: (.*)$/.exec(event)?.[1];
+		const data = /^event: change\ndata: (.*)$/u.exec(event)?.[1];
 		if (data !== undefined) {
 			seen.push(JSON.parse(data).paths);
 		}

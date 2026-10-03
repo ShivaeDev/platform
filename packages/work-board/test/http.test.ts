@@ -165,7 +165,7 @@ describe("local-only safety", () => {
 
 	it("judges the Host header even when the request target names a loopback host", async () => {
 		expect((await rawGet(board, `http://127.0.0.1:${board.port}/`, "board.example")).status).toBe(403);
-		expect((await rawGet(board, `http://board.example/`, `127.0.0.1:${board.port}`)).status).toBe(200);
+		expect((await rawGet(board, "http://board.example/", `127.0.0.1:${board.port}`)).status).toBe(200);
 	});
 
 	it("refuses a request from an address that is not loopback when the address is known", async () => {
@@ -201,7 +201,7 @@ describe("assets", () => {
 		expect(css).toContain('--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;');
 		expect(css).toContain("--mono: ui-monospace, SFMono-Regular, Menlo, monospace;");
 		expect(css).toContain("@media (prefers-color-scheme: dark)");
-		expect(css).not.toMatch(/@font-face|@import|url\(/);
+		expect(css).not.toMatch(/@font-face|@import|url\(/u);
 	});
 });
 

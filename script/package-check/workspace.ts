@@ -14,7 +14,7 @@ export const consumerWorkspace = (root: string, pkg: Package, tarballs: Readonly
 				.filter(([name]) => !effectOverride(name))
 				.map(([name, version]) => `  ${JSON.stringify(name)}: ${JSON.stringify(version)}\n`)
 				.join("");
-			workspace = workspace.replace(/^overrides:[ \t]*\n(?:(?:[ \t].*)?\n)*/m, "");
+			workspace = workspace.replace(/^overrides:[ \t]*\n(?:(?:[ \t].*)?\n)*/mu, "");
 			if (retained !== "") workspace = `${workspace.trimEnd()}\n\noverrides:\n${retained}`;
 		}
 		return withTarballOverrides(workspace, tarballs);

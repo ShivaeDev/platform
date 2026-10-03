@@ -12,7 +12,7 @@ const check = async (texts: Readonly<Record<string, string>>, options?: Options,
 	);
 
 const weakened = async (config: unknown) =>
-	(await check({ "biome.json": JSON.stringify(config, null, "\t") })).map((line) => /"([^"]+)"/.exec(line)?.[1]);
+	(await check({ "biome.json": JSON.stringify(config, null, "\t") })).map((line) => /"([^"]+)"/u.exec(line)?.[1]);
 
 const override = (includes: ReadonlyArray<string>, linter: unknown) => ({ overrides: [{ includes, linter }] });
 

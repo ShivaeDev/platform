@@ -53,7 +53,7 @@ describe("config", () => {
 
 	it("names the rule whose options are invalid", async () => {
 		expect(await issues({ rules: { "structure/max-lines": { options: { source: "many" } } } })).toEqual([
-			expect.stringMatching(/^rules\.structure\/max-lines\.options: source: /),
+			expect.stringMatching(/^rules\.structure\/max-lines\.options: source: /u),
 		]);
 	});
 

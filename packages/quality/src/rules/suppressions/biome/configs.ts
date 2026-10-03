@@ -31,9 +31,9 @@ type ReadText = RuleInputs["readText"];
 
 const ROOT_CONFIGS: ReadonlyArray<string> = ["biome.json", "biome.jsonc"];
 
-const NESTED = /(?:^|\/)biome\.jsonc?$/;
+const NESTED = /(?:^|\/)biome\.jsonc?$/u;
 
-const RELATIVE = /^\.\.?(?:\/|$)/;
+const RELATIVE = /^\.\.?(?:\/|$)/u;
 
 const directoryOf = (path: string): string => (posix.dirname(path) === "." ? "" : posix.dirname(path));
 

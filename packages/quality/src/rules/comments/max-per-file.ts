@@ -21,7 +21,7 @@ const commentBlocks = (comments: ReadonlyArray<SourceComment>): ReadonlyArray<So
 	comments.filter((comment, index) => !continues(comments[index - 1], comment));
 
 const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): ReadonlyArray<Finding> => {
-	const counted = commentsOf(file).filter((comment) => !isDirective(comment) && !isPragma(comment, allow));
+	const counted = commentsOf(file).filter((comment) => !(isDirective(comment) || isPragma(comment, allow)));
 	const blocks = commentBlocks(counted);
 	const first = blocks[max];
 	return first === undefined

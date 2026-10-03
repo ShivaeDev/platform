@@ -7,7 +7,7 @@ export interface WorkspacePackage {
 	readonly root: string;
 }
 
-const PACKAGE_ROOT = /^(packages\/[^/]+)\/package\.json$/;
+const PACKAGE_ROOT = /^(packages\/[^/]+)\/package\.json$/u;
 
 const decodeName = jsonDecoder(Schema.Struct({ name: Schema.optional(Schema.String) }));
 

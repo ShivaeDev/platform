@@ -4,7 +4,7 @@ import { type RuleIndex, registrable, unusedEntryProblem, type Violation } from 
 
 const RegistryEntry = Schema.Struct({
 	file: Schema.NonEmptyString,
-	reason: Schema.String.check(Schema.isPattern(/\S/, { expected: "a reason that says why the exception is permanent" })),
+	reason: Schema.String.check(Schema.isPattern(/\S/u, { expected: "a reason that says why the exception is permanent" })),
 	rule: Schema.NonEmptyString,
 	subject: Schema.optionalKey(Schema.NonEmptyString),
 });

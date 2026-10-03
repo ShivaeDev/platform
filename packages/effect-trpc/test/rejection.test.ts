@@ -10,7 +10,7 @@ const NeverEncoded = Schema.String.pipe(
 );
 class Unencodable extends Schema.TaggedError<Unencodable>()("Unencodable", { count: NeverEncoded }) {}
 
-const shape = { code: -32009, data: { code: "CONFLICT", httpStatus: 409, requestId: "r-1" }, message: "Name is taken" };
+const shape = { code: -32_009, data: { code: "CONFLICT", httpStatus: 409, requestId: "r-1" }, message: "Name is taken" };
 
 describe("rejectWith", () => {
 	it("fails with a RejectionError carrying only the encoded declared fields", async () => {

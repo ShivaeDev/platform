@@ -26,7 +26,7 @@ export const fieldRejectionOf =
 	<F extends Fields>(schema: Schema.Struct<F>) =>
 	(error: unknown): FieldRejection<Name<F>> | undefined => {
 		const isName = (name: unknown): name is Name<F> => typeof name === "string" && Object.hasOwn(schema.fields, name);
-		if (!Predicate.hasProperty(error, "_tag") || !Predicate.hasProperty(error, "field") || !Predicate.hasProperty(error, "message")) return undefined;
+		if (!(Predicate.hasProperty(error, "_tag") && Predicate.hasProperty(error, "field") && Predicate.hasProperty(error, "message"))) return undefined;
 		const { _tag, field, message } = error;
 		return typeof _tag === "string" && isName(field) && typeof message === "string" ? { field, message } : undefined;
 	};

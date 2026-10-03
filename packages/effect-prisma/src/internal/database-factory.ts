@@ -44,11 +44,11 @@ export const makeSqlDatabase = <const Contract extends AnySqlContract, const Ide
 	const withTestTransaction = <A, E, R>(
 		program: Effect.Effect<A, E, R> & (DatabaseId extends R ? unknown : never),
 	): Effect.Effect<A, E | PrismaError, DatabaseId | Exclude<R, DatabaseId>> =>
-		Effect.flatMap(Service, (facade) => {
-			return Effect.flatMap(executorOf(facade), (current) =>
+		Effect.flatMap(Service, (facade) =>
+			Effect.flatMap(executorOf(facade), (current) =>
 				runTransaction(scope, current, facade, program, releaseTestTransaction, "test", "prisma.testTransaction"),
-			);
-		});
+			),
+		);
 
 	const layer = (layerOptions: Options): Layer.Layer<DatabaseId, PrismaError> => {
 		const acquire = Effect.acquireRelease(

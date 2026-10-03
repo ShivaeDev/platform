@@ -16,14 +16,14 @@ export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefau
 
 const DIRECTIVES: ReadonlyArray<RegExp> = [
 	...SUPPRESSIONS,
-	/^@ts-/,
-	/^biome-ignore/,
-	/^(?:eslint|oxlint|stylelint)-(?:disable|enable)/,
-	/^[#@]__(?:PURE|NO_SIDE_EFFECTS)__/,
-	/^(?:c8|v8|istanbul) ignore/,
+	/^@ts-/u,
+	/^biome-ignore/u,
+	/^(?:eslint|oxlint|stylelint)-(?:disable|enable)/u,
+	/^[#@]__(?:PURE|NO_SIDE_EFFECTS)__/u,
+	/^(?:c8|v8|istanbul) ignore/u,
 ];
 
-const TRIPLE_SLASH = /^\/\/\/\s*</;
+const TRIPLE_SLASH = /^\/\/\/\s*</u;
 
 const contentOf = (comment: SourceComment): ReadonlyArray<string> => comment.body.filter((line) => line !== "");
 

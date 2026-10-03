@@ -15,7 +15,7 @@ const manifestSchema = Schema.toStandardSchemaV1(Schema.fromJsonString(Manifest)
 
 const CONDITIONS: ReadonlySet<string> = new Set(["biome", "default"]);
 
-const SPECIFIER = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+))?$/;
+const SPECIFIER = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+))?$/u;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
 

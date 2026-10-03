@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Package, targets } from "#package-check/model.ts";
 
-const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
 const packedPath = (path: string): string => posix.join("package", path);
@@ -47,7 +47,7 @@ export const checkPackedArchive = (pkg: Package) =>
 const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<string>) =>
 	Effect.gen(function* () {
 		for (const path of contents) {
-			yield* requireThat(!/(^|\/)tests?\//.test(path), `packed test file ${path}`);
+			yield* requireThat(!/(^|\/)tests?\//u.test(path), `packed test file ${path}`);
 			if (!path.endsWith(".map")) continue;
 			const map = decodeMap(yield* command(directory, "tar", ["-xOzf", tarball, path]));
 			for (const source of map.sources) {

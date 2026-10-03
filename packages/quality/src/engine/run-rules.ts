@@ -16,7 +16,7 @@ export interface ActiveRule {
 const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 // Registry and baseline entries match on the path, so every finding names its file the same way.
-const repositoryPath = (root: string, file: string): string => posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(\.\/)+/, "");
+const repositoryPath = (root: string, file: string): string => posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(\.\/)+/u, "");
 
 const violationOf = (rule: ActiveRule, root: string, finding: Finding): Violation => ({
 	...finding,

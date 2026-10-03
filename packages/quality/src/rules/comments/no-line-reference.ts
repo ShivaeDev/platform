@@ -7,5 +7,5 @@ export const noLineReference = definePatternRule({
 	description: "A line number goes stale with the next edit. Name the function, type, test or setting instead.",
 	id: "comments/no-line-reference",
 	message: (match) => `Refers to a line: "${match}".`,
-	patterns: [new RegExp(`[\\w./@-]*\\.${SOURCE_EXTENSION}(?::\\d+|#L\\d+)`, "i"), /(?<![\w-])lines?\s+\d+/i],
+	patterns: [new RegExp(`[\\w./@-]*\\.${SOURCE_EXTENSION}(?::\\d+|#L\\d+)`, "iu"), /(?<![\w-])lines?\s+\d+/iu],
 });

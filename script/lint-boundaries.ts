@@ -1,3 +1,4 @@
+import process from "node:process";
 import { NodeRuntime } from "@effect/platform-node";
 import { cruise } from "dependency-cruiser";
 import { Console, Effect } from "effect";

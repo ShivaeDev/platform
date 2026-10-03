@@ -16,7 +16,7 @@ export interface PageOptions {
 }
 
 const requestedPath = (url: string): string => {
-	const pathname = new URL(url, "http://127.0.0.1").pathname.replace(/^\/+/, "");
+	const pathname = new URL(url, "http://127.0.0.1").pathname.replace(/^\/+/u, "");
 	try {
 		return decodeURIComponent(pathname);
 	} catch {

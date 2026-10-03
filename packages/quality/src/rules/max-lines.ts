@@ -3,7 +3,7 @@ import ignore from "ignore";
 import { defineRule, type Finding, type SourceFile } from "../rule.ts";
 
 const DEFAULT_TEST_FILES: ReadonlyArray<string> = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
-const DECLARATION = /\.d\.[cm]?ts$/;
+const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const Limit = Schema.Int.check(Schema.isGreaterThan(0));
 

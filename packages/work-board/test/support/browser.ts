@@ -51,7 +51,7 @@ export interface OpenPage {
 const eventNames = (buffer: string): { readonly names: ReadonlyArray<string>; readonly rest: string } => {
 	const blocks = buffer.split("\n\n");
 	const rest = blocks.pop() ?? "";
-	return { names: blocks.map((block) => /^event: (.*)$/m.exec(block)?.[1] ?? "message"), rest };
+	return { names: blocks.map((block) => /^event: (.*)$/mu.exec(block)?.[1] ?? "message"), rest };
 };
 
 const eventSourceOver = (window: BrowserWindow, streams: Array<LiveStream>) =>

@@ -9,7 +9,7 @@ import { STYLESHEET, stylesheetComments } from "./stylesheet-comments.ts";
 const Declaration = Schema.Struct({
 	directive: Schema.Literal("@ts-expect-error"),
 	includes: Schema.NonEmptyArray(Schema.NonEmptyString),
-	reason: Schema.String.check(Schema.isPattern(/\S/, { expected: "a reason that says why these files assert type errors" })),
+	reason: Schema.String.check(Schema.isPattern(/\S/u, { expected: "a reason that says why these files assert type errors" })),
 });
 
 type Declaration = typeof Declaration.Type;

@@ -42,9 +42,6 @@ export const useSaveState = <F extends Fields, A, E, ER>(
 		registry.set(form.submit, undefined);
 	}, [form, registry]);
 	const revert = useCallback(() => form?.revert(), [form]);
-	const failure = Option.filter(
-		AsyncResult.error(result),
-		(error): error is E | ER => !(error instanceof FieldFailure) && !(error instanceof Invalid),
-	);
+	const failure = Option.filter(AsyncResult.error(result), (error): error is E | ER => !(error instanceof FieldFailure || error instanceof Invalid));
 	return { dirty, failure, revert, save, saving: result.waiting };
 };

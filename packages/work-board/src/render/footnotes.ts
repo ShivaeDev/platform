@@ -1,7 +1,7 @@
 import type { Element } from "hast";
 import { defineHastPlugin } from "satteri";
 
-const FOOTNOTE_IDS = /^(?:user-content-fn|footnote-label)/;
+const FOOTNOTE_IDS = /^(?:user-content-fn|footnote-label)/u;
 
 type Value = Element["properties"][string];
 

@@ -3,7 +3,7 @@ import { type Decoded, decodeWith } from "../../../decoded.ts";
 
 export const Declaration = Schema.Struct({
 	includes: Schema.NonEmptyArray(Schema.NonEmptyString),
-	reason: Schema.String.check(Schema.isPattern(/\S/, { expected: "a reason that says why the scope needs the rule weakened" })),
+	reason: Schema.String.check(Schema.isPattern(/\S/u, { expected: "a reason that says why the scope needs the rule weakened" })),
 	rule: Schema.NonEmptyString,
 });
 
@@ -30,7 +30,7 @@ export const matches = (declaration: Scoped, weakening: Scoped): boolean =>
 	declaration.rule === weakening.rule && sameScope(declaration.includes, weakening.includes);
 
 export const scoped = (base: string, glob: string): string => {
-	const [, negation = "", path = glob] = /^(!*)(.*)$/.exec(glob) ?? [];
+	const [, negation = "", path = glob] = /^(!*)(.*)$/u.exec(glob) ?? [];
 	return base === "" ? glob : `${negation}${base}/${path}`;
 };
 

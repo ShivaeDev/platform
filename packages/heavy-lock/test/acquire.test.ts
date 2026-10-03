@@ -38,8 +38,8 @@ it.effect("a waiter names the holder, reminds every minute, and takes the lock o
 		);
 		expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
 		expect(scripted.lines).toHaveLength(3);
-		expect(scripted.lines[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/);
-		expect(scripted.lines[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/);
+		expect(scripted.lines[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/u);
+		expect(scripted.lines[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/u);
 		expect(scripted.lines[2]).toBe("heavy-process lock: acquired after 2m 0s");
 		expect(readLock(lock)).toBeUndefined();
 	}).pipe(Effect.provide(services())),
@@ -106,7 +106,7 @@ it.effect("a layer holds the lock for as long as it is in use", () =>
 
 		const inside = yield* Effect.scoped(Effect.flatMap(Layer.build(heavyLockLayer({ lockPath: lock })), () => Effect.sync(() => readLock(lock))));
 
-		expect(inside).toMatch(/"command":"/);
+		expect(inside).toMatch(/"command":"/u);
 		expect(readLock(lock)).toBeUndefined();
 	}).pipe(Effect.provide(services())),
 );

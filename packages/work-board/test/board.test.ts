@@ -90,8 +90,8 @@ describe("the board", () => {
 			.replace("### Update the screenshots", "### Update the screenshots\n\nAfter the retry[^flaky].")
 			.concat("\n[^flaky]: One check was retried.\n");
 		const rendered = await html(shared);
-		const ids = [...rendered.matchAll(/ id="([^"]+)"/g)].map(([, id]) => id);
-		const targets = [...rendered.matchAll(/ href="#([^"]+)"/g)].map(([, id]) => id);
+		const ids = [...rendered.matchAll(/ id="([^"]+)"/gu)].map(([, id]) => id);
+		const targets = [...rendered.matchAll(/ href="#([^"]+)"/gu)].map(([, id]) => id);
 		expect(ids.filter((id) => id?.includes("user-content-fn"))).toHaveLength(4);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(targets.every((target) => ids.includes(target))).toBe(true);

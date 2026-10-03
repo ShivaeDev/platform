@@ -59,7 +59,7 @@ describe("defineRule", () => {
 	});
 
 	it("names the path of each option issue", async () => {
-		expect(await issuesOf(limited, { max: "many" })).toEqual([expect.stringMatching(/^max: /)]);
+		expect(await issuesOf(limited, { max: "many" })).toEqual([expect.stringMatching(/^max: /u)]);
 		expect(await issuesOf(echo, {})).toEqual(["word: needs a word"]);
 	});
 

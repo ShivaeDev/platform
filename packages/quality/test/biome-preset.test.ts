@@ -28,7 +28,7 @@ describe("the shipped Biome preset", () => {
 	it("sets every rule Biome recommends to error, or declares why it is off", async () => {
 		const root = seedTree([{ content: '{ "linter": { "rules": { "recommended": true } } }\n', path: "biome.json" }]);
 		const rage = await runBiome(root, ["rage", "--linter"]);
-		const recommended = [...rage.stdout.matchAll(/^ {4}([a-z0-9]+\/\w+)$/gim)].map((match) => match[1] ?? "");
+		const recommended = [...rage.stdout.matchAll(/^ {4}([a-z0-9]+\/\w+)$/gimu)].map((match) => match[1] ?? "");
 		expect(recommended.length).toBeGreaterThan(200);
 		const loose = recommended.filter((rule) => levelIn(rule) !== "error" && !declaredOff.includes(`lint/${rule}`));
 		expect(loose).toEqual([]);

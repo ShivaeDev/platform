@@ -41,7 +41,7 @@ test("WebSocket RPC decides origin and session from the upgrade request, not mes
 		const alice = await signup(provider, "alice");
 		expect(await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
 		const hijack = await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]]);
-		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/);
+		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
 		expect(await whoamiOverWebSocket(provider, { origin }, [["cookie", alice.cookie]])).toContain('"_tag":"Unauthorized"');
 	} finally {
 		provider.database.close();

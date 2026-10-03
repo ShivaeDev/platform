@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Folder, folder, startBoard } from "./support/board.ts";
@@ -21,7 +22,7 @@ const listening = (child: ReturnType<typeof spawn>): Promise<string> =>
 		let output = "";
 		const collect = (chunk: Buffer) => {
 			output += chunk.toString("utf8");
-			const address = /Listening on (http:\/\/\S+)/.exec(output)?.[1];
+			const address = /Listening on (http:\/\/\S+)/u.exec(output)?.[1];
 			if (address !== undefined) {
 				resolve(address);
 			}
@@ -44,7 +45,7 @@ describe("the server", () => {
 		const child = spawn(process.execPath, [cli, notes.root, "--port", "0", "--home", "plan.md"], { stdio: ["ignore", "pipe", "pipe"] });
 		try {
 			const address = await listening(child);
-			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
 			expect(await (await fetch(address)).text()).toContain("<span><b>1</b> to do</span>");
 		} finally {
 			child.kill();

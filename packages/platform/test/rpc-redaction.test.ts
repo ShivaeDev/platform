@@ -82,7 +82,7 @@ test("large collections and binary data are summarised instead of walked", () =>
 		wide: Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`k${index}`, index])),
 	});
 	expect(redacted).toMatchObject({ buffer: "<ArrayBuffer 16 bytes>", upload: "<Uint8Array 4096 bytes>" });
-	expect(inspect(redacted, { depth: 5, maxArrayLength: null }).length).toBeLessThan(3_000);
+	expect(inspect(redacted, { depth: 5, maxArrayLength: null }).length).toBeLessThan(3000);
 	expect(redacted).toMatchObject({ items: expect.arrayContaining(["<450 more items>"]) });
 	expect(redacted).toMatchObject({ wide: expect.objectContaining({ "<truncated>": "450 more keys" }) });
 });

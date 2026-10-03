@@ -31,7 +31,7 @@ const commit = <Tx extends Transactional<Tx>, X, E, R>(
 	};
 	const rejected = (cause: unknown): Settled<X, E> => {
 		if (failed !== undefined) return { committed: false, exit: failed };
-		if (!isTransactionClosed(cause) || !(started || savepoint)) return { committed: false, exit: Exit.fail(new PrismaError({ cause })) };
+		if (!(isTransactionClosed(cause) && (started || savepoint))) return { committed: false, exit: Exit.fail(new PrismaError({ cause })) };
 		const closed = new TransactionExpired({ cause, message: "The transaction was closed before it could finish" });
 		return { closed, committed: false, exit: Exit.fail(closed) };
 	};

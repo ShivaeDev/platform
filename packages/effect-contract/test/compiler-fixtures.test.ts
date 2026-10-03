@@ -65,7 +65,7 @@ describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
 
 	it("rejects each invalid use with a specific diagnostic", () => {
 		const result = compile(invalidArguments);
-		const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/m);
+		const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/mu);
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expected] of Object.entries(invalidFixtures)) {
 			const found = diagnostics.filter((message) => message.startsWith(`test/fixtures/invalid/${fixture}.ts(`)).join("\n");

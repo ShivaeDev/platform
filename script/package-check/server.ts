@@ -22,7 +22,7 @@ const listening = (server: ChildProcessWithoutNullStreams) =>
 				});
 				server.stdout.on("data", (chunk) => {
 					output += String(chunk);
-					const match = /http:\/\/127\.0\.0\.1:\d+/.exec(output);
+					const match = /http:\/\/127\.0\.0\.1:\d+/u.exec(output);
 					if (match !== null) {
 						done();
 						resolve(match[0]);
@@ -46,7 +46,7 @@ export const checkServer = (cwd: string, bin: string, args: readonly string[], p
 						catch: (cause) => new Error(`Packed server request failed: ${path}`, { cause }),
 						try: async (signal) => {
 							const response = await fetch(`${address}${path}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
-							if (!response.ok || !(await response.text()).includes(expected)) throw new Error(`${bin}: ${path} did not serve ${expected}`);
+							if (!(response.ok && (await response.text()).includes(expected))) throw new Error(`${bin}: ${path} did not serve ${expected}`);
 						},
 					});
 			}),

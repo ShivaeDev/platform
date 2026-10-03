@@ -8,7 +8,7 @@ type CodecJson = Parameters<ContractCodec["decodeJson"]>[0];
 
 const sqliteDatetimeCodecId = "sqlite/datetime@1";
 
-const zonelessDatetime = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?)$/;
+const zonelessDatetime = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?)$/u;
 
 // SQLite computes `datetime('now')`, the default `prisma-next db init` generates, in UTC but writes it as `YYYY-MM-DD HH:MM:SS`
 // with no zone, and `new Date` reads that form as local time. Values with a zone and date-only values already read as UTC.

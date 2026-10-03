@@ -24,7 +24,7 @@ const QuantityInput = Schema.String.pipe(
 	}),
 );
 const ExpenseEntry = Schema.Struct({
-	date: Schema.optional(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/))),
+	date: Schema.optional(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/u))),
 	payee: Schema.Trim.check(Schema.isMinLength(1)),
 	quantity: QuantityInput,
 	subtotal: MoneyInput,

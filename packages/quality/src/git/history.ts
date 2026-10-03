@@ -20,7 +20,7 @@ const parse = (output: string): Changes => {
 	const moves = new Map<string, string>();
 	for (let index = 0; index < fields.length - 1; ) {
 		const status = fields[index] ?? "";
-		const paths = fields.slice(index + 1, index + (/^[RC]/.test(status) ? 3 : 2));
+		const paths = fields.slice(index + 1, index + (/^[RC]/u.test(status) ? 3 : 2));
 		for (const path of paths) {
 			files.add(path);
 		}

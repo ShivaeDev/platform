@@ -11,7 +11,7 @@ export interface SourceComment {
 	readonly text: string;
 }
 
-const DECLARATION = /\.d\.[cm]?ts$/;
+const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const commentRanges = (source: ts.SourceFile): ReadonlyArray<ts.CommentRange> => {
 	const ranges = new Map<number, ts.CommentRange>();
@@ -43,7 +43,7 @@ export const bodyOf = (kind: SourceComment["kind"], text: string): ReadonlyArray
 		: text
 				.slice(2, -2)
 				.split("\n")
-				.map((line) => line.trim().replace(/^\*(?=\s|$)\s*/, ""));
+				.map((line) => line.trim().replace(/^\*(?=\s|$)\s*/u, ""));
 
 const toComment = (source: ts.SourceFile, range: ts.CommentRange): SourceComment => {
 	const kind = range.kind === ts.SyntaxKind.SingleLineCommentTrivia ? "line" : "block";

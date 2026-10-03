@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 import { PrismaError } from "./error.ts";
 
-const MODEL = /^[ \t]*model[ \t]+(\w+)[ \t]*\{([\s\S]*?)^[ \t]*\}/gm;
-const MAPPED = /@@map\(\s*(?:name\s*:\s*)?"([^"]+)"/;
-const COMMENT = /\/\/.*$/gm;
+const MODEL = /^[ \t]*model[ \t]+(\w+)[ \t]*\{([\s\S]*?)^[ \t]*\}/gmu;
+const MAPPED = /@@map\(\s*(?:name\s*:\s*)?"([^"]+)"/u;
+const COMMENT = /\/\/.*$/gmu;
 
 export const tablesOf = (schema: string): ReadonlyMap<string, string> =>
 	new Map([...schema.replace(COMMENT, "").matchAll(MODEL)].map(([, model = "", body = ""]) => [MAPPED.exec(body)?.[1] ?? model, model] as const));

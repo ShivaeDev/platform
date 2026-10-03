@@ -37,7 +37,7 @@ export const parseJsonc = (path: string, text: string): Parsed => {
 	if (error !== undefined || root === undefined) {
 		return {
 			_tag: "Unreadable",
-			reason: error === undefined ? "it is empty" : ts.flattenDiagnosticMessageText(error.messageText, " ").replace(/\.$/, ""),
+			reason: error === undefined ? "it is empty" : ts.flattenDiagnosticMessageText(error.messageText, " ").replace(/\.$/u, ""),
 		};
 	}
 	return { _tag: "Parsed", json: toJson(source, root) };

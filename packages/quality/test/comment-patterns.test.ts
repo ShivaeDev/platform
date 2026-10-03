@@ -79,7 +79,7 @@ describe.each(cases)("$rule.id", ({ fires, quiet, rule }) => {
 	it.each(fires)("fires on %j", async (comment, match) => {
 		const [finding, ...rest] = await messagesFor(rule, comment);
 		expect(rest).toEqual([]);
-		expect(finding).toMatch(/^2 /);
+		expect(finding).toMatch(/^2 /u);
 		expect(finding).toContain(`"${match}"`);
 	});
 

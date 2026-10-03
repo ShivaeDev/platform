@@ -29,11 +29,10 @@ export const checkBins = (root: string, pkg: Package, consumer: string) =>
 			}
 			const bin = join(consumer, "node_modules/.bin", name);
 			yield* checkVersion(consumer, bin, pkg.manifest.version, scenario.checkVersion);
-			if (scenario.pages !== undefined) yield* checkServer(consumer, bin, scenario.args, scenario.pages);
-			else {
+			if (scenario.pages === undefined) {
 				const output = yield* runBin(consumer, bin, scenario);
 				yield* requireThat(output.includes(scenario.output ?? ""), `${name}: missing output ${scenario.output}`);
-			}
+			} else yield* checkServer(consumer, bin, scenario.args, scenario.pages);
 			yield* checkResults(consumer, name, scenario);
 		}
 	});

@@ -38,7 +38,7 @@ export const renderGuard = (result: GuardResult, context: GuardContext): string 
 	return [
 		[
 			`error ${context.baseline} grew against ${against(context.base)}`,
-			`  The baseline only shrinks. Fix new violations instead of baselining them; a rule enters the baseline for the first time only while \`adopt\` names it.`,
+			"  The baseline only shrinks. Fix new violations instead of baselining them; a rule enters the baseline for the first time only while `adopt` names it.",
 			...result.problems.map((problem) => `  ${problemLine(problem, context)}`),
 		].join("\n"),
 		`quality: baseline check failed with ${plural(result.problems.length, "problem")}.`,

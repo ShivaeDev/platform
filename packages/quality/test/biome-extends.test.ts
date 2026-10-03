@@ -20,7 +20,7 @@ const resolvedRule = async (specifier: string, manifest: object, files: Readonly
 			[`${PACKAGE}/package.json`]: JSON.stringify({ name: "@acme/lint", ...manifest }),
 			...Object.fromEntries(Object.entries(files).map(([path, text]) => [`${PACKAGE}/${path}`, text])),
 		})
-	).map((line) => /weakens "lint\/suspicious\/(\w+)"/.exec(line)?.[1] ?? line);
+	).map((line) => /weakens "lint\/suspicious\/(\w+)"/u.exec(line)?.[1] ?? line);
 
 describe("suppressions/biome-overrides resolves an extends entry", () => {
 	it.each([

@@ -36,7 +36,7 @@ effectApp("runs a generator body with the harness and Layer services", function*
 effectApp("installs TestClock by default", function* () {
 	expect(yield* Clock.currentTimeMillis).toBe(0);
 	yield* TestClock.adjust("1 second");
-	expect(yield* Clock.currentTimeMillis).toBe(1_000);
+	expect(yield* Clock.currentTimeMillis).toBe(1000);
 });
 
 effectApp(

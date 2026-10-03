@@ -8,8 +8,7 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 	const url = new URL(value);
 	const name = url.pathname.slice(1);
 	if (
-		!["postgres:", "postgresql:"].includes(url.protocol)
-		|| !["localhost", "127.0.0.1"].includes(url.hostname)
+		!(["postgres:", "postgresql:"].includes(url.protocol) && ["localhost", "127.0.0.1"].includes(url.hostname))
 		|| url.port !== "55432"
 		|| ["host", "hostaddr", "port", "dbname", "service"].some((key) => url.searchParams.has(key))
 		|| !names.includes(name)
@@ -63,7 +62,7 @@ export function localPostgres(environment: DockerEnvironment) {
 		for (const value of values) {
 			const name = new URL(value).pathname.slice(1);
 			assertLocalDatabase(value, [name]);
-			if (!/^[a-z][a-z0-9_]{0,62}$/.test(name)) throw new Error("Invalid local database name.");
+			if (!/^[a-z][a-z0-9_]{0,62}$/u.test(name)) throw new Error("Invalid local database name.");
 		}
 		startPostgres(values[0]);
 		for (const value of values) {

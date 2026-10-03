@@ -1,7 +1,7 @@
 import type { MarkdownFile } from "../files/list.ts";
 import { escapeHtml } from "./escape.ts";
 
-const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/, "");
+const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
 
 const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 

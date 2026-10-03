@@ -1,24 +1,24 @@
 import type { SourceComment } from "../comments/scan.ts";
 
 export const SUPPRESSIONS: ReadonlyArray<RegExp> = [
-	/^biome-ignore(?:-all|-start)?(?![\w-])/,
-	/^@ts-(?:ignore|expect-error|nocheck)(?![\w-])/,
-	/^(?:eslint|oxlint|stylelint)-disable(?:-next-line|-line)?(?![\w-])/,
-	/^deno-lint-ignore(?:-file)?(?![\w-])/,
-	/^tslint:disable/,
-	/^prettier-ignore(?![\w-])/,
-	/^\$Flow(?:FixMe|Ignore|ExpectedError|Issue)(?!\w)/,
-	/^@noflow(?!\w)/,
+	/^biome-ignore(?:-all|-start)?(?![\w-])/u,
+	/^@ts-(?:ignore|expect-error|nocheck)(?![\w-])/u,
+	/^(?:eslint|oxlint|stylelint)-disable(?:-next-line|-line)?(?![\w-])/u,
+	/^deno-lint-ignore(?:-file)?(?![\w-])/u,
+	/^tslint:disable/u,
+	/^prettier-ignore(?![\w-])/u,
+	/^\$Flow(?:FixMe|Ignore|ExpectedError|Issue)(?!\w)/u,
+	/^@noflow(?!\w)/u,
 ];
 
-const INLINE_ESLINT_CONFIG = /^eslint\s+["']?[\w@/-]+["']?\s*:/;
+const INLINE_ESLINT_CONFIG = /^eslint\s+["']?[\w@/-]+["']?\s*:/u;
 
-const LEADER = /^[\s/*]+/;
+const LEADER = /^[\s/*]+/u;
 
 const directiveOn = (comment: SourceComment, line: string): string | undefined => {
 	const content = line.replace(LEADER, "");
 	const patterns = comment.kind === "block" ? [...SUPPRESSIONS, INLINE_ESLINT_CONFIG] : SUPPRESSIONS;
-	return patterns.map((pattern) => pattern.exec(content)?.[0].replace(/\s*:$/, "")).find((match) => match !== undefined);
+	return patterns.map((pattern) => pattern.exec(content)?.[0].replace(/\s*:$/u, "")).find((match) => match !== undefined);
 };
 
 export const suppressionIn = (comment: SourceComment): string | undefined =>

@@ -26,9 +26,7 @@ const killGroup = (pid: number | undefined): void => {
 	}
 	try {
 		process.kill(-pid, "SIGKILL");
-	} catch {
-		return;
-	}
+	} catch {}
 };
 
 export interface Started {

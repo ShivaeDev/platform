@@ -4,7 +4,7 @@ import type { CommandLine } from "./args.ts";
 import { type ForwardedSignal, signalExitCode } from "./signals.ts";
 
 const COULD_NOT_START = 127;
-const KILLED_BY = /signal: '(SIG[A-Z0-9]+)'/;
+const KILLED_BY = /signal: '(SIG[A-Z0-9]+)'/u;
 
 // The spawner reports a child killed by a signal only as an error naming that signal.
 const signalledExitCode = (error: PlatformError.PlatformError) => {

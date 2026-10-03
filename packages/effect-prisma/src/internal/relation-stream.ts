@@ -18,8 +18,8 @@ const collectRows = (iterable: AsyncIterable<unknown>): Effect.Effect<Array<unkn
 export const makeRelationStream = <Models extends object, Contract extends AnyPostgresContract>(
 	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>, PrismaError>,
 	recipe: RelationRecipe,
-): Stream.Stream<unknown, PrismaError> => {
-	return Stream.unwrap(
+): Stream.Stream<unknown, PrismaError> =>
+	Stream.unwrap(
 		Effect.flatMap(resolveExecutor, (executor) =>
 			executeQuery(
 				executor,
@@ -43,4 +43,3 @@ export const makeRelationStream = <Models extends object, Contract extends AnyPo
 			),
 		),
 	);
-};

@@ -62,7 +62,7 @@ test("missing or malformed request ids are replaced with generated ones", async 
 			client.Echo(undefined, { headers: { "x-correlation-id": "accepted-id" } }),
 		]),
 	);
-	expect(value.slice(0, 3).every((id) => /^[0-9a-f]{32}$/.test(id))).toBe(true);
+	expect(value.slice(0, 3).every((id) => /^[0-9a-f]{32}$/u.test(id))).toBe(true);
 	expect(new Set(value.slice(0, 3)).size).toBe(3);
 	expect(value[3]).toBe("accepted-id");
 });

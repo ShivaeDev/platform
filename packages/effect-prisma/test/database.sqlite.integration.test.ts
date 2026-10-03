@@ -184,7 +184,7 @@ it.live("decodes the zone-less column default as UTC", () =>
 			});
 
 			const stored = storedCreatedAt(temporary.path, id);
-			expect(stored).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+			expect(stored).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/u);
 
 			expect(user.createdAt).toBeInstanceOf(Date);
 			expect(user.createdAt.toISOString()).toBe(`${stored.replace(" ", "T")}.000Z`);

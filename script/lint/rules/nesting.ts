@@ -1,7 +1,7 @@
 import { type Inventory, isDeclaration } from "#lint/inventory.ts";
 import type { Violation } from "#lint/violation.ts";
 
-const TOO_DEEP = /^\t{8,}/;
+const TOO_DEEP = /^\t{8,}/u;
 
 const fileViolations = (path: string, lines: readonly string[]): readonly Violation[] =>
 	lines.flatMap((text, index) => {

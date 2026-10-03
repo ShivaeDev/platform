@@ -14,7 +14,7 @@ export const writeFixtures = (root: string, pkg: Package, consumer: string, sele
 		if (!(yield* fs.exists(directory))) return imports;
 		for (const file of selected ?? (yield* topLevelFiles(directory))) {
 			const source = yield* fs.readFileString(join(directory, file));
-			yield* fs.writeFileString(join(consumer, basename(file).replace(/\.txt$/, "")), source);
+			yield* fs.writeFileString(join(consumer, basename(file).replace(/\.txt$/u, "")), source);
 			for (const name of importedPackages(source)) imports.add(name);
 			ts.preProcessFile(source).importedFiles.forEach(({ fileName }) => {
 				references.add(fileName);
@@ -45,7 +45,7 @@ const copyFixtureFiles = (root: string, pkg: Package, consumer: string, referenc
 		const imports = new Set<string>();
 		const fixtureFiles = decodeFiles(yield* fs.readFileString(join(root, "script/package-check/fixture-files.json")));
 		for (const [target, source] of Object.entries(fixtureFiles[pkg.directory.split("/").at(-1) ?? ""] ?? {})) {
-			if (!references.has(`./${target.replace(/\.d\.ts$/, ".js")}`)) continue;
+			if (!references.has(`./${target.replace(/\.d\.ts$/u, ".js")}`)) continue;
 			yield* fs.copyFile(join(root, source), join(consumer, target));
 			for (const name of importedPackages(yield* fs.readFileString(join(root, source)))) imports.add(name);
 		}

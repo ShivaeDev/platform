@@ -25,7 +25,7 @@ test("client-supplied message headers cannot satisfy the origin policy or carry 
 	const { app } = makeApp(provider, browser);
 	try {
 		const alice = await signup(provider, "alice");
-		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/;
+		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/u;
 
 		expect(await post(app, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
 		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]])).toMatch(forbidden);
