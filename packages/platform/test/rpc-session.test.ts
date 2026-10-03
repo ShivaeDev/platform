@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { AuthUnavailable, Forbidden, Unauthorized } from "../src/errors.ts";
 import { type OriginPolicy, trustedOrigins } from "../src/rpc-server.ts";
 import { makeApp } from "./rpc/api.ts";
@@ -7,7 +7,7 @@ import { annotationsOf, createProvider, origin, signup } from "./rpc/support.ts"
 
 const browser = trustedOrigins({ allow: [origin, "capacitor://localhost"], missing: "reject" });
 
-test("Better Auth sessions give each concurrent native RPC request its own identity", async () => {
+it("Better Auth sessions give each concurrent native RPC request its own identity", async () => {
 	const provider = await createProvider();
 	const { app, call, logs, spans } = makeApp(provider, browser);
 	try {
@@ -23,7 +23,7 @@ test("Better Auth sessions give each concurrent native RPC request its own ident
 		const handled = annotationsOf(logs, "handled");
 		expect(handled).toHaveLength(users.length);
 		for (const user of users) {
-			expect(handled).toContainEqual(expect.objectContaining({ requestId: user.requestId, userId: user.userId, "rpc.method": "Whoami" }));
+			expect(handled).toContainEqual(expect.objectContaining({ requestId: user.requestId, "rpc.method": "Whoami", userId: user.userId }));
 			const span = spans.find((candidate) => candidate.attributes.get("request.id") === user.requestId);
 			expect(span?.name).toBe("RpcServer.Whoami");
 			expect(span?.attributes.get("user.id")).toBe(user.userId);
@@ -43,7 +43,7 @@ test("Better Auth sessions give each concurrent native RPC request its own ident
 	}
 }, 20_000);
 
-test("missing sessions are unauthorized while provider failures are reported as unavailable", async () => {
+it("missing sessions are unauthorized while provider failures are reported as unavailable", async () => {
 	const provider = await createProvider();
 	const { app, call, logs } = makeApp(provider, browser);
 	try {
@@ -75,7 +75,7 @@ test("missing sessions are unauthorized while provider failures are reported as 
 	}
 }, 20_000);
 
-test("origin policy is an explicit decision evaluated before the provider is consulted", async () => {
+it("origin policy is an explicit decision evaluated before the provider is consulted", async () => {
 	const provider = await createProvider();
 	const onlyPublicWithoutOrigin: OriginPolicy = (request) =>
 		Option.match(request.origin, { onNone: () => request.rpc === "Greeting", onSome: (value) => value === origin });

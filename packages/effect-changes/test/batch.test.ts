@@ -1,8 +1,8 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { Current, change, harness, makeDatabase, on } from "./support/fake-database.ts";
 
-test("a batch publishes its distinct changes once when it ends, whatever its exit, because its writes were autocommitted", () =>
+it("a batch publishes its distinct changes once when it ends, whatever its exit, because its writes were autocommitted", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, write } = harness();
@@ -34,7 +34,7 @@ test("a batch publishes its distinct changes once when it ends, whatever its exi
 		}),
 	));
 
-test("transactions inside a batch merge into it on commit and are discarded on rollback", () =>
+it("transactions inside a batch merge into it on commit and are discarded on rollback", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
@@ -50,10 +50,10 @@ test("transactions inside a batch merge into it on commit and are discarded on r
 		}),
 	));
 
-test("a batch does not own a transaction, so records in it and transactions opened in it still run the unowned guard", () =>
+it("a batch does not own a transaction, so records in it and transactions opened in it still run the unowned guard", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
-			const guarded: Array<string> = [];
+			const guarded: string[] = [];
 			const unowned = Effect.map(Effect.service(Current), (database) => {
 				guarded.push(database.name);
 			});
@@ -71,7 +71,7 @@ test("a batch does not own a transaction, so records in it and transactions open
 		}),
 	));
 
-test("a batch inside a transaction merges into it on any exit and follows the transaction's fate", () =>
+it("a batch inside a transaction merges into it on any exit and follows the transaction's fate", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();

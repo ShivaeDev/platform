@@ -19,21 +19,21 @@ export const temporaryLock = (): string => join(temporaryDirectory(), "nested", 
 
 export const removeTemporaryDirectories = (): void => {
 	for (const directory of directories.splice(0)) {
-		rmSync(directory, { recursive: true, force: true });
+		rmSync(directory, { force: true, recursive: true });
 	}
 };
 
 export const startTime = (pid: number): string => {
-	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8", env: { PATH: "/usr/bin:/bin", LC_ALL: "C" } });
+	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8", env: { LC_ALL: "C", PATH: "/usr/bin:/bin" } });
 	return status === 0 ? stdout.trim() : "never";
 };
 
 export const holder = (id: string, pid: number = process.pid, startedAtMs = 0): Holder => ({
+	command: `pnpm ${id}`,
+	cwd: "/repo",
 	id,
 	pid,
 	processStartedAt: startTime(pid),
-	command: `pnpm ${id}`,
-	cwd: "/repo",
 	startedAtMs,
 });
 
@@ -46,7 +46,7 @@ export const writeLock = (lock: string, content: string): void => {
 
 export const readLock = (lock: string): string | undefined => (existsSync(lock) ? readFileSync(lock, "utf8") : undefined);
 
-export const lockDirectory = (lock: string): ReadonlyArray<string> => readdirSync(dirname(lock));
+export const lockDirectory = (lock: string): readonly string[] => readdirSync(dirname(lock));
 
 // An explicit environment keeps a test from reading the machine's `CI` or lock variables.
 export const services = (env: Record<string, string> = {}) =>

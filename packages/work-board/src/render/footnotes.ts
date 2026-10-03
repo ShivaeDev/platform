@@ -1,7 +1,7 @@
 import type { Element } from "hast";
 import { defineHastPlugin } from "satteri";
 
-const FOOTNOTE_IDS = /^(?:user-content-fn|footnote-label)/;
+const FOOTNOTE_IDS = /^(?:user-content-fn|footnote-label)/u;
 
 type Value = Element["properties"][string];
 
@@ -19,7 +19,6 @@ const scoped = (prefix: string, value: Value): Value => {
 
 export const footnoteIds = (prefix: string) =>
 	defineHastPlugin({
-		name: "work-board-footnote-ids",
 		element: {
 			filter: ["a", "h2", "li"],
 			visit: (element) => ({
@@ -29,4 +28,5 @@ export const footnoteIds = (prefix: string) =>
 				),
 			}),
 		},
+		name: "work-board-footnote-ids",
 	});

@@ -1,8 +1,8 @@
 import type { IncomingMessage } from "node:http";
 
 export interface NodeSubscriptionSignalOptions {
-	readonly request?: Request | undefined;
 	readonly nodeRequest?: IncomingMessage | undefined;
+	readonly request?: Request | undefined;
 	readonly signals?: Iterable<AbortSignal | undefined>;
 }
 
@@ -25,9 +25,13 @@ const nodeRequestFrom = (request: Request | undefined): IncomingMessage | undefi
 export const nodeSubscriptionSignal = (options: NodeSubscriptionSignalOptions): NodeSubscriptionSignal => {
 	const controller = new AbortController();
 	const signals: AbortSignal[] = [controller.signal];
-	if (options.request !== undefined) signals.push(options.request.signal);
+	if (options.request !== undefined) {
+		signals.push(options.request.signal);
+	}
 	for (const signal of options.signals ?? []) {
-		if (signal !== undefined) signals.push(signal);
+		if (signal !== undefined) {
+			signals.push(signal);
+		}
 	}
 
 	const nodeRequest = options.nodeRequest ?? nodeRequestFrom(options.request);
@@ -37,17 +41,23 @@ export const nodeSubscriptionSignal = (options: NodeSubscriptionSignalOptions): 
 
 	const socket = nodeRequest.socket;
 	const onRequestClose = () => {
-		if (!nodeRequest.complete) controller.abort();
+		if (!nodeRequest.complete) {
+			controller.abort();
+		}
 	};
 	const onSocketClose = () => controller.abort();
 	nodeRequest.once("close", onRequestClose);
 	socket.once("close", onSocketClose);
-	if (nodeRequest.destroyed || socket.destroyed) controller.abort();
+	if (nodeRequest.destroyed || socket.destroyed) {
+		controller.abort();
+	}
 
 	let disposed = false;
 	return {
 		dispose: () => {
-			if (disposed) return;
+			if (disposed) {
+				return;
+			}
 			disposed = true;
 			nodeRequest.removeListener("close", onRequestClose);
 			socket.removeListener("close", onSocketClose);

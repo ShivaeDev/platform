@@ -1,18 +1,18 @@
 import { Data, Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule, Stream } from "effect";
 import { isMarkdown, listMarkdown, type MarkdownFile } from "./list.ts";
 
-export type Change = { readonly _tag: "Changed"; readonly paths: ReadonlyArray<string> } | { readonly _tag: "Watching"; readonly watching: boolean };
+export type Change = { readonly _tag: "Changed"; readonly paths: readonly string[] } | { readonly _tag: "Watching"; readonly watching: boolean };
 
 export interface Changes {
-	readonly realRoot: string;
 	readonly events: PubSub.PubSub<Change>;
+	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
+	readonly realRoot: string;
 	readonly watching: Ref.Ref<boolean>;
-	readonly files: Effect.Effect<ReadonlyArray<MarkdownFile>, PlatformError.PlatformError>;
 }
 
 interface Cached {
+	readonly files: readonly MarkdownFile[];
 	readonly generation: number;
-	readonly files: ReadonlyArray<MarkdownFile>;
 }
 
 class WatchEnded extends Data.TaggedError("WatchEnded") {}
@@ -63,9 +63,9 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 			return hit.value.files;
 		}
 		const listed = yield* listMarkdown(root, realRoot).pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
-		yield* Ref.set(cached, Option.some({ generation: now, files: listed }));
+		yield* Ref.set(cached, Option.some({ files: listed, generation: now }));
 		return listed;
 	});
-	const changes: Changes = { realRoot, events, watching, files };
+	const changes: Changes = { events, files, realRoot, watching };
 	return changes;
 });

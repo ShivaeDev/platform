@@ -19,7 +19,7 @@ type Adapter = Pick<EffectTRPCAdapter<never>, "runWithServices">;
 const member = (node: unknown, segment: string): unknown =>
 	(typeof node === "object" && node !== null) || typeof node === "function" ? Reflect.get(node, segment) : undefined;
 
-const invoke = (promiseCaller: object, path: ReadonlyArray<string>, argumentsList: ReadonlyArray<unknown>): Promise<unknown> => {
+const invoke = (promiseCaller: object, path: readonly string[], argumentsList: readonly unknown[]): Promise<unknown> => {
 	const leaf = path.reduce<unknown>(member, promiseCaller);
 	return typeof leaf === "function"
 		? Promise.resolve(Reflect.apply(leaf, undefined, argumentsList))
@@ -32,7 +32,7 @@ export function makeEffectCaller<Caller extends object, Services>(
 	services: Context.Context<Services>,
 ): EffectCaller<Caller>;
 export function makeEffectCaller(adapter: Adapter, promiseCaller: object, services: Context.Context<never>): unknown {
-	const build = (path: ReadonlyArray<string>): unknown =>
+	const build = (path: readonly string[]): unknown =>
 		new Proxy(
 			Object.assign(() => undefined, { path }),
 			{

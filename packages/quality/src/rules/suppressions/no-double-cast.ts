@@ -19,7 +19,7 @@ const bridgeOf = (node: Assertion): string | undefined => {
 	return isAssertion(inner) ? BRIDGES.get(inner.type.kind) : undefined;
 };
 
-const castsIn = (path: string, source: ts.SourceFile): ReadonlyArray<Finding> => {
+const castsIn = (path: string, source: ts.SourceFile): readonly Finding[] => {
 	const findings: Finding[] = [];
 	const visit = (node: ts.Node): void => {
 		const bridge = isAssertion(node) ? bridgeOf(node) : undefined;
@@ -33,15 +33,15 @@ const castsIn = (path: string, source: ts.SourceFile): ReadonlyArray<Finding> =>
 	return findings;
 };
 
-const doubleCasts = (file: SourceFile): ReadonlyArray<Finding> => {
+const doubleCasts = (file: SourceFile): readonly Finding[] => {
 	const source = parse(file);
 	return source === undefined ? [] : castsIn(file.path, source);
 };
 
 export const noDoubleCast = defineRule({
-	id: "suppressions/no-double-cast",
+	check: ({ sources }) => sources.flatMap(doubleCasts),
 	description:
 		"A cast through unknown, any or never silences the compiler the way a suppression does. Decode the value at its boundary, narrow it, or fix the type that disagrees.",
+	id: "suppressions/no-double-cast",
 	registrable: false,
-	check: ({ sources }) => sources.flatMap(doubleCasts),
 });

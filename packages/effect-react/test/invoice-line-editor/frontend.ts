@@ -17,24 +17,26 @@ const Input = <E, ER>({ form, name }: { readonly form: Form<InvoiceLineFields, I
 		name,
 		createElement("input", {
 			name,
-			value: field.value,
 			onBlur: field.onBlur,
 			onChange: (event: { readonly target: { readonly value: string } }) => field.onChange(event.target.value),
+			value: field.value,
 		}),
 		field.error && createElement("em", { "data-error": name }, field.error),
 	);
 };
 
 interface Saving<E, ER> {
-	readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>;
 	readonly dirty: boolean;
-	readonly saving: boolean;
 	readonly failure: Option.Option<unknown>;
+	readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>;
 	readonly save: () => void;
+	readonly saving: boolean;
 }
 
 const saveStatus = ({ saving, dirty }: { readonly saving: boolean; readonly dirty: boolean }): string => {
-	if (saving) return "Saving";
+	if (saving) {
+		return "Saving";
+	}
 	return dirty ? "Unsaved" : "Saved";
 };
 
@@ -60,17 +62,17 @@ type Server = ReturnType<typeof makeInvoiceLineServer>;
 export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
 	const InvoiceLineEditor = ({ id }: { readonly id: number }) => {
 		const editor = useEditor({
-			query: api.get.query({ id }),
 			fields,
-			values,
+			query: api.get.query({ id }),
 			runtime,
 			save: (line) => api.save.run({ id, ...line }),
+			values,
 		});
 		const { query, form } = editor;
 		return createElement(
 			"section",
 			null,
-			createElement("button", { type: "button", onClick: query.refresh }, "Refresh"),
+			createElement("button", { onClick: query.refresh, type: "button" }, "Refresh"),
 			Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load"),
 			Option.match(query.data, {
 				onNone: () => createElement("p", null, "Loading"),
@@ -81,13 +83,13 @@ export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
 	};
 	const InvoiceLineCreate = () => {
 		const create = useCreate({
+			create: api.create.run,
 			fields,
 			initialValues: { name: "", quantity: "" },
 			runtime,
-			create: api.create.run,
 		});
 		const created = Option.map(create.created, (line) => createElement("output", null, `Created ${line.id}: ${line.name}`));
 		return createElement(InvoiceLineForm, { editor: create }, Option.getOrNull(created));
 	};
-	return { InvoiceLineEditor, InvoiceLineCreate };
+	return { InvoiceLineCreate, InvoiceLineEditor };
 };

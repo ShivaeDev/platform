@@ -19,46 +19,50 @@ export const shell = (url: string) => {
 	const rechecks: string[] = [];
 	const Registry = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		return null;
 	};
 	const show = (session: Session | undefined, id: number) =>
 		act(async () => {
 			root.render(
 				createElement(SessionBoundary<Session, ReturnType<typeof makeOrderEditor>>, {
-					session,
+					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { id, key: "editor" })],
+					connect: (current) => makeOrderEditor({ token: current.token, url }),
 					identify: (current) => current.id,
-					connect: (current) => makeOrderEditor({ url, token: current.token }),
 					recheck: () => rechecks.push(session?.id ?? "none"),
+					session,
 					signedOut: createElement("p", null, "Signed out"),
-					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { key: "editor", id })],
 				}),
 			);
 		});
 	const input = () => container.querySelector<HTMLInputElement>('input[name="name"]');
 	return {
-		container,
-		registries,
-		rechecks,
-		show,
-		input,
-		edit: (value: string) =>
-			act(async () => {
-				const field = input();
-				if (!field) throw new Error("Missing name input");
-				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
-				field.dispatchEvent(new Event("input", { bubbles: true }));
-			}),
-		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
 		close: async () => {
 			await act(async () => root.unmount());
 			container.remove();
 		},
+		container,
+		edit: (value: string) =>
+			act(async () => {
+				const field = input();
+				if (!field) {
+					throw new Error("Missing name input");
+				}
+				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
+				field.dispatchEvent(new Event("input", { bubbles: true }));
+			}),
+		input,
+		rechecks,
+		refresh: () => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Refresh")?.click()),
+		registries,
+		show,
 	};
 };
 
 export const sessions = () =>
 	new Map([
-		["alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
-		["bob-token", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
+		["alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
+		["bob-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 	]);

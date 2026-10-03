@@ -10,7 +10,7 @@ export interface ServeOptions extends BoardOptions {
 	readonly port: number;
 }
 
-export const listenOn = (port: number) => NodeHttpServer.layer(createServer, { host: HOST, port, disablePreemptiveShutdown: true });
+export const listenOn = (port: number) => NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: HOST, port });
 
 export const serveBoard = (options: ServeOptions) =>
 	HttpRouter.serve(boardLayer(options), { disableLogger: true }).pipe(Layer.provideMerge(listenOn(options.port)));

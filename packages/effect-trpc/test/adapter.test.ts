@@ -24,7 +24,7 @@ interface RequestContext {
 const runtime = ManagedRuntime.make(Layer.merge(Layer.succeed(RuntimeValue, "runtime"), Layer.succeed(RuntimeOnlyValue, "runtime-only")));
 const instrumented: Array<{ path: string; type: string }> = [];
 const instrumentedStreams: Array<{ path: string; type: string }> = [];
-const instrumentedRequestValues: Array<string> = [];
+const instrumentedRequestValues: string[] = [];
 const finalizedStreams: string[] = [];
 let markInterruptibleStarted: () => void = () => undefined;
 const interruptibleStarted = new Promise<void>((resolve) => {
@@ -32,7 +32,6 @@ const interruptibleStarted = new Promise<void>((resolve) => {
 });
 const mapped: Array<{ origin: string; path: string }> = [];
 const adapter = makeEffectTRPC({
-	runtime,
 	instrument: (effect, procedure) =>
 		Effect.gen(function* () {
 			instrumented.push({ path: procedure.path, type: procedure.type });
@@ -50,6 +49,7 @@ const adapter = makeEffectTRPC({
 		mapped.push({ origin: context.origin, path: context.path });
 		return error instanceof DomainFailure ? new TRPCError({ code: "CONFLICT", message: error.message }) : undefined;
 	},
+	runtime,
 });
 const t = initTRPC.context<RequestContext>().create();
 const requestServices = makeRequestServices((context: RequestContext) => Layer.succeed(RequestValue, context.requestId));
@@ -84,15 +84,13 @@ const router = t.router({
 			extended: yield* ExtendedRequestValue,
 		};
 	}),
-	layerFailure: adapter
-		.procedure(
-			t.procedure,
-			makeRequestServices(() => Layer.effect(RequestValue, Effect.fail(new DomainFailure({ message: "layer conflict" })))),
-		)
-		.query(function* () {
-			yield* Effect.void;
-			return "unreachable";
-		}),
+	interruptible: effectProcedure.subscription(function* () {
+		return Stream.scoped(
+			Stream.fromEffect(
+				Effect.acquireRelease(Effect.sync(markInterruptibleStarted), () => Effect.sync(() => finalizedStreams.push("interruptible"))),
+			),
+		).pipe(Stream.flatMap(() => Stream.never));
+	}),
 	layerDefect: adapter
 		.procedure(
 			t.procedure,
@@ -104,16 +102,18 @@ const router = t.router({
 			yield* Effect.void;
 			return "unreachable";
 		}),
+	layerFailure: adapter
+		.procedure(
+			t.procedure,
+			makeRequestServices(() => Layer.effect(RequestValue, Effect.fail(new DomainFailure({ message: "layer conflict" })))),
+		)
+		.query(function* () {
+			yield* Effect.void;
+			return "unreachable";
+		}),
 	mutation: effectProcedure.input(Schema.String).mutation(function* (input) {
 		yield* Effect.void;
 		return input.toUpperCase();
-	}),
-	interruptible: effectProcedure.subscription(function* () {
-		return Stream.scoped(
-			Stream.fromEffect(
-				Effect.acquireRelease(Effect.sync(markInterruptibleStarted), () => Effect.sync(() => finalizedStreams.push("interruptible"))),
-			),
-		).pipe(Stream.flatMap(() => Stream.never));
 	}),
 	services: effectProcedure.query(function* () {
 		const runtimeValue = yield* RuntimeValue;
@@ -128,13 +128,13 @@ const router = t.router({
 			Stream.fromEffect(Effect.acquireRelease(Effect.succeed(requestValue), (value) => Effect.sync(() => finalizedStreams.push(value)))),
 		).pipe(Stream.flatMap((value) => Stream.make(`${value}:one`, `${value}:two`, String(requestSignal))));
 	}),
-	transformedStream: effectProcedure.output(Schema.NumberFromString).subscription(function* () {
-		yield* Effect.void;
-		return Stream.make("42", "43");
-	}),
 	transformedOutput: effectProcedure.output(Schema.NumberFromString).query(function* () {
 		yield* Effect.void;
 		return "42";
+	}),
+	transformedStream: effectProcedure.output(Schema.NumberFromString).subscription(function* () {
+		yield* Effect.void;
+		return Stream.make("42", "43");
 	}),
 	unknownDefect: effectProcedure.query(function* () {
 		return yield* Effect.die(new Error("private detail"));
@@ -179,7 +179,9 @@ describe("makeEffectTRPC", () => {
 		const caller = router.createCaller({ requestId: "stream" });
 		const values: string[] = [];
 
-		for await (const value of await caller.stream(undefined)) values.push(value);
+		for await (const value of await caller.stream(undefined)) {
+			values.push(value);
+		}
 
 		expect(values).toEqual(["stream:one", "stream:two", "undefined"]);
 		expect(finalizedStreams).toContain("stream");

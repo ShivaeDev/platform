@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 
 export type Observation<A> =
-	| { readonly _tag: "Recorded"; readonly changes: ReadonlyArray<A> }
-	| { readonly _tag: "Published"; readonly changes: ReadonlyArray<A> }
-	| { readonly _tag: "Discarded"; readonly changes: ReadonlyArray<A> };
+	| { readonly _tag: "Recorded"; readonly changes: readonly A[] }
+	| { readonly _tag: "Published"; readonly changes: readonly A[] }
+	| { readonly _tag: "Discarded"; readonly changes: readonly A[] };
 
 export type Observer<A> = (observation: Observation<A>) => Effect.Effect<void>;
 

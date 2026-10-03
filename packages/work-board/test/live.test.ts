@@ -7,7 +7,7 @@ let notes: Folder;
 let board: RunningBoard;
 
 beforeEach(async () => {
-	notes = folder({ "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n", "notes/log.md": "# Log\n" });
+	notes = folder({ "notes/log.md": "# Log\n", "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" });
 	board = await startBoard(notes.root, "plan.md");
 });
 
@@ -112,10 +112,10 @@ describe("a folder whose own name starts with a dot", () => {
 
 	beforeEach(async () => {
 		dotted = folder({
-			".notes/plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
-			".notes/notes/log.md": "# Log\n",
 			".notes/.hidden/x.md": "# Hidden\n",
 			".notes/node_modules/x.md": "# Dependency\n",
+			".notes/notes/log.md": "# Log\n",
+			".notes/plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
 		});
 		dotBoard = await startBoard(join(dotted.root, ".notes"), "plan.md");
 	});

@@ -13,12 +13,17 @@ export const checkBrowserEntries = (root: string, pkg: Package, consumer: string
 		const seen = new Set<string>();
 		const visit = (path: string): Effect.Effect<void, unknown, FileSystem.FileSystem> =>
 			Effect.gen(function* () {
-				if (seen.has(path)) return;
+				if (seen.has(path)) {
+					return;
+				}
 				seen.add(path);
 				const source = yield* fs.readFileString(path);
 				for (const { fileName } of ts.preProcessFile(source).importedFiles) {
-					if (fileName.startsWith(".")) yield* visit(join(dirname(path), fileName));
-					else yield* requireThat(fileName === "effect" || fileName.startsWith("effect/"), `${path}: browser entry imports ${fileName}`);
+					if (fileName.startsWith(".")) {
+						yield* visit(join(dirname(path), fileName));
+					} else {
+						yield* requireThat(fileName === "effect" || fileName.startsWith("effect/"), `${path}: browser entry imports ${fileName}`);
+					}
 				}
 			});
 		for (const entry of entries[pkg.directory.split("/").at(-1) ?? ""] ?? []) {

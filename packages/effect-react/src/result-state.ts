@@ -6,21 +6,21 @@ import { useEffect } from "react";
 import { useSessionRecheck } from "./session-boundary.ts";
 
 export interface ResultState<A, E> {
-	readonly result: AsyncResult.AsyncResult<A, E>;
-	readonly data: Option.Option<A>;
 	readonly cause: Option.Option<Cause.Cause<E>>;
+	readonly data: Option.Option<A>;
 	readonly pending: boolean;
 	readonly refreshing: boolean;
+	readonly result: AsyncResult.AsyncResult<A, E>;
 }
 
 const state = <A, E>(result: AsyncResult.AsyncResult<A, E>): ResultState<A, E> => {
 	const data = AsyncResult.value(result);
 	return {
-		result,
-		data,
 		cause: AsyncResult.cause(result),
+		data,
 		pending: result.waiting,
 		refreshing: result.waiting && Option.isSome(data),
+		result,
 	};
 };
 
@@ -30,7 +30,9 @@ export const isUnauthorized = <E>(cause: Cause.Cause<E>): boolean =>
 const useRecheckOnUnauthorized = <A, E>(result: AsyncResult.AsyncResult<A, E>): void => {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) recheck();
+		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+			recheck();
+		}
 	}, [recheck, result]);
 };
 

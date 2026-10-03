@@ -1,7 +1,7 @@
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { tablesOf } from "../src/index.ts";
 
-test("tablesOf maps each table to its model, honouring @@map and ignoring comments", () => {
+it("tablesOf maps each table to its model, honouring @@map and ignoring comments", () => {
 	const schema = `
 generator client {
   provider = "prisma-client"

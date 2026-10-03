@@ -1,0 +1,17 @@
+[
+	{
+		"includes": ["**"],
+		"reason": "TypeScript reports unused variables through noUnusedLocals in the shared tsconfig, so Biome would report each one twice.",
+		"rule": "lint/correctness/noUnusedVariables"
+	},
+	{
+		"includes": ["**"],
+		"reason": "TypeScript reports unused parameters through noUnusedParameters in the shared tsconfig, so Biome would report each one twice.",
+		"rule": "lint/correctness/noUnusedFunctionParameters"
+	},
+	{
+		"includes": ["**/*.config.*"],
+		"reason": "Tools load their config files through the default export.",
+		"rule": "lint/style/noDefaultExport"
+	}
+]

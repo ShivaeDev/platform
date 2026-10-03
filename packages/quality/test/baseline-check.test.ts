@@ -39,7 +39,7 @@ describe("quality baseline check", { timeout: cliTimeout }, () => {
 		const root = baselined();
 		expect(check(root)).toMatchObject({
 			status: 0,
-			stdout: expect.stringMatching(/^quality: quality\/baseline\.jsonl holds against main \(merge base [0-9a-f]{12}\)\.\n$/),
+			stdout: expect.stringMatching(/^quality: quality\/baseline\.jsonl holds against main \(merge base [0-9a-f]{12}\)\.\n$/u),
 		});
 		writeFileSync(join(root, "src/long.ts"), "1\n");
 		quality(root, "baseline", "prune");

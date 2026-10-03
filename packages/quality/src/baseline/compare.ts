@@ -1,10 +1,9 @@
-import type { Level } from "../config.ts";
-import { groupBy, keyOf, unusedEntryProblem, type Violation } from "../engine/violation.ts";
+import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Violation } from "../engine/violation.ts";
 import type { BaselineEntry } from "./format.ts";
 
 export interface Regression {
-	readonly entry: BaselineEntry;
 	readonly count: number;
+	readonly entry: BaselineEntry;
 }
 
 export interface StaleBaselineEntry {
@@ -13,20 +12,16 @@ export interface StaleBaselineEntry {
 }
 
 export interface BaselineCheck {
-	readonly kept: ReadonlyArray<Violation>;
-	readonly regressions: ReadonlyArray<Regression>;
-	readonly stale: ReadonlyArray<StaleBaselineEntry>;
-	readonly loose: ReadonlyArray<StaleBaselineEntry>;
 	readonly baselined: number;
+	readonly kept: readonly Violation[];
+	readonly loose: readonly StaleBaselineEntry[];
+	readonly regressions: readonly Regression[];
+	readonly stale: readonly StaleBaselineEntry[];
 }
 
-export const countOf = (violations: ReadonlyArray<Violation>): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
+export const countOf = (violations: readonly Violation[]): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
 
-export const applyBaseline = (
-	violations: ReadonlyArray<Violation>,
-	entries: ReadonlyArray<BaselineEntry>,
-	levels: ReadonlyMap<string, Level>,
-): BaselineCheck => {
+export const applyBaseline = (violations: readonly Violation[], entries: readonly BaselineEntry[], rules: RuleIndex): BaselineCheck => {
 	const groups = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	const covered = new Set<string>();
 	const regressions: Regression[] = [];
@@ -35,10 +30,10 @@ export const applyBaseline = (
 	for (const entry of entries) {
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
 		if (group.length === 0) {
-			const level = levels.get(entry.rule);
+			const level = levelOf(rules, entry.rule);
 			(level === undefined || level === "off" ? stale : loose).push({
 				entry,
-				problem: unusedEntryProblem(levels, entry.rule, "has no violations left"),
+				problem: unusedEntryProblem(rules, entry.rule, "has no violations left"),
 			});
 			continue;
 		}

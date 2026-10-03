@@ -1,6 +1,6 @@
-const { collection, contract, invalidationKeys, query } = await import('@shivaedev/effect-contract');
-const { Effect, Schema } = await import('effect');
-const { RpcTest } = await import('effect/unstable/rpc');
+import { collection, contract, invalidationKeys, query } from '@shivaedev/effect-contract';
+import { Effect, Schema } from 'effect';
+import { RpcTest } from 'effect/unstable/rpc';
 const notes = collection('notes', Schema.Number);
 const Notes = contract('notes', { queries: [query('list', { success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
 const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.list': () => Effect.succeed(['written']) })));

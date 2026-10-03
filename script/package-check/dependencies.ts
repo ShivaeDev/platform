@@ -6,32 +6,39 @@ export const consumerDependencies = (pkg: Package, packages: readonly Package[],
 	Effect.gen(function* () {
 		const closure = workspaceClosure(pkg, packages, imports, omitOptionalPeers);
 		const dependencies: Record<string, string> = {
-			effect: "catalog:",
 			"@types/node": "catalog:",
 			"@typescript/native": "catalog:",
+			effect: "catalog:",
 		};
 		for (const entry of closure.values()) {
 			Object.assign(dependencies, peers(entry, omitOptionalPeers));
 			Object.assign(dependencies, fixtureDependencies(entry, imports));
 		}
 		const tarballs = Object.fromEntries([...closure.values()].map((entry) => [entry.manifest.name, entry.tarball]));
-		for (const [name, tarball] of Object.entries(tarballs)) dependencies[name] = `file:${tarball}`;
-		for (const name of imports)
+		for (const [name, tarball] of Object.entries(tarballs)) {
+			dependencies[name] = `file:${tarball}`;
+		}
+		for (const name of imports) {
 			yield* requireThat(
 				name in dependencies || name in (pkg.manifest.dependencies ?? {}) || name.startsWith("node:"),
 				`${pkg.manifest.name}: fixture import ${name} is not declared`,
 			);
+		}
 		return { dependencies, tarballs };
 	});
 
 const workspaceClosure = (pkg: Package, packages: readonly Package[], imports: ReadonlySet<string>, omitOptionalPeers: boolean) => {
 	const closure = new Map<string, Package>();
 	const visit = (entry: Package): void => {
-		if (closure.has(entry.manifest.name)) return;
+		if (closure.has(entry.manifest.name)) {
+			return;
+		}
 		closure.set(entry.manifest.name, entry);
 		for (const dependency of packages) {
 			const edges = { ...entry.manifest.dependencies, ...peers(entry, omitOptionalPeers), ...entry.manifest.optionalDependencies };
-			if (edges[dependency.manifest.name] === "workspace:*" || imports.has(dependency.manifest.name)) visit(dependency);
+			if (edges[dependency.manifest.name] === "workspace:*" || imports.has(dependency.manifest.name)) {
+				visit(dependency);
+			}
 		}
 	};
 	visit(pkg);

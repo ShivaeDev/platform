@@ -64,7 +64,7 @@ it(
 			expect((await first.exited).status).toBe(0);
 			expect(waited.status).toBe(0);
 			expect(waited.stderr).toContain(`waiting for pid ${first.pid} running \`${holding.join(" ")}\``);
-			expect(waited.stderr).toMatch(/acquired after \d+s/);
+			expect(waited.stderr).toMatch(/acquired after \d+s/u);
 			expect(existsSync(lock)).toBe(false);
 		} finally {
 			for (const run of runs) {
@@ -137,7 +137,7 @@ it(
 		const result = await runCli(["--", "no-such-command-anywhere"], cliEnvironment(lock));
 
 		expect(result.status).toBe(127);
-		expect(result.stderr).toMatch(/^no-such-command-anywhere: /);
+		expect(result.stderr).toMatch(/^no-such-command-anywhere: /u);
 		expect(existsSync(lock)).toBe(false);
 	},
 	TEST_TIMEOUT_MS,

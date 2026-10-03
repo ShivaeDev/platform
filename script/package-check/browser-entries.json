@@ -1,1 +1,1 @@
-{ "platform": ["./errors", "./rpc"], "effect-trpc": ["./client"] }
+{ "effect-trpc": ["./client"], "platform": ["./errors", "./rpc"] }

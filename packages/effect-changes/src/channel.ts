@@ -4,23 +4,23 @@ import { type Observation, type Observer, unobserved } from "./observe.ts";
 import { type Publish, type PublishFailure, publisher } from "./publish.ts";
 
 export interface ChannelOptions<A, R> {
-	readonly name: string;
-	readonly owner: Effect.Effect<unknown, never, R>;
 	readonly key?: (change: A) => unknown;
-	readonly publish: Publish<A, R>;
+	readonly name: string;
 	readonly onPublishFailure?: PublishFailure;
+	readonly owner: Effect.Effect<unknown, never, R>;
+	readonly publish: Publish<A, R>;
 	readonly unowned?: Effect.Effect<void, never, R>;
 }
 
 export interface Channel<A, R> {
+	readonly batch: <X, E, R2>(body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E, R | R2>;
+	readonly Observer: Context.Reference<Observer<A>>;
+	readonly open: Effect.Effect<Frame, never, R>;
 	readonly record: (changes: Iterable<A>) => Effect.Effect<void, never, R>;
+	readonly Sink: Context.Reference<Publish<A, R>>;
 	readonly within: <X, E, R2, E2, R3>(
 		native: (body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E2, R3>,
 	) => (body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E2, R | R3>;
-	readonly open: Effect.Effect<Frame, never, R>;
-	readonly batch: <X, E, R2>(body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E, R | R2>;
-	readonly Sink: Context.Reference<Publish<A, R>>;
-	readonly Observer: Context.Reference<Observer<A>>;
 }
 
 let channels = 0;
@@ -36,7 +36,7 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 	const guard = options.unowned ?? Effect.void;
 	const unguarded = (frame: Buffer<A> | undefined) => frame === undefined || frame.kind === "batch";
 	const observe = (observation: Observation<A>) => Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation));
-	const deliver = (changes: ReadonlyArray<A>) =>
+	const deliver = (changes: readonly A[]) =>
 		Effect.andThen(
 			observe({ _tag: "Published", changes }),
 			Effect.flatMap(Effect.service(CurrentSink), (sink) => publish(sink, changes)),
@@ -45,34 +45,46 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 	const locate = Effect.gen(function* () {
 		const owner = yield* options.owner;
 		const frames = yield* Frames;
-		return { owner, frames, frame: frames.get(owner) };
+		return { frame: frames.get(owner), frames, owner };
 	});
 
 	const record = Effect.fn("Changes.record")(function* (changes: Iterable<A>) {
 		const { frame } = yield* locate;
-		if (unguarded(frame)) yield* guard;
+		if (unguarded(frame)) {
+			yield* guard;
+		}
 		const entries = keyed(changes, keyOf);
-		if (frame !== undefined) yield* add(name, frame, entries);
-		if (entries.size === 0) return;
+		if (frame !== undefined) {
+			yield* add(name, frame, entries);
+		}
+		if (entries.size === 0) {
+			return;
+		}
 		const distinct = [...entries.values()];
 		yield* observe({ _tag: "Recorded", changes: distinct });
-		if (frame === undefined) yield* deliver(distinct);
+		if (frame === undefined) {
+			yield* deliver(distinct);
+		}
 	});
 
 	const openAs = (kind: Buffer<A>["kind"]) =>
 		Effect.gen(function* () {
 			const { owner, frames, frame: parent } = yield* locate;
-			if (parent !== undefined && !parent.open) return yield* settled(name);
-			if (kind === "transaction" && unguarded(parent)) yield* guard;
+			if (parent !== undefined && !parent.open) {
+				return yield* settled(name);
+			}
+			if (kind === "transaction" && unguarded(parent)) {
+				yield* guard;
+			}
 			const buffer = makeBuffer(kind, parent);
 			const inner = new Map(frames).set(owner, buffer);
 			const context = yield* Effect.context<R>();
 			return makeFrame({
-				name,
 				buffer,
+				discard: (changes) => Effect.provideContext(observe({ _tag: "Discarded", changes }), context),
+				name,
 				provide: (body) => Effect.provideService(body, Frames, inner),
 				publish: (changes) => Effect.provideContext(deliver(changes), context),
-				discard: (changes) => Effect.provideContext(observe({ _tag: "Discarded", changes }), context),
 			});
 		});
 
@@ -90,5 +102,5 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 			Effect.flatMap(openAs("batch"), (frame) => Effect.onExit(restore(frame.provide(body)), () => frame.settle("committed"))),
 		);
 
-	return { record, within, open, batch, Sink: CurrentSink, Observer: CurrentObserver };
+	return { batch, Observer: CurrentObserver, open, record, Sink: CurrentSink, within };
 };

@@ -3,8 +3,8 @@ import { SetupFailure } from "../failure.ts";
 import { type Git, git } from "./command.ts";
 
 export interface Base {
-	readonly ref: string;
 	readonly commit: string;
+	readonly ref: string;
 }
 
 const FALLBACK_BRANCHES = ["origin/main", "origin/master"];
@@ -36,7 +36,7 @@ const isShallow = (root: string): Effect.Effect<boolean, SetupFailure, Git> =>
 const mergeBase = (root: string, ref: string): Effect.Effect<string | undefined, SetupFailure, Git> =>
 	Effect.map(git(root, ["merge-base", "HEAD", ref]), (result) => (result.code === 0 ? result.stdout.trim() : undefined));
 
-const remoteOf = (root: string, ref: string): Effect.Effect<ReadonlyArray<string>, SetupFailure, Git> =>
+const remoteOf = (root: string, ref: string): Effect.Effect<readonly string[], SetupFailure, Git> =>
 	Effect.gen(function* () {
 		const name = (yield* git(root, ["rev-parse", "--symbolic-full-name", ref])).stdout.trim();
 		const remotes = (yield* git(root, ["remote"])).stdout.split("\n");

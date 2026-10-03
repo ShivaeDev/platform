@@ -3,7 +3,7 @@ const isObjectLike = (value: unknown): value is object => (typeof value === "obj
 export const hasMethod = (value: unknown, name: PropertyKey): value is object =>
 	isObjectLike(value) && typeof Reflect.get(value, name) === "function";
 
-export const invokeMethod = (target: object, name: PropertyKey, arguments_: ReadonlyArray<unknown>): unknown => {
+export const invokeMethod = (target: object, name: PropertyKey, arguments_: readonly unknown[]): unknown => {
 	const method: unknown = Reflect.get(target, name);
 	if (typeof method !== "function") {
 		throw new TypeError(`${String(name)} is not a method`);

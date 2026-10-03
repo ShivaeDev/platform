@@ -83,11 +83,11 @@ it.effect("keeps declared dependencies bound when the caller provides another va
 		class Prefix extends Context.Service<Prefix, string>()("test/BoundPrefix") {}
 		const Greetings = defineService({
 			id: "test/BoundGreetings",
-			requires: [Prefix],
 			initialize: Effect.void,
 			methods: () => ({
 				greet: () => Effect.map(Prefix, (prefix) => prefix),
 			}),
+			requires: [Prefix],
 		});
 		const result = yield* Effect.gen(function* () {
 			const greetings = yield* Greetings;
@@ -102,11 +102,11 @@ it.effect("releases method resources with the caller scope while the service rem
 		const released = yield* Ref.make(0);
 		const Resources = defineService({
 			id: "test/CallerResources",
-			requires: [],
 			initialize: Effect.void,
 			methods: () => ({
 				open: () => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (n) => n + 1)),
 			}),
+			requires: [],
 		});
 		yield* Effect.gen(function* () {
 			const resources = yield* Resources;

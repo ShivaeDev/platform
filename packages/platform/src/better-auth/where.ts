@@ -5,27 +5,27 @@ export type CleanedWhere = Required<Where>;
 export type Expression = Parameters<typeof and>[number];
 
 export interface DynamicField {
-	eq(value: unknown): Expression;
-	neq(value: unknown): Expression;
-	gt(value: unknown): Expression;
-	gte(value: unknown): Expression;
-	lt(value: unknown): Expression;
-	lte(value: unknown): Expression;
-	in(value: ReadonlyArray<unknown>): Expression;
-	notIn(value: ReadonlyArray<unknown>): Expression;
-	like(value: string): Expression;
-	ilike?(value: string): Expression;
-	isNull(): Expression;
-	isNotNull(): Expression;
 	asc(): unknown;
 	desc(): unknown;
+	eq(value: unknown): Expression;
+	gt(value: unknown): Expression;
+	gte(value: unknown): Expression;
+	ilike?(value: string): Expression;
+	in(value: readonly unknown[]): Expression;
+	isNotNull(): Expression;
+	isNull(): Expression;
+	like(value: string): Expression;
+	lt(value: unknown): Expression;
+	lte(value: unknown): Expression;
+	neq(value: unknown): Expression;
+	notIn(value: readonly unknown[]): Expression;
 }
 
 const escapeLike = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 
-const nonNullValues = (value: unknown): ReadonlyArray<unknown> => (Array.isArray(value) ? value : [value]).filter((item) => item !== null);
+const nonNullValues = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : [value]).filter((item) => item !== null);
 
-const insensitiveStrings = (field: DynamicField, where: CleanedWhere, values: ReadonlyArray<unknown>) => {
+const insensitiveStrings = (field: DynamicField, where: CleanedWhere, values: readonly unknown[]) => {
 	const ilike = field.ilike;
 	if (where.mode !== "insensitive" || ilike === undefined || !values.every((item) => typeof item === "string")) {
 		return undefined;
@@ -52,7 +52,9 @@ const exclusion = (field: DynamicField, where: CleanedWhere): Expression | undef
 };
 
 const likePattern = (operator: CleanedWhere["operator"], escaped: string): string => {
-	if (operator === "contains") return `%${escaped}%`;
+	if (operator === "contains") {
+		return `%${escaped}%`;
+	}
 	return operator === "starts_with" ? `${escaped}%` : `%${escaped}`;
 };
 
@@ -67,9 +69,15 @@ const pattern = (field: DynamicField, where: CleanedWhere): Expression => {
 const insensitiveEquality = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
 	const value = where.value;
 	const operator = where.operator ?? "eq";
-	if (where.mode !== "insensitive" || typeof value !== "string" || field.ilike === undefined) return undefined;
-	if (operator === "eq") return field.ilike(escapeLike(value));
-	if (operator === "ne") return not(field.ilike(escapeLike(value)));
+	if (where.mode !== "insensitive" || typeof value !== "string" || field.ilike === undefined) {
+		return undefined;
+	}
+	if (operator === "eq") {
+		return field.ilike(escapeLike(value));
+	}
+	if (operator === "ne") {
+		return not(field.ilike(escapeLike(value)));
+	}
 	return undefined;
 };
 
@@ -99,7 +107,7 @@ const comparison = (field: DynamicField, where: CleanedWhere): Expression | unde
 	}
 };
 
-export const whereExpression = (fields: Record<string, DynamicField>, where: ReadonlyArray<CleanedWhere>): Expression | undefined => {
+export const whereExpression = (fields: Record<string, DynamicField>, where: readonly CleanedWhere[]): Expression | undefined => {
 	const conjunctions: Expression[] = [];
 	const disjunctions: Expression[] = [];
 
@@ -109,11 +117,17 @@ export const whereExpression = (fields: Record<string, DynamicField>, where: Rea
 			throw new TypeError(`Unknown database field: ${condition.field}`);
 		}
 		const expression = insensitiveEquality(field, condition) ?? comparison(field, condition);
-		if (expression === undefined) continue;
+		if (expression === undefined) {
+			continue;
+		}
 		(condition.connector === "OR" ? disjunctions : conjunctions).push(expression);
 	}
 
-	if (disjunctions.length > 0) conjunctions.push(or(...disjunctions));
-	if (conjunctions.length === 0) return all();
+	if (disjunctions.length > 0) {
+		conjunctions.push(or(...disjunctions));
+	}
+	if (conjunctions.length === 0) {
+		return all();
+	}
 	return conjunctions.length === 1 ? conjunctions[0] : and(...conjunctions);
 };

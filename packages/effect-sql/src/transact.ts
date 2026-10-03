@@ -6,16 +6,16 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { SqlClient } from "effect/unstable/sql";
 import { isSqlError, type SqlError } from "effect/unstable/sql/SqlError";
 
-export type InvalidationKeys = ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>;
+export type InvalidationKeys = readonly unknown[] | ReadonlyRecord<string, readonly unknown[]>;
 
 const hashOf = (value: unknown): unknown =>
 	typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean"
 		? String(value)
 		: Hash.hash(value);
 
-const isList = (keys: InvalidationKeys): keys is ReadonlyArray<unknown> => Array.isArray(keys);
+const isList = (keys: InvalidationKeys): keys is readonly unknown[] => Array.isArray(keys);
 
-const flatten = (keys: InvalidationKeys): ReadonlyArray<unknown> =>
+const flatten = (keys: InvalidationKeys): readonly unknown[] =>
 	isList(keys) ? keys : Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => `${name}:${hashOf(id)}`)]);
 
 const nativeTransactionWithoutTransact = Effect.fn("Transact.guard")(function* () {

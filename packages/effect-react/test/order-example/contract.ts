@@ -19,21 +19,21 @@ export class Authentication extends RpcMiddleware.Service<Authentication, { prov
 export const orders = collection("orders", Order.fields.id);
 export const GetOrder = query("get", {
 	payload: { id: Order.fields.id },
-	success: Order,
-	rejections: { OrderNotFound, StorageUnavailable },
 	reads: ({ id }) => [orders.item(id)],
+	rejections: { OrderNotFound, StorageUnavailable },
+	success: Order,
 });
 export const ListOrders = query("list", {
-	success: Schema.Array(Order),
-	rejections: { StorageUnavailable },
 	reads: () => [orders.list],
+	rejections: { StorageUnavailable },
+	success: Schema.Array(Order),
 });
 export const SaveOrder = command("save", {
-	payload: { id: Order.fields.id, ...OrderDraft.fields },
-	success: Order,
-	rejections: { OrderNotFound, OrderValidation: fieldRejection(OrderDraft), StorageUnavailable },
 	invalidates: ({ id }) => [orders.item(id)],
+	payload: { id: Order.fields.id, ...OrderDraft.fields },
+	rejections: { OrderNotFound, OrderValidation: fieldRejection(OrderDraft), StorageUnavailable },
+	success: Order,
 });
 export type SaveOrderInput = typeof SaveOrder.payload.Type;
 
-export const Orders = contract("orders", { queries: [GetOrder, ListOrders], commands: [SaveOrder] }).middleware(Authentication);
+export const Orders = contract("orders", { commands: [SaveOrder], queries: [GetOrder, ListOrders] }).middleware(Authentication);

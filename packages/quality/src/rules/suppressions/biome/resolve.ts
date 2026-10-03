@@ -4,9 +4,9 @@ import { decodeWith } from "../../../decoded.ts";
 import type { RuleInputs } from "../../../rule.ts";
 
 const Manifest = Schema.Struct({
-	name: Schema.optionalKey(Schema.String),
-	main: Schema.optionalKey(Schema.String),
 	exports: Schema.optionalKey(Schema.Unknown),
+	main: Schema.optionalKey(Schema.String),
+	name: Schema.optionalKey(Schema.String),
 });
 
 type Manifest = typeof Manifest.Type;
@@ -15,7 +15,7 @@ const manifestSchema = Schema.toStandardSchemaV1(Schema.fromJsonString(Manifest)
 
 const CONDITIONS: ReadonlySet<string> = new Set(["biome", "default"]);
 
-const SPECIFIER = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+))?$/;
+const SPECIFIER = /^((?:@[^/]+\/)?[^/]+)(?:\/(.+))?$/u;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === "object" && value !== null && !Array.isArray(value);
 

@@ -34,7 +34,9 @@ describe("live page", () => {
 		await open("/plan.md");
 		const intro = paragraph("Intro.");
 		const details = page.document.querySelector("#doc details");
-		if (details === null) throw new Error("the page has no details block");
+		if (details === null) {
+			throw new Error("the page has no details block");
+		}
 		details.setAttribute("open", "");
 		page.document.body.dataset.visit = "first";
 		notes.write("plan.md", PLAN.replace("A closing line.", "A changed line."));

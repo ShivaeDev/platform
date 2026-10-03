@@ -68,7 +68,7 @@ describe("the board", () => {
 
 	it("keeps a --- inside a card of the last section in the card", () => {
 		const board = boardOf("# Plan\n\n## Later\n\n### Three\n\nA\n\n---\n\nB\n\n### Four\n\nC\n\n---\n\nThe end.\n");
-		expect(countsOf(board)).toEqual([{ title: "Later", count: 2 }]);
+		expect(countsOf(board)).toEqual([{ count: 2, title: "Later" }]);
 		expect(board.sections[0]?.items[0]).toBe("### Three\n\nA\n\n---\n\nB");
 		expect(board.footer).toBe("The end.");
 	});
@@ -90,8 +90,8 @@ describe("the board", () => {
 			.replace("### Update the screenshots", "### Update the screenshots\n\nAfter the retry[^flaky].")
 			.concat("\n[^flaky]: One check was retried.\n");
 		const rendered = await html(shared);
-		const ids = [...rendered.matchAll(/ id="([^"]+)"/g)].map(([, id]) => id);
-		const targets = [...rendered.matchAll(/ href="#([^"]+)"/g)].map(([, id]) => id);
+		const ids = [...rendered.matchAll(/ id="([^"]+)"/gu)].map(([, id]) => id);
+		const targets = [...rendered.matchAll(/ href="#([^"]+)"/gu)].map(([, id]) => id);
 		expect(ids.filter((id) => id?.includes("user-content-fn"))).toHaveLength(4);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(targets.every((target) => ids.includes(target))).toBe(true);

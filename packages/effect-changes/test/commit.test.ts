@@ -1,13 +1,13 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { change, harness, makeDatabase } from "./support/fake-database.ts";
 
-test("a committed root frame publishes its distinct changes once, after the body, in first-seen order", () =>
+it("a committed root frame publishes its distinct changes once, after the body, in first-seen order", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
 			const database = makeDatabase("main");
-			const trail: Array<string> = [];
+			const trail: string[] = [];
 			yield* Effect.gen(function* () {
 				yield* write(database, "order 1", change("ada"), change("bob"));
 				yield* channel.record([change("ada"), change("ada", "invoices")]);
@@ -19,7 +19,7 @@ test("a committed root frame publishes its distinct changes once, after the body
 		}),
 	));
 
-test("a typed failure, a defect, an interruption or a failed commit discards the frame", () =>
+it("a typed failure, a defect, an interruption or a failed commit discards the frame", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, inTransaction, write } = harness();
@@ -50,7 +50,7 @@ test("a typed failure, a defect, an interruption or a failed commit discards the
 		}),
 	));
 
-test("a nested frame merges into its parent on commit and is discarded on rollback while the parent keeps its own", () =>
+it("a nested frame merges into its parent on commit and is discarded on rollback while the parent keeps its own", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
@@ -68,7 +68,7 @@ test("a nested frame merges into its parent on commit and is discarded on rollba
 		}),
 	));
 
-test("concurrent records from Effect.all land in the same frame and publish once", () =>
+it("concurrent records from Effect.all land in the same frame and publish once", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction } = harness();
@@ -83,7 +83,7 @@ test("concurrent records from Effect.all land in the same frame and publish once
 		}),
 	));
 
-test("one write can record events for several subjects, and each subject and domain publishes once per commit", () =>
+it("one write can record events for several subjects, and each subject and domain publishes once per commit", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
@@ -106,7 +106,7 @@ test("one write can record events for several subjects, and each subject and dom
 		}),
 	));
 
-test("an interruption that arrives while the commit is in flight publishes exactly when the database committed", () =>
+it("an interruption that arrives while the commit is in flight publishes exactly when the database committed", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { published, inTransaction, write } = harness();

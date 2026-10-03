@@ -80,8 +80,8 @@ integrationEffect("serializes concurrent queries inside a transaction", () =>
 				const db = yield* Database;
 				const marker = crypto.randomUUID();
 				const users = ["one", "two", "three"].map((suffix) => ({
-					id: crypto.randomUUID(),
 					email: `${marker}-${suffix}@example.test`,
+					id: crypto.randomUUID(),
 					name: marker,
 				}));
 
@@ -105,8 +105,8 @@ integrationEffect("buffers transaction streams before downstream database effect
 				const marker = crypto.randomUUID();
 				yield* db.User.createAll(
 					["one", "two", "three"].map((suffix) => ({
-						id: crypto.randomUUID(),
 						email: `${marker}-${suffix}@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					})),
 				);
@@ -133,8 +133,8 @@ integrationEffect("uses the transaction Database and rolls back failures", () =>
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id: crypto.randomUUID(),
 							email,
+							id: crypto.randomUUID(),
 							name: "Rolled back",
 						});
 						expect(yield* transactionDb.User.where({ email }).exists()).toBe(true);
@@ -162,8 +162,8 @@ integrationEffect("rolls back interrupted transactions before returning", () =>
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id: crypto.randomUUID(),
 							email,
+							id: crypto.randomUUID(),
 							name: "Interrupted",
 						});
 						yield* Deferred.succeed(created, undefined);
@@ -193,8 +193,8 @@ integrationEffect("forces rollback after a successful test transaction and retur
 				Effect.gen(function* () {
 					const transactionDb = yield* Database;
 					yield* transactionDb.User.create({
-						id,
 						email: `${id}@example.test`,
+						id,
 						name: "Test transaction",
 					});
 					return 42;
@@ -220,8 +220,8 @@ integrationEffect("preserves a test transaction failure while rolling back its w
 					Effect.gen(function* () {
 						const transactionDb = yield* Database;
 						yield* transactionDb.User.create({
-							id,
 							email: `${id}@example.test`,
+							id,
 							name: "Failed test transaction",
 						});
 						return yield* Effect.fail(failure);

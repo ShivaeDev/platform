@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { HttpServerRequest } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket } from "effect/unstable/socket";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { trustedOrigins } from "../src/rpc-server.ts";
 import { Api, serverLayer } from "./rpc/api.ts";
 import { createProvider, origin, type Provider, signup } from "./rpc/support.ts";
@@ -24,7 +24,7 @@ const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<stri
 			yield* Effect.forkScoped(Effect.provideService(httpEffect, HttpServerRequest.HttpServerRequest, request));
 			const writer = inbound.writable.getWriter();
 			const reader = outbound.readable.getReader();
-			yield* Effect.promise(() => writer.write(JSON.stringify({ _tag: "Request", id: "1", tag: "Whoami", payload: null, headers: message })));
+			yield* Effect.promise(() => writer.write(JSON.stringify({ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" })));
 			const { value } = yield* Effect.promise(() => reader.read());
 			return new TextDecoder().decode(value);
 		}).pipe(
@@ -35,13 +35,13 @@ const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<stri
 	);
 };
 
-test("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
+it("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
 	const provider = await createProvider();
 	try {
 		const alice = await signup(provider, "alice");
 		expect(await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
 		const hijack = await whoamiOverWebSocket(provider, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]]);
-		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/);
+		expect(hijack).toMatch(/"_tag":"Forbidden".*"Origin not allowed"/u);
 		expect(await whoamiOverWebSocket(provider, { origin }, [["cookie", alice.cookie]])).toContain('"_tag":"Unauthorized"');
 	} finally {
 		provider.database.close();

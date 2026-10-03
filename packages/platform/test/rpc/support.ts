@@ -9,19 +9,19 @@ import { expect } from "vitest";
 export const origin = "http://localhost:3000";
 
 export interface LogRecord {
+	readonly annotations: Readonly<Record<string, unknown>>;
 	readonly level: string;
 	readonly message: unknown;
-	readonly annotations: Readonly<Record<string, unknown>>;
 }
 
 export const recorder = () => {
-	const logs: Array<LogRecord> = [];
-	const spans: Array<Tracer.NativeSpan> = [];
+	const logs: LogRecord[] = [];
+	const spans: Tracer.NativeSpan[] = [];
 	const logger = Logger.make((options) => {
 		logs.push({
+			annotations: options.fiber.getRef(References.CurrentLogAnnotations),
 			level: options.logLevel,
 			message: options.message,
-			annotations: options.fiber.getRef(References.CurrentLogAnnotations),
 		});
 	});
 	const tracer = Tracer.make({
@@ -38,10 +38,10 @@ export const recorder = () => {
 export const createProvider = async () => {
 	const database = new DatabaseSync(":memory:");
 	const options = {
-		database,
 		baseURL: origin,
-		secret: "integration-only-secret-with-at-least-32-characters",
+		database,
 		emailAndPassword: { enabled: true },
+		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	};
 	await (await getMigrations(options)).runMigrations();
@@ -59,9 +59,9 @@ export type Provider = Awaited<ReturnType<typeof createProvider>>;
 export const signup = async (provider: Provider, name: string) => {
 	const response = await provider.auth.handler(
 		new Request(`${origin}/api/auth/sign-up/email`, {
-			method: "POST",
+			body: JSON.stringify({ email: `${name}@example.test`, name, password: "example-password-123" }),
 			headers: { "content-type": "application/json", origin },
-			body: JSON.stringify({ name, email: `${name}@example.test`, password: "example-password-123" }),
+			method: "POST",
 		}),
 	);
 	expect(response.status).toBe(200);
@@ -81,12 +81,12 @@ export const serve = (layer: Layer.Layer<never, never, HttpRouter.HttpRouter | R
 
 export const httpClient = (app: { readonly handler: (request: Request) => Promise<Response> }, headers: Readonly<Record<string, string>>) =>
 	RpcClient.layerProtocolHttp({
-		url: `${origin}/rpc`,
 		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders(headers)),
+		url: `${origin}/rpc`,
 	}).pipe(
 		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
 	);
 
-export const annotationsOf = (logs: ReadonlyArray<LogRecord>, message: string) =>
+export const annotationsOf = (logs: readonly LogRecord[], message: string) =>
 	logs.filter((log) => (Array.isArray(log.message) ? log.message.includes(message) : log.message === message)).map((log) => log.annotations);

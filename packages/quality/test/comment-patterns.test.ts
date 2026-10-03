@@ -14,14 +14,13 @@ const messagesFor = async (rule: Rule<string, undefined>, comment: string) =>
 	);
 
 interface Case {
-	readonly rule: Rule<string, undefined>;
 	readonly fires: ReadonlyArray<readonly [string, string]>;
-	readonly quiet: ReadonlyArray<string>;
+	readonly quiet: readonly string[];
+	readonly rule: Rule<string, undefined>;
 }
 
-const cases: ReadonlyArray<Case> = [
+const cases: readonly Case[] = [
 	{
-		rule: noLineReference,
 		fires: [
 			["// see src/a.ts:42", "src/a.ts:42"],
 			["// thrown from view.tsx:12:5", "view.tsx:12"],
@@ -30,9 +29,9 @@ const cases: ReadonlyArray<Case> = [
 			["/* Lines 10-20 parse the header */", "Lines 10"],
 		],
 		quiet: ["// one line of output", "// keeps 150 lines", "// listens on example.com:8080", "// within max-lines 150", "// runs at 10:30"],
+		rule: noLineReference,
 	},
 	{
-		rule: noPrReference,
 		fires: [
 			["// fixed in #1234", "#1234"],
 			["// see PR 56", "PR 56"],
@@ -43,9 +42,9 @@ const cases: ReadonlyArray<Case> = [
 			["// GH-44", "GH-44"],
 		],
 		quiet: ["// the #private field", "// encodes &#169; as an entity", "// https://example.com/docs#3", "// version 1.2.3", "// step 2"],
+		rule: noPrReference,
 	},
 	{
-		rule: noBanner,
 		fires: [
 			["// ---", "---"],
 			["// ===== Helpers =====", "====="],
@@ -64,9 +63,9 @@ const cases: ReadonlyArray<Case> = [
 			"/*#__PURE__*/",
 			"/*#__NO_SIDE_EFFECTS__*/",
 		],
+		rule: noBanner,
 	},
 	{
-		rule: noTodo,
 		fires: [
 			["// TODO: later", "TODO"],
 			["// FIXME", "FIXME"],
@@ -74,9 +73,9 @@ const cases: ReadonlyArray<Case> = [
 			["/** @todo split this */", "@todo"],
 		],
 		quiet: ["// a todo list", "// TODOS are tracked elsewhere", "// sizes up to XXXL"],
+		rule: noTodo,
 	},
 	{
-		rule: noEnvironmentPragma,
 		fires: [
 			[`// ${VITEST_ENVIRONMENT} happy-dom`, VITEST_ENVIRONMENT],
 			[`/** ${VITEST_ENVIRONMENT} jsdom */`, VITEST_ENVIRONMENT],
@@ -84,6 +83,7 @@ const cases: ReadonlyArray<Case> = [
 			[`// ${JEST_ENVIRONMENT} node`, JEST_ENVIRONMENT],
 		],
 		quiet: [`// runs where ${VITEST_ENVIRONMENT} would have pointed`, "// @vitest is the runner", "/** @jsxImportSource preact */"],
+		rule: noEnvironmentPragma,
 	},
 ];
 
@@ -91,7 +91,7 @@ describe.each(cases)("$rule.id", ({ fires, quiet, rule }) => {
 	it.each(fires)("fires on %j", async (comment, match) => {
 		const [finding, ...rest] = await messagesFor(rule, comment);
 		expect(rest).toEqual([]);
-		expect(finding).toMatch(/^2 /);
+		expect(finding).toMatch(/^2 /u);
 		expect(finding).toContain(`"${match}"`);
 	});
 

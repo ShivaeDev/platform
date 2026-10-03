@@ -16,24 +16,24 @@ export interface ItemKey<Name extends string = string> {
 export type Key = ListKey | ItemKey;
 
 export interface Collection<Name extends string, Id extends Identity> {
-	readonly name: Name;
-	readonly list: ListKey<Name>;
 	readonly item: (id: Id) => ItemKey<Name>;
+	readonly list: ListKey<Name>;
+	readonly name: Name;
 }
 
 export const collection = <const Name extends string, Id extends Schema.Top & { readonly Type: Identity }>(
 	name: Name,
 	_id: Id,
 ): Collection<Name, Id["Type"]> => ({
-	name,
-	list: { _tag: "List", collection: name },
 	item: (id) => ({ _tag: "Item", collection: name, id }),
+	list: { _tag: "List", collection: name },
+	name,
 });
 
 const own = (key: Key): string => (key._tag === "List" ? key.collection : `${key.collection}:${key.id}`);
 
-export const readKeys = (keys: ReadonlyArray<Key>): ReadonlyArray<string> => [...new Set(keys.map(own))];
+export const readKeys = (keys: readonly Key[]): readonly string[] => [...new Set(keys.map(own))];
 
-export const invalidationKeys = (keys: ReadonlyArray<Key>): ReadonlyArray<string> => [
+export const invalidationKeys = (keys: readonly Key[]): readonly string[] => [
 	...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection]))),
 ];

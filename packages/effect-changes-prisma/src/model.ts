@@ -1,7 +1,7 @@
 export interface TransactionOptions {
+	readonly isolationLevel?: string;
 	readonly maxWait?: number;
 	readonly timeout?: number;
-	readonly isolationLevel?: string;
 }
 
 export interface Transactional<Tx> {

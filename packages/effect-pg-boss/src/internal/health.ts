@@ -8,6 +8,7 @@ export const healthFor = (client: PgBossClient, names: readonly string[]): Effec
 		names,
 		(name) =>
 			Effect.tryPromise({
+				catch: (error) => toPgBossError("health", error, name),
 				try: async (): Promise<QueueHealth> => {
 					const [queue, deadLetter] = await Promise.all([client.getQueue(name), client.getQueue(deadLetterQueueName(name))]);
 					return {
@@ -19,7 +20,6 @@ export const healthFor = (client: PgBossClient, names: readonly string[]): Effec
 						readyCount: queue?.readyCount ?? 0,
 					};
 				},
-				catch: (error) => toPgBossError("health", error, name),
 			}),
 		{ concurrency: "unbounded" },
 	).pipe(

@@ -9,7 +9,7 @@ integration("one write records a change for every subject its mapping names", ()
 			Effect.gen(function* () {
 				const { client } = yield* makeDatabase;
 				const { changes, published } = makeChanges(client);
-				yield* changes.use((db) => db.membership.create({ data: { id: "m1", ownerId: "ada", memberId: "bob" } })).pipe(changes.transaction);
+				yield* changes.use((db) => db.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } })).pipe(changes.transaction);
 				yield* changes.use((db) => db.membership.delete({ where: { id: "m1" } }));
 				expect(published).toEqual([
 					["ada:memberships", "bob:memberships"],
@@ -33,8 +33,8 @@ integration("row-returning writes record per row; reads and models mapped to nul
 				const { changes, published, unnamed, observe } = makeChanges(client);
 				yield* Effect.gen(function* () {
 					yield* changes.use((db) => db.order.createManyAndReturn({ data: orders }));
-					yield* changes.use((db) => db.order.update({ where: { id: "o1" }, data: { total: 3 } }));
-					yield* changes.use((db) => db.order.upsert({ where: { id: "o3" }, create: { id: "o3", ownerId: "cyd", total: 1 }, update: {} }));
+					yield* changes.use((db) => db.order.update({ data: { total: 3 }, where: { id: "o1" } }));
+					yield* changes.use((db) => db.order.upsert({ create: { id: "o3", ownerId: "cyd", total: 1 }, update: {}, where: { id: "o3" } }));
 					yield* changes.use((db) => db.order.findMany());
 					yield* changes.use((db) => db.auditNote.create({ data: { id: "n1", text: "checked" } }));
 				}).pipe(changes.transaction, observe);
@@ -53,8 +53,8 @@ integration("count-only *Many writes and narrowed results record nothing and are
 				const { changes, published, unnamed, observe } = makeChanges(client);
 				yield* Effect.gen(function* () {
 					yield* changes.use((db) => db.order.createMany({ data: [{ id: "o1", ownerId: "ada", total: 1 }] }));
-					yield* changes.use((db) => db.order.updateMany({ where: { ownerId: "ada" }, data: { total: 2 } }));
-					yield* changes.use((db) => db.order.update({ where: { id: "o1" }, data: { total: 3 }, select: { id: true } }));
+					yield* changes.use((db) => db.order.updateMany({ data: { total: 2 }, where: { ownerId: "ada" } }));
+					yield* changes.use((db) => db.order.update({ data: { total: 3 }, select: { id: true }, where: { id: "o1" } }));
 					yield* changes.use((db) => db.auditNote.deleteMany({}));
 					yield* changes.use((db) => db.order.deleteMany({ where: { ownerId: "nobody" } }));
 				}).pipe(changes.transaction, observe);
@@ -62,7 +62,7 @@ integration("count-only *Many writes and narrowed results record nothing and are
 				expect(unnamed).toEqual([
 					{ model: "Order", operation: "createMany", reason: "countOnly" },
 					{ model: "Order", operation: "updateMany", reason: "countOnly" },
-					{ model: "Order", operation: "update", reason: "narrowed", field: "ownerId" },
+					{ field: "ownerId", model: "Order", operation: "update", reason: "narrowed" },
 					{ model: "Order", operation: "deleteMany", reason: "countOnly" },
 				]);
 			}),
@@ -80,7 +80,7 @@ integration("a write outside any transaction publishes as soon as it autocommits
 				expect(published).toEqual([["ada:invoices"]]);
 				yield* changes.channel.batch(
 					Effect.gen(function* () {
-						yield* changes.use((db) => db.invoice.update({ where: { id: "i1" }, data: { ownerId: "bob" } }));
+						yield* changes.use((db) => db.invoice.update({ data: { ownerId: "bob" }, where: { id: "i1" } }));
 						yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "bob", total: 1 } }));
 						expect(published).toHaveLength(1);
 					}),

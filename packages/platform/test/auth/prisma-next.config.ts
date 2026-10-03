@@ -1,3 +1,4 @@
+import process from "node:process";
 import { defineConfig } from "@prisma-next/postgres/config";
 
 export default defineConfig({

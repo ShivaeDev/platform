@@ -2,10 +2,10 @@ import ts from "typescript";
 import type { SourceFile } from "../rule.ts";
 
 const SCRIPT_KINDS: ReadonlyArray<readonly [RegExp, ts.ScriptKind]> = [
-	[/\.[cm]?ts$/, ts.ScriptKind.TS],
-	[/\.tsx$/, ts.ScriptKind.TSX],
-	[/\.[cm]?js$/, ts.ScriptKind.JS],
-	[/\.jsx$/, ts.ScriptKind.JSX],
+	[/\.[cm]?ts$/u, ts.ScriptKind.TS],
+	[/\.tsx$/u, ts.ScriptKind.TSX],
+	[/\.[cm]?js$/u, ts.ScriptKind.JS],
+	[/\.jsx$/u, ts.ScriptKind.JSX],
 ];
 
 export const parse = (file: SourceFile): ts.SourceFile | undefined => {

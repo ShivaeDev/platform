@@ -1,3 +1,4 @@
+import process from "node:process";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
@@ -20,11 +21,15 @@ const explain = (cause: Cause.Cause<unknown>): Effect.Effect<void> => {
 const exitCodeOf = (error: unknown): number =>
 	typeof error === "object" && error !== null && Runtime.errorExitCode in error ? Runtime.getErrorExitCode(error) : COULD_NOT_RUN;
 
-const teardown: Runtime.Teardown = (exit, onExit) => {
+const exitCode = (exit: Exit.Exit<unknown, unknown>): number => {
 	if (Exit.isSuccess(exit)) {
-		return onExit(0);
+		return 0;
 	}
-	return onExit(Cause.hasInterruptsOnly(exit.cause) ? INTERRUPTED : exitCodeOf(Cause.squash(exit.cause)));
+	return Cause.hasInterruptsOnly(exit.cause) ? INTERRUPTED : exitCodeOf(Cause.squash(exit.cause));
+};
+
+const teardown: Runtime.Teardown = (exit, onExit) => {
+	process.stdout.write("", () => process.stderr.write("", () => onExit(exitCode(exit))));
 };
 
 const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));

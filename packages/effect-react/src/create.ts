@@ -14,8 +14,8 @@ export type CreateConfig<F extends Fields, Created, SE, R, ER> = {
 } & FieldRejectionMapping<F, SE>;
 
 export interface Create<F extends Fields, Created, SE, ER> extends SaveState<SE | ER> {
-	readonly form: Form<F, Created, SE | FieldFailure, ER>;
 	readonly created: Option.Option<Created>;
+	readonly form: Form<F, Created, SE | FieldFailure, ER>;
 }
 
 const editedSince = <V extends object>(current: V, submitted: V | undefined): Readonly<Record<string, unknown>> => {
@@ -26,7 +26,7 @@ const editedSince = <V extends object>(current: V, submitted: V | undefined): Re
 export const useCreate = <F extends Fields, Created, SE, R, ER>(config: CreateConfig<F, Created, SE, R, ER>): Create<F, Created, SE, ER> => {
 	const [{ initialValues, fresh }] = useState(() => {
 		const { fields, initialValues, runtime, create, rejectField } = config;
-		return { initialValues, fresh: () => submission({ fields, initialValues, runtime, save: create, rejectField }) };
+		return { fresh: () => submission({ fields, initialValues, rejectField, runtime, save: create }), initialValues };
 	});
 	const [current, replace] = useState(fresh);
 	const [created, record] = useState<Option.Option<Created>>(Option.none());
@@ -39,5 +39,5 @@ export const useCreate = <F extends Fields, Created, SE, R, ER>(config: CreateCo
 		},
 		[current, fresh, initialValues],
 	);
-	return { ...useSaveState(current.form, settled), form: current.form, created };
+	return { ...useSaveState(current.form, settled), created, form: current.form };
 };

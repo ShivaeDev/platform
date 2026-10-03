@@ -2,8 +2,8 @@ import { Effect, Schema } from "effect";
 import ignore from "ignore";
 import { defineRule, type Finding, type SourceFile } from "../rule.ts";
 
-const DEFAULT_TEST_FILES: ReadonlyArray<string> = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
-const DECLARATION = /\.d\.[cm]?ts$/;
+const DEFAULT_TEST_FILES: readonly string[] = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
+const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const Limit = Schema.Int.check(Schema.isGreaterThan(0));
 
@@ -13,7 +13,7 @@ const MaxLinesOptions = Schema.Struct({
 	testFiles: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TEST_FILES))),
 });
 
-const oversized = (file: SourceFile, limit: number): ReadonlyArray<Finding> =>
+const oversized = (file: SourceFile, limit: number): readonly Finding[] =>
 	file.lines.length <= limit
 		? []
 		: [
@@ -26,13 +26,13 @@ const oversized = (file: SourceFile, limit: number): ReadonlyArray<Finding> =>
 			];
 
 export const maxLines = defineRule({
-	id: "structure/max-lines",
-	description: "Keep each module to one job. Split a long file along its responsibilities; never golf it under the limit.",
-	options: Schema.toStandardSchemaV1(MaxLinesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	check: ({ options, sources }) => {
 		const tests = ignore().add([...options.testFiles]);
 		return sources
 			.filter((file) => !DECLARATION.test(file.path))
 			.flatMap((file) => oversized(file, tests.ignores(file.path) ? options.test : options.source));
 	},
+	description: "Keep each module to one job. Split a long file along its responsibilities; never golf it under the limit.",
+	id: "structure/max-lines",
+	options: Schema.toStandardSchemaV1(MaxLinesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 });

@@ -35,7 +35,9 @@ export class FakeClient implements PgBossClient {
 	failCreateQueue = false;
 
 	async createQueue(name: string, options?: Omit<Queue, "name">) {
-		if (this.failCreateQueue) throw new Error("queue unavailable");
+		if (this.failCreateQueue) {
+			throw new Error("queue unavailable");
+		}
 		this.createQueueCalls.push({ name, options });
 	}
 	async getQueue(name: string) {
@@ -50,7 +52,9 @@ export class FakeClient implements PgBossClient {
 	}
 	off(_event: "error", listener: (error: Error) => void) {
 		const index = this.errors.indexOf(listener);
-		if (index >= 0) this.errors.splice(index, 1);
+		if (index >= 0) {
+			this.errors.splice(index, 1);
+		}
 		return this;
 	}
 	async schedule(name: string, cron: string, data?: object | null, options?: ScheduleOptions) {
@@ -62,7 +66,9 @@ export class FakeClient implements PgBossClient {
 	}
 	async start() {
 		this.startCalls += 1;
-		if (this.failStart) throw new Error("start unavailable");
+		if (this.failStart) {
+			throw new Error("start unavailable");
+		}
 		return this;
 	}
 	async stop(_options?: StopOptions) {

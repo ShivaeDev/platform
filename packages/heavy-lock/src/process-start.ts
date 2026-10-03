@@ -7,8 +7,8 @@ const psStartTime = (pid: number) =>
 	ChildProcess.make("ps", ["-o", "lstart=", "-p", String(pid)], {
 		env: { LC_ALL: "C" },
 		extendEnv: true,
-		stdin: "ignore",
 		stderr: "ignore",
+		stdin: "ignore",
 	});
 
 export const processStartTime = (pid: number) =>

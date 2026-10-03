@@ -5,7 +5,7 @@ import { Effect, Fiber, Layer, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { afterEach } from "vitest";
 import { HeldLock } from "../src/held-lock.ts";
-import { HOLDER_ID_ENV } from "../src/holder.ts";
+import { encodeHolder, HOLDER_ID_ENV } from "../src/holder.ts";
 import { readHolder, tryAcquire } from "../src/lock-file.ts";
 import { heavyLockLayer, withHeavyLock } from "../src/with-heavy-lock.ts";
 import { scriptedClock } from "./support/clock.ts";
@@ -31,15 +31,15 @@ it.effect("a waiter names the holder, reminds every minute, and takes the lock o
 			return 60_000;
 		});
 
-		const held = yield* scripted.provide(withHeavyLock(holding(lock), { lockPath: lock, command: "pnpm ready", pollInterval: "1 millis" }));
+		const held = yield* scripted.provide(withHeavyLock(holding(lock), { command: "pnpm ready", lockPath: lock, pollInterval: "1 millis" }));
 
 		expect(Option.map(held.holder, ({ command, startedAtMs }) => ({ command, startedAtMs }))).toEqual(
 			Option.some({ command: "pnpm ready", startedAtMs: startedAtMs + 150_000 }),
 		);
 		expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
 		expect(scripted.lines).toHaveLength(3);
-		expect(scripted.lines[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/);
-		expect(scripted.lines[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/);
+		expect(scripted.lines[0]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(30s\)$/u);
+		expect(scripted.lines[1]).toMatch(/^heavy-process lock: waiting for pid \d+ running `pnpm e2e` in \/repo since \d\d:\d\d:\d\d \(1m 30s\)$/u);
 		expect(scripted.lines[2]).toBe("heavy-process lock: acquired after 2m 0s");
 		expect(readLock(lock)).toBeUndefined();
 	}).pipe(Effect.provide(services())),
@@ -106,7 +106,7 @@ it.effect("a layer holds the lock for as long as it is in use", () =>
 
 		const inside = yield* Effect.scoped(Effect.flatMap(Layer.build(heavyLockLayer({ lockPath: lock })), () => Effect.sync(() => readLock(lock))));
 
-		expect(inside).toMatch(/"command":"/);
+		expect(inside).toMatch(/"command":"/u);
 		expect(readLock(lock)).toBeUndefined();
 	}).pipe(Effect.provide(services())),
 );
@@ -124,7 +124,7 @@ it.live("an interrupted waiter leaves the holder's lock alone and nothing behind
 		yield* Fiber.interrupt(waiter);
 
 		expect(yield* readHolder(lock)).toEqual(Option.some(build));
-		expect(readLock(lock)).toBe(JSON.stringify(build));
+		expect(readLock(lock)).toBe(yield* encodeHolder(build));
 		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
 	}).pipe(Effect.provide(Layer.merge(services(), TestConsole.layer))),
 );

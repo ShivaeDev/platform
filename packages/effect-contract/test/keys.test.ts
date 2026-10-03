@@ -15,8 +15,8 @@ describe("reactivity keys", () => {
 	it.effect("matches native record-key hashing: an item change refreshes that item and the list, not other items", () =>
 		Effect.gen(function* () {
 			const reactivity = yield* Reactivity.Reactivity;
-			const refreshed: Array<string> = [];
-			const watch = (label: string, keys: ReadonlyArray<string>) => reactivity.registerUnsafe(keys, () => refreshed.push(label));
+			const refreshed: string[] = [];
+			const watch = (label: string, keys: readonly string[]) => reactivity.registerUnsafe(keys, () => refreshed.push(label));
 			const release = [
 				watch("order 1", readKeys([orders.item(1)])),
 				watch("order 2", readKeys([orders.item(2)])),
@@ -30,7 +30,9 @@ describe("reactivity keys", () => {
 			refreshed.length = 0;
 			yield* reactivity.invalidate(invalidationKeys([orders.list]));
 			expect(refreshed).toEqual(["list"]);
-			for (const stop of release) stop();
+			for (const stop of release) {
+				stop();
+			}
 		}).pipe(Effect.provide(Reactivity.layer)),
 	);
 });

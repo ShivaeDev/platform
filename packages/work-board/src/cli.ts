@@ -8,15 +8,15 @@ const VERSION = "0.2.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: { readonly dir: string; readonly port: number; readonly home: Option.Option<string> }) {
 	const path = yield* Path.Path;
-	return yield* Layer.launch(serveBoard({ root: path.resolve(input.dir), home: Option.getOrUndefined(input.home), port: input.port }));
+	return yield* Layer.launch(serveBoard({ home: Option.getOrUndefined(input.home), port: input.port, root: path.resolve(input.dir) }));
 });
 
 const workBoard = Command.make(
 	"work-board",
 	{
 		dir: Argument.directory("dir", { mustExist: true }).pipe(Argument.withDescription("The folder of markdown files to serve")),
-		port: Flag.integer("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
 		home: Flag.string("home").pipe(Flag.optional, Flag.withDescription("The file shown as a board at /, relative to the folder")),
+		port: Flag.integer("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
 	},
 	serve,
 ).pipe(Command.withDescription("Serve a folder of markdown files as a live page that updates in place when a file changes."));

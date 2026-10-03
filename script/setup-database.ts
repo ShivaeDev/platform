@@ -3,8 +3,9 @@ import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/loca
 import { Config, Effect } from "effect";
 import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
 
-if (Effect.runSync(Config.string("NODE_ENV").pipe(Config.withDefault(""))) === "production")
+if (Effect.runSync(Config.string("NODE_ENV").pipe(Config.withDefault(""))) === "production") {
 	throw new Error("Local setup must not run in production.");
+}
 
 const { prepareDatabases, sql } = localPostgres(
 	Effect.runSync(

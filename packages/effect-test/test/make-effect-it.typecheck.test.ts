@@ -5,8 +5,8 @@ import { eventually, makeEffectIt } from "../src/index.ts";
 class Token extends Context.Service<Token, string>()("@types/Token") {}
 
 const { effectApp } = makeEffectIt({
-	layer: Layer.succeed(Token, "typed"),
 	around: (effect) => effect,
+	layer: Layer.succeed(Token, "typed"),
 	makeHarness: () => Effect.map(Token, (token) => ({ token })),
 });
 

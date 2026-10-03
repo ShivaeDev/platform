@@ -12,7 +12,9 @@ const withoutShared = (peers: Readonly<Record<string, string>> | undefined) =>
 export const checkSharedPeerRegression = (packages: readonly Package[]) =>
 	Effect.gen(function* () {
 		const pkg = packages.find(({ manifest }) => manifest.name === "@shivaedev/heavy-lock");
-		if (pkg === undefined) return yield* Effect.fail(new Error("Shared Effect peer regression requires packed Heavy Lock"));
+		if (pkg === undefined) {
+			return yield* Effect.fail(new Error("Shared Effect peer regression requires packed Heavy Lock"));
+		}
 		const fs = yield* FileSystem.FileSystem;
 		const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "platform-peer-regression-" });
 		yield* command(temporary, "tar", ["-xzf", pkg.tarball]);

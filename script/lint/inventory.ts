@@ -25,8 +25,8 @@ interface Entry {
 }
 
 const WALKED_ZONES = ["packages", "script"];
-const SOURCE_PATH = /\.tsx?$/;
-const WORKSPACE_MANIFEST = /^packages\/[^/]+\/package\.json$/;
+const SOURCE_PATH = /\.tsx?$/u;
+const WORKSPACE_MANIFEST = /^packages\/[^/]+\/package\.json$/u;
 const INVENTORY_CONCURRENCY = 16;
 
 export const basename = (path: string): string => path.split("/").pop() ?? "";

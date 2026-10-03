@@ -23,17 +23,17 @@ const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 
 describe("evaluation", () => {
 	it("passes a baseline entry that allows more than is left", () => {
-		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known, new Set()))).toBe(true);
+		expect(passes(evaluate([], [], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known))).toBe(true);
 	});
 
 	it("fails on a stale registry entry or a baseline entry for an unknown rule alone", () => {
-		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known, new Set()))).toBe(false);
-		expect(passes(evaluate([], [], [{ count: 1, file: "src/a.ts", rule: "local/typo" }], known, new Set()))).toBe(false);
+		expect(passes(evaluate([], [{ file: "src/gone.ts", reason: "Kept for a reason.", rule: "local/todo" }], [], known))).toBe(false);
+		expect(passes(evaluate([], [], [{ count: 1, file: "src/a.ts", rule: "local/typo" }], known))).toBe(false);
 	});
 
 	it("applies the registry before the baseline", () => {
 		const registry = [{ file: "src/big.ts", reason: "Generated upstream.", rule: "structure/max-lines" }];
-		const outcome = evaluate([long("src/big.ts", 151)], registry, [{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set());
+		const outcome = evaluate([long("src/big.ts", 151)], registry, [{ count: 1, file: "src/big.ts", rule: "structure/max-lines" }], known);
 		expect(outcome.registered).toBe(1);
 		expect(outcome.looseBaseline.map((loose) => loose.problem)).toEqual(["has no violations left"]);
 	});
@@ -42,7 +42,7 @@ describe("evaluation", () => {
 describe("report", () => {
 	it("groups errors by rule, states the rule's guidance once and locates each violation", () => {
 		const text = render(
-			evaluate([long("src/b.ts", 200), violation({ file: "src/a.ts", line: 3, rule: "local/x" }), long("src/a.ts", 160)], [], [], known, new Set()),
+			evaluate([long("src/b.ts", 200), violation({ file: "src/a.ts", line: 3, rule: "local/x" }), long("src/a.ts", 160)], [], [], known),
 			context(),
 		);
 		expect(text).toBe(
@@ -60,15 +60,12 @@ describe("report", () => {
 	});
 
 	it("notes when a baselined file got worse", () => {
-		const text = render(
-			evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known, new Set()),
-			context(),
-		);
+		const text = render(evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known), context());
 		expect(text).toContain("  src/big.ts is over its baseline: 270 against 250 baselined.");
 	});
 
 	it("summarizes warnings by file, busiest first", () => {
-		const text = render(evaluate(todos, [], [], known, new Set()), context());
+		const text = render(evaluate(todos, [], [], known), context());
 		expect(text).toContain(
 			"warn local/todo (28)\n  src/a.ts (7), src/b.ts (6), src/c.ts (5), src/d.ts (4), src/e.ts (3), and 2 more files. --warnings all lists each one.",
 		);
@@ -76,7 +73,7 @@ describe("report", () => {
 	});
 
 	it("lists every warning on request", () => {
-		const text = render(evaluate(todos, [], [], known, new Set()), context({ warnings: "all" }));
+		const text = render(evaluate(todos, [], [], known), context({ warnings: "all" }));
 		expect(text).toContain("  src/g.ts:1  Resolve this TODO.");
 		expect(text.split("\n").filter((line) => line.endsWith("Resolve this TODO."))).toHaveLength(28);
 	});
@@ -90,7 +87,6 @@ describe("report", () => {
 				{ count: 1, file: "src/a.ts", rule: "local/typo" },
 			],
 			known,
-			new Set(),
 		);
 		expect(render(outcome, context())).toBe(
 			[
@@ -108,7 +104,6 @@ describe("report", () => {
 			[{ file: "src/a.ts", reason: "Generated.", rule: "structure/max-lines" }],
 			[{ count: 1, file: "src/b.ts", rule: "structure/max-lines" }],
 			known,
-			new Set(),
 		);
 		expect(render(outcome, context({ checked: 1 }))).toBe(
 			"quality: passed. 1 source file checked; 1 baselined and 1 registered violations not shown.",

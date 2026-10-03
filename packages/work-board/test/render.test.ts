@@ -28,7 +28,7 @@ describe("markdown rendering", () => {
 
 	it("highlights fenced code for the light and the dark colour scheme", async () => {
 		const html = await render("```ts\nconst answer = 42\n```\n");
-		expect(html).toContain('<pre class="shiki shiki-themes github-light github-dark"');
+		expect(html).toContain('<pre class="shiki shiki-themes github-dark github-light"');
 		expect(html).toContain("--shiki-dark:");
 	});
 

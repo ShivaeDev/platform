@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "./invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "./invoice-line-editor/frontend.ts";
@@ -10,7 +10,9 @@ import { makeInvoiceLineViews } from "./invoice-line-editor/frontend.ts";
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+	for (const cleanup of cleanups.splice(0).reverse()) {
+		await cleanup();
+	}
 });
 
 const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
@@ -26,21 +28,23 @@ const mount = () => {
 	});
 	const input = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
 	return {
-		container,
-		render: (node: ReactNode) => act(async () => root.render(node)),
-		text: () => container.textContent ?? "",
-		value: (name: string) => input(name)?.value,
-		error: (name: string) => container.querySelector(`[data-error="${name}"]`)?.textContent,
-		status: () => container.querySelector('[role="status"]')?.textContent,
 		alerts: () => [...container.querySelectorAll('[role="alert"]')].map((alert) => alert.textContent),
+		click: (label: string) => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === label)?.click()),
+		container,
+		error: (name: string) => container.querySelector(`[data-error="${name}"]`)?.textContent,
+		render: (node: ReactNode) => act(async () => root.render(node)),
+		status: () => container.querySelector('[role="status"]')?.textContent,
+		text: () => container.textContent ?? "",
 		type: (name: string, value: string) =>
 			act(async () => {
 				const field = input(name);
-				if (!field) throw new Error(`Missing ${name}`);
+				if (!field) {
+					throw new Error(`Missing ${name}`);
+				}
 				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
-		click: (label: string) => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === label)?.click()),
+		value: (name: string) => input(name)?.value,
 	};
 };
 
@@ -63,11 +67,11 @@ const editing = async (id = 1) => {
 	const show = (current: number) =>
 		view.render(
 			createElement(SessionBoundary<string, undefined>, {
-				session: "s1",
-				identify: (session) => session,
+				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: current, key: "editor" })],
 				connect: () => undefined,
+				identify: (session) => session,
 				recheck: () => {},
-				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { key: "editor", id: current })],
+				session: "s1",
 			}),
 		);
 	await show(id);
@@ -75,10 +79,10 @@ const editing = async (id = 1) => {
 	expect(view.value("name")).toBeUndefined();
 	release();
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
-	return { server, view, show, registry: () => registry };
+	return { registry: () => registry, server, show, view };
 };
 
-test("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
+it("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "Blue stapler");
 	server.control.mode = "unavailable";
@@ -93,7 +97,7 @@ test("loading, then a refresh failure keeps the data and dirty edits; retry reco
 	expect(view.status()).toBe("Unsaved");
 });
 
-test("a refresh while dirty adopts untouched fields and keeps edited ones", async () => {
+it("a refresh while dirty adopts untouched fields and keeps edited ones", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "Black stapler");
 	server.edit(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
@@ -102,7 +106,7 @@ test("a refresh while dirty adopts untouched fields and keeps edited ones", asyn
 	expect(view.value("name")).toBe("Black stapler");
 });
 
-test("save shows server normalization, keeps edits made while saving and ignores a second submit", async () => {
+it("save shows server normalization, keeps edits made while saving and ignores a second submit", async () => {
 	const { server, view } = await editing();
 	await view.type("name", "  blue stapler ");
 	const release = server.hold();
@@ -118,7 +122,7 @@ test("save shows server normalization, keeps edits made while saving and ignores
 	expect(server.stored(1)).toEqual(new InvoiceLine({ id: 1, name: "Blue stapler", quantity: 150 }));
 });
 
-test("field rejections attach to their field; other failures are exposed separately", async () => {
+it("field rejections attach to their field; other failures are exposed separately", async () => {
 	const { server, view } = await editing();
 	await view.type("quantity", "9000");
 	await view.click("Save");
@@ -133,7 +137,7 @@ test("field rejections attach to their field; other failures are exposed separat
 	expect(server.stored(1)).toEqual(stapler);
 });
 
-test("a different key remounts the form without carrying the previous draft", async () => {
+it("a different key remounts the form without carrying the previous draft", async () => {
 	const { view, show } = await editing();
 	await view.type("name", "Draft");
 	await show(2);
@@ -143,17 +147,17 @@ test("a different key remounts the form without carrying the previous draft", as
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
 });
 
-test("create resets to its initial values after success, keeping fields edited during the save", async () => {
+it("create resets to its initial values after success, keeping fields edited during the save", async () => {
 	const server = makeInvoiceLineServer([stapler]);
 	const { InvoiceLineCreate } = makeInvoiceLineViews(server);
 	const view = mount();
 	await view.render(
 		createElement(SessionBoundary<string, undefined>, {
-			session: "s1",
-			identify: (session) => session,
-			connect: () => undefined,
-			recheck: () => {},
 			children: () => createElement(InvoiceLineCreate),
+			connect: () => undefined,
+			identify: (session) => session,
+			recheck: () => {},
+			session: "s1",
 		}),
 	);
 	await view.type("name", "pencil");
@@ -174,7 +178,7 @@ test("create resets to its initial values after success, keeping fields edited d
 	expect([view.value("name"), view.value("quantity"), view.status()]).toEqual(["", "", "Saved"]);
 });
 
-test("switching session tears down the editor, its draft and its registry; Unauthorized asks for a re-check", async () => {
+it("switching session tears down the editor, its draft and its registry; Unauthorized asks for a re-check", async () => {
 	const servers = {
 		alice: makeInvoiceLineServer([stapler]),
 		bob: makeInvoiceLineServer([new InvoiceLine({ id: 1, name: "Envelope", quantity: 80 })]),
@@ -184,18 +188,20 @@ test("switching session tears down the editor, its draft and its registry; Unaut
 	const view = mount();
 	const Probe = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		return null;
 	};
 	const show = (session: "alice" | "bob" | undefined) =>
 		view.render(
 			createElement(SessionBoundary<"alice" | "bob", ReturnType<typeof makeInvoiceLineViews>>, {
-				session,
-				identify: (user) => user,
+				children: ({ InvoiceLineEditor }) => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: 1, key: "editor" })],
 				connect: (user) => makeInvoiceLineViews(servers[user]),
+				identify: (user) => user,
 				recheck: () => rechecks.push(session ?? "none"),
+				session,
 				signedOut: "Signed out",
-				children: ({ InvoiceLineEditor }) => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { key: "editor", id: 1 })],
 			}),
 		);
 	await show("alice");

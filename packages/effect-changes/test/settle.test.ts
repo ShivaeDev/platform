@@ -1,9 +1,9 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import type { Outcome } from "../src/index.ts";
 import { type Current, change, harness, makeDatabase, on } from "./support/fake-database.ts";
 
-test("settle is idempotent: the first outcome wins and a frame publishes at most once", () =>
+it("settle is idempotent: the first outcome wins and a frame publishes at most once", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published } = harness();
@@ -23,7 +23,7 @@ test("settle is idempotent: the first outcome wins and a frame publishes at most
 		}),
 	));
 
-test("work that outlives its frame dies instead of dropping changes", () =>
+it("work that outlives its frame dies instead of dropping changes", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
@@ -51,7 +51,7 @@ test("work that outlives its frame dies instead of dropping changes", () =>
 		}),
 	));
 
-test("a Promise-committing driver runs the body outside the fiber and settles from the commit outcome", () =>
+it("a Promise-committing driver runs the body outside the fiber and settles from the commit outcome", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published } = harness();

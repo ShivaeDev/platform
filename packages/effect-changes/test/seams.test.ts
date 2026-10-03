@@ -1,17 +1,17 @@
 import { Effect, Layer } from "effect";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import type { Observation } from "../src/index.ts";
 import { type Change, change, harness, makeDatabase, on } from "./support/fake-database.ts";
 
 const label = (event: Change) => `${event.subject}:${event.domain}`;
 
-test("a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards", () =>
+it("a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
 			const database = makeDatabase("main");
-			const captured: Array<ReadonlyArray<string>> = [];
-			const sink = Layer.succeed(channel.Sink, (changes: ReadonlyArray<Change>) => Effect.sync(() => captured.push(changes.map(label))));
+			const captured: Array<readonly string[]> = [];
+			const sink = Layer.succeed(channel.Sink, (changes: readonly Change[]) => Effect.sync(() => captured.push(changes.map(label))));
 			yield* Effect.gen(function* () {
 				yield* write(database, "row", change("ada")).pipe(inTransaction(database));
 				yield* write(database, "bare row", change("bob"));
@@ -27,12 +27,12 @@ test("a Layer swaps a channel's sink for its scope; the configured sink is untou
 		}),
 	));
 
-test("an observer sees every recorded change and whether it was published or discarded", () =>
+it("an observer sees every recorded change and whether it was published or discarded", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const { channel, published, inTransaction, write } = harness();
 			const database = makeDatabase("main");
-			const seen: Array<string> = [];
+			const seen: string[] = [];
 			const observer = Layer.succeed(channel.Observer, (observation: Observation<Change>) =>
 				Effect.sync(() => seen.push(`${observation._tag} ${observation.changes.map(label).join(" ")}`)),
 			);

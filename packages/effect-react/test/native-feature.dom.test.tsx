@@ -9,26 +9,26 @@ import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { useAction, useQuery } from "../src/index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({
+		json: Schema.Number,
 		select: Schema.Number,
 		update: Schema.Number,
-		json: Schema.Number,
 	}),
 	title: Schema.String,
 }) {}
 
 const Notes = RpcGroup.make(
-	Rpc.make("ListNotes", { success: Schema.Array(Note), error: Schema.String }),
+	Rpc.make("ListNotes", { error: Schema.String, success: Schema.Array(Note) }),
 	Rpc.make("CreateNote", {
+		error: Schema.String,
 		payload: { title: Schema.String },
 		success: Note,
-		error: Schema.String,
 	}),
 );
 
@@ -37,25 +37,25 @@ const handlers = Notes.toLayer(
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`create table notes (id integer primary key, title text not null)`;
 		const notes = yield* makeRepository(Note, {
-			tableName: "notes",
 			idColumn: "id",
 			spanPrefix: "Notes",
+			tableName: "notes",
 		});
 		return Notes.of({
-			ListNotes: () => notes.findMany({ orderBy: { field: "id", direction: "asc" } }).pipe(Effect.mapError(() => "storage unavailable")),
 			CreateNote: ({ title }) =>
 				title.trim() === "" ? Effect.fail("title required") : notes.insert({ title }).pipe(Effect.mapError(() => "storage unavailable")),
+			ListNotes: () => notes.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(Effect.mapError(() => "storage unavailable")),
 		});
 	}),
 ).pipe(Layer.provide(SqliteClient.layer({ filename: ":memory:" })));
 
 class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 	group: Notes,
-	protocol: handlers,
 	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+	protocol: handlers,
 }) {}
 
-test("rendered create persists through RPC and refreshes its query; rejected saves preserve the list", async () => {
+it("rendered create persists through RPC and refreshes its query; rejected saves preserve the list", async () => {
 	const registry = AtomRegistry.make();
 	const container = document.createElement("div");
 	document.body.append(container);
@@ -74,33 +74,33 @@ test("rendered create persists through RPC and refreshes its query; rejected sav
 				"output",
 				null,
 				JSON.stringify({
-					titles: Option.getOrElse(query.data, () => []).map((note) => note.title),
+					error: Option.isSome(action.cause),
 					loading: query.pending,
 					saving: action.pending,
-					error: Option.isSome(action.cause),
+					titles: Option.getOrElse(query.data, () => []).map((note) => note.title),
 				}),
 			),
 			createElement(
 				"button",
 				{
-					type: "button",
 					onClick: () =>
 						action.dispatch({
 							payload: { title: "Morning walk" },
 							reactivityKeys: ["notes"],
 						}),
+					type: "button",
 				},
 				"Save",
 			),
 			createElement(
 				"button",
 				{
-					type: "button",
 					onClick: () =>
 						action.dispatch({
 							payload: { title: "" },
 							reactivityKeys: ["notes"],
 						}),
+					type: "button",
 				},
 				"Save empty",
 			),
@@ -111,10 +111,10 @@ test("rendered create persists through RPC and refreshes its query; rejected sav
 		vi.waitFor(async () => {
 			await act(async () => {});
 			expect(snapshot()).toEqual({
-				titles,
+				error,
 				loading: false,
 				saving: false,
-				error,
+				titles,
 			});
 		});
 	try {

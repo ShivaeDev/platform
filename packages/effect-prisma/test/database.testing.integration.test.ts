@@ -31,8 +31,8 @@ effectDB(
 		expect(context.task.name).toContain("passes the typed database facade");
 
 		const user = yield* db.User.create({
-			id: ids.rolledBack,
 			email: `${ids.rolledBack}@example.test`,
+			id: ids.rolledBack,
 			name: "Rolled back",
 		});
 
@@ -59,8 +59,8 @@ effectDB.each([
 		expect(yield* db.User.where({ id: example.id }).exists()).toBe(false);
 
 		const user = yield* db.User.create({
-			id: example.id,
 			email: `${example.name}-${example.id}@example.test`,
+			id: example.id,
 			name: example.name,
 		});
 
@@ -73,8 +73,8 @@ effectDB.fails(
 	"rolls back a failed Effect",
 	function* (db) {
 		yield* db.User.create({
-			id: ids.failed,
 			email: `${ids.failed}@example.test`,
+			id: ids.failed,
 			name: "Failed",
 		});
 
@@ -101,8 +101,8 @@ effectDB(
 			Effect.gen(function* () {
 				const transactionDb = yield* Database;
 				yield* transactionDb.User.create({
-					id: nestedId,
 					email: `${nestedId}@example.test`,
+					id: nestedId,
 					name: "Nested",
 				});
 			}),

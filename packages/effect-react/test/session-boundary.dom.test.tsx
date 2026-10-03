@@ -4,7 +4,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { Activity, act, createElement, StrictMode, useContext, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "../src/index.ts";
 import { startOrderServer } from "./order-example/http-test.ts";
 import { sessions, shell } from "./support/session.ts";
@@ -17,7 +17,7 @@ const eventually = (assert: () => void) =>
 		assert();
 	});
 
-test("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
+it("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
 	const view = shell(server.url);
 	try {
@@ -49,7 +49,7 @@ test("each session generation owns a fresh client and registry; switching, signi
 	expect(view.registries[2]?.getNodes().size).toBe(0);
 });
 
-test("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
+it("Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down", async () => {
 	const active = sessions();
 	const server = await startOrderServer({ sessions: active });
 	const view = shell(server.url);
@@ -73,7 +73,7 @@ test("Unauthorized keeps the retained screen and asks the auth owner to re-check
 	}
 });
 
-test("refresh retry recovers without losing the session's dirty form", async () => {
+it("refresh retry recovers without losing the session's dirty form", async () => {
 	const active = sessions();
 	const server = await startOrderServer({ sessions: active });
 	const view = shell(server.url);
@@ -85,7 +85,7 @@ test("refresh retry recovers without losing the session's dirty form", async () 
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')?.textContent).toContain("Could not load"));
 		expect(view.input()?.value).toBe("Unsaved order");
-		active.set("alice-token", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY });
+		active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
 		await view.refresh();
 		await eventually(() => expect(view.container.querySelector('[role="alert"]')).toBeNull());
 		expect(view.input()?.value).toBe("Unsaved order");
@@ -95,7 +95,7 @@ test("refresh retry recovers without losing the session's dirty form", async () 
 	}
 });
 
-test("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
+it("StrictMode's effect replay keeps the generation's registry alive until the real unmount", async () => {
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	const count = Atom.make(Effect.succeed(41));
@@ -112,11 +112,11 @@ test("StrictMode's effect replay keeps the generation's registry alive until the
 					StrictMode,
 					null,
 					createElement(SessionBoundary<string, undefined>, {
-						session,
-						identify: (id) => id,
-						connect: () => undefined,
-						recheck: () => {},
 						children: () => createElement(Probe),
+						connect: () => undefined,
+						identify: (id) => id,
+						recheck: () => {},
+						session,
 					}),
 				),
 			);
@@ -136,18 +136,20 @@ const activity = async (hoisted: boolean) => {
 	const registries: AtomRegistry.AtomRegistry[] = [];
 	const Probe = () => {
 		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) registries.push(registry);
+		if (!registries.includes(registry)) {
+			registries.push(registry);
+		}
 		const [draft] = useState(() => `draft-${registries.length}`);
 		const value = useAtomValue(count);
 		return createElement("output", null, `${draft}:${value._tag === "Success" ? value.value + 1 : "…"}`);
 	};
 	const boundary = () =>
 		createElement(SessionBoundary<string, undefined>, {
-			session: "s1",
-			identify: (id) => id,
-			connect: () => undefined,
-			recheck: () => {},
 			children: () => createElement(Probe),
+			connect: () => undefined,
+			identify: (id) => id,
+			recheck: () => {},
+			session: "s1",
 		});
 	const kept = boundary();
 	const container = document.createElement("div");
@@ -155,7 +157,7 @@ const activity = async (hoisted: boolean) => {
 	const errors: unknown[] = [];
 	const render = (mode: "visible" | "hidden") =>
 		act(async () => {
-			root.render(createElement(Activity, { mode, children: hoisted ? kept : boundary() }));
+			root.render(createElement(Activity, { children: hoisted ? kept : boundary(), mode }));
 		}).then(
 			() => {},
 			(error: unknown) => {
@@ -173,11 +175,11 @@ const activity = async (hoisted: boolean) => {
 	expect(registries.map((registry) => registry.getNodes().size)).toEqual(registries.map(() => 0));
 };
 
-test("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
+it("a generation hidden by <Activity> and revealed keeps its state on a live registry", () => activity(false));
 
-test("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
+it("a hoisted generation element hidden by <Activity> and revealed keeps its state on a live registry", () => activity(true));
 
-test("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
+it("a generation re-rendered while hidden by <Activity> and then unmounted disposes what the hidden render created", async () => {
 	const built: number[] = [];
 	const finalized: number[] = [];
 	const rendered: number[] = [];
@@ -198,14 +200,14 @@ test("a generation re-rendered while hidden by <Activity> and then unmounted dis
 		act(async () => {
 			root.render(
 				createElement(Activity, {
-					mode,
 					children: createElement(SessionBoundary<string, undefined>, {
-						session: "s1",
-						identify: (id) => id,
-						connect: () => undefined,
-						recheck: () => {},
 						children: () => createElement(Probe, { round }),
+						connect: () => undefined,
+						identify: (id) => id,
+						recheck: () => {},
+						session: "s1",
 					}),
+					mode,
 				}),
 			);
 		});
@@ -218,10 +220,10 @@ test("a generation re-rendered while hidden by <Activity> and then unmounted dis
 	await eventually(() => expect(finalized).toHaveLength(built.length));
 });
 
-test("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
+it("connect runs once per identity: a rotated credential reaches the client only when identify includes its generation", async () => {
 	interface Rotating {
-		readonly id: string;
 		readonly credential: number;
+		readonly id: string;
 		readonly token: string;
 	}
 	const container = document.createElement("div");
@@ -231,24 +233,24 @@ test("connect runs once per identity: a rotated credential reaches the client on
 		act(async () => {
 			root.render(
 				createElement(SessionBoundary<Rotating, string>, {
-					session,
-					identify,
+					children: (token) => createElement("output", null, token),
 					connect: (current) => {
 						connected.push(current.token);
 						return current.token;
 					},
+					identify,
 					recheck: () => {},
-					children: (token) => createElement("output", null, token),
+					session,
 				}),
 			);
 		});
 	const byId = (session: Rotating) => session.id;
-	await show({ id: "a1", credential: 1, token: "t1" }, byId);
-	await show({ id: "a1", credential: 2, token: "t2" }, byId);
+	await show({ credential: 1, id: "a1", token: "t1" }, byId);
+	await show({ credential: 2, id: "a1", token: "t2" }, byId);
 	expect(container.textContent).toBe("t1");
 	const byCredential = (session: Rotating) => `${session.id}:${session.credential}`;
-	await show({ id: "a1", credential: 2, token: "t2" }, byCredential);
-	await show({ id: "a1", credential: 3, token: "t3" }, byCredential);
+	await show({ credential: 2, id: "a1", token: "t2" }, byCredential);
+	await show({ credential: 3, id: "a1", token: "t3" }, byCredential);
 	expect(container.textContent).toBe("t3");
 	expect(connected).toEqual(["t1", "t2", "t3"]);
 	await act(async () => root.unmount());

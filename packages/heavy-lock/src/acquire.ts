@@ -11,8 +11,8 @@ import { readSettings } from "./settings.ts";
 import { waitForLock } from "./wait.ts";
 
 export interface HeavyLockOptions {
-	readonly lockPath?: string | undefined;
 	readonly command?: string | undefined;
+	readonly lockPath?: string | undefined;
 	readonly pollInterval?: Duration.Input | undefined;
 }
 
@@ -42,11 +42,11 @@ const takeLock = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpt
 	const holder = yield* waitForLock(
 		settings.lock,
 		{
+			command: options.command ?? process.argv.slice(1).join(" "),
+			cwd: process.cwd(),
 			id: randomUUID(),
 			pid: process.pid,
 			processStartedAt,
-			command: options.command ?? process.argv.slice(1).join(" "),
-			cwd: process.cwd(),
 		},
 		{ pollInterval: options.pollInterval ?? Duration.seconds(1), remindEvery: REMIND_EVERY },
 	).pipe(Effect.mapError(failWith(`Could not take the heavy-process lock at ${settings.lock}.`)));

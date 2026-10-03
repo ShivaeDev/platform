@@ -17,6 +17,6 @@ export class PgBossPayloadError extends Data.TaggedError("PgBossPayloadError")<{
 export const toPgBossError = (operation: PgBossOperation, error: unknown, queue?: string): PgBossError =>
 	new PgBossError({
 		operation,
-		queue,
 		original: Redacted.make(error),
+		queue,
 	});

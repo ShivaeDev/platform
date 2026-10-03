@@ -1,24 +1,34 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
 import { httpClient, rpcHttp, serve } from "./rpc/support.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests]);
-const Profiles = RpcGroup.make(Rpc.make("Rename", { payload: { name: Schema.String }, success: Schema.String, error: Rejection }));
+const Profiles = RpcGroup.make(Rpc.make("Rename", { error: Rejection, payload: { name: Schema.String }, success: Schema.String }));
 
 const Handlers = Profiles.toLayer({
 	Rename: ({ name }) => {
-		if (name === "") return Effect.fail(new BadRequest({ message: "Name is required", field: "name" }));
-		if (name === "taken") return Effect.fail(new Conflict({ message: "Name is taken", field: "name" }));
-		if (name === "stale") return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
-		if (name === "missing") return Effect.fail(new NotFound({ message: "No profile" }));
-		if (name === "busy") return Effect.fail(new TooManyRequests({ message: "Slow down" }));
+		if (name === "") {
+			return Effect.fail(new BadRequest({ field: "name", message: "Name is required" }));
+		}
+		if (name === "taken") {
+			return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
+		}
+		if (name === "stale") {
+			return Effect.fail(new PreconditionFailed({ message: "Profile changed" }));
+		}
+		if (name === "missing") {
+			return Effect.fail(new NotFound({ message: "No profile" }));
+		}
+		if (name === "busy") {
+			return Effect.fail(new TooManyRequests({ message: "Slow down" }));
+		}
 		return Effect.succeed(name);
 	},
 });
 
-test("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
+it("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
 	const app = serve(rpcHttp(Profiles).pipe(Layer.provide(Handlers)));
 	try {
 		const rename = (name: string) =>
@@ -47,17 +57,17 @@ test("taxonomy errors cross native RPC JSON as decoded instances with their fiel
 
 class Invalid extends Schema.TaggedError<Invalid>()("Invalid", { field: Schema.Literals(["title"]), message: Schema.String }) {}
 
-test("taxonomy errors encode to tagged JSON and any tagged error with a field is a field rejection", () => {
-	expect(Schema.encodeSync(Rejection)(new Conflict({ message: "Name is taken", field: "name" }))).toEqual({
+it("taxonomy errors encode to tagged JSON and any tagged error with a field is a field rejection", () => {
+	expect(Schema.encodeSync(Rejection)(new Conflict({ field: "name", message: "Name is taken" }))).toEqual({
 		_tag: "Conflict",
-		message: "Name is taken",
 		field: "name",
+		message: "Name is taken",
 	});
 	expect(Schema.encodeSync(Rejection)(new BadRequest({ message: "Malformed" }))).toEqual({ _tag: "BadRequest", message: "Malformed" });
 	expect(Schema.encodeSync(Rejection)(new TooManyRequests({ message: "Slow down" }))).toEqual({ _tag: "TooManyRequests", message: "Slow down" });
 	expect(rejectedField(new BadRequest({ message: "Malformed" }))).toEqual(Option.none());
 	expect(rejectedField(new Forbidden({ message: "No" }))).toEqual(Option.none());
-	expect(rejectedField({ _tag: "Conflict", message: "Encoded", field: "name" })).toEqual(Option.some({ field: "name", message: "Encoded" }));
+	expect(rejectedField({ _tag: "Conflict", field: "name", message: "Encoded" })).toEqual(Option.some({ field: "name", message: "Encoded" }));
 	expect(rejectedField(new Invalid({ field: "title", message: "Too long" }))).toEqual(Option.some({ field: "title", message: "Too long" }));
 	expect(rejectedField({ field: "title", message: "Untagged" })).toEqual(Option.none());
 	expect(rejectedField({ _tag: 1, field: "title", message: "Numeric tag" })).toEqual(Option.none());

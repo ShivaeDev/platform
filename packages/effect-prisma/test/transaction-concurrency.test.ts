@@ -10,13 +10,13 @@ interface User {
 	readonly id: number;
 }
 
-const rows: ReadonlyArray<User> = [{ id: 1 }, { id: 2 }, { id: 3 }];
+const rows: readonly User[] = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
 interface Models {
 	readonly User: ControlledCollection<User>;
 }
 
-const makeExecutor = (execute: () => Promise<Array<User>>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> => ({
+const makeExecutor = (execute: () => Promise<User[]>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> => ({
 	client: unusedClient(),
 	identity: {},
 	liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
@@ -163,7 +163,7 @@ it.effect("holds a transaction query permit until interrupted work settles", () 
 
 it.effect("keeps a root stream incremental when root queries share an access permit", () =>
 	Effect.gen(function* () {
-		const events: Array<string> = [];
+		const events: string[] = [];
 		interface StreamModels {
 			readonly Source: EventStreamCollection<User>;
 		}
@@ -198,7 +198,7 @@ it.effect("keeps a root stream incremental when root queries share an access per
 
 it.effect("buffers a transaction stream before running downstream effects", () =>
 	Effect.gen(function* () {
-		const events: Array<string> = [];
+		const events: string[] = [];
 		interface StreamModels {
 			readonly Lookup: ControlledCollection<User>;
 			readonly Source: EventStreamCollection<User>;

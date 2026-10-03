@@ -53,7 +53,7 @@ integration("invalidation runs after COMMIT: the sink sees the committed rows fr
 		Effect.gen(function* () {
 			const { insert, orderIds, reactivity } = yield* setup;
 			const observer = yield* secondPool;
-			const observed: Array<ReadonlyArray<number>> = [];
+			const observed: Array<readonly number[]> = [];
 			const observing = Reactivity.Reactivity.of({
 				...reactivity,
 				invalidate: (keys) => Effect.andThen(Effect.orDie(Effect.map(orderIds(observer), (ids) => observed.push(ids))), reactivity.invalidate(keys)),
@@ -73,7 +73,7 @@ integration("invalidation runs after COMMIT: the sink sees the committed rows fr
 integration("a failing invalidation after COMMIT is logged and the committed result stands", () => {
 	const logged: Array<{ readonly message: unknown; readonly cause: string }> = [];
 	const logger = Logger.make((options) => {
-		logged.push({ message: options.message, cause: Cause.pretty(options.cause) });
+		logged.push({ cause: Cause.pretty(options.cause), message: options.message });
 	});
 	return runPostgres(
 		Effect.gen(function* () {
@@ -85,7 +85,7 @@ integration("a failing invalidation after COMMIT is logged and the committed res
 			const result = yield* Effect.as(Effect.andThen(insert(1), invalidateOnCommit({ orders: [1] })), "saved").pipe(transact({ onSqlError }));
 			expect(result).toBe("saved");
 			expect(yield* orderIds(observer)).toEqual([1]);
-			expect(logged).toEqual([{ message: [expect.stringContaining("committed")], cause: expect.stringContaining("subscriber threw") }]);
+			expect(logged).toEqual([{ cause: expect.stringContaining("subscriber threw"), message: [expect.stringContaining("committed")] }]);
 		}).pipe(Effect.provide(Logger.layer([logger]))),
 	);
 });

@@ -30,8 +30,8 @@ effectDB("passes the typed database facade and Vitest context to the generator",
 	expect(context.task.name).toContain("passes the typed database facade");
 
 	const user = yield* db.User.create({
-		id: ids.rolledBack,
 		email: `${ids.rolledBack}@example.test`,
+		id: ids.rolledBack,
 		name: "Rolled back",
 	});
 
@@ -50,8 +50,8 @@ effectDB.each([
 	expect(yield* db.User.where({ id: example.id }).exists()).toBe(false);
 
 	const user = yield* db.User.create({
-		id: example.id,
 		email: `${example.name}-${example.id}@example.test`,
+		id: example.id,
 		name: example.name,
 	});
 
@@ -60,8 +60,8 @@ effectDB.each([
 
 effectDB.fails("rolls back a failed Effect", function* (db) {
 	yield* db.User.create({
-		id: ids.failed,
 		email: `${ids.failed}@example.test`,
+		id: ids.failed,
 		name: "Failed",
 	});
 
@@ -80,8 +80,8 @@ effectDB("exposes the framework-neutral forced-rollback primitive", function* (d
 		Effect.gen(function* () {
 			const transactionDb = yield* Database;
 			yield* transactionDb.User.create({
-				id: nestedId,
 				email: `${nestedId}@example.test`,
+				id: nestedId,
 				name: "Nested",
 			});
 		}),
@@ -99,8 +99,8 @@ effectDB("reuses the forced-rollback scope for an ordinary transaction", functio
 			const inner = yield* Database;
 			expect(inner).toBe(outer);
 			yield* inner.User.create({
-				id: ids.ordinaryNested,
 				email: `${ids.ordinaryNested}@example.test`,
+				id: ids.ordinaryNested,
 				name: "Ordinary nested transaction",
 			});
 		}),

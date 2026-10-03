@@ -7,10 +7,10 @@ export type AnySqlContract = PrismaContract<SqlStorage>;
 export type AnyPostgresContract = AnySqlContract;
 
 export interface SqlDatabaseClient<Contract extends AnySqlContract> {
-	readonly contract: Contract;
-	readonly context: ExecutionContext<Contract>;
-	runtime(): Runtime;
 	close(): Promise<void>;
+	readonly context: ExecutionContext<Contract>;
+	readonly contract: Contract;
+	runtime(): Runtime;
 }
 
 export interface DatabaseExecutor<Models extends object, Contract extends AnySqlContract = AnySqlContract> {

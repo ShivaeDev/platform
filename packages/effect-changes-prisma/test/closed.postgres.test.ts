@@ -90,7 +90,7 @@ integration("a nested transaction that finds the enclosing transaction expired f
 			Effect.gen(function* () {
 				const { client, observer } = yield* makeDatabase;
 				const { changes, published } = makeChanges(client);
-				const state = { sideEffects: 0, inner: 0 };
+				const state = { inner: 0, sideEffects: 0 };
 				const inner = Effect.gen(function* () {
 					state.inner += 1;
 					yield* createOrder(changes, "o1");
@@ -103,7 +103,7 @@ integration("a nested transaction that finds the enclosing transaction expired f
 				const { exits, run } = yield* harnessed(changes, body);
 				yield* Effect.promise(() => client.$transaction(run, { timeout: 100 }).catch(() => undefined));
 				expect(expiredIn(exits)).toBe(true);
-				expect(state).toEqual({ sideEffects: 0, inner: 0 });
+				expect(state).toEqual({ inner: 0, sideEffects: 0 });
 				expect(yield* orderIds(observer)).toEqual([]);
 				expect(published).toEqual([]);
 			}),

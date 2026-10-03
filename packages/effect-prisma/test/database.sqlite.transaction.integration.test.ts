@@ -9,8 +9,8 @@ const createNested = (outer: unknown, email: string) =>
 		const inner = yield* Database;
 		expect(inner).toBe(outer);
 		yield* inner.User.create({
-			id: crypto.randomUUID(),
 			email,
+			id: crypto.randomUUID(),
 			name: "Nested",
 		});
 	});
@@ -47,8 +47,8 @@ it.effect("serializes concurrent queries inside a transaction", () =>
 				const db = yield* Database;
 				const marker = crypto.randomUUID();
 				const users = ["one", "two", "three"].map((suffix) => ({
-					id: crypto.randomUUID(),
 					email: `${marker}-${suffix}@example.test`,
+					id: crypto.randomUUID(),
 					name: marker,
 				}));
 
@@ -72,8 +72,8 @@ it.effect("buffers transaction streams before downstream database effects", () =
 				const marker = crypto.randomUUID();
 				yield* db.User.createAll(
 					["one", "two", "three"].map((suffix) => ({
-						id: crypto.randomUUID(),
 						email: `${marker}-${suffix}@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					})),
 				);

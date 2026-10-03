@@ -13,9 +13,9 @@ const clean = Atom.make(false);
 export interface SaveState<E> {
 	readonly dirty: boolean;
 	readonly failure: Option.Option<E>;
-	readonly saving: boolean;
-	readonly save: () => void;
 	readonly revert: () => void;
+	readonly save: () => void;
+	readonly saving: boolean;
 }
 
 export const useSaveState = <F extends Fields, A, E, ER>(
@@ -27,24 +27,27 @@ export const useSaveState = <F extends Fields, A, E, ER>(
 	const result: AsyncResult.AsyncResult<A, E | ER | FieldFailure | Invalid> = useAtomValue(form?.submit ?? idle);
 	const dirty = useAtomValue(form?.dirty ?? clean);
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) recheck();
+		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+			recheck();
+		}
 	}, [recheck, result]);
 	useEffect(
 		() =>
-			form &&
-			registry.subscribe(form.submit, (next) => {
-				if (AsyncResult.isSuccess(next) && !next.waiting) settled(next.value);
+			form
+			&& registry.subscribe(form.submit, (next) => {
+				if (AsyncResult.isSuccess(next) && !next.waiting) {
+					settled(next.value);
+				}
 			}),
 		[form, registry, settled],
 	);
 	const save = useCallback(() => {
-		if (form === undefined || registry.get(form.submit).waiting) return;
+		if (form === undefined || registry.get(form.submit).waiting) {
+			return;
+		}
 		registry.set(form.submit, undefined);
 	}, [form, registry]);
 	const revert = useCallback(() => form?.revert(), [form]);
-	const failure = Option.filter(
-		AsyncResult.error(result),
-		(error): error is E | ER => !(error instanceof FieldFailure) && !(error instanceof Invalid),
-	);
-	return { dirty, failure, saving: result.waiting, save, revert };
+	const failure = Option.filter(AsyncResult.error(result), (error): error is E | ER => !(error instanceof FieldFailure || error instanceof Invalid));
+	return { dirty, failure, revert, save, saving: result.waiting };
 };

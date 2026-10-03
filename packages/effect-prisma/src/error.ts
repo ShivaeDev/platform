@@ -54,19 +54,19 @@ export const toPrismaError = (error: PrismaFailure): PrismaError => {
 	if ("kind" in error && error.kind === "sql_query") {
 		return new PrismaError({
 			reason: new PrismaQueryFailure({
-				sqlState: error.sqlState,
-				constraint: error.constraint,
-				table: error.table,
 				column: error.column,
+				constraint: error.constraint,
 				original,
+				sqlState: error.sqlState,
+				table: error.table,
 			}),
 		});
 	}
 	if ("kind" in error && error.kind === "sql_connection") {
 		return new PrismaError({
 			reason: new PrismaConnectionFailure({
-				transient: error.transient,
 				original,
+				transient: error.transient,
 			}),
 		});
 	}

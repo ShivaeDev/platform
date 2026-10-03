@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { boardLayer } from "../src/index.ts";
 import { type Folder, folder } from "./support/board.ts";
 
-const embed = (root: string) => HttpRouter.toWebHandler(Layer.provide(boardLayer({ root, home: "plan.md" }), NodeServices.layer));
+const embed = (root: string) => HttpRouter.toWebHandler(Layer.provide(boardLayer({ home: "plan.md", root }), NodeServices.layer));
 
 let notes: Folder;
 let board: ReturnType<typeof embed>;

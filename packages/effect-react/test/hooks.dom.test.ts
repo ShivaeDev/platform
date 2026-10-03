@@ -4,13 +4,15 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { useAction, useQuery } from "../src/index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
-	for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+	for (const cleanup of cleanups.splice(0).reverse()) {
+		await cleanup();
+	}
 });
 
 const mount = async (Component: () => React.ReactNode) => {
@@ -35,54 +37,54 @@ const finish = async <A, E>(gate: Deferred.Deferred<A, E>, result: Exit.Exit<A, 
 	});
 };
 
-test("query renders retained data while refreshing and after a typed failure", async () => {
+it("query renders retained data while refreshing and after a typed failure", async () => {
 	let gate = Effect.runSync(Deferred.make<number, string>());
 	const query = Atom.make(Effect.suspend(() => Deferred.await(gate)));
 	const view = await mount(() => {
 		const state = useQuery(query);
 		return createElement(
 			"button",
-			{ type: "button", onClick: state.refresh },
+			{ onClick: state.refresh, type: "button" },
 			JSON.stringify({
 				data: Option.getOrNull(state.data),
+				failed: Option.isSome(state.cause),
 				pending: state.pending,
 				refreshing: state.refreshing,
-				failed: Option.isSome(state.cause),
 			}),
 		);
 	});
 	const snapshot = () => JSON.parse(view.textContent ?? "");
 	expect(snapshot()).toEqual({
 		data: null,
+		failed: false,
 		pending: true,
 		refreshing: false,
-		failed: false,
 	});
 	await finish(gate, Exit.succeed(7));
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: false,
 		pending: false,
 		refreshing: false,
-		failed: false,
 	});
 	gate = Effect.runSync(Deferred.make<number, string>());
 	await act(async () => view.querySelector("button")?.click());
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: false,
 		pending: true,
 		refreshing: true,
-		failed: false,
 	});
 	await finish(gate, Exit.fail("unavailable"));
 	expect(snapshot()).toEqual({
 		data: 7,
+		failed: true,
 		pending: false,
 		refreshing: false,
-		failed: true,
 	});
 });
 
-test("action renders ordinary success values and typed failures", async () => {
+it("action renders ordinary success values and typed failures", async () => {
 	let gate = Effect.runSync(Deferred.make<number, string>());
 	const action = Atom.fn<number>()((input) => Effect.map(Deferred.await(gate), (value) => input + value));
 	const view = await mount(() => {
@@ -90,41 +92,41 @@ test("action renders ordinary success values and typed failures", async () => {
 		return createElement(
 			"button",
 			{
-				type: "button",
 				onClick: () => {
 					state.dispatch(5);
 				},
+				type: "button",
 			},
 			JSON.stringify({
-				pending: state.pending,
 				data: Option.getOrNull(state.data),
 				failed: Option.isSome(state.cause),
+				pending: state.pending,
 			}),
 		);
 	});
 	await act(async () => view.querySelector("button")?.click());
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: true,
 		data: null,
 		failed: false,
+		pending: true,
 	});
 	await finish(gate, Exit.succeed(2));
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: false,
 		data: 7,
 		failed: false,
+		pending: false,
 	});
 	gate = Effect.runSync(Deferred.make<number, string>());
 	await act(async () => view.querySelector("button")?.click());
 	await finish(gate, Exit.fail("denied"));
 	expect(JSON.parse(view.textContent ?? "")).toEqual({
-		pending: false,
 		data: 7,
 		failed: true,
+		pending: false,
 	});
 });
 
-test("changing query identity does not retain data from the previous query", async () => {
+it("changing query identity does not retain data from the previous query", async () => {
 	const first = Atom.make(Effect.succeed("account A"));
 	const next = Atom.make(Effect.never);
 	const registry = AtomRegistry.make();
@@ -151,7 +153,7 @@ test("changing query identity does not retain data from the previous query", asy
 	expect(container.textContent).toBe("loading");
 });
 
-test("consumers of the same query share the native execution", async () => {
+it("consumers of the same query share the native execution", async () => {
 	let calls = 0;
 	const query = Atom.make(Effect.sync(() => ++calls));
 	const Child = () => createElement("span", null, Option.getOrNull(useQuery(query).data));
@@ -160,7 +162,7 @@ test("consumers of the same query share the native execution", async () => {
 	expect(calls).toBe(1);
 });
 
-test("overlapping dispatches expose the latest native result", async () => {
+it("overlapping dispatches expose the latest native result", async () => {
 	const first = Effect.runSync(Deferred.make<number>());
 	const second = Effect.runSync(Deferred.make<number>());
 	let interrupted = false;
@@ -178,7 +180,7 @@ test("overlapping dispatches expose the latest native result", async () => {
 		const state = useAction(action);
 		return createElement(
 			"button",
-			{ type: "button", onClick: () => state.dispatch(input++) },
+			{ onClick: () => state.dispatch(input++), type: "button" },
 			Option.getOrElse(state.data, () => -1),
 		);
 	});

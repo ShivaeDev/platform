@@ -8,7 +8,6 @@ class Token extends Context.Service<Token, string>()("@test/Token") {}
 const aroundLog: string[] = [];
 
 const { effectApp } = makeEffectIt({
-	layer: Layer.succeed(Token, "from-layer"),
 	around: (effect) =>
 		Effect.gen(function* () {
 			aroundLog.push("enter");
@@ -16,6 +15,7 @@ const { effectApp } = makeEffectIt({
 			aroundLog.push("exit");
 			return value;
 		}),
+	layer: Layer.succeed(Token, "from-layer"),
 	makeHarness: (context) =>
 		Effect.gen(function* () {
 			return {
@@ -36,7 +36,7 @@ effectApp("runs a generator body with the harness and Layer services", function*
 effectApp("installs TestClock by default", function* () {
 	expect(yield* Clock.currentTimeMillis).toBe(0);
 	yield* TestClock.adjust("1 second");
-	expect(yield* Clock.currentTimeMillis).toBe(1_000);
+	expect(yield* Clock.currentTimeMillis).toBe(1000);
 });
 
 effectApp(

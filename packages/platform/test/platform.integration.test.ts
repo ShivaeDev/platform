@@ -56,7 +56,6 @@ const router = t.router({
 const it = makePlatformIt(Database)({
 	adapter,
 	createCaller: (options = { actor: "default" }) => router.createCaller(options),
-	layer: DatabaseLive,
 	extend: ({ db }) =>
 		Effect.succeed({
 			factories: {
@@ -71,6 +70,7 @@ const it = makePlatformIt(Database)({
 			},
 			userExists: (id: string) => db.User.where({ id }).exists(),
 		}),
+	layer: DatabaseLive,
 });
 
 const integrationOptions = { skip: databaseUrl === undefined };

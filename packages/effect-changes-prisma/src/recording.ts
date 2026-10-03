@@ -16,8 +16,10 @@ const recordingDelegate = (delegate: object, model: string, collect: (write: Wri
 	new Proxy(delegate, {
 		get: (target, key) => {
 			const value: unknown = Reflect.get(target, key);
-			if (typeof key !== "string" || typeof value !== "function" || !isWriteOperation(key)) return bound(value, target);
-			return (...args: ReadonlyArray<unknown>) =>
+			if (typeof key !== "string" || typeof value !== "function" || !isWriteOperation(key)) {
+				return bound(value, target);
+			}
+			return (...args: readonly unknown[]) =>
 				Promise.resolve(Reflect.apply(value, target, args)).then((result: unknown) => {
 					collect({ model, operation: key, result });
 					return result;
@@ -34,7 +36,9 @@ export const recordingClient = <Client extends object>(
 		get: (target, key) => {
 			const value: unknown = Reflect.get(target, key);
 			const model = typeof key === "string" ? delegates.get(key) : undefined;
-			if (model !== undefined && typeof value === "object" && value !== null) return recordingDelegate(value, model, collect);
+			if (model !== undefined && typeof value === "object" && value !== null) {
+				return recordingDelegate(value, model, collect);
+			}
 			return bound(value, target);
 		},
 	});

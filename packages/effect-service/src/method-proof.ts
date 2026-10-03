@@ -19,7 +19,7 @@ interface GenericMethodWithDeclaredRequirementsIsUnsupported {
 	readonly _serviceDefinitionError: "generic methods cannot subtract declared service requirements";
 }
 
-type MethodRequirements<Method> = Method extends (...arguments_: ReadonlyArray<never>) => Effect.Effect<unknown, unknown, infer Requirements>
+type MethodRequirements<Method> = Method extends (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, infer Requirements>
 	? Requirements
 	: never;
 

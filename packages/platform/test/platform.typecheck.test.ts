@@ -32,8 +32,8 @@ const router = t.router({
 const it = makePlatformIt(Database)({
 	adapter,
 	createCaller: (options = { actor: "default" }) => router.createCaller(options),
-	layer: DatabaseLive,
 	extend: () => Effect.succeed({ fixtureName: "typed" as const }),
+	layer: DatabaseLive,
 });
 
 it.effectApp("preserves database, caller, and extension types", function* (app) {

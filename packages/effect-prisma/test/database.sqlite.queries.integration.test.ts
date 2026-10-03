@@ -13,13 +13,13 @@ it.effect("runs aggregate, grouping, bulk create, update, and delete terminals",
 				const marker = crypto.randomUUID();
 				const created = yield* db.User.createAll([
 					{
-						id: crypto.randomUUID(),
 						email: `${marker}-one@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					},
 					{
-						id: crypto.randomUUID(),
 						email: `${marker}-two@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					},
 				]);
@@ -60,8 +60,8 @@ it.effect("loads related rows without changing the base relation", () =>
 				const userId = crypto.randomUUID();
 				const firstPostId = crypto.randomUUID();
 				yield* db.User.create({
-					id: userId,
 					email: uniqueEmail("include"),
+					id: userId,
 					name: "Relation owner",
 				});
 				yield* db.Post.createAll([
