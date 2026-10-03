@@ -51,6 +51,8 @@ Requirements:
 - pnpm 12.8.1
 - Docker, or PostgreSQL client tools (`psql`) when reusing a native local service
 
+The package Node requirement is `>=24`, so deployment hosts such as Vercel can use Node 24. Local development and CI use the pinned Node 26.10.0 runtime.
+
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
