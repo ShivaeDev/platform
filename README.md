@@ -58,7 +58,7 @@ pnpm db:setup
 pnpm ready
 ```
 
-`pnpm setup` combines frozen dependency installation and database preparation. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. This package workspace has no application server port.
+`pnpm setup` combines frozen dependency installation and database preparation. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. This package workspace has no application server port. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using `postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`. A new service stores data in the named `development-postgres` volume. Setup never stops or removes an existing service or volume.
 
