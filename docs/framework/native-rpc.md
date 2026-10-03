@@ -74,7 +74,7 @@ Invalidation does not automatically broadcast changes to other clients.
   native client; middleware can deny a request.
 - [Public error round trips](../../packages/platform/test/errors.test.ts):
   taxonomy errors cross native RPC JSON as decoded instances with their fields.
-- [Compile assertions](../../packages/platform/test/native-rpc.typecheck.ts): the
+- [Compile assertions](../../packages/platform/test/native-rpc.typecheck.test.ts): the
   generated client preserves success and error types; incorrect payloads,
   undeclared methods, missing handlers, incorrect handler results and undeclared
   failures are rejected by TypeScript.

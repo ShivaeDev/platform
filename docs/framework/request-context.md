@@ -256,7 +256,7 @@ preflight.
   superjson and checks their codes and statuses, that they decode to class
   instances, and that `rejectedField` reads the field from the encoded
   rejection.
-- [rpc.typecheck.ts](../../packages/platform/test/rpc.typecheck.ts) checks at compile
+- [rpc.typecheck.test.ts](../../packages/platform/test/rpc.typecheck.test.ts) checks at compile
   time that `Identity` is only available behind `Authenticated`, that client
   error types include the middleware errors, and that `trustedOrigins` requires
   a `missing` decision.

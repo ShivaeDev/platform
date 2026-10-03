@@ -14,6 +14,8 @@
 
 - Lint and format with the `@shivaedev/quality` Biome preset through `quality lint` at the repository root, which replaces the package's `check` script.
 
+- Run tests through the `@shivaedev/quality` Vitest projects, which take a test's environment from its file name. Type tests are named `*.typecheck.test.ts`.
+
 ## 0.4.1 - 2026-09-26
 
 ### Added

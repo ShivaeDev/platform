@@ -83,6 +83,7 @@
 		"@prisma-next/cli": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
 		"@prisma-next/target-sqlite": "catalog:",
+		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",

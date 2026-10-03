@@ -27,10 +27,8 @@ describe("comments/max-per-file counts", () => {
 		expect(await countOf(["/** one */", "/** two */"])).toBe(2);
 	});
 
-	it("neither tool pragmas nor directives", async () => {
+	it("no directives", async () => {
 		const directives = [
-			`/** ${VITEST_ENVIRONMENT} happy-dom */`,
-			`// ${VITEST_ENVIRONMENT} happy-dom`,
 			'/// <reference types="node" />',
 			"// @ts-expect-error The next line proves a type error.",
 			"// biome-ignore lint/suspicious/noExplicitAny: a reason",
@@ -49,6 +47,12 @@ describe("comments/max-per-file counts", () => {
 			"/* istanbul ignore next */",
 		];
 		expect(await countOf(directives)).toBe(0);
+	});
+
+	it("tool pragmas only when the config allows them", async () => {
+		const pragmas = [`/** ${VITEST_ENVIRONMENT} happy-dom */`, "", `// ${VITEST_ENVIRONMENT} happy-dom`];
+		expect(await countOf(pragmas, { max: 0 })).toBe(2);
+		expect(await countOf(pragmas, { allow: [VITEST_ENVIRONMENT], max: 0 })).toBe(0);
 	});
 
 	it("pragmas by the configured list", async () => {
