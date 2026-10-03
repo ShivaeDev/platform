@@ -1,9 +1,16 @@
-import { execFileSync } from "node:child_process";
+import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
 
-export function docker(args, options = {}) {
-	const context = process.env.DOCKER_CONTEXT;
+export type DockerEnvironment = Readonly<{ DOCKER_CONTEXT?: string | undefined; DOCKER_HOST?: string | undefined }>;
+
+export function docker(
+	environment: DockerEnvironment,
+	args: readonly string[],
+	options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" },
+) {
+	const context = environment.DOCKER_CONTEXT;
+	const host = environment.DOCKER_HOST;
 	const endpoint =
-		(!context && process.env.DOCKER_HOST) ||
+		(!context && host) ||
 		execFileSync("docker", ["context", "inspect", ...(context ? [context] : []), "--format", "{{.Endpoints.docker.Host}}"], {
 			encoding: "utf8",
 		}).trim();

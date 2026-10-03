@@ -1,0 +1,53 @@
+{
+	"name": "@shivaedev/local-postgres",
+	"version": "0.1.0",
+	"description": "Repeatable local PostgreSQL preparation with one shared persistent service",
+	"type": "module",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/local-postgres"
+	},
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"source": "./src/index.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"check": "biome check .",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit",
+		"typecheck:compat": "tsc6 --noEmit",
+		"ready": "pnpm check && pnpm typecheck && pnpm typecheck:compat && pnpm test && pnpm build"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}
