@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { SUPPRESSIONS } from "../suppressions/directives.ts";
 import type { SourceComment } from "./scan.ts";
 
-export const DEFAULT_PRAGMAS: ReadonlyArray<string> = [
+export const DEFAULT_PRAGMAS: readonly string[] = [
 	"@vitest-environment",
 	"@vitest-environment-options",
 	"@jest-environment",
@@ -14,27 +14,27 @@ export const DEFAULT_PRAGMAS: ReadonlyArray<string> = [
 
 export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_PRAGMAS)));
 
-const DIRECTIVES: ReadonlyArray<RegExp> = [
+const DIRECTIVES: readonly RegExp[] = [
 	...SUPPRESSIONS,
-	/^@ts-/,
-	/^biome-ignore/,
-	/^(?:eslint|oxlint|stylelint)-(?:disable|enable)/,
-	/^[#@]__(?:PURE|NO_SIDE_EFFECTS)__/,
-	/^(?:c8|v8|istanbul) ignore/,
+	/^@ts-/u,
+	/^biome-ignore/u,
+	/^(?:eslint|oxlint|stylelint)-(?:disable|enable)/u,
+	/^[#@]__(?:PURE|NO_SIDE_EFFECTS)__/u,
+	/^(?:c8|v8|istanbul) ignore/u,
 ];
 
-const TRIPLE_SLASH = /^\/\/\/\s*</;
+const TRIPLE_SLASH = /^\/\/\/\s*</u;
 
-const contentOf = (comment: SourceComment): ReadonlyArray<string> => comment.body.filter((line) => line !== "");
+const contentOf = (comment: SourceComment): readonly string[] => comment.body.filter((line) => line !== "");
 
-const startsWithTag = (line: string, tags: ReadonlyArray<string>): boolean =>
+const startsWithTag = (line: string, tags: readonly string[]): boolean =>
 	tags.some((tag) => line === tag || line.startsWith(`${tag} `) || line.startsWith(`${tag}\t`));
 
 export const textOf = (comment: SourceComment): string => comment.body.join("\n");
 
 export const isJsdoc = (comment: SourceComment): boolean => comment.kind === "block" && comment.text.startsWith("/**") && comment.text !== "/**/";
 
-export const isPragma = (comment: SourceComment, pragmas: ReadonlyArray<string>): boolean => {
+export const isPragma = (comment: SourceComment, pragmas: readonly string[]): boolean => {
 	const content = contentOf(comment);
 	return content.length > 0 && content.every((line) => startsWithTag(line, pragmas));
 };

@@ -12,12 +12,12 @@ export const trees = Schema.decodeUnknownSync(
 
 export interface Run {
 	readonly status: number | null;
-	readonly stdout: string;
 	readonly stderr: string;
+	readonly stdout: string;
 }
 
 // The source condition resolves a seeded config's import of the package to its source, so tests need no build.
-export const quality = (root: string, ...args: ReadonlyArray<string>): Run => {
+export const quality = (root: string, ...args: readonly string[]): Run => {
 	const result = spawnSync("node", ["--conditions=source", join(packageRoot, "src", "cli.ts"), ...args], { cwd: root, encoding: "utf8" });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 };

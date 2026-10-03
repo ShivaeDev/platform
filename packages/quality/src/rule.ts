@@ -1,27 +1,27 @@
 import { describeIssue, type StandardSchemaV1 } from "./standard-schema.ts";
 
 export interface Finding {
+	readonly count?: number | undefined;
 	readonly file: string;
 	readonly line?: number | undefined;
 	readonly message: string;
 	readonly subject?: string | undefined;
-	readonly count?: number | undefined;
 	readonly threshold?: number | undefined;
 }
 
-export type Findings = ReadonlyArray<Finding>;
+export type Findings = readonly Finding[];
 
 export interface SourceFile {
+	readonly lines: readonly string[];
 	readonly path: string;
 	readonly text: string;
-	readonly lines: ReadonlyArray<string>;
 }
 
 export interface RuleInputs {
-	readonly root: string;
-	readonly files: ReadonlyArray<string>;
-	readonly sources: ReadonlyArray<SourceFile>;
+	readonly files: readonly string[];
 	readonly readText: (path: string) => Promise<string | undefined>;
+	readonly root: string;
+	readonly sources: readonly SourceFile[];
 }
 
 export interface RuleContext<Options> extends RuleInputs {
@@ -29,22 +29,23 @@ export interface RuleContext<Options> extends RuleInputs {
 }
 
 export type Configured =
-	| { readonly _tag: "Invalid"; readonly issues: ReadonlyArray<string> }
+	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
 	| { readonly _tag: "Ready"; readonly check: (inputs: RuleInputs) => Promise<Findings> };
 
 export interface Rule<Id extends string = string, Input = unknown> {
-	readonly id: Id;
-	readonly description: string;
-	readonly registrable?: boolean;
 	// Method syntax keeps rules with different options in one list; configure validates its input at runtime.
 	configure(options: Input | undefined): Promise<Configured>;
+	readonly description: string;
+	readonly family?: boolean;
+	readonly id: Id;
+	readonly registrable?: boolean;
 }
 
 interface RuleDefinition<Id extends string, Options> {
-	readonly id: Id;
-	readonly description: string;
-	readonly registrable?: false;
 	readonly check: (context: RuleContext<Options>) => Findings | PromiseLike<Findings>;
+	readonly description: string;
+	readonly id: Id;
+	readonly registrable?: false;
 }
 
 interface RuleDefinitionWithOptions<Id extends string, Input, Options> extends RuleDefinition<Id, Options> {

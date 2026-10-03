@@ -1,3 +1,4 @@
+import { biome } from "./biome.ts";
 import { maxPerFile } from "./comments/max-per-file.ts";
 import { noBanner } from "./comments/no-banner.ts";
 import { noJsdoc } from "./comments/no-jsdoc.ts";
@@ -20,4 +21,5 @@ export const builtInRules = [
 	noInline,
 	noDoubleCast,
 	biomeOverrides,
+	biome,
 ] as const;

@@ -29,8 +29,8 @@ export const rename: Effect.Effect<Note, NoteMissing | Invalid | Denied | RpcCli
 export const createInvalidField: Effect.Error<ReturnType<typeof Create.reject.Invalid>>["field"] = "body";
 export const missing: Effect.Effect<never, NoteMissing> = Get.reject.NoteMissing({ id: 1 });
 export const Inline = contract("inline", {
-	queries: [query("find", { payload: { id: Schema.Number }, success: Note, rejections: { NoteMissing }, reads: ({ id }) => [notes.item(id)] })],
 	commands: [command("touch", { invalidates: () => [notes.list] })],
+	queries: [query("find", { payload: { id: Schema.Number }, reads: ({ id }) => [notes.item(id)], rejections: { NoteMissing }, success: Note })],
 });
 const [Find] = Inline.declaration.queries;
 const [Touch] = Inline.declaration.commands;
@@ -40,12 +40,12 @@ export const touchError: Schema.Never = Touch.error;
 export const touchRejects: [keyof typeof Touch.reject] extends [never] ? true : false = true;
 export const findMissing: Effect.Effect<never, NoteMissing> = Find.reject.NoteMissing({ id: 1 });
 export const inlineHandlers = Inline.of({
-	"inline.find": ({ id }) => Effect.succeed(new Note({ id, title: "", body: "" })),
+	"inline.find": ({ id }) => Effect.succeed(new Note({ body: "", id, title: "" })),
 	"inline.touch": () => Effect.void,
 });
 export const handlers = Notes.of({
-	"notes.get": ({ id }) => (id > 0 ? Effect.succeed({ id, title: "", body: "" }) : Get.reject.NoteMissing({ id })),
-	"notes.list": () => Effect.succeed([]),
-	"notes.rename": ({ id, title }) => Effect.succeed({ id, title, body: "" }),
 	"notes.create": (draft) => (draft.title === "" ? Create.reject.Invalid({ field: "title", message: "" }) : Effect.succeed({ id: 1, ...draft })),
+	"notes.get": ({ id }) => (id > 0 ? Effect.succeed({ body: "", id, title: "" }) : Get.reject.NoteMissing({ id })),
+	"notes.list": () => Effect.succeed([]),
+	"notes.rename": ({ id, title }) => Effect.succeed({ body: "", id, title }),
 });

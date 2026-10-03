@@ -17,7 +17,7 @@ const baseEntries = (
 	config: ResolvedConfig,
 	base: Base,
 	path: string,
-): Effect.Effect<ReadonlyArray<BaselineEntry>, SetupFailure, FileSystem.FileSystem | Git> =>
+): Effect.Effect<readonly BaselineEntry[], SetupFailure, FileSystem.FileSystem | Git> =>
 	Effect.gen(function* () {
 		const raw = yield* readAt(config.root, base.commit, path);
 		if (raw !== undefined) {

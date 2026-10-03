@@ -20,7 +20,7 @@ const parse = (output: string): Changes => {
 	const moves = new Map<string, string>();
 	for (let index = 0; index < fields.length - 1; ) {
 		const status = fields[index] ?? "";
-		const paths = fields.slice(index + 1, index + (/^[RC]/.test(status) ? 3 : 2));
+		const paths = fields.slice(index + 1, index + (/^[RC]/u.test(status) ? 3 : 2));
 		for (const path of paths) {
 			files.add(path);
 		}
@@ -34,7 +34,7 @@ const parse = (output: string): Changes => {
 };
 
 // Paths are relative to the root, and only tracked files count: a move is seen once both of its sides are staged.
-export const changesSince = (root: string, revision: ReadonlyArray<string>): Effect.Effect<Changes, SetupFailure, Git> =>
+export const changesSince = (root: string, revision: readonly string[]): Effect.Effect<Changes, SetupFailure, Git> =>
 	Effect.map(
 		gitOrFail(root, ["diff", "--no-color", "--no-ext-diff", "--find-renames", "--name-status", "-z", "--relative", ...revision, "--"]),
 		parse,

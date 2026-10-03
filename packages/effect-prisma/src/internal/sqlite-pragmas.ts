@@ -12,7 +12,7 @@ export const assertFileBackedPath = (path: string): void => {
 };
 
 // The driver has no hook for pragmas beyond `foreign_keys` and `busy_timeout`, so durable ones such as `journal_mode` go to the file once.
-export const applySqlitePragmas = (path: string, pragmas: ReadonlyArray<string>): void => {
+export const applySqlitePragmas = (path: string, pragmas: readonly string[]): void => {
 	if (pragmas.length === 0) {
 		return;
 	}

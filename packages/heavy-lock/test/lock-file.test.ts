@@ -64,7 +64,7 @@ it.effect("a lock whose pid now belongs to a different process is reclaimed", ()
 it.effect("a lock written without the holder's process start time is reclaimed, even while its pid runs", () =>
 	Effect.gen(function* () {
 		const lock = temporaryLock();
-		writeLock(lock, JSON.stringify({ id: "unversioned", pid: process.pid, command: "pnpm ready", cwd: "/repo", startedAtMs: 0 }));
+		writeLock(lock, JSON.stringify({ command: "pnpm ready", cwd: "/repo", id: "unversioned", pid: process.pid, startedAtMs: 0 }));
 
 		yield* reclaimedBy(lock, "test");
 	}).pipe(Effect.provide(services())),

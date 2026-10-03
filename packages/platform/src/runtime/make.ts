@@ -40,7 +40,9 @@ const make = <Services, BuildError>(layer: Layer.Layer<Services, BuildError>): P
 		dispose: () => managed.dispose(),
 		runPromise: async (effect, options) => {
 			const exit = await runPromiseExit(effect, options);
-			if (Exit.isSuccess(exit)) return exit.value;
+			if (Exit.isSuccess(exit)) {
+				return exit.value;
+			}
 			throw Cause.squash(exit.cause);
 		},
 		runPromiseExit,
@@ -57,7 +59,9 @@ export const makePlatformRuntime = <Services, BuildError>(
 	options: PlatformRuntimeOptions = {},
 ): PlatformRuntime<Services, BuildError> => {
 	const key = Effect.runSync(production) ? undefined : options.developmentCacheKey;
-	if (key === undefined) return make(layer);
+	if (key === undefined) {
+		return make(layer);
+	}
 
 	const cached = runtimeCache.get(key);
 	if (cached !== undefined) {
@@ -68,7 +72,9 @@ export const makePlatformRuntime = <Services, BuildError>(
 	const cachedRuntime: PlatformRuntime<Services, BuildError> = {
 		...runtime,
 		dispose: async () => {
-			if (runtimeCache.get(key) === cachedRuntime) runtimeCache.delete(key);
+			if (runtimeCache.get(key) === cachedRuntime) {
+				runtimeCache.delete(key);
+			}
 			await runtime.dispose();
 		},
 	};

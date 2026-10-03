@@ -8,9 +8,9 @@ import { Highlighter } from "./highlighter.ts";
 export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, idPrefix = "") {
 	const highlighter = yield* Highlighter;
 	const { html } = yield* Effect.tryPromise({
+		catch: (cause) => new RenderFailed({ cause }),
 		try: async () =>
 			markdownToHtml(source, { hastPlugins: idPrefix === "" ? [codeBlocks(highlighter)] : [codeBlocks(highlighter), footnoteIds(idPrefix)] }),
-		catch: (cause) => new RenderFailed({ cause }),
 	});
 	return html;
 });

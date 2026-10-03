@@ -13,8 +13,8 @@ const hostnameOf = (host: string): string | undefined => {
 };
 
 const loopbackAddress = (address: string): boolean => {
-	const unmapped = address.replace(/^::ffff:/i, "");
-	return unmapped === "::1" || /^127(?:\.\d{1,3}){3}$/.test(unmapped);
+	const unmapped = address.replace(/^::ffff:/iu, "");
+	return unmapped === "::1" || /^127(?:\.\d{1,3}){3}$/u.test(unmapped);
 };
 
 const fromLoopback = (request: HttpServerRequest.HttpServerRequest): boolean => {

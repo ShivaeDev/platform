@@ -5,12 +5,12 @@ const unavailable = (member: string): never => {
 };
 
 export const unusedClient = <Contract extends AnySqlContract = AnySqlContract>(): SqlDatabaseClient<Contract> => ({
-	get contract() {
-		return unavailable("contract");
-	},
+	close: () => Promise.resolve(),
 	get context() {
 		return unavailable("context");
 	},
+	get contract() {
+		return unavailable("contract");
+	},
 	runtime: () => unavailable("runtime"),
-	close: () => Promise.resolve(),
 });

@@ -26,26 +26,26 @@ const SENSITIVE_NAMES = ["session", "pan"];
 
 export type SensitiveKey = (key: string) => boolean;
 
-const wordsOf = (key: string): Array<string> =>
+const wordsOf = (key: string): string[] =>
 	key
-		.replaceAll(/([a-z0-9])([A-Z])/g, "$1 $2")
-		.replaceAll(/([A-Z])([A-Z][a-z])/g, "$1 $2")
+		.replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
+		.replaceAll(/([A-Z])([A-Z][a-z])/gu, "$1 $2")
 		.toLowerCase()
-		.split(/[\s_-]+/);
+		.split(/[\s_-]+/u);
 
 export const isSensitiveKey: SensitiveKey = (key) => {
-	const normalized = key.toLowerCase().replaceAll(/[-_]/g, "");
+	const normalized = key.toLowerCase().replaceAll(/[-_]/gu, "");
 	return (
-		SENSITIVE_NAMES.includes(normalized) ||
-		SENSITIVE_PARTS.some((part) => normalized.includes(part)) ||
-		wordsOf(key).some((word) => SENSITIVE_WORDS.includes(word))
+		SENSITIVE_NAMES.includes(normalized)
+		|| SENSITIVE_PARTS.some((part) => normalized.includes(part))
+		|| wordsOf(key).some((word) => SENSITIVE_WORDS.includes(word))
 	);
 };
 
-const AUTH_SCHEME = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
-const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/g;
-const URL_PASSWORD = /(\/\/[^:/\s@]+:)[^@/\s]+@/g;
-const ASSIGNMENT = /([A-Za-z][\w.-]*)(["']?\s*[=:]\s*["']?)([^\s"'&,;]+)/g;
+const AUTH_SCHEME = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/giu;
+const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
+const URL_PASSWORD = /(\/\/[^:/\s@]+:)[^@/\s]+@/gu;
+const ASSIGNMENT = /([A-Za-z][\w.-]*)(["']?\s*[=:]\s*["']?)([^\s"'&,;]+)/gu;
 
 const scrub = (text: string, sensitive: SensitiveKey): string =>
 	text

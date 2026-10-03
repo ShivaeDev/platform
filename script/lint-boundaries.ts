@@ -1,3 +1,4 @@
+import process from "node:process";
 import { NodeRuntime } from "@effect/platform-node";
 import { cruise } from "dependency-cruiser";
 import { Console, Effect } from "effect";
@@ -7,9 +8,9 @@ const program = Effect.gen(function* () {
 	const result = yield* Effect.tryPromise(() =>
 		cruise(["packages"], {
 			...configuration.options,
-			validate: true,
-			ruleSet: configuration,
 			outputType: "err",
+			ruleSet: configuration,
+			validate: true,
 		}),
 	);
 	yield* Console.log(result.output);

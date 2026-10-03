@@ -17,13 +17,13 @@ it("takes an answer straight to the field while the draft is clean", () => {
 });
 
 it("adopts a refreshed value in an untouched field while keeping an edited one", () => {
-	const editing = draft({ quantity: "300", name: "Printer paper" });
-	editing.values.set({ quantity: "300", name: "Copy paper" });
-	editing.receive({ quantity: "350", name: "Printer paper" });
-	expect(editing.values.value).toEqual({ quantity: "350", name: "Copy paper" });
-	editing.values.set({ quantity: "350", name: "Printer paper" });
+	const editing = draft({ name: "Printer paper", quantity: "300" });
+	editing.values.set({ name: "Copy paper", quantity: "300" });
+	editing.receive({ name: "Printer paper", quantity: "350" });
+	expect(editing.values.value).toEqual({ name: "Copy paper", quantity: "350" });
+	editing.values.set({ name: "Printer paper", quantity: "350" });
 	editing.revert();
-	expect(editing.values.value).toEqual({ quantity: "350", name: "Printer paper" });
+	expect(editing.values.value).toEqual({ name: "Printer paper", quantity: "350" });
 });
 
 it("preserves an added optional field when a refresh arrives", () => {

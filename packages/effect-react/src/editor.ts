@@ -17,13 +17,13 @@ export type EditorConfig<F extends Fields, Row, QE, SE, R, ER> = {
 } & FieldRejectionMapping<F, SE>;
 
 export interface Editor<F extends Fields, Row, QE, SE, ER> extends SaveState<SE | ER> {
-	readonly query: QueryState<Row, QE>;
 	readonly form: Form<F, Row, SE | FieldFailure, ER> | undefined;
+	readonly query: QueryState<Row, QE>;
 }
 
 interface Held<F extends Fields, Row, SE, ER> {
-	readonly query: Atom.Atom<unknown>;
 	readonly form: Form<F, Row, SE | FieldFailure, ER>;
+	readonly query: Atom.Atom<unknown>;
 	readonly values: (row: Row) => Encoded<F>;
 }
 
@@ -34,23 +34,25 @@ export const useEditor = <F extends Fields, Row, QE, SE, R, ER>(config: EditorCo
 	let current = held?.query === config.query ? held : undefined;
 	if (current === undefined && row !== undefined) {
 		current = {
-			query: config.query,
-			values: config.values,
 			form: submission({
 				fields: config.fields,
 				initialValues: config.values(row),
+				rejectField: config.rejectField,
 				runtime: config.runtime,
 				save: config.save,
-				rejectField: config.rejectField,
 			}).form,
+			query: config.query,
+			values: config.values,
 		};
 		hold(current);
 	}
 	const form = current?.form;
 	const values = current?.values;
 	useEffect(() => {
-		if (form && values && row !== undefined) form.receive(values(row));
+		if (form && values && row !== undefined) {
+			form.receive(values(row));
+		}
 	}, [form, values, row]);
 	const settled = useCallback((saved: Row) => (form && values ? form.receive(values(saved)) : undefined), [form, values]);
-	return { ...useSaveState(form, settled), query, form };
+	return { ...useSaveState(form, settled), form, query };
 };

@@ -5,7 +5,7 @@ import { VITEST_ENVIRONMENT } from "./support/pragmas.ts";
 
 type Options = Parameters<typeof maxPerFile.configure>[0];
 
-const countOf = async (content: ReadonlyArray<string>, options: Options = { max: 0 }) => {
+const countOf = async (content: readonly string[], options: Options = { max: 0 }) => {
 	const findings = await checkRule(maxPerFile, options, { sources: [{ content: content.join("\n"), path: "src/a.ts" }] });
 	return findings[0]?.count ?? 0;
 };

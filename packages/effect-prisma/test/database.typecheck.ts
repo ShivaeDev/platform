@@ -65,12 +65,12 @@ const program = Effect.gen(function* () {
 
 	const allUsers = yield* db.User;
 	expectTypeOf(allUsers).not.toBeAny();
-	expectTypeOf(allUsers).toEqualTypeOf<Array<User>>();
+	expectTypeOf(allUsers).toEqualTypeOf<User[]>();
 
 	const byObject = db.User.where({ email: "hello@example.com" });
 	expectTypeOf(byObject).not.toBeAny();
 	expectTypeOf<Effect.Success<typeof byObject>>().not.toBeAny();
-	expectTypeOf<Effect.Success<typeof byObject>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof byObject>>().toEqualTypeOf<User[]>();
 	expectTypeOf<Effect.Error<typeof byObject>>().toEqualTypeOf<PrismaError>();
 	expectTypeOf<Effect.Services<typeof byObject>>().toBeNever();
 
@@ -110,7 +110,7 @@ const program = Effect.gen(function* () {
 	});
 	expectTypeOf(byCallback).not.toBeAny();
 	const byTimestamp = db.User.where({ createdAt: new Date(0) });
-	expectTypeOf<Effect.Success<typeof byTimestamp>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof byTimestamp>>().toEqualTypeOf<User[]>();
 	db.User.where((user) => user.createdAt.gte(new Date(0)));
 	db.User.where({ verifiedAt: new Date(0) });
 
@@ -142,7 +142,7 @@ const program = Effect.gen(function* () {
 		.orderBy((user) => user.id.asc())
 		.take(25);
 	expectTypeOf(recursivelyComposed).not.toBeAny();
-	expectTypeOf<Effect.Success<typeof recursivelyComposed>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof recursivelyComposed>>().toEqualTypeOf<User[]>();
 
 	yield* byObject;
 	yield* byCallback;

@@ -8,8 +8,8 @@ const createNested = (outer: unknown, email: string) =>
 		const inner = yield* Database;
 		expect(inner).toBe(outer);
 		yield* inner.User.create({
-			id: crypto.randomUUID(),
 			email,
+			id: crypto.randomUUID(),
 			name: "Nested",
 		});
 	});
@@ -28,8 +28,8 @@ integrationEffect("owns the client and commits successful transactions", () =>
 				Effect.gen(function* () {
 					const transactionDb = yield* Database;
 					yield* transactionDb.User.create({
-						id: crypto.randomUUID(),
 						email,
+						id: crypto.randomUUID(),
 						name: "Committed",
 					});
 				}),
@@ -47,15 +47,15 @@ integrationEffect("returns structured query failures", () =>
 			const email = uniqueEmail("unique");
 
 			yield* db.User.create({
-				id: crypto.randomUUID(),
 				email,
+				id: crypto.randomUUID(),
 				name: "Original",
 			});
 
 			const error = yield* Effect.flip(
 				db.User.create({
-					id: crypto.randomUUID(),
 					email,
+					id: crypto.randomUUID(),
 					name: "Duplicate",
 				}),
 			);
@@ -125,13 +125,13 @@ integrationEffect("runs aggregate, grouping, bulk create, update, and delete ter
 				const marker = crypto.randomUUID();
 				const created = yield* db.User.createAll([
 					{
-						id: crypto.randomUUID(),
 						email: `${marker}-one@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					},
 					{
-						id: crypto.randomUUID(),
 						email: `${marker}-two@example.test`,
+						id: crypto.randomUUID(),
 						name: marker,
 					},
 				]);
@@ -172,8 +172,8 @@ integrationEffect("loads related rows without changing the base relation", () =>
 				const userId = crypto.randomUUID();
 				const firstPostId = crypto.randomUUID();
 				yield* db.User.create({
-					id: userId,
 					email: uniqueEmail("include"),
+					id: userId,
 					name: "Relation owner",
 				});
 				yield* db.Post.createAll([

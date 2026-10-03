@@ -11,8 +11,8 @@ export interface WaitOptions {
 }
 
 interface Announced {
-	readonly id: string;
 	readonly atMs: number;
+	readonly id: string;
 }
 
 // Taking the lock and registering its release happen as one step, so an interrupted waiter never leaves a lock behind.
@@ -39,7 +39,7 @@ export const waitForLock = Effect.fn("HeavyLock.waitForLock")(function* (lock: s
 			return holder;
 		}
 		if (shouldAnnounce(announced, blocker.value, holder.startedAtMs, options.remindEvery)) {
-			announced = { id: blocker.value.id, atMs: holder.startedAtMs };
+			announced = { atMs: holder.startedAtMs, id: blocker.value.id };
 			yield* Console.error(waitingLine(blocker.value, holder.startedAtMs));
 		}
 		yield* Effect.sleep(options.pollInterval);

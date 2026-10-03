@@ -18,7 +18,7 @@ const reusedConnection = <X>(later: (tx: Transaction) => Promise<X>) =>
 		const earlier = yield* Effect.promise(() =>
 			client.$transaction(async (tx) => {
 				await tx.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } });
-				await tx.membership.create({ data: { id: "m1", ownerId: "ada", memberId: "bob" } });
+				await tx.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } });
 				return backend(tx);
 			}),
 		);
@@ -27,11 +27,11 @@ const reusedConnection = <X>(later: (tx: Transaction) => Promise<X>) =>
 				const since = await Effect.runPromise(tableWrites(tx));
 				const result = await later(tx);
 				return {
+					cumulative: await Effect.runPromise(writtenTables(tx)),
 					earlier,
 					later: await backend(tx),
-					cumulative: await Effect.runPromise(writtenTables(tx)),
-					written: await Effect.runPromise(writtenTables(tx, since)),
 					result,
+					written: await Effect.runPromise(writtenTables(tx, since)),
 				};
 			}),
 		);

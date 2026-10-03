@@ -7,23 +7,23 @@ export type RuleSetting<Input> = Level | { readonly level?: Level; readonly opti
 
 type InputOf<Candidate> = Candidate extends Rule<string, infer Input> ? Input : never;
 
-export type RuleSettings<Rules extends ReadonlyArray<Rule>> = {
+export type RuleSettings<Rules extends readonly Rule[]> = {
 	readonly [Candidate in Rules[number] as Candidate["id"]]?: RuleSetting<InputOf<Candidate>>;
 };
 
 export type BuiltInRules = typeof builtInRules;
 
-type IdOf<Rules extends ReadonlyArray<Rule>> = Rules[number]["id"];
+type IdOf<Rules extends readonly Rule[]> = Rules[number]["id"];
 
-export interface QualityConfig<Local extends ReadonlyArray<Rule> = ReadonlyArray<Rule>> {
-	readonly sources?: ReadonlyArray<string>;
-	readonly exclude?: ReadonlyArray<string>;
-	readonly extensions?: ReadonlyArray<string>;
-	readonly registry?: string;
+export interface QualityConfig<Local extends readonly Rule[] = readonly Rule[]> {
+	readonly adopt?: readonly IdOf<readonly [...BuiltInRules, ...Local]>[];
 	readonly baseline?: string;
-	readonly adopt?: ReadonlyArray<IdOf<readonly [...BuiltInRules, ...Local]>>;
+	readonly exclude?: readonly string[];
+	readonly extensions?: readonly string[];
 	readonly local?: Local;
+	readonly registry?: string;
 	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...Local]>;
+	readonly sources?: readonly string[];
 }
 
-export const defineConfig = <const Local extends ReadonlyArray<Rule> = readonly []>(config: QualityConfig<Local>): QualityConfig<Local> => config;
+export const defineConfig = <const Local extends readonly Rule[] = readonly []>(config: QualityConfig<Local>): QualityConfig<Local> => config;

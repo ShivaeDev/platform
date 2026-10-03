@@ -9,7 +9,7 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
 	};
 }
 
-export type StandardResult<Output> = { readonly value: Output; readonly issues?: undefined } | { readonly issues: ReadonlyArray<StandardIssue> };
+export type StandardResult<Output> = { readonly value: Output; readonly issues?: undefined } | { readonly issues: readonly StandardIssue[] };
 
 export interface StandardIssue {
 	readonly message: string;

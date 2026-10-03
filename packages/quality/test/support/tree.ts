@@ -12,7 +12,7 @@ export const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url
 
 const seeded: string[] = [];
 
-export const seedTree = (...groups: ReadonlyArray<ReadonlyArray<SeedFile>>): string => {
+export const seedTree = (...groups: ReadonlyArray<readonly SeedFile[]>): string => {
 	const root = mkdtempSync(join(tmpdir(), "quality-tree-"));
 	seeded.push(root);
 	for (const file of groups.flat()) {

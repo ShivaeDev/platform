@@ -9,9 +9,9 @@ import { boardLayer } from "../../src/board.ts";
 import { listenOn } from "../../src/serve.ts";
 
 export interface Folder {
+	readonly remove: () => void;
 	readonly root: string;
 	readonly write: (path: string, content: string) => void;
-	readonly remove: () => void;
 }
 
 export const folder = (files: Readonly<Record<string, string>>, prefix = "work-board-"): Folder => {
@@ -23,14 +23,14 @@ export const folder = (files: Readonly<Record<string, string>>, prefix = "work-b
 	for (const [path, content] of Object.entries(files)) {
 		write(path, content);
 	}
-	return { root, write, remove: () => rmSync(root, { force: true, recursive: true }) };
+	return { remove: () => rmSync(root, { force: true, recursive: true }), root, write };
 };
 
 export interface RunningBoard {
-	readonly url: string;
 	readonly hostname: string;
 	readonly port: number;
 	readonly stop: () => Promise<void>;
+	readonly url: string;
 }
 
 export type FileSystemWrapper = (fs: FileSystem.FileSystem) => FileSystem.FileSystem;
@@ -39,38 +39,38 @@ const wrapped = (wrap: FileSystemWrapper) =>
 	Layer.effect(FileSystem.FileSystem, Effect.map(Effect.service(FileSystem.FileSystem), wrap)).pipe(Layer.provide(NodeServices.layer));
 
 export const startBoard = async (root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs): Promise<RunningBoard> => {
-	const board = Layer.provide(boardLayer({ root, home }), wrapped(wrap));
+	const board = Layer.provide(boardLayer({ home, root }), wrapped(wrap));
 	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("the board did not listen on TCP");
 	}
 	const { hostname, port } = server.address;
-	return { url: `http://${hostname}:${port}`, hostname, port, stop: () => runtime.dispose() };
+	return { hostname, port, stop: () => runtime.dispose(), url: `http://${hostname}:${port}` };
 };
 
 export interface RawResponse {
-	readonly status: number;
 	readonly body: string;
+	readonly status: number;
 }
 
 export const rawGet = (board: RunningBoard, path: string, host?: string): Promise<RawResponse> =>
 	new Promise((resolve, reject) => {
-		const outgoing = request({ host: board.hostname, port: board.port, path, headers: host === undefined ? {} : { host } }, (response) => {
+		const outgoing = request({ headers: host === undefined ? {} : { host }, host: board.hostname, path, port: board.port }, (response) => {
 			let body = "";
 			response.setEncoding("utf8");
 			response.on("data", (chunk: string) => {
 				body += chunk;
 			});
-			response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+			response.on("end", () => resolve({ body, status: response.statusCode ?? 0 }));
 		});
 		outgoing.on("error", reject);
 		outgoing.end();
 	});
 
 export interface EventStream {
-	readonly next: () => Promise<string>;
 	readonly close: () => void;
+	readonly next: () => Promise<string>;
 }
 
 export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
@@ -93,14 +93,14 @@ export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
 		buffer = rest.join("\n\n");
 		return event;
 	};
-	return { next, close: () => controller.abort() };
+	return { close: () => controller.abort(), next };
 };
 
-export const changesUntil = async (events: EventStream, path: string): Promise<ReadonlyArray<ReadonlyArray<string>>> => {
-	const seen: Array<ReadonlyArray<string>> = [];
+export const changesUntil = async (events: EventStream, path: string): Promise<ReadonlyArray<readonly string[]>> => {
+	const seen: Array<readonly string[]> = [];
 	while (!seen.at(-1)?.includes(path)) {
 		const event = await events.next();
-		const data = /^event: change\ndata: (.*)$/.exec(event)?.[1];
+		const data = /^event: change\ndata: (.*)$/u.exec(event)?.[1];
 		if (data !== undefined) {
 			seen.push(JSON.parse(data).paths);
 		}

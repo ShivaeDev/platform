@@ -11,26 +11,30 @@ class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound",
 const Draft = Schema.Struct({ name: Schema.String, quantity: Schema.Number });
 
 const Place = command("place", {
-	payload: Draft,
-	success: Schema.String,
-	rejections: { OrderNotFound, Invalid: fieldRejection(Draft) },
 	invalidates: () => [],
+	payload: Draft,
+	rejections: { Invalid: fieldRejection(Draft), OrderNotFound },
+	success: Schema.String,
 });
 
 const Forget = command("forget", { invalidates: () => [] });
 
 const place = ({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typeof Place.error.Type> => {
-	if (name === "missing") return Place.reject.OrderNotFound();
-	if (quantity < 0) return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
+	if (name === "missing") {
+		return Place.reject.OrderNotFound();
+	}
+	if (quantity < 0) {
+		return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
+	}
 	return Effect.succeed(`placed:${name}`);
 };
 
 const router = t.router({
-	place: procedure.input(Place.payload).mutation(function* (draft) {
-		return yield* place(draft).pipe(rejectWith(Place.error));
-	}),
 	forget: procedure.mutation(function* () {
 		return yield* Effect.fail(new OrderNotFound()).pipe(rejectWith(Forget.error));
+	}),
+	place: procedure.input(Place.payload).mutation(function* (draft) {
+		return yield* place(draft).pipe(rejectWith(Place.error));
 	}),
 });
 

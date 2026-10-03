@@ -11,11 +11,11 @@ import { runRules } from "./run-rules.ts";
 import type { Violation } from "./violation.ts";
 
 export interface Session {
+	readonly baseline: BaselineFile;
 	readonly config: ResolvedConfig;
 	readonly inventory: Inventory;
-	readonly violations: ReadonlyArray<Violation>;
-	readonly registry: ReadonlyArray<RegistryEntry>;
-	readonly baseline: BaselineFile;
+	readonly registry: readonly RegistryEntry[];
+	readonly violations: readonly Violation[];
 }
 
 const setup = <Value, Requirements>(

@@ -4,7 +4,7 @@ import type { CommandLine } from "./args.ts";
 import { type ForwardedSignal, signalExitCode } from "./signals.ts";
 
 const COULD_NOT_START = 127;
-const KILLED_BY = /signal: '(SIG[A-Z0-9]+)'/;
+const KILLED_BY = /signal: '(SIG[A-Z0-9]+)'/u;
 
 // The spawner reports a child killed by a signal only as an error naming that signal.
 const signalledExitCode = (error: PlatformError.PlatformError) => {
@@ -16,7 +16,7 @@ const spawn = (commandLine: CommandLine, env: Readonly<Record<string, string>>) 
 	Effect.gen(function* () {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const [executable, ...args] = commandLine;
-		const command = ChildProcess.make(executable, args, { env: { ...env }, extendEnv: true, stdin: "inherit", stdout: "inherit", stderr: "inherit" });
+		const command = ChildProcess.make(executable, args, { env: { ...env }, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" });
 		return yield* spawner.spawn(command).pipe(
 			Effect.map(Option.some),
 			Effect.catch((error) => Effect.as(Console.error(`${executable}: ${error.message}`), Option.none())),

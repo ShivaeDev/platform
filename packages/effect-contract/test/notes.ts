@@ -2,8 +2,8 @@ import { Context, Effect, Layer, Ref, Schema } from "effect";
 import { RpcMiddleware } from "effect/unstable/rpc";
 import { collection, command, contract, fieldRejection, query } from "../src/index.ts";
 
-export class Note extends Schema.Class<Note>("Note")({ id: Schema.Number, title: Schema.String, body: Schema.String }) {}
-export const Draft = Schema.Struct({ title: Schema.String, body: Schema.String });
+export class Note extends Schema.Class<Note>("Note")({ body: Schema.String, id: Schema.Number, title: Schema.String }) {}
+export const Draft = Schema.Struct({ body: Schema.String, title: Schema.String });
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.Number }) {}
 export class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
 export class Session extends Context.Service<Session, { readonly user: string }>()("test/Session") {}
@@ -13,34 +13,34 @@ export const notes = collection("notes", Note.fields.id);
 
 export const Get = query("get", {
 	payload: { id: Schema.Number },
-	success: Note,
-	rejections: { NoteMissing },
 	reads: ({ id }) => [notes.item(id)],
-});
-export const List = query("list", { success: Schema.Array(Note), reads: () => [notes.list] });
-export const Rename = command("rename", {
-	payload: { id: Schema.Number, title: Schema.String },
+	rejections: { NoteMissing },
 	success: Note,
-	rejections: { NoteMissing, Invalid: fieldRejection(Draft, ["title"]) },
+});
+export const List = query("list", { reads: () => [notes.list], success: Schema.Array(Note) });
+export const Rename = command("rename", {
 	invalidates: ({ id }) => [notes.item(id)],
+	payload: { id: Schema.Number, title: Schema.String },
+	rejections: { Invalid: fieldRejection(Draft, ["title"]), NoteMissing },
+	success: Note,
 });
 export const Create = command("create", {
-	payload: Draft,
-	success: Note,
-	rejections: { Invalid: fieldRejection(Draft) },
 	invalidates: (_draft, note) => [notes.item(note.id)],
+	payload: Draft,
+	rejections: { Invalid: fieldRejection(Draft) },
+	success: Note,
 });
 
-export const Notes = contract("notes", { queries: [Get, List], commands: [Rename, Create] }).middleware(Guard);
+export const Notes = contract("notes", { commands: [Rename, Create], queries: [Get, List] }).middleware(Guard);
 
 export const makeServer = Effect.gen(function* () {
 	const stored = yield* Ref.make(
 		new Map([
-			[1, new Note({ id: 1, title: "One", body: "" })],
-			[2, new Note({ id: 2, title: "Two", body: "" })],
+			[1, new Note({ body: "", id: 1, title: "One" })],
+			[2, new Note({ body: "", id: 2, title: "Two" })],
 		]),
 	);
-	const reads = yield* Ref.make<ReadonlyArray<string>>([]);
+	const reads = yield* Ref.make<readonly string[]>([]);
 	const denied = yield* Ref.make(false);
 	const read = (label: string) => Ref.update(reads, (all) => [...all, label]);
 	const find = (id: number) =>
@@ -56,6 +56,10 @@ export const makeServer = Effect.gen(function* () {
 	const handlers = Notes.toLayer(
 		Effect.succeed(
 			Notes.of({
+				"notes.create": (draft) =>
+					draft.title === ""
+						? Create.reject.Invalid({ field: "title", message: "Enter a title" })
+						: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
 				"notes.get": ({ id }) => Effect.andThen(read(`get:${id}`), find(id)),
 				"notes.list": () =>
 					Effect.andThen(
@@ -66,15 +70,11 @@ export const makeServer = Effect.gen(function* () {
 					title.trim() === ""
 						? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
 						: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
-				"notes.create": (draft) =>
-					draft.title === ""
-						? Create.reject.Invalid({ field: "title", message: "Enter a title" })
-						: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
 			}),
 		),
 	);
 	const guard = Layer.succeed(Guard, (effect) =>
 		Effect.flatMap(Ref.get(denied), (isDenied) => (isDenied ? Effect.fail(new Denied()) : Effect.provideService(effect, Session, { user: "ada" }))),
 	);
-	return { layer: Layer.merge(handlers, guard), reads, denied };
+	return { denied, layer: Layer.merge(handlers, guard), reads };
 });

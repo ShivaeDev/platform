@@ -13,7 +13,7 @@ interface ResourceOptions {
 }
 
 const makeResource = (options: ResourceOptions = {}) => {
-	const calls: Array<string> = [];
+	const calls: string[] = [];
 	const resource: TransactionResource<Record<string, never>, AnySqlContract> = {
 		connection: {
 			destroy: async () => {

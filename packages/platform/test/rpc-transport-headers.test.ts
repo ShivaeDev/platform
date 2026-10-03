@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, it } from "vitest";
 import { trustedOrigins } from "../src/rpc-server.ts";
 import { makeApp } from "./rpc/api.ts";
 import { createProvider, origin, signup } from "./rpc/support.ts";
@@ -12,20 +12,20 @@ const post = async (
 ) => {
 	const response = await app.handler(
 		new Request(`${origin}/rpc`, {
-			method: "POST",
+			body: JSON.stringify([{ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" }]),
 			headers: { "content-type": "text/plain", ...transport },
-			body: JSON.stringify([{ _tag: "Request", id: "1", tag: "Whoami", payload: null, headers: message }]),
+			method: "POST",
 		}),
 	);
 	return JSON.stringify(await response.json());
 };
 
-test("client-supplied message headers cannot satisfy the origin policy or carry credentials", async () => {
+it("client-supplied message headers cannot satisfy the origin policy or carry credentials", async () => {
 	const provider = await createProvider();
 	const { app } = makeApp(provider, browser);
 	try {
 		const alice = await signup(provider, "alice");
-		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/;
+		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/u;
 
 		expect(await post(app, { cookie: alice.cookie, origin }, [])).toContain(alice.userId);
 		expect(await post(app, { cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", origin]])).toMatch(forbidden);

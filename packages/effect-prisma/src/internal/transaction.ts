@@ -14,10 +14,10 @@ export const withTransactionSemaphore = <A, E, R>(
 
 export interface TransactionResource<Models extends object, Contract extends AnySqlContract> {
 	readonly connection: SettledConnection;
-	readonly transaction: SettledTransaction;
 	readonly executor: DatabaseExecutor<Models, Contract> & {
 		readonly querySemaphore: Semaphore.Semaphore;
 	};
+	readonly transaction: SettledTransaction;
 }
 
 export const acquireTransaction = <Models extends object, Contract extends AnySqlContract>(
@@ -31,13 +31,12 @@ export const acquireTransaction = <Models extends object, Contract extends AnySq
 		try {
 			const transaction = await connection.transaction();
 			const transactionOrm = orm({
-				runtime: transaction,
 				context: current.client.context,
+				runtime: transaction,
 			});
 
 			return {
 				connection,
-				transaction,
 				executor: {
 					client: current.client,
 					identity: current.identity,
@@ -51,6 +50,7 @@ export const acquireTransaction = <Models extends object, Contract extends AnySq
 					transactionIdentity: {},
 					transactionSemaphore: current.transactionSemaphore,
 				},
+				transaction,
 			};
 		} catch (error) {
 			await connection.destroy(error).catch(() => undefined);

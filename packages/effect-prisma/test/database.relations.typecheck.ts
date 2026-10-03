@@ -14,7 +14,7 @@ const program = Effect.gen(function* () {
 			id: string;
 			email: string;
 			name: string;
-			posts: Array<Post>;
+			posts: Post[];
 		}>
 	>();
 	expectTypeOf<
@@ -24,7 +24,7 @@ const program = Effect.gen(function* () {
 			id: string;
 			email: string;
 			name: string;
-			posts: Array<Post>;
+			posts: Post[];
 		}>
 	>().toMatchTypeOf<Effect.Success<typeof withPosts>>();
 
@@ -98,30 +98,30 @@ const program = Effect.gen(function* () {
 	>();
 
 	const create = db.User.create({
-		id: crypto.randomUUID(),
 		email: "new@example.com",
+		id: crypto.randomUUID(),
 		name: "New user",
 	});
 	expectTypeOf(create).not.toBeAny();
 	expectTypeOf<Effect.Success<typeof create>>().toEqualTypeOf<User>();
 	expectTypeOf<Effect.Error<typeof create>>().toEqualTypeOf<PrismaError>();
 	const createWithTimestamp = db.User.create({
-		id: crypto.randomUUID(),
-		email: "timestamped@example.com",
-		name: "Timestamped user",
 		createdAt: new Date(0),
+		email: "timestamped@example.com",
+		id: crypto.randomUUID(),
+		name: "Timestamped user",
 		verifiedAt: new Date(0),
 	});
 	expectTypeOf<Effect.Success<typeof createWithTimestamp>>().toEqualTypeOf<User>();
 
 	const createAll = db.User.createAll([
 		{
-			id: crypto.randomUUID(),
 			email: "many@example.com",
+			id: crypto.randomUUID(),
 			name: "Many",
 		},
 	]);
-	expectTypeOf<Effect.Success<typeof createAll>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof createAll>>().toEqualTypeOf<User[]>();
 
 	const aggregate = db.User.aggregate((summary) => ({
 		total: summary.count(),
@@ -137,21 +137,21 @@ const program = Effect.gen(function* () {
 
 	const ordered = db.User.orderBy((user) => user.id.asc());
 	const cursor = ordered.cursor({ id: crypto.randomUUID() });
-	expectTypeOf<Effect.Success<typeof cursor>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof cursor>>().toEqualTypeOf<User[]>();
 	const distinct = db.User.distinct("email");
-	expectTypeOf<Effect.Success<typeof distinct>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof distinct>>().toEqualTypeOf<User[]>();
 	const distinctOn = ordered.distinctOn("id");
-	expectTypeOf<Effect.Success<typeof distinctOn>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof distinctOn>>().toEqualTypeOf<User[]>();
 
 	const filtered = db.User.where({ email: "existing@example.com" });
 	const update = filtered.update({ name: "Updated" });
 	expectTypeOf<Effect.Success<typeof update>>().toEqualTypeOf<User | null>();
 	const updateAll = filtered.updateAll({ name: "Updated" });
-	expectTypeOf<Effect.Success<typeof updateAll>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof updateAll>>().toEqualTypeOf<User[]>();
 	const deleted = filtered.delete();
 	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<User | null>();
 	const deleteAll = filtered.deleteAll();
-	expectTypeOf<Effect.Success<typeof deleteAll>>().toEqualTypeOf<Array<User>>();
+	expectTypeOf<Effect.Success<typeof deleteAll>>().toEqualTypeOf<User[]>();
 
 	expectTypeOf(db.User.stream).not.toBeAny();
 	expectTypeOf<Stream.Success<typeof db.User.stream>>().toEqualTypeOf<User>();

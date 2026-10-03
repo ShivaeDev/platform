@@ -11,8 +11,8 @@ describe("pg-boss client lifecycle", () => {
 		const Jobs = makePgBoss("@test/CachedJobs");
 		const live = Jobs.layer({
 			...constructorOptions,
-			clientFactory: factory,
 			clientCacheKey: Symbol("cached-jobs"),
+			clientFactory: factory,
 			jobs: [Queue.handle(() => Effect.void)],
 		});
 

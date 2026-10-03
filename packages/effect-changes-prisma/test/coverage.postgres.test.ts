@@ -7,13 +7,13 @@ import { integration, makeDatabase } from "./support/database.ts";
 
 class Rejected extends Data.TaggedError("Rejected") {}
 
-const domains: Readonly<Record<string, string>> = { Order: "orders", Membership: "memberships", Invoice: "invoices" };
+const domains: Readonly<Record<string, string>> = { Invoice: "invoices", Membership: "memberships", Order: "orders" };
 const covers = (model: string, change: Change) => domains[model] === change.domain;
 
 class RolledBack {
-	readonly written: ReadonlyArray<string>;
+	readonly written: readonly string[];
 
-	constructor(written: ReadonlyArray<string>) {
+	constructor(written: readonly string[]) {
 		this.written = written;
 	}
 }
@@ -30,7 +30,7 @@ integration("the coverage check reads the tables a test transaction wrote and re
 					yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } }));
 					yield* Effect.ignore(
 						Effect.andThen(
-							changes.use((db) => db.membership.create({ data: { id: "m1", ownerId: "ada", memberId: "bob" } })),
+							changes.use((db) => db.membership.create({ data: { id: "m1", memberId: "bob", ownerId: "ada" } })),
 							Effect.fail(new Rejected()),
 						).pipe(changes.transaction),
 					);
@@ -38,7 +38,7 @@ integration("the coverage check reads the tables a test transaction wrote and re
 					yield* changes.use((db) => db.$executeRawUnsafe(`insert into "${schema}".changes_prisma_invoice (id, owner_id) values ('i1', 'ada')`));
 					yield* changes.use((db) => db.$executeRawUnsafe(`insert into "${schema}".changes_prisma_unmodeled (id) values ('u1')`));
 					yield* changes.use((db) => db.$queryRawUnsafe(`select id from "${schema}".changes_prisma_lookup`));
-					yield* changes.use((db) => db.order.updateMany({ where: { ownerId: "ada" }, data: { total: 2 } }));
+					yield* changes.use((db) => db.order.updateMany({ data: { total: 2 }, where: { ownerId: "ada" } }));
 				});
 				const context = yield* Effect.context<never>();
 				const written = yield* Effect.promise(() =>
@@ -58,9 +58,9 @@ integration("the coverage check reads the tables a test transaction wrote and re
 					"changes_prisma_unmodeled",
 				]);
 				expect(yield* Effect.promise(() => client.order.count())).toBe(0);
-				expect(checkCoverage({ written, tables, models, observations, unnamed, covers })).toEqual([
-					{ _tag: "Unrecorded", table: "changes_prisma_invoice", model: "Invoice" },
-					{ _tag: "Unrecorded", table: "changes_prisma_unmodeled", model: undefined },
+				expect(checkCoverage({ covers, models, observations, tables, unnamed, written })).toEqual([
+					{ _tag: "Unrecorded", model: "Invoice", table: "changes_prisma_invoice" },
+					{ _tag: "Unrecorded", model: undefined, table: "changes_prisma_unmodeled" },
 					{ _tag: "Unnamed", write: { model: "Order", operation: "updateMany", reason: "countOnly" } },
 				]);
 			}),

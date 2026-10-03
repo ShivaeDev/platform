@@ -10,11 +10,11 @@ import { fromPrismaPromise } from "./internal/promise.ts";
 import { decodeSqliteDatetimesAsUtc } from "./internal/sqlite-datetime.ts";
 import { applySqlitePragmas, assertFileBackedPath } from "./internal/sqlite-pragmas.ts";
 
-export const defaultSqlitePragmas: ReadonlyArray<string> = ["journal_mode=WAL"];
+export const defaultSqlitePragmas: readonly string[] = ["journal_mode=WAL"];
 
 export interface SqliteDatabaseLayerOptions extends SqliteOptionsBase {
 	readonly path: string;
-	readonly pragmas?: ReadonlyArray<string>;
+	readonly pragmas?: readonly string[];
 }
 
 type SqliteFactoryOptions<Contract extends AnySqlContract> =

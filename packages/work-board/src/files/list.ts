@@ -1,8 +1,8 @@
 import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
 
 export interface MarkdownFile {
-	readonly path: string;
 	readonly modified: number;
+	readonly path: string;
 }
 
 const skipped = (segment: string): boolean => segment.startsWith(".") || segment === "node_modules";
@@ -15,7 +15,7 @@ const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIn
 
 const byFolder = (left: string, right: string): number => folderOf(left).localeCompare(folderOf(right)) || left.localeCompare(right);
 
-type Listing = Effect.Effect<ReadonlyArray<MarkdownFile>, PlatformError.PlatformError>;
+type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
 export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root: string, realRoot: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -35,7 +35,7 @@ export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root:
 				return yield* Effect.orElseSucceed(folder(relative, real.value), () => []);
 			}
 			const modified = Option.match(info.value.mtime, { onNone: () => 0, onSome: (date) => date.getTime() });
-			return info.value.type === "File" && relative.endsWith(".md") ? [{ path: relative, modified }] : [];
+			return info.value.type === "File" && relative.endsWith(".md") ? [{ modified, path: relative }] : [];
 		});
 	const folder = (relative: string, real: string): Listing =>
 		Effect.gen(function* () {

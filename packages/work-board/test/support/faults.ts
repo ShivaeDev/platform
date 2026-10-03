@@ -2,17 +2,17 @@ import { Deferred, Effect, PlatformError, Stream } from "effect";
 import type { FileSystemWrapper } from "./board.ts";
 
 export interface FaultyWatch {
-	readonly wrap: FileSystemWrapper;
+	readonly attempts: readonly number[];
 	readonly fail: () => void;
 	readonly heal: () => void;
-	readonly attempts: ReadonlyArray<number>;
+	readonly wrap: FileSystemWrapper;
 }
 
-const injected = PlatformError.systemError({ _tag: "Unknown", module: "FileSystem", method: "watch", description: "Injected watcher failure" });
+const injected = PlatformError.systemError({ _tag: "Unknown", description: "Injected watcher failure", method: "watch", module: "FileSystem" });
 
 export const faultyWatch = (): FaultyWatch => {
 	let broken = false;
-	const attempts: Array<number> = [];
+	const attempts: number[] = [];
 	let failure = Effect.runSync(Deferred.make<void>());
 	const wrap: FileSystemWrapper = (fs) => ({
 		...fs,
@@ -33,27 +33,27 @@ export const faultyWatch = (): FaultyWatch => {
 		broken = true;
 		Effect.runSync(Deferred.succeed(failure, undefined));
 	};
-	return { wrap, fail, heal: () => (broken = false), attempts };
+	return { attempts, fail, heal: () => (broken = false), wrap };
 };
 
 export const silentWatch: FileSystemWrapper = (fs) => ({ ...fs, watch: () => Stream.never });
 
-export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly visited: ReadonlyArray<string> } => {
-	const visited: Array<string> = [];
+export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[] } => {
+	const visited: string[] = [];
 	const wrap: FileSystemWrapper = (fs) => ({
 		...fs,
 		readDirectory: (path, options) => {
 			visited.push(path);
 			return fs.readDirectory(path, options);
 		},
-		stat: (path) => {
-			visited.push(path);
-			return fs.stat(path);
-		},
 		realPath: (path) => {
 			visited.push(path);
 			return fs.realPath(path);
 		},
+		stat: (path) => {
+			visited.push(path);
+			return fs.stat(path);
+		},
 	});
-	return { wrap, visited };
+	return { visited, wrap };
 };

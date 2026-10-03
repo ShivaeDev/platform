@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcTest } from "effect/unstable/rpc";
-import { expect, test, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { bind } from "../src/index.ts";
 import { makeServer, Notes } from "./notes.ts";
 
@@ -12,18 +12,18 @@ const setup = async () => {
 	const server = await Effect.runPromise(makeServer);
 	class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 		group: Notes,
-		protocol: server.layer,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+		protocol: server.layer,
 	}) {}
 	const api = bind(Notes, NotesClient);
 	const registry = AtomRegistry.make();
 	const run = <A, E>(effect: Effect.Effect<A, E, NotesClient | Reactivity.Reactivity>) =>
 		Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, NotesClient.runtime.atom(effect))));
 	const reads = () => Effect.runSync(Ref.get(server.reads));
-	return { server, api, registry, run, reads };
+	return { api, reads, registry, run, server };
 };
 
-test("queries register their declared read keys and commands invalidate item and list after success only", async () => {
+it("queries register their declared read keys and commands invalidate item and list after success only", async () => {
 	const { api, registry, run, reads } = await setup();
 	const one = api.get.query({ id: 1 });
 	const two = api.get.query({ id: 2 });
@@ -42,18 +42,20 @@ test("queries register their declared read keys and commands invalidate item and
 		expect(reads().filter((read) => read === "list")).toHaveLength(2);
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
 	} finally {
-		for (const release of unmount) release();
+		for (const release of unmount) {
+			release();
+		}
 		registry.dispose();
 	}
 });
 
-test("result-dependent invalidation refreshes the item a command created", async () => {
+it("result-dependent invalidation refreshes the item a command created", async () => {
 	const { api, registry, run, reads } = await setup();
 	const three = api.get.query({ id: 3 });
 	const release = registry.mount(three);
 	try {
 		await vi.waitFor(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
-		expect(Result.isSuccess(await run(api.create.run({ title: "Three", body: "" })))).toBe(true);
+		expect(Result.isSuccess(await run(api.create.run({ body: "", title: "Three" })))).toBe(true);
 		await vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
 		expect(reads().filter((read) => read === "get:3")).toHaveLength(2);
 	} finally {
@@ -62,7 +64,7 @@ test("result-dependent invalidation refreshes the item a command created", async
 	}
 });
 
-test("query run performs a one-off typed call without registering keys", async () => {
+it("query run performs a one-off typed call without registering keys", async () => {
 	const { api, registry, run } = await setup();
 	try {
 		const found = await run(api.get.run({ id: 2 }));

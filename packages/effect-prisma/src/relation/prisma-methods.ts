@@ -13,7 +13,7 @@ import type { PrismaError } from "../error.ts";
 import type { CollectionResult, Relation, RelationQuery } from "../relation.ts";
 import type { IncludeMethod } from "./include.ts";
 
-type AnyFunction = (...arguments_: ReadonlyArray<never>) => unknown;
+type AnyFunction = (...arguments_: readonly never[]) => unknown;
 type AnyPostgresContract = PrismaContract<SqlStorage>;
 type FieldTuple<Row> = readonly [keyof Row & string, ...(keyof Row & string)[]];
 type Simplify<Value> = { [Key in keyof Value]: Value[Key] };
@@ -46,7 +46,7 @@ type AggregateConfigure<Collection> = Collection extends {
 
 type AggregateSuccess<Collection, Contract extends AnyPostgresContract, Model extends string, Spec extends AggregateSpec> =
 	Collection extends GroupedCollection<Contract, Model, infer Fields extends FieldTuple<DefaultModelRow<Contract, Model>>>
-		? Array<Simplify<Pick<DefaultModelRow<Contract, Model>, Fields[number]> & AggregateResult<Spec>>>
+		? Simplify<Pick<DefaultModelRow<Contract, Model>, Fields[number]> & AggregateResult<Spec>>[]
 		: AggregateResult<Spec>;
 
 type AggregateMethod<Collection, Contract, Model extends string> = Contract extends AnyPostgresContract

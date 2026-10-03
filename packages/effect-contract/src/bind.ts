@@ -23,8 +23,8 @@ export type RunFailure<R extends Rpc.Any> =
 
 export interface QueryOptions {
 	readonly headers?: Headers.Input;
-	readonly timeToLive?: Duration.Input;
 	readonly serializationKey?: string;
+	readonly timeToLive?: Duration.Input;
 }
 
 export interface BoundQuery<R extends Rpc.Any, Self> {
@@ -38,8 +38,8 @@ export interface BoundCommand<R extends Rpc.Any, Self> {
 
 export type Bound<
 	Name extends string,
-	Queries extends ReadonlyArray<QueryShape>,
-	Commands extends ReadonlyArray<CommandShape>,
+	Queries extends readonly QueryShape[],
+	Commands extends readonly CommandShape[],
 	Rpcs extends Rpc.Any,
 	Self,
 > = {
@@ -50,7 +50,7 @@ export type Bound<
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
-const invalidateAfter = Effect.fn("EffectContract.invalidate")(function* (keys: ReadonlyArray<Key>) {
+const invalidateAfter = Effect.fn("EffectContract.invalidate")(function* (keys: readonly Key[]) {
 	yield* Reactivity.invalidate(invalidationKeys(keys));
 });
 
@@ -69,14 +69,14 @@ const boundCommand = (service: ErasedClient, tag: string, command: CommandShape)
 
 export function bind<
 	Name extends string,
-	Queries extends ReadonlyArray<QueryShape>,
-	Commands extends ReadonlyArray<CommandShape>,
+	Queries extends readonly QueryShape[],
+	Commands extends readonly CommandShape[],
 	Rpcs extends Rpc.Any,
 	Self,
 	Id extends string,
 >(contract: Contract<Name, Queries, Commands, Rpcs>, service: AtomRpc.AtomRpcClient<Self, Id, Rpcs>): Bound<Name, Queries, Commands, Rpcs, Self>;
 export function bind(
-	contract: { readonly declaration: Declared<string, ReadonlyArray<QueryShape>, ReadonlyArray<CommandShape>> },
+	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[]> },
 	service: ErasedClient,
 ): unknown {
 	const { name, queries, commands } = contract.declaration;

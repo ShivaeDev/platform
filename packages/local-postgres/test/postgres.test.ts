@@ -12,13 +12,15 @@ it("rejects remote, mismatched and redirected local targets", () => {
 		url.replace("55432", "5432"),
 		`${localServer}/platform_dev`,
 		`${url}?host=example.com`,
-	])
+	]) {
 		expect(() => assertLocalDatabase(value, [name])).toThrow("Use a local database");
+	}
 });
 
 it("refuses remote Docker endpoints before issuing a Docker operation", () => {
-	for (const host of ["ssh://example.com", "tcp://example.com:2376"])
+	for (const host of ["ssh://example.com", "tcp://example.com:2376"]) {
 		expect(() => docker({ DOCKER_HOST: host }, ["info"])).toThrow("remote contexts are refused");
+	}
 });
 
 it("rejects remote preparation and query targets before connecting", () => {

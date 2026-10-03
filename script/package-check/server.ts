@@ -3,6 +3,7 @@ import { Effect } from "effect";
 
 const listening = (server: ChildProcessWithoutNullStreams) =>
 	Effect.tryPromise({
+		catch: (cause) => new Error("Packed server did not listen", { cause }),
 		try: () =>
 			new Promise<string>((resolve, reject) => {
 				let output = "";
@@ -21,34 +22,38 @@ const listening = (server: ChildProcessWithoutNullStreams) =>
 				});
 				server.stdout.on("data", (chunk) => {
 					output += String(chunk);
-					const match = /http:\/\/127\.0\.0\.1:\d+/.exec(output);
+					const match = /http:\/\/127\.0\.0\.1:\d+/u.exec(output);
 					if (match !== null) {
 						done();
 						resolve(match[0]);
 					}
 				});
 			}),
-		catch: (cause) => new Error("Packed server did not listen", { cause }),
 	});
+
+async function serves(url: string, expected: string, signal: AbortSignal): Promise<void> {
+	const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
+	if (!(response.ok && (await response.text()).includes(expected))) {
+		throw new Error(`${url} did not serve ${expected}`);
+	}
+}
 
 export const checkServer = (cwd: string, bin: string, args: readonly string[], pages: Readonly<Record<string, string>>) =>
 	Effect.acquireUseRelease(
 		Effect.sync(() => {
 			const server = spawn(bin, args, { cwd, stdio: "pipe" });
 			const exited = new Promise<void>((resolve) => server.once("close", () => resolve()));
-			return { server, exited };
+			return { exited, server };
 		}),
 		({ server }) =>
 			Effect.gen(function* () {
 				const address = yield* listening(server);
-				for (const [path, expected] of Object.entries(pages))
+				for (const [path, expected] of Object.entries(pages)) {
 					yield* Effect.tryPromise({
-						try: async (signal) => {
-							const response = await fetch(`${address}${path}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
-							if (!response.ok || !(await response.text()).includes(expected)) throw new Error(`${bin}: ${path} did not serve ${expected}`);
-						},
 						catch: (cause) => new Error(`Packed server request failed: ${path}`, { cause }),
+						try: (signal) => serves(`${address}${path}`, expected, signal),
 					});
+				}
 			}),
 		({ server, exited }) =>
 			Effect.promise(async () => {

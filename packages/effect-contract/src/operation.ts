@@ -9,63 +9,65 @@ export type PayloadSchema<Payload extends Schema.Top | Schema.Struct.Fields> = P
 type NoRejections = Record<never, never>;
 
 export interface OperationShape {
+	readonly error: Schema.Top;
 	readonly kind: "query" | "command";
 	readonly name: string;
 	readonly payload: Schema.Top;
-	readonly success: Schema.Top;
-	readonly error: Schema.Top;
-	readonly rejections: RejectionSpecs;
 	readonly Rejection: object;
 	readonly reject: object;
+	readonly rejections: RejectionSpecs;
+	readonly success: Schema.Top;
 }
 
 export interface QueryShape extends OperationShape {
 	readonly kind: "query";
-	reads(payload: unknown): ReadonlyArray<Key>;
+	reads(payload: unknown): readonly Key[];
 }
 
 export interface CommandShape extends OperationShape {
+	invalidates(payload: unknown, result: unknown): readonly Key[];
 	readonly kind: "command";
-	invalidates(payload: unknown, result: unknown): ReadonlyArray<Key>;
 }
 
 interface Operation<Name extends string, Payload extends Schema.Top, Success extends Schema.Top, Specs extends RejectionSpecs>
 	extends OperationShape {
+	readonly error: RejectionUnion<Specs>;
 	readonly name: Name;
 	readonly payload: Payload;
-	readonly success: Success;
-	readonly error: RejectionUnion<Specs>;
-	readonly rejections: Specs;
 	readonly Rejection: Rejections<Specs>;
 	readonly reject: Reject<Specs>;
+	readonly rejections: Specs;
+	readonly success: Success;
 }
 
 export interface Query<Name extends string, Payload extends Schema.Top, Success extends Schema.Top, Specs extends RejectionSpecs>
 	extends Operation<Name, Payload, Success, Specs> {
 	readonly kind: "query";
-	reads(payload: Payload["Type"]): ReadonlyArray<Key>;
+	reads(payload: Payload["Type"]): readonly Key[];
 }
 
 export interface Command<Name extends string, Payload extends Schema.Top, Success extends Schema.Top, Specs extends RejectionSpecs>
 	extends Operation<Name, Payload, Success, Specs> {
+	invalidates(payload: Payload["Type"], result: Success["Type"]): readonly Key[];
 	readonly kind: "command";
-	invalidates(payload: Payload["Type"], result: Success["Type"]): ReadonlyArray<Key>;
 }
 
 interface Declaration<Payload extends Schema.Top | Schema.Struct.Fields, Success extends Schema.Top, Specs extends RejectionSpecs> {
 	readonly payload?: Payload;
-	readonly success?: Success;
 	readonly rejections?: Specs & MatchingTags<Specs>;
+	readonly success?: Success;
 }
 
 interface Loose {
 	readonly payload?: Schema.Top | Schema.Struct.Fields;
-	readonly success?: Schema.Top;
 	readonly rejections?: RejectionSpecs;
+	readonly success?: Schema.Top;
 }
 
 const payloadSchema = (payload: Loose["payload"]): Schema.Top => {
-	if (payload === undefined) return Schema.Void;
+	if (payload === undefined) {
+		return Schema.Void;
+	}
 	return Schema.isSchema(payload) ? payload : Schema.Struct(payload);
 };
 
@@ -75,8 +77,8 @@ const operation = <Kind extends OperationShape["kind"]>(kind: Kind, name: string
 		kind,
 		name,
 		payload: payloadSchema(payload),
-		success: success ?? Schema.Void,
 		rejections,
+		success: success ?? Schema.Void,
 		...rejectionSet(rejections),
 	};
 };
@@ -89,10 +91,10 @@ export function query<
 >(
 	name: Name,
 	declaration: Declaration<Payload, Success, Specs> & {
-		readonly reads: (payload: PayloadSchema<Payload>["Type"]) => ReadonlyArray<Key>;
+		readonly reads: (payload: PayloadSchema<Payload>["Type"]) => readonly Key[];
 	},
 ): NoInfer<Query<Name, PayloadSchema<Payload>, Success, Specs>>;
-export function query(name: string, declaration: Loose & { readonly reads: (payload: unknown) => ReadonlyArray<Key> }): QueryShape {
+export function query(name: string, declaration: Loose & { readonly reads: (payload: unknown) => readonly Key[] }): QueryShape {
 	return { ...operation("query", name, declaration), reads: declaration.reads };
 }
 
@@ -104,12 +106,12 @@ export function command<
 >(
 	name: Name,
 	declaration: Declaration<Payload, Success, Specs> & {
-		readonly invalidates: (payload: PayloadSchema<Payload>["Type"], result: Success["Type"]) => ReadonlyArray<Key>;
+		readonly invalidates: (payload: PayloadSchema<Payload>["Type"], result: Success["Type"]) => readonly Key[];
 	},
 ): NoInfer<Command<Name, PayloadSchema<Payload>, Success, Specs>>;
 export function command(
 	name: string,
-	declaration: Loose & { readonly invalidates: (payload: unknown, result: unknown) => ReadonlyArray<Key> },
+	declaration: Loose & { readonly invalidates: (payload: unknown, result: unknown) => readonly Key[] },
 ): CommandShape {
 	return { ...operation("command", name, declaration), invalidates: declaration.invalidates };
 }

@@ -80,12 +80,12 @@ it.live("a late field rejection does not attach to a newer edit", () =>
 		const complete = yield* Deferred.make<void>();
 		const form = Form.make(Name, {
 			initialValues: { name: "First" },
-			runtime,
 			onSubmit: (_, submitter) =>
 				Deferred.succeed(started, undefined).pipe(
 					Effect.andThen(Deferred.await(complete)),
 					Effect.andThen(submitter.fail("name", "Submitted name is taken")),
 				),
+			runtime,
 		});
 		yield* AtomRegistry.mount(registry, form.error("name"));
 		form.change("name", "Submitted");

@@ -10,8 +10,8 @@ import { respond } from "./http/respond.ts";
 import { Highlighter } from "./render/highlighter.ts";
 
 export interface BoardOptions {
-	readonly root: string;
 	readonly home?: string | undefined;
+	readonly root: string;
 }
 
 type Services = Highlighter | FileSystem.FileSystem | Path.Path;
@@ -35,7 +35,7 @@ const routes = (options: BoardOptions) =>
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			const pages = page({ root: options.root, home }, changes);
+			const pages = page({ home, root: options.root }, changes);
 			yield* serve("/", pages);
 			yield* serve("/*", pages);
 		}),

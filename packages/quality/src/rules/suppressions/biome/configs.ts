@@ -5,35 +5,35 @@ import { itemsOf, type Json, member, type Parsed, parseJsonc, textOf } from "./j
 import { resolvePackage } from "./resolve.ts";
 
 export interface Preset {
-	readonly specifier: string;
+	readonly declared: readonly Declaration[];
 	readonly file: string;
 	readonly line: number;
-	readonly declared: ReadonlyArray<Declaration>;
+	readonly specifier: string;
 }
 
 export interface Layer {
-	readonly path: string;
 	readonly json: Json;
+	readonly path: string;
 	readonly preset: Preset | undefined;
 }
 
 export interface Chain {
 	readonly base: string;
-	readonly layers: ReadonlyArray<Layer>;
+	readonly layers: readonly Layer[];
 }
 
 interface Loaded {
-	readonly layers: ReadonlyArray<Layer>;
-	readonly problems: ReadonlyArray<Finding>;
+	readonly layers: readonly Layer[];
+	readonly problems: readonly Finding[];
 }
 
 type ReadText = RuleInputs["readText"];
 
-const ROOT_CONFIGS: ReadonlyArray<string> = ["biome.json", "biome.jsonc"];
+const ROOT_CONFIGS: readonly string[] = ["biome.json", "biome.jsonc"];
 
-const NESTED = /(?:^|\/)biome\.jsonc?$/;
+const NESTED = /(?:^|\/)biome\.jsonc?$/u;
 
-const RELATIVE = /^\.\.?(?:\/|$)/;
+const RELATIVE = /^\.\.?(?:\/|$)/u;
 
 const directoryOf = (path: string): string => (posix.dirname(path) === "." ? "" : posix.dirname(path));
 
@@ -81,7 +81,7 @@ const extended = async (readText: ReadText, from: string, entry: Json): Promise<
 	return (await readText(relative)) === undefined ? fromPackage(readText, from, entry, specifier) : local(readText, relative);
 };
 
-const extendsOf = (json: Json): ReadonlyArray<Json> => itemsOf(member(json, "extends"));
+const extendsOf = (json: Json): readonly Json[] => itemsOf(member(json, "extends"));
 
 const chainOf = async (readText: ReadText, path: string): Promise<Loaded> => {
 	const own = await local(readText, path);
@@ -99,9 +99,9 @@ const rootConfig = async (readText: ReadText): Promise<string | undefined> => {
 };
 
 export interface BiomeConfigs {
+	readonly chains: readonly Chain[];
+	readonly problems: readonly Finding[];
 	readonly root: string;
-	readonly chains: ReadonlyArray<Chain>;
-	readonly problems: ReadonlyArray<Finding>;
 }
 
 export const biomeConfigs = async ({ files, readText }: RuleInputs): Promise<BiomeConfigs> => {

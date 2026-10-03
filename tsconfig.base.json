@@ -1,7 +1,7 @@
 {
-	"extends": "@shivaedev/quality/tsconfig/base.json",
 	"compilerOptions": {
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"types": ["node"]
-	}
+	},
+	"extends": "@shivaedev/quality/tsconfig/base.json"
 }

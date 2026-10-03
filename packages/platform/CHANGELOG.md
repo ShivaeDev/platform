@@ -14,6 +14,8 @@
 
 - Type-check with TypeScript 7 only. TypeScript 6 still builds the package.
 
+- Lint and format with the `@shivaedev/quality` Biome preset through `quality lint` at the repository root, which replaces the package's `check` script.
+
 ## 0.4.3 - 2026-09-26
 
 ### Changed

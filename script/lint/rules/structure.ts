@@ -2,7 +2,7 @@ import { basename, type Inventory, isDeclaration, type SourceFile } from "#lint/
 import type { Violation } from "#lint/violation.ts";
 import { workspacePackages } from "#lint/workspace.ts";
 
-const BARREL_FILE = /^index\.tsx?$/;
+const BARREL_FILE = /^index\.tsx?$/u;
 
 const packageEntries = (inventory: Inventory): ReadonlySet<string> =>
 	new Set(workspacePackages(inventory).flatMap(({ root }) => [`${root}/src/index.ts`, `${root}/src/index.tsx`]));

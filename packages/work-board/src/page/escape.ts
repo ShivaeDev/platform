@@ -1,3 +1,3 @@
-const entities: Readonly<Record<string, string>> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const entities: Readonly<Record<string, string>> = { "'": "&#39;", '"': "&quot;", "&": "&amp;", "<": "&lt;", ">": "&gt;" };
 
-export const escapeHtml = (text: string): string => text.replaceAll(/[&<>"']/g, (character) => entities[character] ?? character);
+export const escapeHtml = (text: string): string => text.replaceAll(/[&<>"']/gu, (character) => entities[character] ?? character);

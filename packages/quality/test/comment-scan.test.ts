@@ -3,7 +3,7 @@ import { noJsdoc } from "../src/rules/comments/no-jsdoc.ts";
 import { noTodo } from "../src/rules/comments/no-todo.ts";
 import { checkRule } from "./support/inputs.ts";
 
-const todos = async (path: string, ...content: ReadonlyArray<string>) =>
+const todos = async (path: string, ...content: readonly string[]) =>
 	(await checkRule(noTodo, undefined, { sources: [{ content: content.join("\n"), path }] })).map((finding) => finding.line);
 
 describe("comment rules read comments, not code", () => {

@@ -9,15 +9,15 @@ import { FakeResult } from "./support/controlled-collection.ts";
 import { unusedClient } from "./support/unused-client.ts";
 
 interface User {
-	readonly id: number;
 	readonly active: boolean;
+	readonly id: number;
 }
 
 class FakeCollection<Row extends object> {
-	private readonly rows: ReadonlyArray<Row>;
+	private readonly rows: readonly Row[];
 	private readonly limit: number | undefined;
 
-	constructor(rows: ReadonlyArray<Row>, limit?: number) {
+	constructor(rows: readonly Row[], limit?: number) {
 		this.rows = rows;
 		this.limit = limit;
 	}
@@ -46,20 +46,20 @@ interface Models {
 	readonly User: FakeCollection<User>;
 }
 
-const rows: ReadonlyArray<User> = [
-	{ id: 1, active: true },
-	{ id: 2, active: false },
-	{ id: 3, active: true },
+const rows: readonly User[] = [
+	{ active: true, id: 1 },
+	{ active: false, id: 2 },
+	{ active: true, id: 3 },
 ];
 
 const executor: DatabaseExecutor<Models> = {
 	client: unusedClient(),
 	identity: {},
+	liveness: { closedCode: "RUNTIME.DATABASE_CLOSED", open: true },
+	mode: "root",
 	models: {
 		User: new FakeCollection(rows),
 	},
-	liveness: { closedCode: "RUNTIME.DATABASE_CLOSED", open: true },
-	mode: "root",
 	querySemaphore: undefined,
 	transactionIdentity: undefined,
 	transactionSemaphore: undefined,
@@ -67,8 +67,8 @@ const executor: DatabaseExecutor<Models> = {
 
 it.effect("adapts a Prisma-shaped thenable", () =>
 	Effect.gen(function* () {
-		const result = yield* fromPrismaPromise(() => new FakeResult([{ id: 1, active: true }]));
-		expect(result).toEqual([{ id: 1, active: true }]);
+		const result = yield* fromPrismaPromise(() => new FakeResult([{ active: true, id: 1 }]));
+		expect(result).toEqual([{ active: true, id: 1 }]);
 	}),
 );
 
@@ -92,11 +92,11 @@ it.effect("closes a connected client when initialization fails", () =>
 			Effect.promise(() =>
 				acquireConnectedClient(
 					{
-						connect: () => Promise.resolve(),
 						close: () => {
 							closed = true;
 							return Promise.resolve();
 						},
+						connect: () => Promise.resolve(),
 					},
 					() => {
 						throw failure;

@@ -9,13 +9,13 @@ type Key<S extends Model.Any> = Extract<keyof S["fields"] & keyof Row<S>, string
 type Row<S extends Model.Any> = Schema.Struct.Type<S["fields"]>;
 
 export interface FindMany<S extends Model.Any, K extends Key<S>> {
-	readonly select?: readonly [K, ...K[]];
-	readonly where?: { readonly [F in keyof Row<S>]?: Row<S>[F] | undefined };
+	readonly limit?: number;
 	readonly orderBy?: {
 		readonly field: Key<S>;
 		readonly direction: "asc" | "desc";
 	};
-	readonly limit?: number;
+	readonly select?: readonly [K, ...K[]];
+	readonly where?: { readonly [F in keyof Row<S>]?: Row<S>[F] | undefined };
 }
 
 const Limit = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
@@ -50,11 +50,7 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 			limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
 		function findMany<K extends Key<S> = Key<S>>(
 			query?: FindMany<S, K>,
-		): Effect.Effect<
-			Array<Pick<Row<S>, K>>,
-			SqlError | Schema.SchemaError,
-			S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]
-		>;
+		): Effect.Effect<Pick<Row<S>, K>[], SqlError | Schema.SchemaError, S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]>;
 		// Object.fromEntries erases the selected key-to-schema correspondence, so the typed overload restates it.
 		function findMany(query: FindMany<S, Key<S>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
 			return Effect.gen(function* () {

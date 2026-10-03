@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 
-export type AnyMethod = (...arguments_: ReadonlyArray<never>) => Effect.Effect<unknown, unknown, unknown>;
+export type AnyMethod = (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, unknown>;
 
 export interface GenericMethodDescriptor<Method extends AnyMethod> {
 	readonly _tag: "GenericMethod";

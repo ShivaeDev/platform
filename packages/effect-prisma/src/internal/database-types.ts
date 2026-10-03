@@ -54,7 +54,7 @@ export interface DatabaseServiceHolder<Contract extends AnySqlContract, Identifi
 	extends Context.Service<DatabaseIdentifier<Contract, Identifier>, DatabaseService<Contract, Identifier>> {}
 
 export type AnyDatabase = Effect.Effect<unknown, never, unknown> & {
-	readonly layer: (...arguments_: ReadonlyArray<never>) => Layer.Any;
+	readonly layer: (...arguments_: readonly never[]) => Layer.Any;
 };
 
 export type DatabaseServiceOf<Database extends AnyDatabase> = Effect.Success<Database>;

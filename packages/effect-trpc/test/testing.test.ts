@@ -37,9 +37,9 @@ const router = t.router({
 
 const it = makeTrpcIt({
 	adapter,
+	around: (effect) => Effect.withSpan(effect, "test.effect-trpc"),
 	createCaller: (options = { requestId: "default" }) => router.createCaller(options),
 	layer: Layer.succeed(RuntimeValue, "test-override"),
-	around: (effect) => Effect.withSpan(effect, "test.effect-trpc"),
 });
 
 const harnessIt = makeTrpcHarnessIt({

@@ -6,7 +6,7 @@ import { notFound, rejectWith } from "../src/index.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "./support/http.ts";
 
 const described = { message: Schema.String };
-const perField = { message: Schema.String, field: Schema.optionalKey(Schema.String) };
+const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };
 
 class NotFound extends Schema.TaggedError<NotFound>()("NotFound", described) {}
 class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", described) {}
@@ -17,7 +17,7 @@ class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequ
 class BadRequest extends Schema.TaggedError<BadRequest>()("BadRequest", perField) {}
 class Throttled extends Schema.TaggedError<Throttled>()("Throttled", { retryAfter: Schema.NumberFromString }) {}
 class AuthUnavailable extends Schema.TaggedError<AuthUnavailable>()("AuthUnavailable", described) {}
-class Undeclared extends Schema.TaggedError<Undeclared>()("Undeclared", { message: Schema.String, field: Schema.String }) {}
+class Undeclared extends Schema.TaggedError<Undeclared>()("Undeclared", { field: Schema.String, message: Schema.String }) {}
 
 const Rejection = Schema.Union([
 	NotFound,
@@ -33,16 +33,16 @@ const Rejection = Schema.Union([
 const SECRET = "postgres://app:hunter2@db.internal/app";
 
 const failures = {
-	notFound: new NotFound({ message: "No profile" }),
-	unauthorized: new Unauthorized({ message: "Sign in" }),
-	forbidden: new Forbidden({ message: "Not yours" }),
-	taken: new Conflict({ message: "Name is taken", field: "name" }),
-	stale: new PreconditionFailed({ message: "Profile changed" }),
 	busy: new TooManyRequests({ message: "Slow down" }),
-	empty: new BadRequest({ message: "Name is required", field: "name" }),
+	empty: new BadRequest({ field: "name", message: "Name is required" }),
+	forbidden: new Forbidden({ message: "Not yours" }),
+	notFound: new NotFound({ message: "No profile" }),
 	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
+	stale: new PreconditionFailed({ message: "Profile changed" }),
+	taken: new Conflict({ field: "name", message: "Name is taken" }),
 	throttled: new Throttled({ retryAfter: 30 }),
-	undeclared: new Undeclared({ message: SECRET, field: "password" }),
+	unauthorized: new Unauthorized({ message: "Sign in" }),
+	undeclared: new Undeclared({ field: "password", message: SECRET }),
 };
 
 const rename = (name: string) => {
@@ -51,17 +51,17 @@ const rename = (name: string) => {
 };
 
 const router = t.router({
+	defect: procedure.query(function* () {
+		return yield* Effect.die(new Error(SECRET));
+	}),
+	explicit: procedure.query(function* () {
+		return yield* notFound("Explicitly missing");
+	}),
 	rename: procedure.input(Schema.Struct({ name: Schema.String })).mutation(function* ({ name }) {
 		return yield* rename(name).pipe(rejectWith(Rejection));
 	}),
 	throttle: procedure.mutation(function* () {
 		return yield* rename("throttled").pipe(rejectWith(Throttled, { code: () => "TOO_MANY_REQUESTS" }));
-	}),
-	explicit: procedure.query(function* () {
-		return yield* notFound("Explicitly missing");
-	}),
-	defect: procedure.query(function* () {
-		return yield* Effect.die(new Error(SECRET));
 	}),
 });
 
@@ -76,8 +76,8 @@ describe("declared rejections over tRPC HTTP with superjson", () => {
 		const error = await failureOf(client.rename.mutate({ name: "taken" }));
 
 		expect(error).toBeInstanceOf(TRPCClientError);
-		expect(error).toMatchObject({ message: "Name is taken", data: { code: "CONFLICT", httpStatus: 409, path: "rename" } });
-		expect(rejectionOf(error)).toEqual(Option.some({ _tag: "Conflict", message: "Name is taken", field: "name" }));
+		expect(error).toMatchObject({ data: { code: "CONFLICT", httpStatus: 409, path: "rename" }, message: "Name is taken" });
+		expect(rejectionOf(error)).toEqual(Option.some({ _tag: "Conflict", field: "name", message: "Name is taken" }));
 		const decoded = decodeRejection(Rejection)(error);
 		expect(Option.getOrThrow(decoded)).toBeInstanceOf(Conflict);
 		expect(Option.getOrThrow(decoded)).toMatchObject({ field: "name", message: "Name is taken" });
@@ -129,8 +129,8 @@ describe("declared rejections over tRPC HTTP with superjson", () => {
 		expect(exchanges.length).toBe(before + 1);
 		expect(exchanges.at(-1)?.status).toBe(207);
 		expect(renamed).toEqual({ status: "fulfilled", value: "renamed:Ada" });
-		expect(missing).toMatchObject({ status: "rejected", reason: { data: { code: "NOT_FOUND", httpStatus: 404 } } });
-		expect(taken).toMatchObject({ status: "rejected", reason: { data: { code: "CONFLICT", httpStatus: 409 } } });
+		expect(missing).toMatchObject({ reason: { data: { code: "NOT_FOUND", httpStatus: 404 } }, status: "rejected" });
+		expect(taken).toMatchObject({ reason: { data: { code: "CONFLICT", httpStatus: 409 } }, status: "rejected" });
 		const reasons = [missing, taken].flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
 		expect(reasons.map((reason) => Option.map(decodeRejection(Rejection)(reason), ({ _tag }) => _tag))).toEqual([
 			Option.some("NotFound"),
@@ -143,7 +143,7 @@ describe("everything else stays opaque", () => {
 	it("sends a failure outside the declared schema as a redacted internal error", async () => {
 		const error = await failureOf(client.rename.mutate({ name: "undeclared" }));
 
-		expect(error).toMatchObject({ message: "Internal server error", data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 } });
+		expect(error).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 }, message: "Internal server error" });
 		expect(rejectionOf(error)).toEqual(Option.none());
 		expect(exchanges.at(-1)?.body).not.toContain("hunter2");
 		expect(exchanges.at(-1)?.body).not.toContain('"rejection"');
@@ -152,7 +152,7 @@ describe("everything else stays opaque", () => {
 	it("redacts defects and attaches no rejection", async () => {
 		const error = await failureOf(client.defect.query());
 
-		expect(error).toMatchObject({ message: "Internal server error", data: { code: "INTERNAL_SERVER_ERROR" } });
+		expect(error).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" }, message: "Internal server error" });
 		expect(rejectionOf(error)).toEqual(Option.none());
 		expect(exchanges.at(-1)?.body).not.toContain("hunter2");
 	});
@@ -160,7 +160,7 @@ describe("everything else stays opaque", () => {
 	it("leaves explicit TRPCErrors without a rejection", async () => {
 		const error = await failureOf(client.explicit.query());
 
-		expect(error).toMatchObject({ message: "Explicitly missing", data: { code: "NOT_FOUND" } });
+		expect(error).toMatchObject({ data: { code: "NOT_FOUND" }, message: "Explicitly missing" });
 		expect(rejectionOf(error)).toEqual(Option.none());
 	});
 

@@ -2,10 +2,10 @@ import type { Inventory } from "#lint/inventory.ts";
 import type { Violation } from "#lint/violation.ts";
 
 const FILE = "pnpm-workspace.yaml";
-const EXACT_VERSION = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
-const HEADING = /^(["']?)(catalog|catalogs|overrides)\1\s*:(.*)$/;
-const SECTION_END = /^[^\s#]/;
-const ENTRY = /^\s+(?=[^\s#])(["']?)([^"':]+)\1\s*:\s*(\S.*)$/;
+const EXACT_VERSION = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
+const HEADING = /^(["']?)(catalog|catalogs|overrides)\1\s*:(.*)$/u;
+const SECTION_END = /^[^\s#]/u;
+const ENTRY = /^\s+(?=[^\s#])(["']?)([^"':]+)\1\s*:\s*(\S.*)$/u;
 
 type Section = "catalog" | "overrides";
 
@@ -16,10 +16,10 @@ interface Entry {
 	readonly value: string;
 }
 
-const unquoted = (value: string): string => value.replace(/\s+#.*$/, "").replace(/^["']|["']$/g, "");
+const unquoted = (value: string): string => value.replace(/\s+#.*$/u, "").replace(/^["']|["']$/gu, "");
 
 const inlineHeading = (line: number, key: string, rest: string): readonly Violation[] =>
-	rest.replace(/#.*$/, "").trim() === ""
+	rest.replace(/#.*$/u, "").trim() === ""
 		? []
 		: [
 				{

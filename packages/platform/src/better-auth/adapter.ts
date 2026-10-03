@@ -58,13 +58,14 @@ export function effectPrismaAdapter(
 		const inTransaction = <Value>(callback: () => Promise<Value>): Effect.Effect<Value, unknown, unknown> =>
 			Effect.flatMap(Effect.context<unknown>(), (services) =>
 				Effect.tryPromise({
-					try: () => runtime.runWithServices(services, callback),
 					catch: (error) => error,
+					try: () => runtime.runWithServices(services, callback),
 				}),
 			);
 
 		let factory: ReturnType<typeof createAdapterFactory>;
 		factory = createAdapterFactory({
+			adapter: makeRowAdapter(query, adapterOptions.usePlural ?? false),
 			config: {
 				adapterId: "effect-prisma",
 				adapterName: "Effect Prisma",
@@ -77,7 +78,6 @@ export function effectPrismaAdapter(
 				supportsUUIDs: true,
 				transaction: (callback) => run((database) => database.transaction(inTransaction(() => callback(factory(authOptions))))),
 			},
-			adapter: makeRowAdapter(query, adapterOptions.usePlural ?? false),
 		});
 
 		return factory(authOptions);

@@ -9,14 +9,18 @@ export const checkEffectCopies = (consumer: string, catalog: Readonly<Record<str
 		const store = join(consumer, "node_modules/.pnpm");
 		const copies = new Map<string, string[]>();
 		for (const directory of yield* fs.readDirectory(store)) {
-			if (!(directory.startsWith("effect@") || directory.startsWith("@effect+"))) continue;
+			if (!(directory.startsWith("effect@") || directory.startsWith("@effect+"))) {
+				continue;
+			}
 			for (const { name, version, real } of yield* effectCopies(join(store, directory), directory.startsWith("effect@"))) {
 				yield* requireThat(version === catalog[name], `${name}: resolved ${version}, catalog requires ${catalog[name]}`);
 				copies.set(name, [...new Set([...(copies.get(name) ?? []), real])]);
 			}
 		}
 		yield* requireThat(copies.has("effect"), "Consumer did not install Effect");
-		for (const [name, paths] of copies) yield* requireThat(paths.length === 1, `${name}: ${paths.length} physical copies\n${paths.join("\n")}`);
+		for (const [name, paths] of copies) {
+			yield* requireThat(paths.length === 1, `${name}: ${paths.length} physical copies\n${paths.join("\n")}`);
+		}
 	});
 
 const effectCopies = (directory: string, core: boolean) =>
@@ -28,7 +32,9 @@ const effectCopies = (directory: string, core: boolean) =>
 		for (const name of names) {
 			const real = yield* fs.realPath(join(modules, name));
 			const manifest = decodeManifest(yield* fs.readFileString(join(real, "package.json")));
-			if (effectPackage(manifest.name)) copies.push({ name: manifest.name, version: manifest.version, real });
+			if (effectPackage(manifest.name)) {
+				copies.push({ name: manifest.name, real, version: manifest.version });
+			}
 		}
 		return copies;
 	});

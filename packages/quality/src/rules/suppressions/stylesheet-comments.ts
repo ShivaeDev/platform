@@ -1,12 +1,12 @@
 import { bodyOf, type SourceComment } from "../comments/scan.ts";
 
-export const STYLESHEET = /\.(?:css|scss|less)$/;
+export const STYLESHEET = /\.(?:css|scss|less)$/u;
 
-const LINE_COMMENTS = /\.(?:scss|less)$/;
+const LINE_COMMENTS = /\.(?:scss|less)$/u;
 
 const TOKENS = String.raw`"(?:[^"\\\n]|\\.)*"?|'(?:[^'\\\n]|\\.)*'?|url\([^)]*\)?|\/\*[\s\S]*?(?:\*\/|$)`;
 
-const tokensOf = (path: string): RegExp => new RegExp(LINE_COMMENTS.test(path) ? `${TOKENS}|\\/\\/[^\\n]*` : TOKENS, "gi");
+const tokensOf = (path: string): RegExp => new RegExp(LINE_COMMENTS.test(path) ? `${TOKENS}|\\/\\/[^\\n]*` : TOKENS, "giu");
 
 const lineOf = (text: string, offset: number): number => text.slice(0, offset).split("\n").length;
 
@@ -23,5 +23,5 @@ const toComment = (text: string, token: string, offset: number): SourceComment =
 	};
 };
 
-export const stylesheetComments = (path: string, text: string): ReadonlyArray<SourceComment> =>
+export const stylesheetComments = (path: string, text: string): readonly SourceComment[] =>
 	[...text.matchAll(tokensOf(path))].flatMap((match) => (match[0].startsWith("/") ? [toComment(text, match[0], match.index)] : []));

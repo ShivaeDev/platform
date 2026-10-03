@@ -8,21 +8,21 @@ import { environmentVariable } from "./support/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
-const Details = Schema.Struct({ channel: Schema.String, attempts: Schema.Int });
+const Details = Schema.Struct({ attempts: Schema.Int, channel: Schema.String });
 
 class Payment extends Model.Class<Payment>("PostgresPayment")({
-	id: Model.Field({
-		select: Schema.Number,
-		update: Schema.Number,
-		json: Schema.Number,
-	}),
 	amount: Schema.BigDecimalFromString,
-	settled_at: Schema.Date,
-	local_time: Schema.Date,
+	created_at: Model.Field({ json: Schema.DateFromString, select: Schema.Date }),
 	details: Details,
 	details_json: Details,
+	id: Model.Field({
+		json: Schema.Number,
+		select: Schema.Number,
+		update: Schema.Number,
+	}),
+	local_time: Schema.Date,
 	note: Schema.NullOr(Schema.String),
-	created_at: Model.Field({ select: Schema.Date, json: Schema.DateFromString }),
+	settled_at: Schema.Date,
 }) {}
 
 const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
@@ -50,20 +50,20 @@ const setup = Effect.gen(function* () {
 		created_at timestamptz not null default current_timestamp
 	) on commit drop`;
 	const payments = yield* makeRepository(Payment, {
-		tableName,
 		idColumn: "id",
 		spanPrefix: "PostgresPayment",
+		tableName,
 	});
-	return { sql, tableName, payments };
+	return { payments, sql, tableName };
 });
 
 const input = {
 	amount: BigDecimal.fromStringUnsafe("9007199254740993.123456789012"),
-	settled_at: new Date("2026-09-19T10:11:12.345Z"),
+	details: { attempts: 2, channel: "card" },
+	details_json: { attempts: 1, channel: "import" },
 	local_time: new Date(2026, 8, 19, 10, 11, 12, 345),
-	details: { channel: "card", attempts: 2 },
-	details_json: { channel: "import", attempts: 1 },
 	note: null,
+	settled_at: new Date("2026-09-19T10:11:12.345Z"),
 };
 
 integration("PostgreSQL model codecs round-trip precise numeric, dates, JSON and generated fields", async () => {
@@ -85,8 +85,8 @@ integration("PostgreSQL model codecs round-trip precise numeric, dates, JSON and
 					expect(inserted.details_json).toEqual(input.details_json);
 					expect(inserted.note).toBeNull();
 					const selected = yield* payments.findMany({
-						where: { amount: input.amount, note: null },
 						select: ["amount", "details"],
+						where: { amount: input.amount, note: null },
 					});
 					expectTypeOf(selected).toEqualTypeOf<
 						Array<{
@@ -107,10 +107,10 @@ integration("PostgreSQL model codecs round-trip precise numeric, dates, JSON and
 					]);
 					const updated = yield* payments.update({
 						...inserted,
-						details: { channel: "transfer", attempts: 3 },
+						details: { attempts: 3, channel: "transfer" },
 						note: "verified",
 					});
-					expect(updated.details).toEqual({ channel: "transfer", attempts: 3 });
+					expect(updated.details).toEqual({ attempts: 3, channel: "transfer" });
 					expect((yield* payments.findById(inserted.id)).note).toBe("verified");
 					expect(yield* sql`select amount::text as amount, jsonb_typeof(details) as kind from ${sql(tableName)}`).toEqual([
 						{ amount: "9007199254740993.123456789012", kind: "object" },
@@ -135,7 +135,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const rejected = yield* sql.withTransaction(rejectedProgram).pipe(Effect.result);
 					expect(rejected._tag).toBe("Failure");
-					if (rejected._tag === "Failure") expect(Schema.isSchemaError(rejected.failure)).toBe(true);
+					if (rejected._tag === "Failure") {
+						expect(Schema.isSchemaError(rejected.failure)).toBe(true);
+					}
 					expect((yield* payments.findById(inserted.id)).details).toEqual(input.details);
 					const invalidNumericProgram = Effect.gen(function* () {
 						yield* sql`update ${sql(tableName)} set amount = 'NaN'::numeric where id = ${inserted.id}`;
@@ -143,7 +145,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const invalidNumeric = yield* sql.withTransaction(invalidNumericProgram).pipe(Effect.result);
 					expect(invalidNumeric._tag).toBe("Failure");
-					if (invalidNumeric._tag === "Failure") expect(Schema.isSchemaError(invalidNumeric.failure)).toBe(true);
+					if (invalidNumeric._tag === "Failure") {
+						expect(Schema.isSchemaError(invalidNumeric.failure)).toBe(true);
+					}
 					expect(BigDecimal.format((yield* payments.findById(inserted.id)).amount)).toBe("9007199254740993.123456789012");
 					const invalidReadProgram = Effect.gen(function* () {
 						yield* sql`update ${sql(tableName)} set details = 'null'::jsonb where id = ${inserted.id}`;
@@ -151,7 +155,9 @@ integration("schema failure from persisted JSON rolls back the enclosing transac
 					});
 					const invalidRead = yield* sql.withTransaction(invalidReadProgram).pipe(Effect.result);
 					expect(invalidRead._tag).toBe("Failure");
-					if (invalidRead._tag === "Failure") expect(Schema.isSchemaError(invalidRead.failure)).toBe(true);
+					if (invalidRead._tag === "Failure") {
+						expect(Schema.isSchemaError(invalidRead.failure)).toBe(true);
+					}
 					expect((yield* payments.findById(inserted.id)).details).toEqual(input.details);
 				}),
 			);

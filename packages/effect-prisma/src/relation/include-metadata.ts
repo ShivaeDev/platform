@@ -62,7 +62,7 @@ type AnyNullableField<Fields, Names extends readonly string[]> = Names extends r
 
 export type IncludedRelationValue<Contract extends AnyPostgresContract, Model extends string, RelationName extends string, Value> =
 	RelationCardinalityOf<Contract, Model, RelationName> extends "1:N" | "N:M"
-		? Array<Value>
+		? Value[]
 		: RelationCardinalityOf<Contract, Model, RelationName> extends "N:1"
 			? AnyNullableField<ModelFields<Contract, Model>, RelationLocalFields<Contract, Model, RelationName>> extends true
 				? Value | null

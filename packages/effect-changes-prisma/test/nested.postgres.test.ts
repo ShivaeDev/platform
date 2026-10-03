@@ -72,9 +72,9 @@ integration("a transaction inside a frame-less native transaction is a root and 
 );
 
 class RolledBack {
-	readonly snapshot: ReadonlyArray<ReadonlyArray<string>>;
+	readonly snapshot: ReadonlyArray<readonly string[]>;
 
-	constructor(snapshot: ReadonlyArray<ReadonlyArray<string>>) {
+	constructor(snapshot: ReadonlyArray<readonly string[]>) {
 		this.snapshot = snapshot;
 	}
 }

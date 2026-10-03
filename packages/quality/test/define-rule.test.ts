@@ -4,21 +4,21 @@ import { defineRule, type StandardSchemaV1 } from "../src/index.ts";
 import { checkRule, issuesOf } from "./support/inputs.ts";
 
 const todo = defineRule({
-	id: "local/no-todo",
-	description: "Resolve TODOs before merging.",
 	check: ({ sources }) =>
 		sources.flatMap((file) =>
 			file.lines.flatMap((text, index) => (text.includes("TODO") ? [{ file: file.path, line: index + 1, message: "Resolve this TODO." }] : [])),
 		),
+	description: "Resolve TODOs before merging.",
+	id: "local/no-todo",
 });
 
 const Limit = Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) });
 
 const limited = defineRule({
-	id: "local/max-files",
-	description: "Keep the repository small.",
-	options: Schema.toStandardSchemaV1(Limit, { parseOptions: { onExcessProperty: "error" } }),
 	check: async ({ files, options }) => (files.length > options.max ? [{ file: ".", message: `${files.length} files exceed ${options.max}.` }] : []),
+	description: "Keep the repository small.",
+	id: "local/max-files",
+	options: Schema.toStandardSchemaV1(Limit, { parseOptions: { onExcessProperty: "error" } }),
 });
 
 const shouting: StandardSchemaV1<{ readonly word: string }, { readonly word: string }> = {
@@ -33,10 +33,10 @@ const shouting: StandardSchemaV1<{ readonly word: string }, { readonly word: str
 };
 
 const echo = defineRule({
-	id: "local/echo",
-	description: "Reports its option.",
-	options: shouting,
 	check: ({ options }) => [{ file: "echo", message: options.word }],
+	description: "Reports its option.",
+	id: "local/echo",
+	options: shouting,
 });
 
 describe("defineRule", () => {
@@ -59,7 +59,7 @@ describe("defineRule", () => {
 	});
 
 	it("names the path of each option issue", async () => {
-		expect(await issuesOf(limited, { max: "many" })).toEqual([expect.stringMatching(/^max: /)]);
+		expect(await issuesOf(limited, { max: "many" })).toEqual([expect.stringMatching(/^max: /u)]);
 		expect(await issuesOf(echo, {})).toEqual(["word: needs a word"]);
 	});
 

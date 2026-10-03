@@ -1,3 +1,4 @@
+import process from "node:process";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
@@ -10,7 +11,7 @@ const program = Effect.gen(function* () {
 		ChildProcess.make(
 			"node",
 			["packages/heavy-lock/src/cli.ts", "--", "pnpm", "--recursive", "--workspace-concurrency=1", "--if-present", "test", ...process.argv.slice(2)],
-			{ extendEnv: true, env, stdin: "inherit", stdout: "inherit", stderr: "inherit" },
+			{ env, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" },
 		),
 	);
 });

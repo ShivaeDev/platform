@@ -18,43 +18,43 @@ export default {
 const ERROR_PAGE = "<p>An error page from a proxy</p>";
 
 export interface MermaidControl {
-	readonly calls: Array<string>;
+	readonly calls: string[];
 	readonly configs: Array<{ readonly themeVariables: { readonly darkMode: boolean } }>;
 	gate: Promise<void>;
 }
 
 export interface PageRequests {
-	count: number;
 	answered: number;
-	gate: Promise<void>;
+	count: number;
 	failWith: number | "network" | undefined;
+	gate: Promise<void>;
 }
 
 export interface LiveStream {
-	readonly emit: (name: string) => void;
-	readonly drop: () => void;
-	readonly connect: () => void;
 	readonly close: () => void;
+	readonly connect: () => void;
+	readonly drop: () => void;
+	readonly emit: (name: string) => void;
 }
 
 export interface OpenPage {
-	readonly window: BrowserWindow;
+	readonly close: () => Promise<void>;
 	readonly document: BrowserWindow["document"];
 	readonly mermaid: MermaidControl;
-	readonly mermaidRequests: ReadonlyArray<string>;
+	readonly mermaidRequests: readonly string[];
 	readonly pageRequests: PageRequests;
-	readonly streams: ReadonlyArray<LiveStream>;
 	readonly prefer: (scheme: "light" | "dark") => void;
-	readonly close: () => Promise<void>;
+	readonly streams: readonly LiveStream[];
+	readonly window: BrowserWindow;
 }
 
-const eventNames = (buffer: string): { readonly names: ReadonlyArray<string>; readonly rest: string } => {
+const eventNames = (buffer: string): { readonly names: readonly string[]; readonly rest: string } => {
 	const blocks = buffer.split("\n\n");
 	const rest = blocks.pop() ?? "";
-	return { names: blocks.map((block) => /^event: (.*)$/m.exec(block)?.[1] ?? "message"), rest };
+	return { names: blocks.map((block) => /^event: (.*)$/mu.exec(block)?.[1] ?? "message"), rest };
 };
 
-const eventSourceOver = (window: BrowserWindow, streams: Array<LiveStream>) =>
+const eventSourceOver = (window: BrowserWindow, streams: LiveStream[]) =>
 	class ServerEvents extends window.EventTarget implements LiveStream {
 		readonly url: string;
 		#controller = new AbortController();
@@ -106,10 +106,16 @@ const answer = async (pageRequests: PageRequests, window: BrowserWindow) => {
 	}
 	return pageRequests.failWith === undefined
 		? undefined
-		: new window.Response(ERROR_PAGE, { status: pageRequests.failWith, headers: { "content-type": "text/html" } });
+		: new window.Response(ERROR_PAGE, { headers: { "content-type": "text/html" }, status: pageRequests.failWith });
 };
 
-const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: Array<string>): IFetchInterceptor => ({
+const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: string[]): IFetchInterceptor => ({
+	afterAsyncResponse: async ({ request }) => {
+		if (new URL(request.url).pathname === path) {
+			pageRequests.answered += 1;
+		}
+		return undefined;
+	},
 	beforeAsyncRequest: async ({ request, window }) => {
 		const requested = new URL(request.url).pathname;
 		if (requested === path) {
@@ -121,29 +127,23 @@ const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: 
 		mermaidRequests.push(request.url);
 		return new window.Response(MERMAID_STUB, { headers: { "content-type": "text/javascript" } });
 	},
-	afterAsyncResponse: async ({ request }) => {
-		if (new URL(request.url).pathname === path) {
-			pageRequests.answered += 1;
-		}
-		return undefined;
-	},
 });
 
 export const openPage = async (board: RunningBoard, path = "/", beforeScripts = async () => {}): Promise<OpenPage> => {
-	const mermaidRequests: Array<string> = [];
-	const pageRequests: PageRequests = { count: 0, answered: 0, gate: Promise.resolve(), failWith: undefined };
-	const streams: Array<LiveStream> = [];
+	const mermaidRequests: string[] = [];
+	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
+	const streams: LiveStream[] = [];
 	const browser = new Browser({
 		settings: {
 			enableJavaScriptEvaluation: true,
-			suppressInsecureJavaScriptEnvironmentWarning: true,
 			fetch: { interceptor: interceptor(path, pageRequests, mermaidRequests) },
+			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
 	const page = browser.newPage();
 	const window = page.mainFrame.window;
 	const mermaid: MermaidControl = { calls: [], configs: [], gate: Promise.resolve() };
-	Object.assign(window, { mermaidStub: mermaid, EventSource: eventSourceOver(window, streams) });
+	Object.assign(window, { EventSource: eventSourceOver(window, streams), mermaidStub: mermaid });
 	page.url = `${board.url}${path}`;
 	const html = await (await fetch(`${board.url}${path}`)).text();
 	await beforeScripts();
@@ -158,7 +158,7 @@ export const openPage = async (board: RunningBoard, path = "/", beforeScripts = 
 		browser.settings.device.prefersColorScheme = scheme;
 		window.dispatchEvent(new window.Event("resize"));
 	};
-	return { window, document: window.document, mermaid, mermaidRequests, pageRequests, streams, prefer, close };
+	return { close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
 };
 
 export const held = (): { readonly gate: Promise<void>; readonly release: () => void } => {

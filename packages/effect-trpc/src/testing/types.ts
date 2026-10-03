@@ -12,18 +12,18 @@ export type TrpcHarnessTest<Harness, Provided> = <A, Eff extends Effect.Effect<u
 ) => void;
 
 export interface TrpcHarnessTester<Harness, Provided> extends TrpcHarnessTest<Harness, Provided> {
-	readonly skip: TrpcHarnessTest<Harness, Provided>;
-	readonly skipIf: (condition: unknown) => TrpcHarnessTest<Harness, Provided>;
-	readonly runIf: (condition: unknown) => TrpcHarnessTest<Harness, Provided>;
-	readonly only: TrpcHarnessTest<Harness, Provided>;
 	readonly each: <Item>(
-		cases: ReadonlyArray<Item>,
+		cases: readonly Item[],
 	) => <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
 		name: string,
 		body: (item: Item, harness: Harness, context: TestContext) => Generator<Eff, A, never>,
 		options?: number | EffectTestOptions,
 	) => void;
 	readonly fails: TrpcHarnessTest<Harness, Provided>;
+	readonly only: TrpcHarnessTest<Harness, Provided>;
+	readonly runIf: (condition: unknown) => TrpcHarnessTest<Harness, Provided>;
+	readonly skip: TrpcHarnessTest<Harness, Provided>;
+	readonly skipIf: (condition: unknown) => TrpcHarnessTest<Harness, Provided>;
 }
 
 export type TrpcTest<Options, Caller, Provided> = TrpcHarnessTest<EffectCallerFactory<Options, Caller>, Provided>;

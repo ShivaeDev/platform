@@ -4,6 +4,7 @@ import { Console, Effect } from "effect";
 import { parseCommand, USAGE } from "./cli/args.ts";
 import { writeBaseline } from "./cli/baseline.ts";
 import { checkBaseline } from "./cli/check.ts";
+import { fix } from "./cli/fix.ts";
 import { lint } from "./cli/lint.ts";
 import { migrateBaseline } from "./cli/migrate.ts";
 import { runMain } from "./cli/run-main.ts";
@@ -22,6 +23,8 @@ const program = Effect.gen(function* () {
 			return yield* Console.log(USAGE);
 		case "Lint":
 			return yield* lint(process.cwd(), command.config, command.warnings);
+		case "Fix":
+			return yield* fix(process.cwd(), command.config);
 		case "BaselineWrite":
 			return yield* writeBaseline(process.cwd(), command.config, command.rules);
 		case "BaselinePrune":

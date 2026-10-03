@@ -5,15 +5,21 @@ const MAX_DEPTH = 8;
 const MAX_ENTRIES = 50;
 
 const binary = (value: object): string | undefined => {
-	if (ArrayBuffer.isView(value)) return `<${value.constructor.name} ${value.byteLength} bytes>`;
-	if (value instanceof ArrayBuffer) return `<ArrayBuffer ${value.byteLength} bytes>`;
+	if (ArrayBuffer.isView(value)) {
+		return `<${value.constructor.name} ${value.byteLength} bytes>`;
+	}
+	if (value instanceof ArrayBuffer) {
+		return `<ArrayBuffer ${value.byteLength} bytes>`;
+	}
 	return undefined;
 };
 
-const entriesOf = (value: object): Array<[string, unknown]> => {
+const entriesOf = (value: object): [string, unknown][] => {
 	const entries = Object.entries(value);
-	if (!Predicate.isError(value)) return entries;
-	const shape: Array<[string, unknown]> = [
+	if (!Predicate.isError(value)) {
+		return entries;
+	}
+	const shape: [string, unknown][] = [
 		["name", value.name],
 		["message", value.message],
 		["stack", value.stack],
@@ -22,12 +28,22 @@ const entriesOf = (value: object): Array<[string, unknown]> => {
 };
 
 const walk = (value: unknown, sensitive: SensitiveKey, depth: number): unknown => {
-	if (Redacted.isRedacted(value)) return REDACTED;
-	if (Predicate.isString(value)) return redactText(value, sensitive);
-	if (!Predicate.isObjectOrArray(value)) return value;
+	if (Redacted.isRedacted(value)) {
+		return REDACTED;
+	}
+	if (Predicate.isString(value)) {
+		return redactText(value, sensitive);
+	}
+	if (!Predicate.isObjectOrArray(value)) {
+		return value;
+	}
 	const summary = binary(value);
-	if (summary !== undefined) return summary;
-	if (depth >= MAX_DEPTH) return "<truncated>";
+	if (summary !== undefined) {
+		return summary;
+	}
+	if (depth >= MAX_DEPTH) {
+		return "<truncated>";
+	}
 	if (Array.isArray(value)) {
 		const items = value.slice(0, MAX_ENTRIES).map((item) => walk(item, sensitive, depth + 1));
 		return value.length > MAX_ENTRIES ? [...items, `<${value.length - MAX_ENTRIES} more items>`] : items;

@@ -1,4 +1,4 @@
-import { groupBy, keyOf } from "../engine/violation.ts";
+import { covers, groupBy, keyOf } from "../engine/violation.ts";
 import type { BaselineEntry } from "./format.ts";
 
 export type GuardProblem =
@@ -8,16 +8,16 @@ export type GuardProblem =
 	| { readonly _tag: "NothingAdopted"; readonly rule: string };
 
 export interface GuardResult {
-	readonly problems: ReadonlyArray<GuardProblem>;
+	readonly adopted: readonly string[];
 	readonly moved: number;
-	readonly adopted: ReadonlyArray<string>;
+	readonly problems: readonly GuardProblem[];
 }
 
 export const guardBaseline = (
-	base: ReadonlyArray<BaselineEntry>,
-	working: ReadonlyArray<BaselineEntry>,
+	base: readonly BaselineEntry[],
+	working: readonly BaselineEntry[],
 	renames: ReadonlyMap<string, string>,
-	adopt: ReadonlyArray<string>,
+	adopt: readonly string[],
 ): GuardResult => {
 	const before = new Map(base.map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const covered = new Set(base.map((entry) => entry.rule));
@@ -36,12 +36,13 @@ export const guardBaseline = (
 			moved += 1;
 		}
 	}
+	const adopted = (rule: string): boolean => adopt.some((name) => covers(name, rule));
 	const fresh = [...byRule.entries()].filter(([rule]) => !covered.has(rule));
-	for (const [rule, entries] of fresh.filter(([rule]) => !adopt.includes(rule))) {
+	for (const [rule, entries] of fresh.filter(([rule]) => !adopted(rule))) {
 		problems.push({ _tag: "Unadopted", entries: entries.length, rule });
 	}
-	for (const rule of adopt.filter((candidate) => !byRule.has(candidate))) {
-		problems.push({ _tag: "NothingAdopted", rule });
+	for (const name of adopt.filter((candidate) => ![...byRule.keys()].some((rule) => covers(candidate, rule)))) {
+		problems.push({ _tag: "NothingAdopted", rule: name });
 	}
-	return { adopted: fresh.map(([rule]) => rule).filter((rule) => adopt.includes(rule)), moved, problems };
+	return { adopted: fresh.map(([rule]) => rule).filter(adopted), moved, problems };
 };

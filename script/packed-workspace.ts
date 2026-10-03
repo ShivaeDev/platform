@@ -1,4 +1,4 @@
-const OVERRIDES_HEADING = /^overrides:[ \t]*\n/m;
+const OVERRIDES_HEADING = /^overrides:[ \t]*\n/mu;
 
 export const withTarballOverrides = (workspace: string, tarballs: Readonly<Record<string, string>>): string => {
 	const entries = Object.entries(tarballs)

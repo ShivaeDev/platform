@@ -3,24 +3,24 @@ import { Cause, Effect, Exit, Schema, SchemaGetter } from "effect";
 import { describe, expect, it } from "vitest";
 import { RejectionError, rejectionCode, rejectWith, withRejection } from "../src/index.ts";
 
-class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { message: Schema.String, field: Schema.String }) {}
+class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { field: Schema.String, message: Schema.String }) {}
 class Other extends Schema.TaggedError<Other>()("Other", { message: Schema.String }) {}
 const NeverEncoded = Schema.String.pipe(
 	Schema.decodeTo(Schema.Number, { decode: SchemaGetter.Number(), encode: SchemaGetter.forbidden(() => "Counts are never sent") }),
 );
 class Unencodable extends Schema.TaggedError<Unencodable>()("Unencodable", { count: NeverEncoded }) {}
 
-const shape = { message: "Name is taken", code: -32009, data: { code: "CONFLICT", httpStatus: 409, requestId: "r-1" } };
+const shape = { code: -32_009, data: { code: "CONFLICT", httpStatus: 409, requestId: "r-1" }, message: "Name is taken" };
 
 describe("rejectWith", () => {
 	it("fails with a RejectionError carrying only the encoded declared fields", async () => {
 		const error = await Effect.runPromise(
-			Effect.flip(Effect.fail(new Conflict({ message: "Name is taken", field: "name" })).pipe(rejectWith(Conflict))),
+			Effect.flip(Effect.fail(new Conflict({ field: "name", message: "Name is taken" })).pipe(rejectWith(Conflict))),
 		);
 
 		expect(error).toBeInstanceOf(TRPCError);
-		expect(error).toMatchObject({ code: "CONFLICT", message: "Name is taken", cause: undefined });
-		expect(error.rejection).toStrictEqual({ _tag: "Conflict", message: "Name is taken", field: "name" });
+		expect(error).toMatchObject({ cause: undefined, code: "CONFLICT", message: "Name is taken" });
+		expect(error.rejection).toStrictEqual({ _tag: "Conflict", field: "name", message: "Name is taken" });
 	});
 
 	it("leaves successes, undeclared failures and defects untouched", async () => {
@@ -29,7 +29,7 @@ describe("rejectWith", () => {
 
 		expect(await Effect.runPromise(Effect.succeed(1).pipe(declared))).toBe(1);
 		expect(await Effect.runPromise(Effect.flip(Effect.fail(other).pipe(declared)))).toBe(other);
-		const defect = await Effect.runPromiseExit(Effect.die(new Conflict({ message: "Died", field: "name" })).pipe(declared));
+		const defect = await Effect.runPromiseExit(Effect.die(new Conflict({ field: "name", message: "Died" })).pipe(declared));
 		expect(Exit.isFailure(defect) && Cause.hasDies(defect.cause) && !Cause.hasFails(defect.cause)).toBe(true);
 	});
 
@@ -65,7 +65,7 @@ describe("rejection codes and shapes", () => {
 	});
 
 	it("adds the rejection to an application's own shape and leaves other errors' shapes alone", () => {
-		const rejection = { _tag: "Conflict", message: "Name is taken", field: "name" };
+		const rejection = { _tag: "Conflict", field: "name", message: "Name is taken" };
 
 		expect(withRejection(shape, new RejectionError(rejection))).toEqual({ ...shape, data: { ...shape.data, rejection } });
 		expect(withRejection(shape, new TRPCError({ code: "CONFLICT", message: "Name is taken" }))).toBe(shape);
