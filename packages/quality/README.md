@@ -252,7 +252,7 @@ quality baseline check
 
 It compares with the merge base, never the tip of the target branch, so a branch that is behind never fails for debt the target branch paid off since. An entry whose file git sees as moved since the merge base is compared with the entry at the old path. When the base holds the earlier JSON format at `quality/baseline.json`, the check converts it the way `migrate` does, so the change that migrates the baseline passes.
 
-The check reads git, not the sources, so it is cheap enough for every commit; only a base in the earlier format makes it run the rules. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. It exits 2 when there is no git work tree, no target or no merge base. A shallow clone usually has no merge base: in GitHub Actions, check out with `fetch-depth: 0`, or fetch enough history for `git merge-base HEAD <target>` to succeed.
+The check reads git, not the sources, so it is cheap enough for every commit; only a base in the earlier format makes it run the rules. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. In a shallow clone that does not reach the merge base, it runs `git fetch --unshallow` and looks again. It exits 2 when there is no git work tree, no target or no merge base, including when that fetch fails; then check out with `fetch-depth: 0` in GitHub Actions, or fetch enough history for `git merge-base HEAD <target>` to succeed.
 
 ### Adopting a rule
 

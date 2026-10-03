@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Console, Effect } from "effect";
 import { SetupFailure } from "../failure.ts";
 import { type Git, git } from "./command.ts";
 
@@ -30,14 +30,50 @@ const defaultBranch = (root: string): Effect.Effect<string, SetupFailure, Git> =
 		);
 	});
 
+const isShallow = (root: string): Effect.Effect<boolean, SetupFailure, Git> =>
+	Effect.map(git(root, ["rev-parse", "--is-shallow-repository"]), (result) => result.stdout.trim() === "true");
+
+const mergeBase = (root: string, ref: string): Effect.Effect<string | undefined, SetupFailure, Git> =>
+	Effect.map(git(root, ["merge-base", "HEAD", ref]), (result) => (result.code === 0 ? result.stdout.trim() : undefined));
+
+const remoteOf = (root: string, ref: string): Effect.Effect<ReadonlyArray<string>, SetupFailure, Git> =>
+	Effect.gen(function* () {
+		const name = (yield* git(root, ["rev-parse", "--symbolic-full-name", ref])).stdout.trim();
+		const remotes = (yield* git(root, ["remote"])).stdout.split("\n");
+		return remotes.filter((remote) => remote !== "" && name.startsWith(`refs/remotes/${remote}/`)).slice(0, 1);
+	});
+
+const unshallow = (root: string, ref: string): Effect.Effect<void, SetupFailure, Git> =>
+	Effect.gen(function* () {
+		const remote = yield* remoteOf(root, ref);
+		yield* Console.error(`quality: the clone is shallow; fetching its full history to find the merge base of HEAD and ${ref}.`);
+		yield* git(root, ["fetch", "--quiet", "--unshallow", ...remote]);
+	});
+
 const missingMergeBase = (root: string, ref: string): Effect.Effect<never, SetupFailure, Git> =>
-	Effect.flatMap(git(root, ["rev-parse", "--is-shallow-repository"]), (shallow) =>
+	Effect.flatMap(isShallow(root), (shallow) =>
 		fail(
-			shallow.stdout.trim() === "true"
+			shallow
 				? `the clone is shallow and does not reach the merge base of HEAD and ${ref}. Fetch the history first: \`git fetch --unshallow\`, or fetch-depth: 0 in actions/checkout.`
 				: `HEAD and ${ref} share no history.`,
 		),
 	);
+
+const reachMergeBase = (root: string, ref: string): Effect.Effect<string, SetupFailure, Git> =>
+	Effect.gen(function* () {
+		const found = yield* mergeBase(root, ref);
+		if (found !== undefined) {
+			return found;
+		}
+		if (yield* isShallow(root)) {
+			yield* unshallow(root, ref);
+			const deepened = yield* mergeBase(root, ref);
+			if (deepened !== undefined) {
+				return deepened;
+			}
+		}
+		return yield* missingMergeBase(root, ref);
+	});
 
 export const resolveBase = (root: string, against: string | undefined): Effect.Effect<Base, SetupFailure, Git> =>
 	Effect.gen(function* () {
@@ -49,6 +85,5 @@ export const resolveBase = (root: string, against: string | undefined): Effect.E
 		if (!(yield* isCommit(root, ref))) {
 			return yield* fail(`${ref} names no commit in this clone. Fetch it first, or pass another --against <ref>.`);
 		}
-		const merged = yield* git(root, ["merge-base", "HEAD", ref]);
-		return merged.code === 0 ? { commit: merged.stdout.trim(), ref } : yield* missingMergeBase(root, ref);
+		return { commit: yield* reachMergeBase(root, ref), ref };
 	});
