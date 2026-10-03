@@ -47,14 +47,24 @@ implementation and acceptance criteria.
 
 Requirements:
 
-- Node.js 24
-- pnpm 11
+- Node.js 26.10.0 (the development runtime; published packages retain their Node 24 minimum)
+- pnpm 12.8.1
+- Docker, or PostgreSQL client tools (`psql`) when reusing a native local service
 
 ```sh
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile
+pnpm db:setup
 pnpm ready
 ```
+
+`pnpm setup` combines frozen dependency installation and database preparation. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. This package workspace has no application server port.
+
+Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using `postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`. A new service stores data in the named `development-postgres` volume. Setup never stops or removes an existing service or volume.
+
+`DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`; `TEST_DATABASE_URL` defaults to the same server with `platform_test`. Shell settings take precedence over `.env.local`. Local preparation validates these names and refuses remote hosts or connection overrides. It creates missing databases and initializes the integration and auth schemas without dropping tables.
+
+`pnpm test` maps the test URL to `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`, `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`, `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL`, and `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL`. Individual package test commands still accept those variables directly; set them to the local `platform_test` URL to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
 ### Heavy runs
 

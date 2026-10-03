@@ -17,19 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_effect_prisma
-      PLATFORM_EFFECT_SQL_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_effect_prisma
-      PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_effect_prisma
-      PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_effect_prisma
+      PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test
+      PLATFORM_EFFECT_SQL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test
+      PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test
+      PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test
     services:
       postgres:
-        image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
         env:
-          POSTGRES_DB: platform_effect_prisma
+          POSTGRES_DB: platform_test
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
         ports:
-          - 5432:5432
+          - 55432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 2s
@@ -44,7 +44,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version: 26.10.0
           package-manager-cache: false
 
       - name: Set up pnpm
@@ -61,7 +61,7 @@ jobs:
           docker exec -i "${{ job.services.postgres.id }}"
           psql --set ON_ERROR_STOP=1
           --username postgres
-          --dbname platform_effect_prisma
+          --dbname platform_test
           < packages/effect-prisma/test/schema.sql
 
       - name: Initialize Platform auth schema
@@ -69,7 +69,7 @@ jobs:
           docker exec -i "${{ job.services.postgres.id }}"
           psql --set ON_ERROR_STOP=1
           --username postgres
-          --dbname platform_effect_prisma
+          --dbname platform_test
           < packages/platform/test/auth/schema.sql
 
       - name: Check formatting and lint
