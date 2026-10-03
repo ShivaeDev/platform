@@ -1,53 +1,56 @@
 import { Schema } from "effect";
 import { type Decoded, decodeWith } from "../decoded.ts";
+import { keyOf } from "../engine/violation.ts";
 
-const Entry = Schema.Struct({
+const Line = Schema.Struct({
+	path: Schema.NonEmptyString,
+	rule: Schema.NonEmptyString,
 	count: Schema.Int.check(Schema.isGreaterThan(0)),
-	measure: Schema.optionalKey(Schema.Finite),
 });
 
-const BaselineFile = Schema.Record(Schema.String, Schema.Record(Schema.String, Entry));
-
-const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(BaselineFile), { parseOptions: { errors: "all", onExcessProperty: "error" } });
+const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Line), { parseOptions: { errors: "all", onExcessProperty: "error" } });
 
 export interface BaselineEntry {
 	readonly rule: string;
 	readonly file: string;
 	readonly count: number;
-	readonly measure?: number | undefined;
 }
-
-type Stored = typeof Entry.Type;
 
 const codepoints = (left: string, right: string): number => (left < right ? -1 : Number(left > right));
 
-export const byRuleAndFile = (left: BaselineEntry, right: BaselineEntry): number =>
-	codepoints(left.rule, right.rule) || codepoints(left.file, right.file);
+export const byPathAndRule = (left: BaselineEntry, right: BaselineEntry): number =>
+	codepoints(left.file, right.file) || codepoints(left.rule, right.rule);
+
+export const linesOf = (raw: string | undefined): ReadonlyArray<{ readonly line: number; readonly text: string }> =>
+	(raw ?? "")
+		.split("\n")
+		.map((text, index) => ({ line: index + 1, text }))
+		.filter((row) => row.text.trim() !== "");
 
 export const decodeBaseline = async (raw: string | undefined): Promise<Decoded<ReadonlyArray<BaselineEntry>>> => {
-	if (raw === undefined) {
-		return { _tag: "Valid", value: [] };
+	const issues: string[] = [];
+	const entries: BaselineEntry[] = [];
+	const seen = new Set<string>();
+	for (const { line, text } of linesOf(raw)) {
+		const decoded = await decodeWith(standard, text);
+		if (decoded._tag === "Invalid") {
+			issues.push(...decoded.issues.map((issue) => `line ${line}: ${issue}`));
+			continue;
+		}
+		const { path, ...stored } = decoded.value;
+		if (seen.has(keyOf(stored.rule, path))) {
+			issues.push(`line ${line}: repeats the entry for ${stored.rule} in ${path}`);
+		}
+		seen.add(keyOf(stored.rule, path));
+		entries.push({ ...stored, file: path });
 	}
-	const decoded = await decodeWith(standard, raw);
-	if (decoded._tag === "Invalid") {
-		return decoded;
-	}
-	const entries = Object.entries(decoded.value).flatMap(([rule, files]) =>
-		Object.entries(files).map(([file, stored]) => ({ ...stored, file, rule })),
-	);
-	return { _tag: "Valid", value: entries };
+	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
 };
 
-const stored = (entry: BaselineEntry): Stored =>
-	entry.measure === undefined ? { count: entry.count } : { count: entry.count, measure: entry.measure };
+export const encodeEntry = (entry: BaselineEntry): string => JSON.stringify({ path: entry.file, rule: entry.rule, count: entry.count });
 
-export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>, indent: string): string => {
-	const rules: Record<string, Record<string, Stored>> = {};
-	for (const entry of [...entries].sort(byRuleAndFile)) {
-		rules[entry.rule] = { ...rules[entry.rule], [entry.file]: stored(entry) };
-	}
-	return `${JSON.stringify(rules, null, indent)}\n`;
-};
-
-// The repository formatter leaves the file alone only while it keeps its own indentation.
-export const indentOf = (raw: string | undefined): string => /^([ \t]+)\S/m.exec(raw ?? "")?.[1] ?? "\t";
+export const encodeBaseline = (entries: ReadonlyArray<BaselineEntry>): string =>
+	[...entries]
+		.sort(byPathAndRule)
+		.map((entry) => `${encodeEntry(entry)}\n`)
+		.join("");

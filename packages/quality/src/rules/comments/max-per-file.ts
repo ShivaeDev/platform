@@ -30,8 +30,9 @@ const overCap = (file: SourceFile, max: number, allow: ReadonlyArray<string>): R
 				{
 					file: file.path,
 					line: first.line,
-					measure: blocks.length,
+					count: blocks.length - max,
 					message: `${plural(blocks.length, "comment", "comments")} against a limit of ${max}.`,
+					threshold: max,
 				},
 			];
 };

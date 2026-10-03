@@ -48,9 +48,9 @@ export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<Resolve
 		const rules: ReadonlyArray<Rule> = [...builtInRules, ...(config.local ?? [])];
 		const settings = config.rules ?? {};
 		const known = new Set(rules.map((rule) => rule.id));
-		const unknown = Object.keys(settings)
-			.filter((id) => !known.has(id))
-			.map((id) => `rules.${id}: no built-in or local rule has this id`);
+		const unknown = [...Object.keys(settings).map((id) => `rules.${id}`), ...(config.adopt ?? []).map((id) => `adopt.${id}`)]
+			.filter((path) => !known.has(path.slice(path.indexOf(".") + 1)))
+			.map((path) => `${path}: no built-in or local rule has this id`);
 		const activated = yield* Effect.forEach(rules, (rule) => activate(rule, settings[rule.id]));
 		const issues = [...duplicateIssues(rules), ...unknown, ...activated.flatMap((result) => (result._tag === "Invalid" ? result.issues : []))];
 		if (issues.length > 0) {

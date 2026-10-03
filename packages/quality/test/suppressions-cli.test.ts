@@ -57,12 +57,12 @@ describe("quality lint with the suppression rules", { timeout: cliTimeout }, () 
 		expect(refused.stdout).toContain("suppressions/no-inline src/a.ts names a rule that takes no exceptions.");
 
 		writeFileSync(join(root, "quality/registry.json"), "[]\n");
-		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.json.\n" });
+		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 2 entries in quality/baseline.jsonl.\n" });
 		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("2 baselined violations not shown") });
 
 		writeFileSync(join(root, "src/a.ts"), `${source.content}// @ts-ignore\n`);
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
-		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 violations against 1 violation baselined.");
+		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
 	});
 });

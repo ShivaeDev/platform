@@ -68,6 +68,9 @@ These are executable boundary examples, not an application deployment. See the
   2 comments per file. `pnpm lint` runs the package's built-in rules, which replace the repository's own line limits.
 - [x] `@shivaedev/quality` suppression rules: no inline suppressions or casts through `unknown`, `any` or `never`, and Biome
   overrides only where `quality.config.ts` declares them with a reason. They replace the repository's pragma registry.
+- [x] `@shivaedev/quality` baseline guard: a JSON Lines baseline, `quality baseline check` against the merge base,
+  first-time adoption through `adopt`, moves carried by git's rename detection, and `tighten` for pre-commit.
+  `pnpm lint` runs the check.
 - [ ] Port the remaining repository rules in `script/lint/rules/` into `@shivaedev/quality` with options, split the Grit plugins
   and add presets, so `pnpm lint` runs only through the package.
 - [ ] Effect boundaries (no `try`/`async` outside `adapters/`): 99 source and 670 test
