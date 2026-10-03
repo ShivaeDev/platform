@@ -16,6 +16,15 @@ const noTodo = defineRule({
 
 export default defineConfig({
   local: [noTodo],
-  rules: { "structure/max-lines": { options: { source: 3 } }, "local/no-todo": { options: { marker: "FIXME" } } },
+  rules: {
+    "structure/max-lines": { options: { source: 3 } },
+    "local/no-todo": { options: { marker: "FIXME" } },
+    "suppressions/no-inline": {
+      options: { declared: [{ directive: "@ts-expect-error", includes: ["*.typecheck.ts"], reason: "Type tests assert compile errors." }] },
+    },
+    "suppressions/biome-overrides": {
+      options: { declared: [{ rule: "lint/style/noDefaultExport", includes: ["*.config.ts"], reason: "Tools load configs by default export." }] },
+    },
+  },
   sources: ["src"],
 })

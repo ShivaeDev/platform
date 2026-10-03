@@ -13,11 +13,38 @@
   TypeScript parser, so strings, template literals, regular expressions and JSX
   text never count.
 
+- Add suppression rules, each an error by default:
+  `suppressions/no-inline` reports every comment directive that silences a
+  linter, the compiler or a formatter (`biome-ignore…`, `@ts-ignore`,
+  `@ts-expect-error`, `@ts-nocheck`, `eslint-disable…`, `prettier-ignore` and
+  their equivalents for Oxlint, Stylelint, Deno, TSLint and Flow), in
+  TypeScript and JavaScript modules and in CSS, SCSS and Less files, except
+  `@ts-expect-error` in type-test files the config declares with a reason;
+  `suppressions/no-double-cast` reports casts through `unknown`, `any` or
+  `never`; `suppressions/biome-overrides` reports a Biome setting that turns a
+  lint rule, group, domain, assist action, the linter, the assist or the
+  formatter off or down, per language too, or keeps files out of a check
+  through an `includes` list, unless the quality config declares it with its
+  rule, its `includes` and a reason. Both rules report a declaration that
+  matches nothing. Coverage hints stay allowed.
+
+- Add `registrable: false` to `defineRule`, for a rule the registry must never
+  excuse. The suppression rules set it, so a registry entry that names one fails
+  the gate as stale; existing suppressions are adopted through the baseline.
+
 ### Changed
 
 - **Breaking:** The comment rules are on by default, so upgrading fails a
   repository with existing comment violations until it fixes them or adopts the
   rules with `quality baseline write --rule <id>`.
+
+- **Breaking:** The suppression rules are on by default, so upgrading fails a
+  repository with inline suppressions, double casts or undeclared Biome
+  overrides until it fixes them, declares its Biome overrides, or adopts the
+  rules with `quality baseline write --rule <id>`.
+
+- Comment rules also skip the Oxlint, Stylelint, Deno, TSLint and Flow
+  directives, like the other compiler and linter directives.
 
 - Depend on `typescript`, resolved to the TypeScript 6 compiler API, to find
   comments.

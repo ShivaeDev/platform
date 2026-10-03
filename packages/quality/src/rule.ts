@@ -34,6 +34,7 @@ export type Configured =
 export interface Rule<Id extends string = string, Input = unknown> {
 	readonly id: Id;
 	readonly description: string;
+	readonly registrable?: boolean;
 	// Method syntax keeps rules with different options in one list; configure validates its input at runtime.
 	configure(options: Input | undefined): Promise<Configured>;
 }
@@ -41,6 +42,7 @@ export interface Rule<Id extends string = string, Input = unknown> {
 interface RuleDefinition<Id extends string, Options> {
 	readonly id: Id;
 	readonly description: string;
+	readonly registrable?: false;
 	readonly check: (context: RuleContext<Options>) => Findings | PromiseLike<Findings>;
 }
 
@@ -80,5 +82,5 @@ export function defineRule<const Id extends string, Input, Options>(
 		definition.options === undefined
 			? configureWith(noOptions, definition.check, undefined)
 			: configureWith(definition.options, definition.check, {});
-	return { configure, description: definition.description, id: definition.id };
+	return { configure, description: definition.description, id: definition.id, registrable: definition.registrable ?? true };
 }

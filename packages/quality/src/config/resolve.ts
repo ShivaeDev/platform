@@ -9,6 +9,7 @@ import type { ConfigInput } from "./decode.ts";
 export interface ResolvedRules {
 	readonly active: ReadonlyArray<ActiveRule>;
 	readonly levels: ReadonlyMap<string, Level>;
+	readonly unregistrable: ReadonlySet<string>;
 }
 
 type Setting = NonNullable<ConfigInput["rules"]>[string];
@@ -56,5 +57,7 @@ export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<Resolve
 			return { _tag: "Invalid", issues };
 		}
 		const active = activated.flatMap((result) => (result._tag === "Valid" && result.value !== undefined ? [result.value] : []));
-		return { _tag: "Valid", value: { active, levels: new Map(rules.map((rule) => [rule.id, levelOf(settings[rule.id])])) } };
+		const levels = new Map(rules.map((rule) => [rule.id, levelOf(settings[rule.id])]));
+		const unregistrable = new Set(rules.filter((rule) => rule.registrable === false).map((rule) => rule.id));
+		return { _tag: "Valid", value: { active, levels, unregistrable } };
 	});

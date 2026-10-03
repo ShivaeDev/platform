@@ -24,6 +24,10 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
 		"comments/no-jsdoc": { options: { allow: ["@license"] } },
 		"comments/no-todo": "off",
+		"suppressions/biome-overrides": {
+			options: { declared: [{ includes: ["src/legacy/**"], reason: "Migrating off the old API.", rule: "lint/style/noNonNullAssertion" }] },
+		},
+		"suppressions/no-double-cast": "warn",
 	},
 	sources: ["src"],
 });
@@ -71,4 +75,11 @@ export const wrongLevel = defineConfig({
 export const localOnlyWithLocal = defineConfig({
 	// @ts-expect-error A local rule's settings need the rule in local.
 	rules: { "local/max-files": { options: { max: 3 } } },
+});
+
+export const declaredIgnore = defineConfig({
+	rules: {
+		// @ts-expect-error Only @ts-expect-error can be declared for type tests.
+		"suppressions/no-inline": { options: { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason: "No." }] } },
+	},
 });

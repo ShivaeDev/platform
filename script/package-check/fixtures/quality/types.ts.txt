@@ -4,3 +4,10 @@ export const typed = defineConfig({
   // @ts-expect-error Built-in rule options stay typed through the packed declarations.
   rules: { "structure/max-lines": { options: { source: "many" } } },
 })
+
+export const onlyExpectError = defineConfig({
+  rules: {
+    // @ts-expect-error Only @ts-expect-error can be declared for type tests.
+    "suppressions/no-inline": { options: { declared: [{ directive: "@ts-ignore", includes: ["*.ts"], reason: "No." }] } },
+  },
+})
