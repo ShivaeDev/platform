@@ -2,27 +2,18 @@
 	"name": "@shivaedev/effect-changes-prisma",
 	"version": "0.2.1",
 	"description": "Commit-bound change channels for Prisma Classic: automatic change recording, publish after $transaction commits, and a test-time coverage check",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes-prisma#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/effect-changes-prisma"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes-prisma#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -32,22 +23,20 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "prisma generate --config test/prisma.config.ts --no-hints && vitest run",
-		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit"
 	},
 	"dependencies": {
 		"@shivaedev/effect-changes": "workspace:*"
-	},
-	"peerDependencies": {
-		"@prisma/client": "catalog:",
-		"effect": "catalog:"
 	},
 	"devDependencies": {
 		"@prisma/adapter-pg": "catalog:",
@@ -58,5 +47,16 @@
 		"prisma": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@prisma/client": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

@@ -2,27 +2,18 @@
 	"name": "@shivaedev/effect-sql",
 	"version": "0.1.0",
 	"description": "Schema-derived repositories over native Effect SQL",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/effect-sql"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -32,29 +23,38 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@shivaedev/effect-changes": "workspace:*"
 	},
-	"peerDependencies": {
-		"effect": "catalog:"
-	},
 	"devDependencies": {
+		"@effect/sql-pg": "catalog:",
+		"@effect/sql-sqlite-node": "catalog:",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
-		"vitest": "catalog:",
-		"@effect/sql-sqlite-node": "catalog:",
-		"@effect/sql-pg": "catalog:"
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

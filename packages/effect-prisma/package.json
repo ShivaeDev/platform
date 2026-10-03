@@ -2,30 +2,18 @@
 	"name": "@shivaedev/effect-prisma",
 	"version": "0.6.4",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/effect-prisma"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"bin": {
-		"effect-prisma-normalize": "./dist/bin/normalize-contract.js"
-	},
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -47,15 +35,20 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
+	"bin": {
+		"effect-prisma-normalize": "./dist/bin/normalize-contract.js"
 	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@prisma-next/contract": "catalog:",
@@ -66,15 +59,6 @@
 		"@prisma-next/sql-runtime": "catalog:",
 		"@prisma-next/sqlite": "catalog:",
 		"@shivaedev/effect-test": "workspace:*"
-	},
-	"peerDependencies": {
-		"@effect/vitest": "catalog:",
-		"effect": "catalog:"
-	},
-	"peerDependenciesMeta": {
-		"@effect/vitest": {
-			"optional": true
-		}
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
@@ -89,5 +73,21 @@
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/vitest": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/vitest": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

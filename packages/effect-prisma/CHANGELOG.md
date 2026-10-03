@@ -16,6 +16,8 @@
 
 - Lint and format with the `@shivaedev/quality` Biome preset through `quality lint` at the repository root, which replaces the package's `check` script.
 
+- Keep `package.json` in sort-package-json key order, checked by `quality lint`.
+
 ## 0.6.4 - 2026-09-26
 
 ### Changed

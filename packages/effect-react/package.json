@@ -2,27 +2,18 @@
 	"name": "@shivaedev/effect-react",
 	"version": "0.1.1",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/effect-react"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -38,15 +29,35 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effect/atom-react": "catalog:",
+		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-service": "workspace:*",
+		"@shivaedev/effect-sql": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"happy-dom": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	},
 	"peerDependencies": {
 		"@effect/atom-react": "catalog:",
@@ -59,22 +70,11 @@
 			"optional": true
 		}
 	},
-	"devDependencies": {
-		"@effect/atom-react": "catalog:",
-		"@types/node": "catalog:",
-		"@types/react": "catalog:",
-		"@types/react-dom": "catalog:",
-		"@typescript/native": "catalog:",
-		"effect": "catalog:",
-		"happy-dom": "catalog:",
-		"react": "catalog:",
-		"react-dom": "catalog:",
-		"typescript": "catalog:",
-		"vitest": "catalog:",
-		"@shivaedev/effect-sql": "workspace:*",
-		"@effect/sql-sqlite-node": "catalog:",
-		"@shivaedev/effect-service": "workspace:*",
-		"@shivaedev/effect-form": "workspace:*",
-		"@shivaedev/effect-contract": "workspace:*"
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

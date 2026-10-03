@@ -10,6 +10,8 @@
 
 - Lint and format with the `@shivaedev/quality` Biome preset through `quality lint` at the repository root, which replaces the package's `check` script.
 
+- Keep `package.json` in sort-package-json key order, checked by `quality lint`.
+
 ## 0.1.0
 
 - Prepare one persistent local PostgreSQL 18.6 service and create missing databases without resetting existing data.

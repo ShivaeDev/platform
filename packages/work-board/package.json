@@ -2,30 +2,18 @@
 	"name": "@shivaedev/work-board",
 	"version": "0.2.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/work-board"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"bin": {
-		"work-board": "./dist/cli.js"
-	},
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -35,25 +23,25 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
+	"bin": {
+		"work-board": "./dist/cli.js"
 	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"mermaid": "catalog:",
 		"satteri": "catalog:",
 		"shiki": "catalog:"
-	},
-	"peerDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/platform-node-shared": "catalog:",
-		"effect": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
@@ -66,5 +54,17 @@
 		"happy-dom": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

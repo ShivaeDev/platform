@@ -2,27 +2,18 @@
 	"name": "@shivaedev/platform",
 	"version": "0.4.3",
 	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/platform"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		"./better-auth": {
 			"types": "./dist/better-auth.d.ts",
@@ -68,15 +59,36 @@
 		},
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effect/vitest": "catalog:",
+		"@prisma-next/adapter-postgres": "catalog:",
+		"@prisma-next/contract": "catalog:",
+		"@prisma-next/postgres": "catalog:",
+		"@prisma-next/sql-contract": "catalog:",
+		"@prisma-next/target-postgres": "catalog:",
+		"@shivaedev/effect-prisma": "workspace:*",
+		"@shivaedev/effect-trpc": "workspace:*",
+		"@trpc/client": "catalog:",
+		"@trpc/server": "catalog:",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:",
+		"superjson": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
@@ -103,23 +115,11 @@
 			"optional": true
 		}
 	},
-	"devDependencies": {
-		"@effect/vitest": "catalog:",
-		"@prisma-next/adapter-postgres": "catalog:",
-		"@prisma-next/contract": "catalog:",
-		"@prisma-next/postgres": "catalog:",
-		"@prisma-next/sql-contract": "catalog:",
-		"@prisma-next/target-postgres": "catalog:",
-		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-trpc": "workspace:*",
-		"@trpc/client": "catalog:",
-		"@trpc/server": "catalog:",
-		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
-		"better-auth": "catalog:",
-		"effect": "catalog:",
-		"superjson": "catalog:",
-		"typescript": "catalog:",
-		"vitest": "catalog:"
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }
