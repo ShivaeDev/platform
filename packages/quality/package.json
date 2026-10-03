@@ -2,32 +2,18 @@
 	"name": "@shivaedev/quality",
 	"version": "0.4.0",
 	"description": "Repository quality gate with typed rules, a shrink-only baseline and a registry of reasoned exceptions",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/quality"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"bin": {
-		"quality": "./dist/cli.js"
-	},
-	"files": [
-		"dist",
-		"biome",
-		"src",
-		"tsconfig",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -46,20 +32,37 @@
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
+	"bin": {
+		"quality": "./dist/cli.js"
 	},
+	"files": [
+		"dist",
+		"biome",
+		"src",
+		"tsconfig",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@biomejs/biome": "catalog:",
 		"ignore": "catalog:",
+		"sort-package-json": "catalog:",
 		"typescript": "catalog:"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@effect/vitest": "catalog:",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"vitest": "catalog:"
 	},
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
@@ -72,13 +75,11 @@
 			"optional": true
 		}
 	},
-	"devDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/platform-node-shared": "catalog:",
-		"@effect/vitest": "catalog:",
-		"@types/node": "catalog:",
-		"@typescript/native": "catalog:",
-		"effect": "catalog:",
-		"vitest": "catalog:"
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

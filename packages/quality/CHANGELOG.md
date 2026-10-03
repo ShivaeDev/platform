@@ -6,7 +6,8 @@
 
 - Add the Biome preset `@shivaedev/quality/biome`. It sets the formatting (tabs, a line width of 150, double quotes), every rule Biome recommends at `error`, a list of stricter rules such as `noUnsafeTypeAssertion`, `useBlockStatements`, `noEqualsToNull`, `useConsistentArrayType` with `readonly T[]`, `noFloatingPromises` and `useExhaustiveSwitchCases`, sorted keys in JSON and object literals, and the GritQL plugins that ban ambient time, randomness, `console` and `process.env` and check `Effect.fn` span names. Its `declarations.json` declares the rules it turns off.
 - Add the `biome` rule. It runs Biome, now a dependency pinned to 2.5.14, and reports each finding as `biome/<category>`, so Biome's findings take part in the baseline. `adopt: ["biome"]` adopts all of them. It also asks for a root Biome config that extends the preset. Like every rule it is an error by default, so a repository that upgrades extends the preset and adopts `biome` into its baseline.
-- Add `quality fix`, which applies Biome's safe fixes, assist actions and formatting.
+- Add `quality fix`, which sorts every `package.json` and applies Biome's safe fixes, assist actions and formatting.
+- Add the `manifests/sorted` rule. It reports every `package.json` in the repository whose keys are not in the order of sort-package-json, now a dependency pinned to 4.0.0, and every `package.json` that is not valid JSON.
 - Add `@shivaedev/quality/vitest`. Its `testProjects()` sets up Vitest projects by file name: `unit` runs `*.test.ts` files in Node, `dom` runs `*.dom.test.ts` and `*.dom.test.tsx` files in happy-dom, and `slow` runs `*.slow.test.ts` files only when `--project slow` asks for it. Type tests (`*.typecheck.test.ts`) never run. `vitest` is an optional peer dependency.
 - Add `comments/no-environment-pragma`, which reports a test environment set by a Vitest or Jest environment pragma. A DOM test is named `*.dom.test.ts` instead.
 

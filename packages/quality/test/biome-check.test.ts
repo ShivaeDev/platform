@@ -92,7 +92,10 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 describe("quality fix", { timeout: cliTimeout }, () => {
 	it("formats files and sorts keys, so the formatting findings are gone", () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\n", path: "src/b.ts" });
-		expect(quality(root, "fix")).toMatchObject({ status: 0, stdout: "quality: Biome rewrote 1 file.\n" });
+		expect(quality(root, "fix")).toMatchObject({
+			status: 0,
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\n",
+		});
 		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
 		expect(quality(root, "lint").status).toBe(0);
 	});
