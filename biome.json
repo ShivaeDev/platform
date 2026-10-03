@@ -1,22 +1,12 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"extends": [
-		"@shivaedev/quality/biome"
-	],
+	"extends": ["@shivaedev/quality/biome"],
 	"files": {
-		"includes": [
-			"**",
-			"!**/test/generated",
-			"!**/test/*/generated"
-		]
+		"includes": ["**", "!**/test/generated", "!**/test/*/generated"]
 	},
 	"plugins": [
 		{
-			"includes": [
-				"**/*.ts",
-				"**/*.tsx",
-				"!**/*.d.ts"
-			],
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./script/lint/plugins/imports.grit"
 		}
 	],
@@ -48,10 +38,7 @@
 			}
 		},
 		{
-			"includes": [
-				"packages/effect-test/src/any-test-layer.ts",
-				"packages/effect-trpc/src/testing/any-test-layer.ts"
-			],
+			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
 			"linter": {
 				"rules": {
 					"suspicious": {
@@ -61,9 +48,7 @@
 			}
 		},
 		{
-			"includes": [
-				"packages/effect-prisma/test/support/controlled-collection.ts"
-			],
+			"includes": ["packages/effect-prisma/test/support/controlled-collection.ts"],
 			"linter": {
 				"rules": {
 					"suspicious": {
@@ -73,9 +58,7 @@
 			}
 		},
 		{
-			"includes": [
-				"packages/effect-test/src/vitest.ts"
-			],
+			"includes": ["packages/effect-test/src/vitest.ts"],
 			"linter": {
 				"rules": {
 					"correctness": {
@@ -85,9 +68,7 @@
 			}
 		},
 		{
-			"includes": [
-				".dependency-cruiser.ts"
-			],
+			"includes": [".dependency-cruiser.ts"],
 			"linter": {
 				"rules": {
 					"style": {

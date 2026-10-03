@@ -31,8 +31,8 @@ export const useSaveState = <F extends Fields, A, E, ER>(
 	}, [recheck, result]);
 	useEffect(
 		() =>
-			form &&
-			registry.subscribe(form.submit, (next) => {
+			form
+			&& registry.subscribe(form.submit, (next) => {
 				if (AsyncResult.isSuccess(next) && !next.waiting) settled(next.value);
 			}),
 		[form, registry, settled],

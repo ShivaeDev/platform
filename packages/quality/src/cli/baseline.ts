@@ -15,8 +15,7 @@ const save = (session: Session, entries: ReadonlyArray<BaselineEntry>): Effect.E
 		(failure) => new SetupFailure({ message: failure.message }),
 	);
 
-const unregistered = (session: Session) =>
-	applyRegistry(session.violations, session.registry, session.config).kept;
+const unregistered = (session: Session) => applyRegistry(session.violations, session.registry, session.config).kept;
 
 export const writeBaseline = (
 	cwd: string,

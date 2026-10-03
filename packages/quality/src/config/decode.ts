@@ -3,14 +3,14 @@ import { type Decoded, decodeWith } from "../decoded.ts";
 import type { Rule } from "../rule.ts";
 
 const isRule = (value: unknown): value is Rule =>
-	typeof value === "object" &&
-	value !== null &&
-	"id" in value &&
-	typeof value.id === "string" &&
-	"description" in value &&
-	typeof value.description === "string" &&
-	"configure" in value &&
-	typeof value.configure === "function";
+	typeof value === "object"
+	&& value !== null
+	&& "id" in value
+	&& typeof value.id === "string"
+	&& "description" in value
+	&& typeof value.description === "string"
+	&& "configure" in value
+	&& typeof value.configure === "function";
 
 const Level = Schema.Literals(["error", "warn", "off"]);
 

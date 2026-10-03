@@ -36,9 +36,9 @@ const wordsOf = (key: string): Array<string> =>
 export const isSensitiveKey: SensitiveKey = (key) => {
 	const normalized = key.toLowerCase().replaceAll(/[-_]/g, "");
 	return (
-		SENSITIVE_NAMES.includes(normalized) ||
-		SENSITIVE_PARTS.some((part) => normalized.includes(part)) ||
-		wordsOf(key).some((word) => SENSITIVE_WORDS.includes(word))
+		SENSITIVE_NAMES.includes(normalized)
+		|| SENSITIVE_PARTS.some((part) => normalized.includes(part))
+		|| wordsOf(key).some((word) => SENSITIVE_WORDS.includes(word))
 	);
 };
 

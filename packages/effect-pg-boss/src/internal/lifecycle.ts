@@ -14,10 +14,10 @@ const clientCache: Map<string | symbol, unknown> = sharedCache instanceof Map ? 
 Reflect.set(globalThis, CacheKey, clientCache);
 
 const isCachedClient = (value: unknown): value is CachedClient =>
-	typeof value === "object" &&
-	value !== null &&
-	Reflect.get(value, "client") instanceof Promise &&
-	typeof Reflect.get(value, "references") === "number";
+	typeof value === "object"
+	&& value !== null
+	&& Reflect.get(value, "client") instanceof Promise
+	&& typeof Reflect.get(value, "references") === "number";
 
 const cachedClient = (key: string | symbol): CachedClient | undefined => {
 	const entry = clientCache.get(key);

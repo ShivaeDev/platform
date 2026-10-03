@@ -346,11 +346,7 @@
 				"useSortedClasses": {
 					"level": "error",
 					"options": {
-						"functions": [
-							"cn",
-							"clsx",
-							"cva"
-						]
+						"functions": ["cn", "clsx", "cva"]
 					}
 				},
 				"useStringStartsEndsWith": "error",
@@ -576,15 +572,10 @@
 					}
 				}
 			},
-			"includes": [
-				"**",
-				"!**/package.json"
-			]
+			"includes": ["**", "!**/package.json"]
 		},
 		{
-			"includes": [
-				"**/*.config.*"
-			],
+			"includes": ["**/*.config.*"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -596,19 +587,11 @@
 	],
 	"plugins": [
 		{
-			"includes": [
-				"**/*.ts",
-				"**/*.tsx",
-				"!**/*.d.ts"
-			],
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/ambient-runtime.grit"
 		},
 		{
-			"includes": [
-				"**/*.ts",
-				"**/*.tsx",
-				"!**/*.d.ts"
-			],
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-fn-spans.grit"
 		}
 	],

@@ -8,11 +8,11 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 	const url = new URL(value);
 	const name = url.pathname.slice(1);
 	if (
-		!["postgres:", "postgresql:"].includes(url.protocol) ||
-		!["localhost", "127.0.0.1"].includes(url.hostname) ||
-		url.port !== "55432" ||
-		["host", "hostaddr", "port", "dbname", "service"].some((key) => url.searchParams.has(key)) ||
-		!names.includes(name)
+		!["postgres:", "postgresql:"].includes(url.protocol)
+		|| !["localhost", "127.0.0.1"].includes(url.hostname)
+		|| url.port !== "55432"
+		|| ["host", "hostaddr", "port", "dbname", "service"].some((key) => url.searchParams.has(key))
+		|| !names.includes(name)
 	)
 		throw new Error(`Use a local database on 127.0.0.1:55432 named ${names.join(" or ")}.`);
 	return url;

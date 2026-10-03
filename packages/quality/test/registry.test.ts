@@ -54,7 +54,11 @@ describe("registry", () => {
 	});
 
 	it("never covers a violation of a rule that takes no exceptions, and reports the entry", () => {
-		const checked = applyRegistry([pragma], [{ file: pragma.file, reason, rule: pragma.rule }], levels({ [pragma.rule]: "error" }, { unregistrable: [pragma.rule] }));
+		const checked = applyRegistry(
+			[pragma],
+			[{ file: pragma.file, reason, rule: pragma.rule }],
+			levels({ [pragma.rule]: "error" }, { unregistrable: [pragma.rule] }),
+		);
 		expect(checked.kept).toEqual([pragma]);
 		expect(checked.stale.map((stale) => stale.problem)).toEqual([expect.stringContaining("names a rule that takes no exceptions")]);
 	});

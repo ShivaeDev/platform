@@ -10,12 +10,12 @@ const MaxPerFileOptions = Schema.Struct({
 });
 
 const continues = (previous: SourceComment | undefined, comment: SourceComment): boolean =>
-	previous !== undefined &&
-	previous.kind === "line" &&
-	comment.kind === "line" &&
-	previous.ownLine &&
-	comment.ownLine &&
-	comment.line === previous.endLine + 1;
+	previous !== undefined
+	&& previous.kind === "line"
+	&& comment.kind === "line"
+	&& previous.ownLine
+	&& comment.ownLine
+	&& comment.line === previous.endLine + 1;
 
 const commentBlocks = (comments: ReadonlyArray<SourceComment>): ReadonlyArray<SourceComment> =>
 	comments.filter((comment, index) => !continues(comments[index - 1], comment));

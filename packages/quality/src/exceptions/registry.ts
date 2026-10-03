@@ -39,11 +39,7 @@ const coveringEntry = (entries: ReadonlyArray<RegistryEntry>, violation: Violati
 	return matching.find((entry) => entry.subject !== undefined) ?? matching[0];
 };
 
-export const applyRegistry = (
-	violations: ReadonlyArray<Violation>,
-	entries: ReadonlyArray<RegistryEntry>,
-	rules: RuleIndex,
-): RegistryCheck => {
+export const applyRegistry = (violations: ReadonlyArray<Violation>, entries: ReadonlyArray<RegistryEntry>, rules: RuleIndex): RegistryCheck => {
 	const usable = entries.filter((entry) => registrable(rules, entry.rule));
 	const used = new Set<RegistryEntry>();
 	const kept = violations.filter((violation) => {

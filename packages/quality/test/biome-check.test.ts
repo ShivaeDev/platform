@@ -36,9 +36,14 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 	it("takes Biome findings into the baseline per rule and file, and fails when one grows", () => {
 		const root = repository(preset, nullCheck);
 		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 1 entry in quality/baseline.jsonl.\n" });
-		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toBe('{"path":"src/a.ts","rule":"biome/lint/suspicious/noEqualsToNull","count":1}\n');
+		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toBe(
+			'{"path":"src/a.ts","rule":"biome/lint/suspicious/noEqualsToNull","count":1}\n',
+		);
 		expect(quality(root, "lint").status).toBe(0);
-		writeFileSync(join(root, nullCheck.path), `${nullCheck.content}\nexport function isAbsent(value: number | null): boolean {\n\treturn value == null;\n}\n`);
+		writeFileSync(
+			join(root, nullCheck.path),
+			`${nullCheck.content}\nexport function isAbsent(value: number | null): boolean {\n\treturn value == null;\n}\n`,
+		);
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
 		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
@@ -69,7 +74,10 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 			nullCheck,
 		);
 		const declared = '{ options: { declared: [{ includes: ["**"], reason: "Migrating.", rule: "lint/suspicious/noEqualsToNull" }] } }';
-		writeFileSync(join(root, "quality.config.ts"), `export default {\n\trules: {\n\t\t"suppressions/biome-overrides": ${declared},\n\t},\n\tsources: ["src"],\n};\n`);
+		writeFileSync(
+			join(root, "quality.config.ts"),
+			`export default {\n\trules: {\n\t\t"suppressions/biome-overrides": ${declared},\n\t},\n\tsources: ["src"],\n};\n`,
+		);
 		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: "quality: passed. 1 source file checked.\n" });
 	});
 

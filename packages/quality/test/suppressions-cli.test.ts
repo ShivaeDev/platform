@@ -50,7 +50,11 @@ describe("quality lint with the suppression rules", { timeout: cliTimeout }, () 
 
 	it("refuses registry entries for the suppression rules and adopts existing suppressions only through the baseline", () => {
 		const registry = [{ file: "src/a.ts", reason: "Legacy code.", rule: "suppressions/no-inline" }];
-		const root = seedTree([config('{ sources: ["src"], rules: { biome: "off" } }'), source, { content: JSON.stringify(registry), path: "quality/registry.json" }]);
+		const root = seedTree([
+			config('{ sources: ["src"], rules: { biome: "off" } }'),
+			source,
+			{ content: JSON.stringify(registry), path: "quality/registry.json" },
+		]);
 		const refused = quality(root, "lint");
 		expect(refused.status).toBe(1);
 		expect(refused.stdout).toContain('Suppresses a check: "@ts-expect-error".');

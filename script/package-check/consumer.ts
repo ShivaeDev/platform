@@ -59,8 +59,8 @@ export const checkConsumer = (
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
 		});
 		const entries = (
-			scenario?.entries ??
-			Object.entries(pkg.manifest.exports ?? {})
+			scenario?.entries
+			?? Object.entries(pkg.manifest.exports ?? {})
 				.filter(([, target]) => target !== null)
 				.map(([key]) => key)
 		).map((key) => ({

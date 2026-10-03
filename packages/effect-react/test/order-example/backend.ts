@@ -95,8 +95,8 @@ const seeded = Layer.effect(
 
 export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 	const sessions =
-		options.sessions ??
-		new Map([
+		options.sessions
+		?? new Map([
 			["alice-session", { userId: "alice", expiresAt: Number.POSITIVE_INFINITY }],
 			["bob-session", { userId: "bob", expiresAt: Number.POSITIVE_INFINITY }],
 		]);

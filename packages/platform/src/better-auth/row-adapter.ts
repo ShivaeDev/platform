@@ -41,10 +41,10 @@ export const makeRowAdapter =
 	(query: RelationQuery, usePlural: boolean): AdapterFactoryCustomizeAdapterCreator =>
 	({ debugLog, getFieldAttributes }) => {
 		const isUnique = (model: string, condition: CleanedWhere): boolean =>
-			condition.connector !== "OR" &&
-			condition.operator === "eq" &&
-			condition.mode !== "insensitive" &&
-			(condition.field === "id" || getFieldAttributes({ field: condition.field, model }).unique === true);
+			condition.connector !== "OR"
+			&& condition.operator === "eq"
+			&& condition.mode !== "insensitive"
+			&& (condition.field === "id" || getFieldAttributes({ field: condition.field, model }).unique === true);
 
 		return rowTyped({
 			create: ({ data, model, select }) => {

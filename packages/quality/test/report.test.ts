@@ -60,10 +60,7 @@ describe("report", () => {
 	});
 
 	it("notes when a baselined file got worse", () => {
-		const text = render(
-			evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known),
-			context(),
-		);
+		const text = render(evaluate([long("src/big.ts", 420)], [], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known), context());
 		expect(text).toContain("  src/big.ts is over its baseline: 270 against 250 baselined.");
 	});
 

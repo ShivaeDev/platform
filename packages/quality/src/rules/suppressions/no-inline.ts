@@ -35,8 +35,8 @@ const stylesheetSites = async ({ files, readText, sources }: RuleInputs): Promis
 };
 
 const allows = (declaration: Declaration, site: Site): boolean =>
-	declaration.directive === site.subject &&
-	ignore()
+	declaration.directive === site.subject
+	&& ignore()
 		.add([...declaration.includes])
 		.ignores(site.file);
 

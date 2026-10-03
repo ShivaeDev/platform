@@ -21,11 +21,7 @@ export interface BaselineCheck {
 
 export const countOf = (violations: ReadonlyArray<Violation>): number => violations.reduce((total, violation) => total + (violation.count ?? 1), 0);
 
-export const applyBaseline = (
-	violations: ReadonlyArray<Violation>,
-	entries: ReadonlyArray<BaselineEntry>,
-	rules: RuleIndex,
-): BaselineCheck => {
+export const applyBaseline = (violations: ReadonlyArray<Violation>, entries: ReadonlyArray<BaselineEntry>, rules: RuleIndex): BaselineCheck => {
 	const groups = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	const covered = new Set<string>();
 	const regressions: Regression[] = [];
