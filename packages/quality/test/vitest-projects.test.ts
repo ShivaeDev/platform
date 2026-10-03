@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, realpathSync, symlinkSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -33,29 +33,26 @@ function repository(): string {
 	return root;
 }
 
+interface Report {
+	readonly testResults: readonly { readonly name: string; readonly status: string }[];
+}
+
 function vitest(root: string, ...args: readonly string[]) {
-	const result = spawnSync(process.execPath, [join(vitestRoot, "vitest.mjs"), "run", "--reporter=verbose", "--color=false", ...args], {
+	const result = spawnSync(process.execPath, [join(vitestRoot, "vitest.mjs"), "run", "--reporter=json", "--outputFile=report.json", ...args], {
 		cwd: root,
 		encoding: "utf8",
 	});
-	return { output: `${result.stdout}${result.stderr}`, status: result.status };
+	const report: Report = JSON.parse(readFileSync(join(root, "report.json"), "utf8"));
+	const ran = report.testResults.map((file) => `${file.name.slice(realpathSync(root).length + 1)} ${file.status}`).sort();
+	return { ran, status: result.status };
 }
 
 describe("testProjects", { timeout: 60_000 }, () => {
 	it("runs unit tests in Node and *.dom.test files in a DOM, and leaves out slow tests and type tests", () => {
-		const run = vitest(repository());
-		expect(run.status).toBe(0);
-		expect(run.output).toContain("|unit| src/a.test.ts");
-		expect(run.output).toContain("|dom| src/b.dom.test.tsx");
-		expect(run.output).not.toContain("slow.test");
-		expect(run.output).not.toContain("typecheck.test");
+		expect(vitest(repository())).toEqual({ ran: ["src/a.test.ts passed", "src/b.dom.test.tsx passed"], status: 0 });
 	});
 
 	it("runs the slow tests alone when the slow project is asked for", () => {
-		const run = vitest(repository(), "--project", "slow");
-		expect(run.status).toBe(0);
-		expect(run.output).toContain("|slow| src/c.slow.test.ts");
-		expect(run.output).not.toContain("src/a.test.ts");
-		expect(run.output).not.toContain("typecheck.test");
+		expect(vitest(repository(), "--project", "slow")).toEqual({ ran: ["src/c.slow.test.ts passed"], status: 0 });
 	});
 });
