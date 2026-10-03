@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 const compilerTimeout = 60_000;
 const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
 
-const compile = (compiler: "tsc" | "tsc6", arguments_: ReadonlyArray<string>) =>
-	spawnSync(join(packageDirectory, "node_modules", ".bin", compiler), arguments_, { cwd: packageDirectory, encoding: "utf8" });
+const compile = (arguments_: ReadonlyArray<string>) =>
+	spawnSync(join(packageDirectory, "node_modules", ".bin", "tsc"), arguments_, { cwd: packageDirectory, encoding: "utf8" });
 
 const invalidFixtures = {
 	"command-query": "Property 'query' does not exist",
@@ -49,29 +49,27 @@ const invalidArguments = [
 ];
 
 describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
-	for (const compiler of ["tsc", "tsc6"] as const) {
-		it(`${compiler} accepts the valid contract, binding and handlers`, () => {
-			const output = mkdtempSync(join(tmpdir(), `effect-contract-${compiler}-`));
-			try {
-				const result = compile(compiler, ["-p", "test/fixtures/tsconfig.json", "--outDir", output]);
-				expect(result.stderr || result.stdout).toBe("");
-				expect(result.status).toBe(0);
-				const declaration = readFileSync(join(output, "test/fixtures/valid.d.ts"), "utf8");
-				expect(declaration).toContain('api: import("../../src/bind.ts").Bound<"notes"');
-				expect(declaration).toContain('Rpc<"notes.rename"');
-			} finally {
-				rmSync(output, { force: true, recursive: true });
-			}
-		});
+	it("accepts the valid contract, binding and handlers", () => {
+		const output = mkdtempSync(join(tmpdir(), "effect-contract-"));
+		try {
+			const result = compile(["-p", "test/fixtures/tsconfig.json", "--outDir", output]);
+			expect(result.stderr || result.stdout).toBe("");
+			expect(result.status).toBe(0);
+			const declaration = readFileSync(join(output, "test/fixtures/valid.d.ts"), "utf8");
+			expect(declaration).toContain('api: import("../../src/bind.ts").Bound<"notes"');
+			expect(declaration).toContain('Rpc<"notes.rename"');
+		} finally {
+			rmSync(output, { force: true, recursive: true });
+		}
+	});
 
-		it(`${compiler} rejects each invalid use with a specific diagnostic`, () => {
-			const result = compile(compiler, invalidArguments);
-			const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/m);
-			expect(result.status).not.toBe(0);
-			for (const [fixture, expected] of Object.entries(invalidFixtures)) {
-				const found = diagnostics.filter((message) => message.startsWith(`test/fixtures/invalid/${fixture}.ts(`)).join("\n");
-				expect(found, fixture).toContain(expected);
-			}
-		});
-	}
+	it("rejects each invalid use with a specific diagnostic", () => {
+		const result = compile(invalidArguments);
+		const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/m);
+		expect(result.status).not.toBe(0);
+		for (const [fixture, expected] of Object.entries(invalidFixtures)) {
+			const found = diagnostics.filter((message) => message.startsWith(`test/fixtures/invalid/${fixture}.ts(`)).join("\n");
+			expect(found, fixture).toContain(expected);
+		}
+	});
 });

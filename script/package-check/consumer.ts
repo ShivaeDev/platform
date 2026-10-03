@@ -45,7 +45,6 @@ export const checkConsumer = (
 			scripts: {
 				typecheck: "tsc --project tsconfig.json",
 				"typecheck:nodenext": "tsc --project tsconfig.nodenext.json",
-				"typecheck:compat": "tsc6 --project tsconfig.json",
 			},
 		});
 		yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs));
@@ -78,9 +77,7 @@ export const checkConsumer = (
 		yield* checkEffectCopies(consumer, catalog);
 		yield* checkBrowserEntries(root, pkg, consumer);
 		if (scenario?.omitOptionalPeers) yield* checkOptionalPeers(pkg, consumer);
-		const typechecks =
-			scenario?.tsconfig === undefined ? ["typecheck", "typecheck:nodenext", "typecheck:compat"] : ["typecheck", "typecheck:nodenext"];
-		for (const script of typechecks) yield* command(consumer, "pnpm", ["run", script]);
+		for (const script of ["typecheck", "typecheck:nodenext"]) yield* command(consumer, "pnpm", ["run", script]);
 		yield* command(consumer, "node", [
 			"--input-type=module",
 			"--eval",

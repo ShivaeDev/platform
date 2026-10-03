@@ -346,4 +346,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, both TypeScript compilers, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline cycle, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

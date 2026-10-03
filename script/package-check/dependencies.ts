@@ -8,7 +8,6 @@ export const consumerDependencies = (pkg: Package, packages: readonly Package[],
 		const dependencies: Record<string, string> = {
 			effect: "catalog:",
 			"@types/node": "catalog:",
-			typescript: "catalog:",
 			"@typescript/native": "catalog:",
 		};
 		for (const entry of closure.values()) {
