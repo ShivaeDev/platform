@@ -47,12 +47,26 @@ export const makeEffectTRPC = <Requirements, RuntimeError = never>(
 		procedure: <Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError>(
 			builder: TRPCProcedureBuilder<Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, false>,
 			requestServices: EffectProcedureRequestServices<ResolverContext<Context, Meta, ContextOverrides>, ProvidedServices, LayerError>,
-		) =>
-			new EffectProcedureBuilder<Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError, Requirements>(
-				looseBuilder(builder),
+		) => {
+			const loose = looseBuilder(builder);
+			return new EffectProcedureBuilder<
+				Context,
+				Meta,
+				ContextOverrides,
+				InputIn,
+				InputOut,
+				OutputIn,
+				OutputOut,
+				ProvidedServices,
+				LayerError,
+				Requirements
+			>({
+				builder: loose,
 				requestServices,
 				runtime,
-			),
+				subscriptionBuilder: loose,
+			});
+		},
 		runWithServices: contextBridge.run,
 	};
 };

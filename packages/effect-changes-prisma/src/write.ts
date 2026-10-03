@@ -20,7 +20,11 @@ export interface Interpreted<A> {
 }
 
 class MissingField {
-	constructor(readonly field: string) {}
+	readonly field: string;
+
+	constructor(field: string) {
+		this.field = field;
+	}
 }
 
 const guarded = (row: object): object =>

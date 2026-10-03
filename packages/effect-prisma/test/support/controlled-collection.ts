@@ -1,5 +1,9 @@
 export class ControlledResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<Row> {
-	constructor(private readonly execute: () => Promise<Array<Row>>) {}
+	private readonly execute: () => Promise<Array<Row>>;
+
+	constructor(execute: () => Promise<Array<Row>>) {
+		this.execute = execute;
+	}
 
 	then<TResult1 = Array<Row>, TResult2 = never>(
 		onfulfilled?: ((value: Array<Row>) => TResult1 | PromiseLike<TResult1>) | null,
@@ -16,7 +20,11 @@ export class ControlledResult<Row> implements PromiseLike<Array<Row>>, AsyncIter
 }
 
 export class FakeResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<Row> {
-	constructor(private readonly rows: ReadonlyArray<Row>) {}
+	private readonly rows: ReadonlyArray<Row>;
+
+	constructor(rows: ReadonlyArray<Row>) {
+		this.rows = rows;
+	}
 
 	then<TResult1 = Array<Row>, TResult2 = never>(
 		onfulfilled?: ((value: Array<Row>) => TResult1 | PromiseLike<TResult1>) | null,
@@ -33,7 +41,11 @@ export class FakeResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<R
 }
 
 export class ControlledCollection<Row> {
-	constructor(private readonly execute: () => Promise<Array<Row>>) {}
+	private readonly execute: () => Promise<Array<Row>>;
+
+	constructor(execute: () => Promise<Array<Row>>) {
+		this.execute = execute;
+	}
 
 	all(): ControlledResult<Row> {
 		return new ControlledResult(this.execute);
@@ -45,10 +57,13 @@ export class ControlledCollection<Row> {
 }
 
 class EventStreamResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<Row> {
-	constructor(
-		private readonly rows: ReadonlyArray<Row>,
-		private readonly events: Array<string>,
-	) {}
+	private readonly rows: ReadonlyArray<Row>;
+	private readonly events: Array<string>;
+
+	constructor(rows: ReadonlyArray<Row>, events: Array<string>) {
+		this.rows = rows;
+		this.events = events;
+	}
 
 	then<TResult1 = Array<Row>, TResult2 = never>(
 		onfulfilled?: ((value: Array<Row>) => TResult1 | PromiseLike<TResult1>) | null,
@@ -70,10 +85,13 @@ class EventStreamResult<Row> implements PromiseLike<Array<Row>>, AsyncIterable<R
 }
 
 export class EventStreamCollection<Row> {
-	constructor(
-		private readonly rows: ReadonlyArray<Row>,
-		private readonly events: Array<string>,
-	) {}
+	private readonly rows: ReadonlyArray<Row>;
+	private readonly events: Array<string>;
+
+	constructor(rows: ReadonlyArray<Row>, events: Array<string>) {
+		this.rows = rows;
+		this.events = events;
+	}
 
 	all(): EventStreamResult<Row> {
 		return new EventStreamResult(this.rows, this.events);

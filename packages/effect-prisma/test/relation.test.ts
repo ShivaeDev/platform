@@ -14,10 +14,13 @@ interface User {
 }
 
 class FakeCollection<Row extends object> {
-	constructor(
-		private readonly rows: ReadonlyArray<Row>,
-		private readonly limit?: number,
-	) {}
+	private readonly rows: ReadonlyArray<Row>;
+	private readonly limit: number | undefined;
+
+	constructor(rows: ReadonlyArray<Row>, limit?: number) {
+		this.rows = rows;
+		this.limit = limit;
+	}
 
 	where(filter: Partial<Row>): FakeCollection<Row> {
 		return new FakeCollection(
