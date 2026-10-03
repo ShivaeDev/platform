@@ -10,6 +10,21 @@ const integration = databaseUrl === undefined ? test.skip : test;
 const migrate = (options: { readonly table: string; readonly loader: Migrator.Loader<SqlClient.SqlClient> }) =>
 	migratePostgres({ ...options, lockTimeout: "5 seconds" });
 
+function blockedBy(holder: number) {
+	return Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		while (true) {
+			const waiting = yield* sql<{ waiting: boolean }>`select exists (
+				select 1 from pg_stat_activity where ${holder} = any(pg_blocking_pids(pid))
+			) as waiting`;
+			if (waiting[0]?.waiting) {
+				return;
+			}
+			yield* Effect.sleep("10 millis");
+		}
+	});
+}
+
 const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) =>
 	Effect.runPromise(
 		Effect.scoped(
@@ -130,17 +145,7 @@ integration(
 					const first = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
 					const holder = yield* Deferred.await(entered).pipe(Effect.timeout("5 seconds"));
 					const second = yield* migrate({ loader, table: ledger }).pipe(Effect.forkScoped);
-					yield* Effect.gen(function* () {
-						while (true) {
-							const waiting = yield* sql<{ waiting: boolean }>`select exists (
-					select 1 from pg_stat_activity where ${holder} = any(pg_blocking_pids(pid))
-				) as waiting`;
-							if (waiting[0]?.waiting) {
-								return;
-							}
-							yield* Effect.sleep("10 millis");
-						}
-					}).pipe(Effect.timeout("5 seconds"));
+					yield* blockedBy(holder).pipe(Effect.timeout("5 seconds"));
 					yield* Deferred.succeed(release, undefined);
 					expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
 					expect(yield* Fiber.join(second)).toEqual([]);

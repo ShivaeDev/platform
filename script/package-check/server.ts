@@ -31,6 +31,13 @@ const listening = (server: ChildProcessWithoutNullStreams) =>
 			}),
 	});
 
+async function serves(url: string, expected: string, signal: AbortSignal): Promise<void> {
+	const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
+	if (!(response.ok && (await response.text()).includes(expected))) {
+		throw new Error(`${url} did not serve ${expected}`);
+	}
+}
+
 export const checkServer = (cwd: string, bin: string, args: readonly string[], pages: Readonly<Record<string, string>>) =>
 	Effect.acquireUseRelease(
 		Effect.sync(() => {
@@ -44,12 +51,7 @@ export const checkServer = (cwd: string, bin: string, args: readonly string[], p
 				for (const [path, expected] of Object.entries(pages)) {
 					yield* Effect.tryPromise({
 						catch: (cause) => new Error(`Packed server request failed: ${path}`, { cause }),
-						try: async (signal) => {
-							const response = await fetch(`${address}${path}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
-							if (!(response.ok && (await response.text()).includes(expected))) {
-								throw new Error(`${bin}: ${path} did not serve ${expected}`);
-							}
-						},
+						try: (signal) => serves(`${address}${path}`, expected, signal),
 					});
 				}
 			}),
