@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>Work Board — a local workroom</title>
+		<link href="style.css" rel="stylesheet" />
+		<script defer src="sampleData.js"></script>
+		<script defer src="work.js"></script>
+		<script defer src="app.js"></script>
+	</head>
+	<body>
+		<aside class="sidebar">
+			<a class="brand" href="#overview"
+				><span class="brand-mark">w<span>•</span></span>work board</a
+			>
+			<div class="workspace">
+				<span class="project-icon">P</span>
+				<div><strong>Platform</strong><small>Personal workspace</small></div>
+				<span class="local-dot" title="Local workspace"></span>
+			</div>
+			<button class="search-launch" id="search-launch" type="button"><span>⌕ &nbsp; Find anything</span><kbd>⌘ K</kbd></button>
+			<p class="nav-label">WORKSPACE</p>
+			<nav aria-label="Workspace">
+				<a data-screen="overview" href="#overview"><span class="nav-icon">◫</span> Overview <em>2</em></a>
+				<a data-screen="work" href="#work"><span class="nav-icon">▥</span> Work <small class="nav-count">12</small></a>
+				<a data-screen="decision" href="#decision"><span class="nav-icon">◇</span> Decisions <i class="attention-dot"></i></a>
+				<a data-screen="evidence" href="#evidence"><span class="nav-icon">▤</span> Evidence</a>
+				<a data-screen="brief" href="#brief"><span class="nav-icon">▧</span> Project brief</a>
+			</nav>
+			<p class="nav-label">PINNED</p>
+			<a class="pinned" href="#brief">→ &nbsp; Work Board vision</a>
+			<a class="pinned" href="#evidence">→ &nbsp; Navigation review</a>
+			<div class="sidebar-note">
+				<span class="local-dot"></span>
+				Your files. Your workroom.
+				<p>Everything starts here.<br />Everything stays with you.</p>
+			</div>
+			<div class="profile">
+				<span class="avatar">M</span>
+				<div>Marvin<small>Local workspace</small></div>
+			</div>
+		</aside>
+		<div class="app">
+			<header class="topbar">
+				<div>Platform <span>/</span> <strong id="breadcrumb">Overview</strong></div>
+				<div class="prototype-label">VISION PROTOTYPE <span>·</span> SAMPLE DATA</div>
+			</header>
+			<main id="main">
+				<section aria-labelledby="overview-title" class="screen" id="overview">
+					<div class="page-heading">
+						<div>
+							<p class="eyebrow">MONDAY, OCTOBER 5</p>
+							<h1 id="overview-title">A clear view of the work.</h1>
+							<p class="subtitle">Two things need your judgment. The rest is moving.</p>
+						</div>
+						<span class="wave">01 / STAY INFORMED</span>
+					</div>
+					<div class="overview-grid">
+						<div>
+							<div class="section-heading">
+								<h2>Your attention <span class="count">2</span></h2>
+								<span>Ordered by what this unblocks</span>
+							</div>
+							<article class="attention-card decision-card">
+								<div class="card-top"><span class="tag amber">DECISION NEEDED</span><span class="muted">WB–014</span></div>
+								<h3>How much should the first release do?</h3>
+								<p>Keep the first wave focused on understanding work.<br />Bring editing into the next wave.</p>
+								<div class="consequence">→ Your choice unblocks the implementation plan</div>
+								<div class="card-bottom">
+									<div class="byline">
+										<span class="agent-avatar">A</span><span>Atlas prepared 2 options <small>12 minutes ago</small></span>
+									</div>
+									<a class="button primary" href="#decision">Compare options <span>→</span></a>
+								</div>
+							</article>
+							<article class="attention-card">
+								<div class="card-top"><span class="tag green">READY FOR REVIEW</span><span class="muted">WB–021</span></div>
+								<h3>A workspace you can find your way around.</h3>
+								<p>Search, sidebar navigation, and an item detail pane are ready to inspect.</p>
+								<div class="evidence-line"><span>✓ 3 criteria supported</span><span class="amber-text">○ 1 needs your review</span></div>
+								<div class="card-bottom">
+									<div class="byline">
+										<span class="agent-avatar violet">J</span><span>Juniper attached 3 artifacts <small>28 minutes ago</small></span>
+									</div>
+									<a class="button secondary" href="#evidence">Review evidence <span>→</span></a>
+								</div>
+							</article>
+							<div class="section-heading lower">
+								<h2>Moving forward</h2>
+								<a href="#work">See all work →</a>
+							</div>
+							<div class="moving-row">
+								<span class="status-ring"></span>
+								<div><strong>Connect decisions to the work they shape</strong><small>Atlas · Defining reference behavior</small></div>
+								<span class="tag neutral">In progress</span>
+							</div>
+							<div class="moving-row">
+								<span class="status-ring"></span>
+								<div><strong>Keep your place when a file changes</strong><small>Juniper · Checking live update behavior</small></div>
+								<span class="tag neutral">In progress</span>
+							</div>
+						</div>
+						<aside class="context-column">
+							<div class="project-summary">
+								<p class="eyebrow">THE NEXT MILESTONE</p>
+								<h2>Understand the work.<br />Without asking twice.</h2>
+								<p>A complete reading experience for a person and their agents.</p>
+								<div class="segmented-progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+								<div class="progress-caption"><strong>5 of 8 outcomes</strong><span>Wave 1</span></div>
+								<a href="#brief">Read the project brief →</a>
+							</div>
+							<div class="section-heading">
+								<h2>Since your last visit</h2>
+								<span class="tag neutral">3 changes</span>
+							</div>
+							<ol class="timeline">
+								<li>
+									<span>12 min ago</span><strong>A scope question is ready</strong>
+									<p>Two options, a recommendation, and the tradeoffs.</p>
+									<a href="#decision">Open decision →</a>
+								</li>
+								<li>
+									<span>28 min ago</span><strong>Navigation evidence added</strong>
+									<p>Keyboard walkthrough and the latest layout captures.</p>
+									<a href="#evidence">Inspect artifacts →</a>
+								</li>
+								<li>
+									<span>46 min ago</span><strong>Search moved into review</strong>
+									<p>The result is ready. Acceptance is still yours.</p>
+									<a href="#work">View work item →</a>
+								</li>
+							</ol>
+							<div class="quiet-note">⌁ <span>Activity is quiet when nothing needs you.</span></div>
+						</aside>
+					</div>
+				</section>
+				<section aria-labelledby="work-title" class="screen" hidden id="work">
+					<div class="page-heading">
+						<div>
+							<p class="eyebrow">ONE PLAN · MANY WAYS TO SEE IT</p>
+							<h1 id="work-title">The work, in context.</h1>
+							<p class="subtitle">A place for every next step. A reason behind every item.</p>
+						</div>
+						<span class="wave">01 / UNDERSTAND</span>
+					</div>
+					<div class="work-toolbar">
+						<fieldset aria-label="Work view" class="segmented">
+							<button aria-pressed="true" class="selected" data-view="board" type="button">▥ Board</button
+							><button aria-pressed="false" data-view="table" type="button">☷ Table</button>
+						</fieldset>
+						<fieldset aria-label="Filter work" class="filters">
+							<button aria-pressed="true" class="selected" data-filter="all" type="button">All work</button
+							><button aria-pressed="false" data-filter="attention" type="button">Needs me <span>2</span></button
+							><button aria-pressed="false" data-filter="atlas" type="button">Atlas</button>
+						</fieldset>
+						<span class="muted">Wave 1 · 6 items in this view</span>
+					</div>
+					<div class="work-layout">
+						<div id="work-content"></div>
+						<aside aria-label="Selected work item" class="item-detail" id="item-detail"></aside>
+					</div>
+					<div class="source-note">◈ &nbsp; Different views of the same project files. Selecting an item keeps the surrounding work in view.</div>
+				</section>
+				<section aria-labelledby="decision-title" class="screen" hidden id="decision">
+					<div class="page-heading">
+						<div>
+							<p class="eyebrow">DECISION ROOM / WB–014</p>
+							<h1 id="decision-title">Choose the shape of wave one.</h1>
+							<p class="subtitle">A small decision now gives every next step a clear boundary.</p>
+						</div>
+						<span class="wave">02 / INFORM BACK</span>
+					</div>
+					<div class="decision-layout">
+						<div>
+							<div class="author-strip">
+								<span class="agent-avatar">A</span>
+								<div><strong>Atlas prepared this proposal</strong><small>12 minutes ago · Proposal revision 3</small></div>
+								<span class="tag amber" id="decision-status">Awaiting your direction</span>
+							</div>
+							<p class="large-prose">Should the first release help you <em>understand</em> the work, or also let you <em>change</em> it?</p>
+							<div class="options-grid">
+								<article class="option recommended">
+									<span class="tag green">RECOMMENDED</span>
+									<p class="option-number">A</p>
+									<h2>Clarity first.</h2>
+									<p>Ship a complete reading workspace. Add responses and editing in wave two.</p>
+									<ul>
+										<li>Overview, search, and multiple views</li>
+										<li>Decisions and evidence in context</li>
+										<li>Source files stay untouched by the UI</li>
+									</ul>
+									<div class="tradeoff">
+										<strong>The tradeoff</strong>
+										<p>You still give direction through existing tools until wave two.</p>
+									</div>
+								</article>
+								<article class="option">
+									<span class="tag neutral">ALTERNATIVE</span>
+									<p class="option-number">B</p>
+									<h2>Read and respond.</h2>
+									<p>Include a narrow reply surface in the first release.</p>
+									<ul>
+										<li>Earlier human–agent feedback loop</li>
+										<li>Immediate decisions in the board</li>
+										<li>Write and conflict model needed now</li>
+									</ul>
+									<div class="tradeoff">
+										<strong>The tradeoff</strong>
+										<p>The first release depends on resolving safe write-back and handoffs.</p>
+									</div>
+								</article>
+							</div>
+							<div class="response-box">
+								<h2>Your direction</h2>
+								<label for="direction">Add context for the next handoff</label
+								><textarea
+									id="direction"
+									rows="3"
+								>Keep wave one read-oriented. Let’s agree on the response and write model before wave two.</textarea>
+								<div class="response-footer">
+									<span>Prototype only · no files are changed</span
+									><button class="button secondary" id="revise" type="button">Request a revision</button
+									><button class="button primary" id="approve" type="button">Choose option A →</button>
+								</div>
+								<p hidden id="decision-result" role="status"></p>
+							</div>
+						</div>
+						<aside class="context-column">
+							<div class="context-box">
+								<p class="eyebrow">WHY THIS NEEDS YOU</p>
+								<h3>Scope is a human decision.</h3>
+								<p>The implementation plan depends on where we draw the first release boundary.</p>
+								<div class="context-rule"></div>
+								<p class="eyebrow">WHAT YOUR CHOICE UNBLOCKS</p>
+								<ul class="plain-list">
+									<li><span>01</span> Finalize the first vertical slice</li>
+									<li><span>02</span> Set the write-model discussion</li>
+									<li><span>03</span> Prepare the next agent handoff</li>
+								</ul>
+							</div>
+							<div class="context-box">
+								<p class="eyebrow">RELATED CONTEXT</p>
+								<a class="related-link" href="#brief">▧ North star & principles →</a
+								><a class="related-link" href="#work">▥ Wave one implementation →</a>
+								<p class="small-note">A decision stays connected to the proposal you actually reviewed.</p>
+							</div>
+						</aside>
+					</div>
+				</section>
+				<section aria-labelledby="evidence-title" class="screen" hidden id="evidence">
+					<div class="page-heading">
+						<div>
+							<p class="eyebrow">RESULT REVIEW / WB–021</p>
+							<h1 id="evidence-title">See what supports the result.</h1>
+							<p class="subtitle">A finished agent run is the beginning of your review.</p>
+						</div>
+						<span class="wave">02 / REVIEW TOGETHER</span>
+					</div>
+					<div class="evidence-layout">
+						<div class="artifact-panel">
+							<div class="artifact-heading">
+								<div>
+									<span class="tag green">LOCAL ARTIFACT</span>
+									<h2>Navigation, with room to think.</h2>
+								</div>
+								<span class="muted">Juniper · revision 7</span>
+							</div>
+							<div aria-label="Evidence artifacts" class="artifact-tabs" role="tablist">
+								<button
+									aria-controls="artifact-preview"
+									aria-selected="true"
+									class="selected"
+									data-artifact="preview"
+									id="tab-preview"
+									role="tab"
+									type="button"
+								>
+									Layout capture
+								</button><button
+									aria-controls="artifact-keyboard"
+									aria-selected="false"
+									data-artifact="keyboard"
+									id="tab-keyboard"
+									role="tab"
+									type="button"
+								>
+									Keyboard check
+								</button><button
+									aria-controls="artifact-source"
+									aria-selected="false"
+									data-artifact="source"
+									id="tab-source"
+									role="tab"
+									type="button"
+								>
+									Source changes
+								</button>
+							</div>
+							<div aria-labelledby="tab-preview" class="artifact-body" id="artifact-preview" role="tabpanel">
+								<div class="mini-app">
+									<div class="mini-sidebar">
+										<b>w•</b><span class="mini-active">Overview</span><span>Work</span><span>Decisions</span><span>Evidence</span>
+									</div>
+									<div class="mini-main">
+										<p class="eyebrow">PLATFORM / WORK</p>
+										<h2>Everything has a place.</h2>
+										<div class="mini-search">⌕ &nbsp; Find decisions, plans, and results</div>
+										<div class="mini-columns">
+											<div>
+												<span>UP NEXT</span>
+												<article>Connect the context<small>Atlas · WB–025</small></article>
+												<article>Make changes visible<small>Juniper · WB–028</small></article>
+											</div>
+											<div>
+												<span>IN PROGRESS</span>
+												<article class="mini-selected">
+													Make work easy to find<small>Juniper · WB–021</small>
+													<hr />
+													Search the files. Keep your place.
+												</article>
+											</div>
+										</div>
+									</div>
+								</div>
+								<p class="artifact-caption">Illustrative artifact · desktop layout · selection remains in context</p>
+							</div>
+							<div aria-labelledby="tab-keyboard" class="artifact-body" hidden id="artifact-keyboard" role="tabpanel">
+								<p class="eyebrow">ILLUSTRATIVE CHECK OUTPUT</p>
+								<h2>A complete path without a pointer.</h2>
+								<div class="check-row">✓ <span>Open search with the keyboard</span><kbd>⌘ K</kbd></div>
+								<div class="check-row">✓ <span>Reach and open a result</span><kbd>Tab ↵</kbd></div>
+								<div class="check-row">✓ <span>Close the dialog and restore focus</span><kbd>Esc</kbd></div>
+								<div class="check-row">○ <span>Human screen-reader review</span><span class="tag amber">Not recorded</span></div>
+								<p class="small-note">This is sample evidence, not a test result from the product.</p>
+							</div>
+							<div aria-labelledby="tab-source" class="artifact-body" hidden id="artifact-source" role="tabpanel">
+								<p class="eyebrow">ILLUSTRATIVE SOURCE DIFF</p>
+								<h2>A small change with a clear purpose.</h2>
+								<pre class="diff">  # Navigation acceptance
+<span class="removed">- [ ] Find a work item without losing context</span>
+<span class="added">+ [x] Find a work item without losing context</span>
+<span class="added">+ Evidence: layout-capture, keyboard-walkthrough</span>
+<span class="added">+ Reviewed revision: 7</span>
+
+  - [ ] Human review of focus and contrast</pre>
+								<p class="small-note">Source changes belong alongside their supporting evidence.</p>
+							</div>
+							<div class="artifact-footer"><span>◈ Evidence belongs to a specific revision</span><span>3 local artifacts</span></div>
+						</div>
+						<aside class="review-panel">
+							<p class="eyebrow">ACCEPTANCE CRITERIA</p>
+							<h2>3 supported.<br />1 needs your eyes.</h2>
+							<div class="criterion">
+								<span>✓</span>
+								<div><strong>Find work across documents</strong><small>Supported · search walkthrough</small></div>
+							</div>
+							<div class="criterion">
+								<span>✓</span>
+								<div><strong>Keep the board in view</strong><small>Supported · layout capture</small></div>
+							</div>
+							<div class="criterion">
+								<span>✓</span>
+								<div><strong>Navigate by keyboard</strong><small>Supported · keyboard check</small></div>
+							</div>
+							<div class="criterion pending">
+								<span>○</span>
+								<div><strong>Feel clear at a glance</strong><small>Human review requested</small></div>
+							</div>
+							<div class="review-callout">The agent has returned its result.<br /><strong>This item is not accepted yet.</strong></div>
+							<label for="review-note">Feedback on this result</label
+							><textarea id="review-note" placeholder="What needs another pass?" rows="3"></textarea
+							><button class="button primary full" id="send-feedback" type="button">Request a revision →</button>
+							<p class="small-note">Demo response · nothing is sent</p>
+						</aside>
+					</div>
+				</section>
+				<section aria-labelledby="brief-title" class="screen" hidden id="brief">
+					<div class="page-heading">
+						<div>
+							<p class="eyebrow">PROJECT BRIEF / WORK BOARD</p>
+							<h1 id="brief-title">A shared place to understand.</h1>
+							<p class="subtitle">The plan, the reasoning, and the evidence. All within reach.</p>
+						</div>
+						<span class="wave">THE NORTH STAR</span>
+					</div>
+					<div class="brief-grid">
+						<article class="brief-paper">
+							<span class="tag green">PRODUCT DIRECTION</span>
+							<h2 class="editorial-title">Work moves fast.<br />Understanding should keep up.</h2>
+							<p class="lead">
+								A local workroom for you and your agents. First see the work clearly. Then give direction. Eventually, shape it together.
+							</p>
+							<div class="brief-principles">
+								<div>
+									<span>01</span><strong>Readable by default</strong>
+									<p>The files remain useful outside the board.</p>
+								</div>
+								<div>
+									<span>02</span><strong>Calm by design</strong>
+									<p>Surface decisions, not every heartbeat.</p>
+								</div>
+								<div>
+									<span>03</span><strong>Grounded in evidence</strong>
+									<p>Every result leads back to its support.</p>
+								</div>
+							</div>
+							<h3>A deliberate progression</h3>
+							<div class="journey">
+								<div><span class="journey-dot">1</span><strong>Stay informed</strong><small>See what matters</small></div>
+								<span class="journey-arrow">→</span>
+								<div><span class="journey-dot pale">2</span><strong>Give direction</strong><small>Respond in context</small></div>
+								<span class="journey-arrow">→</span>
+								<div><span class="journey-dot pale">3</span><strong>Collaborate</strong><small>Shape work together</small></div>
+							</div>
+							<blockquote>“I can return to the project and know what needs me—without asking someone to reconstruct the story.”</blockquote>
+							<h3>Context that stays connected</h3>
+							<div class="context-map">
+								<span>Goal</span><i>→</i><span>Plan</span><i>→</i><a href="#decision">Decision →</a><i>→</i><a href="#evidence">Evidence →</a>
+							</div>
+							<p class="small-note">One coherent body of work, viewed from different angles.</p>
+						</article>
+						<aside class="context-column">
+							<div class="context-box">
+								<p class="eyebrow">SUCCESS LOOKS LIKE</p>
+								<div class="big-metric">30<span>sec</span></div>
+								<p>To understand what needs your attention.</p>
+								<div class="context-rule"></div>
+								<div class="big-metric">2<span>steps</span></div>
+								<p>From a result to the reason behind it.</p>
+								<span class="tag neutral">Targets, not measured results</span>
+							</div>
+							<div class="context-box">
+								<p class="eyebrow">INTENTIONALLY LOCAL</p>
+								<h3>Your project is the home.</h3>
+								<p>No accounts, hosted workspace, or cloud sync. Open a folder and begin.</p>
+								<p class="small-note">Optional evidence adapters come later. The core works without them.</p>
+							</div>
+							<a class="button secondary full" href="#work">Explore the work →</a>
+						</aside>
+					</div>
+				</section>
+			</main>
+			<footer class="app-footer">
+				<span><span class="local-dot"></span> Local concept · fictional project data</span><span>Understand → Coordinate → Collaborate</span>
+			</footer>
+		</div>
+		<dialog id="search-dialog">
+			<div class="dialog-heading">
+				<h2>Find your way.</h2>
+				<button aria-label="Close search" id="close-search" type="button">×</button>
+			</div>
+			<label class="sr-only" for="search-input">Search the vision prototype</label>
+			<input id="search-input" placeholder="Search work, decisions, evidence…" type="search" />
+			<div id="search-results"></div>
+			<p class="small-note">Searches this prototype’s sample content. Esc to close.</p>
+		</dialog>
+		<div class="toast" hidden id="toast" role="status"></div>
+	</body>
+</html>
