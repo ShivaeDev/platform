@@ -26,12 +26,13 @@
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
 		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
-		"ready": "pnpm build && pnpm typecheck",
+		"ready": "pnpm typecheck && pnpm build",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
