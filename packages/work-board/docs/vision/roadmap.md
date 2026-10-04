@@ -17,7 +17,7 @@ proceeds.
 Check a step only after its acceptance is demonstrated in the package.
 
 - [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
-- [ ] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
+- [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
 - [ ] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
 - [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
 - [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
@@ -64,8 +64,37 @@ preferences. The source format and public CLI/embedding API are unchanged.
   the fixture launcher and review sequence. This is fixture evidence, not
   real-project adoption or a usability/performance budget.
 
-Steps 02–26 remain open. This completes the shell foundation only; it does not
-complete all of W1.2 navigation or W1.3 views.
+## Step 02 evidence
+
+The package now gives Markdown headings unique passage links and an outline,
+uses the active document's main heading as its browser title, and resolves links
+from the source file even when a nested home file is served at `/`. Back/forward
+navigation preserves scroll, text selection, and expanded sections. Favorites
+and ten recent documents are stored per workspace and browser origin; bounded
+reading records survive reloads within a tab. Missing documents and passages are
+explained. Heading text/order changes can change generated anchors; durable IDs
+remain step 04 work. Project content is not modified.
+
+- Work Board: 89 passing tests, including heading collisions, Unicode, encoded
+  filenames, nested-home links, history restoration, workspace isolation,
+  unavailable storage, missing favorites, and stale live responses after navigation
+  (successful, HTTP-failure, and network-failure responses). Happy DOM does not
+  prove scroll layout or actual Mermaid rendering.
+- Chromium 151: the shared 50-document/100-item fixture at 1440 × 1000 and
+  390 × 844; scroll/selection/expanded sections through back/forward and reload;
+  duplicate outline links and focus; favorite/recents reload; encoded paths;
+  missing documents and copied missing-passage links; failed-navigation retry;
+  stale-response isolation; actual Mermaid theme restoration; modified-click
+  new tabs; blocked storage; and readable no-JavaScript content/outline.
+  No page errors were observed in the desktop/mobile walkthrough.
+- Repository gate: `pnpm ready` passed lint, build, typecheck, real
+  PostgreSQL-backed tests, and packed consumers. The suite has 972 passing tests
+  and three existing expected failures; no tests were skipped.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md) records the
+  review path. This is fixture evidence, not real-project adoption or performance
+  measurement.
+
+Steps 03–26 remain open. Search and the rest of W1.2/W1.3 are still proposed.
 
 ## Current foundation
 

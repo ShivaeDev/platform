@@ -40,7 +40,9 @@ describe("pages", () => {
 	});
 
 	it("shows any other markdown file as a document and answers 404 for a missing one", async () => {
-		expect(await (await get("/notes/log.md")).text()).toContain('<article class="doc"><h1>Log</h1>');
+		expect(await (await get("/notes/log.md")).text()).toContain(
+			'<article class="doc"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
+		);
 		expect((await get("/notes/missing.md")).status).toBe(404);
 	});
 
@@ -48,13 +50,16 @@ describe("pages", () => {
 		await board.stop();
 		board = await startBoard(notes.root);
 		const html = await (await get("/")).text();
-		expect(html).toContain('<article class="doc"><h1>Plan</h1>');
+		expect(html).toContain(
+			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+		);
 		expect(html).not.toContain('class="counts"');
 	});
 
 	it("skips dot folders, node_modules and files that are not markdown", async () => {
 		const html = await (await get("/")).text();
-		expect(html).not.toContain("hidden");
+		expect(html).not.toContain("hidden.md");
+		expect(html).not.toContain(".drafts/");
 		expect(html).not.toContain("readme");
 		expect(html).not.toContain("raw");
 		expect((await get("/.drafts/hidden.md")).status).toBe(404);
@@ -92,7 +97,9 @@ describe("pages", () => {
 		expect((await get("/leak.md")).status).toBe(404);
 		expect((await get("/notes/elsewhere/private.md")).status).toBe(404);
 		expect((await get(`/up/${outside.root.split("/").at(-1)}/private.md`)).status).toBe(404);
-		expect(await (await get("/notes/alias.md")).text()).toContain('<article class="doc"><h1>Plan</h1>');
+		expect(await (await get("/notes/alias.md")).text()).toContain(
+			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+		);
 	});
 
 	it("checks where a listed file leads again before reading it", async () => {
@@ -113,14 +120,18 @@ describe("pages", () => {
 		const response = await get("/");
 		const html = await response.text();
 		expect(html).not.toContain("Outside the folder");
-		expect(html).toContain('<article class="doc"><h1>Plan</h1>');
+		expect(html).toContain(
+			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+		);
 	});
 
 	it("links and serves files whose names contain # or ?", async () => {
 		notes.write("notes/c# & more?.md", "# Sharp\n");
 		const html = await (await get("/")).text();
 		expect(html).toContain('<a href="/notes/c%23%20%26%20more%3F.md">c# &amp; more?</a>');
-		expect(await (await get("/notes/c%23%20%26%20more%3F.md")).text()).toContain('<article class="doc"><h1>Sharp</h1>');
+		expect(await (await get("/notes/c%23%20%26%20more%3F.md")).text()).toContain(
+			'<article class="doc"><h1 id="heading-sharp" tabindex="-1">Sharp<a aria-label="Link to Sharp" class="heading-anchor" href="#heading-sharp"></a></h1>',
+		);
 	});
 
 	it("shows a readable error page for a listed file it cannot read", async () => {

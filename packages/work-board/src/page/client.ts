@@ -1,7 +1,9 @@
 export const client = `
 import "/_board/preferences.js";
 import { renderDiagrams } from "/_board/diagrams.js";
-import { remember, swap } from "/_board/swap.js";
+import { applyPage } from "/_board/page-state.js";
+import { pageVersion } from "/_board/navigation.js";
+import { remember } from "/_board/swap.js";
 
 const since = (modified) => {
   const seconds = Math.max(0, Math.round((Date.now() - modified) / 1000));
@@ -33,22 +35,23 @@ const show = () => {
 };
 
 const load = async () => {
+  const version = pageVersion();
+  const path = location.pathname + location.search;
   try {
-    const response = await fetch(location.pathname, { cache: "no-store" });
+    const response = await fetch(path, { cache: "no-store" });
     const next = new DOMParser().parseFromString(await response.text(), "text/html");
     const files = next.getElementById("files");
     const doc = next.getElementById("doc");
+    if (version !== pageVersion()) return;
     if (files === null || doc === null) {
       failure = "refresh failed (" + response.status + ")";
       return;
     }
     failure = "";
-    swap(document.getElementById("files"), files);
-    swap(document.getElementById("doc"), doc);
-    document.title = next.title;
+    applyPage(next, true);
     tick();
-    renderDiagrams(document);
   } catch {
+    if (version !== pageVersion()) return;
     failure = "refresh failed";
   }
 };
@@ -85,6 +88,7 @@ events.addEventListener("change", refresh);
 events.addEventListener("down", down);
 events.addEventListener("error", down);
 
+document.addEventListener("board-page", tick);
 tick();
 setInterval(tick, 5000);
 renderDiagrams(document);

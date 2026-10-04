@@ -70,6 +70,8 @@ const themeChanged = () => {
   const scheme = schemeNow();
   if (lastScheme === scheme) return;
   lastScheme = scheme;
+  const doc = document.getElementById("doc");
+  if (doc) doc.dataset.scheme = scheme;
   mermaid = undefined;
   renderDiagrams(document, "figure.diagram");
 };

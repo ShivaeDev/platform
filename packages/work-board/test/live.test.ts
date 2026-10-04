@@ -52,7 +52,9 @@ describe("live updates", () => {
 		notes.write("later/idea.md", "# Idea\n");
 		expect((await changesUntil(events, "later/idea.md")).at(-1)).toContain("later/idea.md");
 		const page = await (await fetch(`${board.url}/later/idea.md`)).text();
-		expect(page).toContain('<article class="doc"><h1>Idea</h1>');
+		expect(page).toContain(
+			'<article class="doc"><h1 id="heading-idea" tabindex="-1">Idea<a aria-label="Link to Idea" class="heading-anchor" href="#heading-idea"></a></h1>',
+		);
 		expect(page).toContain('<a href="/later/idea.md" aria-current="page">idea</a>');
 		events.close();
 	});
@@ -130,7 +132,9 @@ describe("a folder whose own name starts with a dot", () => {
 		expect(home).toContain("<span><b>1</b> to do</span>");
 		expect(home).toContain('<a href="/notes/log.md">log</a>');
 		expect(home).not.toContain(">x<");
-		expect(await (await fetch(`${dotBoard.url}/notes/log.md`)).text()).toContain('<article class="doc"><h1>Log</h1>');
+		expect(await (await fetch(`${dotBoard.url}/notes/log.md`)).text()).toContain(
+			'<article class="doc"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
+		);
 		expect((await fetch(`${dotBoard.url}/.hidden/x.md`)).status).toBe(404);
 		expect((await fetch(`${dotBoard.url}/node_modules/x.md`)).status).toBe(404);
 		const events = await subscribe(dotBoard);

@@ -1,0 +1,45 @@
+export function pageStateScript(): string {
+	return `
+import { remember, swap } from "/_board/swap.js";
+import { renderDiagrams } from "/_board/diagrams.js";
+import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
+import { refreshLibrary } from "/_board/library.js";
+
+export const capturePage = () => {
+  const page = document.implementation.createHTMLDocument(document.title);
+  for (const id of ["files", "doc", "breadcrumbs"]) page.body.append(document.getElementById(id).cloneNode(true));
+  return { page, reading: captureReading() };
+};
+
+export const applyPage = (page, preserve = false) => {
+  const incoming = page.getElementById("doc");
+  const current = document.getElementById("doc");
+  if (!incoming || !page.getElementById("files")) return false;
+  const reading = preserve ? captureReading() : null;
+  const cachedScheme = incoming.dataset.scheme;
+  if (preserve && current.dataset.file === incoming.dataset.file) {
+    swap(current, incoming);
+  } else {
+    current.replaceWith(document.importNode(incoming, true));
+    remember(document.getElementById("doc"));
+  }
+  const doc = document.getElementById("doc");
+  doc.className = incoming.className;
+  doc.dataset.file = incoming.dataset.file;
+  doc.dataset.url = incoming.dataset.url;
+  doc.dataset.scheme = document.documentElement.dataset.scheme;
+  swap(document.getElementById("files"), page.getElementById("files"));
+  const crumbs = page.getElementById("breadcrumbs");
+  if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
+  if (!preserve) {
+    document.querySelector('#files a[aria-current="page"]')?.closest("details")?.setAttribute("open", "");
+  }
+  refreshLibrary(!preserve);
+  if (reading) restoreReading({ ...reading, selection: null }, false);
+  renderDiagrams(document, cachedScheme && cachedScheme !== doc.dataset.scheme ? "figure.diagram" : undefined);
+  reportMissingPassage();
+  document.dispatchEvent(new Event("board-page"));
+  return true;
+};
+`;
+}

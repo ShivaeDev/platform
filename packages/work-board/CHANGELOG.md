@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add heading passage links and an outline, in-place document navigation with
+  back/forward reading-state restoration, workspace-scoped favorites and recents,
+  active document titles, and readable missing-document/passage states.
+- Resolve Markdown links relative to the source file, including nested home
+  files served at `/`. Ignore stale page responses after navigation and render
+  cached diagrams using the current theme.
 - Add the first workspace shell: a collapsible file sidebar, file location,
   responsive board columns, readable documents, and keyboard skip navigation.
   Remember theme, density, and sidebar choices per folder and server origin;
