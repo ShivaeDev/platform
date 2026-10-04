@@ -81,7 +81,8 @@ and settle from its outcome, so a commit that lands after the interruption still
 publishes.
 
 [`@shivaedev/effect-changes-prisma`](../../packages/effect-changes-prisma) is
-that binding for Prisma Classic; see [Prisma Classic](#prisma-classic).
+that binding for Prisma Classic on PostgreSQL only; see
+[Prisma Classic](#prisma-classic).
 
 ## Prisma Classic
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2 - 2026-10-04
+
+### Fixed
+
+- When `quality fix` stops after 5 rounds, it names every file a pass rewrote in the last round, also one that the fix pass changed and the format pass changed back. If none of them is a file it reads, it says so and how to list them.
+- The snapshot `quality fix` takes for its last round holds text files only and leaves binary files out.
+- `quality adopt` and an `adopt` key in the config say that `adopt` was removed in 0.7.0 and to run `quality baseline write --rule <id>` instead.
+- Output into a pipe that closes early, as in `quality --help | head`, no longer crashes with `EPIPE`. Quality stops writing and exits with its own code.
+
 ## 0.7.1 - 2026-10-04
 
 ### Changed

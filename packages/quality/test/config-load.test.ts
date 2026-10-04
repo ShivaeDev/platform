@@ -89,12 +89,12 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 		}),
 	);
 
-	it.effect("refuses adopt, which the config no longer takes", () =>
+	it.effect("refuses adopt, which the config no longer takes, and names what replaced it", () =>
 		Effect.gen(function* () {
 			const root = seedTree([config('{ adopt: ["comments/no-todo"] }')]);
-			const text = yield* failureOf(root);
-			expect(text).toContain("is invalid");
-			expect(text).toContain("adopt");
+			expect(yield* failureOf(root)).toContain(
+				"adopt: removed in quality 0.7.0. Delete the key, and record a rule's existing findings with `quality baseline write --rule <id>`.",
+			);
 		}),
 	);
 

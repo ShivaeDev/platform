@@ -627,7 +627,7 @@
 {"path":"packages/quality/test/config.typecheck.test.ts","rule":"imports/aliased","count":1}
 {"path":"packages/quality/test/define-rule.test.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/test/fences.typecheck.test.ts","rule":"imports/aliased","count":1}
-{"path":"packages/quality/test/fix-settle.test.ts","rule":"imports/aliased","count":1}
+{"path":"packages/quality/test/fix-settle.test.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/test/gitignore.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/test/gitignore.test.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/quality/test/gitignore.test.ts","rule":"imports/aliased","count":3}
@@ -654,6 +654,7 @@
 {"path":"packages/quality/test/registry.test.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/test/report.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/quality/test/report.test.ts","rule":"imports/aliased","count":3}
+{"path":"packages/quality/test/run-main.test.ts","rule":"imports/aliased","count":1}
 {"path":"packages/quality/test/run-rules.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/test/run-rules.test.ts","rule":"imports/aliased","count":3}
 {"path":"packages/quality/test/support/cli.ts","rule":"imports/aliased","count":1}
