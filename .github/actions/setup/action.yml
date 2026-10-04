@@ -1,0 +1,15 @@
+name: Set up workspace
+description: Install the pinned Node.js and pnpm versions with the shared pnpm store cache.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: 26.10.0
+        package-manager-cache: false
+    - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      with:
+        cache: true
+        cache_dependency_path: pnpm-lock.yaml
+    - shell: bash
+      run: pnpm install --frozen-lockfile

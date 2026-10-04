@@ -1138,7 +1138,6 @@
 {"path":"script/lint/violation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lint/workspace.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"script/lint/workspace.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
-{"path":"script/package-check.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":4}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useValidTestTitle","count":1}

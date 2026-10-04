@@ -31,6 +31,7 @@ export const checkConsumer = (
 	packages: readonly Package[],
 	catalog: Readonly<Record<string, string>>,
 	consumer: string,
+	store: string,
 	scenario?: Scenario,
 ) =>
 	Effect.gen(function* () {
@@ -77,7 +78,7 @@ export const checkConsumer = (
 				)
 				.join("\n"),
 		);
-		yield* command(consumer, "pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", join(root, ".pnpm-store")]);
+		yield* command(consumer, "pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", store]);
 		yield* checkEffectCopies(consumer, catalog);
 		yield* checkBrowserEntries(root, pkg, consumer);
 		if (scenario?.omitOptionalPeers) {
