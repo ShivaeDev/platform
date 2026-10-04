@@ -6,7 +6,6 @@ import { decodeRegistry, type RegistryEntry } from "../exceptions/registry.ts";
 import { SetupFailure } from "../failure.ts";
 import { collectInventory, type Inventory } from "../inventory/collect.ts";
 import { type FilesystemFailure, readOptionalText } from "../inventory/filesystem.ts";
-import type { RuleInputs } from "../rule.ts";
 import { type BaselineFile, readBaseline, readInput } from "./baseline-file.ts";
 import { runRules } from "./run-rules.ts";
 import type { Violation } from "./violation.ts";
@@ -23,20 +22,13 @@ const setup = <Value, Requirements>(
 	effect: Effect.Effect<Value, FilesystemFailure, Requirements>,
 ): Effect.Effect<Value, SetupFailure, Requirements> => Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
 
-export function ruleInputs(config: ResolvedConfig): Effect.Effect<RuleInputs, SetupFailure, FileSystem.FileSystem> {
-	return Effect.gen(function* () {
+export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> =>
+	Effect.gen(function* () {
 		const inventory = yield* setup(collectInventory(config.root, config));
 		const services = yield* Effect.context<FileSystem.FileSystem>();
 		const readText = (path: string): Promise<string | undefined> => Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
-		return { files: inventory.files, readText, root: config.root, sources: inventory.sources };
-	});
-}
-
-export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const inputs = yield* ruleInputs(config);
-		const violations = yield* runRules(config.active, inputs);
-		return { inventory: { files: inputs.files, sources: inputs.sources }, violations };
+		const violations = yield* runRules(config.active, { files: inventory.files, readText, root: config.root, sources: inventory.sources });
+		return { inventory, violations };
 	});
 
 export const openSession = (cwd: string, configPath: string | undefined): Effect.Effect<Session, SetupFailure, FileSystem.FileSystem> =>

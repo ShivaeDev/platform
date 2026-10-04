@@ -1,30 +1,24 @@
-import { type Relocation, relocations } from "../../imports/aliases/relocations.ts";
+import { type Departure, departures } from "../../imports/departures.ts";
 import { defineRule } from "../../rule.ts";
 
-function messageOf({ declarationOnly, replacement, specifier, target }: Relocation): string {
+function messageOf({ installed, specifier, workspace }: Departure): string {
 	const leaves = `"${specifier}" leaves its folder.`;
-	if (replacement !== undefined) {
-		return `${leaves} Import it as "${replacement}"; \`quality fix\` rewrites it.`;
+	if (installed !== undefined) {
+		return `${leaves} It reaches into the installed package ${installed}; import that package by its name.`;
 	}
-	if (declarationOnly) {
-		return `${leaves} It resolves only to a declaration file, which a runtime import cannot load, so no alias can stand in for it.`;
+	if (workspace !== undefined) {
+		return `${leaves} It reaches into the workspace package ${workspace}; import it by that name, through a path its package.json "exports" lists.`;
 	}
-	if (target === undefined) {
-		return `${leaves} It resolves to no file yet, so no alias can stand in for it. Import it through an alias once it exists.`;
-	}
-	if (target.kind === "external") {
-		return `${leaves} It reaches into the installed package ${target.package}. Import the package by its name.`;
-	}
-	return `${leaves} No package.json alias loads ${target.path} under every condition. Declare one in package.json "imports", then run \`quality fix\`.`;
+	return `${leaves} Import it through a "#…" alias from the "imports" of its package.json, and declare one there if none fits.`;
 }
 
 export const importsAliased = defineRule({
 	check: async (inputs) =>
-		(await relocations(inputs)).map((relocation) => ({
-			file: relocation.file,
-			line: relocation.line,
-			message: messageOf(relocation),
-			subject: relocation.specifier,
+		(await departures(inputs)).map((departure) => ({
+			file: departure.file,
+			line: departure.line,
+			message: messageOf(departure),
+			subject: departure.specifier,
 		})),
 	description:
 		"A relative import names only a file in its own folder. Every other import goes through an alias: the package.json `imports` of its package or another workspace package's name.",

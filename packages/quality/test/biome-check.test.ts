@@ -98,7 +98,7 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\n", path: "src/b.ts" });
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout: "quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\n",
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\n",
 		});
 		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
 		expect(quality(root, "lint").status).toBe(0);
@@ -108,8 +108,7 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, processGlobal, escapedString);
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout:
-				"quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 0 files.\n",
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 0 files.\n",
 		});
 		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(processGlobal.content);
 		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe(escapedString.content);
@@ -119,8 +118,7 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, processGlobal, escapedString);
 		expect(quality(root, "fix", "--lint")).toMatchObject({
 			status: 0,
-			stdout:
-				"quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 2 files.\n",
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 2 files.\n",
 		});
 		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(`import process from "node:process";\n${processGlobal.content}`);
 		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe('a::before {\n\tcontent: "y";\n}\n');
@@ -131,5 +129,37 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, neverSettles);
 		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
 		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
+	});
+
+	it("groups imports as builtins, packages, @shivaedev packages, aliases and same-folder paths", () => {
+		const mixed: SeedFile = {
+			content: [
+				'import { local } from "./local.ts";',
+				'import { format } from "#lib/format.ts";',
+				'import { quality } from "@shivaedev/quality";',
+				'import { Effect } from "effect";',
+				'import { test } from "bun:test";',
+				'import { scoped } from "@scope/thing";',
+				'import { readFileSync } from "node:fs";',
+				"export const all = [local, format, quality, Effect, test, scoped, readFileSync];",
+				"",
+			].join("\n"),
+			path: "src/mixed.ts",
+		};
+		const root = repository(preset, mixed);
+		quality(root, "fix");
+		expect(readFileSync(join(root, mixed.path), "utf8")).toBe(
+			[
+				'import { test } from "bun:test";',
+				'import { readFileSync } from "node:fs";',
+				'import { scoped } from "@scope/thing";',
+				'import { Effect } from "effect";',
+				'import { quality } from "@shivaedev/quality";',
+				'import { format } from "#lib/format.ts";',
+				'import { local } from "./local.ts";',
+				"export const all = [local, format, quality, Effect, test, scoped, readFileSync];",
+				"",
+			].join("\n"),
+		);
 	});
 });

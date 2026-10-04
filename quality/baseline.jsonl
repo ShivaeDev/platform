@@ -515,7 +515,6 @@
 {"path":"packages/quality/src/cli/baseline.ts","rule":"imports/aliased","count":8}
 {"path":"packages/quality/src/cli/check.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/cli/check.ts","rule":"imports/aliased","count":12}
-{"path":"packages/quality/src/cli/fix-imports.ts","rule":"imports/aliased","count":10}
 {"path":"packages/quality/src/cli/fix.ts","rule":"imports/aliased","count":5}
 {"path":"packages/quality/src/cli/lint.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/cli/lint.ts","rule":"imports/aliased","count":4}
@@ -542,7 +541,7 @@
 {"path":"packages/quality/src/engine/run-rules.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
 {"path":"packages/quality/src/engine/run-rules.ts","rule":"imports/aliased","count":3}
 {"path":"packages/quality/src/engine/session.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/quality/src/engine/session.ts","rule":"imports/aliased","count":7}
+{"path":"packages/quality/src/engine/session.ts","rule":"imports/aliased","count":6}
 {"path":"packages/quality/src/engine/violation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":8}
 {"path":"packages/quality/src/engine/violation.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/src/exceptions/registry.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
@@ -554,8 +553,7 @@
 {"path":"packages/quality/src/git/history.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/quality/src/git/history.ts","rule":"biome/lint/nursery/useValidTestTitle","count":1}
 {"path":"packages/quality/src/git/history.ts","rule":"imports/aliased","count":1}
-{"path":"packages/quality/src/imports/aliases/relocations.ts","rule":"imports/aliased","count":6}
-{"path":"packages/quality/src/imports/aliases/scope.ts","rule":"imports/aliased","count":2}
+{"path":"packages/quality/src/imports/departures.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/src/imports/fences/evaluate.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/src/imports/fences/match.ts","rule":"imports/aliased","count":2}
 {"path":"packages/quality/src/imports/fences/policy.ts","rule":"imports/aliased","count":2}
@@ -668,7 +666,6 @@
 {"path":"packages/quality/test/import-graph.test.ts","rule":"imports/aliased","count":6}
 {"path":"packages/quality/test/imports-aliased.test.ts","rule":"imports/aliased","count":5}
 {"path":"packages/quality/test/imports-cli.test.ts","rule":"imports/aliased","count":3}
-{"path":"packages/quality/test/imports-fix.test.ts","rule":"imports/aliased","count":4}
 {"path":"packages/quality/test/inventory.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/test/inventory.test.ts","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/quality/test/inventory.test.ts","rule":"imports/aliased","count":4}
