@@ -107,9 +107,13 @@ const BUILT = '{ "#*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "d
 
 const NESTED = '{ "#*.ts": { "source": "./src/*.ts", "types": "./dist/src/*.d.ts", "default": "./dist/src/*.js" } }';
 
+const TYPES_FIRST = '{ "#*.ts": { "types": "./dist/*.d.ts", "source": "./src/*.ts", "default": "./dist/*.js" } }';
+
 const EMIT = { compilerOptions: { declaration: true, outDir: "dist", rootDir: "src" }, include: ["src"] };
 
 const SOURCE_PROJECT = { compilerOptions: { customConditions: ["source"] }, extends: "../../tsconfig.json" };
+
+const MAPPING_PROJECT = { compilerOptions: { declaration: true, outDir: "dist", rootDir: "src" }, extends: "../../tsconfig.json" };
 
 interface BuiltShape {
 	readonly build?: unknown;
@@ -158,6 +162,15 @@ export const builtPackages: readonly SeedFile[] = [
 	json("packages/torn/tsconfig.build.json", EMIT),
 	...builtPackage("packages/flagged", { build: EMIT, project: SOURCE_PROJECT, scripts: '{ "build": "tsc -p tsconfig.emit.json --outDir lib" }' }),
 	...builtPackage("packages/broken", { build: { ...EMIT, extends: "./missing.json" }, project: SOURCE_PROJECT }),
+	...builtPackage("packages/mapped", { build: EMIT, project: MAPPING_PROJECT }),
+	...staleOutput("packages/mapped"),
+	...builtPackage("packages/mappedbare", { build: EMIT, project: MAPPING_PROJECT }),
+	...builtPackage("packages/mappedsource", {
+		build: EMIT,
+		project: { ...MAPPING_PROJECT, compilerOptions: { ...MAPPING_PROJECT.compilerOptions, customConditions: ["source"] } },
+	}),
+	...builtPackage("packages/typesfirst", { build: EMIT, imports: TYPES_FIRST, project: SOURCE_PROJECT }),
+	...staleOutput("packages/typesfirst"),
 ];
 
 export const fallbacklessEntries: readonly SeedFile[] = [

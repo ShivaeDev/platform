@@ -7,6 +7,7 @@ import { type Endpoint, resolveImport } from "../resolve.ts";
 import { type SpecifierSite, specifierSites } from "../specifiers.ts";
 import { workspacePackages } from "../workspace.ts";
 import { chooseAlias } from "./choose.ts";
+import { type LoadsSource, loadsSource } from "./declared.ts";
 import { type AliasScopes, aliasScopes } from "./scope.ts";
 
 export interface Relocation extends SpecifierSite {
@@ -47,8 +48,8 @@ function subjectsOf(spelled: string, target: string): readonly string[] {
 }
 
 interface FileContext {
-	readonly declared: (site: SpecifierSite, specifier: string) => Endpoint | undefined;
 	readonly from: string;
+	readonly loadsSource: LoadsSource;
 	readonly path: string;
 	readonly resolve: (site: SpecifierSite, specifier: string, type?: boolean) => Endpoint | undefined;
 }
@@ -71,11 +72,7 @@ async function relocationOf(context: FileContext, scopes: AliasScopes, site: Spe
 	const scope = await scopes(context.path, local);
 	const file = posix.join(root, local);
 	const subjects = subjectsOf(posix.join(posix.dirname(context.from), path), file);
-	// Build output stands in for the source only when the conditions the project declares already select the source.
-	const alias = chooseAlias(scope, subjects, file, (candidate) => {
-		const reached = context.declared(site, `${candidate}${query}`);
-		return reached?.kind === "file" && reached.path === local;
-	});
+	const alias = chooseAlias(scope, subjects, file, (candidate) => context.loadsSource(candidate, file));
 	return { ...relocation, replacement: alias === undefined ? undefined : `${alias}${query}` };
 }
 
@@ -92,14 +89,10 @@ export async function relocations(inputs: RuleInputs): Promise<readonly Relocati
 		}
 		const from = posix.join(root, file.path);
 		const project = projectOf(from);
-		const declaredProject = declaredProjectOf(from);
 		function resolve(site: SpecifierSite, specifier: string, type = site.type): Endpoint | undefined {
 			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type }, from, project);
 		}
-		function declared(site: SpecifierSite, specifier: string): Endpoint | undefined {
-			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type: site.type }, from, declaredProject);
-		}
-		const context = { declared, from, path: file.path, resolve };
+		const context = { from, loadsSource: loadsSource(declaredProjectOf(from), from), path: file.path, resolve };
 		for (const site of specifierSites(syntax)) {
 			const relocation = await relocationOf(context, scopes, site, root);
 			found.push(...(relocation === undefined ? [] : [relocation]));

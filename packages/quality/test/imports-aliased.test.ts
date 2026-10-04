@@ -109,10 +109,14 @@ describe("imports/aliased", () => {
 			["packages/elsewhere/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/fallback/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
 			["packages/flagged/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/mapped/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/mappedbare/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/mappedsource/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
 			["packages/shipped/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
 			["packages/split/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/stale/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/torn/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/typesfirst/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/unbuilt/src/feature/use.ts:1", "../lib/x.ts", undefined],
 		]);
 	});
