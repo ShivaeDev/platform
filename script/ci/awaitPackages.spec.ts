@@ -8,7 +8,7 @@ import { test as it } from "node:test";
 it("waits for this attempt's artifact and fails immediately when its producer or API fails", () => {
 	const root = mkdtempSync(join(tmpdir(), "platform-await-packages-"));
 	const action = readFileSync(".github/actions/await-packages/action.yml", "utf8");
-	const script = action.split("      run: |\n")[1]?.split("    - uses:")[0]?.replace(/^ {8}/gmu, "");
+	const script = action.split("      run: |\n")[1]?.split("    - uses:")[0]?.replace(/^ {8}/gmu, "") ?? "";
 	assert.ok(script);
 	const calls = join(root, "calls");
 	const pending = join(root, "pending");
