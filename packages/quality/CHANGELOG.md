@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-10-04
+
+### Changed
+
+- Autofixes that can change behavior or delete something written on purpose now report only, for 20 lint rules and one assist, and the author decides the fix: an autofix added the `u` flag to a regex later compiled by Go's regexp, and another dropped the sign of a computed index. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex` and `noParametersOnlyUsedInRecursion` at `error` with their fixes off, as `noUnusedPrivateClassMembers` already was, and `quality fix` skips `noDuplicateObjectKeys` and the `useSortedKeys` assist, whose fixes Biome's config cannot turn off. `quality lint` reports them all as before.
+
 ## 0.7.0 - 2026-10-04
 
 ### Changed
