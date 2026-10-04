@@ -36,7 +36,8 @@
 		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-changes": "workspace:*"
+		"@shivaedev/effect-changes": "workspace:*",
+		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
 		"@prisma/adapter-pg": "catalog:",

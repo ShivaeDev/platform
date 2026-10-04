@@ -1,0 +1,10 @@
+import type { Bivariant } from "@shivaedev/types"
+
+const handleName = (name: string): number => name.length
+
+export const bivariant: { readonly handle: Bivariant<(value: unknown) => number> } = { handle: handleName }
+
+export const returnChecked: { readonly handle: Bivariant<(value: unknown) => string> } = {
+  // @ts-expect-error Bivariant keeps the return type covariant through the packed declarations.
+  handle: handleName,
+}

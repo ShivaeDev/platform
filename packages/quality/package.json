@@ -51,6 +51,7 @@
 	},
 	"dependencies": {
 		"@biomejs/biome": "catalog:",
+		"@shivaedev/types": "workspace:*",
 		"ignore": "catalog:",
 		"sort-package-json": "catalog:",
 		"typescript": "catalog:"

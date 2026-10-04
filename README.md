@@ -39,6 +39,8 @@ implementation and acceptance criteria.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
   rules, a shrink-only baseline, a registry of reasoned exceptions and shared
   tsconfig presets.
+- [`@shivaedev/types`](./packages/types): Type-only helpers shared by the
+  packages, such as `Bivariant`.
 - [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
   heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
