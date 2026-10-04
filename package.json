@@ -11,8 +11,7 @@
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts",
 		"format": "node packages/quality/src/cli.ts fix",
 		"heavy": "node packages/heavy-lock/src/cli.ts --",
-		"lint": "node script/lint.ts && pnpm lint:quality && pnpm lint:boundaries",
-		"lint:boundaries": "node script/lint-boundaries.ts",
+		"lint": "node script/lint.ts && pnpm lint:quality",
 		"lint:quality": "node packages/quality/src/cli.ts lint && node packages/quality/src/cli.ts baseline check",
 		"ready": "pnpm lint && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
 		"setup": "pnpm install --frozen-lockfile && pnpm db:setup",
@@ -28,7 +27,6 @@
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
-		"dependency-cruiser": "catalog:",
 		"effect": "catalog:",
 		"ignore": "catalog:",
 		"typescript": "catalog:"

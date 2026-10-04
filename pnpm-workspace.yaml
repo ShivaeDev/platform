@@ -26,7 +26,6 @@ catalog:
   mermaid: 11.16.1
   ignore: 7.0.6
   sort-package-json: 4.0.0
-  dependency-cruiser: 18.1.1
   "@prisma-next/adapter-postgres": 0.15.0
   "@prisma-next/adapter-sqlite": 0.15.0
   "@prisma-next/cli": 0.15.0

@@ -195,6 +195,65 @@ A package that ships a preset declares the weakenings the preset makes in a `dec
 
 A weakening the preset makes without such a declaration is reported at the line of the repository's `extends` entry, and the repository's own declaration covers it. A weakening the repository adds beyond the preset needs its own declaration, and a repository declaration that repeats one the preset ships is reported until it is removed. A preset entry that cannot be resolved or read, or whose `declarations.json` is invalid, is reported at the `extends` entry as well.
 
+### Imports
+
+Three rules read the import graph of the TypeScript and JavaScript modules among the sources. They build it once per run with the TypeScript compiler, without a bundler or another dependency.
+
+| Rule | Reports | Options |
+| --- | --- | --- |
+| `imports/cycles` | Modules that import each other at run time | none |
+| `imports/resolvable` | An import that resolves to nothing | `generated` |
+| `imports/fences` | An import that crosses a fence the config declares | `fences` |
+
+Each import resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. The graph reads static and dynamic imports, `export ... from`, `require()`, `require.resolve()`, `import.meta.resolve()` of a bare specifier (a relative one is URL arithmetic that never checks the path), `import()` types, `/// <reference types>`, `/// <reference path>` and JSDoc `@import` tags.
+
+- An import of a stylesheet, an image or JSON resolves to the file, and only when the file exists, whatever declaration describes it. A Node builtin resolves.
+- A runtime import must resolve to code: a declaration file (`.d.ts`, `.d.mts`, `.d.cts`, or an asset declaration such as `.d.css.ts`) satisfies only `import type` and `export type`, however the import reaches it, so a package that has only its `@types` package installed, or an `exports` entry that points at a declaration, is reported.
+- A bare import resolves when a declaration file of the importer's tsconfig project declares the module in a script (`declare module "virtual:*"`). A relative import always needs a real file, `declare module "*"` and patterns with more than one `*` never count, and a `declare module` inside a module is an augmentation, which declares nothing new.
+- A relative import of a missing file resolves only inside a folder that `generated` names, such as a client a generator writes before the tests run. Each folder must be ignored by git, or at least every file an import names in it must be, hold no file git tracks but a `.gitkeep` or `.keep` placeholder, lie outside `node_modules` and hold a file that an import names. The import stays an edge to its path, so fences apply to it before the file exists.
+- A module that resolves into `node_modules` or outside the root is external, and its package is the one it resolves into, whatever alias the import uses. A `@types` package counts as the package it describes: `@types/hast` is `hast`, `@types/scope__name` is `@scope/name`.
+
+```ts
+"imports/resolvable": { options: { generated: ["packages/db/test/generated"] } },
+```
+
+`imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
+
+The gate fails closed: when the sources hold no module at all, the imports rules stop the run instead of passing on an empty graph. Point `sources` at the code, or turn the rules off.
+
+#### Fences
+
+A fence is one prohibition, stated in the config without patterns:
+
+```ts
+import { defineConfig, external, fence, folders, packages } from "@shivaedev/quality";
+
+const fences = [
+	fence("ui-never-imports-server")
+		.because("The UI ships to browsers.")
+		.from(folders("packages/ui/src"))
+		.mayNotImport(packages("server"))
+		.demonstratedBy({
+			illegal: ["packages/ui/src/index.ts", "packages/server/src/index.ts"],
+			legal: ["packages/ui/src/index.ts", external("effect")],
+		}),
+];
+
+export default defineConfig({ rules: { "imports/fences": { options: { fences } } } });
+```
+
+A fence has a name, a reason, the modules it holds (`from`) and one prohibition:
+
+- `mayNotImport(target)`: no module it holds imports the target.
+- `mayNotReach(target)`: nothing a module it holds imports, directly or through other modules of the repository, is the target. The finding names the path.
+- `mayImportOnly(...subjects).of(unit)`: the modules it holds import only the named modules or folders directly in a package's `src` folder (or the package folder) or in a folder.
+
+Targets are `packages(...)` (workspace packages by name, with or without their scope; a workspace package is a named `package.json` that `pnpm-workspace.yaml` or the root `package.json` `workspaces` includes, with `*`, `**`, `?`, `{a,b}` and `[...]` in its patterns, none of which match a folder whose name starts with `.` unless the pattern spells the dot, and a `packages` list or pattern the gate cannot read stops the run, and it holds every file below it that no deeper workspace package holds), `folders(...)`, `files(...)`, `modules(...)` (external packages by package name, and Node builtins), `scopes(...)` (every external package of a scope), `anyOf(...)`, `workspace` (every workspace package) and `anything`. Each takes `.except(...)`.
+
+The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
+
+A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
+
 ### Manifests
 
 `manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no registry exceptions.
@@ -403,4 +462,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
