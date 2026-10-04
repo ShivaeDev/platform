@@ -1,8 +1,8 @@
 import type { TestContext } from "@effect/vitest";
+import { Effect, type Layer } from "effect";
 import { type AnyDatabase, withTestTransaction } from "@shivaedev/effect-prisma/testing";
 import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc";
 import { type CallerOptions, type CallerResult, type EffectCallerFactory, makeTrpcHarnessIt } from "@shivaedev/effect-trpc/testing";
-import { Effect, type Layer } from "effect";
 import type { MakePlatformItOptions, PlatformHarness, PlatformIt } from "./types.ts";
 
 interface LooseOptions {

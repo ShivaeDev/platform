@@ -1,5 +1,5 @@
-import { all, and, not, or } from "@shivaedev/effect-prisma";
 import type { Where } from "better-auth";
+import { all, and, not, or } from "@shivaedev/effect-prisma";
 
 export type CleanedWhere = Required<Where>;
 export type Expression = Parameters<typeof and>[number];

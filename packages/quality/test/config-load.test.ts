@@ -41,6 +41,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"imports/cycles",
 				"imports/fences",
 				"imports/resolvable",
+				"imports/aliased",
 				"manifests/sorted",
 			]);
 			expect([...loaded.unregistrable]).toEqual([

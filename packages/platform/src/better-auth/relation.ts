@@ -1,5 +1,5 @@
-import { all } from "@shivaedev/effect-prisma";
 import type { Effect, Option } from "effect";
+import { all } from "@shivaedev/effect-prisma";
 import { type CleanedWhere, type DynamicField, type Expression, whereExpression } from "./where.ts";
 
 export interface DynamicRelation<Requirements> extends Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements> {

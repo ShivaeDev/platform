@@ -130,4 +130,36 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
 		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
 	});
+
+	it("groups imports as builtins, packages, @shivaedev packages, aliases and same-folder paths", () => {
+		const mixed: SeedFile = {
+			content: [
+				'import { local } from "./local.ts";',
+				'import { format } from "#lib/format.ts";',
+				'import { quality } from "@shivaedev/quality";',
+				'import { Effect } from "effect";',
+				'import { test } from "bun:test";',
+				'import { scoped } from "@scope/thing";',
+				'import { readFileSync } from "node:fs";',
+				"export const all = [local, format, quality, Effect, test, scoped, readFileSync];",
+				"",
+			].join("\n"),
+			path: "src/mixed.ts",
+		};
+		const root = repository(preset, mixed);
+		quality(root, "fix");
+		expect(readFileSync(join(root, mixed.path), "utf8")).toBe(
+			[
+				'import { test } from "bun:test";',
+				'import { readFileSync } from "node:fs";',
+				'import { scoped } from "@scope/thing";',
+				'import { Effect } from "effect";',
+				'import { quality } from "@shivaedev/quality";',
+				'import { format } from "#lib/format.ts";',
+				'import { local } from "./local.ts";',
+				"export const all = [local, format, quality, Effect, test, scoped, readFileSync];",
+				"",
+			].join("\n"),
+		);
+	});
 });

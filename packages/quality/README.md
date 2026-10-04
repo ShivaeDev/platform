@@ -197,13 +197,14 @@ A weakening the preset makes without such a declaration is reported at the line 
 
 ### Imports
 
-Three rules read the import graph of the TypeScript and JavaScript modules among the sources. They build it once per run with the TypeScript compiler, without a bundler or another dependency.
+Four rules read the imports of the TypeScript and JavaScript modules among the sources. They build it once per run with the TypeScript compiler, without a bundler or another dependency.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `imports/cycles` | Modules that import each other at run time | none |
 | `imports/resolvable` | An import that resolves to nothing | `generated` |
 | `imports/fences` | An import that crosses a fence the config declares | `fences` |
+| `imports/aliased` | A relative import that leaves its own folder | none |
 
 Each import resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. The graph reads static and dynamic imports, `export ... from`, `require()`, `require.resolve()`, `import.meta.resolve()` of a bare specifier (a relative one is URL arithmetic that never checks the path), `import()` types, `/// <reference types>`, `/// <reference path>` and JSDoc `@import` tags.
 
@@ -220,6 +221,23 @@ Each import resolves the way the compiler resolves it, with the options of the n
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 The gate fails closed: when the sources hold no module at all, the imports rules stop the run instead of passing on an empty graph. Point `sources` at the code, or turn the rules off.
+
+#### Aliases
+
+A relative import names only a file in its own folder, such as `./format.ts`: the folder is one module. Every other import goes through an alias, so moving a file never rewrites a chain of `../`:
+
+- the `imports` of the importer's nearest `package.json`, such as `"#lib/*": "./src/lib/*"`, or `"#shared/*": "@demo/shared/*"`, which names another workspace package;
+- the name of another workspace package, as far as its `exports` reach.
+
+An import that already goes through a tsconfig `paths` alias is not relative, so the rule leaves it alone.
+
+`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. An escaped path, such as `"\x2e\x2e/format.ts"`, counts as the path it spells. Each finding has the import as its subject. Its message names the fix for where the import lands:
+
+- inside its own package: import through a `#` alias from the `imports` of the package's `package.json`, and declare one if none fits;
+- inside another workspace package: import it by that package's name, through a path its `exports` lists;
+- inside an installed package under `node_modules`: import that package by its name.
+
+The rule only reports; nothing rewrites the import. Whoever writes the import picks the alias, because only they know which conditions their runtimes, bundler and tests use.
 
 #### Fences
 
@@ -389,6 +407,7 @@ The preset sets:
 
 - **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line.
 - **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `noEqualsToNull`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `readonly T[]` arrays, `noFloatingPromises`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, no barrel files and no `export *`.
+- **Imports:** organized in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases and relative paths. Biome counts as an alias a specifier that starts with `#`, `@/`, `~`, `$` or `%`; a tsconfig path such as `@app/*` sorts with the packages, and Biome's `noUndeclaredDependencies` takes it for one, so name aliases in a form Biome recognizes.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike; `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and that ask `Effect.fn` for a literal span name shaped `Owner.operation`. They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.

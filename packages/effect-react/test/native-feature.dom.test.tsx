@@ -1,6 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
-import { makeRepository } from "@shivaedev/effect-sql";
 import { Effect, Layer, Option, Schema } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
@@ -10,6 +9,7 @@ import { SqlClient } from "effect/unstable/sql";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
+import { makeRepository } from "@shivaedev/effect-sql";
 import { useAction, useQuery } from "../src/index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0 - 2026-10-04
+
+### Added
+
+- Add `imports/aliased`. A relative import may name only a file in its own folder; one that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`) is reported, in static imports, re-exports, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock` and its kin. The message names the fix for where the import lands: a `#` alias from the `imports` of its own package's `package.json`, declared if none fits; the name of another workspace package, through a path its `exports` lists; or the name of an installed package. The rule only reports: the author picks the alias. Like every rule it is an error by default, so a repository that upgrades adopts it into its baseline.
+
+### Changed
+
+- The Biome preset organizes imports in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases (`#…`, `@/…`, `~…`) and relative paths. `quality fix` regroups the imports of every file once; until then each file out of order is a `biome/assist/source/organizeImports` finding.
+
 ## 0.5.1 - 2026-10-04
 
 ### Changed
