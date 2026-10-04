@@ -1,6 +1,6 @@
 import { Cause, Clock, type Duration, Effect, Exit } from "effect";
 import { type PrismaError, TransactionExpired } from "#index.ts";
-import type { PrismaClient } from "../generated/client.ts";
+import type { PrismaClient } from "#test/generated/client.ts";
 import type { makeChanges } from "./changes.ts";
 
 export type Changes = ReturnType<typeof makeChanges>["changes"];
