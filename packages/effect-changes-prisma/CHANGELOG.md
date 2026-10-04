@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-10-04
+
+### Changed
+
+- The README and the package description say plainly that the package works with PostgreSQL only.
+
 ## 0.3.0 - 2026-10-04
 
 ### Changed

@@ -35,6 +35,10 @@ describe("command line", () => {
 		[["baseline", "check"], "baseline takes write, prune, tighten or migrate"],
 		[["baseline", "write", "now"], "unknown command"],
 		[["check"], "unknown command"],
+		[
+			["adopt", "comments/no-todo"],
+			"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`",
+		],
 	])("rejects %j", (args, problem) => {
 		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });
 	});
