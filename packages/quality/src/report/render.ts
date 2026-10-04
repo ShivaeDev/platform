@@ -73,6 +73,17 @@ const summary = (outcome: Outcome, context: ReportContext): string => {
 	return `${verdict}${warnings}. ${plural(context.checked, "source file")} checked${suppressed}.`;
 };
 
+function rerecord(outcome: Outcome): readonly string[] {
+	const rules = [...new Set(outcome.errors.map((violation) => violation.rule))].sort((left, right) => left.localeCompare(right));
+	if (rules.length === 0) {
+		return [];
+	}
+	const command = ["quality baseline write", ...rules.map((rule) => `--rule ${rule}`)].join(" ");
+	return [
+		`If the baseline should keep these findings, such as the debt of a moved or renamed file, record them again with \`${command}\` and call out the baseline growth in the pull request description.`,
+	];
+}
+
 export const render = (outcome: Outcome, context: ReportContext): string => {
 	const regressions = new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
 	const warningBody = context.warnings === "all" ? (inRule: readonly Violation[]) => detailed(inRule, regressions) : summarized;
@@ -81,5 +92,6 @@ export const render = (outcome: Outcome, context: ReportContext): string => {
 		...ruleSections("warn", outcome.warnings, context, warningBody),
 		...staleSections(outcome, context),
 		summary(outcome, context),
+		...rerecord(outcome),
 	].join("\n\n");
 };

@@ -1,8 +1,8 @@
 # @shivaedev/quality
 
-One quality gate for a repository: typed rules, one report, a baseline that only shrinks and a registry of permanent exceptions, each with its reason.
+One quality gate for a repository: typed rules, one report, a baseline of existing debt and a registry of permanent exceptions, each with its reason.
 
-Every rule is an error by default. A repository adopts the gate at once: it records its existing violations in the baseline, and from then on a baselined file may not get worse, the baseline may not gain an entry or a higher number, and fixed debt leaves it as files change.
+Every rule is an error by default. A repository adopts the gate at once: it records its existing violations in the baseline, and from then on a finding the baseline does not cover fails, and fixed debt leaves the baseline as files change. A baseline that grows shows in the diff, where a reviewer judges it.
 
 ## Setup
 
@@ -42,8 +42,7 @@ export default defineConfig({
 | `exclude` | `[]` | Paths never checked, in `.gitignore` syntax. Files ignored by git, `.git` and `node_modules` are always skipped. |
 | `extensions` | TypeScript and JavaScript modules | Which files rules read as sources. |
 | `registry` | `quality/registry.json` | Permanent exceptions. |
-| `baseline` | `quality/baseline.jsonl` | Existing violations that may only shrink. |
-| `adopt` | `[]` | Rules the baseline takes in for the first time; see [Adopting a rule](#adopting-a-rule). |
+| `baseline` | `quality/baseline.jsonl` | Existing violations that the gate lets through. |
 | `local` | `[]` | The repository's own rules, made with `defineRule`. |
 | `rules` | every rule at `error` | A level per rule id, or `{ level, options }`. |
 
@@ -102,7 +101,7 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline, which only shrinks.
+A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
@@ -324,39 +323,19 @@ Lowering entries in the commit that fixes them keeps the baseline current withou
 ```sh
 quality baseline tighten --staged && git add quality/baseline.jsonl
 quality lint
-quality baseline check
 ```
 
 `tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds.
 
-### Baseline check
+### Baseline growth
 
-`quality lint` reads only the working tree, so on its own it cannot tell a raised entry from a recorded one: a hand edit, or deleting the baseline and writing it again, would hide new debt. `quality baseline check` compares the baseline with its version at the merge base of `HEAD` and the target branch, and fails when:
+A finding that the baseline does not cover always fails `quality lint`, locally and in CI; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
 
-- an entry is new, for a rule the base baseline already covers;
-- an entry's `count` is higher than at the base;
-- a rule is baselined for the first time without `adopt` naming it;
-- `adopt` names a rule with nothing baselined.
-
-It compares with the merge base, never the tip of the target branch, so a branch that is behind never fails for debt the target branch paid off since. An entry whose file git sees as moved since the merge base is compared with the entry at the old path. When the base holds the earlier JSON format at `quality/baseline.json`, the check converts it the way `migrate` does, so the change that migrates the baseline passes.
-
-The check reads git, not the sources, so it is cheap enough for every commit; only a base in the earlier format makes it run the rules. The target is `--against <ref>`, or else `origin/HEAD`, `origin/main` and then `origin/master`, whichever exists first. In a shallow clone that does not reach the merge base, it runs `git fetch --unshallow`, which never stops to ask for a password, and looks again. It exits 2 when there is no git work tree, no target or no merge base, including when that fetch fails; then check out with `fetch-depth: 0` in GitHub Actions, or fetch enough history for `git merge-base HEAD <target>` to succeed.
-
-### Adopting a rule
-
-A rule enters the baseline for the first time only while the config names it under `adopt`, so the adoption shows in the config's diff, not only in the baseline's:
-
-```ts
-export default defineConfig({
-	adopt: ["comments/no-jsdoc"],
-});
-```
-
-Run `quality baseline write --rule comments/no-jsdoc` with the rule at `error`, and commit both. `adopt` lets in only rules that the base baseline does not cover: once the adoption is merged, the rule's entries only shrink like any other. Leave the rule in `adopt` while it has debt; when its last entry is gone, the check fails until it is removed, so `adopt` cannot let the rule back in later. The first baseline of a repository adopts each of its rules the same way.
+A rule enters the baseline the same way: set it to `error`, run `quality baseline write --rule <id>` and commit both.
 
 ### Changing a limit
 
-A count depends on the configured limit, so changing a limit shifts every count of the rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit makes the rule's files fail `quality lint`, since each is now further over the limit. Run `quality baseline write --rule <id>` to record the rule again under the new limit, and commit it with the config change. `quality baseline check` then fails on the raised entries, as it does for any growth; the change merges only when an owner of the repository merges it over the failed check on purpose.
+A count depends on the configured limit, so changing a limit shifts every count of the rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit makes the rule's files fail `quality lint`, since each is now further over the limit. Run `quality baseline write --rule <id>` to record the rule again under the new limit, and commit it with the config change. The raised entries show in the diff, and the pull request calls them out.
 
 ## Registry
 
@@ -380,17 +359,16 @@ quality fix [--config <file>]
 quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
-quality baseline check [--config <file>] [--against <ref>]
 quality baseline migrate [--config <file>] [--from <file>]
 ```
 
-`quality` alone runs `lint`. `--against <ref>` names the branch the work merges into. The report groups violations by rule and states each rule's description once; warnings are summarized per rule with the files that have the most, and `--warnings all` lists each one.
+`quality` alone runs `lint`. `--against <ref>` names the branch the work merges into; `prune` follows the moves since its merge base. Without it, `prune` takes `origin/HEAD`, `origin/main` or `origin/master`, whichever exists first, and prunes without following moves when it finds no merge base. With `--against`, a missing merge base exits 2; in a shallow clone, run `git fetch --unshallow` first. The report groups violations by rule and states each rule's description once; warnings are summarized per rule with the files that have the most, and `--warnings all` lists each one.
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Passed. Warnings may remain. |
-| 1 | Failed: an uncovered error-level violation, a baselined file that got worse, a stale registry entry, a baseline entry for a rule that is off or unknown, or a baseline that grew against the merge base. |
-| 2 | Could not run: no or invalid config, an invalid baseline or registry, a baseline left in the earlier format, a missing source, a rule that threw, git history the check cannot read, or a usage error. |
+| 1 | Failed: an uncovered error-level violation, a baselined file that got worse, a stale registry entry, or a baseline entry for a rule that is off or unknown. |
+| 2 | Could not run: no or invalid config, an invalid baseline or registry, a baseline left in the earlier format, a missing source, a rule that threw, git history `prune --against` cannot read, a `quality fix` that does not settle in 5 rounds, or a usage error. |
 
 ## Biome preset
 
@@ -414,9 +392,9 @@ The preset sets:
 
 The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, and allows default exports in `*.config.*` files, which tools load through the default export. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
-The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `adopt: ["biome"]` and `quality baseline write --rule biome` take in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
+The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
-`quality fix` sorts every `package.json`, then runs `biome check --write --unsafe`, which applies Biome's lint fixes, unsafe ones included, its assist actions, such as organized imports and sorted keys, and its formatting. It then runs Biome's formatter once more, because a lint fix can leave code unformatted. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+`quality fix` sorts every `package.json`, then runs `biome check --write --unsafe`, which applies Biome's lint fixes, unsafe ones included, its assist actions, such as organized imports and sorted keys, and its formatting. It then runs Biome's formatter once more, because a lint fix can leave code unformatted. One fix can make room for another, so it repeats both passes until a round rewrites nothing, at most 5 rounds; when files still change in the fifth round, it names them and exits 2. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
 
 ## Vitest projects
 

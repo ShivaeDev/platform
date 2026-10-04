@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality, qualityWithin } from "./support/cli.ts";
-import { commitAll, git } from "./support/git.ts";
+import { git } from "./support/git.ts";
 import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "./support/tree.ts";
 
 const cliTimeout = 60_000;
@@ -46,16 +46,11 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
 	});
 
-	it("adopts every Biome rule through the biome name", () => {
+	it("records every Biome rule again through the biome name", () => {
 		const root = repository(preset, looseType);
-		commitAll(root, "Base");
-		git(root, "switch", "--quiet", "--create", "work");
-		quality(root, "baseline", "write");
-		expect(quality(root, "baseline", "check", "--against", "main").stdout).toContain(
-			"biome/lint/suspicious/noExplicitAny is newly baselined in 1 file without being named under `adopt`",
-		);
-		writeFileSync(join(root, "quality.config.ts"), 'export default { adopt: ["biome"], sources: ["src"] };\n');
-		expect(quality(root, "baseline", "check", "--against", "main").stdout).toContain("adopted biome/lint/suspicious/noExplicitAny");
+		expect(quality(root, "baseline", "write", "--rule", "biome").status).toBe(0);
+		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toContain('"rule":"biome/lint/suspicious/noExplicitAny"');
+		expect(quality(root, "lint").status).toBe(0);
 	});
 
 	it("asks for a root Biome config that extends the shared preset", () => {
@@ -91,7 +86,12 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\n", path: "src/b.ts" });
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\nquality: Biome's format pass rewrote 0 files.\n",
+			stdout: [
+				"quality: sort-package-json rewrote 0 manifests.",
+				"quality: Biome round 1 rewrote 1 file with fixes and 0 files with the format pass.",
+				"quality: Biome round 2 rewrote 0 files with fixes and 0 files with the format pass.",
+				"",
+			].join("\n"),
 		});
 		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
 		expect(quality(root, "lint").status).toBe(0);
@@ -112,12 +112,38 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, oneLineIf);
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\nquality: Biome's format pass rewrote 0 files.\n",
+			stdout: [
+				"quality: sort-package-json rewrote 0 manifests.",
+				"quality: Biome round 1 rewrote 1 file with fixes and 0 files with the format pass.",
+				"quality: Biome round 2 rewrote 0 files with fixes and 0 files with the format pass.",
+				"",
+			].join("\n"),
 		});
 		expect(readFileSync(join(root, oneLineIf.path), "utf8")).toBe(
 			"export function first(items: readonly number[]): number {\n\tif (items.length > 0) {\n\t\treturn items[0] ?? 0;\n\t}\n\treturn 0;\n}\n",
 		);
 		expect(quality(root, "lint").status).toBe(0);
+	});
+
+	it("repeats the fixes until a round rewrites nothing, since one fix can make room for another", () => {
+		const twoRounds: SeedFile = {
+			content: "export const digits = /[0-9]+/;\nexport async function load(): Promise<void> {\n\tPromise.resolve(1);\n}\n",
+			path: "src/load.ts",
+		};
+		const root = repository(preset, twoRounds);
+		expect(quality(root, "fix")).toMatchObject({
+			status: 0,
+			stdout: expect.stringContaining(
+				[
+					"quality: Biome round 1 rewrote 1 file with fixes and 0 files with the format pass.",
+					"quality: Biome round 2 rewrote 1 file with fixes and 0 files with the format pass.",
+					"quality: Biome round 3 rewrote 0 files with fixes and 0 files with the format pass.",
+				].join("\n"),
+			),
+		});
+		expect(readFileSync(join(root, twoRounds.path), "utf8")).toBe(
+			"export const digits = /[0-9]+/u;\nexport async function load(): Promise<void> {\n\tawait Promise.resolve(1);\n}\n",
+		);
 	});
 
 	it("returns on code where Biome's noProcessGlobal fix never settles", async () => {

@@ -37,7 +37,7 @@ implementation and acceptance criteria.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
-  rules, a shrink-only baseline, a registry of reasoned exceptions and shared
+  rules, a baseline of existing debt, a registry of reasoned exceptions and shared
   tsconfig presets.
 - [`@shivaedev/types`](./packages/types): Type-only helpers shared by the
   packages, such as `Bivariant`.

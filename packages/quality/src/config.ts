@@ -13,10 +13,7 @@ export type RuleSettings<Rules extends readonly Rule[]> = {
 
 export type BuiltInRules = typeof builtInRules;
 
-type IdOf<Rules extends readonly Rule[]> = Rules[number]["id"];
-
 export interface QualityConfig<Local extends readonly Rule[] = readonly Rule[]> {
-	readonly adopt?: readonly IdOf<readonly [...BuiltInRules, ...Local]>[];
 	readonly baseline?: string;
 	readonly exclude?: readonly string[];
 	readonly extensions?: readonly string[];

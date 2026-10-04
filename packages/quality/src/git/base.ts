@@ -1,4 +1,4 @@
-import { Console, Effect } from "effect";
+import { Effect } from "effect";
 import { SetupFailure } from "../failure.ts";
 import { type Git, git } from "./command.ts";
 
@@ -36,50 +36,23 @@ const isShallow = (root: string): Effect.Effect<boolean, SetupFailure, Git> =>
 const mergeBase = (root: string, ref: string): Effect.Effect<string | undefined, SetupFailure, Git> =>
 	Effect.map(git(root, ["merge-base", "HEAD", ref]), (result) => (result.code === 0 ? result.stdout.trim() : undefined));
 
-const remoteOf = (root: string, ref: string): Effect.Effect<readonly string[], SetupFailure, Git> =>
-	Effect.gen(function* () {
-		const name = (yield* git(root, ["rev-parse", "--symbolic-full-name", ref])).stdout.trim();
-		const remotes = (yield* git(root, ["remote"])).stdout.split("\n");
-		return remotes.filter((remote) => remote !== "" && name.startsWith(`refs/remotes/${remote}/`)).slice(0, 1);
-	});
-
-const unshallow = (root: string, ref: string): Effect.Effect<void, SetupFailure, Git> =>
-	Effect.gen(function* () {
-		const remote = yield* remoteOf(root, ref);
-		yield* Console.error(`quality: the clone is shallow; fetching its full history to find the merge base of HEAD and ${ref}.`);
-		yield* git(root, ["fetch", "--quiet", "--unshallow", ...remote], { GIT_TERMINAL_PROMPT: "0" });
-	});
-
 const missingMergeBase = (root: string, ref: string): Effect.Effect<never, SetupFailure, Git> =>
 	Effect.flatMap(isShallow(root), (shallow) =>
 		fail(
 			shallow
-				? `the clone is shallow and does not reach the merge base of HEAD and ${ref}. Fetch the history first: \`git fetch --unshallow\`, or fetch-depth: 0 in actions/checkout.`
+				? `the clone is shallow and does not reach the merge base of HEAD and ${ref}. Fetch the history first: \`git fetch --unshallow\`.`
 				: `HEAD and ${ref} share no history.`,
 		),
 	);
 
 const reachMergeBase = (root: string, ref: string): Effect.Effect<string, SetupFailure, Git> =>
-	Effect.gen(function* () {
-		const found = yield* mergeBase(root, ref);
-		if (found !== undefined) {
-			return found;
-		}
-		if (yield* isShallow(root)) {
-			yield* unshallow(root, ref);
-			const deepened = yield* mergeBase(root, ref);
-			if (deepened !== undefined) {
-				return deepened;
-			}
-		}
-		return yield* missingMergeBase(root, ref);
-	});
+	Effect.flatMap(mergeBase(root, ref), (found) => (found === undefined ? missingMergeBase(root, ref) : Effect.succeed(found)));
 
 export const resolveBase = (root: string, against: string | undefined): Effect.Effect<Base, SetupFailure, Git> =>
 	Effect.gen(function* () {
 		const inside = yield* git(root, ["rev-parse", "--is-inside-work-tree"]);
 		if (inside.code !== 0 || inside.stdout.trim() !== "true") {
-			return yield* fail(`${root} is not in a git work tree; the baseline is compared with its version in git history.`);
+			return yield* fail(`${root} is not in a git work tree; moves are followed through git history.`);
 		}
 		const ref = against ?? (yield* defaultBranch(root));
 		if (!(yield* isCommit(root, ref))) {

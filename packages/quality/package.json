@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.6.1",
-	"description": "Repository quality gate with typed rules, a shrink-only baseline and a registry of reasoned exceptions",
+	"version": "0.7.0",
+	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"

@@ -7,7 +7,6 @@ export type Command =
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
-	| { readonly _tag: "BaselineCheck"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
 	| { readonly _tag: "BaselineMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Help" };
@@ -20,7 +19,6 @@ export const USAGE = `Usage:
   quality baseline write [--config <file>] [--rule <id>]...
   quality baseline prune [--config <file>] [--against <ref>]
   quality baseline tighten [--config <file>] [--staged]
-  quality baseline check [--config <file>] [--against <ref>]
   quality baseline migrate [--config <file>] [--from <file>]
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
@@ -29,11 +27,10 @@ fix               Sort every package.json, apply Biome's lint fixes, unsafe ones
 baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
-baseline check    Compare the baseline with its version at the merge base. Exits 1 when it gained an entry or a higher count.
 baseline migrate  Move a baseline from the earlier JSON format (--from, quality/baseline.json by default) to the configured file.
 
 --config <file>  Config file; its directory is the repository root. Defaults to ./quality.config.ts.
---against <ref>  The branch the work merges into. Defaults to origin/HEAD, then origin/main, then origin/master.
+--against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 
 const OPTIONS = {
@@ -57,7 +54,6 @@ type Option = Exclude<keyof Values, "config" | "help">;
 const COMMAND_OPTIONS: readonly Option[] = ["against", "from", "rule", "staged", "warnings"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
-	"baseline check": ["against"],
 	"baseline migrate": ["from"],
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
@@ -90,8 +86,6 @@ const commandFor = (name: string, values: Values): Parsed => {
 			return parsed({ _tag: "BaselineWrite", config, rules: values.rule ?? [] });
 		case "baseline prune":
 			return ref(values.against, { _tag: "BaselinePrune", against: values.against, config });
-		case "baseline check":
-			return ref(values.against, { _tag: "BaselineCheck", against: values.against, config });
 		case "baseline tighten":
 			return parsed({ _tag: "BaselineTighten", config, staged: values.staged === true });
 		default:
@@ -114,7 +108,7 @@ export const parseCommand = (args: readonly string[]): Parsed => {
 	}
 	const name = [command, ...rest].join(" ");
 	if (ACCEPTS[name] === undefined) {
-		return usage(command === "baseline" && rest.length < 2 ? "baseline takes write, prune, tighten, check or migrate." : `unknown command: ${name}`);
+		return usage(command === "baseline" && rest.length < 2 ? "baseline takes write, prune, tighten or migrate." : `unknown command: ${name}`);
 	}
 	const problem = misplaced(name, values);
 	return problem === undefined ? commandFor(name, values) : usage(problem);

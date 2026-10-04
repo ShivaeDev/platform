@@ -3,7 +3,6 @@ import process from "node:process";
 import { Console, Effect } from "effect";
 import { parseCommand, USAGE } from "./cli/args.ts";
 import { writeBaseline } from "./cli/baseline.ts";
-import { checkBaseline } from "./cli/check.ts";
 import { fix } from "./cli/fix.ts";
 import { lint } from "./cli/lint.ts";
 import { migrateBaseline } from "./cli/migrate.ts";
@@ -31,8 +30,6 @@ const program = Effect.gen(function* () {
 			return yield* pruneBaseline(process.cwd(), command.config, command.against);
 		case "BaselineTighten":
 			return yield* tightenBaseline(process.cwd(), command.config, command.staged);
-		case "BaselineCheck":
-			return yield* checkBaseline(process.cwd(), command.config, command.against);
 		case "BaselineMigrate":
 			return yield* migrateBaseline(process.cwd(), command.config, command.from);
 	}

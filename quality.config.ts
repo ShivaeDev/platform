@@ -113,7 +113,6 @@ const fences: readonly Fence[] = [
 ];
 
 export default defineConfig({
-	adopt: ["biome", "imports/aliased"],
 	rules: {
 		"imports/fences": { options: { fences } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/test/generated"] } },

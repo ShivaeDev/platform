@@ -55,8 +55,13 @@ describe("report", () => {
 					"  src/b.ts  200 lines exceeds the 150-line limit.",
 				].join("\n"),
 				"quality: failed with 3 errors. 12 source files checked.",
+				"If the baseline should keep these findings, such as the debt of a moved or renamed file, record them again with `quality baseline write --rule local/x --rule structure/max-lines` and call out the baseline growth in the pull request description.",
 			].join("\n\n"),
 		);
+	});
+
+	it("ends a pass without the hint to record findings again", () => {
+		expect(render(evaluate(todos, [], [], known), context())).not.toContain("quality baseline write");
 	});
 
 	it("notes when a baselined file got worse", () => {
