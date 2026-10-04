@@ -1,7 +1,17 @@
 engine biome(1.0)
 language js(typescript, jsx)
 
-`Effect.fn($name)` as $match where {
-	! $name <: r"^[\"'][A-Z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*[\"']$",
-	register_diagnostic(span=$match, message="Effect.fn takes a literal span name shaped PascalCaseOwner.lowerCamelCaseOperation, such as \"Transact.invalidateOnCommit\".")
+or {
+	`Effect.fn($name)` as $match where {
+		! $name <: r"^[\"'][A-Z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*[\"']$",
+		register_diagnostic(span=$match, message="Effect.fn takes a literal span name shaped PascalCaseOwner.lowerCamelCaseOperation, such as 'Transact.invalidateOnCommit'.")
+	},
+	or {
+		`const $binding = Effect.fn($span)($...)`,
+		JsPropertyObjectMember(name=$binding, value=`Effect.fn($span)($...)`)
+	} where {
+		$span <: r"[\"']([A-Z][A-Za-z0-9]*)\.([a-z][A-Za-z0-9]*)[\"']"($owner, $operation),
+		! $operation <: $binding,
+		register_diagnostic(span=$span, message="The operation in an Effect.fn span is the name the function is bound to: const loadItem = Effect.fn('ItemStore.loadItem'). Rename the operation or the binding so they match.")
+	}
 }

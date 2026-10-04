@@ -1,0 +1,13 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`export const $name = $init` where {
+	$init <: or {
+		`Layer.$member`,
+		`Layer.$member($...)`,
+		`Layer.$member.pipe($...)`,
+		`Layer.$member($...).pipe($...)`
+	},
+	$name <: r"[A-Za-z0-9]*Live|[A-Za-z0-9]*Layer",
+	register_diagnostic(span=$name, message="A service's Layer is a static member of the service, read as ItemStore.layer, not an exported ItemStoreLive or ItemStoreLayer constant.")
+}

@@ -1,0 +1,7 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`Schema.Struct($fields)` where {
+	$fields <: contains JsPropertyObjectMember(name=$key) where { $key <: r"[\"']?[_$]*[A-Za-z0-9]+_[A-Za-z0-9_]*[\"']?" },
+	register_diagnostic(span=$key, message="A Schema.Struct field is camelCase even when the outside data is not: name it createdAt and map the outside key with Schema.encodeKeys({ createdAt: 'created_at' }).")
+}

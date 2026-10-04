@@ -16,7 +16,7 @@ function repository(...files: readonly SeedFile[]): string {
 		config('{ sources: ["src"] }'),
 		{ content: "node_modules/\nignored/\n", path: ".gitignore" },
 		{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
-		{ content: "export const a = 1;\n", path: "src/a.ts" },
+		{ content: "export const LIMIT = 1;\n", path: "src/a.ts" },
 		...files,
 	]);
 	linkPackage(root);

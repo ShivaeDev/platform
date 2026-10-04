@@ -351,6 +351,7 @@
 				"useNamedCaptureGroup": "error",
 				"useNamedLayer": "error",
 				"useReactAsyncServerFunction": "error",
+				"useReactNamingConvention": "error",
 				"useReduceTypeParameter": "error",
 				"useRegexpExec": "error",
 				"useRegexpTest": { "fix": "none", "level": "error" },
@@ -389,6 +390,7 @@
 				"noDefaultExport": "error",
 				"noDescendingSpecificity": "error",
 				"noDoneCallback": "error",
+				"noExportedImports": "error",
 				"noIncrementDecrement": "error",
 				"noInferrableTypes": "error",
 				"noMultiAssign": "error",
@@ -409,6 +411,7 @@
 				"useBlockStatements": "error",
 				"useCollapsedElseIf": "error",
 				"useCollapsedIf": "error",
+				"useComponentExportOnlyModules": "error",
 				"useConsistentArrayType": {
 					"level": "off",
 					"options": {
@@ -419,7 +422,12 @@
 				"useConsistentBuiltinInstantiation": "error",
 				"useConsistentCurlyBraces": "off",
 				"useConsistentEnumValueType": "error",
-				"useConsistentMemberAccessibility": "error",
+				"useConsistentMemberAccessibility": {
+					"level": "error",
+					"options": {
+						"accessibility": "none"
+					}
+				},
 				"useConsistentMethodSignatures": {
 					"level": "error",
 					"options": {
@@ -446,6 +454,21 @@
 				"useGroupedAccessorPairs": "error",
 				"useImportType": "error",
 				"useLiteralEnumMembers": "error",
+				"useNamingConvention": {
+					"fix": "none",
+					"level": "error",
+					"options": {
+						"conventions": [
+							{ "formats": ["PascalCase"], "match": "(T|A|E|R)|T([A-Z][A-Za-z0-9]*)", "selector": { "kind": "typeParameter" } },
+							{ "formats": ["PascalCase"], "match": "([A-HJ-Z][A-Za-z0-9]*|I[a-z0-9][A-Za-z0-9]*|I)", "selector": { "kind": "typeLike" } },
+							{ "formats": ["camelCase", "PascalCase"], "selector": { "kind": "function" } },
+							{ "formats": ["camelCase", "PascalCase"], "match": "[_$]*(.+)", "selector": { "kind": "objectLiteralProperty" } },
+							{ "formats": ["camelCase", "PascalCase"], "match": "[_$]*(.+)", "selector": { "kind": "typeProperty" } }
+						],
+						"requireAscii": true,
+						"strictCase": true
+					}
+				},
 				"useNodeAssertStrict": "error",
 				"useNodejsImportProtocol": "error",
 				"useNumberNamespace": "error",
@@ -609,6 +632,30 @@
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-fn-spans.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/constant-names.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/handler-names.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/schema-names.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/schema-struct-keys.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/service-layers.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/type-re-exports.grit"
 		}
 	],
 	"vcs": {

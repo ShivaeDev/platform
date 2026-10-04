@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The Biome preset checks identifier names, every rule an error without an autofix: nothing renames code, and the message names the valid shapes. `useNamingConvention` asks for camelCase values and PascalCase types without an `I` prefix, spells acronyms as words (`HttpClient`, `userId`) through `strictCase`, allows type parameters `T`, `T` plus a PascalCase name (`TItem`) and Effect's `A`, `E` and `R`, and allows object keys and type properties in camelCase or PascalCase only, so a snake_case or CONSTANT_CASE key is a finding everywhere, also in a `Record`. `useConsistentMemberAccessibility` bans `private`, `protected` and `public` in favor of `#field`, and the preset adds `useReactNamingConvention` and `useComponentExportOnlyModules`. The README's new Naming section lists every shape.
+- New GritQL plugins in the preset: `constant-names` (a module-level string or number constant is CONSTANT_CASE), `schema-names` (a schema is PascalCase), `schema-struct-keys` (a snake_case `Schema.Struct` field points to `Schema.encodeKeys`), `service-layers` (no exported `XLive` or `XLayer` Layer constant; the Layer is the service's static `layer`), `handler-names` (an `onX` prop gets a `handleX` function or a forwarded `onX` prop) and `type-re-exports` (no `export type … from`). `effect-fn-spans` also asks that the operation of an `Effect.fn` span equals the name the function is bound to, as in `const loadItem = Effect.fn("ItemStore.loadItem")`.
+- The preset turns on `noExportedImports`, so no module re-exports anything, package entry files included. A repository that upgrades records its existing naming and re-export findings with `quality baseline write --rule biome`.
+
 ## 0.7.2 - 2026-10-04
 
 ### Fixed
