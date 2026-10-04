@@ -82,20 +82,6 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
-### CI
-
-Pull requests and merge groups run lint, a shared build, and four workspace test-file shards in parallel. Tests resolve package source and each shard prepares its own PostgreSQL databases. Packages with generated test fixtures expose `test:prepare`; the workspace runner runs those hooks before collecting tests. Each package's Vitest projects retain their environments and exclusions, with package-qualified names in the workspace. Slow projects remain opt-in.
-
-The build job packs and validates every publishable package, including the archive mutation regressions. Typechecking reuses the build output. Four packed-consumer shards each receive the full tarball set, check its commit and checksums, and validate their assigned packages in fresh consumers using the same pnpm store as dependency installation. All existing consumer scenarios run. The required `verify` check succeeds only when every job succeeds.
-
-The two shard matrices in `.github/workflows/ci.yml` set their counts; each job derives its denominator from its matrix size. Package discovery includes new workspace packages automatically. Packed consumers are balanced using the estimates in `script/ci/consumer-durations.json`, with a six-second estimate for a new package. Test-file and consumer timings are saved as Actions artifacts and job summaries to guide rebalancing.
-
-```sh
-pnpm test --workspace --shard=1/4
-pnpm test:package --prepare .ci/packages
-pnpm test:package --archives .ci/packages --shard=1/4 --report .ci/consumers.json
-```
-
 ### Heavy runs
 
 `build`, `typecheck`, `test` and `test:package`, and so every step of `ready`,
