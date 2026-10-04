@@ -45,6 +45,7 @@ jobs:
       - run: pnpm build
         env:
           CI_WORKSPACE_CONCURRENCY: 4
+          CI_WORKSPACE_SORT: 'false'
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
         env:

@@ -7,7 +7,7 @@
 		"#*": "./script/*"
 	},
 	"scripts": {
-		"build": "node --conditions=source packages/heavy-lock/src/cli.ts -- pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present build",
+		"build": "node --conditions=source packages/heavy-lock/src/cli.ts -- pnpm --recursive --sort=${CI_WORKSPACE_SORT:-true} --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present build",
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts",
 		"format": "node --conditions=source packages/quality/src/cli.ts fix",
 		"heavy": "node --conditions=source packages/heavy-lock/src/cli.ts --",
