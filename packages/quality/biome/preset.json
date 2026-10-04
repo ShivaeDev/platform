@@ -231,7 +231,7 @@
 				"noUnusedImports": "error",
 				"noUnusedInstantiation": "error",
 				"noUnusedLabels": "error",
-				"noUnusedPrivateClassMembers": "error",
+				"noUnusedPrivateClassMembers": { "fix": "none", "level": "error" },
 				"noUnusedVariables": "off",
 				"noVoidElementsWithChildren": "error",
 				"noVoidTypeReturn": "error",

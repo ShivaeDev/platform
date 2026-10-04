@@ -63,5 +63,10 @@
 		"includes": ["**"],
 		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
 		"rule": "lint/suspicious/noSkippedTests"
+	},
+	{
+		"includes": ["**"],
+		"reason": "An unused private member asks whether it is still needed or should be used; deleting it automatically skips that decision.",
+		"rule": "lint/correctness/noUnusedPrivateClassMembers"
 	}
 ]

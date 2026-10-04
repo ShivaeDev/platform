@@ -137,4 +137,15 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
 		expect(readFileSync(join(root, partialSwitch.path), "utf8")).toBe(partialSwitch.content);
 	});
+
+	it("leaves an unused private member for a person to decide on, and the lint still reports it", async () => {
+		const unusedMember: SeedFile = {
+			content: "export class Counter {\n\tprivate readonly stale = 0;\n\n\tcount(): number {\n\t\treturn 1;\n\t}\n}\n",
+			path: "src/counter.ts",
+		};
+		const root = repository(preset, unusedMember);
+		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
+		expect(readFileSync(join(root, unusedMember.path), "utf8")).toBe(unusedMember.content);
+		expect(quality(root, "lint").stdout).toContain("biome/lint/correctness/noUnusedPrivateClassMembers");
+	});
 });
