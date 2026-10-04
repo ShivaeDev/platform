@@ -1,0 +1,37 @@
+name: Await package archives
+description: Wait for this workflow attempt's package producer while setup runs concurrently.
+inputs:
+  token:
+    description: GitHub token with actions read permission.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Await this attempt's package artifact
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ARTIFACT_NAME: packages-${{ github.sha }}-${{ github.run_attempt }}
+      run: |
+        deadline=$((SECONDS + 180))
+        while (( SECONDS < deadline )); do
+          artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" \
+            --jq '.artifacts[] | select(.expired == false) | .id')
+          if [[ -n "$artifact_id" ]]; then
+            echo "Package artifact $artifact_id is ready"
+            exit 0
+          fi
+          conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+            --jq '.jobs[] | select(.name == "build" and .status == "completed") | .conclusion')
+          if [[ -n "$conclusion" && "$conclusion" != success ]]; then
+            echo "::error::Package producer finished with $conclusion"
+            exit 1
+          fi
+          sleep 2
+        done
+        echo "::error::Package artifact was not published within 180 seconds"
+        exit 1
+    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      with:
+        name: packages-${{ github.sha }}-${{ github.run_attempt }}
+        path: .ci/packages

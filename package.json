@@ -7,7 +7,7 @@
 		"#*": "./script/*"
 	},
 	"scripts": {
-		"build": "node --conditions=source packages/heavy-lock/src/cli.ts -- pnpm --recursive --workspace-concurrency=1 --if-present build",
+		"build": "node --conditions=source packages/heavy-lock/src/cli.ts -- pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present build",
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts",
 		"format": "node --conditions=source packages/quality/src/cli.ts fix",
 		"heavy": "node --conditions=source packages/heavy-lock/src/cli.ts --",
@@ -16,9 +16,9 @@
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
 		"setup": "pnpm install --frozen-lockfile && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
-		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/package-check/archives.test.ts",
+		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/ci/*.spec.ts script/package-check/archives.test.ts",
 		"test:package": "node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
-		"typecheck": "node --conditions=source packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=1 --if-present typecheck'",
+		"typecheck": "node --conditions=source packages/heavy-lock/src/cli.ts -- sh -c 'pnpm typecheck:root && pnpm --recursive --workspace-concurrency=${CI_WORKSPACE_CONCURRENCY:-1} --if-present typecheck'",
 		"typecheck:root": "tsc --noEmit"
 	},
 	"devDependencies": {
