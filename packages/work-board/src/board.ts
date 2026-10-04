@@ -1,12 +1,13 @@
-import { Effect, type FileSystem, Layer, type Path } from "effect";
+import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
 import { HttpRouter, type HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
 import { watchChanges } from "#files/changes.ts";
-import { homeIn } from "#files/home.ts";
-import { ASSETS, MERMAID_ROUTE, mermaidFile, mermaidRoot } from "#http/assets.ts";
+import { type HomeMissing, homeIn } from "#files/home.ts";
+import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { events } from "#http/events.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
+import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
 
 export interface BoardOptions {
@@ -41,4 +42,8 @@ const routes = (options: BoardOptions) =>
 		}),
 	);
 
-export const boardLayer = (options: BoardOptions) => routes(options).pipe(Layer.provide(Highlighter.layer));
+type BoardError = HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
+type BoardServices = FileSystem.FileSystem | HttpRouter.HttpRouter | Path.Path | HttpRouter.Request<"Error", PlatformError.PlatformError>;
+
+export const boardLayer = (options: BoardOptions): Layer.Layer<never, BoardError, BoardServices> =>
+	routes(options).pipe(Layer.provide(Highlighter.layer));
