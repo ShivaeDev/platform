@@ -6,6 +6,8 @@ export const CAMEL = /^[a-z][a-zA-Z0-9]*$/u;
 
 export const PASCAL = /^[A-Z][a-zA-Z0-9]*$/u;
 
+const UPPER_START = /^[A-Z]/u;
+
 export function wordsOf(name: string): readonly string[] {
 	return [...name.matchAll(WORD)].map((match) => match[0].toLowerCase());
 }
@@ -22,5 +24,5 @@ export function sameWord(left: string, right: string): boolean {
 }
 
 export function isUpper(text: string): boolean {
-	return /^[A-Z]/u.test(text);
+	return UPPER_START.test(text);
 }
