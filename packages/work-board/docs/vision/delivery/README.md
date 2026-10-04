@@ -1,8 +1,8 @@
 # Work Board delivery plan
 
 Build the [north star](../README.md) as a sequence of useful, reviewable changes.
-The [roadmap](../roadmap.md) defines wave scope and owns completion status. All
-steps here are proposed and unimplemented; numbers express recommended order,
+The [roadmap](../roadmap.md) defines wave scope and owns completion status. The checklist
+there tracks implementation; numbers here express recommended order,
 not dates or a promise that each step fits exactly one pull request.
 
 Each numbered step is a PR-sized target with a user outcome, prerequisites, a

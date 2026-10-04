@@ -1,4 +1,5 @@
 export const client = `
+import "/_board/preferences.js";
 import { renderDiagrams } from "/_board/diagrams.js";
 import { remember, swap } from "/_board/swap.js";
 
@@ -87,4 +88,54 @@ events.addEventListener("error", down);
 tick();
 setInterval(tick, 5000);
 renderDiagrams(document);
+`;
+export const preferences = `
+const root = document.documentElement;
+const key = "work-board:appearance:" + root.dataset.workspace;
+const theme = document.getElementById("theme");
+const density = document.getElementById("density");
+const sidebar = document.getElementById("sidebar");
+const toggle = document.getElementById("sidebar-toggle");
+const status = document.getElementById("preference-status");
+const system = matchMedia("(prefers-color-scheme: dark)");
+let saved = {};
+try {
+  const value = JSON.parse(localStorage.getItem(key) ?? "{}");
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) saved = value;
+} catch {
+  status.textContent = "Preferences apply to this page only.";
+}
+
+theme.value = ["light", "dark"].includes(saved.theme) ? saved.theme : "system";
+density.value = saved.density === "compact" ? "compact" : "comfortable";
+let closed = typeof saved.closed === "boolean" ? saved.closed : matchMedia("(max-width: 760px)").matches;
+
+const appearance = () => {
+  root.dataset.theme = theme.value;
+  root.dataset.scheme = theme.value === "system" ? (system.matches ? "dark" : "light") : theme.value;
+  root.dataset.density = density.value;
+  root.dataset.sidebar = closed ? "closed" : "open";
+  sidebar.hidden = closed;
+  toggle.setAttribute("aria-expanded", String(!closed));
+  document.dispatchEvent(new Event("board-theme"));
+};
+
+const save = () => {
+  appearance();
+  try {
+    localStorage.setItem(key, JSON.stringify({ theme: theme.value, density: density.value, closed }));
+    status.textContent = "";
+  } catch {
+    status.textContent = "Preferences apply to this page only.";
+  }
+};
+
+theme.addEventListener("change", save);
+density.addEventListener("change", save);
+toggle.addEventListener("click", () => {
+  closed = !closed;
+  save();
+});
+system.addEventListener("change", appearance);
+appearance();
 `;

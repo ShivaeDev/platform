@@ -1,7 +1,7 @@
 # Wave 1 delivery — stay informed
 
 The [delivery plan](./README.md) explains gates and verification. These steps
-implement W1.1–W1.7 of the [roadmap](../roadmap.md). All are proposed. The UI reads
+implement W1.1–W1.7 of the [roadmap](../roadmap.md), which tracks completion. The UI reads
 project content; only personal view preferences change. Agents keep writing files
 through their existing tools. Follow numeric order unless the prerequisites below
 permit a useful independent change.
@@ -14,6 +14,7 @@ readable document measure and a wider board canvas. Introduce shared color,
 spacing, typography, density, and light/dark/system theme tokens. Keep existing
 routes and `--home` behavior. Add the representative workspace and browser
 acceptance path alongside this visible change, not as a standalone framework.
+[Browser acceptance](./browser-acceptance.md) uses the shared large-workspace fixture.
 **Depends on:** the vision. **Accept:** 50 documents do not push the content out
 of reach; keyboard focus, narrow screens, diagrams, and live updates still work.
 

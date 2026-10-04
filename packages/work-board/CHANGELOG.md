@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add the first workspace shell: a collapsible file sidebar, file location,
+  responsive board columns, readable documents, and keyboard skip navigation.
+  Remember theme, density, and sidebar choices per folder and server origin;
+  code highlighting and diagrams follow the selected theme. Controls remain
+  usable when browser storage is unavailable.
+
 - Add a step-by-step delivery plan for the vision, with 26 bounded implementation
   steps, dependencies, acceptance evidence, and explicit design gates before
   richer source formats, mutations, agent handoffs, and external integrations.

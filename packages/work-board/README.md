@@ -10,7 +10,7 @@ work-board ./project-notes --port 4747 --home plan.md
 ```
 
 It listens on `127.0.0.1` only and answers only requests addressed to a
-loopback host. Every `.md` file under the folder appears in the top bar with how
+loopback host. Every `.md` file under the folder appears in the collapsible sidebar with how
 long ago it changed. Below the folder, files and folders starting with a dot and
 `node_modules` are never entered, and anything that is not markdown is skipped;
 the folder itself may be a dot folder such as `.notes`. No path outside the
@@ -23,7 +23,15 @@ footnotes, raw HTML (including `<details>` with markdown inside) and fenced code
 highlighted with Shiki's GitHub light and dark themes. Raw HTML is not
 sanitized, so serve only folders you trust. Pages send a content security
 policy that allows only the board's own scripts, and `Cache-Control: no-store`.
-The page uses system fonts and follows the light or dark colour scheme.
+The page uses system fonts. Theme can follow the system or stay light or dark.
+Theme, compact/comfortable density, and sidebar visibility are remembered in
+browser storage for this folder and server origin. When storage is unavailable,
+controls still work for the current page and show a notice.
+
+The file location appears above the content. Documents use a readable line
+length; boards use a wider grid that stacks on narrow screens. The sidebar has
+its own scroll area and starts collapsed on narrow screens unless a saved
+preference says otherwise. A keyboard skip link moves directly to the content.
 
 | Option | Default | Meaning |
 | --- | --- | --- |

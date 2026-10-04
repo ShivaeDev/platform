@@ -37,6 +37,7 @@
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
 		"CHANGELOG.md",
 		"README.md"
 	],

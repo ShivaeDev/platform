@@ -10,7 +10,62 @@ The [step-by-step delivery plan](./delivery/README.md) turns these waves into
 document locations, then search. Each step names its prerequisites and acceptance
 evidence; the plan also records the source-format, mutation, handoff, and integration
 discussion gates. Record completed step IDs and their proof here as delivery
-proceeds. No implementation step is complete yet.
+proceeds.
+
+## Delivery checklist
+
+Check a step only after its acceptance is demonstrated in the package.
+
+- [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
+- [ ] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
+- [ ] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
+- [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
+- [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
+- [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
+- [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
+- [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
+- [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
+- [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
+- [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
+- [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
+- [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
+- [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
+- [ ] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
+- [ ] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
+- [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
+- [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
+- [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
+- [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
+- [ ] [21 Successive contributions with clear ownership](./delivery/wave3.md#21-successive-contributions-with-clear-ownership)
+- [ ] [22 Several local projects, one attention view](./delivery/wave3.md#22-several-local-projects-one-attention-view)
+- [ ] [23 Richer plans and local review packets](./delivery/wave3.md#23-richer-plans-and-local-review-packets)
+- [ ] [24 One optional read-only GitHub adapter](./delivery/wave3.md#24-one-optional-read-only-github-adapter)
+- [ ] [25 Read existing local test and build artifacts](./delivery/wave3.md#25-read-existing-local-test-and-build-artifacts)
+- [ ] [26 Quiet rules and a real collaboration review](./delivery/wave3.md#26-quiet-rules-and-a-real-collaboration-review)
+
+## Step 01 evidence
+
+The package now serves a collapsible file sidebar, file location, readable
+documents, responsive board columns, and remembered theme/density/sidebar
+preferences. The source format and public CLI/embedding API are unchanged.
+
+- Work Board: 78 passing tests, including the shared 50-document/100-item
+  fixture, preference restoration and isolation, unavailable storage, explicit
+  diagram themes, and live-update preservation. Happy DOM uses a Mermaid stub.
+- Chromium 151: actual local server and Mermaid, 1440 × 1000 desktop,
+  390 × 844 mobile, and 720px reflow; keyboard skip/focus and sidebar toggle,
+  reload/navigation persistence, Shiki theme override, blocked storage,
+  unchanged diagram/open-details preservation, and readable no-JavaScript content.
+  No page errors were observed in the desktop/mobile walkthrough.
+- Repository gate: lint, build, typecheck, PostgreSQL-backed tests, and packed
+  consumers passed. The suite has 961 passing tests and three existing expected
+  failures; no tests were skipped.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md) provides
+  the fixture launcher and review sequence. This is fixture evidence, not
+  real-project adoption or a usability/performance budget.
+
+Steps 02–26 remain open. This completes the shell foundation only; it does not
+complete all of W1.2 navigation or W1.3 views.
 
 ## Current foundation
 
