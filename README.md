@@ -105,6 +105,11 @@ dependency pins and installation trust policies stay in force. Packed
 executables using the Node platform must declare its shared layer as an exact
 peer at the same version. The gate removes that peer from a temporary copy of
 the Heavy Lock tarball and verifies that archive validation rejects it.
+Every `#` import in a packed module must name an `imports` entry whose
+targets are all packed; the gate also removes one such target from a copy of
+the Heavy Lock tarball and verifies that archive validation rejects it. Each
+consumer lib-checks the declarations of Platform's packages, third-party
+declarations aside, and rejects an entry that exports a value or type as `any`.
 
 Consumer type-error fixtures live in `script/package-check/fixtures`. Declarative
 cases alongside the runner describe optional-peer consumers, browser entry
