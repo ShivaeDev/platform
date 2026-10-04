@@ -12,10 +12,78 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+      - name: Test CI orchestration
+        run: pnpm test:orchestration
+
+  build:
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - name: Prepare and validate all package archives
+        run: pnpm test:package --prepare .ci/packages
+      - name: Load measured consumer timings from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node --conditions=source script/ci/mainConsumerTimings.ts .ci/packages/consumer-durations.json
+      - name: Bundle build outputs
+        run: tar -czf .ci/build.tgz packages/*/dist
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: packages-${{ github.sha }}
+          path: |
+            .ci/build.tgz
+            .ci/packages
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 2
+          compression-level: 0
+
+  typecheck:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: packages-${{ github.sha }}
+          path: .ci
+      - run: tar -xzf .ci/build.tgz
+      - run: pnpm typecheck
+
+  tests:
+    name: tests (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
@@ -31,40 +99,110 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Check out repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm db:setup
+      - name: Test workspace shard
+        run: >-
+          pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          --reporter=default --reporter=json --outputFile=${{ github.workspace }}/.ci/tests.json
+      - name: Record test timings
+        if: always()
+        run: node --conditions=source script/ci/summary.ts .ci/tests.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: test-timings-${{ matrix.shard }}
+          path: .ci/tests.json
+          include-hidden-files: true
+          retention-days: 14
 
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+  consumers:
+    name: packed consumers (${{ matrix.shard }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4]') }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+        with:
+          consumer-cache: 'true'
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: packages-${{ github.sha }}
+          path: .ci
+      - name: Check packed consumer shard
+        run: >-
+          pnpm test:package --archives .ci/packages
+          --shard=${{ matrix.shard }}/${{ strategy.job-total }} --report .ci/consumers.json
+          --timings .ci/packages/consumer-durations.json
+      - name: Record consumer timings
+        if: always()
+        run: node --conditions=source script/ci/summary.ts .ci/consumers.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: consumer-timings-${{ matrix.shard }}
+          path: .ci/consumers.json
+          include-hidden-files: true
+          retention-days: 14
+      - name: Save complete consumer store on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ steps.setup.outputs.store-path }}
+          key: ${{ steps.setup.outputs.consumer-cache-key }}
+
+  verify:
+    if: always()
+    needs: [lint, build, typecheck, tests, consumers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every CI job to succeed
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node --input-type=module <<'JS'
+          const jobs = JSON.parse(process.env.JOB_RESULTS);
+          for (const [name, job] of Object.entries(jobs)) {
+            console.log(`${name}: ${job.result}`);
+          }
+          if (Object.values(jobs).some(job => job.result !== 'success')) process.exit(1);
+          JS
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           node-version: 26.10.0
           package-manager-cache: false
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          cache: true
-          cache_dependency_path: pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Prepare package-specific PostgreSQL databases and schemas
-        run: pnpm db:setup
-
-      - name: Check formatting and lint
-        run: pnpm lint
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Type-check with TypeScript 7
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Test packed packages
-        run: pnpm test:package
+          pattern: consumer-timings-*
+          path: .ci/main-timings
+      - name: Merge successful main consumer timings
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: >-
+          node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
+          --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: consumer-balancing
+          path: .ci/consumer-durations.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

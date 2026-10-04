@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Expose test fixture generation through `test:prepare` so workspace test shards generate the Prisma client before collection.
+
 ## 0.3.3 - 2026-10-04
 
 ### Changed
