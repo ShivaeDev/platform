@@ -24,7 +24,7 @@ it("waits for this attempt's artifact and fails immediately when its producer or
 				"#!/bin/bash",
 				`echo "$2" >> '${calls}'`,
 				denied ? "exit 1" : "",
-				reuse ? `if [[ "$2" == *artifacts* && "$2" != *name=* ]]; then echo packages-current-sha-1; exit 0; fi` : "",
+				`if [[ "$2" == *artifacts* && "$2" != *name=* ]]; then echo '${reuse ? "packages-current-sha-1" : ""}'; exit 0; fi`,
 				`if [[ "$2" == *artifacts* ]]; then`,
 				delayed ? `if [[ ! -e '${pending}' ]]; then touch '${pending}'; exit 0; fi` : "",
 				`echo '${artifact}'; else echo '${conclusion}'; fi`,
