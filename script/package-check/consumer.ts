@@ -4,7 +4,7 @@ import { checkBrowserEntries } from "#package-check/browser.ts";
 import { declarationProblems } from "#package-check/declarations.ts";
 import { consumerDependencies } from "#package-check/dependencies.ts";
 import { checkEffectCopies } from "#package-check/effect-copies.ts";
-import { exportEntries, packedFiles } from "#package-check/exports.ts";
+import { blockedEntries, exportEntries, packedFiles } from "#package-check/exports.ts";
 import { writeFixtures } from "#package-check/fixtures.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
@@ -60,7 +60,8 @@ export const checkConsumer = (
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
 			extends: "./tsconfig.json",
 		});
-		const exported = exportEntries(pkg.manifest, yield* packedFiles(pkg));
+		const packed = yield* packedFiles(pkg);
+		const exported = exportEntries(pkg.manifest, packed);
 		const entries =
 			scenario === undefined ? exported : scenario.entries.map((key) => ({ json: false, specifier: `${pkg.manifest.name}${key.slice(1)}` }));
 		for (const { specifier } of entries) {
@@ -100,7 +101,27 @@ export const checkConsumer = (
 				.join("\n"),
 		]);
 		yield* runFixtures(consumer, scenario?.run ?? []);
+		if (scenario === undefined) {
+			yield* checkBlockedImport(pkg, consumer, blockedEntries(pkg.manifest, packed));
+		}
 	});
+
+function checkBlockedImport(pkg: Package, consumer: string, blocked: readonly string[]) {
+	return Effect.gen(function* () {
+		const [specifier] = blocked;
+		if (specifier === undefined) {
+			yield* requireThat(
+				!Object.values(pkg.manifest.exports ?? {}).includes(null),
+				`${pkg.manifest.name}: no packed module sits under a blocked export`,
+			);
+			return;
+		}
+		const outcome = yield* command(consumer, "node", ["--input-type=module", "--eval", `await import(${JSON.stringify(specifier)});`]).pipe(
+			Effect.match({ onFailure: (error) => error.message, onSuccess: () => "the import succeeded" }),
+		);
+		yield* requireThat(outcome.includes("ERR_PACKAGE_PATH_NOT_EXPORTED"), `${pkg.manifest.name}: ${specifier} must not be importable: ${outcome}`);
+	});
+}
 
 const checkOptionalPeers = (pkg: Package, consumer: string) =>
 	Effect.gen(function* () {

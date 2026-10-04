@@ -29,6 +29,7 @@
 			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
+		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"bin": {
