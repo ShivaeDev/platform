@@ -467,6 +467,29 @@ The `toolOwned` option lists folders a tool names, `generated/` and `migrations/
 
 The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*`, `migrations/` and `generated/` by default.
 
+### Tests
+
+A test sits beside the code it covers, and its name says what it covers and where it runs.
+
+| File | Covers | Valid |
+| --- | --- | --- |
+| `cart/cart.test.ts` | `cart/cart.ts` | Yes |
+| `cart/cart.typecheck.test.ts` | The types of `cart/cart.ts`, checked by the compiler | Yes |
+| `cart/Basket.dom.test.tsx` | `cart/Basket.tsx`, in a DOM | Yes |
+| `cart/checkoutFlow.spec.ts` | A behaviour of the `cart/` folder as a whole, such as a flow across several files | Yes |
+| `cart/checkoutFlow.dom.spec.tsx` | The same, in a DOM | Yes |
+| `cart/totals.test.ts` | No `cart/totals.ts` beside it | No: a `.test` follows a file, and a test of the folder is a `.spec` |
+| `cart/cart.spec.ts` | | No: a `.spec` names a behaviour, so it may not share a stem with a file beside it |
+| `cart/cart.hydration.test.ts` | | No: an aspect gets its own file in the module's folder, or a `.spec` |
+| `cart/cart.postgres.test.ts` | | No: a database or a running app comes from the app's test fixture, not a file name |
+| `test/cart.test.ts` | | No: a test folder mirrors the source tree; the test sits beside `cart.ts` |
+
+`tests/follow` checks the name: `<file>[.<environment>].test.ts` beside its file, or `<behaviour>[.<environment>].spec.ts` in camelCase in the folder it covers. The environment is at most one of `dom`, `slow` and `typecheck`, the ones the [Vitest projects](#vitest-projects) run, and a test that imports `@testing-library/*` or reads `document` or `window` is a `.dom` test.
+
+`tests/colocated` checks the place: a test in a `test`, `tests`, `__tests__` or `spec` folder is a finding.
+
+Both rules take a `suites` option, `.gitignore` patterns of folders that hold tests with their own layout, such as tests across several packages or a Playwright suite, whose `.spec.ts` files mean something else. The rules skip those folders.
+
 ## Vitest projects
 
 `@shivaedev/quality/vitest` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
@@ -481,11 +504,13 @@ export default defineConfig({ test: testProjects() });
 
 | Project | Files | Environment | Runs |
 | --- | --- | --- | --- |
-| `unit` | `*.test.ts` and the other test files | Node | By default |
-| `dom` | `*.dom.test.ts`, `*.dom.test.tsx` | happy-dom | By default |
-| `slow` | `*.slow.test.ts`, `*.slow.test.tsx` | Node | Only with `vitest run --project slow` |
+| `unit` | `*.test.ts`, `*.spec.ts` and the other test and spec files | Node | By default |
+| `dom` | `*.dom.test.tsx`, `*.dom.spec.tsx` and the other `.dom` files | happy-dom | By default |
+| `slow` | `*.slow.test.ts`, `*.slow.spec.ts` and the other `.slow` files | Node | Only with `vitest run --project slow` |
 
-Type tests (`*.typecheck.test.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
+Type tests (`*.typecheck.test.ts`, `*.typecheck.spec.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
+
+A folder that another runner owns, such as a Playwright suite of `.spec.ts` files, is left out with `testProjects({ exclude: ["e2e/**"] })`; the globs are added to every project's `exclude`.
 
 ## tsconfig presets
 
@@ -530,4 +555,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder and other-file naming rules against seeded trees, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
