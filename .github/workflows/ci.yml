@@ -12,13 +12,16 @@ on:
 permissions:
   contents: read
 
+env:
+  CI_WORKSPACE_CONCURRENCY: ${{ vars.PLATFORM_CI_CONCURRENCY || 4 }}
+
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -33,7 +36,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -44,12 +47,9 @@ jobs:
           save-workspace-cache: 'true'
       - run: pnpm build
         env:
-          CI_WORKSPACE_CONCURRENCY: 4
           CI_WORKSPACE_SORT: 'false'
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
-        env:
-          CI_WORKSPACE_CONCURRENCY: 4
       - name: Load measured consumer timings from main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,7 +64,7 @@ jobs:
           compression-level: 0
 
   typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -72,12 +72,10 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
-        env:
-          CI_WORKSPACE_CONCURRENCY: 4
 
   tests:
     name: tests (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -124,7 +122,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -167,7 +165,7 @@ jobs:
   verify:
     if: always()
     needs: [lint, build, typecheck, tests, consumers]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
       - name: Require every CI job to succeed
