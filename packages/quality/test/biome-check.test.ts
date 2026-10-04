@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality } from "./support/cli.ts";
+import { quality, qualityWithin } from "./support/cli.ts";
 import { commitAll, git } from "./support/git.ts";
 import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "./support/tree.ts";
 
@@ -14,6 +14,10 @@ function biome(content: string): SeedFile {
 }
 
 const preset = biome('{ "extends": ["@shivaedev/quality/biome"] }');
+
+const processGlobal: SeedFile = { content: "export const n = Number(process.env.N);\n", path: "src/n.ts" };
+
+const escapedString: SeedFile = { content: 'a::before {\n\tcontent: "\\y";\n}\n', path: "src/a.css" };
 
 const nullCheck: SeedFile = { content: "export function isMissing(value: number | null): boolean {\n\treturn value == null;\n}\n", path: "src/a.ts" };
 
@@ -98,5 +102,32 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		});
 		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
 		expect(quality(root, "lint").status).toBe(0);
+	});
+
+	it("applies no lint fix by default, even a safe one", () => {
+		const root = repository(preset, processGlobal, escapedString);
+		expect(quality(root, "fix")).toMatchObject({
+			status: 0,
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 0 files.\n",
+		});
+		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(processGlobal.content);
+		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe(escapedString.content);
+	});
+
+	it("applies Biome's safe lint fixes with --lint", () => {
+		const root = repository(preset, processGlobal, escapedString);
+		expect(quality(root, "fix", "--lint")).toMatchObject({
+			status: 0,
+			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 2 files.\n",
+		});
+		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(`import process from "node:process";\n${processGlobal.content}`);
+		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe('a::before {\n\tcontent: "y";\n}\n');
+	});
+
+	it("returns on code where Biome's noProcessGlobal fix never settles", async () => {
+		const neverSettles: SeedFile = { content: "export const n = Number(globalThis.process.env.N);\n", path: "src/n.ts" };
+		const root = repository(preset, neverSettles);
+		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
+		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
 	});
 });

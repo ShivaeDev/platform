@@ -4,7 +4,7 @@ import type { WarningDetail } from "../report/render.ts";
 
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }
-	| { readonly _tag: "Fix"; readonly config: string | undefined }
+	| { readonly _tag: "Fix"; readonly config: string | undefined; readonly lint: boolean }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineCheck"; readonly config: string | undefined; readonly against: string | undefined }
@@ -16,7 +16,7 @@ export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { 
 
 export const USAGE = `Usage:
   quality lint [--config <file>] [--warnings summary|all]
-  quality fix [--config <file>]
+  quality fix [--config <file>] [--lint]
   quality baseline write [--config <file>] [--rule <id>]...
   quality baseline prune [--config <file>] [--against <ref>]
   quality baseline tighten [--config <file>] [--staged]
@@ -25,7 +25,8 @@ export const USAGE = `Usage:
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for a rule that is off or unknown.
-fix               Apply Biome's safe fixes, assist actions and formatting.
+fix               Sort every package.json and apply Biome's formatting and assist actions, such as organized imports and sorted keys.
+                  With --lint, also apply Biome's safe lint fixes, which can change behavior.
 baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
@@ -41,6 +42,7 @@ const OPTIONS = {
 	config: { type: "string" },
 	from: { type: "string" },
 	help: { short: "h", type: "boolean" },
+	lint: { type: "boolean" },
 	rule: { multiple: true, type: "string" },
 	staged: { type: "boolean" },
 	warnings: { type: "string" },
@@ -54,7 +56,7 @@ type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositi
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "from", "rule", "staged", "warnings"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "from", "lint", "rule", "staged", "warnings"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline check": ["against"],
@@ -62,7 +64,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
 	"baseline write": ["rule"],
-	fix: [],
+	fix: ["lint"],
 	lint: ["warnings"],
 };
 
@@ -85,7 +87,7 @@ const commandFor = (name: string, values: Values): Parsed => {
 				: usage(`--warnings takes summary or all, not "${warnings}".`);
 		}
 		case "fix":
-			return parsed({ _tag: "Fix", config });
+			return parsed({ _tag: "Fix", config, lint: values.lint === true });
 		case "baseline write":
 			return parsed({ _tag: "BaselineWrite", config, rules: values.rule ?? [] });
 		case "baseline prune":

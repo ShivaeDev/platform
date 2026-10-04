@@ -358,7 +358,7 @@ An entry covers a rule's violations in one file, for good, and must say why. Wit
 
 ```text
 quality lint [--config <file>] [--warnings summary|all]
-quality fix [--config <file>]
+quality fix [--config <file>] [--lint]
 quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
@@ -397,7 +397,7 @@ The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, becau
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `adopt: ["biome"]` and `quality baseline write --rule biome` take in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
-`quality fix` sorts every `package.json`, then applies Biome's safe fixes, assist actions and formatting. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+`quality fix` sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
 
 ## Vitest projects
 
