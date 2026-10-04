@@ -171,6 +171,20 @@
 			"path": "packages/vocabulary/src/voyage/route.ts"
 		}
 	],
+	"generatedAlias": [
+		{
+			"content": "test/generated/\ntest/cache/\n",
+			"path": ".gitignore"
+		},
+		{
+			"content": "{\"name\": \"@demo/generated\", \"imports\": {\"#test/*\": \"./test/*\"}}\n",
+			"path": "package.json"
+		},
+		{
+			"content": "import { client } from \"#test/generated/client.ts\";\nimport { cached } from \"#test/cache/client.ts\";\n\nexport const used = [client, cached];\n",
+			"path": "test/client.test.ts"
+		}
+	],
 	"nested": [
 		{
 			"content": "{\"name\": \"@demo/root\", \"workspaces\": [\"packages/*\"]}\n",

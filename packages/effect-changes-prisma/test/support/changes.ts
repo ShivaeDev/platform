@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Observation } from "@shivaedev/effect-changes";
 import { type ChangeMap, makePrismaChanges, type UnnamedWrite } from "#index.ts";
-import type { PrismaClient } from "../generated/client.ts";
+import type { PrismaClient } from "#test/generated/client.ts";
 
 export interface Change {
 	readonly domain: string;

@@ -63,6 +63,11 @@ describe("imports/resolvable", () => {
 		expect(findings).toHaveLength(11);
 	});
 
+	it("takes a missing file that a package import names in a declared generated folder as resolved, and reports one in an undeclared folder", async () => {
+		const findings = await findingsIn(importsResolvable, { generated: ["test/generated"] }, importTree("generatedAlias"));
+		expect(findings.map((finding) => [finding.line, finding.subject])).toEqual([[2, "#test/cache/client.ts"]]);
+	});
+
 	it("refuses a generated folder under node_modules, one git does not ignore, and one that no import names", async () => {
 		const folders = ["src/node_modules/ghost", "src", "src/generated/unused"];
 		await expect(findingsIn(importsResolvable, { generated: folders }, importTree("unresolvable"))).rejects.toThrow(

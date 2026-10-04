@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-10-04
+
+### Changed
+
+- The tests import the Prisma client they generate through the `#test/*` alias.
+
 ## 0.3.2 - 2026-10-04
 
 ### Changed

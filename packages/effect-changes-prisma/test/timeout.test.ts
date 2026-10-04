@@ -1,7 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { expect, it } from "vitest";
 import { configuredTimeout } from "#expiry.ts";
-import { PrismaClient } from "./generated/client.ts";
+import { PrismaClient } from "#test/generated/client.ts";
 
 const client = (timeout?: number) =>
 	new PrismaClient({

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 - 2026-10-04
+
+### Changed
+
+- `imports/resolvable` takes a `#` package import of a missing file as resolved when its `imports` entry in `package.json` points into a folder that `generated` names, as it already did for a relative import. A test can then import a generated client through its alias before the generator runs, and fences see the import as an edge to that path.
+
 ## 0.8.0 - 2026-10-04
 
 ### Added

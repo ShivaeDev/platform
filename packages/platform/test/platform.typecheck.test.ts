@@ -5,8 +5,9 @@ import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { effectPrismaAdapter } from "#better-auth.ts";
 import { makePlatformRuntime } from "#runtime.ts";
+import type { Contract } from "#test/auth/generated/contract.d.ts";
+import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 import { makePlatformIt } from "#testing.ts";
-import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
 
@@ -25,7 +26,7 @@ const procedure = adapter.procedure(
 const router = t.router({
 	userCount: procedure.query(function* () {
 		const db = yield* Database;
-		return yield* db.User.count();
+		return yield* db.AuthUser.count();
 	}),
 });
 
@@ -53,7 +54,7 @@ it.effectApp("preserves database, caller, and extension types", function* (app) 
 	expectTypeOf(authDatabase).not.toBeAny();
 	expectTypeOf(runtime.runPromise(Database)).not.toBeAny();
 
-	const users = yield* app.db.User.where({ name: "Ada" });
+	const users = yield* app.db.AuthUser.where({ name: "Ada" });
 	expectTypeOf(users).not.toBeAny();
 	const email: string | undefined = users[0]?.email;
 	expectTypeOf(email).not.toBeAny();
@@ -67,7 +68,7 @@ it.effectApp("preserves database, caller, and extension types", function* (app) 
 	// @ts-expect-error Unknown models remain rejected.
 	app.db.Movie;
 	// @ts-expect-error Database filters retain generated field types.
-	app.db.User.where({ email: 123 });
+	app.db.AuthUser.where({ email: 123 });
 	// @ts-expect-error Harness extensions do not widen unknown properties.
 	app.missing;
 });

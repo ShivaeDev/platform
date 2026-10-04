@@ -5,9 +5,10 @@ import { afterAll } from "vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { makePlatformRuntime } from "#runtime.ts";
+import type { Contract } from "#test/auth/generated/contract.d.ts";
+import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 import { environmentVariable } from "#test/support/environment.ts";
 import { makePlatformIt } from "#testing.ts";
-import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {
@@ -42,14 +43,14 @@ const router = t.router({
 		.mutation(function* (input) {
 			const db = yield* Database;
 			const actor = yield* Actor;
-			return yield* db.User.create({
+			return yield* db.AuthUser.create({
 				...input,
 				name: `${actor}:${input.name}`,
 			});
 		}),
 	findUser: procedure.input(Schema.String).query(function* (id) {
 		const db = yield* Database;
-		return Option.getOrNull(yield* db.User.where({ id }).first());
+		return Option.getOrNull(yield* db.AuthUser.where({ id }).first());
 	}),
 });
 
@@ -68,7 +69,7 @@ const it = makePlatformIt(Database)({
 					};
 				},
 			},
-			userExists: (id: string) => db.User.where({ id }).exists(),
+			userExists: (id: string) => db.AuthUser.where({ id }).exists(),
 		}),
 	layer: DatabaseLive,
 });
@@ -89,7 +90,7 @@ it.effectApp(
 
 		expect(created.name).toBe("default:Ada");
 		expect(yield* userExists(created.id)).toBe(true);
-		expect(Option.getOrThrow(yield* db.User.where({ id: created.id }).first()).email).toBe(input.email);
+		expect(Option.getOrThrow(yield* db.AuthUser.where({ id: created.id }).first()).email).toBe(input.email);
 	},
 	integrationOptions,
 );
@@ -118,7 +119,7 @@ it.effectApp.fails(
 	"rolls back expected failures",
 	function* ({ db, factories }) {
 		const input = { ...factories.user("Failed"), id: failedId };
-		yield* db.User.create(input);
+		yield* db.AuthUser.create(input);
 		return yield* Effect.fail("expected failure");
 	},
 	integrationOptions,
