@@ -1,10 +1,13 @@
 import { type Relocation, relocations } from "../../imports/aliases/relocations.ts";
 import { defineRule } from "../../rule.ts";
 
-function messageOf({ replacement, specifier, target }: Relocation): string {
+function messageOf({ declarationOnly, replacement, specifier, target }: Relocation): string {
 	const leaves = `"${specifier}" leaves its folder.`;
 	if (replacement !== undefined) {
 		return `${leaves} Import it as "${replacement}"; \`quality fix\` rewrites it.`;
+	}
+	if (declarationOnly) {
+		return `${leaves} It resolves only to a declaration file, which a runtime import cannot load, so no alias can stand in for it.`;
 	}
 	if (target === undefined) {
 		return `${leaves} It resolves to no file yet, so no alias can stand in for it. Import it through an alias once it exists.`;
@@ -12,7 +15,7 @@ function messageOf({ replacement, specifier, target }: Relocation): string {
 	if (target.kind === "external") {
 		return `${leaves} It reaches into the installed package ${target.package}. Import the package by its name.`;
 	}
-	return `${leaves} No alias reaches ${target.path}. Declare one in package.json "imports" or tsconfig "paths", then run \`quality fix\`.`;
+	return `${leaves} No package.json alias loads ${target.path} under every condition. Declare one in package.json "imports", then run \`quality fix\`.`;
 }
 
 export const importsAliased = defineRule({
@@ -24,6 +27,6 @@ export const importsAliased = defineRule({
 			subject: relocation.specifier,
 		})),
 	description:
-		"A relative import names only a file in its own folder. Every other import goes through an alias: package.json `imports`, tsconfig `paths` or a workspace package's name.",
+		"A relative import names only a file in its own folder. Every other import goes through an alias: the package.json `imports` of its package or another workspace package's name.",
 	id: "imports/aliased",
 });

@@ -1,9 +1,8 @@
 import { posix } from "node:path";
-import type ts from "typescript";
 import type { RuleInputs } from "../../rule.ts";
 import { packageOf, type WorkspacePackage } from "../workspace.ts";
 import type { AliasScope } from "./choose.ts";
-import { exportMappings, importMappings, pathMappings } from "./pattern.ts";
+import { exportMappings, importMappings } from "./pattern.ts";
 
 const MANIFEST = "package.json";
 
@@ -20,13 +19,7 @@ function parsed(text: string | undefined): unknown {
 	}
 }
 
-// TypeScript records the folder of the tsconfig that declares `paths` without a `baseUrl` under an internal option.
-function pathsBase(options: ts.CompilerOptions): string | undefined {
-	const declared: unknown = options.baseUrl ?? Reflect.get(options, "pathsBasePath");
-	return typeof declared === "string" ? declared : undefined;
-}
-
-export type AliasScopes = (file: string, target: string, options: ts.CompilerOptions) => Promise<AliasScope>;
+export type AliasScopes = (file: string, target: string) => Promise<AliasScope>;
 
 export function aliasScopes(reader: Pick<RuleInputs, "readText">, root: string, packages: readonly WorkspacePackage[]): AliasScopes {
 	const manifests = new Map<string, Promise<unknown>>();
@@ -39,22 +32,26 @@ export function aliasScopes(reader: Pick<RuleInputs, "readText">, root: string, 
 		for (let directory = posix.dirname(file); ; directory = posix.dirname(directory)) {
 			const manifest = await manifestAt(directory);
 			if (manifest !== undefined) {
-				return { directory, manifest };
+				return { directory: posix.join(root, directory), manifest };
 			}
 			if (directory === TOP) {
 				return undefined;
 			}
 		}
 	}
-	return async (file, target, options) => {
+	return async (file, target) => {
 		const own = await nearest(file);
-		const owner = packageOf(packages, target);
-		const base = pathsBase(options);
+		const ownerPackage = packageOf(packages, target);
+		const owner =
+			ownerPackage === undefined
+				? undefined
+				: { directory: posix.join(root, ownerPackage.directory), manifest: await manifestAt(ownerPackage.directory) };
 		return {
-			crossing: owner !== undefined && owner !== packageOf(packages, file),
-			exported: owner === undefined ? [] : exportMappings(await manifestAt(owner.directory), posix.join(root, owner.directory)),
-			imports: own === undefined ? [] : importMappings(own.manifest, posix.join(root, own.directory)),
-			paths: base === undefined ? [] : pathMappings(options.paths, base),
+			crossing: ownerPackage !== undefined && ownerPackage !== packageOf(packages, file),
+			exported: owner === undefined ? [] : exportMappings(owner.manifest, owner.directory),
+			imports: own === undefined ? [] : importMappings(own.manifest, own.directory),
+			own,
+			owner,
 		};
 	};
 }

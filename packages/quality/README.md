@@ -224,20 +224,23 @@ The gate fails closed: when the sources hold no module at all, the imports rules
 
 #### Aliases
 
-A relative import names only a file in its own folder, such as `./format.ts`: the folder is one module. Every other import goes through an alias the repository declares, so moving a file never rewrites a chain of `../`:
+A relative import names only a file in its own folder, such as `./format.ts`: the folder is one module. Every other import goes through an alias, so moving a file never rewrites a chain of `../`:
 
 - the `imports` of the importer's nearest `package.json`, such as `"#lib/*": "./src/lib/*"`, or `"#shared/*": "@demo/shared/*"`, which names another workspace package;
-- the `paths` of the importer's tsconfig project;
 - the name of another workspace package, as far as its `exports` reach.
 
-`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. Each finding has the import as its subject and names the alias that replaces it, or asks for one when none reaches the file.
+An import that already goes through a tsconfig `paths` alias is not relative, so the rule leaves it alone, but the rule never suggests one: Node, and a bundler or test runner without a paths plugin, cannot resolve it.
 
-`quality fix` rewrites each import the rule reports to the alias that resolves to the same file, before Biome sorts the imports, and leaves an import the registry excuses. It picks the alias this way:
+`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. Each finding has the import as its subject and names the alias that replaces it, or asks for one when none loads the file.
+
+`quality fix` rewrites each import the rule reports to its alias, before Biome sorts the imports, and leaves an import the registry excuses. It picks the alias this way:
 
 1. It collects every alias that maps to the file: the import as spelled, then the resolved file, then the file without its extension, then its folder for an `index` file.
-2. Across workspace packages, an alias of the importer's `package.json` comes first, then the other package's name with a path its `exports` lists, and a tsconfig path last, since it reaches past those `exports`. A package without `exports` is offered only by its bare name. Within one package, its own name is never used.
-3. Among the rest, the most specific alias wins: the one that fixes the longest part of the path, so `#lib/format.ts` beats `#src/lib/format.ts`. Then the alias that keeps the import's spelling, such as its extension, wins.
-4. It keeps the first alias that resolves to the same file under the importer's tsconfig. When none does, the import stays as it is and the rule keeps reporting it.
+2. It keeps an alias only when every condition of the `imports` or `exports` entry that Node picks for it, nested conditions and `types` included, names exactly that file. An entry with `development` and `default` branches that name different files, or an `exports` entry whose `default` loads built output while `source` names the file, offers no alias, so no runtime, bundler or test mock gets another module. The alias must also resolve to the same file under the importer's tsconfig.
+3. Across workspace packages, an alias of the importer's `package.json` comes first, then the other package's name with a path its `exports` lists. A package without `exports` offers none. Within one package, its own name is never used.
+4. Among the rest, the most specific alias wins: the one that fixes the longest part of the path, so `#lib/format.ts` beats `#src/lib/format.ts`. Then the alias that keeps the import's spelling, such as its extension, wins.
+
+When no alias passes, the import stays as it is and the rule keeps reporting it.
 
 #### Fences
 
@@ -416,7 +419,7 @@ The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, becau
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `adopt: ["biome"]` and `quality baseline write --rule biome` take in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
-`quality fix` rewrites the imports `imports/aliased` reports to their alias while the rule is on, sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository; an alias resolves to the same file under TypeScript, and a tsconfig path works at run time only where the bundler or test runner reads `paths` too. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+`quality fix` rewrites the imports `imports/aliased` reports to their alias while the rule is on, sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository; an alias rewrite loads the same file under every condition. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
 
 ## Vitest projects
 

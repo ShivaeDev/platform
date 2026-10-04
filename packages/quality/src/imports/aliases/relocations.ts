@@ -1,6 +1,5 @@
 import { realpathSync } from "node:fs";
 import { posix } from "node:path";
-import type ts from "typescript";
 import type { RuleInputs } from "../../rule.ts";
 import { parse } from "../../rules/syntax.ts";
 import { projectsFor } from "../projects.ts";
@@ -11,6 +10,7 @@ import { chooseAlias } from "./choose.ts";
 import { type AliasScopes, aliasScopes } from "./scope.ts";
 
 export interface Relocation extends SpecifierSite {
+	readonly declarationOnly: boolean;
 	readonly file: string;
 	readonly replacement: string | undefined;
 	readonly target: Endpoint | undefined;
@@ -48,9 +48,8 @@ function subjectsOf(spelled: string, target: string): readonly string[] {
 
 interface FileContext {
 	readonly from: string;
-	readonly options: ts.CompilerOptions;
 	readonly path: string;
-	readonly resolve: (site: SpecifierSite, specifier: string) => Endpoint | undefined;
+	readonly resolve: (site: SpecifierSite, specifier: string, type?: boolean) => Endpoint | undefined;
 }
 
 async function relocationOf(context: FileContext, scopes: AliasScopes, site: SpecifierSite, root: string): Promise<Relocation | undefined> {
@@ -63,14 +62,15 @@ async function relocationOf(context: FileContext, scopes: AliasScopes, site: Spe
 	if (!(leavesLexically(path) || (local !== undefined && posix.dirname(local) !== posix.dirname(context.path)))) {
 		return undefined;
 	}
-	const relocation = { ...site, file: context.path, replacement: undefined, target };
+	const relocation = { ...site, declarationOnly: false, file: context.path, replacement: undefined, target };
 	if (local === undefined) {
-		return relocation;
+		return { ...relocation, declarationOnly: target === undefined && context.resolve(site, site.specifier, true)?.kind === "file" };
 	}
 	const query = site.specifier.slice(path.length);
-	const scope = await scopes(context.path, local, context.options);
-	const subjects = subjectsOf(posix.join(posix.dirname(context.from), path), posix.join(root, local));
-	const alias = chooseAlias(scope, subjects, (candidate) => {
+	const scope = await scopes(context.path, local);
+	const file = posix.join(root, local);
+	const subjects = subjectsOf(posix.join(posix.dirname(context.from), path), file);
+	const alias = chooseAlias(scope, subjects, file, (candidate) => {
 		const reached = context.resolve(site, `${candidate}${query}`);
 		return reached?.kind === "file" && reached.path === local;
 	});
@@ -89,10 +89,10 @@ export async function relocations(inputs: RuleInputs): Promise<readonly Relocati
 		}
 		const from = posix.join(root, file.path);
 		const project = projectOf(from);
-		function resolve(site: SpecifierSite, specifier: string): Endpoint | undefined {
-			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type: site.type }, from, project);
+		function resolve(site: SpecifierSite, specifier: string, type = site.type): Endpoint | undefined {
+			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type }, from, project);
 		}
-		const context = { from, options: project.options, path: file.path, resolve };
+		const context = { from, path: file.path, resolve };
 		for (const site of specifierSites(syntax)) {
 			const relocation = await relocationOf(context, scopes, site, root);
 			found.push(...(relocation === undefined ? [] : [relocation]));

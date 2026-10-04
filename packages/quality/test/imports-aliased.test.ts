@@ -14,9 +14,11 @@ function rewrites(findings: readonly Finding[]): readonly (readonly [string, str
 }
 
 describe("imports/aliased", () => {
-	it("reports each relative import that leaves its folder, in every import form, with the alias that reaches the same file", async () => {
+	it("reports each relative import that leaves its folder, in every import form, with the alias that loads the same file", async () => {
 		const findings = await findingsIn(importsAliased, undefined, aliasRepository());
 		expect(rewrites(findings)).toEqual([
+			["packages/app/src/feature/described.js:1", "../lib/format.ts", "#lib/format.ts"],
+			["packages/app/src/feature/documented.ts:1", "../lib/format.ts", "#lib/format.ts"],
 			["packages/app/src/feature/forms.ts:1", "../lib/format.ts", "#lib/format.ts"],
 			["packages/app/src/feature/forms.ts:2", "../lib/side.ts", "#lib/side.ts"],
 			["packages/app/src/feature/forms.ts:4", "./parts/deeper.ts", "#src/feature/parts/deeper.ts"],
@@ -24,20 +26,44 @@ describe("imports/aliased", () => {
 			["packages/app/src/feature/forms.ts:6", "../lib/format.ts", "#lib/format.ts"],
 			["packages/app/src/feature/forms.ts:7", "../lib/format.ts", "#lib/format.ts"],
 			["packages/app/src/feature/forms.ts:8", "../lib/format.ts", "#lib/format.ts"],
+			["packages/app/src/feature/typed.ts:1", "../lib/shape", undefined],
 			["packages/app/src/kit-user.ts:1", "../../kit/src/button.ts", "@demo/kit/button"],
-			["packages/app/src/kit-user.ts:2", "../../kit/src/internal/secret.ts", "~kit/internal/secret.ts"],
+			["packages/app/src/kit-user.ts:2", "../../kit/src/internal/secret.ts", undefined],
+			["packages/app/src/lib-user.ts:1", "../../lib/src/index.ts", undefined],
 			["packages/game/feature/play.ts:1", "../core/core.ts", "#game/core/core.ts"],
 			["packages/game/feature/play.ts:2", "../../shared/util.ts", "#shared/util.ts"],
-			["packages/tools/src/cli/main.ts:1", "../util/helper", "@tools/util/helper"],
+			["packages/tools/src/cli/main.ts:1", "../util/helper", undefined],
+			["packages/web/src/feature/flags.ts:1", "../env/prod/flag.ts", undefined],
+			["packages/web/src/feature/flags.ts:2", "../env/prod/flag.ts", undefined],
 			["script/tasks/run.ts:1", "../lib/tool.ts", undefined],
 		]);
-		expect(findings[0]?.message).toBe('"../lib/format.ts" leaves its folder. Import it as "#lib/format.ts"; `quality fix` rewrites it.');
+		expect(findings[2]?.message).toBe('"../lib/format.ts" leaves its folder. Import it as "#lib/format.ts"; `quality fix` rewrites it.');
 	});
 
-	it("asks for an alias when none reaches the file", async () => {
+	it("never offers an alias that loads another file under some condition", async () => {
 		const findings = await findingsIn(importsAliased, undefined, aliasRepository());
-		expect(findings.at(-1)?.message).toBe(
-			'"../lib/tool.ts" leaves its folder. No alias reaches script/lib/tool.ts. Declare one in package.json "imports" or tsconfig "paths", then run `quality fix`.',
+		function message(file: string): string | undefined {
+			return findings.find((finding) => finding.file === file)?.message;
+		}
+		expect(message("packages/app/src/lib-user.ts")).toBe(
+			'"../../lib/src/index.ts" leaves its folder. No package.json alias loads packages/lib/src/index.ts under every condition. Declare one in package.json "imports", then run `quality fix`.',
+		);
+		expect(message("packages/web/src/feature/flags.ts")).toContain(
+			"No package.json alias loads packages/web/src/env/prod/flag.ts under every condition.",
+		);
+	});
+
+	it("never offers a tsconfig path, which a bundler or Node may not read", async () => {
+		const findings = await findingsIn(importsAliased, undefined, aliasRepository());
+		expect(findings.find((finding) => finding.file === "packages/tools/src/cli/main.ts")?.message).toBe(
+			'"../util/helper" leaves its folder. No package.json alias loads packages/tools/src/util/helper.ts under every condition. Declare one in package.json "imports", then run `quality fix`.',
+		);
+	});
+
+	it("says when a runtime import reaches only a declaration file", async () => {
+		const findings = await findingsIn(importsAliased, undefined, aliasRepository());
+		expect(findings.find((finding) => finding.file === "packages/app/src/feature/typed.ts")?.message).toBe(
+			'"../lib/shape" leaves its folder. It resolves only to a declaration file, which a runtime import cannot load, so no alias can stand in for it.',
 		);
 	});
 

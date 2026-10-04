@@ -27,7 +27,7 @@ function declared(node: ts.Node): Found | undefined {
 	if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
 		return { node: node.moduleReference.expression, type: node.isTypeOnly };
 	}
-	return ts.isJSDocImportTag(node) ? { node: node.moduleSpecifier, type: true } : undefined;
+	return undefined;
 }
 
 function isMock(callee: ts.Expression): boolean {
@@ -62,18 +62,36 @@ function siteOf(source: ts.SourceFile, found: Found | undefined): readonly Speci
 	return [{ end, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier: literal.text, start, type: found.type }];
 }
 
-function jsDocNodes(node: ts.Node): readonly ts.Node[] {
-	return ts.getJSDocCommentsAndTags(node).flatMap((doc) => (ts.isJSDoc(doc) ? (doc.tags ?? []) : [doc]));
+const JSDOC_IMPORT = /@import\b[^"'`]*?\bfrom\s*(?<quote>["'])(?<path>[^"'\r\n]*)\k<quote>/gu;
+
+function siteAt(source: ts.SourceFile, start: number, specifier: string): SpecifierSite {
+	return { end: start + specifier.length, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier, start, type: true };
+}
+
+// A node keeps only its last JSDoc block, so @import tags are read from every comment before it.
+function jsDocImports(source: ts.SourceFile, node: ts.Node, seen: Set<number>): readonly SpecifierSite[] {
+	return (ts.getLeadingCommentRanges(source.text, node.pos) ?? []).flatMap((range) => {
+		const comment = source.text.slice(range.pos, range.end);
+		if (seen.has(range.pos) || !comment.startsWith("/**")) {
+			return [];
+		}
+		seen.add(range.pos);
+		return [...comment.matchAll(JSDOC_IMPORT)].map((match) => {
+			const path = match.groups?.path ?? "";
+			return siteAt(source, range.pos + match.index + match[0].length - path.length - 1, path);
+		});
+	});
 }
 
 export function specifierSites(source: ts.SourceFile): readonly SpecifierSite[] {
 	const sites: SpecifierSite[] = [];
 	const nested = MAY_CALL.test(source.text);
 	const documented = source.text.includes("@import");
+	const comments = new Set<number>();
 	function visit(node: ts.Node): void {
 		sites.push(...siteOf(source, declared(node) ?? (nested ? called(node) : undefined)));
 		if (documented) {
-			sites.push(...jsDocNodes(node).flatMap((tag) => siteOf(source, declared(tag))));
+			sites.push(...jsDocImports(source, node, comments));
 		}
 		ts.forEachChild(node, visit);
 	}

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { Effect, type FileSystem } from "effect";
+import { Effect, FileSystem } from "effect";
 import type { ResolvedConfig } from "../config/load.ts";
 import { validOrFail } from "../decoded.ts";
 import { readInput } from "../engine/baseline-file.ts";
@@ -26,6 +26,18 @@ function rewritten(text: string, rewrites: readonly Rewrite[]): string {
 	return rewrites
 		.toSorted((left, right) => right.start - left.start)
 		.reduce((result, { end, replacement, start }) => `${result.slice(0, start)}${replacement}${result.slice(end)}`, text);
+}
+
+const BOM = [0xef, 0xbb, 0xbf];
+
+// The inventory reads text without its byte order mark, so a file that had one gets it back.
+function keepingBom(path: string, text: string): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
+	return Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
+		const bytes = yield* fs.readFile(path);
+		const marked = BOM.every((byte, index) => bytes[index] === byte);
+		yield* writeText(path, marked ? `\uFEFF${text}` : text);
+	}).pipe(Effect.mapError((failure) => new SetupFailure({ message: failure.message })));
 }
 
 // An import the registry excuses keeps its relative path, so the entry that excuses it stays in use.
@@ -64,9 +76,7 @@ export function rewriteImports(config: ResolvedConfig): Effect.Effect<ImportRewr
 			const edits = byFile.get(source.path);
 			return edits === undefined ? [] : [{ path: source.path, text: rewritten(source.text, edits) }];
 		});
-		yield* Effect.forEach(changed, ({ path, text }) =>
-			Effect.mapError(writeText(join(config.root, path), text), (failure) => new SetupFailure({ message: failure.message })),
-		);
+		yield* Effect.forEach(changed, ({ path, text }) => keepingBom(join(config.root, path), text));
 		return { files: changed.length, imports: rewrites.length };
 	});
 }

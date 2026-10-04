@@ -60,6 +60,45 @@ const aliasTree: readonly SeedFile[] = [
 	code("packages/game/core/core.ts", "export const core = 1;"),
 	json("packages/shared/package.json", { exports: { "./*.ts": "./*.ts" }, name: "@demo/shared", type: "module" }),
 	code("packages/shared/util.ts", "export const util = 1;"),
+	code("packages/app/src/lib-user.ts", 'import { lib } from "../../lib/src/index.ts";', "export const used = lib;"),
+	json("packages/lib/package.json", {
+		exports: { ".": { default: "./dist/index.js", source: "./src/index.ts", types: "./dist/index.d.ts" } },
+		name: "@demo/lib",
+		type: "module",
+	}),
+	code("packages/lib/src/index.ts", "export const lib = 1;"),
+	code("packages/lib/dist/index.js", "export const lib = 1;"),
+	code("packages/lib/dist/index.d.ts", "export declare const lib: number;"),
+	json("packages/web/package.json", {
+		imports: { "#env/*": { default: "./src/env/prod/*", development: "./src/env/dev/*" } },
+		name: "@demo/web",
+		type: "module",
+	}),
+	code(
+		"packages/web/src/feature/flags.ts",
+		'import { flag } from "../env/prod/flag.ts";',
+		'vi.mock("../env/prod/flag.ts", () => ({ flag: false }));',
+		"export const flags = [flag];",
+	),
+	code("packages/web/src/env/prod/flag.ts", "export const flag = true;"),
+	code("packages/web/src/env/dev/flag.ts", "export const flag = false;"),
+	code(
+		"packages/app/src/feature/documented.ts",
+		'/** @import { Format } from "../lib/format.ts" */',
+		"",
+		"/** @type {Format} */",
+		'export const documented = "";',
+	),
+	code(
+		"packages/app/src/feature/described.js",
+		'/** @import { Format } from "../lib/format.ts" */',
+		"/** @param {Format} value */",
+		"export function show(value) {",
+		"\treturn value;",
+		"}",
+	),
+	code("packages/app/src/feature/typed.ts", 'import { shape } from "../lib/shape";', "export const typed = shape;"),
+	code("packages/app/src/lib/shape.d.ts", "export declare const shape: number;"),
 	code("script/tasks/run.ts", 'import { tool } from "../lib/tool.ts";', "export const run = tool;"),
 	code("script/lib/tool.ts", "export const tool = 1;"),
 ];
@@ -68,5 +107,6 @@ export function aliasRepository(...extra: readonly SeedFile[]): string {
 	const root = seedTree(aliasTree, extra);
 	linkWorkspace(root, "@demo/kit", "packages/kit");
 	linkWorkspace(root, "@demo/shared", "packages/shared");
+	linkWorkspace(root, "@demo/lib", "packages/lib");
 	return root;
 }

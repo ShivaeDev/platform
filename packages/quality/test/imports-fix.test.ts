@@ -29,7 +29,7 @@ function read(root: string, path: string): string {
 describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 	it("rewrites imports, type imports, side-effect imports, re-exports, dynamic imports and vi mocks to the same alias", () => {
 		const root = repository("{}");
-		expect(quality(root, "fix").stdout).toContain("quality: rewrote 12 imports in 4 files to an alias.\n");
+		expect(quality(root, "fix").stdout).toContain("quality: rewrote 12 imports in 5 files to an alias.\n");
 		expect(read(root, "packages/app/src/feature/forms.ts")).toBe(
 			[
 				'import type { Format } from "#lib/format.ts";',
@@ -47,8 +47,41 @@ describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 		);
 		expect(read(root, "packages/app/src/kit-user.ts")).toContain('import { button } from "@demo/kit/button";');
 		expect(read(root, "packages/game/feature/play.ts")).toContain('import { util } from "#shared/util.ts";');
-		expect(read(root, "packages/tools/src/cli/main.ts")).toContain('import { helper } from "@tools/util/helper";');
+		expect(read(root, "packages/app/src/feature/documented.ts")).toContain('/** @import { Format } from "#lib/format.ts" */');
+		expect(read(root, "packages/app/src/feature/described.js")).toContain('/** @import { Format } from "#lib/format.ts" */');
 		expect(read(root, "script/tasks/run.ts")).toContain('import { tool } from "../lib/tool.ts";');
+	});
+
+	it("leaves an import whose only alias loads another file under some condition, mocks included", () => {
+		const root = repository("{}");
+		quality(root, "fix");
+		expect(read(root, "packages/app/src/lib-user.ts")).toContain('import { lib } from "../../lib/src/index.ts";');
+		expect(read(root, "packages/web/src/feature/flags.ts")).toBe(
+			[
+				'import { flag } from "../env/prod/flag.ts";',
+				"",
+				'vi.mock("../env/prod/flag.ts", () => ({ flag: false }));',
+				"export const flags = [flag];",
+				"",
+			].join("\n"),
+		);
+	});
+
+	it("never rewrites to a tsconfig path", () => {
+		const root = repository("{}");
+		quality(root, "fix");
+		expect(read(root, "packages/tools/src/cli/main.ts")).toContain('import { helper } from "../util/helper";');
+		expect(read(root, "packages/app/src/kit-user.ts")).toContain('import { secret } from "../../kit/src/internal/secret.ts";');
+	});
+
+	it("keeps a byte order mark", () => {
+		const marked: SeedFile = {
+			content: '\uFEFFimport { format } from "../lib/format.ts";\n\nexport const marked = format;\n',
+			path: "packages/app/src/feature/marked.ts",
+		};
+		const root = repository("{}", marked);
+		quality(root, "fix");
+		expect(read(root, marked.path)).toBe('\uFEFFimport { format } from "#lib/format.ts";\n\nexport const marked = format;\n');
 	});
 
 	it("leaves an import the registry excuses, and every import while the rule is off", () => {
@@ -59,7 +92,6 @@ describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 		const excused = repository("{}", excuse);
 		quality(excused, "fix");
 		expect(read(excused, "packages/app/src/kit-user.ts")).toContain('import { button } from "../../kit/src/button.ts";');
-		expect(read(excused, "packages/app/src/kit-user.ts")).toContain('import { secret } from "~kit/internal/secret.ts";');
 		const off = repository('{ "imports/aliased": "off" }');
 		expect(quality(off, "fix").stdout).toContain("quality: rewrote 0 imports in 0 files to an alias.\n");
 		expect(read(off, "packages/game/feature/play.ts")).toContain('import { core } from "../core/core.ts";');
