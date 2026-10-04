@@ -29,9 +29,7 @@ function isPrimitiveLiteral(node: ts.Expression | undefined): boolean {
 
 function isExported(statement: ts.Statement): boolean {
 	const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-	const exported = modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
-	const isDefault = modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) ?? false;
-	return exported && !isDefault;
+	return modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
 }
 
 function variables(statement: ts.VariableStatement): readonly OwnExport[] {
@@ -74,22 +72,53 @@ function listed(statement: ts.ExportDeclaration, known: ReadonlyMap<string, OwnE
 		return [];
 	}
 	return clause.elements.flatMap((element) => {
-		const name = element.name.text;
 		const local = known.get((element.propertyName ?? element.name).text);
-		if (name === "default" || local === undefined) {
+		if (local === undefined) {
 			return [];
 		}
+		const name = element.name.text === "default" ? local.name : element.name.text;
 		const typeOnly = statement.isTypeOnly || element.isTypeOnly;
 		return [{ constant: local.constant, kind: typeOnly ? ("type" as const) : local.kind, name }];
 	});
 }
 
+function wrappedName(expression: ts.Expression): string | undefined {
+	if (ts.isIdentifier(expression)) {
+		return expression.text;
+	}
+	if (ts.isFunctionExpression(expression) || ts.isClassExpression(expression)) {
+		return expression.name?.text;
+	}
+	if (ts.isCallExpression(expression)) {
+		const [wrapped] = expression.arguments;
+		return wrapped === undefined ? undefined : wrappedName(wrapped);
+	}
+	return ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)
+		? wrappedName(expression.expression)
+		: undefined;
+}
+
+// The default export counts under the name it resolves to, as in memo(ItemPanel); noDefaultExport reports the default export itself.
+function defaulted(statement: ts.ExportAssignment, known: ReadonlyMap<string, OwnExport>): readonly OwnExport[] {
+	const name = statement.isExportEquals ? undefined : wrappedName(statement.expression);
+	if (name === undefined) {
+		return [];
+	}
+	return [known.get(name) ?? { constant: false, kind: "value", name }];
+}
+
+function exportsOf(statement: ts.Statement, known: ReadonlyMap<string, OwnExport>): readonly OwnExport[] {
+	if (ts.isExportDeclaration(statement)) {
+		return listed(statement, known);
+	}
+	if (ts.isExportAssignment(statement)) {
+		return defaulted(statement, known);
+	}
+	return isExported(statement) ? declared(statement) : [];
+}
+
 export function ownExports(source: ts.SourceFile): readonly OwnExport[] {
 	const known = locals(source);
-	return source.statements.flatMap((statement) => {
-		if (ts.isExportDeclaration(statement)) {
-			return listed(statement, known);
-		}
-		return isExported(statement) ? declared(statement) : [];
-	});
+	const all = source.statements.flatMap((statement) => exportsOf(statement, known));
+	return [...new Map(all.map((entry) => [`${entry.kind} ${entry.name}`, entry])).values()];
 }

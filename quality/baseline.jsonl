@@ -274,9 +274,11 @@
 {"path":"packages/effect-prisma/src/testing.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"biome/lint/style/useNamingConvention","count":4}
+{"path":"packages/effect-prisma/src/testing/transaction.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/testing/types.ts","rule":"biome/lint/style/useNamingConvention","count":13}
 {"path":"packages/effect-prisma/src/testing/types.ts","rule":"biome/plugin","count":2}
 {"path":"packages/effect-prisma/src/testing/vitest.ts","rule":"biome/lint/style/useNamingConvention","count":3}
+{"path":"packages/effect-prisma/src/testing/vitest.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/test/contract-normalization.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/test/contract-normalization.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-prisma/test/contract-normalization.test.ts","rule":"tests/colocated","count":1}
