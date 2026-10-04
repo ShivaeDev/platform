@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runBiome } from "../src/biome/run.ts";
 import { biomeOverrides } from "../src/rules/suppressions/biome-overrides.ts";
 import { checkRule } from "./support/inputs.ts";
-import { packageRoot, removeSeededTrees, seedTree } from "./support/tree.ts";
+import { linkPackage, packageRoot, removeSeededTrees, seedTree } from "./support/tree.ts";
 
 afterEach(removeSeededTrees);
 
@@ -18,6 +18,26 @@ const preset: Preset = JSON.parse(shipped("biome/preset.json"));
 
 const declaredOff: readonly string[] = JSON.parse(shipped("biome/declarations.json")).map((declaration: { rule: string }) => declaration.rule);
 
+const OFF_FOR_FIXES: readonly string[] = [
+	"correctness/noProcessGlobal",
+	"correctness/useJsonImportAttributes",
+	"nursery/noMisusedPromises",
+	"nursery/useExhaustiveSwitchCases",
+	"nursery/useSortedClasses",
+	"performance/noDelete",
+	"style/useConsistentArrayType",
+	"style/useConsistentCurlyBraces",
+	"suspicious/noEqualsToNull",
+	"suspicious/noSkippedTests",
+];
+
+async function enabledRules(biomeJson: string): Promise<readonly string[]> {
+	const root = seedTree([{ content: biomeJson, path: "biome.json" }]);
+	linkPackage(root);
+	const rage = await runBiome(root, ["rage", "--linter"]);
+	return [...rage.stdout.matchAll(/^ {4}([a-z0-9]+\/\w+)$/gimu)].map((match) => match[1] ?? "");
+}
+
 function levelIn(rule: string): unknown {
 	const [group = "", name = ""] = rule.split("/");
 	const setting = preset.linter.rules[group]?.[name];
@@ -26,12 +46,16 @@ function levelIn(rule: string): unknown {
 
 describe("the shipped Biome preset", () => {
 	it("sets every rule Biome recommends to error, or declares why it is off", async () => {
-		const root = seedTree([{ content: '{ "linter": { "rules": { "recommended": true } } }\n', path: "biome.json" }]);
-		const rage = await runBiome(root, ["rage", "--linter"]);
-		const recommended = [...rage.stdout.matchAll(/^ {4}([a-z0-9]+\/\w+)$/gimu)].map((match) => match[1] ?? "");
+		const recommended = await enabledRules('{ "linter": { "rules": { "recommended": true } } }\n');
 		expect(recommended.length).toBeGreaterThan(200);
 		const loose = recommended.filter((rule) => levelIn(rule) !== "error" && !declaredOff.includes(`lint/${rule}`));
 		expect(loose).toEqual([]);
+	});
+
+	it("turns off the rules whose fixes changed behavior or did not finish on real code", async () => {
+		const enabled = await enabledRules('{ "extends": ["@shivaedev/quality/biome"] }\n');
+		expect(enabled).toContain("suspicious/noExplicitAny");
+		expect(OFF_FOR_FIXES.filter((rule) => enabled.includes(rule))).toEqual([]);
 	});
 
 	it("declares every weakening it ships", async () => {

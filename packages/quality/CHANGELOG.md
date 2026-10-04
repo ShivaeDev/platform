@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `quality fix` applies Biome's lint fixes, unsafe ones included, together with its assist actions and formatting, then runs Biome's formatter once more, because a lint fix can leave code unformatted. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed.
+- The Biome preset turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because their autofixes changed behavior or did not terminate on real code. Its `declarations.json` declares them.
+
+### Removed
+
+- `quality fix --lint`. `quality fix` applies the lint fixes itself.
+
 ## 0.5.1 - 2026-10-04
 
 ### Changed

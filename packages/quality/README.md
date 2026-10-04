@@ -358,7 +358,7 @@ An entry covers a rule's violations in one file, for good, and must say why. Wit
 
 ```text
 quality lint [--config <file>] [--warnings summary|all]
-quality fix [--config <file>] [--lint]
+quality fix [--config <file>]
 quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
@@ -388,16 +388,16 @@ quality baseline migrate [--config <file>] [--from <file>]
 The preset sets:
 
 - **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line.
-- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `noEqualsToNull`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `readonly T[]` arrays, `noFloatingPromises`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, no barrel files and no `export *`.
+- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, no barrel files and no `export *`.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike; `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and that ask `Effect.fn` for a literal span name shaped `Owner.operation`. They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
 
-The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, and allows default exports in `*.config.*` files, which tools load through the default export. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
+The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, and allows default exports in `*.config.*` files, which tools load through the default export. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `adopt: ["biome"]` and `quality baseline write --rule biome` take in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
-`quality fix` sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+`quality fix` sorts every `package.json`, then runs `biome check --write --unsafe`, which applies Biome's lint fixes, unsafe ones included, its assist actions, such as organized imports and sorted keys, and its formatting. It then runs Biome's formatter once more, because a lint fix can leave code unformatted. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
 
 ## Vitest projects
 
