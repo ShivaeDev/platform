@@ -1,0 +1,8 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+	`export type { $names } from $source` as $match,
+	`export type * from $source` as $match,
+	`export type * as $namespace from $source` as $match
+} where { register_diagnostic(span=$match, message="A module never re-exports, types included. Import the type from the module that defines it.") }

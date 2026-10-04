@@ -1,0 +1,17 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`const $name = $value` as $declaration where {
+	$value <: or {
+		JsNumberLiteralExpression(),
+		JsStringLiteralExpression()
+	},
+	! $declaration <: within or {
+		JsFunctionBody(),
+		JsArrowFunctionExpression(),
+		JsClassDeclaration(),
+		JsClassExpression()
+	} ,
+	! $name <: r"[A-Z][A-Z0-9_]*",
+	register_diagnostic(span=$name, message="A module-level constant holding a string or number literal is CONSTANT_CASE, such as MAX_ITEMS or DEFAULT_PORT.")
+}

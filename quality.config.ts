@@ -14,23 +14,6 @@ import {
 	workspace,
 } from "./packages/quality/src/index.ts";
 
-const PACKAGE_ENTRIES = [
-	"packages/*/src/index.ts",
-	"packages/effect-form/src/react.ts",
-	"packages/effect-react/src/form.ts",
-	"packages/effect-prisma/src/sqlite.ts",
-	"packages/effect-prisma/src/testing.ts",
-	"packages/effect-trpc/src/client.ts",
-	"packages/effect-trpc/src/testing.ts",
-	"packages/platform/src/better-auth.ts",
-	"packages/platform/src/errors.ts",
-	"packages/platform/src/node-http.ts",
-	"packages/platform/src/rpc-server.ts",
-	"packages/platform/src/rpc.ts",
-	"packages/platform/src/runtime.ts",
-	"packages/platform/src/testing.ts",
-] as const;
-
 const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	"effect-changes": [],
 	"effect-changes-prisma": ["effect-changes", "types"],
@@ -123,16 +106,6 @@ export default defineConfig({
 						includes: ["**", "!**/test/generated", "!**/test/*/generated"],
 						reason: "Generated test clients are not source.",
 						rule: "files/includes",
-					},
-					{
-						includes: PACKAGE_ENTRIES,
-						reason: "Package entry points are the files that re-export a package's public modules.",
-						rule: "lint/performance/noBarrelFile",
-					},
-					{
-						includes: PACKAGE_ENTRIES,
-						reason: "Package entry points are the files that re-export a package's public modules.",
-						rule: "lint/performance/noReExportAll",
 					},
 					{
 						includes: ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],

@@ -1,0 +1,13 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`const $name = $init` where {
+	$init <: or {
+		`Schema.$member($...)`,
+		`Schema.$member($...).pipe($...)`,
+		`Schema.$member`
+	},
+	! $member <: r"decode[A-Za-z]*|encode[A-Za-z]*|is|asserts|validate[A-Za-z]*|to[A-Z][A-Za-z]*|make[A-Za-z]*|format[A-Za-z]*",
+	! $name <: r"[A-Z][A-Za-z0-9]*",
+	register_diagnostic(span=$name, message="A schema is PascalCase and shares its name with its type: const Item = Schema.Struct(...), type Item = typeof Item.Type.")
+}
