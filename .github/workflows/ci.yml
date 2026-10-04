@@ -12,13 +12,16 @@ on:
 permissions:
   contents: read
 
+env:
+  CI_WORKSPACE_CONCURRENCY: ${{ vars.PLATFORM_CI_CONCURRENCY || 4 }}
+
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -33,57 +36,51 @@ jobs:
     permissions:
       contents: read
       actions: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          save-workspace-cache: 'true'
       - run: pnpm build
+        env:
+          CI_WORKSPACE_SORT: 'false'
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
       - name: Load measured consumer timings from main
         env:
           GH_TOKEN: ${{ github.token }}
         run: node --conditions=source script/ci/mainConsumerTimings.ts .ci/packages/consumer-durations.json
-      - name: Bundle build outputs
-        run: tar -czf .ci/build.tgz packages/*/dist
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: packages-${{ github.sha }}
-          path: |
-            .ci/build.tgz
-            .ci/packages
+          name: packages-${{ github.sha }}-${{ github.run_attempt }}
+          path: .ci/packages
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 2
           compression-level: 0
 
   typecheck:
-    needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: packages-${{ github.sha }}
-          path: .ci
-      - run: tar -xzf .ci/build.tgz
       - run: pnpm typecheck
 
   tests:
     name: tests (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     services:
       postgres:
         image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
@@ -114,6 +111,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
+          overwrite: true
           name: test-timings-${{ matrix.shard }}
           path: .ci/tests.json
           include-hidden-files: true
@@ -121,13 +119,15 @@ jobs:
 
   consumers:
     name: packed consumers (${{ matrix.shard }})
-    needs: build
-    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4]') }}
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4,5,6,7,8]') }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -136,10 +136,9 @@ jobs:
         id: setup
         with:
           consumer-cache: 'true'
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: ./.github/actions/await-packages
         with:
-          name: packages-${{ github.sha }}
-          path: .ci
+          token: ${{ github.token }}
       - name: Check packed consumer shard
         run: >-
           pnpm test:package --archives .ci/packages
@@ -151,6 +150,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
+          overwrite: true
           name: consumer-timings-${{ matrix.shard }}
           path: .ci/consumers.json
           include-hidden-files: true
@@ -165,7 +165,7 @@ jobs:
   verify:
     if: always()
     needs: [lint, build, typecheck, tests, consumers]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
       - name: Require every CI job to succeed
@@ -201,6 +201,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
+          overwrite: true
           name: consumer-balancing
           path: .ci/consumer-durations.json
           include-hidden-files: true
