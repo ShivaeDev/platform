@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-10-04
+
+### Changed
+
+- The harness tests run on the package's own auth test database instead of borrowing `@shivaedev/effect-prisma`'s test contract.
+
 ## 0.5.1 - 2026-10-04
 
 ### Changed
