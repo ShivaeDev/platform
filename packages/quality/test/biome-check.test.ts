@@ -15,7 +15,7 @@ function biome(content: string): SeedFile {
 
 const preset = biome('{ "extends": ["@shivaedev/quality/biome"] }');
 
-const looseType: SeedFile = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/a.ts" };
+const looseType: SeedFile = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/parse.ts" };
 
 function repository(...files: readonly SeedFile[]): string {
 	const root = seedTree([config('{ sources: ["src"] }'), { content: "node_modules/\n", path: ".gitignore" }, ...files]);
@@ -29,7 +29,7 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 		const root = repository(preset, looseType, { content: "export const b = 1\n", path: "src/b.ts" });
 		const result = quality(root, "lint");
 		expect(result.status).toBe(1);
-		expect(result.stdout).toContain("error biome/lint/suspicious/noExplicitAny (1)\n  src/a.ts:1  Unexpected any. Specify a different type.");
+		expect(result.stdout).toContain("error biome/lint/suspicious/noExplicitAny (1)\n  src/parse.ts:1  Unexpected any. Specify a different type.");
 		expect(result.stdout).toContain("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.");
 	});
 
@@ -37,13 +37,13 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 		const root = repository(preset, looseType);
 		expect(quality(root, "baseline", "write")).toMatchObject({ status: 0, stdout: "quality: recorded 1 entry in quality/baseline.jsonl.\n" });
 		expect(readFileSync(join(root, "quality/baseline.jsonl"), "utf8")).toBe(
-			'{"path":"src/a.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n',
+			'{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n',
 		);
 		expect(quality(root, "lint").status).toBe(0);
 		writeFileSync(join(root, looseType.path), `${looseType.content}\nexport function revive(text: string): any {\n\treturn JSON.parse(text);\n}\n`);
 		const grown = quality(root, "lint");
 		expect(grown.status).toBe(1);
-		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
+		expect(grown.stdout).toContain("src/parse.ts is over its baseline: 2 against 1 baselined.");
 	});
 
 	it("records every Biome rule again through the biome name", () => {
@@ -100,16 +100,16 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 	});
 
 	it("applies Biome's unsafe lint fixes", () => {
-		const root = repository(preset, { content: "export function same(a: number, b: number): boolean {\n\treturn a == b;\n}\n", path: "src/a.ts" });
+		const root = repository(preset, { content: "export function same(a: number, b: number): boolean {\n\treturn a == b;\n}\n", path: "src/same.ts" });
 		expect(quality(root, "fix")).toMatchObject({ status: 0 });
-		expect(readFileSync(join(root, "src/a.ts"), "utf8")).toBe("export function same(a: number, b: number): boolean {\n\treturn a === b;\n}\n");
+		expect(readFileSync(join(root, "src/same.ts"), "utf8")).toBe("export function same(a: number, b: number): boolean {\n\treturn a === b;\n}\n");
 		expect(quality(root, "lint").status).toBe(0);
 	});
 
 	it("runs a format pass after the lint fixes, so a fix that reshapes code ends formatted", () => {
 		const oneLineIf: SeedFile = {
 			content: "export function first(items: readonly number[]): number {\n\tif (items.length) return items[0] ?? 0;\n\treturn 0;\n}\n",
-			path: "src/a.ts",
+			path: "src/first.ts",
 		};
 		const root = repository(preset, oneLineIf);
 		expect(quality(root, "fix")).toMatchObject({

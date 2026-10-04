@@ -426,6 +426,47 @@ No file re-exports, package entry files included: every module is imported from 
 
 The plugins report under the one Biome category `plugin`, so their findings share the baseline rule `biome/plugin`.
 
+### Files
+
+`files/named-after-export` names a code file after its main export, and the folders above it are the prefix. The export takes the words of the file name, in order, and may add words of its folders around them, in any order and in singular or plural. Folders count from the package root, without a leading `src`; the package name does not count. The file's first letter follows the export's case.
+
+| File | Exports | Valid |
+| --- | --- | --- |
+| `routers/items/list.ts` | `listItems` or `itemList` | Yes |
+| `routers/items/Create.ts` | `CreateItemRouter` | Yes |
+| `item/Panel.tsx` or `ItemPanel.tsx` | `ItemPanel`, with `ItemPanelProps` beside it | Yes |
+| `Panel/Panel.tsx` | `Panel`: the main file of a module folder repeats the folder | Yes |
+| `limits.ts` | `MAX_ITEMS` and `MAX_DEPTH`: a topic file of several exports is camelCase | Yes |
+| `setupTests.ts` | Nothing, so it is camelCase | Yes |
+| `script/build-docs.ts` | Run by a `package.json` script or `bin`, or starts with `#!`, so it is kebab-case | Yes |
+| `order.ts` | `type Order` | No: the file's case follows the export, so it is `Order.ts` |
+| `maxItems.ts` | `MAX_ITEMS` alone | No: constants live in a topic file with related constants |
+| `items/listItems.ts` | `listItems` | No: the folder is the prefix, so it is `items/list.ts` |
+
+Test files are left to the test rules. The `toolOwned` option lists `.gitignore` patterns of files whose names a tool fixes, `*.config.*` and declaration files by default.
+
+### Folders
+
+`files/folder-names` checks every folder above a checked file.
+
+- A module folder takes the name of its main file, inside it or beside it: `Panel/` with `Panel/Panel.tsx`, or `Dialog/` beside `Dialog.tsx`. A PascalCase folder without that file is a finding.
+- A package folder is its package name without the scope, so `@acme/ui-kit` lives in `ui-kit/`.
+- A folder that only groups files is kebab-case: `test-support/`, `.github/`.
+- A folder the `content` option lists is snake_case: `forest_path/`.
+
+The `toolOwned` option lists folders a tool names, `generated/` and `migrations/` by default.
+
+### Other files
+
+`files/other-names` names the files that are not code.
+
+- Markdown, JSON, GritQL, images, fonts and SVG are kebab-case, with optional dotted parts: `release-notes.md`, `icons.sprite.svg`. Conventional upper-case names stay: `README.md`, `CHANGELOG.md`, `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md` and `SKILL.md`.
+- A stylesheet that one component imports is named after it: `ItemPanel.css` beside `ItemPanel.tsx`. A shared stylesheet is kebab-case: `form-controls.css`.
+- A Prisma schema is camelCase: `schema.prisma`.
+- A file the `content` option lists is snake_case: `forest_path.json`.
+
+The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*`, `migrations/` and `generated/` by default.
+
 ## Vitest projects
 
 `@shivaedev/quality/vitest` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
@@ -489,4 +530,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder and other-file naming rules against seeded trees, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

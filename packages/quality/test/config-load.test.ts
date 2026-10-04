@@ -42,6 +42,9 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"imports/resolvable",
 				"imports/aliased",
 				"manifests/sorted",
+				"files/named-after-export",
+				"files/folder-names",
+				"files/other-names",
 			]);
 			expect([...loaded.unregistrable]).toEqual([
 				"suppressions/no-inline",
