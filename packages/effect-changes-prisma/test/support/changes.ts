@@ -1,5 +1,5 @@
-import type { Observation } from "@shivaedev/effect-changes";
 import { Effect } from "effect";
+import type { Observation } from "@shivaedev/effect-changes";
 import { type ChangeMap, makePrismaChanges, type UnnamedWrite } from "../../src/index.ts";
 import type { PrismaClient } from "../generated/client.ts";
 

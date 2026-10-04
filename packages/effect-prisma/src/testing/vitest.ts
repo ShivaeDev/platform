@@ -1,6 +1,6 @@
 import { it as effectIt } from "@effect/vitest";
-import { type EffectClock, makeEffectIt } from "@shivaedev/effect-test";
 import type { Effect, Layer } from "effect";
+import { type EffectClock, makeEffectIt } from "@shivaedev/effect-test";
 import { withTestTransaction } from "./transaction.ts";
 import type { AnyDatabase, DatabaseIt, MakeDatabaseItOptions } from "./types.ts";
 

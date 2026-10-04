@@ -1,6 +1,6 @@
-import { type Decoded, type Encoded, type FieldFailure, type Fields, type Form, make, type Services } from "@shivaedev/effect-form";
 import type { Effect, Schema } from "effect";
 import type * as Atom from "effect/unstable/reactivity/Atom";
+import { type Decoded, type Encoded, type FieldFailure, type Fields, type Form, make, type Services } from "@shivaedev/effect-form";
 import { type AtomServices, type RejectField, rejecting } from "./field-rejection.ts";
 
 export interface SubmissionConfig<F extends Fields, A, E, R, ER> {

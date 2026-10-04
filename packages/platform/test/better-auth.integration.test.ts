@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { makeDatabase } from "@shivaedev/effect-prisma";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
 import { Effect } from "effect";
 import { afterAll, expect as expectPromise, it as vitestIt } from "vitest";
+import { makeDatabase } from "@shivaedev/effect-prisma";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc";
 import { effectPrismaAdapter } from "../src/better-auth.ts";
 import { makePlatformRuntime } from "../src/runtime.ts";
 import { makePlatformIt } from "../src/testing.ts";

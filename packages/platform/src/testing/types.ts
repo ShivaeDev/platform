@@ -1,8 +1,8 @@
 import type { TestContext, Vitest } from "@effect/vitest";
+import type { Effect, Layer } from "effect";
 import type { AnyDatabase, DatabaseService } from "@shivaedev/effect-prisma/testing";
 import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc";
 import type { CallerOptions, CallerResult, EffectCallerFactory, TrpcHarnessTest, TrpcHarnessTester } from "@shivaedev/effect-trpc/testing";
-import type { Effect, Layer } from "effect";
 
 export type PlatformHarness<Database extends AnyDatabase, Options, Caller, Extension> = Readonly<{
 	db: DatabaseService<Database>;
