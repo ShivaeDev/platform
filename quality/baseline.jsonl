@@ -400,7 +400,6 @@
 {"path":"packages/work-board/src/page/shell.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/page/updated.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/render/board.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
-{"path":"packages/work-board/src/render/code.ts","rule":"biome/lint/nursery/useBetterDomTraversing","count":1}
 {"path":"packages/work-board/src/render/code.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/work-board/src/render/footnotes.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/work-board/src/serve.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
