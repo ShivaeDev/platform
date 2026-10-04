@@ -1,5 +1,5 @@
-import type { ImportEdge } from "../graph.ts";
-import type { Endpoint } from "../resolve.ts";
+import type { ImportEdge } from "#imports/graph.ts";
+import type { Endpoint } from "#imports/resolve.ts";
 import type { Matcher } from "./match.ts";
 
 export interface Reached {

@@ -1,8 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality, trees } from "./support/cli.ts";
-import { config, linkPackage, removeSeededTrees, seedTree } from "./support/tree.ts";
+import { quality, trees } from "#test/support/cli.ts";
+import { config, linkPackage, removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 const cliTimeout = 60_000;
 

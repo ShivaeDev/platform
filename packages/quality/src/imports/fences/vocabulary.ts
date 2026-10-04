@@ -1,4 +1,4 @@
-import type { Endpoint } from "../resolve.ts";
+import type { Endpoint } from "#imports/resolve.ts";
 import { type Compiler, holdsFiles, packageNamed, trimmed } from "./match.ts";
 import type { Selector } from "./model.ts";
 

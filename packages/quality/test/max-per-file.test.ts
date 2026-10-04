@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { maxPerFile } from "../src/rules/comments/max-per-file.ts";
-import { checkRule, issuesOf } from "./support/inputs.ts";
-import { VITEST_ENVIRONMENT } from "./support/pragmas.ts";
+import { maxPerFile } from "#rules/comments/max-per-file.ts";
+import { checkRule, issuesOf } from "#test/support/inputs.ts";
+import { VITEST_ENVIRONMENT } from "#test/support/pragmas.ts";
 
 type Options = Parameters<typeof maxPerFile.configure>[0];
 

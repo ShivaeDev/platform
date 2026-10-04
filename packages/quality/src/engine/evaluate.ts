@@ -1,6 +1,6 @@
-import { applyBaseline, type Regression, type StaleBaselineEntry } from "../baseline/compare.ts";
-import type { BaselineEntry } from "../baseline/format.ts";
-import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "../exceptions/registry.ts";
+import { applyBaseline, type Regression, type StaleBaselineEntry } from "#baseline/compare.ts";
+import type { BaselineEntry } from "#baseline/format.ts";
+import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "#exceptions/registry.ts";
 import { byLocation, type RuleIndex, type Violation } from "./violation.ts";
 
 export interface Outcome {

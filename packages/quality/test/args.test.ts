@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCommand } from "../src/cli/args.ts";
+import { parseCommand } from "#cli/args.ts";
 
 describe("command line", () => {
 	it.each([

@@ -2,7 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import process from "node:process";
 import { Schema } from "effect";
-import rawTrees from "../fixtures/cli-trees.json" with { type: "json" };
+import rawTrees from "#test/fixtures/cli-trees.json" with { type: "json" };
 import { packageRoot } from "./tree.ts";
 
 const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });

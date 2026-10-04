@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { posix } from "node:path";
 import { promisify } from "node:util";
-import { emptyScope, type IgnoreScope, verdictFor, withIgnoreFile } from "../inventory/ignore-scope.ts";
-import type { RuleInputs } from "../rule.ts";
+import { emptyScope, type IgnoreScope, verdictFor, withIgnoreFile } from "#inventory/ignore-scope.ts";
+import type { RuleInputs } from "#rule.ts";
 import type { ImportGraph, UnresolvedImport } from "./graph.ts";
 
 type Reader = Pick<RuleInputs, "readText" | "root">;

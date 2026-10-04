@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
-import type { Fence } from "../../imports/fences/model.ts";
-import { compilePolicy } from "../../imports/fences/policy.ts";
-import { importGraph } from "../../imports/graph.ts";
-import { defineRule } from "../../rule.ts";
+import type { Fence } from "#imports/fences/model.ts";
+import { compilePolicy } from "#imports/fences/policy.ts";
+import { importGraph } from "#imports/graph.ts";
+import { defineRule } from "#rule.ts";
 
 function isFence(value: unknown): value is Fence {
 	return typeof value === "object" && value !== null && "_tag" in value && value._tag === "Fence";

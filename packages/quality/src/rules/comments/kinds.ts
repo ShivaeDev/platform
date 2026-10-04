@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { SUPPRESSIONS } from "../suppressions/directives.ts";
+import { SUPPRESSIONS } from "#rules/suppressions/directives.ts";
 import type { SourceComment } from "./scan.ts";
 
 export const Pragmas = Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed<readonly string[]>([])));

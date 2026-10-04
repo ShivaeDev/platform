@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { SourceFile } from "../rule.ts";
+import type { SourceFile } from "#rule.ts";
 
 const SCRIPT_KINDS: ReadonlyArray<readonly [RegExp, ts.ScriptKind]> = [
 	[/\.[cm]?ts$/u, ts.ScriptKind.TS],

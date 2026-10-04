@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { noJsdoc } from "../src/rules/comments/no-jsdoc.ts";
-import { checkRule, issuesOf } from "./support/inputs.ts";
-import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "./support/pragmas.ts";
+import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
+import { checkRule, issuesOf } from "#test/support/inputs.ts";
+import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/support/pragmas.ts";
 
 const jsdoc = async (content: string, options?: { readonly allow?: readonly string[] }) =>
 	(await checkRule(noJsdoc, options, { sources: [{ content, path: "src/a.ts" }] })).map((finding) => finding.line);

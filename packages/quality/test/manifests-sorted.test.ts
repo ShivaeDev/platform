@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality } from "./support/cli.ts";
-import { git } from "./support/git.ts";
-import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "./support/tree.ts";
+import { quality } from "#test/support/cli.ts";
+import { git } from "#test/support/git.ts";
+import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

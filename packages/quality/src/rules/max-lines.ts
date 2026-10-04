@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import ignore from "ignore";
-import { defineRule, type Finding, type SourceFile } from "../rule.ts";
+import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 
 const DEFAULT_TEST_FILES: readonly string[] = ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/"];
 const DECLARATION = /\.d\.[cm]?ts$/u;

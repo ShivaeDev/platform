@@ -3,8 +3,8 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
-import { loadConfig } from "../src/config/load.ts";
-import { config, removeSeededTrees, seedTree } from "./support/tree.ts";
+import { loadConfig } from "#config/load.ts";
+import { config, removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

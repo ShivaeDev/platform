@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
-import { MAX_FIX_ROUNDS, settle } from "../src/cli/fix.ts";
+import { MAX_FIX_ROUNDS, settle } from "#cli/fix.ts";
 
 function rounds(changes: readonly number[]) {
 	const ran: number[] = [];

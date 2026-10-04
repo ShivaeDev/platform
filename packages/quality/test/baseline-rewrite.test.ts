@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type BaselineEntry, decodeBaseline, encodeBaseline } from "../src/baseline/format.ts";
-import { rewriteBaseline } from "../src/baseline/rewrite.ts";
+import { type BaselineEntry, decodeBaseline, encodeBaseline } from "#baseline/format.ts";
+import { rewriteBaseline } from "#baseline/rewrite.ts";
 
 const lines = (...rows: readonly string[]): string => rows.map((row) => `${row}\n`).join("");
 

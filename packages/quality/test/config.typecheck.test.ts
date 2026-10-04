@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { defineConfig, defineRule, type QualityConfig, type Rule } from "../src/index.ts";
+import { defineConfig, defineRule, type QualityConfig, type Rule } from "#index.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 

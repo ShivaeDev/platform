@@ -1,12 +1,12 @@
 import { relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
-import { biomeReport, type Report } from "../biome/report.ts";
-import { loadConfig } from "../config/load.ts";
-import { SetupFailure } from "../failure.ts";
-import { posix } from "../inventory/ignore-scope.ts";
-import { walk } from "../inventory/walk.ts";
-import { sortManifests } from "../manifests/sorted.ts";
-import { plural } from "../report/plural.ts";
+import { biomeReport, type Report } from "#biome/report.ts";
+import { loadConfig } from "#config/load.ts";
+import { SetupFailure } from "#failure.ts";
+import { posix } from "#inventory/ignore-scope.ts";
+import { walk } from "#inventory/walk.ts";
+import { sortManifests } from "#manifests/sorted.ts";
+import { plural } from "#report/plural.ts";
 
 export const MAX_FIX_ROUNDS = 5;
 

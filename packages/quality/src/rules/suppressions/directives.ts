@@ -1,4 +1,4 @@
-import type { SourceComment } from "../comments/scan.ts";
+import type { SourceComment } from "#rules/comments/scan.ts";
 
 export const SUPPRESSIONS: readonly RegExp[] = [
 	/^biome-ignore(?:-all|-start)?(?![\w-])/u,

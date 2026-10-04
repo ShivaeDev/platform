@@ -1,5 +1,5 @@
-import type { Finding } from "../../rule.ts";
-import type { ImportEdge, ImportGraph } from "../graph.ts";
+import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
+import type { Finding } from "#rule.ts";
 import { type Compiler, compile, type Matcher } from "./match.ts";
 import type { Fence } from "./model.ts";
 import { labelOf, outgoing, reachedFrom } from "./reach.ts";

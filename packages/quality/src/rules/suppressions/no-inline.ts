@@ -1,5 +1,5 @@
-import { defineRule, type Finding, type RuleInputs } from "../../rule.ts";
-import { type SourceComment, scanComments } from "../comments/scan.ts";
+import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
+import { type SourceComment, scanComments } from "#rules/comments/scan.ts";
 import { suppressionIn } from "./directives.ts";
 import { STYLESHEET, stylesheetComments } from "./stylesheet-comments.ts";
 

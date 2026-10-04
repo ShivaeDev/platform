@@ -2,7 +2,7 @@ import { realpathSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
-import { posix } from "../inventory/ignore-scope.ts";
+import { posix } from "#inventory/ignore-scope.ts";
 import type { Ambient } from "./ambient.ts";
 import type { ImportRequest } from "./extract.ts";
 import type { Project } from "./projects.ts";

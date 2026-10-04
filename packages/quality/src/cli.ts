@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { Console, Effect } from "effect";
-import { parseCommand, USAGE } from "./cli/args.ts";
-import { writeBaseline } from "./cli/baseline.ts";
-import { fix } from "./cli/fix.ts";
-import { lint } from "./cli/lint.ts";
-import { migrateBaseline } from "./cli/migrate.ts";
-import { runMain } from "./cli/run-main.ts";
-import { pruneBaseline, tightenBaseline } from "./cli/shrink.ts";
+import { parseCommand, USAGE } from "#cli/args.ts";
+import { writeBaseline } from "#cli/baseline.ts";
+import { fix } from "#cli/fix.ts";
+import { lint } from "#cli/lint.ts";
+import { migrateBaseline } from "#cli/migrate.ts";
+import { runMain } from "#cli/run-main.ts";
+import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
 import { SetupFailure } from "./failure.ts";
 
 const parsed = parseCommand(process.argv.slice(2));

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { evaluate, passes } from "../src/engine/evaluate.ts";
-import { type ReportContext, render } from "../src/report/render.ts";
-import { levels, violation } from "./support/violations.ts";
+import { evaluate, passes } from "#engine/evaluate.ts";
+import { type ReportContext, render } from "#report/render.ts";
+import { levels, violation } from "#test/support/violations.ts";
 
 const known = levels({ "local/todo": "warn", "structure/max-lines": "error" });
 
