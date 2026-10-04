@@ -4,8 +4,8 @@ import type { RuleInputs, SourceFile } from "#rule.ts";
 import { parse } from "#rules/syntax.ts";
 import { ambientModules } from "./ambient.ts";
 import { type ImportKind, type ImportRequest, importsOf } from "./extract.ts";
-import { projectsFor } from "./projects.ts";
-import { type Endpoint, isDeclarationFile, resolveImport } from "./resolve.ts";
+import { type Project, projectsFor } from "./projects.ts";
+import { type Endpoint, isDeclarationFile, presumedTarget, resolveImport } from "./resolve.ts";
 import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
 
 export interface ImportEdge {
@@ -31,11 +31,15 @@ const QUERY = /\?.*$/u;
 const NO_MODULES =
 	"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the code, or turn the imports rules off.";
 
-// A relative import of a missing file still names a path, so fences see it before its generator writes it.
-function missingTarget(from: string, request: ImportRequest): string | undefined {
+function relativeTarget(from: string, request: ImportRequest): string | undefined {
 	const relative = request.kind === "path-reference" || request.specifier.startsWith("./") || request.specifier.startsWith("../");
-	const target = posix.join(posix.dirname(from), request.specifier.replace(QUERY, ""));
-	return relative && !target.startsWith("../") ? target : undefined;
+	return relative ? posix.join(posix.dirname(from), request.specifier.replace(QUERY, "")) : undefined;
+}
+
+// A relative import or a package import of a missing file still names a path, so fences see it before its generator writes it.
+function missingTarget(root: string, from: string, request: ImportRequest, project: Project): string | undefined {
+	const target = presumedTarget(root, request, join(root, from), project) ?? relativeTarget(from, request);
+	return target === undefined || target.startsWith("../") ? undefined : target;
 }
 
 function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "modules" | "unresolved"> {
@@ -52,7 +56,7 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 		for (const request of importsOf(syntax, isDeclarationFile(file.path))) {
 			const to = resolveImport(root, ambient, request, path, project);
 			if (to === undefined) {
-				const missing = missingTarget(file.path, request);
+				const missing = missingTarget(root, file.path, request, project);
 				unresolved.push({ ...request, from: file.path, missing });
 				edges.push(...(missing === undefined ? [] : [{ ...request, from: file.path, to: { kind: "file" as const, path: missing } }]));
 			} else {

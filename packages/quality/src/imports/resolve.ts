@@ -21,6 +21,16 @@ const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const QUERY = /\?.*$/u;
 
+const PACKAGE_IMPORT = "#";
+
+const PACKAGE_JSON = "package.json";
+
+const presumingHost: ts.ModuleResolutionHost = {
+	...ts.sys,
+	directoryExists: () => true,
+	fileExists: (path) => !path.endsWith(`/${PACKAGE_JSON}`) || ts.sys.fileExists(path),
+};
+
 export function builtinName(specifier: string): string | undefined {
 	if (!isBuiltin(specifier)) {
 		return undefined;
@@ -88,6 +98,14 @@ function located(request: ImportRequest, from: string, project: Project): string
 function resolvedPath(request: ImportRequest, from: string, project: Project): string | undefined {
 	const path = located(request, from, project);
 	return path === undefined ? undefined : fitting(path, request.type);
+}
+
+export function presumedTarget(root: string, request: ImportRequest, from: string, project: Project): string | undefined {
+	if (request.kind !== "import" || !request.specifier.startsWith(PACKAGE_IMPORT)) {
+		return undefined;
+	}
+	const path = ts.resolveModuleName(request.specifier.replace(QUERY, ""), from, project.options, presumingHost).resolvedModule?.resolvedFileName;
+	return path === undefined ? undefined : posix(relative(root, path));
 }
 
 function endpointAt(root: string, specifier: string, path: string): Endpoint {
