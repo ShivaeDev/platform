@@ -197,13 +197,14 @@ A weakening the preset makes without such a declaration is reported at the line 
 
 ### Imports
 
-Three rules read the import graph of the TypeScript and JavaScript modules among the sources. They build it once per run with the TypeScript compiler, without a bundler or another dependency.
+Four rules read the imports of the TypeScript and JavaScript modules among the sources. They build it once per run with the TypeScript compiler, without a bundler or another dependency.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `imports/cycles` | Modules that import each other at run time | none |
 | `imports/resolvable` | An import that resolves to nothing | `generated` |
 | `imports/fences` | An import that crosses a fence the config declares | `fences` |
+| `imports/aliased` | A relative import that leaves its own folder | none |
 
 Each import resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. The graph reads static and dynamic imports, `export ... from`, `require()`, `require.resolve()`, `import.meta.resolve()` of a bare specifier (a relative one is URL arithmetic that never checks the path), `import()` types, `/// <reference types>`, `/// <reference path>` and JSDoc `@import` tags.
 
@@ -220,6 +221,23 @@ Each import resolves the way the compiler resolves it, with the options of the n
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 The gate fails closed: when the sources hold no module at all, the imports rules stop the run instead of passing on an empty graph. Point `sources` at the code, or turn the rules off.
+
+#### Aliases
+
+A relative import names only a file in its own folder, such as `./format.ts`: the folder is one module. Every other import goes through an alias the repository declares, so moving a file never rewrites a chain of `../`:
+
+- the `imports` of the importer's nearest `package.json`, such as `"#lib/*": "./src/lib/*"`, or `"#shared/*": "@demo/shared/*"`, which names another workspace package;
+- the `paths` of the importer's tsconfig project;
+- the name of another workspace package, as far as its `exports` reach.
+
+`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. Each finding has the import as its subject and names the alias that replaces it, or asks for one when none reaches the file.
+
+`quality fix` rewrites each import the rule reports to the alias that resolves to the same file, before Biome sorts the imports, and leaves an import the registry excuses. It picks the alias this way:
+
+1. It collects every alias that maps to the file: the import as spelled, then the resolved file, then the file without its extension, then its folder for an `index` file.
+2. Across workspace packages, an alias of the importer's `package.json` comes first, then the other package's name with a path its `exports` lists, and a tsconfig path last, since it reaches past those `exports`. A package without `exports` is offered only by its bare name. Within one package, its own name is never used.
+3. Among the rest, the most specific alias wins: the one that fixes the longest part of the path, so `#lib/format.ts` beats `#src/lib/format.ts`. Then the alias that keeps the import's spelling, such as its extension, wins.
+4. It keeps the first alias that resolves to the same file under the importer's tsconfig. When none does, the import stays as it is and the rule keeps reporting it.
 
 #### Fences
 
@@ -389,6 +407,7 @@ The preset sets:
 
 - **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line.
 - **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `noEqualsToNull`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `readonly T[]` arrays, `noFloatingPromises`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, no barrel files and no `export *`.
+- **Imports:** organized in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases and relative paths. Biome counts as an alias a specifier that starts with `#`, `@/`, `~`, `$` or `%`; a tsconfig path such as `@app/*` sorts with the packages, and Biome's `noUndeclaredDependencies` takes it for one, so name aliases in a form Biome recognizes.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike; `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and that ask `Effect.fn` for a literal span name shaped `Owner.operation`. They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
@@ -397,7 +416,7 @@ The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, becau
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `adopt: ["biome"]` and `quality baseline write --rule biome` take in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
-`quality fix` sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+`quality fix` rewrites the imports `imports/aliased` reports to their alias while the rule is on, sorts every `package.json`, then applies Biome's formatting and assist actions, such as organized imports and sorted keys. None of these changes what the code does, so it is safe to run on a whole repository; an alias resolves to the same file under TypeScript, and a tsconfig path works at run time only where the bundler or test runner reads `paths` too. `quality fix --lint` also applies Biome's safe lint fixes. Those can change behavior, such as `noProcessGlobal` adding `import process from "node:process"` to code that runs in a browser, so review what it changed. Biome 2.5.14 never finishes the `noProcessGlobal` fix on `globalThis.process`, so `--lint` hangs on such code until that line is changed by hand. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
 
 ## Vitest projects
 

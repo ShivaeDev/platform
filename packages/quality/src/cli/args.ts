@@ -25,7 +25,8 @@ export const USAGE = `Usage:
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for a rule that is off or unknown.
-fix               Sort every package.json and apply Biome's formatting and assist actions, such as organized imports and sorted keys.
+fix               Rewrite each relative import that leaves its folder to an alias, sort every package.json and apply Biome's
+                  formatting and assist actions, such as organized imports and sorted keys.
                   With --lint, also apply Biome's safe lint fixes, which can change behavior.
 baseline write    Record current error-level violations. Creates the baseline, or records the named rules again, replacing their entries.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.

@@ -46,7 +46,9 @@ describe("manifests/sorted", { timeout: 60_000 }, () => {
 
 	it("is sorted by quality fix, after which the lint passes", () => {
 		const root = repository({ content: unsorted, path: "package.json" }, { content: unsorted, path: "packages/c/package.json" });
-		expect(quality(root, "fix").stdout).toBe("quality: sort-package-json rewrote 2 manifests.\nquality: Biome rewrote 0 files.\n");
+		expect(quality(root, "fix").stdout).toBe(
+			"quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 2 manifests.\nquality: Biome rewrote 0 files.\n",
+		);
 		expect(readFileSync(join(root, "package.json"), "utf8")).toBe(sorted);
 		expect(quality(root, "lint")).toMatchObject({ status: 0 });
 	});

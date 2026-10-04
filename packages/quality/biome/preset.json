@@ -3,7 +3,18 @@
 		"actions": {
 			"source": {
 				"noDuplicateClasses": "on",
-				"organizeImports": "on",
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							[":NODE:", ":BUN:"],
+							[":PACKAGE:", ":PACKAGE_WITH_PROTOCOL:", ":URL:", "!@shivaedev/**"],
+							["@shivaedev/**"],
+							[":ALIAS:"],
+							[":PATH:"]
+						]
+					}
+				},
 				"useSortedAttributes": "on",
 				"useSortedEnumMembers": "on",
 				"useSortedInterfaceMembers": "on",

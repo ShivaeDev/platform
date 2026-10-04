@@ -4,6 +4,7 @@ import { loadConfig } from "../config/load.ts";
 import { SetupFailure } from "../failure.ts";
 import { sortManifests } from "../manifests/sorted.ts";
 import { plural } from "../report/plural.ts";
+import { rewriteImports } from "./fix-imports.ts";
 
 const LANGUAGES: readonly string[] = ["javascript", "json", "css", "graphql", "grit", "html"];
 
@@ -11,7 +12,10 @@ const WITHOUT_LINT: readonly string[] = ["--linter-enabled=false", ...LANGUAGES.
 
 export function fix(cwd: string, config: string | undefined, lint: boolean): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
-		const { root } = yield* loadConfig(cwd, config);
+		const loaded = yield* loadConfig(cwd, config);
+		const root = loaded.root;
+		const imports = yield* rewriteImports(loaded);
+		yield* Console.log(`quality: rewrote ${plural(imports.imports, "import")} in ${plural(imports.files, "file")} to an alias.`);
 		const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ message: failure.message }));
 		yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
 		const report = yield* Effect.tryPromise({

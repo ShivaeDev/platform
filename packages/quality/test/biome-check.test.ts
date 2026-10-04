@@ -98,7 +98,7 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\n", path: "src/b.ts" });
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\n",
+			stdout: "quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 1 file.\n",
 		});
 		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
 		expect(quality(root, "lint").status).toBe(0);
@@ -108,7 +108,8 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, processGlobal, escapedString);
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
-			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 0 files.\n",
+			stdout:
+				"quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 0 files.\n",
 		});
 		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(processGlobal.content);
 		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe(escapedString.content);
@@ -118,7 +119,8 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		const root = repository(preset, processGlobal, escapedString);
 		expect(quality(root, "fix", "--lint")).toMatchObject({
 			status: 0,
-			stdout: "quality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 2 files.\n",
+			stdout:
+				"quality: rewrote 0 imports in 0 files to an alias.\nquality: sort-package-json rewrote 0 manifests.\nquality: Biome rewrote 2 files.\n",
 		});
 		expect(readFileSync(join(root, processGlobal.path), "utf8")).toBe(`import process from "node:process";\n${processGlobal.content}`);
 		expect(readFileSync(join(root, escapedString.path), "utf8")).toBe('a::before {\n\tcontent: "y";\n}\n');
