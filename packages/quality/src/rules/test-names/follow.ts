@@ -1,10 +1,10 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import ignore from "ignore";
+import { ENVIRONMENTS, type TestName, testName } from "#naming/testName.ts";
 import { CAMEL } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
-import { ENVIRONMENTS, type TestName, testName } from "#rules/tests/name.ts";
-import { usesDom } from "#rules/tests/usesDom.ts";
+import { usesDom } from "#rules/test-names/usesDom.ts";
 
 const ENVIRONMENT_NAMES: ReadonlySet<string> = new Set(ENVIRONMENTS);
 

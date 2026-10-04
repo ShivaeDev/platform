@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { testsColocated } from "#rules/tests/colocated.ts";
+import { testsColocated } from "#rules/test-names/colocated.ts";
 import { checkRule } from "#test/support/inputs.ts";
 
 const files = [

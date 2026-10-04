@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import ignore from "ignore";
+import { testName } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
-import { testName } from "#rules/tests/name.ts";
 
 const MIRROR_FOLDERS: ReadonlySet<string> = new Set(["__tests__", "spec", "test", "tests"]);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { testsFollow } from "#rules/tests/follow.ts";
+import { testsFollow } from "#rules/test-names/follow.ts";
 import { checkRule } from "#test/support/inputs.ts";
 import type { SeedFile } from "#test/support/tree.ts";
 

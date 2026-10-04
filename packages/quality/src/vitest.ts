@@ -1,5 +1,5 @@
 import { defaultExclude, type TestUserConfig } from "vitest/config";
-import type { Environment } from "#rules/tests/name.ts";
+import type { Environment } from "#naming/testName.ts";
 
 const EXTENSION = "?(c|m)[jt]s?(x)";
 
