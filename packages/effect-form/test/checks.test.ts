@@ -3,7 +3,7 @@ import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { vi } from "vitest";
-import { make } from "../src/index.ts";
+import { make } from "#index.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 

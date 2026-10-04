@@ -45,6 +45,8 @@ const invalidArguments = [
 	"--moduleResolution",
 	"Bundler",
 	"--allowImportingTsExtensions",
+	"--customConditions",
+	"source",
 	...Object.keys(invalidFixtures).map((fixture) => `test/fixtures/invalid/${fixture}.ts`),
 ];
 
@@ -56,7 +58,7 @@ describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
 			expect(result.stderr || result.stdout).toBe("");
 			expect(result.status).toBe(0);
 			const declaration = readFileSync(join(output, "test/fixtures/valid.d.ts"), "utf8");
-			expect(declaration).toContain('api: import("../../src/bind.ts").Bound<"notes"');
+			expect(declaration).toContain('api: import("#bind.ts").Bound<"notes"');
 			expect(declaration).toContain('Rpc<"notes.rename"');
 		} finally {
 			rmSync(output, { force: true, recursive: true });

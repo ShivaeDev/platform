@@ -1,10 +1,10 @@
+export type { EncodedRejection } from "#client/rejection.ts";
 export {
 	type EffectTRPCAdapter,
 	type EffectTRPCRuntime,
 	type MakeEffectTRPCOptions,
 	makeEffectTRPC,
 } from "./adapter.ts";
-export type { EncodedRejection } from "./client/rejection.ts";
 export {
 	badRequest,
 	conflict,

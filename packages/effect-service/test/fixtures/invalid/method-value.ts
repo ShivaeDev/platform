@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "../../../src/index.ts";
+import { defineService } from "#index.ts";
 
 defineService({
 	id: "invalid/MethodValue",

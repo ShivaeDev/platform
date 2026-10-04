@@ -1,6 +1,6 @@
 import { Data, Schema } from "effect";
 import { expect, it } from "vitest";
-import { fieldRejectionOf } from "../src/field-rejection.ts";
+import { fieldRejectionOf } from "#field-rejection.ts";
 
 class Rejected extends Data.TaggedError("Rejected")<{ readonly field: string; readonly message: string }> {}
 

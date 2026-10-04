@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Schema, SchemaParser } from "effect";
-import { messagesByField } from "../src/messages.ts";
+import { messagesByField } from "#messages.ts";
 
 const Fields = Schema.Struct({
 	berth: Schema.String.check(Schema.isMinLength(3)),

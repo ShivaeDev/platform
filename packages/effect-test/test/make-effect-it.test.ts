@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Cause, Clock, Context, Effect, Exit, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { eventually, makeEffectIt } from "../src/index.ts";
+import { eventually, makeEffectIt } from "#index.ts";
 
 class Token extends Context.Service<Token, string>()("@test/Token") {}
 

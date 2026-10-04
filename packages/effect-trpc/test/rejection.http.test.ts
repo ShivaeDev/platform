@@ -1,9 +1,9 @@
 import { createTRPCClient, httpBatchLink, TRPCClientError } from "@trpc/client";
 import { Effect, Option, Schema } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import { decodeRejection, rejectionOf } from "../src/client.ts";
-import { notFound, rejectWith } from "../src/index.ts";
-import { failureOf, inProcess, procedure, runtime, t } from "./support/http.ts";
+import { decodeRejection, rejectionOf } from "#client.ts";
+import { notFound, rejectWith } from "#index.ts";
+import { failureOf, inProcess, procedure, runtime, t } from "#test/support/http.ts";
 
 const described = { message: Schema.String };
 const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };

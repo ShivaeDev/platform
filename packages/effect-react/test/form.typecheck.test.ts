@@ -1,6 +1,6 @@
 import { Data, Effect, Layer, type Option, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { useCreate, useEditor } from "../src/form.ts";
+import { useCreate, useEditor } from "#form.ts";
 
 const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const fields = Schema.Struct({ title: Schema.String });

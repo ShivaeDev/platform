@@ -1,4 +1,4 @@
-import { command, contract, query } from "../../../src/index.ts";
+import { command, contract, query } from "#index.ts";
 
 contract("dupes", {
 	commands: [command("same", { invalidates: () => [] })],

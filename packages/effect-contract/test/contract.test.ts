@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Ref } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
-import { type CommandShape, command, contract, type QueryShape } from "../src/index.ts";
+import { type CommandShape, command, contract, type QueryShape } from "#index.ts";
 import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "./notes.ts";
 
 describe("contract", () => {

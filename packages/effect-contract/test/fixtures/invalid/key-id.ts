@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { query } from "../../../src/index.ts";
-import { Note, notes } from "../../notes.ts";
+import { query } from "#index.ts";
+import { Note, notes } from "#test/notes.ts";
 
 query("byTitle", {
 	payload: { title: Schema.String },
