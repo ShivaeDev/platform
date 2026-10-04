@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
-import { Console, Effect } from "effect";
-import durations from "#ci/consumer-durations.json" with { type: "json" };
+import { Console, Effect, FileSystem } from "effect";
+import { consumerDurationEstimates, decodeConsumerTimingSnapshot } from "#ci/consumerTimings.ts";
 import { balancedShards, type Shard } from "#ci/shard.ts";
 import { checkBins } from "#package-check/bins.ts";
 import { checkConsumer } from "#package-check/consumer.ts";
@@ -9,11 +9,21 @@ import { command, writeJson } from "#package-check/io.ts";
 import { decodeVersions, type Package } from "#package-check/model.ts";
 import { scenarios } from "#package-check/scenarios.ts";
 
-const estimates: Readonly<Record<string, number>> = durations;
-
-export function checkConsumers(root: string, packages: readonly Package[], temporary: string, shard: Shard, report: string | undefined) {
+export function checkConsumers(
+	root: string,
+	packages: readonly Package[],
+	temporary: string,
+	shard: Shard,
+	report: string | undefined,
+	timingSnapshot: string | undefined,
+) {
 	const timings: { name: string; durationMs: number }[] = [];
 	return Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
+		const estimates =
+			timingSnapshot === undefined
+				? {}
+				: consumerDurationEstimates(decodeConsumerTimingSnapshot(JSON.parse(yield* fs.readFileString(timingSnapshot))));
 		const catalog = decodeVersions(yield* command(root, "pnpm", ["config", "get", "catalog", "--json"]));
 		const store = (yield* command(root, "pnpm", ["store", "path", "--silent"])).trim();
 		const selected =
@@ -21,7 +31,7 @@ export function checkConsumers(root: string, packages: readonly Package[], tempo
 				packages,
 				shard.count,
 				(pkg) => pkg.manifest.name,
-				(pkg) => estimates[pkg.manifest.name] ?? 6,
+				(pkg) => estimates[pkg.manifest.name] ?? 6000,
 			)[shard.index - 1] ?? [];
 		for (const pkg of selected) {
 			const start = performance.now();

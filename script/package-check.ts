@@ -10,9 +10,18 @@ import { checkImportTargetRegression } from "#package-check/imports-regression.t
 import { checkSharedPeerRegression } from "#package-check/peer-regression.ts";
 
 const { values } = parseArgs({
-	options: { archives: { type: "string" }, prepare: { type: "string" }, report: { type: "string" }, shard: { default: "1/1", type: "string" } },
+	options: {
+		archives: { type: "string" },
+		prepare: { type: "string" },
+		report: { type: "string" },
+		shard: { default: "1/1", type: "string" },
+		timings: { type: "string" },
+	},
 });
-if (values.prepare !== undefined && (values.archives !== undefined || values.shard !== "1/1" || values.report !== undefined)) {
+if (
+	values.prepare !== undefined
+	&& (values.archives !== undefined || values.shard !== "1/1" || values.report !== undefined || values.timings !== undefined)
+) {
 	throw new Error("--prepare cannot be combined with consumer options");
 }
 const shard = parseShard(values.shard);
@@ -34,7 +43,7 @@ const program = Effect.gen(function* () {
 		yield* verifyArchives(packages, archives);
 	}
 	if (values.prepare === undefined) {
-		yield* checkConsumers(root, packages, temporary, shard, values.report);
+		yield* checkConsumers(root, packages, temporary, shard, values.report, values.timings);
 	}
 });
 NodeRuntime.runMain(program.pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)));

@@ -30,6 +30,9 @@ jobs:
         run: pnpm test:orchestration
 
   build:
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -40,6 +43,10 @@ jobs:
       - run: pnpm build
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
+      - name: Load measured consumer timings from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node --conditions=source script/ci/mainConsumerTimings.ts .ci/packages/consumer-durations.json
       - name: Bundle build outputs
         run: tar -czf .ci/build.tgz packages/*/dist
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -120,12 +127,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4]') }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        id: setup
+        with:
+          consumer-cache: 'true'
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: packages-${{ github.sha }}
@@ -134,6 +144,7 @@ jobs:
         run: >-
           pnpm test:package --archives .ci/packages
           --shard=${{ matrix.shard }}/${{ strategy.job-total }} --report .ci/consumers.json
+          --timings .ci/packages/consumer-durations.json
       - name: Record consumer timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/consumers.json
@@ -144,6 +155,12 @@ jobs:
           path: .ci/consumers.json
           include-hidden-files: true
           retention-days: 14
+      - name: Save complete consumer store on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ steps.setup.outputs.store-path }}
+          key: ${{ steps.setup.outputs.consumer-cache-key }}
 
   verify:
     if: always()
@@ -162,3 +179,30 @@ jobs:
           }
           if (Object.values(jobs).some(job => job.result !== 'success')) process.exit(1);
           JS
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          node-version: 26.10.0
+          package-manager-cache: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          pattern: consumer-timings-*
+          path: .ci/main-timings
+      - name: Merge successful main consumer timings
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: >-
+          node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
+          --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: consumer-balancing
+          path: .ci/consumer-durations.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
