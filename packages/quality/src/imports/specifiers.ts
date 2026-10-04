@@ -1,7 +1,6 @@
 import ts from "typescript";
 
 export interface SpecifierSite {
-	readonly end: number;
 	readonly line: number;
 	readonly specifier: string;
 	readonly start: number;
@@ -48,24 +47,19 @@ function called(node: ts.Node): Found | undefined {
 	return loads ? { node: node.arguments[0], type: false } : undefined;
 }
 
-// Only a literal whose source spells exactly its text is rewritten, so an escape or a template expression is left alone.
 function siteOf(source: ts.SourceFile, found: Found | undefined): readonly SpecifierSite[] {
 	const literal = found?.node;
 	if (found === undefined || literal === undefined || !ts.isStringLiteralLike(literal)) {
 		return [];
 	}
-	const start = literal.getStart(source) + 1;
-	const end = literal.end - 1;
-	if (source.text.slice(start, end) !== literal.text) {
-		return [];
-	}
-	return [{ end, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier: literal.text, start, type: found.type }];
+	const start = literal.getStart(source);
+	return [{ line: source.getLineAndCharacterOfPosition(start).line + 1, specifier: literal.text, start, type: found.type }];
 }
 
 const JSDOC_IMPORT = /^[ \t]*(?:\/\*\*|\*)?[ \t]*@import\b[^"'`]*?\bfrom\s*(?<quote>["'])(?<path>[^"'\r\n]*)\k<quote>/gmu;
 
 function siteAt(source: ts.SourceFile, start: number, specifier: string): SpecifierSite {
-	return { end: start + specifier.length, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier, start, type: true };
+	return { line: source.getLineAndCharacterOfPosition(start).line + 1, specifier, start, type: true };
 }
 
 // A node keeps only its last JSDoc block, so @import tags are read from every comment before it.
