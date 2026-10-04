@@ -185,7 +185,6 @@
 {"path":"packages/effect-react/test/support/session.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-service/test/compiler-fixtures.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-service/test/define-service.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
-{"path":"packages/effect-service/test/fixtures/invalid/overloaded-broad.ts","rule":"biome/lint/style/useUnifiedTypeSignatures","count":1}
 {"path":"packages/effect-service/test/fixtures/valid.ts","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/effect-service/test/generic-method.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-sql/src/index.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
