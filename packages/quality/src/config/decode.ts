@@ -18,7 +18,12 @@ const Setting = Schema.Union([Level, Schema.Struct({ level: Schema.optionalKey(L
 
 const LocalRule = Schema.declare(isRule, { expected: "a rule made with defineRule" });
 
+const AdoptRemoved = Schema.Never.annotate({
+	message: "removed in quality 0.7.0. Delete the key, and record a rule's existing findings with `quality baseline write --rule <id>`.",
+});
+
 const ConfigInput = Schema.Struct({
+	adopt: Schema.optionalKey(AdoptRemoved),
 	baseline: Schema.optionalKey(Schema.String),
 	exclude: Schema.optionalKey(Schema.Array(Schema.String)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),

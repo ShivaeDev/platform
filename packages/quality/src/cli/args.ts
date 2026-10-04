@@ -45,6 +45,9 @@ const OPTIONS = {
 
 const usage = (problem: string): Parsed => ({ _tag: "Usage", problem });
 
+const ADOPT_REMOVED =
+	"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`; to apply the fixes Biome can make first, run `quality fix`.";
+
 const parsed = (command: Command): Parsed => ({ _tag: "Parsed", command });
 
 type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositionals: true }>>["values"];
@@ -107,6 +110,9 @@ export const parseCommand = (args: readonly string[]): Parsed => {
 		return parsed({ _tag: "Help" });
 	}
 	const name = [command, ...rest].join(" ");
+	if (command === "adopt") {
+		return usage(ADOPT_REMOVED);
+	}
 	if (ACCEPTS[name] === undefined) {
 		return usage(command === "baseline" && rest.length < 2 ? "baseline takes write, prune, tighten or migrate." : `unknown command: ${name}`);
 	}
