@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
 	"bugs": {

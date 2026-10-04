@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-contract",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract#readme",
 	"bugs": {
