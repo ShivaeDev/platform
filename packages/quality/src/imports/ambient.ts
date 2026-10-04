@@ -1,5 +1,4 @@
 import ts from "typescript";
-import { wildcardMatches } from "./glob.ts";
 
 export type Ambient = (specifier: string, projectFiles: ReadonlySet<string>) => boolean;
 
@@ -16,6 +15,27 @@ function declaredIn(source: ts.SourceFile): readonly string[] {
 	return source.statements.flatMap((statement) =>
 		ts.isModuleDeclaration(statement) && ts.isStringLiteral(statement.name) && isPattern(statement.name.text) ? [statement.name.text] : [],
 	);
+}
+
+function wildcardMatches(pattern: string, value: string): boolean {
+	const [head = "", ...rest] = pattern.split(WILDCARD);
+	const tail = rest.pop();
+	if (tail === undefined) {
+		return pattern === value;
+	}
+	const end = value.length - tail.length;
+	if (end < head.length || !value.startsWith(head) || !value.endsWith(tail)) {
+		return false;
+	}
+	let at = head.length;
+	for (const middle of rest) {
+		const found = value.indexOf(middle, at);
+		if (found === -1 || found + middle.length > end) {
+			return false;
+		}
+		at = found + middle.length;
+	}
+	return true;
 }
 
 function isBare(specifier: string): boolean {

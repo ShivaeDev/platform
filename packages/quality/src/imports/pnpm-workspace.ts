@@ -1,4 +1,4 @@
-const KEY = /^packages\s*:/u;
+const KEY = /^(?:packages|"packages"|'packages')\s*:/u;
 
 const ITEM = "-";
 
@@ -43,20 +43,57 @@ function scalar(raw: string): string {
 	return value;
 }
 
+const FLOW_INDICATOR = /[{}[\]]/u;
+
+interface FlowScan {
+	current: string;
+	readonly entries: string[];
+	quote: string | undefined;
+}
+
+function flowScalar(raw: string): string {
+	const value = raw.trim();
+	const quoted = value.startsWith('"') || value.startsWith("'");
+	if (!quoted && FLOW_INDICATOR.test(value)) {
+		throw failure(`cannot read "${value}" in packages; quote a pattern that holds { } [ ] or ,`);
+	}
+	return scalar(value);
+}
+
+function closed(scan: FlowScan, rest: string): readonly string[] {
+	if (rest.trim() !== "") {
+		throw failure(`cannot read "${rest.trim()}" after the packages list`);
+	}
+	return [...scan.entries, scan.current].filter((entry) => entry.trim() !== "").map(flowScalar);
+}
+
+function scanned(scan: FlowScan, char: string): "close" | undefined {
+	if (scan.quote !== undefined) {
+		scan.quote = char === scan.quote ? undefined : scan.quote;
+	} else if (char === "]") {
+		return "close";
+	} else if (char === ",") {
+		scan.entries.push(scan.current);
+		scan.current = "";
+		return undefined;
+	} else if (char === '"' || char === "'") {
+		scan.quote = char;
+	}
+	scan.current += char;
+	return undefined;
+}
+
 function flowList(lines: readonly string[]): readonly string[] {
-	const text = lines.map(withoutComment).join(" ").trim();
-	const close = text.lastIndexOf("]");
-	if (close === -1) {
-		throw failure("the packages list never closes");
+	const scan: FlowScan = { current: "", entries: [], quote: undefined };
+	for (const [number, line] of lines.map(withoutComment).entries()) {
+		for (let index = number === 0 ? 1 : 0; index < line.length; index += 1) {
+			if (scanned(scan, line[index] ?? "") === "close") {
+				return closed(scan, line.slice(index + 1));
+			}
+		}
+		scan.current += " ";
 	}
-	if (text.slice(close + 1).trim() !== "") {
-		throw failure(`cannot read "${text}" in packages`);
-	}
-	return text
-		.slice(1, close)
-		.split(",")
-		.filter((entry) => entry.trim() !== "")
-		.map(scalar);
+	throw failure("the packages list never closes");
 }
 
 function blockList(lines: readonly string[]): readonly string[] {
@@ -88,9 +125,7 @@ export function pnpmWorkspacePatterns(text: string): readonly string[] {
 		.replace(KEY, "")
 		.trim();
 	if (rest.startsWith("[")) {
-		const flow = [rest, ...lines.slice(start + 1)];
-		const end = flow.findIndex((line) => withoutComment(line).includes("]"));
-		return flowList(end === -1 ? flow : flow.slice(0, end + 1));
+		return flowList([rest, ...lines.slice(start + 1)]);
 	}
 	if (rest !== "") {
 		throw failure(`cannot read "${rest}" in packages`);

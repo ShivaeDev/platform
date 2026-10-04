@@ -44,19 +44,30 @@ function isImportMeta(node: ts.Expression): boolean {
 	return ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";
 }
 
-function isResolve(call: ts.CallExpression): boolean {
+function resolver(call: ts.CallExpression): "meta" | "require" | undefined {
 	const callee = call.expression;
 	if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== "resolve") {
-		return false;
+		return undefined;
 	}
-	return (ts.isIdentifier(callee.expression) && callee.expression.text === "require") || isImportMeta(callee.expression);
+	if (ts.isIdentifier(callee.expression) && callee.expression.text === "require") {
+		return "require";
+	}
+	return isImportMeta(callee.expression) ? "meta" : undefined;
+}
+
+// Node resolves a relative import.meta.resolve() by URL arithmetic alone, so the path need not exist.
+function isRelative(node: ts.Node | undefined): boolean {
+	return node !== undefined && ts.isStringLiteralLike(node) && (node.text.startsWith(".") || node.text.startsWith("/"));
 }
 
 function called(call: ts.CallExpression): Found | undefined {
+	const [argument] = call.arguments;
 	if (call.expression.kind === ts.SyntaxKind.ImportKeyword || isRequire(call)) {
-		return { kind: "import", node: call.arguments[0], type: false };
+		return { kind: "import", node: argument, type: false };
 	}
-	return isResolve(call) ? { kind: "resolve", node: call.arguments[0], type: false } : undefined;
+	const how = resolver(call);
+	const checked = how === "require" || (how === "meta" && !isRelative(argument));
+	return checked ? { kind: "resolve", node: argument, type: false } : undefined;
 }
 
 function nested(node: ts.Node): Found | undefined {

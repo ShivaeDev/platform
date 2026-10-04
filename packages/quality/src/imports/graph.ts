@@ -5,7 +5,7 @@ import { parse } from "../rules/syntax.ts";
 import { ambientModules } from "./ambient.ts";
 import { type ImportKind, type ImportRequest, importsOf } from "./extract.ts";
 import { projectsFor } from "./projects.ts";
-import { type Endpoint, resolveImport } from "./resolve.ts";
+import { type Endpoint, isDeclarationFile, resolveImport } from "./resolve.ts";
 import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
 
 export interface ImportEdge {
@@ -25,8 +25,6 @@ export interface ImportGraph {
 	readonly packages: readonly WorkspacePackage[];
 	readonly unresolved: readonly UnresolvedImport[];
 }
-
-const DECLARATION = /\.d\.[cm]?ts$/u;
 
 const QUERY = /\?.*$/u;
 
@@ -51,7 +49,7 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 	const unresolved: UnresolvedImport[] = [];
 	for (const { file, path, syntax } of parsed) {
 		const project = projectOf(path);
-		for (const request of importsOf(syntax, DECLARATION.test(file.path))) {
+		for (const request of importsOf(syntax, isDeclarationFile(file.path))) {
 			const to = resolveImport(root, ambient, request, path, project);
 			if (to === undefined) {
 				const missing = missingTarget(file.path, request);

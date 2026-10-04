@@ -17,6 +17,8 @@ const NODE_MODULES = "node_modules";
 
 const NOT_A_REPOSITORY = "not a git repository";
 
+const PLACEHOLDERS = new Set([".gitkeep", ".keep"]);
+
 const run = promisify(execFile);
 
 async function withIgnoreFileIn(reader: Reader, scope: IgnoreScope, directory: string): Promise<IgnoreScope> {
@@ -24,12 +26,12 @@ async function withIgnoreFileIn(reader: Reader, scope: IgnoreScope, directory: s
 	return contents === undefined || contents === "" ? scope : withIgnoreFile(scope, posix.join(reader.root, directory), contents);
 }
 
-async function ignored(reader: Reader, folder: string): Promise<boolean> {
-	const parts = folder.split("/");
+async function ignored(reader: Reader, file: string): Promise<boolean> {
+	const parts = file.split("/");
 	let scope = emptyScope;
 	for (const index of parts.keys()) {
 		scope = await withIgnoreFileIn(reader, scope, parts.slice(0, index).join("/") || ".");
-		if (verdictFor(scope, posix.join(reader.root, ...parts.slice(0, index + 1)), true) === "ignored") {
+		if (verdictFor(scope, posix.join(reader.root, ...parts.slice(0, index + 1)), index < parts.length - 1) === "ignored") {
 			return true;
 		}
 	}
@@ -52,22 +54,34 @@ function under(folder: string, path: string | undefined): boolean {
 	return path?.startsWith(`${folder}/`) === true;
 }
 
-async function issueOf(reader: Reader, graph: ImportGraph, folder: string): Promise<string | undefined> {
+async function contentIssue(reader: Reader, folder: string, named: readonly string[]): Promise<string | undefined> {
+	const verdicts = await Promise.all(named.map((file) => ignored(reader, file)));
+	if (verdicts.includes(false)) {
+		return `"${folder}" is not ignored by git, so it holds source, not generated output`;
+	}
+	const kept = (await tracked(reader.root, folder)).find((file) => !PLACEHOLDERS.has(posix.basename(file)));
+	return kept === undefined ? undefined : `"${folder}" holds files git tracks, such as ${kept}, so it is not generated output`;
+}
+
+function placeIssue(graph: ImportGraph, folder: string): string | undefined {
 	if (folder === "" || folder.startsWith("../") || posix.isAbsolute(folder)) {
 		return `"${folder}" is no folder inside the repository`;
 	}
 	if (folder.split("/").includes(NODE_MODULES)) {
 		return `"${folder}" lies in node_modules, which holds installed packages, not generated output`;
 	}
-	if (!(await ignored(reader, folder))) {
-		return `"${folder}" is not ignored by git, so it holds source, not generated output`;
+	return graph.edges.some((edge) => edge.to.kind === "file" && under(folder, edge.to.path))
+		? undefined
+		: `"${folder}" holds no file that an import names`;
+}
+
+async function issueOf(reader: Reader, graph: ImportGraph, folder: string): Promise<string | undefined> {
+	const misplaced = placeIssue(graph, folder);
+	if (misplaced !== undefined) {
+		return misplaced;
 	}
-	const [kept] = await tracked(reader.root, folder);
-	if (kept !== undefined) {
-		return `"${folder}" holds files git tracks, such as ${kept}, so it is not generated output`;
-	}
-	const named = graph.edges.some((edge) => edge.to.kind === "file" && under(folder, edge.to.path));
-	return named ? undefined : `"${folder}" holds no file that an import names`;
+	const named = [...new Set(graph.edges.flatMap((edge) => (edge.to.kind === "file" && under(folder, edge.to.path) ? [edge.to.path] : [])))];
+	return await contentIssue(reader, folder, named);
 }
 
 // A generated folder may be empty until its generator runs, so a relative import of a missing file in it resolves.

@@ -50,6 +50,7 @@ describe("imports/resolvable", () => {
 			[14, "./ghost.ts"],
 			[16, "hast"],
 			[18, "dts-only"],
+			[20, "./ghost.css"],
 		]);
 		expect(findings[0]?.message).toBe(
 			'Cannot resolve "./gone.ts". Fix the path, install or declare the package, or declare the module in a .d.ts file among the sources.',
@@ -59,7 +60,7 @@ describe("imports/resolvable", () => {
 	it("takes a missing file under a declared generated folder as resolved", async () => {
 		const findings = await findingsIn(importsResolvable, { generated: ["src/generated"] }, importTree("unresolvable"));
 		expect(findings.map((finding) => finding.subject)).not.toContain("./generated/client.ts");
-		expect(findings).toHaveLength(10);
+		expect(findings).toHaveLength(11);
 	});
 
 	it("refuses a generated folder under node_modules, one git does not ignore, and one that no import names", async () => {
@@ -72,6 +73,17 @@ describe("imports/resolvable", () => {
 				'  - "src/generated/unused" holds no file that an import names',
 			].join("\n"),
 		);
+	});
+
+	it("takes a generated folder that git keeps with a placeholder while ignoring its contents", async () => {
+		const root = importTree("unresolvable");
+		writeFileSync(join(root, ".gitignore"), "src/generated/*\n!src/generated/.gitkeep\n");
+		mkdirSync(join(root, "src", "generated"));
+		writeFileSync(join(root, "src", "generated", ".gitkeep"), "");
+		git(root, "init", "--quiet");
+		git(root, "add", "src/generated/.gitkeep");
+		const findings = await findingsIn(importsResolvable, { generated: ["src/generated"] }, root);
+		expect(findings.map((finding) => finding.subject)).not.toContain("./generated/client.ts");
 	});
 
 	it("refuses a generated folder that holds files git tracks", async () => {
@@ -92,7 +104,7 @@ describe("imports/resolvable", () => {
 			["src/env.d.ts", 4, "./absent.d.ts"],
 			["src/tool.js", 2, "./gone-type.ts"],
 			["src/where.ts", 2, "./nowhere.cjs"],
-			["src/where.ts", 4, "./nowhere.mjs"],
+			["src/where.ts", 5, "absent-package"],
 		]);
 	});
 });

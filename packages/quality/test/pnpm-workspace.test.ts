@@ -23,6 +23,11 @@ describe("pnpmWorkspacePatterns", () => {
 		expect(pnpmWorkspacePatterns("packages: [\n  apps/*, # apps\n  'libs/*',\n]\n")).toEqual(["apps/*", "libs/*"]);
 	});
 
+	it("reads a quoted packages key and quoted patterns with braces in a flow list", () => {
+		expect(pnpmWorkspacePatterns('"packages":\n  - apps/*\n')).toEqual(["apps/*"]);
+		expect(pnpmWorkspacePatterns("'packages': [\"apps/{web,admin}\", 'libs/*']\n")).toEqual(["apps/{web,admin}", "libs/*"]);
+	});
+
 	it("reads no packages when the file declares none", () => {
 		expect(pnpmWorkspacePatterns("catalog:\n  effect: 4.0.0\n")).toEqual([]);
 	});
@@ -31,5 +36,8 @@ describe("pnpmWorkspacePatterns", () => {
 		expect(() => pnpmWorkspacePatterns("packages:\n  - apps/*\n  libs: true\n")).toThrow('pnpm-workspace.yaml: cannot read "libs: true" in packages');
 		expect(() => pnpmWorkspacePatterns("packages: apps/*\n")).toThrow('pnpm-workspace.yaml: cannot read "apps/*" in packages');
 		expect(() => pnpmWorkspacePatterns("packages: [apps/*\n")).toThrow("pnpm-workspace.yaml: the packages list never closes");
+		expect(() => pnpmWorkspacePatterns("packages: [apps/{web,admin}]\n")).toThrow(
+			'pnpm-workspace.yaml: cannot read "apps/{web" in packages; quote a pattern that holds { } [ ] or ,',
+		);
 	});
 });

@@ -115,7 +115,7 @@
 	],
 	"fence": [
 		{
-			"content": "packages:\n  - packages/game\n# the content side\n  - \"packages/cms\" # editors\n  - 'packages/simulation'\n  - packages/vocabulary\n\ncatalog:\n  effect: 4.0.0\n",
+			"content": "packages:\n  - packages/gam?\n# the content side\n  - \"packages/{cms,simulation}\" # editors\n  - 'packages/vocab[!0-9]lary'\n\ncatalog:\n  effect: 4.0.0\n",
 			"path": "pnpm-workspace.yaml"
 		},
 		{
@@ -241,7 +241,7 @@
 			"path": "src/thing.ts"
 		},
 		{
-			"content": "export const found = require.resolve(\"./tool.js\");\nexport const lost = require.resolve(\"./nowhere.cjs\");\nexport const metaFound = import.meta.resolve(\"./tool.js\");\nexport const metaLost = import.meta.resolve(\"./nowhere.mjs\");\n",
+			"content": "export const found = require.resolve(\"./tool.js\");\nexport const lost = require.resolve(\"./nowhere.cjs\");\nexport const metaFound = import.meta.resolve(\"./tool.js\");\nexport const metaLost = import.meta.resolve(\"./nowhere.mjs\");\nexport const metaPackage = import.meta.resolve(\"absent-package\");\n",
 			"path": "src/where.ts"
 		},
 		{
@@ -315,7 +315,7 @@
 			"path": "tsconfig.json"
 		},
 		{
-			"content": "import { gone } from \"./gone.ts\";\nimport pad from \"left-pad\";\nimport icons from \"virtual:icons\";\nimport \"./style.css\";\nimport logo from \"./logo.svg?url\";\nimport { client } from \"./generated/client.ts\";\nimport { readFileSync } from \"node:fs\";\nimport { join } from \"path\";\nimport \"../dist/does-not-exist.ts\";\nimport \"./node_modules/ghost/index.ts\";\nimport \"./missing.css\";\nimport other from \"other:thing\";\nimport augmented from \"augmented\";\nimport { ghost } from \"./ghost.ts\";\nimport type { Ghost } from \"./ghost.ts\";\nimport { visit } from \"hast\";\nimport type { Root } from \"hast\";\nimport { only } from \"dts-only\";\nimport type { Only } from \"dts-only\";\n\nexport const main = [gone, pad, icons, logo, client, readFileSync, join, other, augmented, ghost, visit, only];\nexport type Main = [Ghost, Root, Only];\n",
+			"content": "import { gone } from \"./gone.ts\";\nimport pad from \"left-pad\";\nimport icons from \"virtual:icons\";\nimport \"./style.css\";\nimport logo from \"./logo.svg?url\";\nimport { client } from \"./generated/client.ts\";\nimport { readFileSync } from \"node:fs\";\nimport { join } from \"path\";\nimport \"../dist/does-not-exist.ts\";\nimport \"./node_modules/ghost/index.ts\";\nimport \"./missing.css\";\nimport other from \"other:thing\";\nimport augmented from \"augmented\";\nimport { ghost } from \"./ghost.ts\";\nimport type { Ghost } from \"./ghost.ts\";\nimport { visit } from \"hast\";\nimport type { Root } from \"hast\";\nimport { only } from \"dts-only\";\nimport type { Only } from \"dts-only\";\nimport styles from \"./ghost.css\";\n\nexport const main = [gone, pad, icons, logo, client, readFileSync, join, other, augmented, ghost, visit, only, styles];\nexport type Main = [Ghost, Root, Only];\n",
 			"path": "src/main.ts"
 		},
 		{
@@ -345,6 +345,10 @@
 		{
 			"content": "export declare const ghost: number;\nexport type Ghost = number;\n",
 			"path": "src/ghost.d.ts"
+		},
+		{
+			"content": "declare const styles: Record<string, string>;\nexport default styles;\n",
+			"path": "src/ghost.d.css.ts"
 		},
 		{
 			"content": "declare module \"**\";\ndeclare module \"*-*\";\n",

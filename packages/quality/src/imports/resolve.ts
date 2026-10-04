@@ -59,11 +59,15 @@ const assetHost: ts.ModuleResolutionHost = {
 	fileExists: (path) => ts.sys.fileExists(path) || (ASSET_DECLARATION.test(path) && ts.sys.fileExists(assetOf(path))),
 };
 
+export function isDeclarationFile(path: string): boolean {
+	return DECLARATION.test(path) || ASSET_DECLARATION.test(path);
+}
+
 function fitting(resolved: string, type: boolean): string | undefined {
 	if (ASSET_DECLARATION.test(resolved) && ts.sys.fileExists(assetOf(resolved))) {
 		return assetOf(resolved);
 	}
-	return type || !DECLARATION.test(resolved) ? resolved : undefined;
+	return type || !isDeclarationFile(resolved) ? resolved : undefined;
 }
 
 function located(request: ImportRequest, from: string, project: Project): string | undefined {

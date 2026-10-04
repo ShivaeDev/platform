@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import type { RuleInputs } from "../rule.ts";
-import { globMatches } from "./glob.ts";
+import { globMatcher } from "./glob.ts";
 import { pnpmWorkspacePatterns } from "./pnpm-workspace.ts";
 
 export interface WorkspacePackage {
@@ -51,9 +51,11 @@ function normalized(pattern: string): string {
 async function memberOf(inputs: Reader): Promise<(directory: string) => boolean> {
 	const pnpm = await inputs.readText(PNPM_WORKSPACE);
 	const patterns = [...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)), ...npmPatterns(await inputs.readText(MANIFEST))];
-	const included = patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map(normalized);
-	const excluded = patterns.filter((pattern) => pattern.startsWith(NEGATION)).map((pattern) => normalized(pattern.slice(NEGATION.length)));
-	return (directory) => included.some((pattern) => globMatches(pattern, directory)) && !excluded.some((pattern) => globMatches(pattern, directory));
+	const included = patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map((pattern) => globMatcher(normalized(pattern)));
+	const excluded = patterns
+		.filter((pattern) => pattern.startsWith(NEGATION))
+		.map((pattern) => globMatcher(normalized(pattern.slice(NEGATION.length))));
+	return (directory) => included.some((matches) => matches(directory)) && !excluded.some((matches) => matches(directory));
 }
 
 export async function workspacePackages(inputs: Reader): Promise<readonly WorkspacePackage[]> {
