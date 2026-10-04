@@ -23,6 +23,8 @@ export const navHtml = (files: readonly MarkdownFile[], current: string, home: s
 	const ordered = [...files.filter((file) => file.path === home), ...files.filter((file) => file.path !== home)];
 	const folders = Map.groupBy(ordered, (file) => (file.path === home ? "" : folderOf(file.path)));
 	return [...folders]
-		.map(([name, grouped]) => (name === "" ? grouped.map((file) => `<span>${link(file, current)}</span>`).join("") : folder(name, grouped, current)))
+		.map(([name, grouped]) =>
+			name === "" ? `<ul>${grouped.map((file) => `<li>${link(file, current)}</li>`).join("")}</ul>` : folder(name, grouped, current),
+		)
 		.join("");
 };

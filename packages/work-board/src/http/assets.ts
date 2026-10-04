@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { Data, Effect, FileSystem, Path } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
-import { client } from "#page/client.ts";
+import { client, preferences } from "#page/client.ts";
 import { diagrams } from "#page/diagrams.ts";
 import { style } from "#page/style.ts";
 import { swap } from "#page/swap.ts";
@@ -10,6 +10,7 @@ import { respond } from "./respond.ts";
 export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [
 	["/_board/style.css", style, "text/css"],
 	["/_board/client.js", client, "text/javascript"],
+	["/_board/preferences.js", preferences, "text/javascript"],
 	["/_board/diagrams.js", diagrams, "text/javascript"],
 	["/_board/swap.js", swap, "text/javascript"],
 ];

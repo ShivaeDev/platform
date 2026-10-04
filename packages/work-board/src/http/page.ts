@@ -42,13 +42,16 @@ export const page = (options: PageOptions, changes: Changes) => {
 		const requested = requestedPath(request.url) || options.home || files[0]?.path || "";
 		const file = files.find((candidate) => candidate.path === requested);
 		const nav = navHtml(files, requested, options.home);
-		const missing = () => respond(shell(requested, nav, message(`No markdown file at ${requested || options.root}.`)), "text/html", 404);
+		function layout(content: string) {
+			return shell(requested, nav, content, changes.realRoot, requested === options.home);
+		}
+		const missing = () => respond(layout(message(`No markdown file at ${requested || options.root}.`)), "text/html", 404);
 		if (file === undefined) {
 			return missing();
 		}
 		return yield* body(file).pipe(
-			Effect.map(Option.match({ onNone: missing, onSome: (main) => respond(shell(file.path, nav, main), "text/html") })),
-			Effect.catch(() => Effect.succeed(respond(shell(file.path, nav, message(`${file.path} could not be read.`)), "text/html", 500))),
+			Effect.map(Option.match({ onNone: missing, onSome: (main) => respond(layout(main), "text/html") })),
+			Effect.catch(() => Effect.succeed(respond(layout(message(`${file.path} could not be read.`)), "text/html", 500))),
 		);
 	});
 };
