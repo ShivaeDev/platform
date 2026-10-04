@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/local-postgres",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Repeatable local PostgreSQL preparation with one shared persistent service",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#readme",
 	"bugs": {

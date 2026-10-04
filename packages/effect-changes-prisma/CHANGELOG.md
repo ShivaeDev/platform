@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-changes-prisma`: `@shivaedev/effect-changes-prisma/changes.ts` (`makePrismaChanges`, `PrismaChanges`, `PrismaChangesOptions`, `UnnamedObserver`), `@shivaedev/effect-changes-prisma/coverage.ts` (`Coverage`, `CoverageViolation`, `checkCoverage`), `@shivaedev/effect-changes-prisma/error.ts` (`PrismaError`, `TransactionExpired`), `@shivaedev/effect-changes-prisma/model.ts` (`ChangeMap`, `CountOperation`, `ModelChanges`, `ModelName`, `ModelRow`, `RowOperation`, `Transactional`, `TransactionOptions`), `@shivaedev/effect-changes-prisma/tables.ts` (`RawQueryClient`, `TableWrites`, `tablesOf`, `tableWrites`, `writtenTables`), `@shivaedev/effect-changes-prisma/write.ts` (`UnnamedWrite`, `Write`)
+
 ## 0.3.3 - 2026-10-04
 
 ### Changed

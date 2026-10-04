@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes-prisma",
-	"version": "0.3.3",
+	"version": "0.4.0",
 	"description": "Commit-bound change channels for Prisma Classic on PostgreSQL only: automatic change recording, publish after $transaction commits, and a test-time coverage check",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes-prisma#readme",
 	"bugs": {

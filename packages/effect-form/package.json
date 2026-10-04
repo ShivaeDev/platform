@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-form",
-	"version": "0.1.2",
+	"version": "0.2.0",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#readme",
 	"bugs": {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-pg-boss`: `@shivaedev/effect-pg-boss/client.ts` (`PgBossClient`, `PgBossClientFactory`), `@shivaedev/effect-pg-boss/definition.ts` (`DefineQueueOptions`, `DefineScheduleOptions`, `defineQueue`, `defineSchedule`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `ScheduleDefinition`, `ScheduledWorker`), `@shivaedev/effect-pg-boss/error.ts` (`PgBossError`, `PgBossOperation`, `PgBossPayloadError`), `@shivaedev/effect-pg-boss/health.ts` (`deadLetterQueueName`, `JobsHealth`, `QueueHealth`), `@shivaedev/effect-pg-boss/service.ts` (`makePgBoss`, `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService`)
+- `PgBossClient` and `PgBossClientFactory` live in `client.ts`, moved out of `internal/` because they are public.
+
 ## 0.2.1 - 2026-10-04
 
 ### Changed

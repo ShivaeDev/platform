@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-react`: `@shivaedev/effect-react/result-state.ts` (`ActionState`, `QueryState`, `ResultState`, `isUnauthorized`, `useAction`, `useQuery`), `@shivaedev/effect-react/resume-signal.ts` (`ResumeOptions`, `ResumeSource`, `ResumeWindow`, `resumeSignal`), `@shivaedev/effect-react/session-boundary.ts` (`SessionBoundaryProps`, `SessionBoundary`, `useSessionRecheck`)
+  - `@shivaedev/effect-react/form`: `@shivaedev/effect-react/create.ts` (`Create`, `CreateConfig`, `useCreate`), `@shivaedev/effect-react/editor.ts` (`Editor`, `EditorConfig`, `useEditor`), `@shivaedev/effect-react/field-rejection.ts` (`FieldRejection`, `FieldRejectionMapping`, `RejectField`), `@shivaedev/effect-react/save-state.ts` (`SaveState`)
+
 ## 0.1.2 - 2026-10-04
 
 ### Changed

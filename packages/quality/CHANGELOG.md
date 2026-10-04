@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/quality`: `@shivaedev/quality/imports/fences/dsl.ts` (`fence`), `@shivaedev/quality/imports/fences/model.ts` (`Chain`, `ExampleStep`, `Examples`, `External`, `Fence`, `Target`), `@shivaedev/quality/imports/fences/selectors.ts` (`anyOf`, `anything`, `external`, `files`, `folders`, `modules`, `packages`, `scopes`, `workspace`), `@shivaedev/quality/config.ts` (`BuiltInRules`, `Level`, `QualityConfig`, `RuleSetting`, `RuleSettings`, `defineConfig`), `@shivaedev/quality/rule.ts` (`Configured`, `Finding`, `Findings`, `Rule`, `RuleContext`, `RuleInputs`, `SourceFile`, `defineRule`), `@shivaedev/quality/standard-schema.ts` (`StandardIssue`, `StandardResult`, `StandardSchemaV1`)
+  - `@shivaedev/quality/vitest`: `@shivaedev/quality/vitest.ts`
+- A consumer `quality.config.ts` imports `defineConfig` from `@shivaedev/quality/config.ts`, `defineRule` from `rule.ts`, `fence` from `imports/fences/dsl.ts` and the selectors from `imports/fences/selectors.ts`. `./biome`, `./tsconfig/base.json` and `./tsconfig/package.json` are unchanged.
+
 ## 0.8.2 - 2026-10-04
 
 ### Changed

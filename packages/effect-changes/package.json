@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Commit-bound change channels for Effect: publish recorded changes only after the transaction commits",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes#readme",
 	"bugs": {

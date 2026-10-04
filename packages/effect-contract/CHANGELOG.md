@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-contract`: `@shivaedev/effect-contract/bind.ts` (`Bound`, `BoundCommand`, `BoundQuery`, `bind`, `Failure`, `QueryOptions`, `RunFailure`), `@shivaedev/effect-contract/contract.ts` (`Contract`, `contract`, `Declared`, `OperationRpc`, `Tag`), `@shivaedev/effect-contract/keys.ts` (`Collection`, `collection`, `Identity`, `ItemKey`, `invalidationKeys`, `Key`, `ListKey`, `readKeys`), `@shivaedev/effect-contract/operation.ts` (`Command`, `CommandShape`, `command`, `OperationShape`, `PayloadSchema`, `Query`, `QueryShape`, `query`), `@shivaedev/effect-contract/rejection.ts` (`FieldRejection`, `fieldRejection`, `MatchingTags`, `Reject`, `RejectedBy`, `RejectionClass`, `RejectionSpecs`, `Rejections`, `RejectionUnion`, `RejectionValue`, `TaggedRejection`)
+
 ## 0.2.1 - 2026-10-04
 
 ### Changed
