@@ -6,6 +6,7 @@
 
 - `quality fix` applies Biome's lint fixes, unsafe ones included, together with its assist actions and formatting, then runs Biome's formatter once more, because a lint fix can leave code unformatted. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed.
 - The Biome preset turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because their autofixes changed behavior or did not terminate on real code. Its `declarations.json` declares them.
+- The Biome preset sets `useConsistentMethodSignatures` to the property style explicitly, and `quality fix` applies its fix. A function member written as a property is checked strictly; where a member must stay bivariant, such as a list of rules with different options, wrap its type in `Bivariant` from `@shivaedev/types`. `Rule.configure` does, so a list of rules with different options still type-checks; the package now depends on `@shivaedev/types`.
 
 ### Removed
 

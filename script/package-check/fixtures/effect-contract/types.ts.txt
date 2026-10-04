@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract"
+import { collection, command, contract, fieldRejection, query, type QueryShape } from "@shivaedev/effect-contract"
 
 class Missing extends Schema.TaggedError<Missing>()("Missing", {}) {}
 const Draft = Schema.Struct({ title: Schema.String })
@@ -19,3 +19,6 @@ export const handlers = Notes.of({
 notes.item("1")
 // @ts-expect-error Field rejections accept only the struct's keys.
 Rename.reject.Invalid({ field: "body", message: "" })
+const shapes: readonly QueryShape[] = [Get]
+// @ts-expect-error QueryShape.reads keeps its type from @shivaedev/types through the packed declarations.
+export const readsName: string = shapes[0]?.reads({ id: 1 })

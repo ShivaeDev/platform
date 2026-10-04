@@ -20,7 +20,7 @@ export interface Contract<
 	Rpcs extends Rpc.Any = OperationRpc<Name, Queries[number] | Commands[number]>,
 > extends RpcGroup.RpcGroup<Rpcs> {
 	readonly declaration: Declared<Name, Queries, Commands>;
-	middleware<M extends RpcMiddleware.AnyService>(middleware: M): Contract<Name, Queries, Commands, Rpc.AddMiddleware<Rpcs, M>>;
+	middleware: <M extends RpcMiddleware.AnyService>(middleware: M) => Contract<Name, Queries, Commands, Rpc.AddMiddleware<Rpcs, M>>;
 }
 
 type Duplicated<Operations extends readonly OperationShape[], Seen extends string = never> = Operations extends readonly [
@@ -44,7 +44,7 @@ const assertUnique = (operations: readonly OperationShape[]) => {
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[]>;
 
 interface Group {
-	middleware(middleware: RpcMiddleware.AnyService): Group;
+	middleware: (middleware: RpcMiddleware.AnyService) => Group;
 }
 
 interface DeclaredGroup extends Group {

@@ -5,7 +5,7 @@ import type { PrismaRelationMethods } from "./relation/prisma-methods.ts";
 type AnyFunction = (...arguments_: readonly never[]) => unknown;
 
 export type CollectionResult<Collection> = Collection extends {
-	all(): infer Result;
+	all: () => infer Result;
 }
 	? Awaited<Result>
 	: never;

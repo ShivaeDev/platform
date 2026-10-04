@@ -408,7 +408,12 @@
 				"useConsistentCurlyBraces": "off",
 				"useConsistentEnumValueType": "error",
 				"useConsistentMemberAccessibility": "error",
-				"useConsistentMethodSignatures": "error",
+				"useConsistentMethodSignatures": {
+					"level": "error",
+					"options": {
+						"style": "property"
+					}
+				},
 				"useConsistentObjectDefinitions": "error",
 				"useConsistentTypeDefinitions": {
 					"level": "error",

@@ -10,7 +10,7 @@ const countOf = (result: unknown): unknown => (typeof result === "object" && res
 
 export const evaluateResult = (value: unknown, terminal: PropertyKey | undefined): Effect.Effect<unknown, PrismaError> => {
 	if (terminal === "count" && hasMethod(value, "aggregate")) {
-		return settle(invokeMethod(value, "aggregate", [(summary: { count(): unknown }) => ({ count: summary.count() })]), countOf);
+		return settle(invokeMethod(value, "aggregate", [(summary: { count: () => unknown }) => ({ count: summary.count() })]), countOf);
 	}
 
 	if (terminal === "exists" && hasMethod(value, "first")) {

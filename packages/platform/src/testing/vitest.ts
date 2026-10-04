@@ -2,16 +2,19 @@ import type { TestContext } from "@effect/vitest";
 import { type AnyDatabase, withTestTransaction } from "@shivaedev/effect-prisma/testing";
 import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc";
 import { type CallerOptions, type CallerResult, type EffectCallerFactory, makeTrpcHarnessIt } from "@shivaedev/effect-trpc/testing";
+import type { Bivariant } from "@shivaedev/types";
 import { Effect, type Layer } from "effect";
 import type { MakePlatformItOptions, PlatformHarness, PlatformIt } from "./types.ts";
 
 interface LooseOptions {
 	readonly adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">;
 	readonly createCaller: (options?: unknown) => object;
-	extend?(
-		base: { readonly db: unknown; readonly trpc: EffectCallerFactory<unknown, object> },
-		context: TestContext,
-	): Effect.Effect<object, unknown, unknown>;
+	extend?: Bivariant<
+		(
+			base: { readonly db: unknown; readonly trpc: EffectCallerFactory<unknown, object> },
+			context: TestContext,
+		) => Effect.Effect<object, unknown, unknown>
+	>;
 	readonly layer: Layer.Layer<unknown, unknown>;
 }
 

@@ -5,6 +5,7 @@
 ### Changed
 
 - Consolidate duplicate test cases around observable package behavior.
+- The function members of the relation, collection and database types are declared as properties, so TypeScript checks their parameters strictly.
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 

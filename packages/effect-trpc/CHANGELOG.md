@@ -5,6 +5,7 @@
 ### Changed
 
 - Validate packed consumers and executable bins through the shared workspace gate.
+- The function members of the procedure builder types are declared as properties, so TypeScript checks their parameters strictly.
 
 - Remove a JSDoc block, so the package passes the comment rules of `@shivaedev/quality`.
 

@@ -5,20 +5,20 @@ export type CleanedWhere = Required<Where>;
 export type Expression = Parameters<typeof and>[number];
 
 export interface DynamicField {
-	asc(): unknown;
-	desc(): unknown;
-	eq(value: unknown): Expression;
-	gt(value: unknown): Expression;
-	gte(value: unknown): Expression;
-	ilike?(value: string): Expression;
-	in(value: readonly unknown[]): Expression;
-	isNotNull(): Expression;
-	isNull(): Expression;
-	like(value: string): Expression;
-	lt(value: unknown): Expression;
-	lte(value: unknown): Expression;
-	neq(value: unknown): Expression;
-	notIn(value: readonly unknown[]): Expression;
+	asc: () => unknown;
+	desc: () => unknown;
+	eq: (value: unknown) => Expression;
+	gt: (value: unknown) => Expression;
+	gte: (value: unknown) => Expression;
+	ilike?: (value: string) => Expression;
+	in: (value: readonly unknown[]) => Expression;
+	isNotNull: () => Expression;
+	isNull: () => Expression;
+	like: (value: string) => Expression;
+	lt: (value: unknown) => Expression;
+	lte: (value: unknown) => Expression;
+	neq: (value: unknown) => Expression;
+	notIn: (value: readonly unknown[]) => Expression;
 }
 
 const escapeLike = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");

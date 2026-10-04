@@ -3,18 +3,18 @@ import type { Effect, Option } from "effect";
 import { type CleanedWhere, type DynamicField, type Expression, whereExpression } from "./where.ts";
 
 export interface DynamicRelation<Requirements> extends Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements> {
-	count(): Effect.Effect<number, unknown, Requirements>;
-	create(data: Record<string, unknown>): Effect.Effect<Record<string, unknown>, unknown, Requirements>;
-	delete(): Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
-	deleteAll(): Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
-	first(): Effect.Effect<Option.Option<Record<string, unknown>>, unknown, Requirements>;
-	orderBy(ordering: (fields: Record<string, DynamicField>) => unknown): DynamicRelation<Requirements>;
-	select(...fields: readonly string[]): DynamicRelation<Requirements>;
-	skip(count: number): DynamicRelation<Requirements>;
-	take(count: number): DynamicRelation<Requirements>;
-	update(data: Record<string, unknown>): Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
-	updateAll(data: Record<string, unknown>): Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
-	where(predicate: (fields: Record<string, DynamicField>) => Expression): DynamicRelation<Requirements>;
+	count: () => Effect.Effect<number, unknown, Requirements>;
+	create: (data: Record<string, unknown>) => Effect.Effect<Record<string, unknown>, unknown, Requirements>;
+	delete: () => Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
+	deleteAll: () => Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
+	first: () => Effect.Effect<Option.Option<Record<string, unknown>>, unknown, Requirements>;
+	orderBy: (ordering: (fields: Record<string, DynamicField>) => unknown) => DynamicRelation<Requirements>;
+	select: (...fields: readonly string[]) => DynamicRelation<Requirements>;
+	skip: (count: number) => DynamicRelation<Requirements>;
+	take: (count: number) => DynamicRelation<Requirements>;
+	update: (data: Record<string, unknown>) => Effect.Effect<Record<string, unknown> | null, unknown, Requirements>;
+	updateAll: (data: Record<string, unknown>) => Effect.Effect<readonly Record<string, unknown>[], unknown, Requirements>;
+	where: (predicate: (fields: Record<string, DynamicField>) => Expression) => DynamicRelation<Requirements>;
 }
 
 export const refineRelation = <Requirements>(
