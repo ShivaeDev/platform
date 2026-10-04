@@ -5,6 +5,9 @@ import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
 import { noLineReference } from "#rules/comments/no-line-reference.ts";
 import { noPrReference } from "#rules/comments/no-pr-reference.ts";
 import { noTodo } from "#rules/comments/no-todo.ts";
+import { folderNames } from "#rules/files/folderNames.ts";
+import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
+import { otherNames } from "#rules/files/otherNames.ts";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { importCycles } from "#rules/imports/cycles.ts";
 import { importFences } from "#rules/imports/fences.ts";
@@ -34,4 +37,7 @@ export const builtInRules = [
 	importsResolvable,
 	importsAliased,
 	manifestsSorted,
+	namedAfterExport,
+	folderNames,
+	otherNames,
 ] as const;

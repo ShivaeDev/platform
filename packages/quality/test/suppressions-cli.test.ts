@@ -38,7 +38,7 @@ describe("quality lint with the suppression rules", { timeout: cliTimeout }, () 
 		const root = seedTree([
 			config(`{ sources: ["src"], rules: { biome: "off", "suppressions/biome-overrides": { options: ${declared} } } }`),
 			biome({ correctness: { noEmptyPattern: "off" } }),
-			{ content: "export const a = 1;\n", path: "src/a.ts" },
+			{ content: "export const a = [1];\n", path: "src/a.ts" },
 		]);
 		expect(quality(root, "lint").status).toBe(0);
 		writeFileSync(join(root, "biome.json"), biome({ suspicious: { noExplicitAny: "off" } }).content);
