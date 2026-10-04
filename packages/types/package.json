@@ -14,6 +14,13 @@
 	"license": "MIT",
 	"sideEffects": false,
 	"type": "module",
+	"imports": {
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

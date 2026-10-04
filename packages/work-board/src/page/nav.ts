@@ -1,4 +1,4 @@
-import type { MarkdownFile } from "../files/list.ts";
+import type { MarkdownFile } from "#files/list.ts";
 import { escapeHtml } from "./escape.ts";
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { ConfigProvider, Layer } from "effect";
-import type { Holder } from "../../src/holder.ts";
+import type { Holder } from "#holder.ts";
 
 const directories: string[] = [];
 

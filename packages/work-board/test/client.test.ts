@@ -1,10 +1,10 @@
 import { rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { changesUntil, type Folder, folder, type RunningBoard, startBoard, subscribe } from "./support/board.ts";
-import { held, type OpenPage } from "./support/browser.ts";
-import { faultyWatch } from "./support/faults.ts";
-import { BOARD, FILES, openLive, PLAN, paragraphOf, STEPS, settle, TWINS, waitFor } from "./support/live.ts";
+import { changesUntil, type Folder, folder, type RunningBoard, startBoard, subscribe } from "#test/support/board.ts";
+import { held, type OpenPage } from "#test/support/browser.ts";
+import { faultyWatch } from "#test/support/faults.ts";
+import { BOARD, FILES, openLive, PLAN, paragraphOf, STEPS, settle, TWINS, waitFor } from "#test/support/live.ts";
 
 let notes: Folder;
 let board: RunningBoard;

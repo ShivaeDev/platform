@@ -2,7 +2,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
-import { HOLDER_ID_ENV } from "../src/holder.ts";
+import { HOLDER_ID_ENV } from "#holder.ts";
 import {
 	cliEnvironment,
 	HEAVY_LOCK_CLI,
@@ -12,8 +12,8 @@ import {
 	start,
 	TEST_TIMEOUT_MS,
 	waitFor,
-} from "./support/cli.ts";
-import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "./support/lock.ts";
+} from "#test/support/cli.ts";
+import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "#test/support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
@@ -36,7 +36,10 @@ it(
 	async () => {
 		const lock = temporaryLock();
 
-		const result = await runCli(["--", process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", "/bin/sh", "-c", "exit 3"], cliEnvironment(lock));
+		const result = await runCli(
+			["--", process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", "/bin/sh", "-c", "exit 3"],
+			cliEnvironment(lock),
+		);
 
 		expect(result).toEqual({ status: 3, stderr: "" });
 		expect(existsSync(lock)).toBe(false);

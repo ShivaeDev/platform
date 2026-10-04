@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { Highlighter } from "../src/render/highlighter.ts";
-import { renderMarkdown } from "../src/render/markdown.ts";
+import { Highlighter } from "#render/highlighter.ts";
+import { renderMarkdown } from "#render/markdown.ts";
 
 const render = (source: string) => Effect.runPromise(renderMarkdown(source).pipe(Effect.provide(Highlighter.layer)));
 

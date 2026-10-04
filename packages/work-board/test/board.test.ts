@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { boardHtml } from "../src/page/board.ts";
-import { boardOf, countsOf } from "../src/render/board.ts";
-import { Highlighter } from "../src/render/highlighter.ts";
+import { boardHtml } from "#page/board.ts";
+import { boardOf, countsOf } from "#render/board.ts";
+import { Highlighter } from "#render/highlighter.ts";
 
 const notes = `# Project notes
 

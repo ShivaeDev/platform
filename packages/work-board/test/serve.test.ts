@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { type Folder, folder, startBoard } from "./support/board.ts";
+import { type Folder, folder, startBoard } from "#test/support/board.ts";
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), "../src/cli.ts");
 
@@ -42,7 +42,9 @@ describe("the server", () => {
 
 	it("runs as one command that serves the folder with its home board", async () => {
 		notes = folder({ "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" });
-		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "plan.md"], { stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "plan.md"], {
+			stdio: ["ignore", "pipe", "pipe"],
+		});
 		try {
 			const address = await listening(child);
 			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
@@ -54,7 +56,9 @@ describe("the server", () => {
 
 	it("refuses to start with a clear message when the home file is missing", async () => {
 		notes = folder({ "plan.md": "# Plan\n" });
-		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "missing.md"], { stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "missing.md"], {
+			stdio: ["ignore", "pipe", "pipe"],
+		});
 		let output = "";
 		child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
 		child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));

@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { toPgBossError } from "../error.ts";
-import { deadLetterQueueName, type JobsHealth, type QueueHealth } from "../health.ts";
+import { toPgBossError } from "#error.ts";
+import { deadLetterQueueName, type JobsHealth, type QueueHealth } from "#health.ts";
 import type { PgBossClient } from "./client.ts";
 
-export const healthFor = (client: PgBossClient, names: readonly string[]): Effect.Effect<JobsHealth, import("../error.ts").PgBossError> =>
+export const healthFor = (client: PgBossClient, names: readonly string[]): Effect.Effect<JobsHealth, import("#error.ts").PgBossError> =>
 	Effect.forEach(
 		names,
 		(name) =>
