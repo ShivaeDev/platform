@@ -1,5 +1,5 @@
 import { Context } from "effect";
-import type { ServiceRequirements } from "#index.ts";
+import type { ServiceRequirements } from "#service-requirements.ts";
 
 class Declared extends Context.Service<Declared, object>()("invalid/Declared") {}
 class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}

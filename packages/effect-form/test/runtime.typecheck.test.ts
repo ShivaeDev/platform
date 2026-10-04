@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Schema, Scope } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import { AtomRegistry } from "effect/unstable/reactivity/AtomRegistry";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { make } from "#index.ts";
+import { make } from "#form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({ name: Schema.String });

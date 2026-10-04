@@ -1,8 +1,12 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/unstable/rpc";
-import { Forbidden } from "#errors.ts";
-import { Authenticated, Identity, MaybeAuthenticated, OptionalIdentity, RequestId, RequestTracing } from "#rpc.ts";
-import { authenticatedLayer, betterAuthSessions, maybeAuthenticatedLayer, type OriginPolicy, requestTracingLayer } from "#rpc-server.ts";
+import { Forbidden } from "#errors/taxonomy.ts";
+import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
+import { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
+import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
+import type { OriginPolicy } from "#rpc-server/origin.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer } from "#rpc-server/session.ts";
+import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { httpClient, type Provider, recorder, rpcHttp, serve } from "./support.ts";
 
 const Account = RpcGroup.make(

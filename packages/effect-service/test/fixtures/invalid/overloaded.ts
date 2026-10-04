@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "#index.ts";
+import { defineService } from "#define-service.ts";
 
 function overloaded(value: string): Effect.Effect<string>;
 function overloaded(value: number): Effect.Effect<number>;

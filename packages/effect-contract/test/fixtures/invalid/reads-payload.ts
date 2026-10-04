@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { query } from "#index.ts";
+import { query } from "#operation.ts";
 import { Note, notes } from "#test/notes.ts";
 
 query("find", {

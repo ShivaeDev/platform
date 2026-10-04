@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
+import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "#client.ts";
 import { toPgBossError } from "#error.ts";
-import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "./client.ts";
 
 interface CachedClient {
 	readonly client: Promise<PgBossClient>;

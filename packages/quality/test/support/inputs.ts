@@ -1,5 +1,5 @@
-import type { Findings, Rule, RuleInputs } from "#index.ts";
 import { linesOf } from "#inventory/collect.ts";
+import type { Findings, Rule, RuleInputs } from "#rule.ts";
 import type { SeedFile } from "./tree.ts";
 
 export interface Seed {

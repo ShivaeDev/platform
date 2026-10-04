@@ -1,4 +1,4 @@
-import type { Bivariant } from "@shivaedev/types";
+import type { Bivariant } from "@shivaedev/types/bivariant.ts";
 import { describeIssue, type StandardSchemaV1 } from "./standard-schema.ts";
 
 export interface Finding {

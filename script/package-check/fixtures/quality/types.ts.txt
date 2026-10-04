@@ -1,4 +1,4 @@
-import { defineConfig } from "@shivaedev/quality"
+import { defineConfig } from "@shivaedev/quality/config.ts"
 
 export const typed = defineConfig({
   // @ts-expect-error Built-in rule options stay typed through the packed declarations.

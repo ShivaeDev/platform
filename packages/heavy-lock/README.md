@@ -60,7 +60,8 @@ allowBuilds:
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { HeldLock, withHeavyLock } from "@shivaedev/heavy-lock";
+import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
+import { withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 

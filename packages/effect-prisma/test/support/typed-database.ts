@@ -1,4 +1,4 @@
-import { makeDatabase } from "#index.ts";
+import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
 
 export interface User {

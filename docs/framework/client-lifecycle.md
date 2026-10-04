@@ -32,7 +32,7 @@ session ownership and logout policy; it is not covered by this example.
 
 ## `SessionBoundary` owns the generation
 
-`@shivaedev/effect-react` exports this transition as one component. The auth
+`@shivaedev/effect-react/session-boundary.ts` exports this transition as one component. The auth
 owner supplies the current session (or `undefined` while signed out or
 unresolved), an opaque `identify` key, a `connect` function that builds the
 credential-bound client, and `recheck`:

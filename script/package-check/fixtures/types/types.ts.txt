@@ -1,4 +1,4 @@
-import type { Bivariant } from "@shivaedev/types"
+import type { Bivariant } from "@shivaedev/types/bivariant.ts"
 
 const handleName = (name: string): number => name.length
 

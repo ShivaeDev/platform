@@ -1,5 +1,6 @@
 import { Context, Effect } from "effect"
-import { type Frame, makeChannel, type Outcome } from "@shivaedev/effect-changes"
+import type { Frame, Outcome } from "@shivaedev/effect-changes/frame.ts"
+import { makeChannel } from "@shivaedev/effect-changes/channel.ts"
 
 class Owner extends Context.Service<Owner, string>()("consumer/Owner") {}
 interface Event { readonly subject: string; readonly domain: string }

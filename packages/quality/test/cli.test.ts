@@ -33,7 +33,8 @@ describe("quality lint", { timeout: cliTimeout }, () => {
 		const root = seedTree(trees.clean, [
 			{
 				content: [
-					'import { defineConfig, defineRule } from "@shivaedev/quality";',
+					'import { defineConfig } from "@shivaedev/quality/config.ts";',
+					'import { defineRule } from "@shivaedev/quality/rule.ts";',
 					'const noLog = defineRule({ id: "local/no-console-log", description: "Log through the logger.",',
 					'  check: ({ sources }) => sources.filter((file) => file.text.includes("console.log")).map((file) => ({ file: file.path, message: "logs to the console." })) });',
 					'export default defineConfig({ local: [noLog], sources: ["src"] });',

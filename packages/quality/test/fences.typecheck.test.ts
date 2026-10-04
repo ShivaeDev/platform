@@ -1,4 +1,6 @@
-import { anything, defineConfig, external, fence, folders, modules, packages } from "#index.ts";
+import { defineConfig } from "#config.ts";
+import { fence } from "#imports/fences/dsl.ts";
+import { anything, external, folders, modules, packages } from "#imports/fences/selectors.ts";
 
 const undemonstrated = fence("game-keeps-out-of-cms").because("The game ships to players.").from(folders("game/src")).mayNotImport(packages("cms"));
 

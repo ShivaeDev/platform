@@ -23,23 +23,11 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
-		},
-		"./sqlite": {
-			"types": "./dist/sqlite.d.ts",
-			"source": "./src/sqlite.ts",
-			"import": "./dist/sqlite.js",
-			"default": "./dist/sqlite.js"
-		},
-		"./testing": {
-			"types": "./dist/testing.d.ts",
-			"source": "./src/testing.ts",
-			"import": "./dist/testing.js",
-			"default": "./dist/testing.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},

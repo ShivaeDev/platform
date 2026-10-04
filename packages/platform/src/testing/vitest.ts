@@ -1,9 +1,12 @@
 import type { TestContext } from "@effect/vitest";
 import { Effect, type Layer } from "effect";
-import { type AnyDatabase, withTestTransaction } from "@shivaedev/effect-prisma/testing";
-import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc";
-import { type CallerOptions, type CallerResult, type EffectCallerFactory, makeTrpcHarnessIt } from "@shivaedev/effect-trpc/testing";
-import type { Bivariant } from "@shivaedev/types";
+import type { AnyDatabase } from "@shivaedev/effect-prisma/databaseTypes.ts";
+import { withTestTransaction } from "@shivaedev/effect-prisma/testing/transaction.ts";
+import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc/adapter.ts";
+import type { EffectCallerFactory } from "@shivaedev/effect-trpc/testing/caller.ts";
+import type { CallerOptions, CallerResult } from "@shivaedev/effect-trpc/testing/types.ts";
+import { makeTrpcHarnessIt } from "@shivaedev/effect-trpc/testing/vitest.ts";
+import type { Bivariant } from "@shivaedev/types/bivariant.ts";
 import type { MakePlatformItOptions, PlatformHarness, PlatformIt } from "./types.ts";
 
 interface LooseOptions {

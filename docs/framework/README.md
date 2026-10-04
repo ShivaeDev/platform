@@ -67,10 +67,10 @@ Platform · **B** build/integrate · **D** research, product-specific, or defer.
   React bindings.
 - `@shivaedev/effect-react`: concise query/action bindings over native atoms and
   AtomRpc, preserving their lifecycle and result semantics, plus the
-  session-generation `SessionBoundary` and `resumeSignal`. Its
-  `@shivaedev/effect-react/form` subpath adds `useEditor` and `useCreate` over
-  effect-form, which stays an optional peer for the root entry.
-- `@shivaedev/platform/errors`, `/rpc` and `/rpc-server`: the shared error
+  session-generation `SessionBoundary` and `resumeSignal`. Its `editor.ts` and
+  `create.ts` modules add `useEditor` and `useCreate` over effect-form, an
+  optional peer that only those modules load.
+- the `errors/`, `rpc/` and `rpc-server/` modules of `@shivaedev/platform`: the shared error
   taxonomy, request identity middleware tags, and their server implementations
   (transport-header session resolution, Origin policy, redacted tracing).
 - `@shivaedev/effect-changes`: commit-bound change channels. Changes recorded

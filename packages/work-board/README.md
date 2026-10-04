@@ -139,7 +139,7 @@ non-loopback address when the server knows the address.
 import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
 import { HttpRouter } from "effect/unstable/http"
-import { boardLayer } from "@shivaedev/work-board"
+import { boardLayer } from "@shivaedev/work-board/board.ts"
 
 const board = HttpRouter.toWebHandler(
   Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),

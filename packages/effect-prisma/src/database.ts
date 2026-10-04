@@ -1,18 +1,12 @@
 import postgres, { type PostgresClient, type PostgresOptionsBase } from "@prisma-next/postgres/runtime";
 import { type Layer, Redacted } from "effect";
+import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "#databaseTypes.ts";
 import { acquireConnectedClient } from "#internal/client-lifecycle.ts";
 import { namespaceModels } from "#internal/database-facade.ts";
 import { makeSqlDatabase } from "#internal/database-factory.ts";
-import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "#internal/database-types.ts";
 import type { AnySqlContract } from "#internal/executor.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
 import type { PrismaError } from "./error.ts";
-
-export type {
-	AnyDatabase,
-	DatabaseService,
-	DatabaseServiceOf,
-} from "#internal/database-types.ts";
 
 export interface DatabaseLayerOptions extends PostgresOptionsBase {
 	readonly url: string | Redacted.Redacted<string>;

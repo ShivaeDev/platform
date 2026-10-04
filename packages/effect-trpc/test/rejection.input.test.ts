@@ -1,8 +1,8 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { Effect, Option, Schema } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import { decodeRejection, rejectionOf } from "#client.ts";
-import { RejectionError, rejectWith } from "#index.ts";
+import { decodeRejection, rejectionOf } from "#client/rejection.ts";
+import { RejectionError, rejectWith } from "#rejection.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "#test/support/http.ts";
 
 class BadRequest extends Schema.TaggedError<BadRequest>()("BadRequest", { field: Schema.optionalKey(Schema.String), message: Schema.String }) {}

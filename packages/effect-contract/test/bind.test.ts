@@ -5,7 +5,7 @@ import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcTest } from "effect/unstable/rpc";
 import { expect, it, vi } from "vitest";
-import { bind } from "#index.ts";
+import { bind } from "#bind.ts";
 import { makeServer, Notes } from "./notes.ts";
 
 const setup = async () => {

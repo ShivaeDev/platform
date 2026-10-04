@@ -1,11 +1,11 @@
 # @shivaedev/effect-form
 
-Schema-derived form state built on Effect atoms. The core has no React dependency; optional hooks are exported from `@shivaedev/effect-form/react`.
+Schema-derived form state built on Effect atoms. The core has no React dependency; optional hooks are exported from `@shivaedev/effect-form/react.ts`.
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { make } from "@shivaedev/effect-form";
+import { make } from "@shivaedev/effect-form/form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const profile = make(Schema.Struct({ name: Schema.NonEmptyString }), {
@@ -25,7 +25,7 @@ Submit handlers can also use the native runtime's `Scope`, `AtomRegistry`, and `
 Use an AtomRegistry to mount/read atoms and call `registry.set(profile.submit, undefined)` to submit. In React, use the atom-react registry provider and the hooks:
 
 ```tsx
-import { useField, useSubmit } from "@shivaedev/effect-form/react";
+import { useField, useSubmit } from "@shivaedev/effect-form/react.ts";
 
 function Profile() {
   const name = useField(profile, "name");

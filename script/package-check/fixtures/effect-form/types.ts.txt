@@ -1,7 +1,8 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { make, type Form } from "@shivaedev/effect-form";
-import { useField, useSubmit } from "@shivaedev/effect-form/react";
+import { make } from "@shivaedev/effect-form/form.ts";
+import type { Form } from "@shivaedev/effect-form/shape.ts";
+import { useField, useSubmit } from "@shivaedev/effect-form/react.ts";
 const schema = Schema.Struct({ count: Schema.NumberFromString });
 const form = make(schema, {
   initialValues: { count: "1" },

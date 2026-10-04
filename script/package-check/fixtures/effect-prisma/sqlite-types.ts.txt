@@ -1,5 +1,6 @@
-import type { DatabaseServiceOf, PrismaError } from "@shivaedev/effect-prisma"
-import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
+import type { DatabaseServiceOf } from "@shivaedev/effect-prisma/databaseTypes.ts"
+import type { PrismaError } from "@shivaedev/effect-prisma/error.ts"
+import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite.ts"
 import type { Effect } from "effect"
 import type { Contract } from "./sqlite-contract.js"
 import contractJson from "./sqlite-contract.json" with { type: "json" }

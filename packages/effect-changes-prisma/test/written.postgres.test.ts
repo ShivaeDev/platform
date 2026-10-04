@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { tableWrites, writtenTables } from "#index.ts";
+import { tableWrites, writtenTables } from "#tables.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
 import { connect, integration, makeDatabase } from "#test/support/database.ts";
 

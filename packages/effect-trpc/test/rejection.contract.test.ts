@@ -1,9 +1,10 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { Effect, Option, Schema } from "effect";
 import { afterAll, expect, it } from "vitest";
-import { command, fieldRejection } from "@shivaedev/effect-contract";
-import { decodeRejection, rejectionOf } from "#client.ts";
-import { rejectWith } from "#index.ts";
+import { command } from "@shivaedev/effect-contract/operation.ts";
+import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
+import { decodeRejection, rejectionOf } from "#client/rejection.ts";
+import { rejectWith } from "#rejection.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "#test/support/http.ts";
 
 class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}

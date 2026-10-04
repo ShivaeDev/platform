@@ -5,11 +5,11 @@ import { Console, Effect, FileSystem } from "effect";
 import { checkArchive } from "#package-check/archive.ts";
 import { checkBins } from "#package-check/bins.ts";
 import { checkConsumer } from "#package-check/consumer.ts";
-import { checkImportTargetRegression } from "#package-check/imports-regression.ts";
 import { command } from "#package-check/io.ts";
 import { decodeManifest, decodeVersions, type Package } from "#package-check/model.ts";
 import { checkSharedPeerRegression } from "#package-check/peer-regression.ts";
 import { scenarios } from "#package-check/scenarios.ts";
+import { checkMissingTargetRegression } from "#package-check/target-regression.ts";
 
 const program = Effect.gen(function* () {
 	const root = process.cwd();
@@ -42,6 +42,7 @@ const program = Effect.gen(function* () {
 		yield* Console.log(`Passed packed ${pkg.manifest.name}`);
 	}
 	yield* checkSharedPeerRegression(packages);
-	yield* checkImportTargetRegression(packages);
+	yield* checkMissingTargetRegression(packages, "./dist/error.js", "whose target ./dist/error.js is not packed");
+	yield* checkMissingTargetRegression(packages, "./dist/with-heavy-lock.js", "missing manifest target ./dist/with-heavy-lock.js");
 });
 NodeRuntime.runMain(program.pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)));

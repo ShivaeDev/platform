@@ -4,7 +4,7 @@ Declare an Effect service's dependencies once. Its Layer initializes private sta
 
 ```ts
 import { Context, Effect, Layer } from "effect";
-import { defineService } from "@shivaedev/effect-service";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("app/Prefix") {}
 

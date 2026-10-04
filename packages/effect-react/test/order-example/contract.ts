@@ -1,6 +1,9 @@
 import { Context, Schema } from "effect";
 import { RpcMiddleware } from "effect/unstable/rpc";
-import { collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract";
+import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { collection } from "@shivaedev/effect-contract/keys.ts";
+import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 
 export class Order extends Schema.Class<Order>("Order")({
 	id: Schema.Number,

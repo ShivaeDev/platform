@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect, it } from "vitest";
-import type { Outcome } from "#index.ts";
+import type { Outcome } from "#frame.ts";
 import { type Current, change, harness, makeDatabase, on } from "#test/support/fake-database.ts";
 
 it("settle is idempotent: the first outcome wins and a frame publishes at most once", () =>

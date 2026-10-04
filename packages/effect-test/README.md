@@ -21,7 +21,7 @@ pnpm add --save-dev @shivaedev/effect-test @effect/vitest effect vitest
 
 ```ts
 import { Layer } from "effect"
-import { makeEffectIt } from "@shivaedev/effect-test"
+import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts"
 
 const { effectApp } = makeEffectIt({
   layer: TestLive,
@@ -74,7 +74,7 @@ retrying under either clock. Use `Effect.try(() => expect(...))` when an
 assertion failure is intentionally a retryable condition.
 
 ```ts
-import { eventually } from "@shivaedev/effect-test"
+import { eventually } from "@shivaedev/effect-test/eventually.ts"
 
 effectApp("sees a delayed write", function* ({ db }) {
   const row = yield* eventually(db.Job.where({ id }).first(), {

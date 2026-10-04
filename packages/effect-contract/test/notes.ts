@@ -1,6 +1,9 @@
 import { Context, Effect, Layer, Ref, Schema } from "effect";
 import { RpcMiddleware } from "effect/unstable/rpc";
-import { collection, command, contract, fieldRejection, query } from "#index.ts";
+import { contract } from "#contract.ts";
+import { collection } from "#keys.ts";
+import { command, query } from "#operation.ts";
+import { fieldRejection } from "#rejection.ts";
 
 export class Note extends Schema.Class<Note>("Note")({ body: Schema.String, id: Schema.Number, title: Schema.String }) {}
 export const Draft = Schema.Struct({ body: Schema.String, title: Schema.String });

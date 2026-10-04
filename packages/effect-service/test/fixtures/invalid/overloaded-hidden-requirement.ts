@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { defineService } from "#index.ts";
+import { defineService } from "#define-service.ts";
 
 class Prefix extends Context.Service<Prefix, { readonly value: string }>()("invalid/Prefix") {}
 

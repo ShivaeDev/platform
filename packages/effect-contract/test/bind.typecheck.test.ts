@@ -4,7 +4,7 @@ import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import type { RpcClient, RpcGroup } from "effect/unstable/rpc";
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
-import type { Bound } from "#index.ts";
+import type { Bound } from "#bind.ts";
 import type { Notes } from "./notes.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;

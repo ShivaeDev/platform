@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Exit, Logger, References } from "effect";
-import { type ChannelOptions, makeChannel } from "#index.ts";
+import { type ChannelOptions, makeChannel } from "#channel.ts";
 
 export interface FakeDatabase {
 	readonly committed: readonly string[];

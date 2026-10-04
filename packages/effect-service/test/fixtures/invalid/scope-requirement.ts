@@ -1,6 +1,6 @@
 import { Effect, Scope } from "effect";
-import type { ServiceRequirements } from "#index.ts";
-import { defineService } from "#index.ts";
+import { defineService } from "#define-service.ts";
+import type { ServiceRequirements } from "#service-requirements.ts";
 
 const requirements = [Scope.Scope] as const;
 type Requirements<Success> = ServiceRequirements<typeof requirements, Success>;

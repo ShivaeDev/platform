@@ -1,7 +1,10 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { Context, Data, Effect, Layer, ManagedRuntime, Option, Schema, Stream } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import { extendRequestServices, makeEffectTRPC, makeRequestServices, notFound, RequestSignal } from "#index.ts";
+import { makeEffectTRPC } from "#adapter.ts";
+import { notFound } from "#errors.ts";
+import { extendRequestServices, makeRequestServices } from "#request-services.ts";
+import { RequestSignal } from "#request-signal.ts";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/RuntimeValue") {}
 

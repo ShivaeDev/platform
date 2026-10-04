@@ -5,8 +5,9 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { type Submit, useSubmit } from "@shivaedev/effect-form/react";
-import { type Create, type Editor, useCreate, useEditor } from "#form.ts";
+import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
+import { type Create, useCreate } from "#create.ts";
+import { type Editor, useEditor } from "#editor.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];

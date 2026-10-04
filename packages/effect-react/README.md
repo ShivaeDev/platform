@@ -10,7 +10,7 @@ Given an `Api` service constructed with native `AtomRpc.Service`, and RPCs `Orde
 
 ```tsx
 import { RegistryProvider } from "@effect/atom-react"
-import { useAction, useQuery } from "@shivaedev/effect-react"
+import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts"
 import { Option } from "effect"
 
 function Orders() {
@@ -45,7 +45,7 @@ function App() {
 
 ## Editing
 
-`useEditor` and `useCreate` from `@shivaedev/effect-react/form` bind `@shivaedev/effect-form` to a query atom and a save Effect, for example from an `@shivaedev/effect-contract` binding `api`. `@shivaedev/effect-form` is an optional peer dependency: install it only when you import this subpath; the root entry does not load it. See the [editing guide](../../docs/framework/editing.md).
+`useEditor` from `@shivaedev/effect-react/editor.ts` and `useCreate` from `@shivaedev/effect-react/create.ts` bind `@shivaedev/effect-form` to a query atom and a save Effect, for example from an `@shivaedev/effect-contract` binding `api`. `@shivaedev/effect-form` is an optional peer dependency: install it only when you import these modules; the other modules do not load it. See the [editing guide](../../docs/framework/editing.md).
 
 ```ts
 const editor = useEditor({

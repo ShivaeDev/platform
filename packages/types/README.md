@@ -13,7 +13,7 @@ pnpm add @shivaedev/types
 TypeScript checks the parameters of a function property strictly, so a property typed `(value: unknown) => void` rejects a function that takes only a `string`. A method signature checks them bivariantly and accepts it. `Bivariant<Fn>` gives a property the method's check, for a member that must hold functions with different parameter types, such as a list of rules with different options.
 
 ```ts
-import type { Bivariant } from "@shivaedev/types";
+import type { Bivariant } from "@shivaedev/types/bivariant.ts";
 
 interface Rule {
 	readonly configure: Bivariant<(options: unknown) => void>;

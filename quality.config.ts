@@ -1,50 +1,36 @@
 import platformManifest from "./packages/platform/package.json" with { type: "json" };
-import {
-	anyOf,
-	anything,
-	defineConfig,
-	external,
-	type Fence,
-	fence,
-	files,
-	folders,
-	modules,
-	packages,
-	scopes,
-	workspace,
-} from "./packages/quality/src/index.ts";
+import { defineConfig } from "./packages/quality/src/config.ts";
+import { fence } from "./packages/quality/src/imports/fences/dsl.ts";
+import type { Fence } from "./packages/quality/src/imports/fences/model.ts";
+import { anyOf, anything, external, folders, modules, packages, scopes, workspace } from "./packages/quality/src/imports/fences/selectors.ts";
 
-const LEAVES: Readonly<Record<string, readonly string[]>> = {
-	"effect-changes": [],
-	"effect-changes-prisma": ["effect-changes", "types"],
-	"effect-contract": ["types"],
-	"effect-form": [],
-	"effect-pg-boss": [],
-	"effect-service": [],
-	"effect-sql": ["effect-changes"],
-	"effect-test": [],
-	"heavy-lock": [],
-	"local-postgres": [],
-	quality: ["types"],
-	types: [],
-	"work-board": [],
+const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; readonly module: string }>> = {
+	"effect-changes": { allowed: [], module: "channel" },
+	"effect-changes-prisma": { allowed: ["effect-changes", "types"], module: "changes" },
+	"effect-contract": { allowed: ["types"], module: "contract" },
+	"effect-form": { allowed: [], module: "form" },
+	"effect-pg-boss": { allowed: [], module: "service" },
+	"effect-service": { allowed: [], module: "define-service" },
+	"effect-sql": { allowed: ["effect-changes"], module: "repository" },
+	"effect-test": { allowed: [], module: "vitest" },
+	"heavy-lock": { allowed: [], module: "acquire" },
+	"local-postgres": { allowed: [], module: "localPostgres" },
+	quality: { allowed: ["types"], module: "config" },
+	types: { allowed: [], module: "bivariant" },
+	"work-board": { allowed: [], module: "board" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
 const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
-const BROWSER_ENTRIES = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
-const PLATFORM_CORE_ENTRIES = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((entry) => `packages/platform/src/${entry}`);
+const BROWSER_FOLDERS = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
+const PLATFORM_CORE_FOLDERS = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((folder) => `packages/platform/src/${folder}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
 
-function entries(paths: readonly string[]) {
-	return anyOf(files(...paths.map((path) => `${path}.ts`)), folders(...paths));
-}
-
-function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
-	const index = `packages/${name}/src/index.ts`;
+function leaf([name, { allowed, module }]: readonly [string, { readonly allowed: readonly string[]; readonly module: string }]): Fence {
+	const source = `packages/${name}/src/${module}.ts`;
 	return fence(`leaf-${name}`)
 		.because(
 			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.${allowed.includes("types") ? ` ${TYPE_ONLY}` : ""}`,
@@ -52,8 +38,8 @@ function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
 		.from(folders(`packages/${name}/src`))
 		.mayNotImport(workspace.except(packages(name, ...allowed)))
 		.demonstratedBy({
-			illegal: [index, `packages/${BROWSER.includes(name) ? "effect-react" : "platform"}/src/index.ts`],
-			legal: [index, external("effect")],
+			illegal: [source, `packages/${BROWSER.includes(name) ? "effect-react/src/result-state.ts" : "platform/src/runtime/make.ts"}`],
+			legal: [source, external("effect")],
 		});
 }
 
@@ -64,24 +50,24 @@ const fences: readonly Fence[] = [
 		.from(folders(...BROWSER.map((name) => `packages/${name}/src`)))
 		.mayNotImport(packages(...SERVER))
 		.demonstratedBy({
-			illegal: ["packages/effect-react/src/index.ts", "packages/effect-sql/src/index.ts"],
-			legal: ["packages/effect-react/src/index.ts", "packages/effect-form/src/index.ts"],
+			illegal: ["packages/effect-react/src/result-state.ts", "packages/effect-sql/src/repository.ts"],
+			legal: ["packages/effect-react/src/result-state.ts", "packages/effect-form/src/form.ts"],
 		}),
-	fence("browser-entry-stays-browser-safe")
+	fence("browser-folder-stays-browser-safe")
 		.because(
-			"A browser entry of a server package ships to browsers: everything it reaches is its own module or folder, or an allowed browser package, never @trpc/server, Node or other server code.",
+			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect, never @trpc/server, Node or other server code.",
 		)
-		.from(files(...BROWSER_ENTRIES.map((entry) => `${entry}.ts`)))
-		.mayNotReach(anything.except(entries(BROWSER_ENTRIES), modules("effect")))
+		.from(folders(...BROWSER_FOLDERS))
+		.mayNotReach(anything.except(folders(...BROWSER_FOLDERS), modules("effect")))
 		.demonstratedBy({
-			illegal: ["packages/effect-trpc/src/client.ts", external("@trpc/server")],
-			legal: ["packages/effect-trpc/src/client.ts", "packages/effect-trpc/src/client/link.ts", external("effect")],
+			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
+			legal: ["packages/effect-trpc/src/client/rejection.ts", external("effect")],
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(
-			"The errors, node-http, rpc, rpc-server and runtime entries of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
+			"The errors, node-http, rpc, rpc-server and runtime modules of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
 		)
-		.from(entries(PLATFORM_CORE_ENTRIES))
+		.from(folders(...PLATFORM_CORE_FOLDERS))
 		.mayNotReach(
 			anyOf(
 				packages(...PLATFORM_OPTIONAL_PEERS.filter((name) => name.startsWith(WORKSPACE_SCOPE))),
@@ -90,8 +76,8 @@ const fences: readonly Fence[] = [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/platform/src/runtime.ts", "packages/platform/src/runtime/make.ts", external("better-auth")],
-			legal: ["packages/platform/src/runtime.ts", "packages/platform/src/runtime/make.ts", external("effect")],
+			illegal: ["packages/platform/src/runtime/make.ts", external("better-auth")],
+			legal: ["packages/platform/src/runtime/make.ts", external("effect")],
 		}),
 ];
 

@@ -1,8 +1,11 @@
 import { initTRPC } from "@trpc/server"
 import { Context, Effect, Layer, ManagedRuntime, Option, Schema, Stream } from "effect"
-import { makeEffectTRPC, makeRequestServices, type RejectionError, rejectionFormatter, rejectWith } from "@shivaedev/effect-trpc"
-import { decodeRejection, type EncodedRejection, rejectionOf } from "@shivaedev/effect-trpc/client"
-import { makeTrpcIt } from "@shivaedev/effect-trpc/testing"
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts"
+import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts"
+import { type RejectionError, rejectWith } from "@shivaedev/effect-trpc/rejection.ts"
+import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts"
+import { decodeRejection, type EncodedRejection, rejectionOf } from "@shivaedev/effect-trpc/client/rejection.ts"
+import { makeTrpcIt } from "@shivaedev/effect-trpc/testing/vitest.ts"
 
 class RuntimeValue extends Context.Service<RuntimeValue, number>()("@consumer/RuntimeValue") {}
 class RequestValue extends Context.Service<RequestValue, string>()("@consumer/RequestValue") {}

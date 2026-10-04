@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit } from "effect";
 import { expect, it } from "vitest";
-import type { ChannelOptions } from "#index.ts";
+import type { ChannelOptions } from "#channel.ts";
 import { type Change, Current, change, harness, makeDatabase } from "#test/support/fake-database.ts";
 
 const setup = (options: Partial<ChannelOptions<Change, Current>> = {}) => ({

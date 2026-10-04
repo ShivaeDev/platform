@@ -4,9 +4,10 @@ import { checkBrowserEntries } from "#package-check/browser.ts";
 import { declarationProblems } from "#package-check/declarations.ts";
 import { consumerDependencies } from "#package-check/dependencies.ts";
 import { checkEffectCopies } from "#package-check/effect-copies.ts";
+import { exportEntries, packedFiles } from "#package-check/exports.ts";
 import { writeFixtures } from "#package-check/fixtures.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
-import { type Package, targets } from "#package-check/model.ts";
+import type { Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
 import { consumerWorkspace } from "#package-check/workspace.ts";
 
@@ -59,15 +60,15 @@ export const checkConsumer = (
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
 			extends: "./tsconfig.json",
 		});
-		const entries = (
-			scenario?.entries
-			?? Object.entries(pkg.manifest.exports ?? {})
-				.filter(([, target]) => target !== null)
-				.map(([key]) => key)
-		).map((key) => ({
-			json: targets(pkg.manifest.exports?.[key]).some((target) => target.endsWith(".json")),
-			specifier: key === "." ? pkg.manifest.name : `${pkg.manifest.name}${key.slice(1)}`,
-		}));
+		const exported = exportEntries(pkg.manifest, yield* packedFiles(pkg));
+		const entries =
+			scenario === undefined ? exported : scenario.entries.map((key) => ({ json: false, specifier: `${pkg.manifest.name}${key.slice(1)}` }));
+		for (const { specifier } of entries) {
+			yield* requireThat(
+				exported.some((entry) => entry.specifier === specifier),
+				`${pkg.manifest.name}: scenario entry ${specifier} is not exported`,
+			);
+		}
 		yield* fs.writeFileString(
 			join(consumer, "entries.ts"),
 			entries

@@ -1,4 +1,4 @@
-import { makeChannel } from '@shivaedev/effect-changes';
+import { makeChannel } from '@shivaedev/effect-changes/channel.ts';
 import { Context, Effect, Exit } from 'effect';
 class Owner extends Context.Service<Owner, string>()('consumer/Owner') {}
 const published: Array<ReadonlyArray<string>> = [];

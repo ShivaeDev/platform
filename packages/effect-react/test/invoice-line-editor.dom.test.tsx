@@ -3,7 +3,7 @@ import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { SessionBoundary } from "#index.ts";
+import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
 

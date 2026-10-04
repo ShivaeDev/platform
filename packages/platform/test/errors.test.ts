@@ -1,7 +1,8 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
 import { expect, it } from "vitest";
-import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "#errors.ts";
+import { rejectedField } from "#errors/rejected-field.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
 import { httpClient, rpcHttp, serve } from "#test/rpc/support.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests]);

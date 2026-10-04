@@ -1,6 +1,6 @@
 import { Cause, Data, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { PrismaError, TransactionExpired } from "#index.ts";
+import { PrismaError, TransactionExpired } from "#error.ts";
 import { makeChanges } from "#test/support/changes.ts";
 import { integration, makeDatabase, orderIds } from "#test/support/database.ts";
 

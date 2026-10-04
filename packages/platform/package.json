@@ -23,47 +23,11 @@
 		}
 	},
 	"exports": {
-		"./better-auth": {
-			"types": "./dist/better-auth.d.ts",
-			"source": "./src/better-auth.ts",
-			"import": "./dist/better-auth.js",
-			"default": "./dist/better-auth.js"
-		},
-		"./runtime": {
-			"types": "./dist/runtime.d.ts",
-			"source": "./src/runtime.ts",
-			"import": "./dist/runtime.js",
-			"default": "./dist/runtime.js"
-		},
-		"./node-http": {
-			"types": "./dist/node-http.d.ts",
-			"source": "./src/node-http.ts",
-			"import": "./dist/node-http.js",
-			"default": "./dist/node-http.js"
-		},
-		"./testing": {
-			"types": "./dist/testing.d.ts",
-			"source": "./src/testing.ts",
-			"import": "./dist/testing.js",
-			"default": "./dist/testing.js"
-		},
-		"./errors": {
-			"types": "./dist/errors.d.ts",
-			"source": "./src/errors.ts",
-			"import": "./dist/errors.js",
-			"default": "./dist/errors.js"
-		},
-		"./rpc": {
-			"types": "./dist/rpc.d.ts",
-			"source": "./src/rpc.ts",
-			"import": "./dist/rpc.js",
-			"default": "./dist/rpc.js"
-		},
-		"./rpc-server": {
-			"types": "./dist/rpc-server.d.ts",
-			"source": "./src/rpc-server.ts",
-			"import": "./dist/rpc-server.js",
-			"default": "./dist/rpc-server.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},
@@ -85,6 +49,7 @@
 		"@prisma-next/contract": "catalog:",
 		"@prisma-next/postgres": "catalog:",
 		"@prisma-next/sql-contract": "catalog:",
+		"@prisma-next/sql-orm-client": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
@@ -102,6 +67,7 @@
 	},
 	"peerDependencies": {
 		"@effect/vitest": "catalog:",
+		"@prisma-next/sql-orm-client": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
 		"@trpc/server": "catalog:",
@@ -110,6 +76,9 @@
 	},
 	"peerDependenciesMeta": {
 		"@effect/vitest": {
+			"optional": true
+		},
+		"@prisma-next/sql-orm-client": {
 			"optional": true
 		},
 		"@shivaedev/effect-prisma": {

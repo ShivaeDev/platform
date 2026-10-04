@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Exit, Option } from "effect";
-import { type Channel, type ChannelOptions, makeChannel } from "@shivaedev/effect-changes";
+import { type Channel, type ChannelOptions, makeChannel } from "@shivaedev/effect-changes/channel.ts";
 import { PrismaError, type TransactionExpired } from "./error.ts";
 import { configuredTimeout, type Expire, isTransactionClient, isTransactionClosed, makeExpiry, unlinked } from "./expiry.ts";
 import type { ChangeMap, Transactional, TransactionOptions } from "./model.ts";

@@ -2,8 +2,9 @@ import { expect } from "@effect/vitest";
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { afterAll } from "vitest";
-import { makeEffectTRPC, makeRequestServices } from "#index.ts";
-import { makeTrpcHarnessIt, makeTrpcIt } from "#testing.ts";
+import { makeEffectTRPC } from "#adapter.ts";
+import { makeRequestServices } from "#request-services.ts";
+import { makeTrpcHarnessIt, makeTrpcIt } from "#testing/vitest.ts";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/RuntimeValue") {}
 

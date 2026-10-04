@@ -21,10 +21,8 @@ builders to request-scoped Layers:
 ```ts
 import { initTRPC } from "@trpc/server"
 import { Layer, ManagedRuntime, Schema } from "effect"
-import {
-  makeEffectTRPC,
-  makeRequestServices,
-} from "@shivaedev/effect-trpc"
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts"
+import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts"
 
 const runtime = ManagedRuntime.make(ApplicationLive)
 const adapter = makeEffectTRPC({ runtime })
@@ -121,8 +119,9 @@ client as data; every other failure keeps the handling above.
 Install the formatter once, then declare the rejections a procedure may send:
 
 ```ts
-import { rejectionFormatter, rejectWith } from "@shivaedev/effect-trpc"
-import { BadRequest, Conflict } from "@shivaedev/platform/errors"
+import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts"
+import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts"
+import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts"
 
 const t = initTRPC.context<RequestContext>().create({
   errorFormatter: rejectionFormatter,
@@ -185,12 +184,12 @@ adds it to the error data, next to tRPC's own fields:
   effect-contract operation's `error` schema works directly:
   `rejectWith(SaveOrder.error)`.
 
-The browser-safe `@shivaedev/effect-trpc/client` entry reads the rejection from
+The browser-safe `@shivaedev/effect-trpc/client/rejection.ts` module reads the rejection from
 a `TRPCClientError`:
 
 ```ts
-import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client"
-import { rejectedField } from "@shivaedev/platform/errors"
+import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client/rejection.ts"
+import { rejectedField } from "@shivaedev/platform/errors/rejected-field.ts"
 
 rejectionOf(error)                                          // Option<{ _tag: string, invalidInput?: true, ... }>, still encoded
 decodeRejection(Schema.Union([BadRequest, Conflict]))(error) // Option<BadRequest | Conflict>
@@ -203,11 +202,11 @@ Both return `Option.none()` for any error without a tagged rejection, and
 `rejectionOf` also returns `Option.none()` when `invalidInput` is present but
 not `true`. An input failure still decodes as the declared `BadRequest`; the
 mark is read from `rejectionOf`, or from `error.data.rejection.invalidInput` on a
-`TRPCClientError` typed by the router. The client entry imports only `effect`.
+`TRPCClientError` typed by the router. The modules under `client/` import only `effect`.
 
 ## Vitest
 
-Install `@effect/vitest` to use the optional testing entrypoint:
+Install `@effect/vitest` to use the optional `testing/` modules:
 
 ```sh
 pnpm add --save-dev @effect/vitest vitest
@@ -217,7 +216,7 @@ Configure the router caller and test Layer once in the application's test
 support:
 
 ```ts
-import { makeTrpcIt } from "@shivaedev/effect-trpc/testing"
+import { makeTrpcIt } from "@shivaedev/effect-trpc/testing/vitest.ts"
 
 export const it = makeTrpcIt({
   adapter,

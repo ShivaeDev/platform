@@ -1,6 +1,6 @@
 import { Effect } from "effect"
-import { makeDatabase } from "@shivaedev/effect-prisma"
-import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing"
+import { makeDatabase } from "@shivaedev/effect-prisma/database.ts"
+import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing/vitest.ts"
 import type { Contract } from "./contract.js"
 import contractJson from "./contract.json" with { type: "json" }
 
