@@ -31,6 +31,28 @@ const OFF_FOR_FIXES: readonly string[] = [
 	"suspicious/noSkippedTests",
 ];
 
+const REPORT_ONLY: readonly string[] = [
+	"a11y/noAccessKey",
+	"a11y/noAriaHiddenOnFocusable",
+	"a11y/noAutofocus",
+	"a11y/noInteractiveElementToNoninteractiveRole",
+	"a11y/noNoninteractiveElementToInteractiveRole",
+	"a11y/noNoninteractiveTabindex",
+	"a11y/noRedundantRoles",
+	"a11y/useValidAriaProps",
+	"a11y/useValidAriaRole",
+	"complexity/noImportantStyles",
+	"correctness/noConstAssign",
+	"correctness/noUnusedPrivateClassMembers",
+	"correctness/useExhaustiveDependencies",
+	"nursery/noFloatingPromises",
+	"nursery/useRegexpTest",
+	"nursery/useUnicodeRegex",
+	"style/noNonNullAssertion",
+	"style/useAtIndex",
+	"suspicious/noParametersOnlyUsedInRecursion",
+];
+
 async function enabledRules(biomeJson: string): Promise<readonly string[]> {
 	const root = seedTree([{ content: biomeJson, path: "biome.json" }]);
 	linkPackage(root);
@@ -38,10 +60,23 @@ async function enabledRules(biomeJson: string): Promise<readonly string[]> {
 	return [...rage.stdout.matchAll(/^ {4}([a-z0-9]+\/\w+)$/gimu)].map((match) => match[1] ?? "");
 }
 
-function levelIn(rule: string): unknown {
+function settingOf(rule: string): unknown {
 	const [group = "", name = ""] = rule.split("/");
-	const setting = preset.linter.rules[group]?.[name];
+	return preset.linter.rules[group]?.[name];
+}
+
+function levelIn(rule: string): unknown {
+	const setting = settingOf(rule);
 	return typeof setting === "object" && setting !== null && "level" in setting ? setting.level : setting;
+}
+
+function fixesOff(): readonly string[] {
+	return Object.entries(preset.linter.rules)
+		.flatMap(([group, rules]) => Object.keys(rules).map((name) => `${group}/${name}`))
+		.filter((rule) => {
+			const setting = settingOf(rule);
+			return typeof setting === "object" && setting !== null && "fix" in setting && setting.fix === "none";
+		});
 }
 
 describe("the shipped Biome preset", () => {
@@ -56,6 +91,11 @@ describe("the shipped Biome preset", () => {
 		const enabled = await enabledRules('{ "extends": ["@shivaedev/quality/biome"] }\n');
 		expect(enabled).toContain("suspicious/noExplicitAny");
 		expect(OFF_FOR_FIXES.filter((rule) => enabled.includes(rule))).toEqual([]);
+	});
+
+	it("keeps the rules whose fixes can change behavior or remove a decision at error, and turns off only their fixes", () => {
+		expect(fixesOff().toSorted((left, right) => left.localeCompare(right))).toEqual(REPORT_ONLY);
+		expect(REPORT_ONLY.filter((rule) => levelIn(rule) !== "error")).toEqual([]);
 	});
 
 	it("declares every weakening it ships", async () => {

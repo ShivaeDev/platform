@@ -82,7 +82,7 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 });
 
 describe("quality fix", { timeout: cliTimeout }, () => {
-	it("formats files and sorts keys, so the formatting findings are gone", () => {
+	it("formats files but leaves the key order for a person to decide on, and the lint still reports it", () => {
 		const root = repository(preset, { content: "export const b = { z: 1, a: 2 }\n", path: "src/b.ts" });
 		expect(quality(root, "fix")).toMatchObject({
 			status: 0,
@@ -93,8 +93,10 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 				"",
 			].join("\n"),
 		});
-		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { a: 2, z: 1 };\n");
-		expect(quality(root, "lint").status).toBe(0);
+		expect(readFileSync(join(root, "src/b.ts"), "utf8")).toBe("export const b = { z: 1, a: 2 };\n");
+		expect(quality(root, "lint").stdout).toContain(
+			"error biome/assist/source/useSortedKeys (1)\n  src/b.ts:1  The object properties are not sorted by key.",
+		);
 	});
 
 	it("applies Biome's unsafe lint fixes", () => {
@@ -127,8 +129,8 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 
 	it("repeats the fixes until a round rewrites nothing, since one fix can make room for another", () => {
 		const twoRounds: SeedFile = {
-			content: "export const digits = /[0-9]+/;\nexport async function load(): Promise<void> {\n\tPromise.resolve(1);\n}\n",
-			path: "src/load.ts",
+			content: 'export function isA(text: string): boolean {\n\treturn text.indexOf("a") == 0;\n}\n',
+			path: "src/is-a.ts",
 		};
 		const root = repository(preset, twoRounds);
 		expect(quality(root, "fix")).toMatchObject({
@@ -142,7 +144,7 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 			),
 		});
 		expect(readFileSync(join(root, twoRounds.path), "utf8")).toBe(
-			"export const digits = /[0-9]+/u;\nexport async function load(): Promise<void> {\n\tawait Promise.resolve(1);\n}\n",
+			'export function isA(text: string): boolean {\n\treturn text.startsWith("a");\n}\n',
 		);
 	});
 
@@ -173,6 +175,30 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
 		expect(readFileSync(join(root, unusedMember.path), "utf8")).toBe(unusedMember.content);
 		expect(quality(root, "lint").stdout).toContain("biome/lint/correctness/noUnusedPrivateClassMembers");
+	});
+
+	it("leaves the fixes that can change behavior or remove a decision to a person, and the lint still reports them", async () => {
+		const decisions: SeedFile = {
+			content: [
+				"export const digits = /[0-9]+/;",
+				"export function last(items: readonly number[]): number | undefined {",
+				"\treturn items[items.length - 1];",
+				"}",
+				"export async function load(): Promise<void> {",
+				"\tPromise.resolve(1);",
+				"}",
+				"export const twice = { a: 1, a: 2 };",
+				"",
+			].join("\n"),
+			path: "src/decisions.ts",
+		};
+		const root = repository(preset, decisions);
+		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
+		expect(readFileSync(join(root, decisions.path), "utf8")).toBe(decisions.content);
+		const { stdout } = quality(root, "lint");
+		for (const rule of ["nursery/useUnicodeRegex", "style/useAtIndex", "nursery/noFloatingPromises", "suspicious/noDuplicateObjectKeys"]) {
+			expect(stdout).toContain(`biome/lint/${rule}`);
+		}
 	});
 
 	it("groups imports as builtins, packages, @shivaedev packages, aliases and same-folder paths", () => {

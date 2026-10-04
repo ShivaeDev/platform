@@ -30,7 +30,13 @@ function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, string>, Se
 
 function biomeRound(root: string, index: number): Effect.Effect<number, SetupFailure> {
 	return Effect.gen(function* () {
-		const fixed = (yield* biome(root, ["check", "--write", "--unsafe"])).summary.changed;
+		const fixed = (yield* biome(root, [
+			"check",
+			"--write",
+			"--unsafe",
+			"--skip=assist/source/useSortedKeys",
+			"--skip=lint/suspicious/noDuplicateObjectKeys",
+		])).summary.changed;
 		const formatted = (yield* biome(root, ["format", "--write"])).summary.changed;
 		yield* Console.log(
 			`quality: Biome round ${index} rewrote ${plural(fixed, "file")} with fixes and ${plural(formatted, "file")} with the format pass.`,
