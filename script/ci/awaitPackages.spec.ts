@@ -59,6 +59,8 @@ it("waits for this attempt's artifact and fails immediately when its producer or
 		assert.equal(awaitArtifact("", "", true), 1);
 		assert.equal(awaitArtifact("", "", false, false, true), 0);
 		assert.equal(readFileSync(output, "utf8"), "name=packages-current-sha-1\n");
+		assert.equal(awaitArtifact("", "completed:success", false, false, true), 0);
+		assert.equal(readFileSync(output, "utf8"), "name=packages-current-sha-1\n");
 	} finally {
 		rmSync(root, { force: true, recursive: true });
 	}
