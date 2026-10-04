@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { applyBaseline } from "../src/baseline/compare.ts";
-import { decodeBaseline, encodeBaseline } from "../src/baseline/format.ts";
-import { levels, violation } from "./support/violations.ts";
+import { applyBaseline } from "#baseline/compare.ts";
+import { decodeBaseline, encodeBaseline } from "#baseline/format.ts";
+import { levels, violation } from "#test/support/violations.ts";
 
 const known = levels({ "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
 const todo = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });

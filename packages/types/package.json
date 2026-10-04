@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/types",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Type-only helpers shared by the ShivaeDev packages",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/types#readme",
 	"bugs": {
@@ -14,6 +14,13 @@
 	"license": "MIT",
 	"sideEffects": false,
 	"type": "module",
+	"imports": {
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

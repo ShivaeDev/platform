@@ -2,7 +2,7 @@ import { expect, it } from "@effect/vitest";
 import { Deferred, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import * as Form from "../src/form.ts";
+import * as Form from "#form.ts";
 
 const Name = Schema.Struct({ name: Schema.Trim });
 const runtime = Atom.runtime(Layer.empty);

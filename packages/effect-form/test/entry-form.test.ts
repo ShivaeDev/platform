@@ -2,8 +2,8 @@ import { expect, it } from "@effect/vitest";
 import { Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { make } from "../src/index.ts";
-import { fromRef } from "../src/refs.ts";
+import { make } from "#index.ts";
+import { fromRef } from "#refs.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));

@@ -38,7 +38,12 @@ export interface Started {
 
 // A run that deadlocks is killed so the test fails instead of hanging; its command, in a process group of its own, ends through its own bound.
 export const start = (args: readonly string[], env: Record<string, string>, cwd?: string): Started => {
-	const child = spawn(process.execPath, [HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: ["ignore", "ignore", "pipe"] });
+	const child = spawn(process.execPath, ["--conditions=source", HEAVY_LOCK_CLI, ...args], {
+		cwd,
+		detached: true,
+		env,
+		stdio: ["ignore", "ignore", "pipe"],
+	});
 	let running = true;
 	const stop = () => {
 		if (running) {

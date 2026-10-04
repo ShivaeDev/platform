@@ -1,5 +1,5 @@
-import { type Departure, departures } from "../../imports/departures.ts";
-import { defineRule } from "../../rule.ts";
+import { type Departure, departures } from "#imports/departures.ts";
+import { defineRule } from "#rule.ts";
 
 function messageOf({ installed, specifier, workspace }: Departure): string {
 	const leaves = `"${specifier}" leaves its folder.`;

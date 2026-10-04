@@ -1,6 +1,6 @@
-import { biomeReport, type Diagnostic } from "../biome/report.ts";
-import { defineRule, type Finding, type Rule, type RuleInputs } from "../rule.ts";
-import { itemsOf, member, parseJsonc, textOf } from "./suppressions/biome/json.ts";
+import { biomeReport, type Diagnostic } from "#biome/report.ts";
+import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
+import { itemsOf, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
 
 export const PRESET = "@shivaedev/quality/biome";
 

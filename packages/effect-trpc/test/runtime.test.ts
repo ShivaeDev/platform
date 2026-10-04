@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { afterAll, expect, it } from "vitest";
-import { makeContextBridge } from "../src/internal/context-bridge.ts";
-import { makeRuntimeBridge } from "../src/internal/runtime.ts";
+import { makeContextBridge } from "#internal/context-bridge.ts";
+import { makeRuntimeBridge } from "#internal/runtime.ts";
 
 const runtime = ManagedRuntime.make(Layer.empty);
 const bridge = makeRuntimeBridge(runtime, makeContextBridge(), {});

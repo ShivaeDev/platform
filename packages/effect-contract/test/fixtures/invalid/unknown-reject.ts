@@ -1,3 +1,3 @@
-import { Get } from "../../notes.ts";
+import { Get } from "#test/notes.ts";
 
 Get.reject.Other();

@@ -7,6 +7,7 @@ export const Manifest = Schema.Struct({
 	devDependencies: Schema.optional(Versions),
 	exports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 	files: Schema.optional(Schema.Array(Schema.String)),
+	imports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 	name: Schema.String,
 	optionalDependencies: Schema.optional(Versions),
 	peerDependencies: Schema.optional(Versions),

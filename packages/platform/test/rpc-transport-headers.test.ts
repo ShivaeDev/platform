@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { trustedOrigins } from "../src/rpc-server.ts";
-import { makeApp } from "./rpc/api.ts";
-import { createProvider, origin, signup } from "./rpc/support.ts";
+import { trustedOrigins } from "#rpc-server.ts";
+import { makeApp } from "#test/rpc/api.ts";
+import { createProvider, origin, signup } from "#test/rpc/support.ts";
 
 const browser = trustedOrigins({ allow: [origin], missing: "reject" });
 

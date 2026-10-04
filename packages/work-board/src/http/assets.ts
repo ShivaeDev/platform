@@ -1,10 +1,10 @@
 import { createRequire } from "node:module";
 import { Data, Effect, FileSystem, Path } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
-import { client } from "../page/client.ts";
-import { diagrams } from "../page/diagrams.ts";
-import { style } from "../page/style.ts";
-import { swap } from "../page/swap.ts";
+import { client } from "#page/client.ts";
+import { diagrams } from "#page/diagrams.ts";
+import { style } from "#page/style.ts";
+import { swap } from "#page/swap.ts";
 import { respond } from "./respond.ts";
 
 export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [

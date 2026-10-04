@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
 import type { Headers } from "effect/unstable/http";
-import { AuthUnavailable } from "../../errors/taxonomy.ts";
-import { redact } from "../redact.ts";
-import type { SessionProvider, SessionShape } from "../session.ts";
+import { AuthUnavailable } from "#errors/taxonomy.ts";
+import { redact } from "#rpc-server/redact.ts";
+import type { SessionProvider, SessionShape } from "#rpc-server/session.ts";
 
 export type GetSession<Session extends SessionShape> = (headers: globalThis.Headers) => Promise<Session | null>;
 

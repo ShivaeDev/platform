@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { anyOf, external, type Fence, fence, folders, modules, packages, scopes, workspace } from "../src/index.ts";
-import { importFences } from "../src/rules/imports/fences.ts";
-import { findingsIn, importTree } from "./support/imports.ts";
-import { removeSeededTrees } from "./support/tree.ts";
+import { anyOf, external, type Fence, fence, folders, modules, packages, scopes, workspace } from "#index.ts";
+import { importFences } from "#rules/imports/fences.ts";
+import { findingsIn, importTree } from "#test/support/imports.ts";
+import { removeSeededTrees } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

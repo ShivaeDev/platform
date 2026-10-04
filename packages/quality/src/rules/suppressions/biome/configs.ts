@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import type { Finding, RuleInputs } from "../../../rule.ts";
+import type { Finding, RuleInputs } from "#rule.ts";
 import { type Declaration, decodeShipped, PRESET_DECLARATIONS } from "./declarations.ts";
 import { itemsOf, type Json, member, type Parsed, parseJsonc, textOf } from "./json.ts";
 import { resolvePackage } from "./resolve.ts";

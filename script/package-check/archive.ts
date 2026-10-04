@@ -1,7 +1,8 @@
-import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { join, posix } from "node:path";
+import { Effect, FileSystem, Schema } from "effect";
+import { CODE, missingImportTargets } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
-import { bins, decodeManifest, dependencyKeys, type Package, targets } from "#package-check/model.ts";
+import { bins, decodeManifest, dependencyKeys, type Manifest, type Package, targets } from "#package-check/model.ts";
 
 const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
@@ -52,8 +53,26 @@ export const checkPackedArchive = (pkg: Package) =>
 		}
 		yield* checkFiles(manifest.name, manifest.files ?? [], contents);
 		yield* checkMaps(directory, tarball, contents);
+		yield* checkImports(tarball, manifest, contents);
 		return manifest;
 	});
+
+function checkImports(tarball: string, manifest: Manifest, contents: ReadonlySet<string>) {
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const unpacked = yield* fs.makeTempDirectoryScoped({ prefix: "platform-packed-imports-" });
+			yield* command(unpacked, "tar", ["-xzf", tarball]);
+			const packed = new Set([...contents].map((path) => posix.relative("package", path)));
+			const sources = new Map<string, string>();
+			for (const path of [...packed].filter((file) => CODE.test(file))) {
+				sources.set(path, yield* fs.readFileString(join(unpacked, "package", path)));
+			}
+			const problems = missingImportTargets(manifest.imports ?? {}, packed, sources);
+			yield* requireThat(problems.length === 0, `${manifest.name}: ${problems.join("; ")}`);
+		}),
+	);
+}
 
 const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<string>) =>
 	Effect.gen(function* () {

@@ -2,9 +2,9 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { afterEach, expect } from "vitest";
-import { collectInventory } from "../src/inventory/collect.ts";
-import rawTree from "./fixtures/gitignore-tree.json" with { type: "json" };
-import { removeSeededTrees, type SeedFile, seedTree } from "./support/tree.ts";
+import { collectInventory } from "#inventory/collect.ts";
+import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
+import { removeSeededTrees, type SeedFile, seedTree } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

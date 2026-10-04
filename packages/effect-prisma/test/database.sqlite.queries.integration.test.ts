@@ -1,8 +1,8 @@
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { withTestTransaction } from "../src/testing.ts";
-import { Database, uniqueEmail, withDatabase } from "./sqlite/database.ts";
+import { Database, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
+import { withTestTransaction } from "#testing.ts";
 
 it.effect("runs aggregate, grouping, bulk create, update, and delete terminals", () =>
 	withDatabase(

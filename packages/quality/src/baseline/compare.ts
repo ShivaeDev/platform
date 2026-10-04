@@ -1,4 +1,4 @@
-import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Violation } from "../engine/violation.ts";
+import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Violation } from "#engine/violation.ts";
 import type { BaselineEntry } from "./format.ts";
 
 export interface Regression {

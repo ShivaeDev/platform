@@ -1,8 +1,8 @@
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Stream } from "effect";
 import { expect } from "vitest";
-import { withTestTransaction } from "../src/testing.ts";
-import { Database, DatabaseLive, uniqueEmail, withDatabase } from "./sqlite/database.ts";
+import { Database, DatabaseLive, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
+import { withTestTransaction } from "#testing.ts";
 
 const createNested = (outer: unknown, email: string) =>
 	Effect.gen(function* () {

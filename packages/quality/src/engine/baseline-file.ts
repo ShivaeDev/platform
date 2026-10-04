@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { Effect, type FileSystem } from "effect";
-import { type BaselineEntry, decodeBaseline } from "../baseline/format.ts";
-import { LEGACY_BASELINE } from "../baseline/legacy.ts";
-import type { ResolvedConfig } from "../config/load.ts";
-import { validOrFail } from "../decoded.ts";
-import { SetupFailure } from "../failure.ts";
-import { readOptionalText } from "../inventory/filesystem.ts";
+import { type BaselineEntry, decodeBaseline } from "#baseline/format.ts";
+import { LEGACY_BASELINE } from "#baseline/legacy.ts";
+import type { ResolvedConfig } from "#config/load.ts";
+import { validOrFail } from "#decoded.ts";
+import { SetupFailure } from "#failure.ts";
+import { readOptionalText } from "#inventory/filesystem.ts";
 
 export interface BaselineFile {
 	readonly entries: readonly BaselineEntry[];

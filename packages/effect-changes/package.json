@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Commit-bound change channels for Effect: publish recorded changes only after the transaction commits",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes#readme",
 	"bugs": {
@@ -14,6 +14,14 @@
 	"license": "MIT",
 	"sideEffects": false,
 	"type": "module",
+	"imports": {
+		"#test/*": "./test/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

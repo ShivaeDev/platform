@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
-import { defineRule, type Finding } from "../../rule.ts";
-import { biomeConfigs, type Chain } from "./biome/configs.ts";
-import { Declaration, matches, type Scoped, scoped, scopeText } from "./biome/declarations.ts";
-import { type Weakening, weakeningsOf } from "./biome/weakenings.ts";
+import { defineRule, type Finding } from "#rule.ts";
+import { biomeConfigs, type Chain } from "#rules/suppressions/biome/configs.ts";
+import { Declaration, matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
+import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
 
 const BiomeOverridesOptions = Schema.Struct({
 	declared: Schema.Array(Declaration).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { maxLines } from "../src/rules/max-lines.ts";
-import { checkRule, issuesOf } from "./support/inputs.ts";
-import { lines } from "./support/tree.ts";
+import { maxLines } from "#rules/max-lines.ts";
+import { checkRule, issuesOf } from "#test/support/inputs.ts";
+import { lines } from "#test/support/tree.ts";
 
 const source = (path: string, count: number) => ({ content: lines(count), path });
 

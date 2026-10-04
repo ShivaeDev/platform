@@ -6,8 +6,8 @@ import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
-import { bind, command, contract, query } from "../../src/index.ts";
-import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "../notes.ts";
+import { bind, command, contract, query } from "#index.ts";
+import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "#test/notes.ts";
 
 export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
 	group: Notes,

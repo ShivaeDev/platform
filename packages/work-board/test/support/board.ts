@@ -5,8 +5,8 @@ import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { boardLayer } from "../../src/board.ts";
-import { listenOn } from "../../src/serve.ts";
+import { boardLayer } from "#board.ts";
+import { listenOn } from "#serve.ts";
 
 export interface Folder {
 	readonly remove: () => void;

@@ -1,6 +1,6 @@
 import { Cause, Console, Effect, Option, Queue } from "effect";
-import { acquireHeavyLock } from "../acquire.ts";
-import { HeavyLockError } from "../error.ts";
+import { acquireHeavyLock } from "#acquire.ts";
+import { HeavyLockError } from "#error.ts";
 import { type CommandLine, parseCommandLine, USAGE } from "./args.ts";
 import { runCommand } from "./run-command.ts";
 import { type ForwardedSignal, receiveSignals, signalExitCode } from "./signals.ts";

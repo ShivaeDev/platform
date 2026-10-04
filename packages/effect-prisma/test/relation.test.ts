@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { acquireConnectedClient, assertAvailableModelNames } from "../src/internal/client-lifecycle.ts";
-import type { DatabaseExecutor } from "../src/internal/executor.ts";
-import { fromPrismaPromise } from "../src/internal/promise.ts";
-import { makeModelRelation } from "../src/internal/relation-runtime.ts";
-import { FakeResult } from "./support/controlled-collection.ts";
-import { unusedClient } from "./support/unused-client.ts";
+import { acquireConnectedClient, assertAvailableModelNames } from "#internal/client-lifecycle.ts";
+import type { DatabaseExecutor } from "#internal/executor.ts";
+import { fromPrismaPromise } from "#internal/promise.ts";
+import { makeModelRelation } from "#internal/relation-runtime.ts";
+import { FakeResult } from "#test/support/controlled-collection.ts";
+import { unusedClient } from "#test/support/unused-client.ts";
 
 interface User {
 	readonly active: boolean;

@@ -1,9 +1,9 @@
 import { basename, join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { sortPackageJson } from "sort-package-json";
-import { FilesystemFailure } from "../inventory/filesystem.ts";
-import { posix } from "../inventory/ignore-scope.ts";
-import { walk } from "../inventory/walk.ts";
+import { FilesystemFailure } from "#inventory/filesystem.ts";
+import { posix } from "#inventory/ignore-scope.ts";
+import { walk } from "#inventory/walk.ts";
 
 export type Sorting = { readonly _tag: "Invalid" } | { readonly _tag: "Sorted" } | { readonly _tag: "Unsorted"; readonly sorted: string };
 

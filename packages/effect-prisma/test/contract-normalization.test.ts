@@ -15,7 +15,7 @@ const contract = (source: string) => {
 	writeFileSync(path, source);
 	return path;
 };
-const normalize = (path: string) => spawnSync(process.execPath, [cli, path], { encoding: "utf8" });
+const normalize = (path: string) => spawnSync(process.execPath, ["--conditions=source", cli, path], { encoding: "utf8" });
 afterEach(() => {
 	for (const directory of directories.splice(0)) {
 		rmSync(directory, { force: true, recursive: true });

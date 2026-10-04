@@ -1,13 +1,13 @@
 import { join } from "node:path";
 import { Console, Effect, type FileSystem } from "effect";
-import type { BaselineEntry } from "../baseline/format.ts";
-import { rewriteBaseline } from "../baseline/rewrite.ts";
-import { adopt, type Pruned, prune, type Scope } from "../baseline/update.ts";
-import { openSession, type Session } from "../engine/session.ts";
-import { applyRegistry } from "../exceptions/registry.ts";
-import { SetupFailure } from "../failure.ts";
-import { writeText } from "../inventory/filesystem.ts";
-import { plural } from "../report/plural.ts";
+import type { BaselineEntry } from "#baseline/format.ts";
+import { rewriteBaseline } from "#baseline/rewrite.ts";
+import { adopt, type Pruned, prune, type Scope } from "#baseline/update.ts";
+import { openSession, type Session } from "#engine/session.ts";
+import { applyRegistry } from "#exceptions/registry.ts";
+import { SetupFailure } from "#failure.ts";
+import { writeText } from "#inventory/filesystem.ts";
+import { plural } from "#report/plural.ts";
 
 const save = (session: Session, entries: readonly BaselineEntry[]): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> =>
 	Effect.mapError(

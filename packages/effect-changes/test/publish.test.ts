@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit } from "effect";
 import { expect, it } from "vitest";
-import type { Publish } from "../src/index.ts";
-import { type Change, type Current, captureLogs, change, harness, makeDatabase } from "./support/fake-database.ts";
+import type { Publish } from "#index.ts";
+import { type Change, type Current, captureLogs, change, harness, makeDatabase } from "#test/support/fake-database.ts";
 
 const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]> = [
 	["a failed Effect", "bus unavailable", () => Effect.fail(new Error("bus unavailable"))],

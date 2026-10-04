@@ -1,8 +1,8 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
-import { SetupFailure } from "../failure.ts";
-import { posix } from "../inventory/ignore-scope.ts";
-import type { Finding, Findings, RuleInputs } from "../rule.ts";
+import { SetupFailure } from "#failure.ts";
+import { posix } from "#inventory/ignore-scope.ts";
+import type { Finding, Findings, RuleInputs } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
 
 export interface ActiveRule {

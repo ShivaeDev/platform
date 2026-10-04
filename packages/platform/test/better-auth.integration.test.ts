@@ -4,11 +4,11 @@ import { Effect } from "effect";
 import { afterAll, expect as expectPromise, it as vitestIt } from "vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC } from "@shivaedev/effect-trpc";
-import { effectPrismaAdapter } from "../src/better-auth.ts";
-import { makePlatformRuntime } from "../src/runtime.ts";
-import { makePlatformIt } from "../src/testing.ts";
-import { type Contract, contractJson } from "./auth/contract.ts";
-import { environmentVariable } from "./support/environment.ts";
+import { effectPrismaAdapter } from "#better-auth.ts";
+import { makePlatformRuntime } from "#runtime.ts";
+import { type Contract, contractJson } from "#test/auth/contract.ts";
+import { environmentVariable } from "#test/support/environment.ts";
+import { makePlatformIt } from "#testing.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformAuthDatabase", {

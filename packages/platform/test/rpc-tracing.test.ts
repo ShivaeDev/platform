@@ -1,10 +1,10 @@
 import { Effect, Layer, Option, Redacted, Schema } from "effect";
 import { Rpc, type RpcClient, RpcGroup, RpcTest } from "effect/unstable/rpc";
 import { expect, it } from "vitest";
-import { Conflict, rejectedField } from "../src/errors.ts";
-import { RequestId, RequestTracing } from "../src/rpc.ts";
-import { isSensitiveKey, type RequestTracingOptions, requestTracingLayer } from "../src/rpc-server.ts";
-import { annotationsOf, recorder } from "./rpc/support.ts";
+import { Conflict, rejectedField } from "#errors.ts";
+import { RequestId, RequestTracing } from "#rpc.ts";
+import { isSensitiveKey, type RequestTracingOptions, requestTracingLayer } from "#rpc-server.ts";
+import { annotationsOf, recorder } from "#test/rpc/support.ts";
 
 const Registration = Schema.Struct({
 	devices: Schema.Array(Schema.Struct({ name: Schema.String, refreshToken: Schema.String })),

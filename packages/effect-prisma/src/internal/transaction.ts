@@ -1,7 +1,7 @@
 import { orm } from "@prisma-next/sql-orm-client";
 import { Effect, Exit, Semaphore } from "effect";
-import type { PrismaError } from "../error.ts";
-import { type SettledConnection, type SettledTransaction, settleConnection } from "./adapters/transaction-settlement.ts";
+import type { PrismaError } from "#error.ts";
+import { type SettledConnection, type SettledTransaction, settleConnection } from "#internal/adapters/transaction-settlement.ts";
 import type { AnySqlContract, DatabaseExecutor } from "./executor.ts";
 import { fromPrismaPromise } from "./promise.ts";
 

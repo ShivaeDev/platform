@@ -4,12 +4,12 @@ import { expect, it } from "@effect/vitest";
 import { Effect, Fiber, Layer, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { afterEach } from "vitest";
-import { HeldLock } from "../src/held-lock.ts";
-import { encodeHolder, HOLDER_ID_ENV } from "../src/holder.ts";
-import { readHolder, tryAcquire } from "../src/lock-file.ts";
-import { heavyLockLayer, withHeavyLock } from "../src/with-heavy-lock.ts";
-import { scriptedClock } from "./support/clock.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "./support/lock.ts";
+import { HeldLock } from "#held-lock.ts";
+import { encodeHolder, HOLDER_ID_ENV } from "#holder.ts";
+import { readHolder, tryAcquire } from "#lock-file.ts";
+import { scriptedClock } from "#test/support/clock.ts";
+import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "#test/support/lock.ts";
+import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 

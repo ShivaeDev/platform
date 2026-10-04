@@ -1,10 +1,10 @@
 import type { ExtractFieldOutputTypes } from "@prisma-next/sql-contract/types";
 import { Effect, type Layer, type Option } from "effect";
 import { expectTypeOf } from "vitest";
-import { type DatabaseServiceOf, makeDatabase, type PrismaError } from "../src/index.ts";
-import { makeDatabaseIt } from "../src/testing.ts";
+import { type DatabaseServiceOf, makeDatabase, type PrismaError } from "#index.ts";
+import { AuditDatabase, Database, type User } from "#test/support/typed-database.ts";
+import { makeDatabaseIt } from "#testing.ts";
 import { type Contract, contractJson } from "./contract.ts";
-import { AuditDatabase, Database, type User } from "./support/typed-database.ts";
 
 type ContractEmail = ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];
 expectTypeOf<ContractEmail>().not.toBeAny();

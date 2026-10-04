@@ -1,6 +1,6 @@
 import { Writable } from "node:stream";
 import { describe, expect, it } from "vitest";
-import { quietOnClosedPipe } from "../src/cli/run-main.ts";
+import { quietOnClosedPipe } from "#cli/run-main.ts";
 
 function failingWith(code: string): Writable {
 	return new Writable({

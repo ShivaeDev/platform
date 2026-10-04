@@ -1,7 +1,7 @@
 import { Effect, PubSub, Ref, Stream } from "effect";
 import { Sse } from "effect/unstable/encoding";
 import { HttpServerResponse } from "effect/unstable/http";
-import type { Change, Changes } from "../files/changes.ts";
+import type { Change, Changes } from "#files/changes.ts";
 import { HEADERS } from "./respond.ts";
 
 const event = (name: string, data = ""): Sse.Event => ({ _tag: "Event", data, event: name, id: undefined });

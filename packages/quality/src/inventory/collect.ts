@@ -1,7 +1,7 @@
 import { join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import ignore from "ignore";
-import type { SourceFile } from "../rule.ts";
+import type { SourceFile } from "#rule.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignore-scope.ts";
 import { scopeAbove, walk } from "./walk.ts";

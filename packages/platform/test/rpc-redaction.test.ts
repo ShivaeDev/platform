@@ -3,9 +3,9 @@ import { Cause, Effect, ErrorReporter, Exit, Layer, Schema } from "effect";
 import { Headers } from "effect/unstable/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
 import { expect, it } from "vitest";
-import { RequestTracing } from "../src/rpc.ts";
-import { betterAuthSessions, redact, redactingErrorReporter, requestTracingLayer } from "../src/rpc-server.ts";
-import { recorder } from "./rpc/support.ts";
+import { RequestTracing } from "#rpc.ts";
+import { betterAuthSessions, redact, redactingErrorReporter, requestTracingLayer } from "#rpc-server.ts";
+import { recorder } from "#test/rpc/support.ts";
 
 const leaks = (value: unknown, secrets: readonly string[]) => {
 	const rendered = inspect(value, { depth: 20 });

@@ -3,9 +3,9 @@ import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { SessionBoundary } from "../src/index.ts";
-import { InvoiceLine, makeInvoiceLineServer } from "./invoice-line-editor/backend.ts";
-import { makeInvoiceLineViews } from "./invoice-line-editor/frontend.ts";
+import { SessionBoundary } from "#index.ts";
+import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
+import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const cleanups: Array<() => Promise<void>> = [];

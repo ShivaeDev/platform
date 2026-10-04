@@ -3,7 +3,7 @@ import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import type { SqlClient } from "effect/unstable/sql";
 import type { SqlError } from "effect/unstable/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { type InvalidationKeys, invalidateOnCommit, transact } from "../src/index.ts";
+import { type InvalidationKeys, invalidateOnCommit, transact } from "#index.ts";
 
 class Rejected extends Data.TaggedError("Rejected") {}
 class Unavailable extends Data.TaggedError("Unavailable") {}

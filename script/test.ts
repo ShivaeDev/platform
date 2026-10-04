@@ -10,7 +10,17 @@ const program = Effect.gen(function* () {
 	process.exitCode = yield* spawner.exitCode(
 		ChildProcess.make(
 			"node",
-			["packages/heavy-lock/src/cli.ts", "--", "pnpm", "--recursive", "--workspace-concurrency=1", "--if-present", "test", ...process.argv.slice(2)],
+			[
+				"--conditions=source",
+				"packages/heavy-lock/src/cli.ts",
+				"--",
+				"pnpm",
+				"--recursive",
+				"--workspace-concurrency=1",
+				"--if-present",
+				"test",
+				...process.argv.slice(2),
+			],
 			{ env, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" },
 		),
 	);

@@ -1,5 +1,5 @@
 import { Cause, Clock, type Duration, Effect, Exit } from "effect";
-import { type PrismaError, TransactionExpired } from "../../src/index.ts";
+import { type PrismaError, TransactionExpired } from "#index.ts";
 import type { PrismaClient } from "../generated/client.ts";
 import type { makeChanges } from "./changes.ts";
 

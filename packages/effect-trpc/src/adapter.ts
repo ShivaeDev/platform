@@ -1,9 +1,9 @@
 import type { TRPCProcedureBuilder } from "@trpc/server";
 import type { Context, Effect, Exit } from "effect";
-import { makeContextBridge } from "./internal/context-bridge.ts";
-import { looseBuilder } from "./internal/loose.ts";
-import type { ResolverContext } from "./internal/procedure-types.ts";
-import { makeRuntimeBridge } from "./internal/runtime.ts";
+import { makeContextBridge } from "#internal/context-bridge.ts";
+import { looseBuilder } from "#internal/loose.ts";
+import type { ResolverContext } from "#internal/procedure-types.ts";
+import { makeRuntimeBridge } from "#internal/runtime.ts";
 import { EffectProcedureBuilder } from "./procedure.ts";
 import type { EffectProcedureRequestServices } from "./request-services.ts";
 import type { EffectTRPCErrorMapper, EffectTRPCInstrument, EffectTRPCStreamInstrument } from "./types.ts";

@@ -1,6 +1,6 @@
 import { Effect, Effectable, type Stream } from "effect";
-import type { PrismaError } from "../error.ts";
-import type { Relation } from "../relation.ts";
+import type { PrismaError } from "#error.ts";
+import type { Relation } from "#relation.ts";
 import type { AnyPostgresContract, DatabaseExecutor } from "./executor.ts";
 import { executeQuery } from "./query-execution.ts";
 import { appendOperation, type RelationRecipe, replayRecipe, rootRecipe } from "./recipe.ts";

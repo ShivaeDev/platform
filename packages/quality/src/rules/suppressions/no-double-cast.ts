@@ -1,6 +1,6 @@
 import ts from "typescript";
-import { defineRule, type Finding, type SourceFile } from "../../rule.ts";
-import { parse } from "../syntax.ts";
+import { defineRule, type Finding, type SourceFile } from "#rule.ts";
+import { parse } from "#rules/syntax.ts";
 
 const BRIDGES: ReadonlyMap<ts.SyntaxKind, string> = new Map([
 	[ts.SyntaxKind.UnknownKeyword, "unknown"],

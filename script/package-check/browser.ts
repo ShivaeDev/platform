@@ -2,10 +2,32 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Schema } from "effect";
 import ts from "typescript";
+import { conditionalTarget, importEntry } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
 
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Array(Schema.String))));
+const BROWSER_CONDITIONS = ["browser", "import"];
+
+function aliasTarget(pkg: Package, path: string, specifier: string): string | undefined {
+	const installed = `/node_modules/${pkg.manifest.name}`;
+	const target = conditionalTarget(importEntry(pkg.manifest.imports ?? {}, specifier), BROWSER_CONDITIONS);
+	return target === undefined ? undefined : join(path.slice(0, path.lastIndexOf(installed) + installed.length), target);
+}
+
+function followed(pkg: Package, path: string, specifier: string): Effect.Effect<string | undefined, Error> {
+	if (specifier.startsWith(".")) {
+		return Effect.succeed(join(dirname(path), specifier));
+	}
+	if (specifier.startsWith("#")) {
+		const target = aliasTarget(pkg, path, specifier);
+		return target === undefined
+			? Effect.fail(new Error(`${path}: browser entry imports ${specifier}, which no imports entry resolves`))
+			: Effect.succeed(target);
+	}
+	return Effect.as(requireThat(specifier === "effect" || specifier.startsWith("effect/"), `${path}: browser entry imports ${specifier}`), undefined);
+}
+
 export const checkBrowserEntries = (root: string, pkg: Package, consumer: string) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
@@ -19,10 +41,9 @@ export const checkBrowserEntries = (root: string, pkg: Package, consumer: string
 				seen.add(path);
 				const source = yield* fs.readFileString(path);
 				for (const { fileName } of ts.preProcessFile(source).importedFiles) {
-					if (fileName.startsWith(".")) {
-						yield* visit(join(dirname(path), fileName));
-					} else {
-						yield* requireThat(fileName === "effect" || fileName.startsWith("effect/"), `${path}: browser entry imports ${fileName}`);
+					const next = yield* followed(pkg, path, fileName);
+					if (next !== undefined) {
+						yield* visit(next);
 					}
 				}
 			});

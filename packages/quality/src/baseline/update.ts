@@ -1,4 +1,4 @@
-import { covers, groupBy, keyOf, levelOf, type RuleIndex, type Violation } from "../engine/violation.ts";
+import { covers, groupBy, keyOf, levelOf, type RuleIndex, type Violation } from "#engine/violation.ts";
 import { countOf } from "./compare.ts";
 import type { BaselineEntry } from "./format.ts";
 

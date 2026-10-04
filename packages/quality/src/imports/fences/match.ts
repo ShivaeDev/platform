@@ -1,5 +1,5 @@
-import { builtinName, type Endpoint, packageNameOf } from "../resolve.ts";
-import { packageOf, type WorkspacePackage } from "../workspace.ts";
+import { builtinName, type Endpoint, packageNameOf } from "#imports/resolve.ts";
+import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import type { Selector } from "./model.ts";
 
 export interface PolicyScope {

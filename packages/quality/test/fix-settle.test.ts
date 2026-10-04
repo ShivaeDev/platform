@@ -1,8 +1,8 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
-import { MAX_FIX_ROUNDS, type Pass, type Settling, settle, snapshotOf } from "../src/cli/fix.ts";
-import { removeSeededTrees, seedTree } from "./support/tree.ts";
+import { MAX_FIX_ROUNDS, type Pass, type Settling, settle, snapshotOf } from "#cli/fix.ts";
+import { removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

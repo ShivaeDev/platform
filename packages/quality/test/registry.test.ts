@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyRegistry, decodeRegistry } from "../src/exceptions/registry.ts";
-import { levels, violation } from "./support/violations.ts";
+import { applyRegistry, decodeRegistry } from "#exceptions/registry.ts";
+import { levels, violation } from "#test/support/violations.ts";
 
 const known = levels({ "biome/override": "error", "local/off": "off", "pragmas/ts-expect-error": "error" });
 const pragma = violation({ file: "test/a.typecheck.ts", rule: "pragmas/ts-expect-error" });

@@ -1,7 +1,7 @@
 import { Effect, type Stream } from "effect";
 import { expectTypeOf } from "vitest";
-import type { PrismaError } from "../src/index.ts";
-import { Database, type Post, type User } from "./support/typed-database.ts";
+import type { PrismaError } from "#index.ts";
+import { Database, type Post, type User } from "#test/support/typed-database.ts";
 
 const program = Effect.gen(function* () {
 	const db = yield* Database;

@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import { draft } from "../src/draft.ts";
+import { draft } from "#draft.ts";
 
 it("reverts to the values the server answered last, not to the ones the edit began from", () => {
 	const editing = draft({ name: "First" });

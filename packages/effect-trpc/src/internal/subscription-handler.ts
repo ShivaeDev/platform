@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema, Stream } from "effect";
-import type { EffectProcedureRequestServices } from "../request-services.ts";
-import { RequestSignal } from "../request-signal.ts";
-import type { ProcedureInfo } from "../types.ts";
+import type { EffectProcedureRequestServices } from "#request-services.ts";
+import { RequestSignal } from "#request-signal.ts";
+import type { ProcedureInfo } from "#types.ts";
 import { acceptParsedInput } from "./loose.ts";
 import type { EffectSubscriptionResolver, ProcedureInvocation } from "./procedure-types.ts";
 import type { RuntimeBridge } from "./runtime.ts";

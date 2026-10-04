@@ -1,4 +1,4 @@
-export { withTestTransaction } from "./testing/transaction.ts";
+export { withTestTransaction } from "#testing/transaction.ts";
 export type {
 	AnyDatabase,
 	DatabaseIt,
@@ -6,5 +6,5 @@ export type {
 	DatabaseTest,
 	DatabaseTester,
 	MakeDatabaseItOptions,
-} from "./testing/types.ts";
-export { makeDatabaseIt } from "./testing/vitest.ts";
+} from "#testing/types.ts";
+export { makeDatabaseIt } from "#testing/vitest.ts";

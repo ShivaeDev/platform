@@ -29,6 +29,8 @@ const invalidArguments = (fixtures: readonly string[]) => [
 	"--moduleResolution",
 	"Bundler",
 	"--allowImportingTsExtensions",
+	"--customConditions",
+	"source",
 	...fixtures.map((fixture) => `test/fixtures/invalid/${fixture}.ts`),
 ];
 

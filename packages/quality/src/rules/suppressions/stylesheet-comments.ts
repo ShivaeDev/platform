@@ -1,4 +1,4 @@
-import { bodyOf, type SourceComment } from "../comments/scan.ts";
+import { bodyOf, type SourceComment } from "#rules/comments/scan.ts";
 
 export const STYLESHEET = /\.(?:css|scss|less)$/u;
 

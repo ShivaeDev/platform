@@ -1,5 +1,5 @@
-import type { Level } from "../config.ts";
-import type { Finding } from "../rule.ts";
+import type { Level } from "#config.ts";
+import type { Finding } from "#rule.ts";
 
 export type ActiveLevel = "error" | "warn";
 

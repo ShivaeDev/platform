@@ -3,7 +3,7 @@ import { Context, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, expectTypeOf, it } from "vitest";
-import { makeRepository } from "../src/index.ts";
+import { makeRepository } from "#index.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
 	amount: Schema.NumberFromString.check(Schema.isFinite()),

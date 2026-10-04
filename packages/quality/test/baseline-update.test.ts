@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { adopt, prune } from "../src/baseline/update.ts";
-import { levels, violation } from "./support/violations.ts";
+import { adopt, prune } from "#baseline/update.ts";
+import { levels, violation } from "#test/support/violations.ts";
 
 const known = levels({ "local/new": "error", "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
 const long = violation({ count: 262, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });

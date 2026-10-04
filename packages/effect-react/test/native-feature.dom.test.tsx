@@ -10,7 +10,7 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql";
-import { useAction, useQuery } from "../src/index.ts";
+import { useAction, useQuery } from "#index.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 

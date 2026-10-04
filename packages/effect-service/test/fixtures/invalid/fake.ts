@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { defineService } from "../../../src/index.ts";
+import { defineService } from "#index.ts";
 
 const Fakeable = defineService({
 	id: "invalid/Fakeable",

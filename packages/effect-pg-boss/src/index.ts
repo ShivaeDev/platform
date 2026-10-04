@@ -1,3 +1,7 @@
+export type {
+	PgBossClient,
+	PgBossClientFactory,
+} from "#internal/client.ts";
 export {
 	type DefineQueueOptions,
 	type DefineScheduleOptions,
@@ -21,10 +25,6 @@ export {
 	type JobsHealth,
 	type QueueHealth,
 } from "./health.ts";
-export type {
-	PgBossClient,
-	PgBossClientFactory,
-} from "./internal/client.ts";
 export {
 	makePgBoss,
 	type PgBossDefinition,

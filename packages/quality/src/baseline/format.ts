@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { type Decoded, decodeWith } from "../decoded.ts";
-import { keyOf } from "../engine/violation.ts";
+import { type Decoded, decodeWith } from "#decoded.ts";
+import { keyOf } from "#engine/violation.ts";
 
 const Line = Schema.Struct({
 	count: Schema.Int.check(Schema.isGreaterThan(0)),

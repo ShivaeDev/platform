@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { quality, qualityWithin } from "./support/cli.ts";
-import { git } from "./support/git.ts";
-import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "./support/tree.ts";
+import { quality, qualityWithin } from "#test/support/cli.ts";
+import { git } from "#test/support/git.ts";
+import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/support/tree.ts";
 
 const cliTimeout = 60_000;
 

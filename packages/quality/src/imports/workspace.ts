@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import type { RuleInputs } from "../rule.ts";
+import type { RuleInputs } from "#rule.ts";
 import { globMatcher } from "./glob.ts";
 import { pnpmWorkspacePatterns } from "./pnpm-workspace.ts";
 

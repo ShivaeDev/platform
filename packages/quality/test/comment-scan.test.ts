@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { noJsdoc } from "../src/rules/comments/no-jsdoc.ts";
-import { noTodo } from "../src/rules/comments/no-todo.ts";
-import { checkRule } from "./support/inputs.ts";
+import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
+import { noTodo } from "#rules/comments/no-todo.ts";
+import { checkRule } from "#test/support/inputs.ts";
 
 const todos = async (path: string, ...content: readonly string[]) =>
 	(await checkRule(noTodo, undefined, { sources: [{ content: content.join("\n"), path }] })).map((finding) => finding.line);

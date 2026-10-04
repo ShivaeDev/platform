@@ -1,7 +1,7 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { makeChanges } from "./support/changes.ts";
-import { integration, makeDatabase, orderIds } from "./support/database.ts";
+import { makeChanges } from "#test/support/changes.ts";
+import { integration, makeDatabase, orderIds } from "#test/support/database.ts";
 
 integration("one write records a change for every subject its mapping names", () =>
 	Effect.runPromise(

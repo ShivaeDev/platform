@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
-import type { WarningDetail } from "../report/render.ts";
+import type { WarningDetail } from "#report/render.ts";
 
 export type Command =
 	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly warnings: WarningDetail }

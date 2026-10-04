@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Schema } from "effect";
-import { decodeWith } from "../../../decoded.ts";
-import type { RuleInputs } from "../../../rule.ts";
+import { decodeWith } from "#decoded.ts";
+import type { RuleInputs } from "#rule.ts";
 
 const Manifest = Schema.Struct({
 	exports: Schema.optionalKey(Schema.Unknown),

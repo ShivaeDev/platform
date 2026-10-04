@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { Create, Get, Notes } from "../../notes.ts";
+import { Create, Get, Notes } from "#test/notes.ts";
 
 class Other extends Schema.TaggedError<Other>()("Other", {}) {}
 

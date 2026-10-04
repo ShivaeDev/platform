@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { type Decoded, decodeWith } from "../decoded.ts";
-import type { Rule } from "../rule.ts";
+import { type Decoded, decodeWith } from "#decoded.ts";
+import type { Rule } from "#rule.ts";
 
 const isRule = (value: unknown): value is Rule =>
 	typeof value === "object"

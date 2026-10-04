@@ -6,10 +6,10 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
-import { collectInventory, type InventoryScope } from "../src/inventory/collect.ts";
-import { readOptionalText, readRequiredText } from "../src/inventory/filesystem.ts";
-import { walk } from "../src/inventory/walk.ts";
-import { removeSeededTrees, seedTree } from "./support/tree.ts";
+import { collectInventory, type InventoryScope } from "#inventory/collect.ts";
+import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
+import { walk } from "#inventory/walk.ts";
+import { removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 const roots: string[] = [];
 

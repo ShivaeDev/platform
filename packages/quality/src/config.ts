@@ -1,5 +1,5 @@
+import type { builtInRules } from "#rules/built-in.ts";
 import type { Rule } from "./rule.ts";
-import type { builtInRules } from "./rules/built-in.ts";
 
 export type Level = "error" | "warn" | "off";
 

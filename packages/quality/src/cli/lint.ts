@@ -1,8 +1,8 @@
 import { Console, Effect, type FileSystem } from "effect";
-import { evaluate, passes } from "../engine/evaluate.ts";
-import { openSession } from "../engine/session.ts";
-import { GateFailed, type SetupFailure } from "../failure.ts";
-import { render, type WarningDetail } from "../report/render.ts";
+import { evaluate, passes } from "#engine/evaluate.ts";
+import { openSession } from "#engine/session.ts";
+import { GateFailed, type SetupFailure } from "#failure.ts";
+import { render, type WarningDetail } from "#report/render.ts";
 
 export const lint = (
 	cwd: string,

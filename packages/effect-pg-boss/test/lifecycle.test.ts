@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import { defineQueue, makePgBoss, PgBossError } from "../src/index.ts";
-import { constructorOptions, FakeClient } from "./support/fake-client.ts";
+import { defineQueue, makePgBoss, PgBossError } from "#index.ts";
+import { constructorOptions, FakeClient } from "#test/support/fake-client.ts";
 
 describe("pg-boss client lifecycle", () => {
 	it("reuses and reference-counts a keyed client", async () => {

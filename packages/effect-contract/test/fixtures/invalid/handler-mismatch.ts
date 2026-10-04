@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Notes } from "../../notes.ts";
+import { Notes } from "#test/notes.ts";
 
 Notes.of({
 	"notes.create": (draft) => Effect.succeed({ id: 1, ...draft }),

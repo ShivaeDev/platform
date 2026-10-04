@@ -1,8 +1,8 @@
 import { Cause, Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
-import { type ActiveRule, runRules } from "../src/engine/run-rules.ts";
-import type { Findings } from "../src/index.ts";
-import { inputsOf } from "./support/inputs.ts";
+import { type ActiveRule, runRules } from "#engine/run-rules.ts";
+import type { Findings } from "#index.ts";
+import { inputsOf } from "#test/support/inputs.ts";
 
 const rule = (id: string, level: ActiveRule["level"], check: () => Promise<Findings>): ActiveRule => ({
 	check,

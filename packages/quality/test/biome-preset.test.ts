@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runBiome } from "../src/biome/run.ts";
-import { biomeOverrides } from "../src/rules/suppressions/biome-overrides.ts";
-import { checkRule } from "./support/inputs.ts";
-import { linkPackage, packageRoot, removeSeededTrees, seedTree } from "./support/tree.ts";
+import { runBiome } from "#biome/run.ts";
+import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
+import { checkRule } from "#test/support/inputs.ts";
+import { linkPackage, packageRoot, removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

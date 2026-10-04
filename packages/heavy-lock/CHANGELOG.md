@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-10-04
 
 ### Changed
+
+- Imports that leave their folder go through `#` aliases declared in the `imports` field of `package.json`: `#*.ts` resolves to `src` under the `source` condition and to `dist` otherwise, and `#test/*` names a test file. The published modules and declarations name the package's own files through these aliases.
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 
