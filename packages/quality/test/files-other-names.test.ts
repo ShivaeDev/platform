@@ -28,8 +28,8 @@ const files = [
 	"prisma/Schema.prisma",
 	"content/forest_path.json",
 	"content/forest-path.json",
-	"content/village_dialect__able.json",
-	"content/village_dialect___able.json",
+	"content/forest_path__clearing.json",
+	"content/forest_path___clearing.json",
 	"tsconfig.build.json",
 	".prettierrc.json",
 	"Makefile",
@@ -46,7 +46,7 @@ describe("files/other-names", () => {
 			"biome/plugins/effectFnSpans.grit",
 			"prisma/Schema.prisma",
 			"content/forest-path.json",
-			"content/village_dialect___able.json",
+			"content/forest_path___clearing.json",
 		]);
 	});
 
