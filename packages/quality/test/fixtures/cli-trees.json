@@ -1,11 +1,11 @@
 {
 	"clean": [
 		{
-			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\", \"test\"] };\n",
+			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\"] };\n",
 			"path": "quality.config.ts"
 		},
 		{ "content": "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", "path": "src/full.ts" },
-		{ "content": "1\n2\n3\n4\n5\n", "path": "test/full.test.ts" },
+		{ "content": "1\n2\n3\n4\n5\n", "path": "src/full.test.ts" },
 		{ "content": "1\n2\n3\n4\n5\n6\n7\n8\n", "path": "src/generated/out.d.ts" },
 		{ "content": "dist/\n", "path": ".gitignore" },
 		{ "content": "1\n2\n3\n4\n5\n6\n7\n8\n", "path": "src/dist/bundle.ts" }

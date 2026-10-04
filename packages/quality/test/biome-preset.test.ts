@@ -50,6 +50,7 @@ const REPORT_ONLY: readonly string[] = [
 	"nursery/useUnicodeRegex",
 	"style/noNonNullAssertion",
 	"style/useAtIndex",
+	"style/useNamingConvention",
 	"suspicious/noParametersOnlyUsedInRecursion",
 ];
 

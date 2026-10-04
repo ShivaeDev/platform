@@ -6,32 +6,6 @@
 	},
 	"overrides": [
 		{
-			"includes": [
-				"packages/*/src/index.ts",
-				"packages/effect-form/src/react.ts",
-				"packages/effect-react/src/form.ts",
-				"packages/effect-prisma/src/sqlite.ts",
-				"packages/effect-prisma/src/testing.ts",
-				"packages/effect-trpc/src/client.ts",
-				"packages/effect-trpc/src/testing.ts",
-				"packages/platform/src/better-auth.ts",
-				"packages/platform/src/errors.ts",
-				"packages/platform/src/node-http.ts",
-				"packages/platform/src/rpc-server.ts",
-				"packages/platform/src/rpc.ts",
-				"packages/platform/src/runtime.ts",
-				"packages/platform/src/testing.ts"
-			],
-			"linter": {
-				"rules": {
-					"performance": {
-						"noBarrelFile": "off",
-						"noReExportAll": "off"
-					}
-				}
-			}
-		},
-		{
 			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
 			"linter": {
 				"rules": {

@@ -384,19 +384,111 @@ quality baseline migrate [--config <file>] [--from <file>]
 The preset sets:
 
 - **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line.
-- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, no barrel files and no `export *`.
+- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, and the naming rules under [Naming](#naming).
 - **Imports:** organized in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases and relative paths. Biome counts as an alias a specifier that starts with `#`, `@/`, `~`, `$` or `%`; a tsconfig path such as `@app/*` sorts with the packages, and Biome's `noUndeclaredDependencies` takes it for one, so name aliases in a form Biome recognizes.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike, but only reported: `quality fix` leaves the order to the author. `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
-- **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and that ask `Effect.fn` for a literal span name shaped `Owner.operation`. They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
+- **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and the naming plugins under [Naming](#naming). They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
 
 The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, and allows default exports in `*.config.*` files, which tools load through the default export. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
-An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex` and `noParametersOnlyUsedInRecursion` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
+An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
 `quality fix` sorts every `package.json`, then runs `biome check --write --unsafe`, which applies Biome's lint fixes, unsafe ones included, its assist actions, such as organized imports, and its formatting, except the fixes that report only. It then runs Biome's formatter once more, because a lint fix can leave code unformatted. One fix can make room for another, so it repeats both passes until a round rewrites nothing, at most 5 rounds; when files still change in the fifth round, it names them and exits 2. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed. An editor that runs Biome on save uses the same version when it resolves Biome from the root `node_modules`, so a repository that wants that installs `@biomejs/biome` at the version this package pins.
+
+## Naming
+
+A name says what a thing is, and the same kind of thing is named the same way everywhere. Every naming rule is an error without an autofix: nothing renames code or adds a `_` prefix. The message says what is wrong and which shapes are valid, and the author picks the name. Unused variables and parameters stay TypeScript errors; remove them instead of prefixing them.
+
+### Identifiers
+
+| What | Valid shape | Checked by |
+| --- | --- | --- |
+| Variables, functions and parameters | camelCase: `itemCount`, `loadItem`. A component or a class is PascalCase. | `useNamingConvention` |
+| Acronyms | Spelled as a word: `HttpClient`, `userId`, `parseUrl`. Never `HTTPClient`, `userID` or `parseURL`. | `useNamingConvention` with `strictCase` |
+| Types, interfaces, classes and enums | PascalCase, without an `I` prefix: `Item`, not `IItem`. | `useNamingConvention` |
+| Type parameters | `T`, or `T` followed by a PascalCase name: `TItem`, `TResult`. Effect's positional `A`, `E` and `R` are valid as they are. | `useNamingConvention` |
+| Module-level constants | A string or number literal at module level is CONSTANT_CASE: `const MAX_ITEMS = 50`. A constant inside a function is camelCase. | `constant-names` plugin, `useNamingConvention` |
+| Object keys and type properties | camelCase or PascalCase, after any leading `_` or `$` (`_tag`, `$transaction`). snake_case and CONSTANT_CASE keys are never valid, also for outside data and in a `Record`. | `useNamingConvention` |
+| Schemas | PascalCase and named like their type: `const Item = Schema.Struct(...)` with `type Item = typeof Item.Type`. | `schema-names` plugin |
+| `Schema.Struct` fields | camelCase. Outside data keeps its keys only at the edge: `Schema.Struct({ createdAt: Schema.String }).pipe(Schema.encodeKeys({ createdAt: "created_at" }))`. | `schema-struct-keys` plugin, `useNamingConvention` |
+| `Effect.fn` spans | `"Owner.operation"`, where the owner is the service or module and the operation is the name the function is bound to: `const loadItem = Effect.fn("ItemStore.loadItem")`, and `loadItem: Effect.fn("ItemStore.loadItem")` in an object. | `effect-fn-spans` plugin |
+| Service Layers | A static `layer` on the service, read as `ItemStore.layer`. No exported `ItemStoreLive` or `ItemStoreLayer` constant. A Layer that wires an application together stays unexported. | `service-layers` plugin |
+| Private members | A `#field`. No `private`, `protected` or `public` modifier. | `useConsistentMemberAccessibility` |
+| React | A function passed to an `onX` prop is `handleX`, or an `onX` prop forwarded as it is. A context is `ThemeContext`, a ref `inputRef`, an id `fieldId`. A module that exports a component exports only components. | `handler-names` plugin, `useReactNamingConvention`, `useComponentExportOnlyModules` |
+| Booleans | A question: `isOpen`, `hasSave`, `canRetry`, `shouldFlush`. A name the DOM or React gives, such as `open` or `disabled`, stays. This is a convention only; no rule checks it. | Review |
+
+### Re-exports
+
+No file re-exports, package entry files included: every module is imported from the file that defines it. `noBarrelFile` reports `export { … } from`, `noReExportAll` reports `export *`, the `type-re-exports` plugin reports `export type … from`, and `noExportedImports` reports an import that is exported again. Its message suggests `export … from`, which is a re-export as well: import the name where it is used instead.
+
+The plugins report under the one Biome category `plugin`, so their findings share the baseline rule `biome/plugin`.
+
+### Files
+
+`files/named-after-export` names a code file after its main export, and the folders above it are the prefix. The export takes the words of the file name, in order, and may add words of its folders around them, in any order and in singular or plural. Folders count from the package root, without a leading `src`; the package name does not count. The file's first letter follows the export's case.
+
+| File | Exports | Valid |
+| --- | --- | --- |
+| `routers/items/list.ts` | `listItems` or `itemList` | Yes |
+| `routers/items/Create.ts` | `CreateItemRouter` | Yes |
+| `item/Panel.tsx` or `ItemPanel.tsx` | `ItemPanel`, with `ItemPanelProps` beside it | Yes |
+| `Panel/Panel.tsx` | `Panel`: the main file of a module folder repeats the folder | Yes |
+| `limits.ts` | `MAX_ITEMS` and `MAX_DEPTH`: a topic file of several exports is camelCase | Yes |
+| `setupTests.ts` | Nothing, so it is camelCase | Yes |
+| `script/build-docs.ts` | Run by a `package.json` script or `bin`, or starts with `#!`, so it is kebab-case | Yes |
+| `order.ts` | `type Order` | No: the file's case follows the export, so it is `Order.ts` |
+| `maxItems.ts` | `MAX_ITEMS` alone | No: constants live in a topic file with related constants |
+| `items/listItems.ts` | `listItems` | No: the folder is the prefix, so it is `items/list.ts` |
+
+Test files are left to the test rules. The `toolOwned` option lists `.gitignore` patterns of files whose names a tool fixes, `*.config.*` and declaration files by default.
+
+### Folders
+
+`files/folder-names` checks every folder above a checked file.
+
+- A module folder takes the name of its main file, inside it or beside it: `Panel/` with `Panel/Panel.tsx`, or `Dialog/` beside `Dialog.tsx`. A PascalCase folder without that file is a finding.
+- A package folder is its package name without the scope, so `@acme/ui-kit` lives in `ui-kit/`.
+- A folder that only groups files is kebab-case: `test-support/`, `.github/`.
+- A folder the `content` option lists is snake_case: `forest_path/`.
+
+The `toolOwned` option lists folders a tool names, `generated/` and `migrations/` by default.
+
+### Other files
+
+`files/other-names` names the files that are not code.
+
+- Markdown, JSON, GritQL, images, fonts and SVG are kebab-case, with optional dotted parts: `release-notes.md`, `icons.sprite.svg`. Conventional upper-case names stay: `README.md`, `CHANGELOG.md`, `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md` and `SKILL.md`.
+- A stylesheet that one component imports is named after it: `ItemPanel.css` beside `ItemPanel.tsx`. A shared stylesheet is kebab-case: `form-controls.css`.
+- A Prisma schema is camelCase: `schema.prisma`.
+- A file the `content` option lists is snake_case: `forest_path.json`.
+
+The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*`, `migrations/` and `generated/` by default.
+
+### Tests
+
+A test sits beside the code it covers, and its name says what it covers and where it runs.
+
+| File | Covers | Valid |
+| --- | --- | --- |
+| `cart/cart.test.ts` | `cart/cart.ts` | Yes |
+| `cart/cart.typecheck.test.ts` | The types of `cart/cart.ts`, checked by the compiler | Yes |
+| `cart/Basket.dom.test.tsx` | `cart/Basket.tsx`, in a DOM | Yes |
+| `cart/checkoutFlow.spec.ts` | A behaviour of the `cart/` folder as a whole, such as a flow across several files | Yes |
+| `cart/checkoutFlow.dom.spec.tsx` | The same, in a DOM | Yes |
+| `cart/totals.test.ts` | No `cart/totals.ts` beside it | No: a `.test` follows a file, and a test of the folder is a `.spec` |
+| `cart/cart.spec.ts` | | No: a `.spec` names a behaviour, so it may not share a stem with a file beside it |
+| `cart/cart.hydration.test.ts` | | No: an aspect gets its own file in the module's folder, or a `.spec` |
+| `cart/cart.postgres.test.ts` | | No: a database or a running app comes from the app's test fixture, not a file name |
+| `test/cart.test.ts` | | No: a test folder mirrors the source tree; the test sits beside `cart.ts` |
+
+`tests/follow` checks the name: `<file>[.<environment>].test.ts` beside its file, or `<behaviour>[.<environment>].spec.ts` in camelCase in the folder it covers. The environment is at most one of `dom`, `slow` and `typecheck`, the ones the [Vitest projects](#vitest-projects) run, and a test that imports `@testing-library/*` or reads `document` or `window` is a `.dom` test.
+
+`tests/colocated` checks the place: a test in a `test`, `tests`, `__tests__` or `spec` folder is a finding.
+
+Both rules take a `suites` option, `.gitignore` patterns of folders that hold tests with their own layout, such as tests across several packages or a Playwright suite, whose `.spec.ts` files mean something else. The rules skip those folders.
 
 ## Vitest projects
 
@@ -412,11 +504,13 @@ export default defineConfig({ test: testProjects() });
 
 | Project | Files | Environment | Runs |
 | --- | --- | --- | --- |
-| `unit` | `*.test.ts` and the other test files | Node | By default |
-| `dom` | `*.dom.test.ts`, `*.dom.test.tsx` | happy-dom | By default |
-| `slow` | `*.slow.test.ts`, `*.slow.test.tsx` | Node | Only with `vitest run --project slow` |
+| `unit` | `*.test.ts`, `*.spec.ts` and the other test and spec files | Node | By default |
+| `dom` | `*.dom.test.tsx`, `*.dom.spec.tsx` and the other `.dom` files | happy-dom | By default |
+| `slow` | `*.slow.test.ts`, `*.slow.spec.ts` and the other `.slow` files | Node | Only with `vitest run --project slow` |
 
-Type tests (`*.typecheck.test.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
+Type tests (`*.typecheck.test.ts`, `*.typecheck.spec.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
+
+A folder that another runner owns, such as a Playwright suite of `.spec.ts` files, is left out with `testProjects({ exclude: ["e2e/**"] })`; the globs are added to every project's `exclude`.
 
 ## tsconfig presets
 
@@ -461,4 +555,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

@@ -1,0 +1,10 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+JsxAttribute(name=$attribute, initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue(expression=$handler))) where {
+	$attribute <: r"on[A-Z][A-Za-z0-9]*",
+	$handler <: JsIdentifierExpression(),
+	! $handler <: r"handle[A-Z][A-Za-z0-9]*",
+	! $handler <: r"on[A-Z][A-Za-z0-9]*",
+	register_diagnostic(span=$handler, message="A function passed to an onX prop is named handleX, such as onClick={handleClick}, or is an onX prop forwarded as it is.")
+}
