@@ -1,3 +1,4 @@
+import type { EventEmitter } from "node:events";
 import process from "node:process";
 import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcessSpawner";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
@@ -32,9 +33,23 @@ const teardown: Runtime.Teardown = (exit, onExit) => {
 	process.stdout.write("", () => process.stderr.write("", () => onExit(exitCode(exit))));
 };
 
+function isClosedPipe(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "EPIPE";
+}
+
+export function quietOnClosedPipe(stream: EventEmitter): void {
+	stream.on("error", (error: unknown) => {
+		if (!isClosedPipe(error)) {
+			throw error;
+		}
+	});
+}
+
 const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
 
 export const runMain = <Value, Error>(program: Effect.Effect<Value, Error, FileSystem.FileSystem | Git>): void => {
+	quietOnClosedPipe(process.stdout);
+	quietOnClosedPipe(process.stderr);
 	const explained = Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
 	NodeRuntime.runMain(Effect.provide(explained, services), { disableErrorReporting: true, teardown });
 };
