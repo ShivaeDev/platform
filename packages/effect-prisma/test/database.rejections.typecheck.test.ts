@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expectTypeOf } from "vitest";
-import { Database } from "./support/typed-database.ts";
+import { Database } from "#test/support/typed-database.ts";
 
 const program = Effect.gen(function* () {
 	const db = yield* Database;

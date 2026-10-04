@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
+import type { PrismaRelationMethods } from "#relation/prisma-methods.ts";
 import type { PrismaError } from "./error.ts";
-import type { PrismaRelationMethods } from "./relation/prisma-methods.ts";
 
 type AnyFunction = (...arguments_: readonly never[]) => unknown;
 

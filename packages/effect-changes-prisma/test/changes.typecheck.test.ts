@@ -1,9 +1,9 @@
 import type { ITXClientDenyList } from "@prisma/client/runtime/client";
 import { type Context, Data, Effect } from "effect";
 import { expectTypeOf } from "vitest";
-import { type ChangeMap, type ModelName, type ModelRow, makePrismaChanges, type PrismaError, type TransactionExpired } from "../src/index.ts";
+import { type ChangeMap, type ModelName, type ModelRow, makePrismaChanges, type PrismaError, type TransactionExpired } from "#index.ts";
+import { type Change, models } from "#test/support/changes.ts";
 import type { PrismaClient } from "./generated/client.ts";
-import { type Change, models } from "./support/changes.ts";
 
 declare const prisma: PrismaClient;
 class Rejected extends Data.TaggedError("Rejected") {}

@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import type { PrismaError } from "../error.ts";
+import type { PrismaError } from "#error.ts";
 
 export const DatabaseTestingTypeId: unique symbol = Symbol.for("@shivaedev/effect-prisma/DatabaseTesting");
 

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { tableWrites, writtenTables } from "../src/index.ts";
+import { tableWrites, writtenTables } from "#index.ts";
+import { connect, integration, makeDatabase } from "#test/support/database.ts";
 import type { PrismaClient } from "./generated/client.ts";
-import { connect, integration, makeDatabase } from "./support/database.ts";
 
 type Transaction = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 

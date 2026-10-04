@@ -3,7 +3,7 @@ import { Cause, Data, Effect, Layer, Logger } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, it } from "vitest";
-import { invalidateOnCommit, transact } from "../src/index.ts";
+import { invalidateOnCommit, transact } from "#index.ts";
 
 class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
 

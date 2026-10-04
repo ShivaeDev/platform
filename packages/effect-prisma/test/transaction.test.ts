@@ -1,10 +1,10 @@
 import { it } from "@effect/vitest";
 import { Deferred, Effect, Exit, Fiber, Semaphore } from "effect";
 import { expect } from "vitest";
-import type { AnySqlContract } from "../src/internal/executor.ts";
-import { executeQuery } from "../src/internal/query-execution.ts";
-import { releaseTestTransaction, releaseTransaction, type TransactionResource, withTransactionSemaphore } from "../src/internal/transaction.ts";
-import { unusedClient } from "./support/unused-client.ts";
+import type { AnySqlContract } from "#internal/executor.ts";
+import { executeQuery } from "#internal/query-execution.ts";
+import { releaseTestTransaction, releaseTransaction, type TransactionResource, withTransactionSemaphore } from "#internal/transaction.ts";
+import { unusedClient } from "#test/support/unused-client.ts";
 
 interface ResourceOptions {
 	readonly commitFailure?: unknown;

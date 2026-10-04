@@ -2,8 +2,8 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Redacted, type Scope } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
-import { migratePostgres } from "../src/index.ts";
-import { environmentVariable } from "./support/environment.ts";
+import { migratePostgres } from "#index.ts";
+import { environmentVariable } from "#test/support/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;

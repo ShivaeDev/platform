@@ -1,5 +1,5 @@
-import { makeDatabase } from "../../src/index.ts";
-import { type Contract, contractJson } from "../contract.ts";
+import { makeDatabase } from "#index.ts";
+import { type Contract, contractJson } from "#test/contract.ts";
 
 export interface User {
 	createdAt: Date;

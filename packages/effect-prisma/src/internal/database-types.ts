@@ -1,7 +1,7 @@
 import type { orm } from "@prisma-next/sql-orm-client";
 import type { Context, Effect, Layer } from "effect";
-import type { PrismaError } from "../error.ts";
-import type { Relation } from "../relation.ts";
+import type { PrismaError } from "#error.ts";
+import type { Relation } from "#relation.ts";
 import type { AnySqlContract } from "./executor.ts";
 
 type OrmFor<Contract extends AnySqlContract> = ReturnType<typeof orm<Contract>>;

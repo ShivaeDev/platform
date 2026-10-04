@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import type { PrismaError } from "../error.ts";
+import type { PrismaError } from "#error.ts";
 import { hasMethod, invokeMethod, isPromiseLike } from "./dynamic.ts";
 import { fromPrismaPromise } from "./promise.ts";
 

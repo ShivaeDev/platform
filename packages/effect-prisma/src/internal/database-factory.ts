@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import type { PrismaError } from "../error.ts";
+import type { PrismaError } from "#error.ts";
 import { type ActiveTransaction, type FacadeScope, makeFacade, runTransaction } from "./database-facade.ts";
 import {
 	type DatabaseIdentifier,

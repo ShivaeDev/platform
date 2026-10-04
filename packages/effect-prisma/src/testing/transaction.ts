@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
-import type { PrismaError } from "../error.ts";
-import { getDatabaseTesting } from "../internal/testing.ts";
+import type { PrismaError } from "#error.ts";
+import { getDatabaseTesting } from "#internal/testing.ts";
 import type { AnyDatabase } from "./types.ts";
 
 type TestProgram<Database extends AnyDatabase, A, E, R> = Effect.Effect<A, E, R> & (Effect.Services<Database> extends R ? unknown : never);

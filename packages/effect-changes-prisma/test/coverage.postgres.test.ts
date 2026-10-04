@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { Data, Effect } from "effect";
 import { expect } from "vitest";
-import { checkCoverage, tablesOf, tableWrites, writtenTables } from "../src/index.ts";
-import { type Change, makeChanges, models } from "./support/changes.ts";
-import { integration, makeDatabase } from "./support/database.ts";
+import { checkCoverage, tablesOf, tableWrites, writtenTables } from "#index.ts";
+import { type Change, makeChanges, models } from "#test/support/changes.ts";
+import { integration, makeDatabase } from "#test/support/database.ts";
 
 class Rejected extends Data.TaggedError("Rejected") {}
 

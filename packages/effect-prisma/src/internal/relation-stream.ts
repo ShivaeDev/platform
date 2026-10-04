@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import { isPrismaFailure, type PrismaError, toPrismaError } from "../error.ts";
+import { isPrismaFailure, type PrismaError, toPrismaError } from "#error.ts";
 import { hasMethod, invokeMethod, isAsyncIterable } from "./dynamic.ts";
 import type { AnyPostgresContract, DatabaseExecutor } from "./executor.ts";
 import { fromPrismaPromise } from "./promise.ts";

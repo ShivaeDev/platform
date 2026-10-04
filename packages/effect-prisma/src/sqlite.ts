@@ -1,14 +1,14 @@
 import sqlite, { type SqliteClient, type SqliteOptionsBase } from "@prisma-next/sqlite/runtime";
 import { type Layer, Semaphore } from "effect";
+import { acquireConnectedClient, assertAvailableModelNames } from "#internal/client-lifecycle.ts";
+import { contractModels } from "#internal/database-facade.ts";
+import { makeSqlDatabase } from "#internal/database-factory.ts";
+import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "#internal/database-types.ts";
+import type { AnySqlContract } from "#internal/executor.ts";
+import { fromPrismaPromise } from "#internal/promise.ts";
+import { decodeSqliteDatetimesAsUtc } from "#internal/sqlite-datetime.ts";
+import { applySqlitePragmas, assertFileBackedPath } from "#internal/sqlite-pragmas.ts";
 import type { PrismaError } from "./error.ts";
-import { acquireConnectedClient, assertAvailableModelNames } from "./internal/client-lifecycle.ts";
-import { contractModels } from "./internal/database-facade.ts";
-import { makeSqlDatabase } from "./internal/database-factory.ts";
-import type { DatabaseIdentifier, DatabaseIdentifierLiteral, DatabaseServiceHolder, DefaultModels } from "./internal/database-types.ts";
-import type { AnySqlContract } from "./internal/executor.ts";
-import { fromPrismaPromise } from "./internal/promise.ts";
-import { decodeSqliteDatetimesAsUtc } from "./internal/sqlite-datetime.ts";
-import { applySqlitePragmas, assertFileBackedPath } from "./internal/sqlite-pragmas.ts";
 
 export const defaultSqlitePragmas: readonly string[] = ["journal_mode=WAL"];
 
