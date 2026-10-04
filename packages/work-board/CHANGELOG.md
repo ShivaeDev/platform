@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Document the local Work Board north star, three-wave roadmap, experience design,
+  and interactive vision mockups with desktop and mobile captures. The package
+  README links to the proposed direction separately from its current behavior.
+
 ## 0.2.1 - 2026-10-04
 
 ### Changed

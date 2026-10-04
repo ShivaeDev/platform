@@ -156,3 +156,14 @@ skips the build. `pnpm dlx` and `pnpm add --global` need no setting.
 allowBuilds:
   msgpackr-extract: false
 ```
+
+## Product vision
+
+The [north star and visual direction](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/docs/vision#readme)
+describe the proposed local workspace for a person and their agents: stay
+informed, give direction and coordinate, then collaborate. The
+[roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/roadmap.md)
+sets the waves, acceptance criteria, and open design decisions.
+[Experience designs and mockups](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/experience.md)
+illustrate the target with fictional data. These are future plans; the sections
+above describe the package's current behavior.
