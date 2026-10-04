@@ -1,5 +1,5 @@
-import type { Level } from "../../src/config.ts";
-import type { RuleIndex, Violation } from "../../src/engine/violation.ts";
+import type { Level } from "#config.ts";
+import type { RuleIndex, Violation } from "#engine/violation.ts";
 
 export const violation = (fields: Partial<Violation> & Pick<Violation, "file" | "rule">): Violation => ({
 	level: "error",

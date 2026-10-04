@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { expect, it } from "vitest";
-import { Current, change, harness, makeDatabase, on } from "./support/fake-database.ts";
+import { Current, change, harness, makeDatabase, on } from "#test/support/fake-database.ts";
 
 it("a batch publishes its distinct changes once when it ends, whatever its exit, because its writes were autocommitted", () =>
 	Effect.runPromise(

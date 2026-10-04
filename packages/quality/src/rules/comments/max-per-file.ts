@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import { plural } from "../../report/plural.ts";
-import { defineRule, type Finding, type SourceFile } from "../../rule.ts";
+import { plural } from "#report/plural.ts";
+import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { isDirective, isPragma, Pragmas } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
 

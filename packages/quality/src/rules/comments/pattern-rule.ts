@@ -1,4 +1,4 @@
-import { defineRule, type Finding, type Rule } from "../../rule.ts";
+import { defineRule, type Finding, type Rule } from "#rule.ts";
 import { isDirective, textOf } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
 

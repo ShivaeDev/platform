@@ -9,8 +9,8 @@ import type {
 	Collection as PrismaCollection,
 } from "@prisma-next/sql-orm-client";
 import type { Effect, Stream } from "effect";
-import type { PrismaError } from "../error.ts";
-import type { CollectionResult, Relation, RelationQuery } from "../relation.ts";
+import type { PrismaError } from "#error.ts";
+import type { CollectionResult, Relation, RelationQuery } from "#relation.ts";
 import type { IncludeMethod } from "./include.ts";
 
 type AnyFunction = (...arguments_: readonly never[]) => unknown;

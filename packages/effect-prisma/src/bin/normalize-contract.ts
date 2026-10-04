@@ -2,7 +2,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
-import { normalizePrismaNextContractTypes } from "../internal/contract-normalization.ts";
+import { normalizePrismaNextContractTypes } from "#internal/contract-normalization.ts";
 
 const arguments_ = process.argv.slice(2);
 if (arguments_.length !== 1 || arguments_[0] === undefined) {

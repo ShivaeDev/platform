@@ -1,4 +1,4 @@
-import contractJson from "./generated/contract.json" with { type: "json" };
+import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 
-export type { Contract } from "./generated/contract.ts";
+export type { Contract } from "#test/auth/generated/contract.d.ts";
 export { contractJson };

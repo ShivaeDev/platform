@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { biomeOverrides } from "../src/rules/suppressions/biome-overrides.ts";
-import { checkRule, issuesOf } from "./support/inputs.ts";
+import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
+import { checkRule, issuesOf } from "#test/support/inputs.ts";
 
 type Options = Parameters<typeof biomeOverrides.configure>[0];
 

@@ -4,8 +4,8 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
-import { makeOrderEditor } from "./order-example/frontend.tsx";
-import { startOrderServer } from "./order-example/http-test.ts";
+import { makeOrderEditor } from "#test/order-example/frontend.tsx";
+import { startOrderServer } from "#test/order-example/http-test.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 

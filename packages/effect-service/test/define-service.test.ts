@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Context, Effect, Layer, Ref, type Scope } from "effect";
-import type { ServiceRequirements } from "../src/index.ts";
-import { defineService } from "../src/index.ts";
+import type { ServiceRequirements } from "#index.ts";
+import { defineService } from "#index.ts";
 
 const noRequirements = [] as const;
 type NoRequirements<Success, Failure = never, CallerRequirements extends Scope.Scope = never> = ServiceRequirements<

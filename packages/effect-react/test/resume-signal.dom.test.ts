@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { expect, it } from "vitest";
-import { type ResumeWindow, resumeSignal } from "../src/index.ts";
+import { type ResumeWindow, resumeSignal } from "#index.ts";
 
 const syntheticWindow = () => {
 	const target = new EventTarget();

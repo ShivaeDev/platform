@@ -1,8 +1,8 @@
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { expectTypeOf } from "vitest";
-import { makeEffectTRPC, makeRequestServices } from "../src/index.ts";
-import { makeTrpcHarnessIt, makeTrpcIt } from "../src/testing.ts";
+import { makeEffectTRPC, makeRequestServices } from "#index.ts";
+import { makeTrpcHarnessIt, makeTrpcIt } from "#testing.ts";
 
 class RuntimeService extends Context.Service<RuntimeService, number>()("@testing-types/RuntimeService") {}
 

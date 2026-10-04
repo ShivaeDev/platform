@@ -1,6 +1,6 @@
 import { getTRPCErrorFromUnknown, type TRPCError } from "@trpc/server";
 import { type Context, Effect } from "effect";
-import type { EffectTRPCAdapter } from "../adapter.ts";
+import type { EffectTRPCAdapter } from "#adapter.ts";
 
 export type EffectCaller<Caller> = {
 	readonly [Key in keyof Caller]: Caller[Key] extends (...arguments_: infer Arguments) => Promise<infer Result>

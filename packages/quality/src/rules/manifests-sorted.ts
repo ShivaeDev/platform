@@ -1,7 +1,7 @@
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
-import { manifestsIn, sortingOf } from "../manifests/sorted.ts";
-import { defineRule, type Finding } from "../rule.ts";
+import { manifestsIn, sortingOf } from "#manifests/sorted.ts";
+import { defineRule, type Finding } from "#rule.ts";
 
 const MESSAGES = {
 	Invalid: "Is not valid JSON.",

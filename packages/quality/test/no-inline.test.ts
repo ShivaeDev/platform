@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { noInline } from "../src/rules/suppressions/no-inline.ts";
-import { checkRule, issuesOf, type Seed } from "./support/inputs.ts";
+import { noInline } from "#rules/suppressions/no-inline.ts";
+import { checkRule, issuesOf, type Seed } from "#test/support/inputs.ts";
 
 const found = async (seed: Seed) =>
 	(await checkRule(noInline, undefined, seed)).map((finding) => `${finding.file}:${finding.line} ${finding.subject}`);

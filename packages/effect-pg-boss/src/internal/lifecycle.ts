@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
-import { toPgBossError } from "../error.ts";
+import { toPgBossError } from "#error.ts";
 import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "./client.ts";
 
 interface CachedClient {
@@ -51,7 +51,7 @@ const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
 	);
 };
 
-export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("../error.ts").PgBossError> =>
+export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("#error.ts").PgBossError> =>
 	Effect.tryPromise({
 		catch: (error) => toPgBossError("start", error),
 		try: async () => {

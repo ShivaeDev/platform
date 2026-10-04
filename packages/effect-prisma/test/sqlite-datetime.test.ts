@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { normalizeSqliteDatetime } from "../src/internal/sqlite-datetime.ts";
+import { normalizeSqliteDatetime } from "#internal/sqlite-datetime.ts";
 
 describe("SQLite datetime normalization", () => {
 	it("marks zone-less datetime strings as UTC", () => {

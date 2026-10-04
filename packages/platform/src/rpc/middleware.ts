@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { RpcMiddleware } from "effect/unstable/rpc";
-import { AuthUnavailable, Forbidden, Unauthorized } from "../errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import type { Identity, OptionalIdentity, RequestId } from "./identity.ts";
 
 export class RequestTracing extends RpcMiddleware.Service<RequestTracing, { provides: RequestId }>()("@shivaedev/platform/rpc/RequestTracing") {}

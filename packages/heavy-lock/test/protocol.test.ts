@@ -3,10 +3,10 @@ import process from "node:process";
 import { expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach } from "vitest";
-import { decodeHolder, encodeHolder, type Holder } from "../src/holder.ts";
-import { tryAcquire } from "../src/lock-file.ts";
-import { withHeavyLock } from "../src/with-heavy-lock.ts";
-import { readLock, removeTemporaryDirectories, services, startTime, temporaryLock, writeLock } from "./support/lock.ts";
+import { decodeHolder, encodeHolder, type Holder } from "#holder.ts";
+import { tryAcquire } from "#lock-file.ts";
+import { readLock, removeTemporaryDirectories, services, startTime, temporaryLock, writeLock } from "#test/support/lock.ts";
+import { withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 

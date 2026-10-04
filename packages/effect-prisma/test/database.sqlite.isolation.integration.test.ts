@@ -1,8 +1,8 @@
 import { it } from "@effect/vitest";
 import { Cause, Deferred, Effect, Exit, Fiber, Option } from "effect";
 import { expect } from "vitest";
-import { withTestTransaction } from "../src/testing.ts";
-import { Database, uniqueEmail, withDatabase } from "./sqlite/database.ts";
+import { Database, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
+import { withTestTransaction } from "#testing.ts";
 
 it.effect("serializes SQLite transaction scopes for one Database Layer", () =>
 	withDatabase(

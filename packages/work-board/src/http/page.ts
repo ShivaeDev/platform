@@ -1,13 +1,13 @@
 import { Effect, FileSystem, Option, Path } from "effect";
 import type { HttpServerRequest } from "effect/unstable/http";
-import type { Changes } from "../files/changes.ts";
-import { type MarkdownFile, within } from "../files/list.ts";
-import { boardHtml } from "../page/board.ts";
-import { documentHtml } from "../page/document.ts";
-import { escapeHtml } from "../page/escape.ts";
-import { navHtml } from "../page/nav.ts";
-import { shell } from "../page/shell.ts";
-import { boardOf } from "../render/board.ts";
+import type { Changes } from "#files/changes.ts";
+import { type MarkdownFile, within } from "#files/list.ts";
+import { boardHtml } from "#page/board.ts";
+import { documentHtml } from "#page/document.ts";
+import { escapeHtml } from "#page/escape.ts";
+import { navHtml } from "#page/nav.ts";
+import { shell } from "#page/shell.ts";
+import { boardOf } from "#render/board.ts";
 import { respond } from "./respond.ts";
 
 export interface PageOptions {

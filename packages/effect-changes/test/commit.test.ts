@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect, it } from "vitest";
-import { change, harness, makeDatabase } from "./support/fake-database.ts";
+import { change, harness, makeDatabase } from "#test/support/fake-database.ts";
 
 it("a committed root frame publishes its distinct changes once, after the body, in first-seen order", () =>
 	Effect.runPromise(

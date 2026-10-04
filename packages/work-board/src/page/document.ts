@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { MarkdownFile } from "../files/list.ts";
-import { renderMarkdown } from "../render/markdown.ts";
+import type { MarkdownFile } from "#files/list.ts";
+import { renderMarkdown } from "#render/markdown.ts";
 import { escapeHtml } from "./escape.ts";
 import { updated } from "./updated.ts";
 

@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { SetupFailure } from "../failure.ts";
+import { SetupFailure } from "#failure.ts";
 
 export interface GitResult {
 	readonly code: number;

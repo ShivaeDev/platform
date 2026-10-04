@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { makeSqliteDatabase } from "../src/sqlite.ts";
-import { makeDatabaseIt, withTestTransaction } from "../src/testing.ts";
-import { type Contract, contractJson } from "./sqlite/contract.ts";
-import { makeTemporaryDatabase } from "./sqlite/support.ts";
+import { makeSqliteDatabase } from "#sqlite.ts";
+import { type Contract, contractJson } from "#test/sqlite/contract.ts";
+import { makeTemporaryDatabase } from "#test/sqlite/support.ts";
+import { makeDatabaseIt, withTestTransaction } from "#testing.ts";
 
 const temporary = makeTemporaryDatabase();
 

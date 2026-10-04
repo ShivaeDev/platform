@@ -1,20 +1,20 @@
+import { maxPerFile } from "#rules/comments/max-per-file.ts";
+import { noBanner } from "#rules/comments/no-banner.ts";
+import { noEnvironmentPragma } from "#rules/comments/no-environment-pragma.ts";
+import { noJsdoc } from "#rules/comments/no-jsdoc.ts";
+import { noLineReference } from "#rules/comments/no-line-reference.ts";
+import { noPrReference } from "#rules/comments/no-pr-reference.ts";
+import { noTodo } from "#rules/comments/no-todo.ts";
+import { importsAliased } from "#rules/imports/aliased.ts";
+import { importCycles } from "#rules/imports/cycles.ts";
+import { importFences } from "#rules/imports/fences.ts";
+import { importsResolvable } from "#rules/imports/resolvable.ts";
+import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
+import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
+import { noInline } from "#rules/suppressions/no-inline.ts";
 import { biome } from "./biome.ts";
-import { maxPerFile } from "./comments/max-per-file.ts";
-import { noBanner } from "./comments/no-banner.ts";
-import { noEnvironmentPragma } from "./comments/no-environment-pragma.ts";
-import { noJsdoc } from "./comments/no-jsdoc.ts";
-import { noLineReference } from "./comments/no-line-reference.ts";
-import { noPrReference } from "./comments/no-pr-reference.ts";
-import { noTodo } from "./comments/no-todo.ts";
-import { importsAliased } from "./imports/aliased.ts";
-import { importCycles } from "./imports/cycles.ts";
-import { importFences } from "./imports/fences.ts";
-import { importsResolvable } from "./imports/resolvable.ts";
 import { manifestsSorted } from "./manifests-sorted.ts";
 import { maxLines } from "./max-lines.ts";
-import { biomeOverrides } from "./suppressions/biome-overrides.ts";
-import { noDoubleCast } from "./suppressions/no-double-cast.ts";
-import { noInline } from "./suppressions/no-inline.ts";
 
 export const builtInRules = [
 	maxLines,

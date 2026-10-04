@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { PgBoss } from "pg-boss";
 import { describe, expect, it, vi } from "vitest";
-import { deadLetterQueueName, defineQueue, makePgBoss } from "../src/index.ts";
-import { environmentVariable } from "./support/environment.ts";
+import { deadLetterQueueName, defineQueue, makePgBoss } from "#index.ts";
+import { environmentVariable } from "#test/support/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
 const integration = databaseUrl === "" ? describe.skip : describe;

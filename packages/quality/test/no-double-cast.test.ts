@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { noDoubleCast } from "../src/rules/suppressions/no-double-cast.ts";
-import { checkRule } from "./support/inputs.ts";
+import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
+import { checkRule } from "#test/support/inputs.ts";
 
 const casts = async (content: string, path = "src/a.ts") =>
 	(await checkRule(noDoubleCast, undefined, { sources: [{ content, path }] })).map((finding) => `${finding.line} ${finding.message}`);

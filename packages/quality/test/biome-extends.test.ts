@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { biomeOverrides } from "../src/rules/suppressions/biome-overrides.ts";
-import { checkRule } from "./support/inputs.ts";
+import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
+import { checkRule } from "#test/support/inputs.ts";
 
 const PACKAGE = "node_modules/@acme/lint";
 

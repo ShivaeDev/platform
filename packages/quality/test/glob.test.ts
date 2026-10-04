@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { globMatcher } from "../src/imports/glob.ts";
+import { globMatcher } from "#imports/glob.ts";
 
 describe("globMatcher", () => {
 	it("matches *, **, ?, braces and character classes the way pnpm does, never a dot segment unless the pattern names the dot", () => {

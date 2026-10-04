@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type PrismaError, toPrismaError } from "../error.ts";
+import { type PrismaError, toPrismaError } from "#error.ts";
 import type { DatabaseExecutor } from "./executor.ts";
 
 export const executeQuery = <A, E, R>(

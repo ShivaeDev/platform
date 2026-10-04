@@ -2,8 +2,8 @@ import { Cause, Deferred, Effect, Exit, Fiber, Logger, Schedule } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import type { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { invalidateOnCommit, transact } from "../src/index.ts";
-import { integration, onSqlError, runPostgres, secondPool, setup } from "./support/postgres-transact.ts";
+import { invalidateOnCommit, transact } from "#index.ts";
+import { integration, onSqlError, runPostgres, secondPool, setup } from "#test/support/postgres-transact.ts";
 
 const slowCommit = (sql: SqlClient.SqlClient, table: string, seconds: number) => {
 	const name = table.replace("_orders_", "_slow_");

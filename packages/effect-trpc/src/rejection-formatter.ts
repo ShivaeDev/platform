@@ -1,5 +1,5 @@
 import { StandardSchemaV1Error, type TRPCDefaultErrorShape, type TRPCError } from "@trpc/server";
-import type { EncodedRejection } from "./client/rejection.ts";
+import type { EncodedRejection } from "#client/rejection.ts";
 import { type DeclaredRejection, RejectionError } from "./rejection.ts";
 
 export interface RejectionData {

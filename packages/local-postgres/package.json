@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/local-postgres",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Repeatable local PostgreSQL preparation with one shared persistent service",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#readme",
 	"bugs": {
@@ -14,6 +14,14 @@
 	"license": "MIT",
 	"sideEffects": false,
 	"type": "module",
+	"imports": {
+		"#test/*": "./test/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

@@ -8,6 +8,12 @@
 - New GritQL plugins in the preset: `constant-names` (a module-level string or number constant is CONSTANT_CASE), `schema-names` (a schema is PascalCase), `schema-struct-keys` (a snake_case `Schema.Struct` field points to `Schema.encodeKeys`), `service-layers` (no exported `XLive` or `XLayer` Layer constant; the Layer is the service's static `layer`), `handler-names` (an `onX` prop gets a `handleX` function or a forwarded `onX` prop) and `type-re-exports` (no `export type … from`). `effect-fn-spans` also asks that the operation of an `Effect.fn` span equals the name the function is bound to, as in `const loadItem = Effect.fn("ItemStore.loadItem")`.
 - The preset turns on `noExportedImports`, so no module re-exports anything, package entry files included. A repository that upgrades records its existing naming and re-export findings with `quality baseline write --rule biome`.
 
+## 0.7.3 - 2026-10-04
+
+### Changed
+
+- Imports that leave their folder go through `#` aliases declared in the `imports` field of `package.json`: `#*.ts` resolves to `src` under the `source` condition and to `dist` otherwise, and `#test/*` names a test file. The published modules and declarations name the package's own files through these aliases.
+
 ## 0.7.2 - 2026-10-04
 
 ### Fixed

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterAll } from "vitest";
-import { makeSqliteDatabase } from "../../src/sqlite.ts";
+import { makeSqliteDatabase } from "#sqlite.ts";
 import { type Contract, contractJson } from "./contract.ts";
 import { makeTemporaryDatabase } from "./support.ts";
 

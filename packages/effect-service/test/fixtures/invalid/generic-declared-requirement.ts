@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { defineService, genericMethod } from "../../../src/index.ts";
+import { defineService, genericMethod } from "#index.ts";
 
 class Declared extends Context.Service<Declared, { readonly value: string }>()("invalid/Declared") {}
 

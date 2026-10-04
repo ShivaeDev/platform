@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Rule } from "../src/index.ts";
-import { noBanner } from "../src/rules/comments/no-banner.ts";
-import { noEnvironmentPragma } from "../src/rules/comments/no-environment-pragma.ts";
-import { noLineReference } from "../src/rules/comments/no-line-reference.ts";
-import { noPrReference } from "../src/rules/comments/no-pr-reference.ts";
-import { noTodo } from "../src/rules/comments/no-todo.ts";
-import { checkRule, issuesOf } from "./support/inputs.ts";
-import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "./support/pragmas.ts";
+import type { Rule } from "#index.ts";
+import { noBanner } from "#rules/comments/no-banner.ts";
+import { noEnvironmentPragma } from "#rules/comments/no-environment-pragma.ts";
+import { noLineReference } from "#rules/comments/no-line-reference.ts";
+import { noPrReference } from "#rules/comments/no-pr-reference.ts";
+import { noTodo } from "#rules/comments/no-todo.ts";
+import { checkRule, issuesOf } from "#test/support/inputs.ts";
+import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/support/pragmas.ts";
 
 const messagesFor = async (rule: Rule<string, undefined>, comment: string) =>
 	(await checkRule(rule, undefined, { sources: [{ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" }] })).map(

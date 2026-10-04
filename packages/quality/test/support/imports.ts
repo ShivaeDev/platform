@@ -2,9 +2,9 @@ import { mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
-import { collectInventory } from "../../src/inventory/collect.ts";
-import type { Findings, Rule, RuleInputs } from "../../src/rule.ts";
-import rawTrees from "../fixtures/import-trees.json" with { type: "json" };
+import { collectInventory } from "#inventory/collect.ts";
+import type { Findings, Rule, RuleInputs } from "#rule.ts";
+import rawTrees from "#test/fixtures/import-trees.json" with { type: "json" };
 import { seedTree } from "./tree.ts";
 
 const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });

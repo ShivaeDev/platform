@@ -1,11 +1,11 @@
 import { resolve } from "node:path";
 import { Effect, type FileSystem } from "effect";
-import { loadConfig, type ResolvedConfig } from "../config/load.ts";
-import { validOrFail } from "../decoded.ts";
-import { decodeRegistry, type RegistryEntry } from "../exceptions/registry.ts";
-import { SetupFailure } from "../failure.ts";
-import { collectInventory, type Inventory } from "../inventory/collect.ts";
-import { type FilesystemFailure, readOptionalText } from "../inventory/filesystem.ts";
+import { loadConfig, type ResolvedConfig } from "#config/load.ts";
+import { validOrFail } from "#decoded.ts";
+import { decodeRegistry, type RegistryEntry } from "#exceptions/registry.ts";
+import { SetupFailure } from "#failure.ts";
+import { collectInventory, type Inventory } from "#inventory/collect.ts";
+import { type FilesystemFailure, readOptionalText } from "#inventory/filesystem.ts";
 import { type BaselineFile, readBaseline, readInput } from "./baseline-file.ts";
 import { runRules } from "./run-rules.ts";
 import type { Violation } from "./violation.ts";

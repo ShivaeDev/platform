@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { Finding } from "../src/rule.ts";
-import { importsAliased } from "../src/rules/imports/aliased.ts";
-import { aliasRepository } from "./support/alias-tree.ts";
-import { findingsIn } from "./support/imports.ts";
-import { removeSeededTrees } from "./support/tree.ts";
+import type { Finding } from "#rule.ts";
+import { importsAliased } from "#rules/imports/aliased.ts";
+import { aliasRepository } from "#test/support/alias-tree.ts";
+import { findingsIn } from "#test/support/imports.ts";
+import { removeSeededTrees } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

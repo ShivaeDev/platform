@@ -1,6 +1,6 @@
 import { Effect, Option, Redacted, Schema } from "effect";
-import { type PgBossError, PgBossPayloadError, toPgBossError } from "../error.ts";
-import type { PgBossService } from "../service.ts";
+import { type PgBossError, PgBossPayloadError, toPgBossError } from "#error.ts";
+import type { PgBossService } from "#service.ts";
 import type { PgBossClient } from "./client.ts";
 import { healthFor } from "./health.ts";
 

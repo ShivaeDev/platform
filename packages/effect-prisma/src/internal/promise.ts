@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { isPrismaFailure, type PrismaError, toPrismaError } from "../error.ts";
+import { isPrismaFailure, type PrismaError, toPrismaError } from "#error.ts";
 
 export const fromPrismaPromise = <A>(evaluate: (signal: AbortSignal) => PromiseLike<A>): Effect.Effect<A, PrismaError> =>
 	Effect.tryPromise({

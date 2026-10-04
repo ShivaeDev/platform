@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { biomeReport, type Diagnostic } from "../src/biome/report.ts";
-import { linkPackage, removeSeededTrees, seedTree } from "./support/tree.ts";
+import { biomeReport, type Diagnostic } from "#biome/report.ts";
+import { linkPackage, removeSeededTrees, seedTree } from "#test/support/tree.ts";
 
 type Line = readonly [code: string, ...findings: string[]];
 

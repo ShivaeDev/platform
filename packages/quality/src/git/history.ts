@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { SetupFailure } from "../failure.ts";
+import type { SetupFailure } from "#failure.ts";
 import { type Git, gitOrFail } from "./command.ts";
 
 export interface Changes {

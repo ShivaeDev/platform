@@ -3,10 +3,10 @@ import { Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
+import { effectPrismaAdapter } from "#better-auth.ts";
+import { makePlatformRuntime } from "#runtime.ts";
+import { makePlatformIt } from "#testing.ts";
 import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
-import { effectPrismaAdapter } from "../src/better-auth.ts";
-import { makePlatformRuntime } from "../src/runtime.ts";
-import { makePlatformIt } from "../src/testing.ts";
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
 

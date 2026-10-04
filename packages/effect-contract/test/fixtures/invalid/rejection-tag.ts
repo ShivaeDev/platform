@@ -1,5 +1,5 @@
-import { query } from "../../../src/index.ts";
-import { Note, NoteMissing } from "../../notes.ts";
+import { query } from "#index.ts";
+import { Note, NoteMissing } from "#test/notes.ts";
 
 query("mislabelled", {
 	reads: () => [],

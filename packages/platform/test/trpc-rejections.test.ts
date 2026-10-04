@@ -6,7 +6,7 @@ import superjson from "superjson";
 import { afterAll, expect, it } from "vitest";
 import { makeEffectTRPC, makeRequestServices, rejectionFormatter, rejectWith } from "@shivaedev/effect-trpc";
 import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client";
-import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "../src/errors.ts";
+import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "#errors.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
 

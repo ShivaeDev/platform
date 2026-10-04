@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Schema, SchemaParser } from "effect";
-import { emptyAsNull } from "../src/index.ts";
+import { emptyAsNull } from "#index.ts";
 
 it.effect("empty inputs decode to null and populated inputs retain their codec", () =>
 	Effect.gen(function* () {

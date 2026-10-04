@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pnpmWorkspacePatterns } from "../src/imports/pnpm-workspace.ts";
+import { pnpmWorkspacePatterns } from "#imports/pnpm-workspace.ts";
 
 describe("pnpmWorkspacePatterns", () => {
 	it("reads a block list through comments at any column, quotes and trailing comments", () => {

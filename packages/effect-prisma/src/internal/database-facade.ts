@@ -1,5 +1,5 @@
 import { type Context, Effect } from "effect";
-import { type PrismaError, toPrismaError } from "../error.ts";
+import { type PrismaError, toPrismaError } from "#error.ts";
 import { assertAvailableModelNames } from "./client-lifecycle.ts";
 import type { DatabaseIdentifier, DatabaseService, DefaultModels } from "./database-types.ts";
 import type { AnySqlContract, DatabaseExecutor } from "./executor.ts";

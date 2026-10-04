@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { defineRule } from "../../rule.ts";
+import { defineRule } from "#rule.ts";
 import { isDirective, isJsdoc, isPragma, Pragmas } from "./kinds.ts";
 import { commentsOf } from "./scan.ts";
 

@@ -2,11 +2,11 @@ import { DatabaseSync } from "node:sqlite";
 import { it } from "@effect/vitest";
 import { Cause, Clock, Effect, Exit, Layer } from "effect";
 import { afterAll, expect } from "vitest";
-import { makeSqliteDatabase } from "../src/sqlite.ts";
-import { withTestTransaction } from "../src/testing.ts";
-import { type Contract, contractJson } from "./sqlite/contract.ts";
-import { Database, DatabaseLive, temporary, uniqueEmail, withDatabase } from "./sqlite/database.ts";
-import { makeTemporaryDatabase } from "./sqlite/support.ts";
+import { makeSqliteDatabase } from "#sqlite.ts";
+import { type Contract, contractJson } from "#test/sqlite/contract.ts";
+import { Database, DatabaseLive, temporary, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
+import { makeTemporaryDatabase } from "#test/sqlite/support.ts";
+import { withTestTransaction } from "#testing.ts";
 
 const auditTemporary = makeTemporaryDatabase();
 afterAll(auditTemporary.remove);

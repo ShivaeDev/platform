@@ -1,9 +1,9 @@
 import { Console, Effect, type FileSystem } from "effect";
-import type { Scope } from "../baseline/update.ts";
-import type { SetupFailure } from "../failure.ts";
-import { resolveBase } from "../git/base.ts";
-import type { Git } from "../git/command.ts";
-import { changesSince } from "../git/history.ts";
+import type { Scope } from "#baseline/update.ts";
+import type { SetupFailure } from "#failure.ts";
+import { resolveBase } from "#git/base.ts";
+import type { Git } from "#git/command.ts";
+import { changesSince } from "#git/history.ts";
 import { shrinkBaseline } from "./baseline.ts";
 
 const followedMoves = (root: string, against: string | undefined): Effect.Effect<Scope, SetupFailure, Git> =>

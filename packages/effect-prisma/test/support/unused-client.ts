@@ -1,4 +1,4 @@
-import type { AnySqlContract, SqlDatabaseClient } from "../../src/internal/executor.ts";
+import type { AnySqlContract, SqlDatabaseClient } from "#internal/executor.ts";
 
 const unavailable = (member: string): never => {
 	throw new TypeError(`The test client has no ${member}`);

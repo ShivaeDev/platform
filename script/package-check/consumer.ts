@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { checkBrowserEntries } from "#package-check/browser.ts";
+import { declarationProblems } from "#package-check/declarations.ts";
 import { consumerDependencies } from "#package-check/dependencies.ts";
 import { checkEffectCopies } from "#package-check/effect-copies.ts";
 import { writeFixtures } from "#package-check/fixtures.ts";
@@ -84,6 +85,10 @@ export const checkConsumer = (
 		}
 		for (const script of ["typecheck", "typecheck:nodenext"]) {
 			yield* command(consumer, "pnpm", ["run", script]);
+		}
+		for (const config of ["tsconfig.json", "tsconfig.nodenext.json"]) {
+			const problems = declarationProblems(consumer, config, "entries.ts");
+			yield* requireThat(problems.length === 0, `${pkg.manifest.name}: ${problems.join("\n")}`);
 		}
 		yield* command(consumer, "node", [
 			"--input-type=module",

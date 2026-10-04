@@ -3,8 +3,8 @@ import process from "node:process";
 import { expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach } from "vitest";
-import { readHolder, reclaim, release, tryAcquire } from "../src/lock-file.ts";
-import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, temporaryLock, writeLock } from "./support/lock.ts";
+import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
+import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/support/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 

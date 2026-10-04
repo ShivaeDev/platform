@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { convertLegacy } from "../src/baseline/legacy.ts";
-import { violation } from "./support/violations.ts";
+import { convertLegacy } from "#baseline/legacy.ts";
+import { violation } from "#test/support/violations.ts";
 
 describe("legacy baseline conversion", () => {
 	it("turns a measure into the violations above the rule's current threshold", () => {

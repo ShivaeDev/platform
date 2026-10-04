@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { collection, invalidationKeys, readKeys } from "../src/index.ts";
+import { collection, invalidationKeys, readKeys } from "#index.ts";
 
 const orders = collection("orders", Schema.Number);
 const notes = collection("notes", Schema.String);

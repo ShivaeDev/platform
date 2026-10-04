@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { type Decoded, decodeWith } from "../decoded.ts";
-import { type RuleIndex, registrable, unusedEntryProblem, type Violation } from "../engine/violation.ts";
+import { type Decoded, decodeWith } from "#decoded.ts";
+import { type RuleIndex, registrable, unusedEntryProblem, type Violation } from "#engine/violation.ts";
 
 const RegistryEntry = Schema.Struct({
 	file: Schema.NonEmptyString,

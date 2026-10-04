@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
-import { assertLocalDatabase, localPostgres, localServer } from "../src/index.ts";
-import { docker } from "../src/local-docker.ts";
+import { assertLocalDatabase, localPostgres, localServer } from "#index.ts";
+import { docker } from "#local-docker.ts";
 
 it("rejects remote, mismatched and redirected local targets", () => {
 	const name = "platform_test_local_postgres";

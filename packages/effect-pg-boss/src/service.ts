@@ -1,12 +1,12 @@
 import { Context, Effect, Layer, type Option, type Schema } from "effect";
 import type { ConstructorOptions, SendOptions, StopOptions } from "pg-boss";
+import type { PgBossClientFactory } from "#internal/client.ts";
+import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
+import { registerJobs, registrationName } from "#internal/register.ts";
+import { makeService } from "#internal/service.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "./definition.ts";
 import type { PgBossError, PgBossPayloadError } from "./error.ts";
 import type { JobsHealth } from "./health.ts";
-import type { PgBossClientFactory } from "./internal/client.ts";
-import { acquireClient, releaseClient } from "./internal/lifecycle.ts";
-import { registerJobs, registrationName } from "./internal/register.ts";
-import { makeService } from "./internal/service.ts";
 
 export interface PgBossService {
 	readonly enqueue: <const Name extends string, const Payload extends JobPayloadSchema>(

@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { posix } from "node:path";
-import type { RuleInputs } from "../rule.ts";
-import { parse } from "../rules/syntax.ts";
+import type { RuleInputs } from "#rule.ts";
+import { parse } from "#rules/syntax.ts";
 import type { ImportRequest } from "./extract.ts";
 import { type Project, projectsFor } from "./projects.ts";
 import { resolveImport } from "./resolve.ts";

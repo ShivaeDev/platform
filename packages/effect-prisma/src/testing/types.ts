@@ -1,9 +1,9 @@
 import type { TestContext, Vitest } from "@effect/vitest";
 import type { Effect, Layer } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
-import type { AnyDatabase, DatabaseServiceOf } from "../database.ts";
+import type { AnyDatabase, DatabaseServiceOf } from "#database.ts";
 
-export type { AnyDatabase } from "../database.ts";
+export type { AnyDatabase } from "#database.ts";
 export type DatabaseService<Database extends AnyDatabase> = DatabaseServiceOf<Database>;
 
 export type DatabaseTest<Database extends AnyDatabase, Provided> = <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(

@@ -1,12 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { importGraph } from "../src/imports/graph.ts";
-import { importCycles } from "../src/rules/imports/cycles.ts";
-import { importsResolvable } from "../src/rules/imports/resolvable.ts";
-import { git } from "./support/git.ts";
-import { findingsIn, importTree, linkWorkspace, scanned } from "./support/imports.ts";
-import { removeSeededTrees } from "./support/tree.ts";
+import { importGraph } from "#imports/graph.ts";
+import { importCycles } from "#rules/imports/cycles.ts";
+import { importsResolvable } from "#rules/imports/resolvable.ts";
+import { git } from "#test/support/git.ts";
+import { findingsIn, importTree, linkWorkspace, scanned } from "#test/support/imports.ts";
+import { removeSeededTrees } from "#test/support/tree.ts";
 
 afterEach(removeSeededTrees);
 

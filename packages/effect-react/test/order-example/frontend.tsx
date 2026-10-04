@@ -7,7 +7,7 @@ import { createElement, useEffect, useState } from "react";
 import { bind } from "@shivaedev/effect-contract";
 import { make } from "@shivaedev/effect-form";
 import { useDirty, useField, useSubmit } from "@shivaedev/effect-form/react";
-import { useQuery } from "../../src/index.ts";
+import { useQuery } from "#index.ts";
 import { Order, Orders } from "./contract.ts";
 
 const fields = Schema.Struct({

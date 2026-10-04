@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { decodeConfig } from "../src/config/decode.ts";
-import { resolveRules } from "../src/config/resolve.ts";
-import { defineConfig, defineRule } from "../src/index.ts";
-import { builtInRules } from "../src/rules/built-in.ts";
+import { decodeConfig } from "#config/decode.ts";
+import { resolveRules } from "#config/resolve.ts";
+import { defineConfig, defineRule } from "#index.ts";
+import { builtInRules } from "#rules/built-in.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 

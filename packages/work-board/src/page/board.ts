@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { type Board, countsOf, type Section } from "../render/board.ts";
-import { renderMarkdown } from "../render/markdown.ts";
+import { type Board, countsOf, type Section } from "#render/board.ts";
+import { renderMarkdown } from "#render/markdown.ts";
 import { escapeHtml } from "./escape.ts";
 import { updated } from "./updated.ts";
 

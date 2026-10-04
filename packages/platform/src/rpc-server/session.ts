@@ -1,8 +1,8 @@
 import { Effect, Layer, Option } from "effect";
 import type { Headers } from "effect/unstable/http";
-import { type AuthUnavailable, Forbidden, Unauthorized } from "../errors/taxonomy.ts";
-import { Identity, OptionalIdentity } from "../rpc/identity.ts";
-import { Authenticated, MaybeAuthenticated } from "../rpc/middleware.ts";
+import { type AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { Identity, OptionalIdentity } from "#rpc/identity.ts";
+import { Authenticated, MaybeAuthenticated } from "#rpc/middleware.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
 import { transportHeaders } from "./transport.ts";
 

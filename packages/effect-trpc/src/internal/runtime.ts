@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Cause, Context, Effect, Exit, Option, Result, Stream } from "effect";
-import type { EffectTRPCRuntime } from "../adapter.ts";
-import type { EffectTRPCErrorMapper, EffectTRPCInstrument, ProcedureInfo } from "../types.ts";
+import type { EffectTRPCRuntime } from "#adapter.ts";
+import type { EffectTRPCErrorMapper, EffectTRPCInstrument, ProcedureInfo } from "#types.ts";
 import type { ContextBridge } from "./context-bridge.ts";
 
 interface RunEffectOptions {
@@ -80,7 +80,7 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 	contextBridge: ContextBridge,
 	options: {
 		readonly instrument?: EffectTRPCInstrument;
-		readonly instrumentStream?: import("../types.ts").EffectTRPCStreamInstrument;
+		readonly instrumentStream?: import("#types.ts").EffectTRPCStreamInstrument;
 		readonly mapError?: EffectTRPCErrorMapper;
 	},
 ): RuntimeBridge<Requirements> => ({

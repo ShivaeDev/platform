@@ -1,8 +1,8 @@
 import { type Context, Effect, Redacted, Schema } from "effect";
 import type { Job } from "pg-boss";
-import { type JobRegistration, jobContext, type QueueWorker, type ScheduledWorker } from "../definition.ts";
-import { PgBossPayloadError, toPgBossError } from "../error.ts";
-import { deadLetterQueueName } from "../health.ts";
+import { type JobRegistration, jobContext, type QueueWorker, type ScheduledWorker } from "#definition.ts";
+import { PgBossPayloadError, toPgBossError } from "#error.ts";
+import { deadLetterQueueName } from "#health.ts";
 import type { PgBossClient } from "./client.ts";
 
 const queueOptions = (options: Readonly<Record<string, unknown>>) => ({
@@ -105,7 +105,7 @@ export const registerJobs = <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
-): Effect.Effect<void, import("../error.ts").PgBossError> =>
+): Effect.Effect<void, import("#error.ts").PgBossError> =>
 	Effect.tryPromise({
 		catch: (error) => toPgBossError("register", error),
 		try: async () => {

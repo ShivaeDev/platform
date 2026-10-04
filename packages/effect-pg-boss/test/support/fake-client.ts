@@ -1,5 +1,5 @@
 import type { ConstructorOptions, Job, Queue, QueueResult, ScheduleOptions, SendOptions, StopOptions, WorkOptions } from "pg-boss";
-import type { PgBossClient } from "../../src/internal/client.ts";
+import type { PgBossClient } from "#internal/client.ts";
 
 interface QueueCall {
 	readonly name: string;

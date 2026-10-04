@@ -1,9 +1,9 @@
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Effect, FileSystem } from "effect";
-import { validOrFail } from "../decoded.ts";
-import { SetupFailure } from "../failure.ts";
-import type { InventoryScope } from "../inventory/collect.ts";
+import { validOrFail } from "#decoded.ts";
+import { SetupFailure } from "#failure.ts";
+import type { InventoryScope } from "#inventory/collect.ts";
 import { type ConfigInput, decodeConfig } from "./decode.ts";
 import { CONFIG_FILE } from "./file.ts";
 import { type ResolvedRules, resolveRules } from "./resolve.ts";

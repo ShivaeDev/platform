@@ -10,7 +10,7 @@ const other: Client = { $transaction: (run) => run(other) };
 
 const bind = async () => {
 	vi.resetModules();
-	const { makePrismaChanges } = await import("../src/index.ts");
+	const { makePrismaChanges } = await import("#index.ts");
 	return makePrismaChanges({ client, models: {}, name: "Same", publish: () => Effect.void });
 };
 

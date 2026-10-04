@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
-import { withoutGenerated } from "../../imports/generated.ts";
-import { importGraph } from "../../imports/graph.ts";
-import { defineRule } from "../../rule.ts";
+import { withoutGenerated } from "#imports/generated.ts";
+import { importGraph } from "#imports/graph.ts";
+import { defineRule } from "#rule.ts";
 
 const ResolvableOptions = Schema.Struct({
 	generated: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),

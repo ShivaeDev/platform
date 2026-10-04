@@ -3,9 +3,9 @@ import { HttpServerRequest } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket } from "effect/unstable/socket";
 import { expect, it } from "vitest";
-import { trustedOrigins } from "../src/rpc-server.ts";
-import { Api, serverLayer } from "./rpc/api.ts";
-import { createProvider, origin, type Provider, signup } from "./rpc/support.ts";
+import { trustedOrigins } from "#rpc-server.ts";
+import { Api, serverLayer } from "#test/rpc/api.ts";
+import { createProvider, origin, type Provider, signup } from "#test/rpc/support.ts";
 
 const upgradeable = (request: Request, socket: Socket.Socket) =>
 	new Proxy(HttpServerRequest.fromWeb(request), {

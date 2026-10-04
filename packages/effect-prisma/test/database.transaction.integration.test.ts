@@ -1,7 +1,7 @@
 import { Cause, Deferred, Effect, Exit, Fiber, Option, Stream } from "effect";
 import { expect } from "vitest";
-import { withTestTransaction } from "../src/testing.ts";
-import { Database, integrationEffect, scopedValues, uniqueEmail, withDatabase } from "./support/postgres-database.ts";
+import { Database, integrationEffect, scopedValues, uniqueEmail, withDatabase } from "#test/support/postgres-database.ts";
+import { withTestTransaction } from "#testing.ts";
 
 const yieldDatabase = Effect.gen(function* () {
 	yield* Database;

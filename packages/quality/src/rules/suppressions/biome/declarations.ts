@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { type Decoded, decodeWith } from "../../../decoded.ts";
+import { type Decoded, decodeWith } from "#decoded.ts";
 
 export const Declaration = Schema.Struct({
 	includes: Schema.NonEmptyArray(Schema.NonEmptyString),
