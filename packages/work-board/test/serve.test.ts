@@ -42,7 +42,7 @@ describe("the server", () => {
 
 	it("runs as one command that serves the folder with its home board", async () => {
 		notes = folder({ "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" });
-		const child = spawn(process.execPath, [cli, notes.root, "--port", "0", "--home", "plan.md"], { stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "plan.md"], { stdio: ["ignore", "pipe", "pipe"] });
 		try {
 			const address = await listening(child);
 			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
@@ -54,7 +54,7 @@ describe("the server", () => {
 
 	it("refuses to start with a clear message when the home file is missing", async () => {
 		notes = folder({ "plan.md": "# Plan\n" });
-		const child = spawn(process.execPath, [cli, notes.root, "--port", "0", "--home", "missing.md"], { stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--home", "missing.md"], { stdio: ["ignore", "pipe", "pipe"] });
 		let output = "";
 		child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
 		child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
@@ -66,7 +66,7 @@ describe("the server", () => {
 
 	it("stops promptly on Ctrl-C while a page is listening for changes", async () => {
 		notes = folder({ "plan.md": "# Plan\n" });
-		const child = spawn(process.execPath, [cli, notes.root, "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
 		try {
 			const address = await listening(child);
 			const body = (await fetch(`${address}/events`)).body;

@@ -36,7 +36,7 @@ it(
 	async () => {
 		const lock = temporaryLock();
 
-		const result = await runCli(["--", process.execPath, HEAVY_LOCK_CLI, "--", "/bin/sh", "-c", "exit 3"], cliEnvironment(lock));
+		const result = await runCli(["--", process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", "/bin/sh", "-c", "exit 3"], cliEnvironment(lock));
 
 		expect(result).toEqual({ status: 3, stderr: "" });
 		expect(existsSync(lock)).toBe(false);
