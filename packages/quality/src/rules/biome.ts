@@ -39,7 +39,8 @@ const bridge = defineRule({
 		const [preset, report] = await Promise.all([presetFinding(readText), biomeReport(root, ["check"])]);
 		return [...preset, ...report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity)).map(findingOf)];
 	},
-	description: "Biome's lint, format and assist findings under the shared preset. `quality fix` applies the safe fixes and the formatting.",
+	description:
+		"Biome's lint, format and assist findings under the shared preset. `quality fix` applies the formatting and assist actions; `quality fix --lint` also applies the safe lint fixes.",
 	id: "biome",
 	registrable: false,
 });

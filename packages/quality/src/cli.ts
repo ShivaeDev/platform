@@ -24,7 +24,7 @@ const program = Effect.gen(function* () {
 		case "Lint":
 			return yield* lint(process.cwd(), command.config, command.warnings);
 		case "Fix":
-			return yield* fix(process.cwd(), command.config);
+			return yield* fix(process.cwd(), command.config, command.lint);
 		case "BaselineWrite":
 			return yield* writeBaseline(process.cwd(), command.config, command.rules);
 		case "BaselinePrune":

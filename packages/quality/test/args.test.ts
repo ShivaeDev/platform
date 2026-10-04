@@ -5,6 +5,8 @@ describe("command line", () => {
 	it.each([
 		[[], { _tag: "Lint", config: undefined, warnings: "summary" }],
 		[["lint", "--warnings", "all", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts", warnings: "all" }],
+		[["fix"], { _tag: "Fix", config: undefined, lint: false }],
+		[["fix", "--lint"], { _tag: "Fix", config: undefined, lint: true }],
 		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, rules: [] }],
 		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, rules: ["a/b", "c/d"] }],
 		[["baseline", "prune"], { _tag: "BaselinePrune", against: undefined, config: undefined }],
@@ -29,6 +31,7 @@ describe("command line", () => {
 		[["baseline"], "baseline takes write, prune, tighten, check or migrate"],
 		[["lint", "--against", "origin/main"], "--against applies only to baseline check and baseline prune"],
 		[["baseline", "write", "--staged"], "--staged applies only to baseline tighten"],
+		[["lint", "--lint"], "--lint applies only to fix"],
 		[["baseline", "check", "--from", "old.json"], "--from applies only to baseline migrate"],
 		[["baseline", "check", "--rule", "a/b"], "--rule applies only to baseline write"],
 		[["baseline", "check", "--against=--output=x"], "--against takes a git ref"],

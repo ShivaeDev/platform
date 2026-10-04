@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1 - 2026-10-04
+
+### Changed
+
+- `quality fix` applies only changes that keep behavior: it sorts every `package.json` and applies Biome's formatting and assist actions, such as organized imports and sorted keys. Biome's safe lint fixes, which can change behavior (for example, `noProcessGlobal` adds `import process from "node:process"`, which a browser bundle cannot load), are applied only with the new `quality fix --lint`.
+
+### Fixed
+
+- `quality fix` no longer hangs. Biome 2.5.14 never finishes applying the safe fix of `noProcessGlobal` to `globalThis.process`, so `quality fix` ran without end on any repository with that code. It no longer applies lint fixes by default; `quality fix --lint` still runs into this Biome bug.
+
 ## 0.5.0 - 2026-10-04
 
 ### Added
