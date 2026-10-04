@@ -77,7 +77,7 @@
 			"arrowParentheses": "always",
 			"jsxQuoteStyle": "double",
 			"operatorLinebreak": "before",
-			"quoteProperties": "asNeeded",
+			"quoteProperties": "preserve",
 			"quoteStyle": "double",
 			"semicolons": "always",
 			"trailingCommas": "all"
@@ -462,8 +462,8 @@
 							{ "formats": ["PascalCase"], "match": "(T|A|E|R)|T([A-Z][A-Za-z0-9]*)", "selector": { "kind": "typeParameter" } },
 							{ "formats": ["PascalCase"], "match": "([A-HJ-Z][A-Za-z0-9]*|I[a-z0-9][A-Za-z0-9]*|I)", "selector": { "kind": "typeLike" } },
 							{ "formats": ["camelCase", "PascalCase"], "selector": { "kind": "function" } },
-							{ "formats": ["camelCase", "PascalCase"], "match": "[_$]*(.+)", "selector": { "kind": "objectLiteralProperty" } },
-							{ "formats": ["camelCase", "PascalCase"], "match": "[_$]*(.+)", "selector": { "kind": "typeProperty" } }
+							{ "match": ".*", "selector": { "kind": "objectLiteralProperty" } },
+							{ "match": ".*", "selector": { "kind": "typeProperty" } }
 						],
 						"requireAscii": true,
 						"strictCase": true
@@ -622,6 +622,16 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": ["**/*.test.*", "**/*.spec.*"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useComponentExportOnlyModules": "off"
+					}
+				}
+			}
 		}
 	],
 	"plugins": [
@@ -640,6 +650,10 @@
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/handler-names.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/key-names.grit"
 		},
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],

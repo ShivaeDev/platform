@@ -6,5 +6,6 @@ JsxAttribute(name=$attribute, initializer=JsxAttributeInitializerClause(value=Js
 	$handler <: JsIdentifierExpression(),
 	! $handler <: r"handle[A-Z][A-Za-z0-9]*",
 	! $handler <: r"on[A-Z][A-Za-z0-9]*",
-	register_diagnostic(span=$handler, message="A function passed to an onX prop is named handleX, such as onClick={handleClick}, or is an onX prop forwarded as it is.")
+	! $handler <: r"set[A-Z][A-Za-z0-9]*",
+	register_diagnostic(span=$handler, message="A function passed to an onX prop is named handleX, such as onClick={handleClick}, or is an onX prop forwarded as it is, or a state setter passed as it is, such as onChange={setValue}.")
 }

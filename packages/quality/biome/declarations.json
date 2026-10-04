@@ -15,6 +15,11 @@
 		"rule": "lint/style/noDefaultExport"
 	},
 	{
+		"includes": ["**/*.test.*", "**/*.spec.*"],
+		"reason": "A test defines the helper and harness components it renders, and no test module is hot-reloaded, so the rule's fast-refresh boundary does not apply.",
+		"rule": "lint/style/useComponentExportOnlyModules"
+	},
+	{
 		"includes": ["**"],
 		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
 		"rule": "lint/correctness/noProcessGlobal"
