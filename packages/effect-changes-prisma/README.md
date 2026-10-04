@@ -2,6 +2,8 @@
 
 Commit-bound change channels for Prisma Classic (`@prisma/client` with interactive `$transaction`). Writes to mapped models record their changes automatically; the changes publish once, deduplicated, after the transaction commits, and never for a rollback. A test-time coverage check reports writes that no recorded change accounts for.
 
+It works with PostgreSQL only. The coverage check reads PostgreSQL's `pg_stat_xact_user_tables`, `isolationLevel` takes the levels Prisma accepts on PostgreSQL, and every test runs against PostgreSQL.
+
 It binds a [`@shivaedev/effect-changes`](../effect-changes) channel to Prisma: the channel semantics (owners, savepoint merge and discard, batches, sink failures, test seams) are the same, see [commit-bound changes](../../docs/framework/changes.md).
 
 ```ts
