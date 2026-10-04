@@ -5,6 +5,13 @@ proposed and unimplemented. Completion requires the stated observable behavior
 and relevant checks; a mockup or a checked design document is not feature proof.
 Waves describe dependency order, not a calendar commitment.
 
+The [step-by-step delivery plan](./delivery/README.md) turns these waves into
+26 bounded implementation steps. Start with steps 01–03: workspace shell,
+document locations, then search. Each step names its prerequisites and acceptance
+evidence; the plan also records the source-format, mutation, handoff, and integration
+discussion gates. Record completed step IDs and their proof here as delivery
+proceeds. No implementation step is complete yet.
+
 ## Current foundation
 
 The existing package serves a local Markdown folder, renders a designated home

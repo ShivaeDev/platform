@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add a step-by-step delivery plan for the vision, with 26 bounded implementation
+  steps, dependencies, acceptance evidence, and explicit design gates before
+  richer source formats, mutations, agent handoffs, and external integrations.
+
 - Document the local Work Board north star, three-wave roadmap, experience design,
   and interactive vision mockups with desktop and mobile captures. The package
   README links to the proposed direction separately from its current behavior.
