@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { globMatcher } from "../src/imports/glob.ts";
 
 describe("globMatcher", () => {
-	it("matches *, **, ?, braces and character classes the way pnpm does", () => {
+	it("matches *, **, ?, braces and character classes the way pnpm does, never a dot segment unless the pattern names the dot", () => {
 		const cases: ReadonlyArray<readonly [string, string, boolean]> = [
 			["packages/*", "packages/web", true],
 			["packages/*", "packages/web/test", false],
@@ -15,6 +15,12 @@ describe("globMatcher", () => {
 			["packages/[a-c]pp", "packages/bpp", true],
 			["packages/[!a-c]pp", "packages/bpp", false],
 			["packages/[!a-c]pp", "packages/zpp", true],
+			["packages/**", "packages/effect-trpc/.server-kit", false],
+			["packages/*", "packages/.hidden", false],
+			["packages/?hidden", "packages/.hidden", false],
+			["packages/[.]hidden", "packages/.hidden", false],
+			["packages/.hidden", "packages/.hidden", true],
+			["packages/.*", "packages/.hidden", true],
 		];
 		expect(cases.map(([pattern, path]) => globMatcher(pattern)(path))).toEqual(cases.map(([, , expected]) => expected));
 	});

@@ -4,6 +4,10 @@ const STAR = "*";
 
 const GLOBSTAR = "**";
 
+const DOT = ".";
+
+const NO_DOT = "(?!\\.)";
+
 const EXTGLOB = /[?*+@!]\(/u;
 
 const BRACE_RANGE = /^[^,]*\.\.[^,]*$/u;
@@ -112,7 +116,7 @@ function segmentOf(segment: string, whole: string): Segment {
 			source += charSource(char);
 		}
 	}
-	return new RegExp(`^${source}$`, "u");
+	return new RegExp(`^${segment.startsWith(DOT) ? "" : NO_DOT}${source}$`, "u");
 }
 
 function segmentsMatch(pattern: readonly Segment[], path: readonly string[]): boolean {
@@ -121,7 +125,9 @@ function segmentsMatch(pattern: readonly Segment[], path: readonly string[]): bo
 		return path.length === 0;
 	}
 	if (first === GLOBSTAR) {
-		return path.some((_, skipped) => segmentsMatch(rest, path.slice(skipped))) || segmentsMatch(rest, []);
+		const hidden = path.findIndex((segment) => segment.startsWith(DOT));
+		const reachable = hidden === -1 ? path.length : hidden;
+		return [...path.keys(), path.length].some((skipped) => skipped <= reachable && segmentsMatch(rest, path.slice(skipped)));
 	}
 	const [head, ...tail] = path;
 	return head !== undefined && first.test(head) && segmentsMatch(rest, tail);
