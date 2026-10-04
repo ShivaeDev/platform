@@ -41,6 +41,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"imports/cycles",
 				"imports/fences",
 				"imports/resolvable",
+				"manifests/sorted",
 			]);
 			expect([...loaded.unregistrable]).toEqual([
 				"suppressions/no-inline",
@@ -48,6 +49,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"suppressions/biome-overrides",
 				"biome",
 				"imports/cycles",
+				"manifests/sorted",
 			]);
 			expect([...loaded.families]).toEqual(["biome"]);
 		}),

@@ -9,6 +9,7 @@ import { noTodo } from "./comments/no-todo.ts";
 import { importCycles } from "./imports/cycles.ts";
 import { importFences } from "./imports/fences.ts";
 import { importsResolvable } from "./imports/resolvable.ts";
+import { manifestsSorted } from "./manifests-sorted.ts";
 import { maxLines } from "./max-lines.ts";
 import { biomeOverrides } from "./suppressions/biome-overrides.ts";
 import { noDoubleCast } from "./suppressions/no-double-cast.ts";
@@ -30,4 +31,5 @@ export const builtInRules = [
 	importCycles,
 	importFences,
 	importsResolvable,
+	manifestsSorted,
 ] as const;

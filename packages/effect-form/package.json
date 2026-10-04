@@ -2,27 +2,18 @@
 	"name": "@shivaedev/effect-form",
 	"version": "0.1.1",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
-	"type": "module",
-	"license": "MIT",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ShivaeDev/platform.git",
 		"directory": "packages/effect-form"
 	},
-	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#readme",
-	"bugs": {
-		"url": "https://github.com/ShivaeDev/platform/issues"
-	},
-	"engines": {
-		"node": ">=24"
-	},
+	"license": "MIT",
 	"sideEffects": false,
-	"files": [
-		"dist",
-		"src",
-		"CHANGELOG.md",
-		"README.md"
-	],
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -38,39 +29,48 @@
 			"default": "./dist/react.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public",
-		"provenance": true
-	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"ready": "pnpm typecheck && pnpm test && pnpm build"
-	},
-	"peerDependencies": {
-		"effect": "catalog:",
-		"@effect/atom-react": "catalog:",
-		"react": "catalog:"
-	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		},
-		"@effect/atom-react": {
-			"optional": true
-		}
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@effect/atom-react": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
+		"@types/react": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
-		"typescript": "catalog:",
-		"vitest": "catalog:",
-		"@effect/atom-react": "catalog:",
 		"react": "catalog:",
-		"@types/react": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/atom-react": "catalog:",
+		"effect": "catalog:",
+		"react": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/atom-react": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }
