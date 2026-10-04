@@ -25,11 +25,11 @@ const procedure = adapter.procedure(t.procedure, makeRequestServices(() => Layer
 const router = t.router({
   count: procedure.query(function* () {
     const db = yield* Database
-    return yield* db.User.count()
+    return yield* db.AuthUser.count()
   }),
   counts: procedure.subscription(function* () {
     const db = yield* Database
-    return Stream.fromEffect(db.User.count())
+    return Stream.fromEffect(db.AuthUser.count())
   }),
 })
 
@@ -54,7 +54,7 @@ it.effectApp("retains packed harness types", function* ({ db, fixture, promise, 
 	const databaseIsAny: IsAny<typeof db> = false
 	const fixtureIsAny: IsAny<typeof fixture> = false
 	const count: number = yield* trpc.count()
-  const users = yield* db.User.where({ email: "typed@example.test" })
+  const users = yield* db.AuthUser.where({ email: "typed@example.test" })
   users[0]?.email.toUpperCase()
 	fixture.toUpperCase()
 	void databaseIsAny
