@@ -1,3 +1,4 @@
+import type { Bivariant } from "@shivaedev/types";
 import { describeIssue, type StandardSchemaV1 } from "./standard-schema.ts";
 
 export interface Finding {
@@ -33,8 +34,8 @@ export type Configured =
 	| { readonly _tag: "Ready"; readonly check: (inputs: RuleInputs) => Promise<Findings> };
 
 export interface Rule<Id extends string = string, Input = unknown> {
-	// Method syntax keeps rules with different options in one list; configure validates its input at runtime.
-	configure(options: Input | undefined): Promise<Configured>;
+	// Bivariance keeps rules with different options in one list; configure validates its input at runtime.
+	configure: Bivariant<(options: Input | undefined) => Promise<Configured>>;
 	readonly description: string;
 	readonly family?: boolean;
 	readonly id: Id;

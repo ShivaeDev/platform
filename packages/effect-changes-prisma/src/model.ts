@@ -1,11 +1,11 @@
 export interface TransactionOptions {
-	readonly isolationLevel?: string;
+	readonly isolationLevel?: "ReadUncommitted" | "ReadCommitted" | "RepeatableRead" | "Serializable";
 	readonly maxWait?: number;
 	readonly timeout?: number;
 }
 
 export interface Transactional<Tx> {
-	$transaction<X>(run: (tx: Tx) => Promise<X>, options?: TransactionOptions): PromiseLike<X>;
+	$transaction: <X>(run: (tx: Tx) => Promise<X>, options?: TransactionOptions) => PromiseLike<X>;
 }
 
 type PayloadOf<Delegate> = Delegate extends { readonly [key: symbol]: { readonly types: { readonly payload: infer Payload } } } ? Payload : never;

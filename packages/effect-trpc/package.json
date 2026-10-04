@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.4.1",
+	"version": "0.5.0",
 	"description": "Effect-native procedures and testing for tRPC",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
 	"bugs": {

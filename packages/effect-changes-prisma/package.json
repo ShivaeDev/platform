@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-changes-prisma",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Commit-bound change channels for Prisma Classic: automatic change recording, publish after $transaction commits, and a test-time coverage check",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes-prisma#readme",
 	"bugs": {
@@ -36,7 +36,8 @@
 		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-changes": "workspace:*"
+		"@shivaedev/effect-changes": "workspace:*",
+		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
 		"@prisma/adapter-pg": "catalog:",

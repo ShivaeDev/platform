@@ -33,8 +33,8 @@ const PACKAGE_ENTRIES = [
 
 const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	"effect-changes": [],
-	"effect-changes-prisma": ["effect-changes"],
-	"effect-contract": [],
+	"effect-changes-prisma": ["effect-changes", "types"],
+	"effect-contract": ["types"],
 	"effect-form": [],
 	"effect-pg-boss": [],
 	"effect-service": [],
@@ -42,9 +42,11 @@ const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	"effect-test": [],
 	"heavy-lock": [],
 	"local-postgres": [],
-	quality: [],
+	quality: ["types"],
+	types: [],
 	"work-board": [],
 };
+const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
 const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
 const BROWSER_ENTRIES = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
@@ -62,7 +64,7 @@ function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
 	const index = `packages/${name}/src/index.ts`;
 	return fence(`leaf-${name}`)
 		.because(
-			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.`,
+			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.${allowed.includes("types") ? ` ${TYPE_ONLY}` : ""}`,
 		)
 		.from(folders(`packages/${name}/src`))
 		.mayNotImport(workspace.except(packages(name, ...allowed)))
@@ -111,7 +113,6 @@ const fences: readonly Fence[] = [
 ];
 
 export default defineConfig({
-	adopt: ["biome", "imports/aliased"],
 	rules: {
 		"imports/fences": { options: { fences } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/test/generated"] } },

@@ -11,7 +11,6 @@ import { type ResolvedRules, resolveRules } from "./resolve.ts";
 const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
-	readonly adopt: readonly string[];
 	readonly baseline: string;
 	readonly file: string;
 	readonly registry: string;
@@ -34,7 +33,6 @@ const importDefault = (file: string): Effect.Effect<unknown, SetupFailure> =>
 
 const resolved = (root: string, file: string, config: ConfigInput, rules: ResolvedRules): ResolvedConfig => ({
 	...rules,
-	adopt: config.adopt ?? [],
 	baseline: config.baseline ?? "quality/baseline.jsonl",
 	exclude: config.exclude ?? [],
 	extensions: config.extensions ?? DEFAULT_EXTENSIONS,

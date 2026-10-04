@@ -13,5 +13,60 @@
 		"includes": ["**/*.config.*"],
 		"reason": "Tools load their config files through the default export.",
 		"rule": "lint/style/noDefaultExport"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/correctness/noProcessGlobal"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/correctness/useJsonImportAttributes"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/nursery/noMisusedPromises"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/nursery/useExhaustiveSwitchCases"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/nursery/useSortedClasses"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/performance/noDelete"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/style/useConsistentArrayType"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/style/useConsistentCurlyBraces"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/suspicious/noEqualsToNull"
+	},
+	{
+		"includes": ["**"],
+		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"rule": "lint/suspicious/noSkippedTests"
+	},
+	{
+		"includes": ["**"],
+		"reason": "An unused private member asks whether it is still needed or should be used; deleting it automatically skips that decision.",
+		"rule": "lint/correctness/noUnusedPrivateClassMembers"
 	}
 ]

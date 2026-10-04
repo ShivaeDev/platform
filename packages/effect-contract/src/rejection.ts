@@ -10,7 +10,9 @@ export type RejectionClass<Tag extends string, Fields extends Schema.Struct.Fiel
 
 export type TaggedRejection = Schema.Top & (new (...args: never) => { readonly _tag: string });
 
-export type RejectionSpecs = { readonly [tag: string]: Schema.Struct.Fields | TaggedRejection };
+export interface RejectionSpecs {
+	readonly [tag: string]: Schema.Struct.Fields | TaggedRejection;
+}
 
 export type Rejections<Specs extends RejectionSpecs> = {
 	readonly [Tag in keyof Specs & string]: Specs[Tag] extends TaggedRejection
@@ -71,10 +73,10 @@ export function rejectionSet(specs: RejectionSpecs): LooseRejectionSet {
 	};
 }
 
-export type FieldRejection<Field extends string> = {
-	readonly field: Schema.Literals<readonly Field[]>;
-	readonly message: Schema.String;
-};
+export type FieldRejection<Field extends string> = Readonly<{
+	field: Schema.Literals<readonly Field[]>;
+	message: Schema.String;
+}>;
 
 export function fieldRejection<const Fields extends Schema.Struct.Fields>(struct: { readonly fields: Fields }): FieldRejection<keyof Fields & string>;
 export function fieldRejection<const Fields extends Schema.Struct.Fields, const Field extends keyof Fields & string>(

@@ -36,9 +36,9 @@ export interface ProcedureInvocation<Context> {
 }
 
 export interface ProcedureBuilderSurface<Context> {
-	input(schema: StandardSchema.StandardSchemaV1): ProcedureBuilderSurface<Context>;
-	mutation(resolver: (invocation: ProcedureInvocation<Context>) => Promise<unknown>): unknown;
-	output(schema: StandardSchema.StandardSchemaV1): ProcedureBuilderSurface<Context>;
-	query(resolver: (invocation: ProcedureInvocation<Context>) => Promise<unknown>): unknown;
-	subscription(resolver: (invocation: ProcedureInvocation<Context>) => Promise<AsyncIterable<unknown, void, unknown>>): unknown;
+	input: (schema: StandardSchema.StandardSchemaV1) => ProcedureBuilderSurface<Context>;
+	mutation: (resolver: (invocation: ProcedureInvocation<Context>) => Promise<unknown>) => unknown;
+	output: (schema: StandardSchema.StandardSchemaV1) => ProcedureBuilderSurface<Context>;
+	query: (resolver: (invocation: ProcedureInvocation<Context>) => Promise<unknown>) => unknown;
+	subscription: (resolver: (invocation: ProcedureInvocation<Context>) => Promise<AsyncIterable<unknown, void, unknown>>) => unknown;
 }

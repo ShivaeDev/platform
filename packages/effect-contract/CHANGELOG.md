@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-10-04
 
 ### Changed
 
 - Consolidate duplicate test cases around observable package behavior.
+- The function members of `Contract`, `Query` and `Command` are declared as properties, so TypeScript checks their parameters strictly. `QueryShape.reads` and `CommandShape.invalidates` stay bivariant, so a contract still takes operations with typed payloads; the package now depends on `@shivaedev/types` for `Bivariant`.
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 

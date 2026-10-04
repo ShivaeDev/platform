@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect, it, vi } from "vitest";
 
 interface Client {
-	$transaction<X>(run: (tx: Client) => Promise<X>): Promise<X>;
+	$transaction: <X>(run: (tx: Client) => Promise<X>) => Promise<X>;
 }
 
 const client: Client = { $transaction: (run) => run(client) };

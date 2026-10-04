@@ -1,3 +1,4 @@
+import type { Bivariant } from "@shivaedev/types";
 import { countOperations, type RowOperation, rowOperations } from "./model.ts";
 
 export interface Write {
@@ -10,7 +11,7 @@ export type UnnamedWrite =
 	| { readonly model: string; readonly operation: string; readonly reason: "countOnly" }
 	| { readonly model: string; readonly operation: string; readonly reason: "narrowed"; readonly field: string };
 
-export type LooseChanges<A> = { bivariant(row: object, operation: RowOperation): Iterable<A> }["bivariant"];
+export type LooseChanges<A> = Bivariant<(row: object, operation: RowOperation) => Iterable<A>>;
 
 export type LooseMap<A> = Readonly<Record<string, LooseChanges<A> | null | undefined>>;
 

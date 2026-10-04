@@ -61,7 +61,7 @@ These are executable boundary examples, not an application deployment. See the
 - [x] Browser-safe sources for effect-contract, effect-form and effect-react.
 - [x] Package boundaries: leaf packages stay leaves; browser packages never import server packages.
 - [x] `@shivaedev/quality` engine: typed `quality.config.ts`, the `quality` command line, a report grouped by rule,
-  a shrink-only baseline and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
+  a baseline of existing debt and a registry of reasoned exceptions, with `structure/max-lines` as its first rule.
 - [x] `@shivaedev/heavy-lock`: the machine-wide heavy-process lock as a package, with a command line and an Effect API.
   Platform's `build`, `typecheck`, `test` and `test:package` scripts run it from source.
 - [x] `@shivaedev/quality` comment rules: no JSDoc, line or pull request references, banners or TODOs, and at most
@@ -70,9 +70,9 @@ These are executable boundary examples, not an application deployment. See the
   overrides only where `quality.config.ts` declares them with a reason. They replace the repository's pragma registry.
 - [x] `@shivaedev/quality` import rules: no runtime import cycles, every import resolves, and the package boundaries as
   fences in `quality.config.ts`, each with an illegal and a legal example. They replace dependency-cruiser.
-- [x] `@shivaedev/quality` baseline guard: a JSON Lines baseline, `quality baseline check` against the merge base,
-  first-time adoption through `adopt`, moves carried by git's rename detection, and `tighten` for pre-commit.
-  `pnpm lint` runs the check.
+- [x] `@shivaedev/quality` baseline: a JSON Lines baseline, moves carried by git's rename detection, and `tighten`
+  for pre-commit. A finding the baseline does not cover fails `pnpm lint`; a baseline that grows is reviewed in the
+  diff and called out in the pull request.
 - [ ] Port the remaining repository rules in `script/lint/rules/` into `@shivaedev/quality` with options, split the Grit plugins
   and add presets, so `pnpm lint` runs only through the package.
 - [ ] Effect boundaries (no `try`/`async` outside `adapters/`): 99 source and 670 test

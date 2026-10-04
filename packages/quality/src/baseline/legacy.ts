@@ -30,8 +30,6 @@ export const decodeLegacyBaseline = async (raw: string): Promise<Decoded<readonl
 	return { _tag: "Valid", value: entries };
 };
 
-export const measured = (legacy: readonly LegacyEntry[]): boolean => legacy.some((entry) => entry.measure !== undefined);
-
 export const convertLegacy = (legacy: readonly LegacyEntry[], violations: readonly Violation[]): readonly BaselineEntry[] => {
 	const current = groupBy(violations, (violation) => keyOf(violation.rule, violation.file));
 	return legacy.flatMap(({ count, file, measure, rule }) => {

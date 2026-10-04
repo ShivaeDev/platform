@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import type { Bivariant } from "@shivaedev/types";
 import type { Key } from "./keys.ts";
 import { type MatchingTags, type Reject, type RejectionSpecs, type Rejections, type RejectionUnion, rejectionSet } from "./rejection.ts";
 
@@ -21,11 +22,11 @@ export interface OperationShape {
 
 export interface QueryShape extends OperationShape {
 	readonly kind: "query";
-	reads(payload: unknown): readonly Key[];
+	reads: Bivariant<(payload: unknown) => readonly Key[]>;
 }
 
 export interface CommandShape extends OperationShape {
-	invalidates(payload: unknown, result: unknown): readonly Key[];
+	invalidates: Bivariant<(payload: unknown, result: unknown) => readonly Key[]>;
 	readonly kind: "command";
 }
 
@@ -43,12 +44,12 @@ interface Operation<Name extends string, Payload extends Schema.Top, Success ext
 export interface Query<Name extends string, Payload extends Schema.Top, Success extends Schema.Top, Specs extends RejectionSpecs>
 	extends Operation<Name, Payload, Success, Specs> {
 	readonly kind: "query";
-	reads(payload: Payload["Type"]): readonly Key[];
+	reads: (payload: Payload["Type"]) => readonly Key[];
 }
 
 export interface Command<Name extends string, Payload extends Schema.Top, Success extends Schema.Top, Specs extends RejectionSpecs>
 	extends Operation<Name, Payload, Success, Specs> {
-	invalidates(payload: Payload["Type"], result: Success["Type"]): readonly Key[];
+	invalidates: (payload: Payload["Type"], result: Success["Type"]) => readonly Key[];
 	readonly kind: "command";
 }
 

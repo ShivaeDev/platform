@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { Level } from "../config.ts";
 import type { Decoded } from "../decoded.ts";
 import type { ActiveRule } from "../engine/run-rules.ts";
-import { covers, type RuleIndex } from "../engine/violation.ts";
+import type { RuleIndex } from "../engine/violation.ts";
 import type { Rule } from "../rule.ts";
 import { builtInRules } from "../rules/built-in.ts";
 import type { ConfigInput } from "./decode.ts";
@@ -48,12 +48,10 @@ export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<Resolve
 		const settings = config.rules ?? {};
 		const known = new Set(rules.map((rule) => rule.id));
 		const families = new Set(rules.filter((rule) => rule.family === true).map((rule) => rule.id));
-		const adoptable = (id: string): boolean => known.has(id) || [...families].some((family) => covers(family, id));
 		const unknown = [
 			...Object.keys(settings)
 				.filter((id) => !known.has(id))
 				.map((id) => `rules.${id}`),
-			...(config.adopt ?? []).filter((id) => !adoptable(id)).map((id) => `adopt.${id}`),
 		].map((path) => `${path}: no built-in or local rule has this id`);
 		const activated = yield* Effect.forEach(rules, (rule) => activate(rule, settings[rule.id]));
 		const issues = [...duplicateIssues(rules), ...unknown, ...activated.flatMap((result) => (result._tag === "Invalid" ? result.issues : []))];

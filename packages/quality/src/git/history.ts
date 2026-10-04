@@ -1,18 +1,11 @@
 import { Effect } from "effect";
 import type { SetupFailure } from "../failure.ts";
-import { type Git, git, gitOrFail } from "./command.ts";
+import { type Git, gitOrFail } from "./command.ts";
 
 export interface Changes {
 	readonly files: ReadonlySet<string>;
 	readonly moves: ReadonlyMap<string, string>;
 }
-
-export const readAt = (root: string, commit: string, path: string): Effect.Effect<string | undefined, SetupFailure, Git> =>
-	Effect.gen(function* () {
-		const object = `${commit}:./${path}`;
-		const present = yield* git(root, ["cat-file", "-e", object]);
-		return present.code === 0 ? yield* gitOrFail(root, ["cat-file", "blob", object]) : undefined;
-	});
 
 const parse = (output: string): Changes => {
 	const fields = output.split("\0");

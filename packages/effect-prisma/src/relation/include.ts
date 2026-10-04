@@ -43,40 +43,42 @@ type WithIncludedRelation<Collection, Contract extends AnyPostgresContract, Mode
 		? PrismaCollection<Contract, Model, Simplify<Row & { readonly [Key in RelationName]: Value }>, State>
 		: never;
 
+interface IncludeOverloads<Collection, Contract extends AnyPostgresContract, Model extends string, DatabaseId> {
+	<RelationName extends RelationNames<Contract, Model>>(
+		relationName: RelationName,
+	): Relation<
+		WithIncludedRelation<
+			Collection,
+			Contract,
+			Model,
+			RelationName,
+			IncludedRelationValue<Contract, Model, RelationName, DefaultModelRow<Contract, RelatedModelNameOf<Contract, Model, RelationName>>>
+		>,
+		Contract,
+		Model,
+		DatabaseId
+	>;
+	<RelationName extends RelationNames<Contract, Model>, Query>(
+		relationName: RelationName,
+		query: Query & AcceptRelatedQuery<Query, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>,
+	): Relation<
+		WithIncludedRelation<Collection, Contract, Model, RelationName, IncludedQueryValue<Query, Contract, Model, RelationName>>,
+		Contract,
+		Model,
+		DatabaseId
+	>;
+	<RelationName extends RelationNames<Contract, Model>, Shape extends Readonly<Record<string, unknown>>>(
+		relationName: RelationName,
+		shape: IsToManyRelation<Contract, Model, RelationName> extends true
+			? keyof Shape extends never
+				? never
+				: Shape & AcceptRelatedQueryShape<Shape, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>
+			: never,
+	): Relation<WithIncludedRelation<Collection, Contract, Model, RelationName, QueryShapeValue<Shape>>, Contract, Model, DatabaseId>;
+}
+
 export type IncludeMethod<Collection, Contract, Model extends string, DatabaseId> = Contract extends AnyPostgresContract
 	? Collection extends PrismaCollection<Contract, Model, infer _Row, infer _State>
-		? {
-				include<RelationName extends RelationNames<Contract, Model>>(
-					relationName: RelationName,
-				): Relation<
-					WithIncludedRelation<
-						Collection,
-						Contract,
-						Model,
-						RelationName,
-						IncludedRelationValue<Contract, Model, RelationName, DefaultModelRow<Contract, RelatedModelNameOf<Contract, Model, RelationName>>>
-					>,
-					Contract,
-					Model,
-					DatabaseId
-				>;
-				include<RelationName extends RelationNames<Contract, Model>, Query>(
-					relationName: RelationName,
-					query: Query & AcceptRelatedQuery<Query, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>,
-				): Relation<
-					WithIncludedRelation<Collection, Contract, Model, RelationName, IncludedQueryValue<Query, Contract, Model, RelationName>>,
-					Contract,
-					Model,
-					DatabaseId
-				>;
-				include<RelationName extends RelationNames<Contract, Model>, Shape extends Readonly<Record<string, unknown>>>(
-					relationName: RelationName,
-					shape: IsToManyRelation<Contract, Model, RelationName> extends true
-						? keyof Shape extends never
-							? never
-							: Shape & AcceptRelatedQueryShape<Shape, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>
-						: never,
-				): Relation<WithIncludedRelation<Collection, Contract, Model, RelationName, QueryShapeValue<Shape>>, Contract, Model, DatabaseId>;
-			}
+		? { include: IncludeOverloads<Collection, Contract, Model, DatabaseId> }
 		: Record<never, never>
 	: Record<never, never>;

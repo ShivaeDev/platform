@@ -19,7 +19,6 @@ const Setting = Schema.Union([Level, Schema.Struct({ level: Schema.optionalKey(L
 const LocalRule = Schema.declare(isRule, { expected: "a rule made with defineRule" });
 
 const ConfigInput = Schema.Struct({
-	adopt: Schema.optionalKey(Schema.Array(Schema.String)),
 	baseline: Schema.optionalKey(Schema.String),
 	exclude: Schema.optionalKey(Schema.Array(Schema.String)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),

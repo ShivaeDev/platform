@@ -45,9 +45,9 @@ type DatabaseModels<Contract extends AnySqlContract, Identifier extends string> 
 };
 
 export type DatabaseService<Contract extends AnySqlContract, Identifier extends string> = DatabaseModels<Contract, Identifier> & {
-	transaction<A, E, R>(
+	transaction: <A, E, R>(
 		program: Effect.Effect<A, E, R> & (DatabaseIdentifier<Contract, Identifier> extends R ? unknown : never),
-	): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseIdentifier<Contract, Identifier>>>;
+	) => Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseIdentifier<Contract, Identifier>>>;
 };
 
 export interface DatabaseServiceHolder<Contract extends AnySqlContract, Identifier extends string>

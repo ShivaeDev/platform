@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-10-04
 
 ### Changed
 
 - Consolidate duplicate test cases around observable package behavior.
+- The function members of the Better Auth relation and field types are declared as properties, so TypeScript checks their parameters strictly.
 
 - Validate packed consumers and executable bins through the shared workspace gate.
 

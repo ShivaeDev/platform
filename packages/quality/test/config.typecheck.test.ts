@@ -16,7 +16,6 @@ const limited = defineRule({
 const rules: readonly Rule[] = [todo, limited];
 
 export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defineConfig({
-	adopt: ["local/no-todo", "comments/no-jsdoc"],
 	local: [todo, limited],
 	rules: {
 		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
@@ -85,7 +84,7 @@ export const declaredTypeTests = defineConfig({
 	},
 });
 
-export const adoptUnknown = defineConfig({
-	// @ts-expect-error Only a known rule can be adopted.
-	adopt: ["comments/no-todos"],
+export const adoptRemoved = defineConfig({
+	// @ts-expect-error A config no longer takes adopt; baseline write --rule records a rule's debt.
+	adopt: ["comments/no-todo"],
 });

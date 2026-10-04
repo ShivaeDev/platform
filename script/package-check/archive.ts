@@ -8,6 +8,21 @@ const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optio
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
 const packedPath = (path: string): string => posix.join("package", path);
 
+function filesEntryHolds(pattern: string, contents: ReadonlySet<string>): boolean {
+	return pattern.startsWith("!")
+		? ![...contents].some((path) => posix.matchesGlob(path, packedPath(pattern.slice(1))))
+		: [...contents].some((path) => path === packedPath(pattern) || path.startsWith(`${packedPath(pattern)}/`));
+}
+
+function checkFiles(name: string, patterns: readonly string[], contents: ReadonlySet<string>) {
+	return Effect.forEach(patterns, (pattern) =>
+		requireThat(
+			filesEntryHolds(pattern, contents),
+			pattern.startsWith("!") ? `${name}: packs files that ${pattern} excludes` : `${name}: empty files entry ${pattern}`,
+		),
+	);
+}
+
 export const checkArchive = (pkg: Package) =>
 	Effect.gen(function* () {
 		yield* command(pkg.directory, "pnpm", ["pack", "--out", pkg.tarball]);
@@ -35,12 +50,7 @@ export const checkPackedArchive = (pkg: Package) =>
 		for (const target of required) {
 			yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
 		}
-		for (const pattern of manifest.files ?? []) {
-			yield* requireThat(
-				[...contents].some((path) => path === packedPath(pattern) || path.startsWith(`${packedPath(pattern)}/`)),
-				`${manifest.name}: empty files entry ${pattern}`,
-			);
-		}
+		yield* checkFiles(manifest.name, manifest.files ?? [], contents);
 		yield* checkMaps(directory, tarball, contents);
 		return manifest;
 	});

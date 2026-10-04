@@ -9,7 +9,7 @@ export const tablesOf = (schema: string): ReadonlyMap<string, string> =>
 	new Map([...schema.replace(COMMENT, "").matchAll(MODEL)].map(([, model = "", body = ""]) => [MAPPED.exec(body)?.[1] ?? model, model] as const));
 
 export interface RawQueryClient {
-	$queryRawUnsafe(query: string): PromiseLike<unknown>;
+	$queryRawUnsafe: (query: string) => PromiseLike<unknown>;
 }
 
 export type TableWrites = ReadonlyMap<string, bigint>;

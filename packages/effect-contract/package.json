@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-contract",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract#readme",
 	"bugs": {
@@ -34,6 +34,9 @@
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",

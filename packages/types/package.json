@@ -1,0 +1,50 @@
+{
+	"name": "@shivaedev/types",
+	"version": "0.1.0",
+	"description": "Type-only helpers shared by the ShivaeDev packages",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/types#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/types"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"source": "./src/index.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm build",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"typescript": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

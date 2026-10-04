@@ -30,7 +30,7 @@ const highlighted = async (highlighter: Shiki, source: string, language: string)
 		return undefined;
 	}
 	await highlighter.loadLanguage(language);
-	return highlighter.codeToHast(source, { defaultColor: false, lang: language, themes: THEMES }).children[0];
+	return highlighter.codeToHast(source, { defaultColor: false, lang: language, themes: THEMES }).children.at(0);
 };
 
 export const codeBlocks = (highlighter: Shiki) =>

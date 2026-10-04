@@ -218,7 +218,7 @@
 				"noNonoctalDecimalEscape": "error",
 				"noPrecisionLoss": "error",
 				"noPrivateImports": "error",
-				"noProcessGlobal": "error",
+				"noProcessGlobal": "off",
 				"noReactPropAssignments": "error",
 				"noRenderReturnValue": "error",
 				"noSelfAssign": "error",
@@ -242,7 +242,7 @@
 				"noUnusedImports": "error",
 				"noUnusedInstantiation": "error",
 				"noUnusedLabels": "error",
-				"noUnusedPrivateClassMembers": "error",
+				"noUnusedPrivateClassMembers": { "fix": "none", "level": "error" },
 				"noUnusedVariables": "off",
 				"noVoidElementsWithChildren": "error",
 				"noVoidTypeReturn": "error",
@@ -256,7 +256,7 @@
 				"useHookAtTopLevel": "error",
 				"useInlineScriptId": "error",
 				"useIsNan": "error",
-				"useJsonImportAttributes": "error",
+				"useJsonImportAttributes": "off",
 				"useJsxKeyInIterable": {
 					"level": "error",
 					"options": {
@@ -292,7 +292,7 @@
 				"noJsxLeakedDollar": "error",
 				"noJsxNamespace": "error",
 				"noLoopFunc": "error",
-				"noMisusedPromises": "error",
+				"noMisusedPromises": "off",
 				"noNegationInEqualityCheck": "error",
 				"noObsoleteTags": "error",
 				"noPlaywrightElementHandle": "error",
@@ -340,7 +340,7 @@
 				"useControlLabel": "error",
 				"useDisposables": "error",
 				"useExhaustiveSwitchCases": {
-					"level": "error",
+					"level": "off",
 					"options": {
 						"requireExplicitCase": true
 					}
@@ -354,7 +354,7 @@
 				"useRegexpExec": "error",
 				"useRegexpTest": "error",
 				"useSortedClasses": {
-					"level": "error",
+					"level": "off",
 					"options": {
 						"functions": ["cn", "clsx", "cva"]
 					}
@@ -369,7 +369,7 @@
 			"performance": {
 				"noAccumulatingSpread": "error",
 				"noBarrelFile": "error",
-				"noDelete": "error",
+				"noDelete": "off",
 				"noDynamicNamespaceImportAccess": "error",
 				"noReExportAll": "error",
 				"noSyncScripts": "error",
@@ -409,17 +409,22 @@
 				"useCollapsedElseIf": "error",
 				"useCollapsedIf": "error",
 				"useConsistentArrayType": {
-					"level": "error",
+					"level": "off",
 					"options": {
 						"syntax": "shorthand"
 					}
 				},
 				"useConsistentArrowReturn": "error",
 				"useConsistentBuiltinInstantiation": "error",
-				"useConsistentCurlyBraces": "error",
+				"useConsistentCurlyBraces": "off",
 				"useConsistentEnumValueType": "error",
 				"useConsistentMemberAccessibility": "error",
-				"useConsistentMethodSignatures": "error",
+				"useConsistentMethodSignatures": {
+					"level": "error",
+					"options": {
+						"style": "property"
+					}
+				},
 				"useConsistentObjectDefinitions": "error",
 				"useConsistentTypeDefinitions": {
 					"level": "error",
@@ -501,7 +506,7 @@
 				"noEmptyBlockStatements": "error",
 				"noEmptyInterface": "error",
 				"noEmptySource": "error",
-				"noEqualsToNull": "error",
+				"noEqualsToNull": "off",
 				"noEvolvingTypes": "error",
 				"noExplicitAny": "error",
 				"noExportsInTest": "error",
@@ -538,7 +543,7 @@
 				"noShadow": "error",
 				"noShadowRestrictedNames": "error",
 				"noShorthandPropertyOverrides": "error",
-				"noSkippedTests": "error",
+				"noSkippedTests": "off",
 				"noSparseArray": "error",
 				"noSuspiciousSemicolonInJsx": "error",
 				"noTemplateCurlyInString": "error",

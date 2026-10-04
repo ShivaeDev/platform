@@ -7,7 +7,7 @@ const known = levels({ "local/off": "off", "local/todo": "warn", "structure/max-
 const todo = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });
 const long = (lines: number) => violation({ count: lines - 150, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
 
-describe("baseline check", () => {
+describe("baseline coverage", () => {
 	it("covers a file that holds its baselined count", () => {
 		const checked = applyBaseline([todo, todo], [{ count: 2, file: "src/a.ts", rule: "local/todo" }], known);
 		expect(checked).toEqual({ baselined: 2, kept: [], loose: [], regressions: [], stale: [] });

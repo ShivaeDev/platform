@@ -7,12 +7,12 @@ interface Row {
 	readonly ownerId: string;
 }
 
-type Delegate<Name extends string, Scalars> = {
+interface Delegate<Name extends string, Scalars> {
 	readonly [key: symbol]: { readonly types: { readonly payload: { readonly name: Name; readonly scalars: Scalars } } };
-};
+}
 
 interface Client {
-	$transaction<X>(run: (tx: Client) => Promise<X>): Promise<X>;
+	$transaction: <X>(run: (tx: Client) => Promise<X>) => Promise<X>;
 	readonly auditNote: Delegate<"AuditNote", { readonly id: string }>;
 	readonly invoice: Delegate<"Invoice", { readonly ownerId: string }>;
 	readonly membership: Delegate<"Membership", Row>;

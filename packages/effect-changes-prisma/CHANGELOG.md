@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-04
 
 ### Changed
 
 - Validate packed consumers and executable bins through the shared workspace gate.
+- `TransactionOptions.isolationLevel` takes only `"ReadUncommitted"`, `"ReadCommitted"`, `"RepeatableRead"` or `"Serializable"`, the levels Prisma accepts on PostgreSQL, instead of any string. `Transactional.$transaction` is declared as a property, so a client is checked strictly against it. The package now depends on `@shivaedev/types` for `Bivariant`, which keeps the change functions of a model map bivariant.
 
 - Build with the `@shivaedev/quality` tsconfig presets, which target ESNext and allow only erasable TypeScript syntax, so classes declare their fields instead of using constructor parameter properties.
 

@@ -65,7 +65,7 @@ describe("service definition compiler fixtures", { timeout: compilerTimeout }, (
 		"method-requirement": "MethodHasUndeclaredServiceRequirements",
 		"method-value": "not assignable",
 		overloaded: "GenericOrStructurallyOverloadedMethodsAreUnsupported",
-		"overloaded-broad": "GenericOrStructurallyOverloadedMethodsAreUnsupported",
+		"overloaded-hidden-requirement": "GenericOrStructurallyOverloadedMethodsAreUnsupported",
 		"private-state": "Property 'secret' does not exist",
 		"requirement-free-ordinary-requirement": "MethodHasUndeclaredServiceRequirements",
 		"scope-requirement": "ScopeCannotBeDeclaredAsAServiceRequirement",
