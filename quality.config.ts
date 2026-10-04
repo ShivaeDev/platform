@@ -1,3 +1,6 @@
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import { Effect } from "effect";
+import { collectInventory } from "#lint/inventory.ts";
 import platformManifest from "./packages/platform/package.json" with { type: "json" };
 import {
 	anyOf,
@@ -28,7 +31,7 @@ const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	quality: ["types"],
 	types: [],
 	"work-board": [],
-	"work-fleet": ["effect-service", "effect-sql", "effect-test"],
+	"work-fleet": ["effect-service", "effect-sql"],
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
@@ -46,6 +49,16 @@ const SERVER = [
 const BROWSER_ENTRIES = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
 const PLATFORM_CORE_ENTRIES = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((entry) => `packages/platform/src/${entry}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
+const inventory = await Effect.runPromise(collectInventory(import.meta.dirname).pipe(Effect.provide(NodeFileSystem.layer)));
+const TEST_SUFFIX = /\.(?:test|spec)\.tsx?$/u;
+const TEST_FILES = files(...inventory.sources.filter((file) => TEST_SUFFIX.test(file.path)).map((file) => file.path));
+const TEST_SUPPORT_PATH = /(?:\/test\/|\/src\/testing(?:\/|\.ts$)|^packages\/effect-test\/)/u;
+const TEST_SUPPORT = files(...inventory.sources.filter((file) => TEST_SUPPORT_PATH.test(file.path)).map((file) => file.path));
+const RUNTIME = files(
+	...inventory.sources
+		.filter((file) => file.path.includes("/src/") && !TEST_SUPPORT_PATH.test(file.path) && !TEST_SUFFIX.test(file.path))
+		.map((file) => file.path),
+);
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
@@ -55,12 +68,12 @@ function entries(paths: readonly string[]) {
 }
 
 function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
-	const index = `packages/${name}/src/${name === "work-fleet" ? "Fleet" : "index"}.ts`;
+	const index = `packages/${name}/src/index.ts`;
 	return fence(`leaf-${name}`)
 		.because(
 			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.${allowed.includes("types") ? ` ${TYPE_ONLY}` : ""}`,
 		)
-		.from(folders(`packages/${name}/src`))
+		.from(folders(`packages/${name}/src`).except(TEST_FILES))
 		.mayNotImport(workspace.except(packages(name, ...allowed)))
 		.demonstratedBy({
 			illegal: [index, `packages/${BROWSER.includes(name) ? "effect-react" : "platform"}/src/index.ts`],
@@ -69,6 +82,16 @@ function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
 }
 
 const fences: readonly Fence[] = [
+	fence("runtime-never-reaches-test-code")
+		.because(
+			"Runtime modules cannot depend on colocated tests, fixtures or testing entry points. Test modules and public testing adapters may use the test harness.",
+		)
+		.from(RUNTIME)
+		.mayNotReach(anyOf(TEST_FILES, TEST_SUPPORT, packages("effect-test")))
+		.demonstratedBy({
+			illegal: ["packages/platform/src/runtime.ts", "packages/work-fleet/test/support/lifecycleFixtures.ts"],
+			legal: ["packages/work-fleet/src/codex.test.ts", "packages/effect-test/src/index.ts"],
+		}),
 	...Object.entries(LEAVES).map(leaf),
 	fence("browser-never-imports-server")
 		.because("Browser packages ship to browsers and never import a server package.")

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { Fleet } from "#Fleet.ts";
 import { renderViews } from "#renderViews.ts";
-import { approve, effectApp, noChange, outcome, review, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, noChange, outcome, review, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("admissions and merges require separate decisions scoped to the exact work", function* (f) {
 	yield* Effect.gen(function* () {

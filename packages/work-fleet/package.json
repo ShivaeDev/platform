@@ -19,7 +19,8 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		}
+		},
+		"#test/*": "./test/*"
 	},
 	"exports": {
 		".": {
@@ -88,7 +89,9 @@
 		"README.md",
 		"north-star.md",
 		"architecture.md",
-		"roadmap.md"
+		"roadmap.md",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts"
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",

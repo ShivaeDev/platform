@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { approve, effectApp, noChange, outcome, pullRequest, review, spec } from "#test/support/lifecycleFixtures.ts";
 import { Fleet } from "./Fleet.ts";
-import { approve, effectApp, noChange, outcome, pullRequest, review, spec } from "./lifecycleFixtures.ts";
 import { failure } from "./ports.ts";
 
 effectApp("an externally merged PR cannot bypass scope and required-check evidence", function* (f) {

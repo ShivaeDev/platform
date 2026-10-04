@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { Fleet } from "#Fleet.ts";
-import { approve, effectApp, noChange, outcome, review, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, noChange, outcome, review, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("fills capacity, accounts for reviewers, and replaces delivered work", function* (f) {
 	yield* Effect.gen(function* () {

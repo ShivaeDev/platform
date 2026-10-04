@@ -182,8 +182,9 @@ concurrent writers to repository metadata.
 
 Structured-key reservations are represented, but publishing currently requires
 whole-path authority for each changed file. GitHub.com is the initial host.
-Deployment promotion, automatic quota discovery, checkout creation and hosted
-Cloud execution are absent. Unknown submissions or partial publications can need
+Reservations cover work recorded in this database; they do not discover work
+owned by other sessions or tools. Deployment promotion, automatic quota discovery,
+checkout creation and hosted Cloud execution are absent. Unknown submissions or partial publications can need
 operator investigation; no exactly-once guarantee is claimed.
 
 Synthetic provider and adapter contract tests exercise the application without

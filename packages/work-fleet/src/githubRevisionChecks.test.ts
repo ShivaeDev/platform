@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { checkoutResponses, effectApp, revision, scriptedGitHub, work } from "./githubFixtures.ts";
+import { checkoutResponses, effectApp, revision, scriptedGitHub, work } from "#test/support/githubFixtures.ts";
 import { ChangeHost } from "./ports.ts";
 
 const check = { conclusion: "success", "head_sha": revision, id: 1, name: "test", status: "completed" };

@@ -10,3 +10,5 @@
 - Add local Codex app-server and GitHub adapters, plus scripted providers for
   offline lifecycle validation. Local Codex requires ChatGPT authentication;
   hosted Cloud and API-billed execution are not implemented.
+- Keep test support and test sources out of the published package. Runtime
+  dependency fences distinguish colocated tests from application code.

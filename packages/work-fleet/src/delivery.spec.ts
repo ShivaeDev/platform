@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { Fleet } from "#Fleet.ts";
 import { renderViews } from "#renderViews.ts";
-import { approve, effectApp, noChange, outcome, pullRequest, review, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, noChange, outcome, pullRequest, review, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("independent review requests repair in the original worker session before ordinary merge", function* (f) {
 	yield* Effect.gen(function* () {

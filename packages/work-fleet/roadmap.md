@@ -21,16 +21,19 @@
 1. Establish a small, explicitly authorized live acceptance run for the installed
    Codex version: committed change, independent review, repair, checks and
    ordinary merge. Protocol fixtures and scripted delivery do not establish
-   this live compatibility.
+   this live compatibility. Measure operator interventions and the time from
+   freed capacity to replacement work.
 2. Add explicit, audited resolution of partial publication and uncertain merge
    requests. Submission receipt attachment and confirmed-absence decisions already exist. Resume alone must not manufacture evidence that an external
-   effect never happened.
+   effect never happened. Accept scoped decisions while the coordinator is
+   running, without interrupting active local turns.
 3. Reduce manual preparation of dedicated standalone clones and dependencies.
    Keep linked worktrees unsupported until their shared metadata can be handled
    without extending a worker's authority to other checkouts.
 4. Observe provider quota and usage when a supported interface provides them.
    Today quota is an operator setting and the attempt budget is a count, not a
-   token or money budget.
+   token or money budget. Add explicit reservations for work owned by other
+   sessions or tools before operating alongside them.
 5. Support scoped JSON-key publication with structural verification. Scheduling
    can distinguish keys today; the concrete publisher refuses changes supported
    only by key-level authority.

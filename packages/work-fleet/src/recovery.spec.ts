@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import type { Attempt } from "#domain.ts";
 import { Fleet } from "#Fleet.ts";
 import { Store } from "#Store.ts";
-import { approve, effectApp, outcome, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, outcome, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("a persisted prepared intent survives restart and launches the same attempt exactly once", function* (f) {
 	yield* Effect.scoped(

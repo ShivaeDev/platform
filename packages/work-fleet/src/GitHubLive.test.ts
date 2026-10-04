@@ -1,7 +1,7 @@
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
 import { ChangeHost } from "#ports.ts";
-import { checkoutResponses, effectApp, pullRequest, revision, scriptedGitHub, work } from "./githubFixtures.ts";
+import { checkoutResponses, effectApp, pullRequest, revision, scriptedGitHub, work } from "#test/support/githubFixtures.ts";
 
 effectApp("reads actual gh rollup shapes and requires unknown checks to remain pending", function* () {
 	const fixture = scriptedGitHub([

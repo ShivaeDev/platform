@@ -4,7 +4,7 @@ import { makeEffectIt } from "@shivaedev/effect-test";
 import { codexAgentLayer } from "#codex.ts";
 import { CodexRpc } from "#codexRpc.ts";
 import { Agent, failure } from "#ports.ts";
-import { acknowledged, codexFilesystem, launchResponse, noChange, request, rpc, thread } from "./codexFixtures.ts";
+import { acknowledged, codexFilesystem, launchResponse, noChange, request, rpc, thread } from "#test/support/codexFixtures.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.succeed(CodexRpc, rpc(launchResponse)), makeHarness: () => Effect.void });
 function using<A, E>(effect: Effect.Effect<A, E, Agent>, service: typeof CodexRpc.Service) {

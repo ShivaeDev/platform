@@ -1,7 +1,7 @@
 import { Effect, FileSystem } from "effect";
 import { expect } from "vitest";
 import { Fleet } from "#Fleet.ts";
-import { approve, effectApp, outcome, pullRequest, review, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, outcome, pullRequest, review, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("a provider cannot use the worker session for independent review", function* (f) {
 	yield* Effect.gen(function* () {

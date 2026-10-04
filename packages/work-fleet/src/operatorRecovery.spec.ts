@@ -1,7 +1,7 @@
 import { Effect, FileSystem } from "effect";
 import { expect } from "vitest";
+import { approve, effectApp, spec } from "#test/support/lifecycleFixtures.ts";
 import { Fleet } from "./Fleet.ts";
-import { approve, effectApp, spec } from "./lifecycleFixtures.ts";
 import { Store } from "./Store.ts";
 
 effectApp("an operator can attach a missing receipt without replacing a known provider identity", function* (f) {

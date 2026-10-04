@@ -5,7 +5,7 @@ import { expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test";
 import { decode, decodeJson, RpcMessage } from "#codexProtocol.ts";
 import { CodexRpc, codexRpcLayer } from "#codexRpc.ts";
-import { launchResponse, rpc } from "./codexFixtures.ts";
+import { launchResponse, rpc } from "#test/support/codexFixtures.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.succeed(CodexRpc, rpc(launchResponse)), makeHarness: () => Effect.void });
 const consume = Sink.forEach;

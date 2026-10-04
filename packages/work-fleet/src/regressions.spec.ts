@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { Fleet } from "#Fleet.ts";
 import { failure } from "#ports.ts";
 import { Store } from "#Store.ts";
-import { approve, effectApp, outcome, pullRequest, review, spec } from "./lifecycleFixtures.ts";
+import { approve, effectApp, outcome, pullRequest, review, spec } from "#test/support/lifecycleFixtures.ts";
 
 effectApp("an ordinary merge advancing the base completes without a repair execution", function* (f) {
 	yield* Effect.gen(function* () {

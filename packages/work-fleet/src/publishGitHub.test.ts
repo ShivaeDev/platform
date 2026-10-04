@@ -1,7 +1,7 @@
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
 import { ChangeHost } from "#ports.ts";
-import { checkoutResponses, effectApp, published, revision, SAFE_CONFIG, scriptedGitHub, work } from "./githubFixtures.ts";
+import { checkoutResponses, effectApp, published, revision, SAFE_CONFIG, scriptedGitHub, work } from "#test/support/githubFixtures.ts";
 
 effectApp("publishes scoped exact commits with approved public PR metadata", function* () {
 	const fixture = scriptedGitHub([...checkoutResponses(), "[]", "", "", published.url, JSON.stringify([published])]);
