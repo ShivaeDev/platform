@@ -1,7 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { execPath } from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
-import { aliasRepository } from "./support/alias-tree.ts";
+import { aliasRepository, builtPackages, fallbacklessEntries } from "./support/alias-tree.ts";
 import { quality } from "./support/cli.ts";
 import { git } from "./support/git.ts";
 import { config, linkPackage, removeSeededTrees, type SeedFile } from "./support/tree.ts";
@@ -65,6 +67,35 @@ describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 				"",
 			].join("\n"),
 		);
+	});
+
+	it("rewrites to an alias whose other conditions load the build output, which Node then resolves", () => {
+		const root = repository("{}", ...builtPackages);
+		quality(root, "fix");
+		function resolved(directory: string, ...conditions: readonly string[]): string {
+			const script = 'console.log(import.meta.resolve("#lib/x.ts"))';
+			const flags = conditions.map((condition) => `--conditions=${condition}`);
+			const url = execFileSync(execPath, [...flags, "--input-type=module", "--eval", script], {
+				cwd: join(root, directory),
+				encoding: "utf8",
+			});
+			return url.trim().slice(url.trim().indexOf(`/${directory}/`) + directory.length + 2);
+		}
+		for (const directory of ["packages/built", "packages/shipped"]) {
+			expect(read(root, `${directory}/src/feature/use.ts`)).toContain('import { x } from "#lib/x.ts";');
+			expect(resolved(directory, "source")).toBe("src/lib/x.ts");
+		}
+		expect(resolved("packages/shipped")).toBe("dist/lib/x.js");
+		expect(read(root, "packages/elsewhere/src/feature/use.ts")).toContain('import { x } from "../lib/x.ts";');
+		expect(read(root, "packages/unbuilt/src/feature/use.ts")).toContain('import { x } from "../lib/x.ts";');
+	});
+
+	it("leaves an import whose alias some environment matches with no branch", () => {
+		const root = repository("{}", ...fallbacklessEntries);
+		quality(root, "fix");
+		expect(read(root, "packages/strict/src/a/use.ts")).toContain('import { t } from "../b/t.ts";');
+		expect(read(root, "packages/strict/src/a/load.cts")).toContain('require("../c/c.ts")');
+		expect(read(root, "packages/app/src/gated-user.ts")).toContain('import { gated } from "../../gated/src/index.ts";');
 	});
 
 	it("never rewrites to a tsconfig path", () => {

@@ -103,10 +103,82 @@ const aliasTree: readonly SeedFile[] = [
 	code("script/lib/tool.ts", "export const tool = 1;"),
 ];
 
+const BUILT = '{ "#*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } }';
+
+function builtPackage(directory: string, imports: string, build: unknown): readonly SeedFile[] {
+	const name = `@demo/${directory.split("/").at(-1)}`;
+	return [
+		{
+			content: `{ "imports": ${imports}, "name": "${name}", "scripts": { "build": "tsc -p tsconfig.emit.json" }, "type": "module" }\n`,
+			path: `${directory}/package.json`,
+		},
+		...(build === undefined ? [] : [json(`${directory}/tsconfig.emit.json`, build)]),
+		code(`${directory}/src/feature/use.ts`, 'import { x } from "../lib/x.ts";', "export const used = x;"),
+		code(`${directory}/src/lib/x.ts`, "export const x = 1;"),
+	];
+}
+
+const EMIT = { compilerOptions: { declaration: true, outDir: "dist", rootDir: "src" }, include: ["src"] };
+
+export const builtPackages: readonly SeedFile[] = [
+	...builtPackage("packages/built", BUILT, EMIT),
+	...builtPackage("packages/shipped", BUILT, EMIT),
+	code("packages/shipped/dist/lib/x.js", "export const x = 1;"),
+	code("packages/shipped/dist/lib/x.d.ts", "export declare const x: number;"),
+	...builtPackage("packages/elsewhere", BUILT, { ...EMIT, compilerOptions: { ...EMIT.compilerOptions, outDir: "out" } }),
+	...builtPackage("packages/unbuilt", BUILT, undefined),
+];
+
+export const fallbacklessEntries: readonly SeedFile[] = [
+	json("packages/strict/package.json", {
+		imports: { "#b/*": { development: "./src/b/*", types: "./src/b/*" }, "#c/*": { import: "./src/c/*" } },
+		name: "@demo/strict",
+		type: "module",
+	}),
+	code("packages/strict/src/a/use.ts", 'import { t } from "../b/t.ts";', "export const used = t;"),
+	code("packages/strict/src/a/load.cts", 'const { c } = require("../c/c.ts");', "export = c;"),
+	code("packages/strict/src/b/t.ts", "export const t = 1;"),
+	code("packages/strict/src/c/c.ts", "export const c = 1;"),
+	json("packages/gated/package.json", {
+		exports: { ".": { development: "./src/index.ts", types: "./src/index.ts" } },
+		name: "@demo/gated",
+		type: "module",
+	}),
+	code("packages/gated/src/index.ts", "export const gated = 1;"),
+	code("packages/app/src/gated-user.ts", 'import { gated } from "../../gated/src/index.ts";', "export const used = gated;"),
+];
+
+export const mainPackage: readonly SeedFile[] = [
+	json("packages/plain/package.json", { main: "./src/index.ts", name: "@demo/plain", type: "module" }),
+	code("packages/plain/src/index.ts", "export const plain = 1;"),
+	code("packages/plain/src/other.ts", "export const other = 1;"),
+	code(
+		"packages/app/src/plain-user.ts",
+		'import { plain } from "../../plain/src/index.ts";',
+		'import { other } from "../../plain/src/other.ts";',
+		"export const used = [plain, other];",
+	),
+];
+
+export const jsDocProse: SeedFile = code(
+	"packages/app/src/feature/prose.ts",
+	"/**",
+	' * Prefer @import over a require call, it reads from "../lib/side.ts" lazily.',
+	' * @import { Format } from "../lib/format.ts"',
+	" */",
+	'export const prose: Format = "";',
+);
+
 export function aliasRepository(...extra: readonly SeedFile[]): string {
 	const root = seedTree(aliasTree, extra);
 	linkWorkspace(root, "@demo/kit", "packages/kit");
 	linkWorkspace(root, "@demo/shared", "packages/shared");
 	linkWorkspace(root, "@demo/lib", "packages/lib");
+	if (extra.some((file) => file.path.startsWith("packages/gated/"))) {
+		linkWorkspace(root, "@demo/gated", "packages/gated");
+	}
+	if (extra.some((file) => file.path.startsWith("packages/plain/"))) {
+		linkWorkspace(root, "@demo/plain", "packages/plain");
+	}
 	return root;
 }

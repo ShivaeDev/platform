@@ -48,6 +48,17 @@ export function branches(value: unknown): readonly (string | undefined)[] {
 	return isRecord(value) ? Object.values(value).flatMap(branches) : [undefined];
 }
 
+// Node and bundlers fail on an environment no condition names, so each condition object needs a default.
+export function covered(value: unknown): boolean {
+	if (typeof value === "string") {
+		return true;
+	}
+	if (Array.isArray(value)) {
+		return value.length > 0 && value.every(covered);
+	}
+	return isRecord(value) && "default" in value && Object.values(value).every(covered);
+}
+
 function mappingsOf(entries: Entries, directory: string, local: boolean): readonly Mapping[] {
 	return entries.flatMap(([from, value]) =>
 		branches(value).flatMap((target) => {
@@ -77,9 +88,19 @@ export function importMappings(manifest: unknown, directory: string): readonly M
 	return mappingsOf(importEntries(manifest), directory, false);
 }
 
+export function mainEntry(manifest: unknown): string | undefined {
+	const main = field(manifest, "main");
+	return field(manifest, "exports") === undefined && typeof main === "string" ? main : undefined;
+}
+
 export function exportMappings(manifest: unknown, directory: string): readonly Mapping[] {
 	const name = field(manifest, "name");
-	return typeof name === "string"
-		? mappingsOf(exportEntries(manifest), directory, true).map(({ from, to }) => ({ from: `${name}${from.slice(1)}`, to }))
-		: [];
+	if (typeof name !== "string") {
+		return [];
+	}
+	const main = mainEntry(manifest);
+	if (main !== undefined) {
+		return [{ from: name, to: posix.join(directory, main) }];
+	}
+	return mappingsOf(exportEntries(manifest), directory, true).map(({ from, to }) => ({ from: `${name}${from.slice(1)}`, to }));
 }

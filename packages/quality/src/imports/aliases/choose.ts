@@ -1,3 +1,4 @@
+import type { Emitted } from "./emitted.ts";
 import { type Located, loadsOnly } from "./forward.ts";
 import { captured, filled, type Mapping } from "./pattern.ts";
 
@@ -5,6 +6,7 @@ export type AliasKind = "imports" | "package";
 
 export interface AliasScope {
 	readonly crossing: boolean;
+	readonly emitted: Emitted;
 	readonly exported: readonly Mapping[];
 	readonly imports: readonly Mapping[];
 	readonly own: Located | undefined;
@@ -57,6 +59,6 @@ export function chooseAlias(
 ): string | undefined {
 	const ranked = [...candidatesFor(scope, subjects)].sort(compare(scope));
 	return [...new Set(ranked.map((candidate) => candidate.specifier))].find(
-		(specifier) => loadsOnly(scope.own, scope.owner, specifier, target) && resolves(specifier),
+		(specifier) => loadsOnly(scope.emitted, scope.own, scope.owner, specifier, target) && resolves(specifier),
 	);
 }

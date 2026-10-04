@@ -62,7 +62,7 @@ function siteOf(source: ts.SourceFile, found: Found | undefined): readonly Speci
 	return [{ end, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier: literal.text, start, type: found.type }];
 }
 
-const JSDOC_IMPORT = /@import\b[^"'`]*?\bfrom\s*(?<quote>["'])(?<path>[^"'\r\n]*)\k<quote>/gu;
+const JSDOC_IMPORT = /^[ \t]*(?:\/\*\*|\*)?[ \t]*@import\b[^"'`]*?\bfrom\s*(?<quote>["'])(?<path>[^"'\r\n]*)\k<quote>/gmu;
 
 function siteAt(source: ts.SourceFile, start: number, specifier: string): SpecifierSite {
 	return { end: start + specifier.length, line: source.getLineAndCharacterOfPosition(start).line + 1, specifier, start, type: true };

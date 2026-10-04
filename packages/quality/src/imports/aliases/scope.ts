@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import type { RuleInputs } from "../../rule.ts";
 import { packageOf, type WorkspacePackage } from "../workspace.ts";
 import type { AliasScope } from "./choose.ts";
+import { emittedModules } from "./emitted.ts";
 import { exportMappings, importMappings } from "./pattern.ts";
 
 const MANIFEST = "package.json";
@@ -23,6 +24,7 @@ export type AliasScopes = (file: string, target: string) => Promise<AliasScope>;
 
 export function aliasScopes(reader: Pick<RuleInputs, "readText">, root: string, packages: readonly WorkspacePackage[]): AliasScopes {
 	const manifests = new Map<string, Promise<unknown>>();
+	const emitted = emittedModules();
 	function manifestAt(directory: string): Promise<unknown> {
 		const known = manifests.get(directory) ?? reader.readText(posix.join(directory, MANIFEST)).then(parsed);
 		manifests.set(directory, known);
@@ -48,6 +50,7 @@ export function aliasScopes(reader: Pick<RuleInputs, "readText">, root: string, 
 				: { directory: posix.join(root, ownerPackage.directory), manifest: await manifestAt(ownerPackage.directory) };
 		return {
 			crossing: ownerPackage !== undefined && ownerPackage !== packageOf(packages, file),
+			emitted,
 			exported: owner === undefined ? [] : exportMappings(owner.manifest, owner.directory),
 			imports: own === undefined ? [] : importMappings(own.manifest, own.directory),
 			own,
