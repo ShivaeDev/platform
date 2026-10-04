@@ -37,11 +37,17 @@ export function prepareArchives(packages: readonly Package[], archives: string) 
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		yield* fs.makeDirectory(archives, { recursive: true });
-		const inventory: { name: string; sha256: string; version: string }[] = [];
-		for (const pkg of packages) {
-			yield* checkArchive(pkg);
-			inventory.push({ name: pkg.manifest.name, sha256: checksum(yield* fs.readFile(pkg.tarball)), version: pkg.manifest.version });
-		}
+		const concurrency = yield* Config.int("CI_WORKSPACE_CONCURRENCY").pipe(Config.withDefault(1));
+		yield* requireThat(concurrency > 0, "CI_WORKSPACE_CONCURRENCY must be positive");
+		const inventory = yield* Effect.forEach(
+			packages,
+			(pkg) =>
+				Effect.gen(function* () {
+					yield* checkArchive(pkg);
+					return { name: pkg.manifest.name, sha256: checksum(yield* fs.readFile(pkg.tarball)), version: pkg.manifest.version };
+				}),
+			{ concurrency },
+		);
 		yield* writeJson(join(archives, "manifest.json"), {
 			packages: inventory,
 			sha: yield* Config.string("GITHUB_SHA").pipe(Config.withDefault("local")),

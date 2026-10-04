@@ -8,10 +8,12 @@ runs:
   using: composite
   steps:
     - name: Await this attempt's package artifact
+      id: wait
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
         ARTIFACT_NAME: packages-${{ github.sha }}-${{ github.run_attempt }}
+        ARTIFACT_PREFIX: packages-${{ github.sha }}-
       run: |
         deadline=$((SECONDS + 180))
         while (( SECONDS < deadline )); do
@@ -19,13 +21,23 @@ runs:
             --jq '.artifacts[] | select(.expired == false) | .id')
           if [[ -n "$artifact_id" ]]; then
             echo "Package artifact $artifact_id is ready"
+            echo "name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
-            --jq '.jobs[] | select(.name == "build" and .status == "completed") | .conclusion')
-          if [[ -n "$conclusion" && "$conclusion" != success ]]; then
-            echo "::error::Package producer finished with $conclusion"
+          producer=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+            --jq '.jobs[] | select(.name == "build") | "\(.status):\(.conclusion // "")"')
+          if [[ "$producer" == completed:* && "$producer" != completed:success ]]; then
+            echo "::error::Package producer finished with $producer"
             exit 1
+          fi
+          if [[ -z "$producer" && "$GITHUB_RUN_ATTEMPT" -gt 1 ]]; then
+            previous=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+              --jq '.artifacts | map(select(.expired == false and (.name | startswith(env.ARTIFACT_PREFIX))) | select((.name | ltrimstr(env.ARTIFACT_PREFIX) | tonumber) < (env.GITHUB_RUN_ATTEMPT | tonumber))) | sort_by(.created_at) | last | .name // empty')
+            if [[ -n "$previous" ]]; then
+              echo "Reusing $previous because this retry does not rerun the producer"
+              echo "name=$previous" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
           sleep 2
         done
@@ -33,5 +45,5 @@ runs:
         exit 1
     - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
       with:
-        name: packages-${{ github.sha }}-${{ github.run_attempt }}
+        name: ${{ steps.wait.outputs.name }}
         path: .ci/packages

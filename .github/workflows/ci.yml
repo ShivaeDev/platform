@@ -40,11 +40,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          save-workspace-cache: 'true'
       - run: pnpm build
         env:
           CI_WORKSPACE_CONCURRENCY: 4
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
+        env:
+          CI_WORKSPACE_CONCURRENCY: 4
       - name: Load measured consumer timings from main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,6 +112,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
+          overwrite: true
           name: test-timings-${{ matrix.shard }}
           path: .ci/tests.json
           include-hidden-files: true
@@ -146,6 +151,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
+          overwrite: true
           name: consumer-timings-${{ matrix.shard }}
           path: .ci/consumers.json
           include-hidden-files: true
@@ -196,6 +202,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
+          overwrite: true
           name: consumer-balancing
           path: .ci/consumer-durations.json
           include-hidden-files: true
