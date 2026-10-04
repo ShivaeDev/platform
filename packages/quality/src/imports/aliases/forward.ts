@@ -15,7 +15,7 @@ interface Match {
 
 const IMPORT_PREFIX = "#";
 
-const BUNDLER_FIELDS = ["module", "browser"];
+const ENTRY_FIELDS = ["module", "browser", "types", "typings"];
 
 function prefixLength(key: string): number {
 	return key.indexOf("*");
@@ -44,7 +44,7 @@ function everyBranchLands(value: unknown, lands: (branch: string) => boolean): b
 
 function mainLands(emitted: Emitted, owner: Located, main: string, file: string): boolean {
 	const modules = emitted(owner.directory, file);
-	const entries = [main, ...BUNDLER_FIELDS.map((name) => field(owner.manifest, name)).filter((entry) => entry !== undefined)];
+	const entries = [main, ...ENTRY_FIELDS.map((name) => field(owner.manifest, name)).filter((entry) => entry !== undefined)];
 	return entries.every((entry) => typeof entry === "string" && modules.has(posix.join(owner.directory, entry)));
 }
 

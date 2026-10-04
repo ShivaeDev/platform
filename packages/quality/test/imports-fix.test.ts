@@ -69,7 +69,7 @@ describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 		);
 	});
 
-	it("rewrites to an alias whose other conditions load the build output, which Node then resolves", () => {
+	it("rewrites to an alias whose other conditions load the build output only where the tsconfig selects the source, which Node then resolves", () => {
 		const root = repository("{}", ...builtPackages);
 		quality(root, "fix");
 		function resolved(directory: string, ...conditions: readonly string[]): string {
@@ -86,8 +86,9 @@ describe("quality fix with imports/aliased", { timeout: cliTimeout }, () => {
 			expect(resolved(directory, "source")).toBe("src/lib/x.ts");
 		}
 		expect(resolved("packages/shipped")).toBe("dist/lib/x.js");
-		expect(read(root, "packages/elsewhere/src/feature/use.ts")).toContain('import { x } from "../lib/x.ts";');
-		expect(read(root, "packages/unbuilt/src/feature/use.ts")).toContain('import { x } from "../lib/x.ts";');
+		for (const directory of ["packages/bare", "packages/stale", "packages/elsewhere", "packages/unbuilt"]) {
+			expect(read(root, `${directory}/src/feature/use.ts`)).toContain('import { x } from "../lib/x.ts";');
+		}
 	});
 
 	it("leaves an import whose alias some environment matches with no branch", () => {

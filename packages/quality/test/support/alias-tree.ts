@@ -105,28 +105,59 @@ const aliasTree: readonly SeedFile[] = [
 
 const BUILT = '{ "#*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } }';
 
-function builtPackage(directory: string, imports: string, build: unknown): readonly SeedFile[] {
+const NESTED = '{ "#*.ts": { "source": "./src/*.ts", "types": "./dist/src/*.d.ts", "default": "./dist/src/*.js" } }';
+
+const EMIT = { compilerOptions: { declaration: true, outDir: "dist", rootDir: "src" }, include: ["src"] };
+
+const SOURCE_PROJECT = { compilerOptions: { customConditions: ["source"] }, extends: "../../tsconfig.json" };
+
+interface BuiltShape {
+	readonly build?: unknown;
+	readonly imports?: string;
+	readonly project?: unknown;
+	readonly scripts?: string;
+}
+
+function builtPackage(directory: string, shape: BuiltShape): readonly SeedFile[] {
 	const name = `@demo/${directory.split("/").at(-1)}`;
+	const scripts = shape.scripts ?? '{ "build": "tsc -p tsconfig.emit.json", "typecheck": "tsc --noEmit" }';
 	return [
 		{
-			content: `{ "imports": ${imports}, "name": "${name}", "scripts": { "build": "tsc -p tsconfig.emit.json" }, "type": "module" }\n`,
+			content: `{ "imports": ${shape.imports ?? BUILT}, "name": "${name}", "scripts": ${scripts}, "type": "module" }\n`,
 			path: `${directory}/package.json`,
 		},
-		...(build === undefined ? [] : [json(`${directory}/tsconfig.emit.json`, build)]),
+		...(shape.build === undefined ? [] : [json(`${directory}/tsconfig.emit.json`, shape.build)]),
+		...(shape.project === undefined ? [] : [json(`${directory}/tsconfig.json`, shape.project)]),
 		code(`${directory}/src/feature/use.ts`, 'import { x } from "../lib/x.ts";', "export const used = x;"),
 		code(`${directory}/src/lib/x.ts`, "export const x = 1;"),
 	];
 }
 
-const EMIT = { compilerOptions: { declaration: true, outDir: "dist", rootDir: "src" }, include: ["src"] };
+function staleOutput(directory: string): readonly SeedFile[] {
+	return [code(`${directory}/dist/lib/x.js`, "export const x = 0;"), code(`${directory}/dist/lib/x.d.ts`, "export declare const x: number;")];
+}
+
+const EMITTING_PROJECT = {
+	compilerOptions: { ...COMPILER, customConditions: ["source"], declaration: true, noEmit: false, outDir: "dist", rootDir: "." },
+	include: ["src"],
+};
 
 export const builtPackages: readonly SeedFile[] = [
-	...builtPackage("packages/built", BUILT, EMIT),
-	...builtPackage("packages/shipped", BUILT, EMIT),
-	code("packages/shipped/dist/lib/x.js", "export const x = 1;"),
-	code("packages/shipped/dist/lib/x.d.ts", "export declare const x: number;"),
-	...builtPackage("packages/elsewhere", BUILT, { ...EMIT, compilerOptions: { ...EMIT.compilerOptions, outDir: "out" } }),
-	...builtPackage("packages/unbuilt", BUILT, undefined),
+	...builtPackage("packages/built", { build: EMIT, project: SOURCE_PROJECT }),
+	...builtPackage("packages/shipped", { build: EMIT, project: SOURCE_PROJECT }),
+	...staleOutput("packages/shipped"),
+	...builtPackage("packages/bare", { build: EMIT }),
+	...builtPackage("packages/stale", { build: EMIT }),
+	...staleOutput("packages/stale"),
+	...builtPackage("packages/elsewhere", { build: { ...EMIT, compilerOptions: { ...EMIT.compilerOptions, outDir: "out" } }, project: SOURCE_PROJECT }),
+	...builtPackage("packages/unbuilt", { project: SOURCE_PROJECT }),
+	...builtPackage("packages/split", { build: EMIT, imports: NESTED, project: EMITTING_PROJECT }),
+	...builtPackage("packages/fallback", { project: SOURCE_PROJECT, scripts: "{}" }),
+	json("packages/fallback/tsconfig.build.json", EMIT),
+	...builtPackage("packages/torn", { project: EMITTING_PROJECT, scripts: "{}" }),
+	json("packages/torn/tsconfig.build.json", EMIT),
+	...builtPackage("packages/flagged", { build: EMIT, project: SOURCE_PROJECT, scripts: '{ "build": "tsc -p tsconfig.emit.json --outDir lib" }' }),
+	...builtPackage("packages/broken", { build: { ...EMIT, extends: "./missing.json" }, project: SOURCE_PROJECT }),
 ];
 
 export const fallbacklessEntries: readonly SeedFile[] = [
@@ -150,6 +181,9 @@ export const fallbacklessEntries: readonly SeedFile[] = [
 
 export const mainPackage: readonly SeedFile[] = [
 	json("packages/plain/package.json", { main: "./src/index.ts", name: "@demo/plain", type: "module" }),
+	json("packages/typedmain/package.json", { main: "./src/index.ts", name: "@demo/typedmain", type: "module", types: "./types/index.d.ts" }),
+	code("packages/typedmain/src/index.ts", "export const typed = 1;"),
+	code("packages/typedmain/types/index.d.ts", "export declare const typed: number;"),
 	code("packages/plain/src/index.ts", "export const plain = 1;"),
 	code("packages/plain/src/other.ts", "export const other = 1;"),
 	code(
@@ -158,6 +192,7 @@ export const mainPackage: readonly SeedFile[] = [
 		'import { other } from "../../plain/src/other.ts";',
 		"export const used = [plain, other];",
 	),
+	code("packages/app/src/typedmain-user.ts", 'import { typed } from "../../typedmain/src/index.ts";', "export const used = typed;"),
 ];
 
 export const jsDocProse: SeedFile = code(
@@ -179,6 +214,7 @@ export function aliasRepository(...extra: readonly SeedFile[]): string {
 	}
 	if (extra.some((file) => file.path.startsWith("packages/plain/"))) {
 		linkWorkspace(root, "@demo/plain", "packages/plain");
+		linkWorkspace(root, "@demo/typedmain", "packages/typedmain");
 	}
 	return root;
 }

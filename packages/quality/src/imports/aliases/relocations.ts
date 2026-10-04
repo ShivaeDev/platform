@@ -47,6 +47,7 @@ function subjectsOf(spelled: string, target: string): readonly string[] {
 }
 
 interface FileContext {
+	readonly declared: (site: SpecifierSite, specifier: string) => Endpoint | undefined;
 	readonly from: string;
 	readonly path: string;
 	readonly resolve: (site: SpecifierSite, specifier: string, type?: boolean) => Endpoint | undefined;
@@ -70,8 +71,9 @@ async function relocationOf(context: FileContext, scopes: AliasScopes, site: Spe
 	const scope = await scopes(context.path, local);
 	const file = posix.join(root, local);
 	const subjects = subjectsOf(posix.join(posix.dirname(context.from), path), file);
+	// Build output stands in for the source only when the conditions the project declares already select the source.
 	const alias = chooseAlias(scope, subjects, file, (candidate) => {
-		const reached = context.resolve(site, `${candidate}${query}`);
+		const reached = context.declared(site, `${candidate}${query}`);
 		return reached?.kind === "file" && reached.path === local;
 	});
 	return { ...relocation, replacement: alias === undefined ? undefined : `${alias}${query}` };
@@ -80,6 +82,7 @@ async function relocationOf(context: FileContext, scopes: AliasScopes, site: Spe
 export async function relocations(inputs: RuleInputs): Promise<readonly Relocation[]> {
 	const root = realpathSync(inputs.root);
 	const projectOf = projectsFor(root);
+	const declaredProjectOf = projectsFor(root, []);
 	const scopes = aliasScopes(inputs, root, await workspacePackages(inputs));
 	const found: Relocation[] = [];
 	for (const file of inputs.sources) {
@@ -89,10 +92,14 @@ export async function relocations(inputs: RuleInputs): Promise<readonly Relocati
 		}
 		const from = posix.join(root, file.path);
 		const project = projectOf(from);
+		const declaredProject = declaredProjectOf(from);
 		function resolve(site: SpecifierSite, specifier: string, type = site.type): Endpoint | undefined {
 			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type }, from, project);
 		}
-		const context = { from, path: file.path, resolve };
+		function declared(site: SpecifierSite, specifier: string): Endpoint | undefined {
+			return resolveImport(root, noAmbient, { kind: "import", line: site.line, specifier, type: site.type }, from, declaredProject);
+		}
+		const context = { declared, from, path: file.path, resolve };
 		for (const site of specifierSites(syntax)) {
 			const relocation = await relocationOf(context, scopes, site, root);
 			found.push(...(relocation === undefined ? [] : [relocation]));

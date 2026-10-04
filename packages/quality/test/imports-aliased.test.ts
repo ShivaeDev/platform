@@ -99,22 +99,32 @@ describe("imports/aliased", () => {
 		]);
 	});
 
-	it("counts a package's build output as the module its source file builds", async () => {
+	it("counts build output as the module only when the project's own conditions select the source and one build places it", async () => {
 		const findings = await findingsIn(importsAliased, undefined, aliasRepository(...builtPackages));
 		const built = findings.filter((finding) => finding.file.endsWith("/src/feature/use.ts"));
 		expect(rewrites(built)).toEqual([
+			["packages/bare/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/broken/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/built/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
 			["packages/elsewhere/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/fallback/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
+			["packages/flagged/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/shipped/src/feature/use.ts:1", "../lib/x.ts", "#lib/x.ts"],
+			["packages/split/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/stale/src/feature/use.ts:1", "../lib/x.ts", undefined],
+			["packages/torn/src/feature/use.ts:1", "../lib/x.ts", undefined],
 			["packages/unbuilt/src/feature/use.ts:1", "../lib/x.ts", undefined],
 		]);
 	});
 
-	it("offers the bare name of a package whose main is the file and that has no exports", async () => {
+	it("offers the bare name of a package without exports whose main and types load the file", async () => {
 		const findings = await findingsIn(importsAliased, undefined, aliasRepository(...mainPackage));
 		expect(rewrites(findings.filter((finding) => finding.file === "packages/app/src/plain-user.ts"))).toEqual([
 			["packages/app/src/plain-user.ts:1", "../../plain/src/index.ts", "@demo/plain"],
 			["packages/app/src/plain-user.ts:2", "../../plain/src/other.ts", undefined],
+		]);
+		expect(rewrites(findings.filter((finding) => finding.file === "packages/app/src/typedmain-user.ts"))).toEqual([
+			["packages/app/src/typedmain-user.ts:1", "../../typedmain/src/index.ts", undefined],
 		]);
 	});
 

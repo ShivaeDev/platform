@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import ts from "typescript";
-import { field, isRecord } from "./pattern.ts";
+import { buildConfigs, UNKNOWN_BUILD } from "./build-configs.ts";
 
 export type Emitted = (directory: string, file: string) => ReadonlySet<string>;
 
@@ -12,11 +12,11 @@ interface Build {
 	readonly scripts: string | undefined;
 }
 
-const MANIFEST = "package.json";
+const UNKNOWN = "unknown";
 
-const CONFIGS = ["tsconfig.json", "tsconfig.build.json"];
+const SILENT = "silent";
 
-const PROJECT_FLAG = /(?:^|\s)(?:--project|-p)(?:\s+|=)(?<path>[^\s&|;]+)/gu;
+type Plan = Build | typeof SILENT | typeof UNKNOWN;
 
 const OUTPUTS: Readonly<Record<string, readonly [string, string]>> = {
 	".cjs": [".cjs", ".d.cts"],
@@ -31,24 +31,17 @@ const OUTPUTS: Readonly<Record<string, readonly [string, string]>> = {
 
 const quietHost: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined };
 
-function scriptConfigs(directory: string): readonly string[] {
-	const text = ts.sys.readFile(posix.join(directory, MANIFEST));
-	let manifest: unknown;
-	try {
-		manifest = text === undefined ? undefined : JSON.parse(text);
-	} catch {
-		return [];
-	}
-	const scripts = field(manifest, "scripts");
-	const commands = isRecord(scripts) ? Object.values(scripts).filter((command) => typeof command === "string") : [];
-	return commands.flatMap((command) => [...command.matchAll(PROJECT_FLAG)].map((match) => posix.join(directory, match.groups?.path ?? "")));
-}
-
-function buildOf(path: string): Build | undefined {
+function planOf(path: string): Plan {
 	const parsed = ts.sys.fileExists(path) ? ts.getParsedCommandLineOfConfigFile(path, {}, quietHost) : undefined;
 	const options = parsed?.options;
-	if (parsed === undefined || options === undefined || options.noEmit === true || options.rootDir === undefined || options.outDir === undefined) {
-		return undefined;
+	if (parsed === undefined || options === undefined || parsed.errors.length > 0) {
+		return UNKNOWN;
+	}
+	if (options.noEmit === true) {
+		return SILENT;
+	}
+	if (options.rootDir === undefined || options.outDir === undefined) {
+		return UNKNOWN;
 	}
 	const declares = options.declaration === true || options.composite === true;
 	return {
@@ -58,6 +51,12 @@ function buildOf(path: string): Build | undefined {
 		root: options.rootDir,
 		scripts: options.emitDeclarationOnly === true ? undefined : options.outDir,
 	};
+}
+
+function buildsIn(directory: string): readonly Build[] | undefined {
+	const configs = buildConfigs(directory);
+	const plans: readonly Plan[] = configs.includes(UNKNOWN_BUILD) ? [UNKNOWN] : configs.map(planOf);
+	return plans.includes(UNKNOWN) ? undefined : plans.filter((plan) => typeof plan !== "string");
 }
 
 function outputsOf(build: Build, file: string): readonly string[] {
@@ -76,15 +75,18 @@ function outputsOf(build: Build, file: string): readonly string[] {
 	];
 }
 
+function agreedOutputs(builds: readonly Build[], file: string): readonly string[] {
+	const placements = builds.map((build) => outputsOf(build, file)).filter((outputs) => outputs.length > 0);
+	const distinct = new Set(placements.map((outputs) => outputs.join("\n")));
+	return distinct.size === 1 ? (placements[0] ?? []) : [];
+}
+
 // A package's build turns a source file into its emitted script and declaration; they are the same module.
 export function emittedModules(): Emitted {
-	const builds = new Map<string, readonly Build[]>();
-	function buildsIn(directory: string): readonly Build[] {
-		const known =
-			builds.get(directory)
-			?? [...new Set([...CONFIGS.map((name) => posix.join(directory, name)), ...scriptConfigs(directory)])].flatMap((path) => buildOf(path) ?? []);
+	const builds = new Map<string, readonly Build[] | undefined>();
+	return (directory, file) => {
+		const known = builds.has(directory) ? builds.get(directory) : buildsIn(directory);
 		builds.set(directory, known);
-		return known;
-	}
-	return (directory, file) => new Set([file, ...buildsIn(directory).flatMap((build) => outputsOf(build, file))]);
+		return new Set([file, ...agreedOutputs(known ?? [], file)]);
+	};
 }

@@ -22,13 +22,13 @@ const SOURCE_CONDITION = "source";
 
 const quietHost: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined };
 
-function resolutionOptions(options: ts.CompilerOptions, declarations: boolean): ts.CompilerOptions {
+function resolutionOptions(options: ts.CompilerOptions, declarations: boolean, injected: readonly string[]): ts.CompilerOptions {
 	return {
 		...options,
 		allowArbitraryExtensions: declarations,
 		allowImportingTsExtensions: true,
 		allowJs: true,
-		customConditions: [...new Set([SOURCE_CONDITION, ...(options.customConditions ?? [])])],
+		customConditions: [...new Set([...injected, ...(options.customConditions ?? [])])],
 		module: ts.ModuleKind.ESNext,
 		moduleResolution: ts.ModuleResolutionKind.Bundler,
 		noDtsResolution: !declarations,
@@ -38,9 +38,9 @@ function resolutionOptions(options: ts.CompilerOptions, declarations: boolean): 
 	};
 }
 
-function projectOf(root: string, parsed: ParsedProject | undefined): Project {
-	const runtime = resolutionOptions(parsed?.options ?? {}, false);
-	const types = resolutionOptions(parsed?.options ?? {}, true);
+function projectOf(root: string, parsed: ParsedProject | undefined, injected: readonly string[]): Project {
+	const runtime = resolutionOptions(parsed?.options ?? {}, false, injected);
+	const types = resolutionOptions(parsed?.options ?? {}, true, injected);
 	return {
 		cache: ts.createModuleResolutionCache(root, (file) => file, runtime),
 		files: parsed?.files ?? new Set(),
@@ -83,7 +83,8 @@ function memo<Value>(compute: (key: string) => Value): (key: string) => Value {
 }
 
 // A file resolves with the options of the project that includes it: the nearest tsconfig.json, or a project it references.
-export function projectsFor(root: string): (file: string) => Project {
+// The source condition is added unless the caller asks for only the conditions the project declares.
+export function projectsFor(root: string, injected: readonly string[] = [SOURCE_CONDITION]): (file: string) => Project {
 	const parsedAt = memo(parse);
 	function withReferences(path: string, seen: Set<string>): readonly ParsedProject[] {
 		if (seen.has(path)) {
@@ -99,7 +100,7 @@ export function projectsFor(root: string): (file: string) => Project {
 		const config = nearestConfig(root, file);
 		const owner = config === undefined ? undefined : (familyAt(config).find((candidate) => candidate.files.has(file)) ?? parsedAt(config));
 		const key = owner?.key ?? "";
-		const project = projects.get(key) ?? projectOf(root, owner);
+		const project = projects.get(key) ?? projectOf(root, owner, injected);
 		projects.set(key, project);
 		return project;
 	};
