@@ -69,6 +69,21 @@ describe("files/named-after-export", () => {
 		]);
 	});
 
+	it("names a file after its default export", async () => {
+		const sources = [
+			{ content: "export default function ItemPanel() {}\n", path: "src/ItemPanel.tsx" },
+			{ content: "function Badge() {}\nexport default Badge;\n", path: "src/Badge.tsx" },
+			{ content: 'import { memo } from "react";\nfunction Card() {}\nexport default memo(Card);\n', path: "src/Card.tsx" },
+			{ content: "export default class OrderStore {}\n", path: "src/OrderStore.ts" },
+			{ content: "function Toast() {}\nexport { Toast as default };\n", path: "src/Toast.tsx" },
+			{ content: "export default function () {}\n", path: "src/setupMocks.ts" },
+			{ content: "export default function ItemPanel() {}\n", path: "src/item-panel.tsx" },
+		];
+		expect(byFile(await checkRule(namedAfterExport, undefined, { sources }))).toEqual([
+			'src/item-panel.tsx: "item-panel" does not name its export ItemPanel',
+		]);
+	});
+
 	it("leaves the configured tool-owned files alone", async () => {
 		const sources = [{ content: "export function loadItem() {}\n", path: "src/fetch.ts" }];
 		expect(await checkRule(namedAfterExport, { toolOwned: ["src/fetch.ts"] }, { sources })).toEqual([]);

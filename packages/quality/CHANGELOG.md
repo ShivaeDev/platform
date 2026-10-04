@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.2 - 2026-10-04
+
+### Changed
+
+- A quoted object key or type property is a foreign name, such as a query parameter an outside API reads or an environment variable, and the naming rules skip it: `{ "per_page": 50 }` passes, `{ per_page: 50 }` is a finding. The new `key-names` plugin checks unquoted keys in camelCase or PascalCase in place of `useNamingConvention`, which cannot tell a quoted key from an unquoted one, and the formatter keeps the quotes a key is written with. `schema-struct-keys` still reports a snake_case `Schema.Struct` field when it is quoted. A key finding now reports under `biome/plugin` instead of `biome/lint/style/useNamingConvention`, so a repository that upgrades records its key findings again with `quality baseline write --rule biome/plugin` and prunes the old entries with `quality baseline prune`.
+- `handler-names` accepts a state setter passed as it is to an `onX` prop, such as `onOpenChange={setOpen}`. Only a handler function defined in the component needs the `handleX` name.
+
+### Fixed
+
+- `files/other-names` accepts a double underscore in a content file name, which separates the parts of an id, as in `forest_path__clearing.json`.
+- `files/named-after-export` names a file after its default export: `export default ItemPanel`, `export default function ItemPanel`, `export default memo(ItemPanel)` and `export { ItemPanel as default }` all count as the export `ItemPanel`, where it used to report the file as exporting nothing. `noDefaultExport` still reports the default export itself. An overloaded function counts as one export, so a file whose only export is an overloaded function is now named after it.
+- The preset turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render.
+- `files/other-names` counts as an import of a stylesheet only a static `import`, relative or through a `#` alias that the `imports` of its `package.json` resolves, and a CSS `@import`. A quoted path in a test, such as one passed to `resolve()`, no longer counts, and a stylesheet that another stylesheet imports is shared and named in kebab-case.
+
 ## 0.8.1 - 2026-10-04
 
 ### Changed

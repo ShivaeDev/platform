@@ -2,7 +2,8 @@ import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
 import { CAMEL, KEBAB } from "#naming/words.ts";
-import { defineRule, type Finding, type SourceFile } from "#rule.ts";
+import { defineRule, type Finding } from "#rule.ts";
+import { stylesheetImporters } from "./stylesheetImporters.ts";
 
 const DEFAULT_TOOL_OWNED: readonly string[] = [
 	".*",
@@ -41,9 +42,7 @@ const STYLESHEETS: ReadonlySet<string> = new Set(["css", "scss"]);
 
 const DOTTED_KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*$/u;
 
-const SNAKE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/u;
-
-const STYLESHEET_IMPORT = /["'](?<stylesheet>\.{1,2}\/[^"'\n]+\.s?css)["']/gu;
+const SNAKE = /^[a-z0-9]+(?:__?[a-z0-9]+)*$/u;
 
 const CODE = /\.[cm]?[jt]sx?$/u;
 
@@ -52,20 +51,9 @@ const OtherNamesOptions = Schema.Struct({
 	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_TOOL_OWNED))),
 });
 
-function importers(sources: readonly SourceFile[]): ReadonlyMap<string, readonly string[]> {
-	const found = new Map<string, string[]>();
-	for (const source of sources) {
-		for (const match of source.text.matchAll(STYLESHEET_IMPORT)) {
-			const target = posix.normalize(posix.join(posix.dirname(source.path), match.groups?.stylesheet ?? ""));
-			found.set(target, [...new Set([...(found.get(target) ?? []), source.path])]);
-		}
-	}
-	return found;
-}
-
 function stylesheetMessage(path: string, stem: string, importedBy: readonly string[]): string | undefined {
 	const [only] = importedBy;
-	if (importedBy.length === 1 && only !== undefined) {
+	if (importedBy.length === 1 && only !== undefined && CODE.test(only)) {
 		const owner = posix.basename(only).replace(CODE, "");
 		return stem === owner ? undefined : `"${stem}" is styling for ${posix.basename(only)} alone, so it is named ${owner}${posix.extname(path)}.`;
 	}
@@ -86,7 +74,9 @@ function messageFor(path: string, context: Context): string | undefined {
 		return undefined;
 	}
 	if (context.content.ignores(path)) {
-		return SNAKE.test(stem) ? undefined : `"${name}" is content, so it is named in snake_case, such as forest_path.json.`;
+		return SNAKE.test(stem)
+			? undefined
+			: `"${name}" is content, so it is named in snake_case, such as forest_path.json, with a double underscore between the parts of an id, such as forest_path__clearing.json.`;
 	}
 	if (STYLESHEETS.has(kind)) {
 		return stylesheetMessage(path, stem, context.stylesheets.get(path) ?? []);
@@ -100,10 +90,10 @@ function messageFor(path: string, context: Context): string | undefined {
 }
 
 export const otherNames = defineRule({
-	check: ({ files, options, sources }) => {
+	check: async ({ files, options, readText, sources }) => {
 		const context: Context = {
 			content: ignore().add([...options.content]),
-			stylesheets: importers(sources),
+			stylesheets: await stylesheetImporters({ files, readText, sources }),
 			toolOwned: ignore().add([...options.toolOwned]),
 		};
 		return files.flatMap((path): readonly Finding[] => {

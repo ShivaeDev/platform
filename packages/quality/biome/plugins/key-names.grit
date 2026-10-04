@@ -1,0 +1,12 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+	JsPropertyObjectMember(name=$key),
+	TsPropertySignatureTypeMember(name=$key)
+} where {
+	$key <: JsLiteralMemberName(),
+	$key <: r"[A-Za-z_$][A-Za-z0-9_$]*",
+	! $key <: r"[_$]*(?:[a-z][a-z0-9]*(?:[A-Z][a-z0-9]+)*[A-Z]?|(?:[A-Z][0-9]+)*[A-Z][0-9]*[a-z][a-z0-9]*(?:[A-Z][a-z0-9]+)*[A-Z]?|[A-Z][0-9]*)",
+	register_diagnostic(span=$key, message="An object key or type property is camelCase or PascalCase after any leading _ or $, with acronyms spelled as words: perPage, userId. A name an outside API or the environment decides is written quoted: { 'per_page': 50 }.")
+}

@@ -383,14 +383,14 @@ quality baseline migrate [--config <file>] [--from <file>]
 
 The preset sets:
 
-- **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line.
+- **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line. An object key keeps its quotes, because a quoted key marks a [foreign name](#foreign-names).
 - **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, and the naming rules under [Naming](#naming).
 - **Imports:** organized in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases and relative paths. Biome counts as an alias a specifier that starts with `#`, `@/`, `~`, `$` or `%`; a tsconfig path such as `@app/*` sorts with the packages, and Biome's `noUndeclaredDependencies` takes it for one, so name aliases in a form Biome recognizes.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike, but only reported: `quality fix` leaves the order to the author. `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and the naming plugins under [Naming](#naming). They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
 
-The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, and allows default exports in `*.config.*` files, which tools load through the default export. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
+The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
 An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
 
@@ -411,14 +411,26 @@ A name says what a thing is, and the same kind of thing is named the same way ev
 | Types, interfaces, classes and enums | PascalCase, without an `I` prefix: `Item`, not `IItem`. | `useNamingConvention` |
 | Type parameters | `T`, or `T` followed by a PascalCase name: `TItem`, `TResult`. Effect's positional `A`, `E` and `R` are valid as they are. | `useNamingConvention` |
 | Module-level constants | A string or number literal at module level is CONSTANT_CASE: `const MAX_ITEMS = 50`. A constant inside a function is camelCase. | `constant-names` plugin, `useNamingConvention` |
-| Object keys and type properties | camelCase or PascalCase, after any leading `_` or `$` (`_tag`, `$transaction`). snake_case and CONSTANT_CASE keys are never valid, also for outside data and in a `Record`. | `useNamingConvention` |
+| Object keys and type properties | camelCase or PascalCase, after any leading `_` or `$` (`_tag`, `$transaction`), also in a `Record`. A quoted key is a [foreign name](#foreign-names) and is not checked. | `key-names` plugin |
 | Schemas | PascalCase and named like their type: `const Item = Schema.Struct(...)` with `type Item = typeof Item.Type`. | `schema-names` plugin |
-| `Schema.Struct` fields | camelCase. Outside data keeps its keys only at the edge: `Schema.Struct({ createdAt: Schema.String }).pipe(Schema.encodeKeys({ createdAt: "created_at" }))`. | `schema-struct-keys` plugin, `useNamingConvention` |
+| `Schema.Struct` fields | camelCase, also when quoted. Outside data keeps its keys only at the edge: `Schema.Struct({ createdAt: Schema.String }).pipe(Schema.encodeKeys({ createdAt: "created_at" }))`. | `schema-struct-keys` plugin, `key-names` plugin |
 | `Effect.fn` spans | `"Owner.operation"`, where the owner is the service or module and the operation is the name the function is bound to: `const loadItem = Effect.fn("ItemStore.loadItem")`, and `loadItem: Effect.fn("ItemStore.loadItem")` in an object. | `effect-fn-spans` plugin |
 | Service Layers | A static `layer` on the service, read as `ItemStore.layer`. No exported `ItemStoreLive` or `ItemStoreLayer` constant. A Layer that wires an application together stays unexported. | `service-layers` plugin |
 | Private members | A `#field`. No `private`, `protected` or `public` modifier. | `useConsistentMemberAccessibility` |
-| React | A function passed to an `onX` prop is `handleX`, or an `onX` prop forwarded as it is. A context is `ThemeContext`, a ref `inputRef`, an id `fieldId`. A module that exports a component exports only components. | `handler-names` plugin, `useReactNamingConvention`, `useComponentExportOnlyModules` |
+| React | A function passed to an `onX` prop is `handleX`, an `onX` prop forwarded as it is, or a state setter passed as it is: `onOpenChange={setOpen}`. A context is `ThemeContext`, a ref `inputRef`, an id `fieldId`. A module that exports a component exports only components; a test may define the components it renders. | `handler-names` plugin, `useReactNamingConvention`, `useComponentExportOnlyModules` |
 | Booleans | A question: `isOpen`, `hasSave`, `canRetry`, `shouldFlush`. A name the DOM or React gives, such as `open` or `disabled`, stays. This is a convention only; no rule checks it. | Review |
+
+### Foreign names
+
+Some names are not ours to choose: a query parameter an outside API reads, an environment variable, an operator a query builder takes. Write such a name as a quoted key, and the naming rules skip it:
+
+```ts
+const query = { "per_page": 50, "sort_by": "created" };
+const env = { "DATABASE_URL": url };
+const where = { "OR": [{ id }, { slug }] };
+```
+
+An unquoted key is our own name and is camelCase or PascalCase. The formatter keeps the quotes as written, so a quoted key stays quoted. A `Schema.Struct` field is the exception: the struct is our model of the data, so the `schema-struct-keys` plugin reports a snake_case field even when it is quoted, and points to `Schema.encodeKeys`, which maps camelCase fields to the outside names at the edge.
 
 ### Re-exports
 
@@ -437,6 +449,7 @@ The plugins report under the one Biome category `plugin`, so their findings shar
 | `item/Panel.tsx` or `ItemPanel.tsx` | `ItemPanel`, with `ItemPanelProps` beside it | Yes |
 | `Panel/Panel.tsx` | `Panel`: the main file of a module folder repeats the folder | Yes |
 | `limits.ts` | `MAX_ITEMS` and `MAX_DEPTH`: a topic file of several exports is camelCase | Yes |
+| `ItemPanel.tsx` | `export default memo(ItemPanel)`: a default export counts under the name it resolves to | Yes |
 | `setupTests.ts` | Nothing, so it is camelCase | Yes |
 | `script/build-docs.ts` | Run by a `package.json` script or `bin`, or starts with `#!`, so it is kebab-case | Yes |
 | `order.ts` | `type Order` | No: the file's case follows the export, so it is `Order.ts` |
@@ -461,9 +474,9 @@ The `toolOwned` option lists folders a tool names, `generated/` and `migrations/
 `files/other-names` names the files that are not code.
 
 - Markdown, JSON, GritQL, images, fonts and SVG are kebab-case, with optional dotted parts: `release-notes.md`, `icons.sprite.svg`. Conventional upper-case names stay: `README.md`, `CHANGELOG.md`, `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md` and `SKILL.md`.
-- A stylesheet that one component imports is named after it: `ItemPanel.css` beside `ItemPanel.tsx`. A shared stylesheet is kebab-case: `form-controls.css`.
+- A stylesheet that one component imports is named after it: `ItemPanel.css` beside `ItemPanel.tsx`. A shared stylesheet is kebab-case: `form-controls.css`. An import is a static `import` in a code file, relative or through a `#` alias from the `imports` of its `package.json`, or an `@import` in a stylesheet; a stylesheet that another stylesheet imports is shared. A path in a string, such as a test that reads the file, is not an import.
 - A Prisma schema is camelCase: `schema.prisma`.
-- A file the `content` option lists is snake_case: `forest_path.json`.
+- A file the `content` option lists is snake_case: `forest_path.json`. A double underscore separates the parts of an id: `forest_path__clearing.json`.
 
 The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*`, `migrations/` and `generated/` by default.
 
