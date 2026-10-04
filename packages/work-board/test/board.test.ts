@@ -49,12 +49,16 @@ describe("the board", () => {
 
 	it("renders the counts, items, notes and footer", async () => {
 		const rendered = await html(notes);
-		expect(rendered).toContain("<h1>Project notes</h1>");
+		expect(rendered).toContain(
+			'<h1 id="heading-project-notes" tabindex="-1">Project notes<a aria-label="Link to Project notes" class="heading-anchor" href="#heading-project-notes"></a></h1>',
+		);
 		expect(rendered).toContain('<p class="counts"><span><b>1</b> in review</span> · <span><b>2</b> to do</span></p>');
 		expect(rendered).toContain(
-			'<article class="item"><h3><code>docs #12</code> <a href="https://example.com/pull/12">Refresh the install guide</a></h3>',
+			'<article class="item"><h3 id="heading-docs-12-refresh-the-install-guide" tabindex="-1"><code>docs #12</code> <a href="https://example.com/pull/12">Refresh the install guide</a><a aria-label="Link to docs #12 Refresh the install guide" class="heading-anchor" href="#heading-docs-12-refresh-the-install-guide"></a></h3>',
 		);
-		expect(rendered).toContain('<h2>Later</h2>\n<div class="notes"><p>Nothing planned yet.</p>');
+		expect(rendered).toContain(
+			'<h2 id="heading-later" tabindex="-1">Later<a aria-label="Link to Later" class="heading-anchor" href="#heading-later"></a></h2>\n<div class="notes"><p>Nothing planned yet.</p>',
+		);
 		expect(rendered).toContain("<footer><p>Finished work moves to the changelog.</p>");
 	});
 

@@ -3,6 +3,10 @@ import { Data, Effect, FileSystem, Path } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
 import { client, preferences } from "#page/client.ts";
 import { diagrams } from "#page/diagrams.ts";
+import { libraryScript } from "#page/libraryScript.ts";
+import { navigationScript } from "#page/navigationScript.ts";
+import { readingStateScript } from "#page/readingStateScript.ts";
+import { pageStateScript } from "#page/stateScript.ts";
 import { style } from "#page/style.ts";
 import { swap } from "#page/swap.ts";
 import { respond } from "./respond.ts";
@@ -11,6 +15,10 @@ export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, strin
 	["/_board/style.css", style, "text/css"],
 	["/_board/client.js", client, "text/javascript"],
 	["/_board/preferences.js", preferences, "text/javascript"],
+	["/_board/library.js", libraryScript(), "text/javascript"],
+	["/_board/navigation.js", navigationScript(), "text/javascript"],
+	["/_board/page-state.js", pageStateScript(), "text/javascript"],
+	["/_board/reading-state.js", readingStateScript(), "text/javascript"],
 	["/_board/diagrams.js", diagrams, "text/javascript"],
 	["/_board/swap.js", swap, "text/javascript"],
 ];

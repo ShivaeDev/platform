@@ -1,16 +1,15 @@
 import type { MarkdownFile } from "#files/list.ts";
+import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "./escape.ts";
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
 
 const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 
-const hrefOf = (path: string): string => `/${path.split("/").map(encodeURIComponent).join("/")}`;
-
 const link = (file: MarkdownFile, current: string): string => {
 	const here = file.path === current ? ' aria-current="page"' : "";
 	const age = `<span class="age short" data-modified="${file.modified}"></span>`;
-	return `<a href="${hrefOf(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
+	return `<a href="${fileUrl(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
 };
 
 const folder = (name: string, files: readonly MarkdownFile[], current: string): string => {

@@ -39,6 +39,31 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
 
+## Document navigation
+
+Markdown headings have passage links and an **On this page** outline, including separate
+anchors for duplicate headings. Use the heading's `#` link to copy a passage URL.
+Generated anchors use the heading text and duplicate order; changing either can
+change the anchor. Renaming a file changes its document URL. Authored HTML IDs
+and footnote links remain intact; stable work-item IDs are a later roadmap step.
+
+Markdown links resolve from their source file, including a nested `--home` file
+served at `/`. Links within the workspace open in place; modified clicks and
+links targeting another window keep their normal browser behavior. The browser
+title and active file tooltip follow the document's main heading.
+
+Back and forward restore the previous scroll, selected text, and open details.
+The client keeps up to 30 page snapshots and tab-scoped reading records; it
+fetches the current file again on return so changes and deletions are visible.
+A missing document explains what happened, and a missing passage shows a notice.
+
+**Save favorite** pins a document to the sidebar. Recent documents are deduplicated
+and limited to the last ten. Favorites and recents use browser storage scoped to
+the folder and server origin. Deleted favorites remain visible with a missing
+label. If storage is unavailable, favorites and recents work on the current page;
+reading navigation still works in the open tab. Content and the outline remain
+readable with JavaScript disabled.
+
 ## Diagrams
 
 A ` ```mermaid ` block is drawn in the browser. Mermaid loads from the installed

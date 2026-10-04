@@ -52,3 +52,26 @@ filename, a diagram, details, and malformed example metadata. Missing references
 and metadata are reading samples here; schema validation belongs to later steps.
 Performance timings from this fixture are observations, not established budgets
 or proof of the north star's usability targets.
+
+## Document navigation acceptance — step 02
+
+1. In a document, open **On this page** and follow the second Evidence heading.
+   Its hash and focused heading differ from the first. Copy a heading passage
+   link, open it in a new tab, and verify the target. Check a Unicode heading too.
+2. Designate a home file in a nested folder. Serve it at `/` and follow a relative
+   Markdown link to a sibling or parent folder. Repeat with encoded `#`, `?`,
+   spaces, and `&` in a filename. Ctrl/Cmd-click should open a separate tab.
+3. Select text, open a content details block, and scroll down. Open another
+   document, then use Back and Forward. Selection, details, and scroll restore.
+   Reload the returned document and check tab-scoped reading state. Repeat after
+   changing the theme on the other page; a cached diagram uses the current theme.
+4. Save a favorite, visit several documents, reload, and use the sidebar lists.
+   Recents are unique and bounded. A second workspace must not inherit the first
+   one's favorites. Block browser storage: controls work and display the notice.
+5. Delete a favorite's source file while another page is open. Its sidebar link
+   remains visible with a missing label; following it explains the missing file.
+   Remove a heading after copying its URL and check the missing-passage notice.
+6. Hold a page response in the browser's network tools, navigate elsewhere, then
+   release it. The old response must not replace the new page. Simulate a failed
+   navigation, restore network access, and retry the same link. Recheck desktop,
+   mobile, keyboard, no-JavaScript rendering, and live updates of the active title.
