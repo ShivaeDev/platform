@@ -1,9 +1,9 @@
 import { Effect, Option } from "effect";
 import { expect, it } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "../src/errors.ts";
-import { type OriginPolicy, trustedOrigins } from "../src/rpc-server.ts";
-import { makeApp } from "./rpc/api.ts";
-import { annotationsOf, createProvider, origin, signup } from "./rpc/support.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "#errors.ts";
+import { type OriginPolicy, trustedOrigins } from "#rpc-server.ts";
+import { makeApp } from "#test/rpc/api.ts";
+import { annotationsOf, createProvider, origin, signup } from "#test/rpc/support.ts";
 
 const browser = trustedOrigins({ allow: [origin, "capacitor://localhost"], missing: "reject" });
 

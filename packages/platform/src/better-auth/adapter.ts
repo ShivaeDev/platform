@@ -2,7 +2,7 @@ import type { BetterAuthOptions, DBAdapterInstance } from "better-auth";
 import { createAdapterFactory } from "better-auth/adapters";
 import { Effect } from "effect";
 import type { AnyDatabase } from "@shivaedev/effect-prisma";
-import type { PlatformRuntime } from "../runtime/types.ts";
+import type { PlatformRuntime } from "#runtime/types.ts";
 import { type DynamicRelation, refineRelation } from "./relation.ts";
 import { makeRowAdapter, type RelationQuery } from "./row-adapter.ts";
 

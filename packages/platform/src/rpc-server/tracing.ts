@@ -1,7 +1,7 @@
 import { Cause, Effect, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/unstable/http";
-import { RequestId } from "../rpc/identity.ts";
-import { RequestTracing } from "../rpc/middleware.ts";
+import { RequestId } from "#rpc/identity.ts";
+import { RequestTracing } from "#rpc/middleware.ts";
 import { redact } from "./redact.ts";
 import { redactCause } from "./redact-cause.ts";
 import type { SensitiveKey } from "./sensitive.ts";

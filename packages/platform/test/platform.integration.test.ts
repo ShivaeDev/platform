@@ -4,10 +4,10 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
 import { afterAll } from "vitest";
 import { makeDatabase } from "@shivaedev/effect-prisma";
 import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
+import { makePlatformRuntime } from "#runtime.ts";
+import { environmentVariable } from "#test/support/environment.ts";
+import { makePlatformIt } from "#testing.ts";
 import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
-import { makePlatformRuntime } from "../src/runtime.ts";
-import { makePlatformIt } from "../src/testing.ts";
-import { environmentVariable } from "./support/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {
