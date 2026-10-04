@@ -18,7 +18,7 @@ const QUERY = /\?.*$/u;
 
 const RELATIVE = /^\.\.?(?:\/|$)/u;
 
-const MAY_BE_RELATIVE = /["'`]\.\.?[/"'`]/u;
+const MAY_BE_RELATIVE = /["'`]\.\.?[/"'`]|\\/u;
 
 const TRAILING_SLASHES = /\/+$/u;
 

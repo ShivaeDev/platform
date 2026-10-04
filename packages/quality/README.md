@@ -231,7 +231,11 @@ A relative import names only a file in its own folder, such as `./format.ts`: th
 
 An import that already goes through a tsconfig `paths` alias is not relative, so the rule leaves it alone.
 
-`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. Each finding has the import as its subject. Its message says to import through a `#` alias from the `imports` of the package's `package.json`, declaring one if none fits, or, when the import reaches into another workspace package, by that package's name.
+`imports/aliased` reports a relative import that goes up (`../format.ts`) or down into a subfolder (`./parts/deeper.ts`, or `./widgets` for `widgets/index.ts`). It reads static imports, `export ... from`, side-effect imports, `import()`, `require()`, `import()` types, JSDoc `@import` tags and the paths of `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vi.importActual` and `vi.importMock`, so a mock keeps pointing at the module it replaces. An escaped path, such as `"\x2e\x2e/format.ts"`, counts as the path it spells. Each finding has the import as its subject. Its message names the fix for where the import lands:
+
+- inside its own package: import through a `#` alias from the `imports` of the package's `package.json`, and declare one if none fits;
+- inside another workspace package: import it by that package's name, through a path its `exports` lists;
+- inside an installed package under `node_modules`: import that package by its name.
 
 The rule only reports; nothing rewrites the import. Whoever writes the import picks the alias, because only they know which conditions their runtimes, bundler and tests use.
 

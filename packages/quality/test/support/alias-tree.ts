@@ -1,4 +1,3 @@
-import { linkWorkspace } from "./imports.ts";
 import { type SeedFile, seedTree } from "./tree.ts";
 
 function json(path: string, value: unknown): SeedFile {
@@ -67,12 +66,19 @@ const aliasTree: readonly SeedFile[] = [
 	code("packages/app/src/kit-user.ts", 'import { button } from "../../kit/src/button.ts";', "export const used = button;"),
 	json("packages/kit/package.json", { exports: { "./button": "./src/button.ts" }, name: "@demo/kit", type: "module" }),
 	code("packages/kit/src/button.ts", "export const button = 1;"),
+	code(
+		"packages/app/src/feature/escaped.ts",
+		'import { format } from "\\x2e\\x2e/lib/format.ts";',
+		'import "..\\/lib/side.ts";',
+		"export const escaped = format;",
+	),
+	code("packages/app/src/vendor-user.ts", 'import pad from "../../../node_modules/left-pad/index.js";', "export const padded = pad;"),
+	json("node_modules/left-pad/package.json", { main: "index.js", name: "left-pad", type: "module" }),
+	code("node_modules/left-pad/index.js", "export default 1;"),
 	code("script/tasks/run.ts", 'import { tool } from "../lib/tool.ts";', "export const run = tool;"),
 	code("script/lib/tool.ts", "export const tool = 1;"),
 ];
 
-export function aliasRepository(...extra: readonly SeedFile[]): string {
-	const root = seedTree(aliasTree, extra);
-	linkWorkspace(root, "@demo/kit", "packages/kit");
-	return root;
+export function aliasRepository(): string {
+	return seedTree(aliasTree);
 }
