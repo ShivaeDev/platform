@@ -1,0 +1,128 @@
+{
+	"name": "@shivaedev/work-fleet",
+	"version": "0.1.0",
+	"description": "Carry approved repository batches through agents, review and delivery with durable local state",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-fleet#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/work-fleet"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		".": {
+			"types": "./dist/Fleet.d.ts",
+			"source": "./src/Fleet.ts",
+			"import": "./dist/Fleet.js",
+			"default": "./dist/Fleet.js"
+		},
+		"./package.json": "./package.json",
+		"./database": {
+			"types": "./dist/databaseLayer.d.ts",
+			"source": "./src/databaseLayer.ts",
+			"import": "./dist/databaseLayer.js",
+			"default": "./dist/databaseLayer.js"
+		},
+		"./store": {
+			"types": "./dist/Store.d.ts",
+			"source": "./src/Store.ts",
+			"import": "./dist/Store.js",
+			"default": "./dist/Store.js"
+		},
+		"./domain": {
+			"types": "./dist/domain.d.ts",
+			"source": "./src/domain.ts",
+			"import": "./dist/domain.js",
+			"default": "./dist/domain.js"
+		},
+		"./ports": {
+			"types": "./dist/ports.d.ts",
+			"source": "./src/ports.ts",
+			"import": "./dist/ports.js",
+			"default": "./dist/ports.js"
+		},
+		"./codex": {
+			"types": "./dist/codex.d.ts",
+			"source": "./src/codex.ts",
+			"import": "./dist/codex.js",
+			"default": "./dist/codex.js"
+		},
+		"./github": {
+			"types": "./dist/GitHubLive.d.ts",
+			"source": "./src/GitHubLive.ts",
+			"import": "./dist/GitHubLive.js",
+			"default": "./dist/GitHubLive.js"
+		},
+		"./scripted": {
+			"types": "./dist/scriptedLayer.d.ts",
+			"source": "./src/scriptedLayer.ts",
+			"import": "./dist/scriptedLayer.js",
+			"default": "./dist/scriptedLayer.js"
+		},
+		"./views": {
+			"types": "./dist/renderViews.d.ts",
+			"source": "./src/renderViews.ts",
+			"import": "./dist/renderViews.js",
+			"default": "./dist/renderViews.js"
+		}
+	},
+	"bin": {
+		"work-fleet": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md",
+		"north-star.md",
+		"architecture.md",
+		"roadmap.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/effect-service": "workspace:*",
+		"@shivaedev/effect-sql": "workspace:*"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@effect/sql-sqlite-node": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

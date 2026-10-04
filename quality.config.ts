@@ -28,10 +28,21 @@ const LEAVES: Readonly<Record<string, readonly string[]>> = {
 	quality: ["types"],
 	types: [],
 	"work-board": [],
+	"work-fleet": ["effect-service", "effect-sql", "effect-test"],
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
-const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
+const SERVER = [
+	"effect-changes-prisma",
+	"effect-pg-boss",
+	"effect-prisma",
+	"effect-sql",
+	"effect-trpc",
+	"local-postgres",
+	"platform",
+	"work-board",
+	"work-fleet",
+];
 const BROWSER_ENTRIES = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
 const PLATFORM_CORE_ENTRIES = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((entry) => `packages/platform/src/${entry}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
@@ -44,7 +55,7 @@ function entries(paths: readonly string[]) {
 }
 
 function leaf([name, allowed]: readonly [string, readonly string[]]): Fence {
-	const index = `packages/${name}/src/index.ts`;
+	const index = `packages/${name}/src/${name === "work-fleet" ? "Fleet" : "index"}.ts`;
 	return fence(`leaf-${name}`)
 		.because(
 			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.${allowed.includes("types") ? ` ${TYPE_ONLY}` : ""}`,

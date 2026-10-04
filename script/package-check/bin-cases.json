@@ -52,5 +52,15 @@
 			"/_board/mermaid/mermaid.esm.min.mjs": "",
 			"/_board/style.css": ""
 		}
+	},
+	"work-fleet": {
+		"args": ["render", "--database", "fleet.sqlite", "--output", "views"],
+		"checkVersion": true,
+		"expectedFiles": {
+			"views/Active.md": "Capacity: 0/2",
+			"views/Completed.md": "No items.",
+			"views/Needs human.md": "No items."
+		},
+		"files": {}
 	}
 }

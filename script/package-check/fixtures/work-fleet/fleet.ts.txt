@@ -1,0 +1,17 @@
+import { Effect, Layer } from "effect";
+import { Fleet } from "@shivaedev/work-fleet";
+import { Store } from "@shivaedev/work-fleet/store";
+import { databaseLayer } from "@shivaedev/work-fleet/database";
+import { scriptedLayer } from "@shivaedev/work-fleet/scripted";
+import { renderViews } from "@shivaedev/work-fleet/views";
+
+const application = Fleet.layer.pipe(
+ Layer.provide(Store.layer.pipe(Layer.provide(databaseLayer(":memory:")))),
+ Layer.provide(scriptedLayer()),
+);
+const program = Effect.gen(function* () {
+ const fleet = yield* Fleet;
+ const state = yield* fleet.snapshot();
+ if (!renderViews(state).Completed.includes("No items.")) throw new Error("Invalid projection");
+});
+Effect.runPromise(program.pipe(Effect.provide(application)));
