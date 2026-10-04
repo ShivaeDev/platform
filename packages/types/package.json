@@ -31,7 +31,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
-		"ready": "pnpm typecheck && pnpm build",
+		"ready": "pnpm build && pnpm typecheck",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {

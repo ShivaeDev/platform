@@ -1,7 +1,7 @@
-import { bind, collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract";
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import { RpcMiddleware, RpcTest } from "effect/unstable/rpc";
+import { bind, collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract";
 
 export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 	id: Schema.Number,

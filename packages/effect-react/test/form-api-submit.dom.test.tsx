@@ -1,11 +1,11 @@
 import { RegistryContext } from "@effect/atom-react";
-import { type Submit, useSubmit } from "@shivaedev/effect-form/react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
+import { type Submit, useSubmit } from "@shivaedev/effect-form/react";
 import { type Create, type Editor, useCreate, useEditor } from "../src/form.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

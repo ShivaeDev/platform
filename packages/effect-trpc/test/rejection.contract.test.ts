@@ -1,7 +1,7 @@
-import { command, fieldRejection } from "@shivaedev/effect-contract";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { Effect, Option, Schema } from "effect";
 import { afterAll, expect, it } from "vitest";
+import { command, fieldRejection } from "@shivaedev/effect-contract";
 import { decodeRejection, rejectionOf } from "../src/client.ts";
 import { rejectWith } from "../src/index.ts";
 import { failureOf, inProcess, procedure, runtime, t } from "./support/http.ts";

@@ -1,6 +1,6 @@
 import type { TestContext, Vitest } from "@effect/vitest";
-import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
 import type { Effect, Layer } from "effect";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
 import type { AnyDatabase, DatabaseServiceOf } from "../database.ts";
 
 export type { AnyDatabase } from "../database.ts";

@@ -1,8 +1,8 @@
-import { makeDatabase } from "@shivaedev/effect-prisma";
-import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
 import { Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
+import { makeDatabase } from "@shivaedev/effect-prisma";
+import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
 import { effectPrismaAdapter } from "../src/better-auth.ts";
 import { makePlatformRuntime } from "../src/runtime.ts";

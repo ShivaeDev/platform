@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { makeDatabase } from "@shivaedev/effect-prisma";
-import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { afterAll } from "vitest";
+import { makeDatabase } from "@shivaedev/effect-prisma";
+import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
 import { type Contract, contractJson } from "../../effect-prisma/test/contract.ts";
 import { makePlatformRuntime } from "../src/runtime.ts";
 import { makePlatformIt } from "../src/testing.ts";

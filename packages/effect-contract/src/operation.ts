@@ -1,5 +1,5 @@
-import type { Bivariant } from "@shivaedev/types";
 import { Schema } from "effect";
+import type { Bivariant } from "@shivaedev/types";
 import type { Key } from "./keys.ts";
 import { type MatchingTags, type Reject, type RejectionSpecs, type Rejections, type RejectionUnion, rejectionSet } from "./rejection.ts";
 
