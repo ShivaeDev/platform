@@ -13,7 +13,7 @@ const fenceConfig = [
 	'import { defineConfig, fence, folders, packages } from "@shivaedev/quality";',
 	'const game = fence("game-keeps-out-of-cms").because("The game ships to players.").from(folders("packages/game/src")).mayNotImport(packages("cms"))',
 	'  .demonstratedBy({ illegal: ["packages/game/src/a.ts", "packages/cms/src/b.ts"], legal: ["packages/game/src/a.ts", "packages/game/src/b.ts"] });',
-	'export default defineConfig({ rules: { biome: "off", "imports/aliased": "off", "imports/fences": { options: { fences: [game] } }, "files/folder-names": "off", "files/named-after-export": "off", "files/other-names": "off", "manifests/sorted": "off" } });',
+	'export default defineConfig({ rules: { biome: "off", "imports/aliased": "off", "imports/fences": { options: { fences: [game] } }, "files/folder-names": "off", "files/named-after-export": "off", "files/other-names": "off", "manifests/sorted": "off", "tests/colocated": "off", "tests/follow": "off" } });',
 ].join("\n");
 
 function seedFences(): string {

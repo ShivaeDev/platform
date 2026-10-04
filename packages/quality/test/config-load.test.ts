@@ -45,6 +45,8 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"files/named-after-export",
 				"files/folder-names",
 				"files/other-names",
+				"tests/follow",
+				"tests/colocated",
 			]);
 			expect([...loaded.unregistrable]).toEqual([
 				"suppressions/no-inline",

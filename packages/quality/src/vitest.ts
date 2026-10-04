@@ -1,22 +1,25 @@
 import { defaultExclude, type TestUserConfig } from "vitest/config";
+import type { Environment } from "#rules/tests/name.ts";
 
-const TEST = "**/*.test.?(c|m)[jt]s?(x)";
-const DOM = "**/*.dom.test.?(c|m)[jt]s?(x)";
-const SLOW = "**/*.slow.test.?(c|m)[jt]s?(x)";
-const TYPECHECK = "**/*.typecheck.test.?(c|m)[jt]s?(x)";
-const TYPECHECK_ALONE = "**/typecheck.test.?(c|m)[jt]s?(x)";
+const EXTENSION = "?(c|m)[jt]s?(x)";
 
-function excluding(...patterns: readonly string[]): string[] {
-	return [...defaultExclude, TYPECHECK, TYPECHECK_ALONE, ...patterns];
+const TYPECHECK_ALONE = `**/typecheck.test.${EXTENSION}`;
+
+function named(environment?: Environment): string {
+	return environment === undefined ? `**/*.@(test|spec).${EXTENSION}` : `**/*.${environment}.@(test|spec).${EXTENSION}`;
 }
 
-export function testProjects(): TestUserConfig {
+function excluding(exclude: readonly string[], ...patterns: readonly string[]): string[] {
+	return [...defaultExclude, named("typecheck"), TYPECHECK_ALONE, ...exclude, ...patterns];
+}
+
+export function testProjects({ exclude = [] }: { readonly exclude?: readonly string[] } = {}): TestUserConfig {
 	return {
 		project: ["unit", "dom"],
 		projects: [
-			{ extends: true, test: { environment: "node", exclude: excluding(DOM, SLOW), include: [TEST], name: "unit" } },
-			{ extends: true, test: { environment: "happy-dom", exclude: excluding(SLOW), include: [DOM], name: "dom" } },
-			{ extends: true, test: { environment: "node", exclude: excluding(), include: [SLOW], name: "slow" } },
+			{ extends: true, test: { environment: "node", exclude: excluding(exclude, named("dom"), named("slow")), include: [named()], name: "unit" } },
+			{ extends: true, test: { environment: "happy-dom", exclude: excluding(exclude, named("slow")), include: [named("dom")], name: "dom" } },
+			{ extends: true, test: { environment: "node", exclude: excluding(exclude), include: [named("slow")], name: "slow" } },
 		],
 	};
 }

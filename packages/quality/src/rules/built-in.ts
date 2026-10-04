@@ -15,6 +15,8 @@ import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
 import { noInline } from "#rules/suppressions/no-inline.ts";
+import { testsColocated } from "#rules/tests/colocated.ts";
+import { testsFollow } from "#rules/tests/follow.ts";
 import { biome } from "./biome.ts";
 import { manifestsSorted } from "./manifests-sorted.ts";
 import { maxLines } from "./max-lines.ts";
@@ -40,4 +42,6 @@ export const builtInRules = [
 	namedAfterExport,
 	folderNames,
 	otherNames,
+	testsFollow,
+	testsColocated,
 ] as const;

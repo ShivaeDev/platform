@@ -10,6 +10,12 @@
 - `files/named-after-export` names a code file after its main export, with its folders as the prefix: `listItems` lives in `items/list.ts`, and `items/listItems.ts` is a finding. A file of several exports is a camelCase topic file, a file with a single constant is a finding, and a file a script runs is kebab-case.
 - `files/folder-names` names a package folder after its package, a module folder after its main file and every other folder in kebab-case, or snake_case for the folders the `content` option lists. A PascalCase folder without its main file is a finding.
 - `files/other-names` names documents, data, assets and GritQL files in kebab-case, a stylesheet that one component imports after that component, a Prisma schema in camelCase and content in snake_case. A repository that upgrades records its existing file and folder findings with `quality baseline write --rule files/named-after-export --rule files/folder-names --rule files/other-names`.
+- `tests/follow` names a test after what it covers: `<file>[.<environment>].test.ts` beside its file, or `<behaviour>[.<environment>].spec.ts` in camelCase for a test of its folder as a whole. The environment is at most one of `dom`, `slow` and `typecheck`; any other suffix, `.postgres` and `.integration` included, is a finding, and a test that uses the DOM without `.dom` is one too.
+- `tests/colocated` reports a test in a `test`, `tests`, `__tests__` or `spec` folder: a test sits beside the code it covers. Both test rules skip the folders their `suites` option lists. A repository that upgrades records its existing test findings with `quality baseline write --rule tests/follow --rule tests/colocated`.
+
+### Changed
+
+- `testProjects()` runs `.spec` files beside `.test` files, `<behaviour>.dom.spec.tsx` in the DOM project and `<behaviour>.slow.spec.ts` in the slow project, and leaves out `.typecheck.spec` files. Its new `exclude` option keeps a folder that another runner owns, such as a Playwright suite, out of every project.
 
 ## 0.7.3 - 2026-10-04
 
