@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { makePgBoss } from "#service.ts";
-import { environmentVariable } from "#test/support/environment.ts";
+import { environmentVariable } from "#test/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
 const integration = databaseUrl === "" ? describe.skip : describe;

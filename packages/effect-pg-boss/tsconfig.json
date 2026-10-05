@@ -3,5 +3,5 @@
 		"lib": ["ESNext"]
 	},
 	"extends": "../../tsconfig.base.json",
-	"include": ["src", "test"]
+	"include": ["src"]
 }

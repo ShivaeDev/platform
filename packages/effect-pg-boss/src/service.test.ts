@@ -4,7 +4,7 @@ import { defineQueue, defineSchedule } from "#definition.ts";
 import { PgBossPayloadError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient, job, queueResult } from "#test/support/fake-client.ts";
+import { constructorOptions, FakeClient, job, queueResult } from "#test/fake-client.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("@test/Prefix") {}
 

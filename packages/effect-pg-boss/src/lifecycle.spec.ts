@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { PgBossError } from "#error.ts";
 import { makePgBoss } from "#service.ts";
-import { constructorOptions, FakeClient } from "#test/support/fake-client.ts";
+import { constructorOptions, FakeClient } from "#test/fake-client.ts";
 
 describe("pg-boss client lifecycle", () => {
 	it("reuses and reference-counts a keyed client", async () => {
