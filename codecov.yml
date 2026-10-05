@@ -1,38 +1,57 @@
 codecov:
   require_ci_to_pass: false
   notify:
-    after_n_builds: 8
+    manual_trigger: true
     wait_for_ci: false
 
 coverage:
   status:
-    project: false
+    project:
+      default:
+        informational: true
     patch:
+      default:
+        informational: true
+        only_pulls: true
+    changes:
       default:
         informational: true
 
 comment:
-  layout: "condensed_header, condensed_files, condensed_footer"
+  layout: "header, diff, flags, components, files, reach, footer"
   behavior: default
-  require_changes: true
-  require_bundle_changes: true
+  require_changes: false
+  require_bundle_changes: false
+  hide_project_coverage: false
+  hide_comment_details: false
+  show_carryforward_flags: true
 
-flags:
-  workspace:
-    paths:
-      - packages/
-    carryforward: false
+bundle_analysis:
+  status: informational
+
+test_analytics:
+  flake_detection: true
+
+github_checks:
+  annotations: true
 
 component_management:
+  default_rules:
+    statuses:
+      - type: project
+        informational: true
+      - type: patch
+        informational: true
+        only_pulls: true
   individual_components:
-    - component_id: effect-changes-prisma
-      name: "@shivaedev/effect-changes-prisma"
-      paths:
-        - "packages/effect-changes-prisma/src/**"
     - component_id: effect-changes
       name: "@shivaedev/effect-changes"
       paths:
         - "packages/effect-changes/src/**"
+    - component_id: effect-changes-prisma
+      name: "@shivaedev/effect-changes-prisma"
+      paths:
+        - "packages/effect-changes-prisma/src/**"
     - component_id: effect-contract
       name: "@shivaedev/effect-contract"
       paths:
@@ -93,13 +112,3 @@ component_management:
       name: "@shivaedev/work-board"
       paths:
         - "packages/work-board/src/**"
-
-bundle_analysis:
-  status: informational
-
-test_analytics:
-  flake_detection: true
-  shorten_paths: true
-
-github_checks:
-  annotations: false
