@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0 - 2026-10-05
+
+### Changed
+
+- Test code has one definition: a test file, as the `tests/*` rules read the name, or any file under a `test-support/` folder. `test-support/` is the one folder name for test helpers, and every rule that checks shipped code skips it. `tests/follow` and `tests/colocated` still read only test files.
+- `imports/fences` skips files under `test-support/` too, beside test and spec files, so a harness may import what the tests need.
+- `structure/max-lines` gives test code the test limit without configuration. `testFiles` now adds further folders, such as a Playwright suite in `e2e/`, and is empty by default: `*.test.*` and `*.spec.*` count without it, and a helper in a `test/`, `tests/` or `__tests__/` folder is source until it moves to `test-support/` or the option names its folder. A config that listed the old defaults keeps working.
+
 ## 0.12.0 - 2026-10-05
 
 ### Changed

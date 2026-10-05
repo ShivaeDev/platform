@@ -56,7 +56,7 @@ The config is typed: an unknown rule id, a misspelled option or an option of the
 
 ## Rules
 
-`structure/max-lines` keeps each module to one job: a source file may have 150 lines and a test file 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns that mark test files (`*.test.*`, `*.spec.*`, `test/`, `tests/` and `__tests__/` by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
+`structure/max-lines` keeps each module to one job: a source file may have 150 lines and [test code](#test-code) 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns of further folders whose files count as tests, such as a Playwright suite in `e2e/` (none by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
 
 ### Comments
 
@@ -217,7 +217,7 @@ Each import resolves the way the compiler resolves it, with the options of the n
 - A module that resolves into `node_modules` or outside the root is external, and its package is the one it resolves into, whatever alias the import uses. A `@types` package counts as the package it describes: `@types/hast` is `hast`, `@types/scope__name` is `@scope/name`.
 
 ```ts
-"imports/resolvable": { options: { generated: ["packages/db/test/generated"] } },
+"imports/resolvable": { options: { generated: ["packages/db/src/test-support/generated"] } },
 ```
 
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
@@ -274,7 +274,7 @@ Targets are `packages(...)` (workspace packages by name, with or without their s
 
 The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
 
-Fences guard shipped code, and a test ships nowhere, so a fence never holds a test file: a `*.test.ts` or `*.spec.ts` file, as the [test rules](#tests) read the name, may import across every fence. There is no option to check them.
+Fences guard shipped code, and [test code](#test-code) ships nowhere, so a fence never holds it: a test file or a file under `test-support/` may import across every fence. There is no option to check them.
 
 A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
 
@@ -510,6 +510,10 @@ A test sits beside the code it covers, and its name says what it covers and wher
 `tests/colocated` checks the place: a test in a `test`, `tests`, `__tests__` or `spec` folder is a finding.
 
 Both rules take a `suites` option, `.gitignore` patterns of folders that hold tests with their own layout, such as tests across several packages or a Playwright suite, whose `.spec.ts` files mean something else. The rules skip those folders.
+
+### Test code
+
+Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the one folder name for the fixtures, harnesses and generated clients that tests share. Test code ships nowhere, so the rules that check shipped code skip it: `imports/fences` never holds it, and `structure/max-lines` gives it the test limit. The test rules still read only test files: a file under `test-support/` is not a test, so `tests/follow` and `tests/colocated` leave it alone.
 
 ## Vitest projects
 

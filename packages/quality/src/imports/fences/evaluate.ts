@@ -1,5 +1,5 @@
 import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
-import { testName } from "#naming/testName.ts";
+import { isTestCode } from "#naming/testName.ts";
 import type { Finding } from "#rule.ts";
 import { type Compiler, compile, type Matcher } from "./match.ts";
 import type { Fence } from "./model.ts";
@@ -65,7 +65,7 @@ export function compileFence(compiler: Compiler, fence: Fence): CompiledFence {
 	const where = `fence "${fence.name}"`;
 	const from = compile(compiler, fence.from, `${where}.from`);
 	function importer(path: string): boolean {
-		return testName(path) === undefined && from({ kind: "file", path });
+		return !isTestCode(path) && from({ kind: "file", path });
 	}
 	const prohibition = fence.prohibition;
 	if (prohibition.kind === "vocabulary") {
