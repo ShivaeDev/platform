@@ -4,10 +4,6 @@ import type { Holder } from "./holder.ts";
 export const elapsed = (fromMs: number, toMs: number): string => {
 	const seconds = Math.max(0, Math.round((toMs - fromMs) / 1000));
 	const minutes = Math.floor(seconds / 60);
-	if (minutes >= 600) {
-		const hours = Math.floor(minutes / 60);
-		return `${hours}h ${minutes % 60}m`;
-	}
 	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 };
 
