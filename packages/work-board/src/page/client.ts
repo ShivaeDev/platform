@@ -1,5 +1,6 @@
 export const client = `
 import "/_board/preferences.js";
+import "/_board/search.js";
 import { renderDiagrams } from "/_board/diagrams.js";
 import { applyPage } from "/_board/page-state.js";
 import { pageVersion } from "/_board/navigation.js";
@@ -75,6 +76,7 @@ const refresh = async () => {
 const events = new EventSource("/events");
 events.addEventListener("ready", () => {
   connected = true;
+  document.dispatchEvent(new Event("board-index-change"));
   show();
   if (dropped) refresh();
   dropped = false;
@@ -84,7 +86,7 @@ const down = () => {
   dropped = true;
   show();
 };
-events.addEventListener("change", refresh);
+events.addEventListener("change", () => { refresh(); document.dispatchEvent(new Event("board-index-change")); });
 events.addEventListener("down", down);
 events.addEventListener("error", down);
 

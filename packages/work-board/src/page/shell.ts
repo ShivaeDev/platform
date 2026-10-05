@@ -1,5 +1,6 @@
 import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "./escape.ts";
+import { searchDialog } from "./searchDialog.ts";
 
 function location(file: string): string {
 	return file
@@ -20,11 +21,11 @@ export const shell = (title: string, nav: string, main: string, workspace: strin
 		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
 		'<div class="page"><header class="bar"><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true">Files</button>',
 		`<nav id="breadcrumbs" class="breadcrumbs" aria-label="File location"><a href="/">Workspace</a><span class="separator">/</span>${location(title)}</nav>`,
-		'<span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>',
+		'<button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>',
 		'<div class="preferences" role="group" aria-label="Reading preferences">',
 		'<div class="preference"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>',
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
 		'<span id="preference-status" role="status"></span></div>',
 		`<main id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
-		"</div></div></body></html>",
+		`</div></div>${searchDialog}</body></html>`,
 	].join("");
