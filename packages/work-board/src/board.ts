@@ -7,8 +7,10 @@ import { events } from "#http/events.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
+import { search } from "#http/search.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
+import { searchSnapshot } from "#search/snapshot.ts";
 
 export interface BoardOptions {
 	readonly home?: string | undefined;
@@ -32,6 +34,8 @@ const routes = (options: BoardOptions) =>
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
 			yield* serve("/events", events(changes));
+			const index = yield* searchSnapshot(options.root, home, changes);
+			yield* serve("/_board/search", search(index));
 			for (const [route, body, contentType] of ASSETS) {
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}

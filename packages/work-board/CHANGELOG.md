@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add local workspace search with document, heading, and passage results, snippets,
+  keyboard navigation, and a command dialog for existing view controls. Rebuild
+  the in-memory index after file changes, disclose unreadable files, and prevent
+  older search responses from replacing newer queries.
+
 - Add heading passage links and an outline, in-place document navigation with
   back/forward reading-state restoration, workspace-scoped favorites and recents,
   active document titles, and readable missing-document/passage states.

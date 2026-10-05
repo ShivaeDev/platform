@@ -64,6 +64,27 @@ label. If storage is unavailable, favorites and recents work on the current page
 reading navigation still works in the open tab. Content and the outline remain
 readable with JavaScript disabled.
 
+## Workspace search
+
+Use **Search** or Ctrl/Cmd+K to find document titles/paths, Markdown headings, and
+passage text. Results identify their type and source file, include text snippets,
+and open the corresponding heading when available. Matching is case-insensitive
+with Unicode normalization; all query terms must occur in a block. Titles rank
+before headings, then passages, with stable source order within each group.
+Results are limited to 40 and report the full match count. This is deterministic
+text search, without fuzzy matching or semantic inference.
+
+Arrow keys choose a result while the search field is focused; Enter opens it.
+Escape closes the dialog and restores focus. With an empty query, commands open
+the workspace or change the existing sidebar, density, and theme controls.
+
+The server keeps a rebuildable index in memory and invalidates it when the file
+watcher changes. An open dialog refreshes on edits and reconnects; older requests
+cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
+the workspace are excluded. Unreadable files produce an incomplete-results notice.
+All indexing and requests stay local. Search needs JavaScript; document reading
+does not. Source-in-editor links await an agreed local editor mechanism.
+
 ## Diagrams
 
 A ` ```mermaid ` block is drawn in the browser. Mermaid loads from the installed

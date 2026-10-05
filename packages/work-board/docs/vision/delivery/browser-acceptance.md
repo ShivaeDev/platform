@@ -75,3 +75,25 @@ or proof of the north star's usability targets.
    release it. The old response must not replace the new page. Simulate a failed
    navigation, restore network access, and retry the same link. Recheck desktop,
    mobile, keyboard, no-JavaScript rendering, and live updates of the active title.
+
+## Workspace search acceptance — step 03
+
+1. Open Search with Ctrl/Cmd+K. Search `project note`, a document filename,
+   `Evidence`, and a phrase from a card. Check the result types, snippets, count,
+   and 40-result limit. A nonexistent phrase must show an empty state.
+2. Search the text under a second duplicate heading in an encoded filename.
+   Use arrows then Enter; the result opens the correct heading. Escape restores
+   focus to the control that opened the dialog. Check the focus trap, dark theme,
+   and dialog/results scrolling at 390 × 844 without horizontal overflow.
+3. With the dialog open, edit/add/delete a Markdown file in the fixture folder.
+   Results must update. Drop and reconnect the event stream; results reconcile.
+4. Hold an earlier search response, type a different query, then release it.
+   The older results must not replace the newer query. Fail a request and use
+   Search to retry. Unreadable files must disclose incomplete results.
+5. Clear the query and use workspace/sidebar/density/theme commands. Confirm
+   native modified clicks on file results still open another tab. With JavaScript
+   disabled, Search is disabled and documents remain readable.
+
+Search observations from a named machine may be recorded as a baseline; they are
+not an agreed performance budget or usability proof. Source-in-editor links
+remain deferred until a local editor mechanism is agreed.

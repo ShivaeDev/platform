@@ -18,7 +18,7 @@ Check a step only after its acceptance is demonstrated in the package.
 
 - [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
 - [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
-- [ ] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
+- [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
 - [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
 - [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
 - [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
@@ -94,7 +94,41 @@ remain step 04 work. Project content is not modified.
   review path. This is fixture evidence, not real-project adoption or performance
   measurement.
 
-Steps 03–26 remain open. Search and the rest of W1.2/W1.3 are still proposed.
+## Step 03 evidence
+
+The package now searches local document titles/paths, Markdown headings, and
+passage text using a rebuildable in-memory index. A keyboard-opened dialog shows
+result types, snippets, bounded counts, empty/failure states, and links to the
+matching heading. It also commands the existing workspace/sidebar/density/theme
+controls. File changes invalidate the index; open results refresh on edits and
+reconnect. Source-in-editor links await an agreed local editor mechanism.
+
+- Work Board: 100 passing tests, including exact duplicate-heading targets,
+  encoded paths, Unicode/GFM/code text, deterministic ranking/result bounds,
+  real filesystem/HTTP edit/add/delete invalidation, root/hidden-file boundaries,
+  incomplete-result notices, keyboard commands, focus restoration, stale-response
+  rejection even when cancellation is ignored, retry, and safe snippet rendering.
+- Chromium 151: 50-document/100-item fixture at 1440 × 1000 and 390 × 844;
+  typed results, duplicate passage navigation, arrows/Enter/Escape, modal focus,
+  edits/deletions, delayed-response isolation, retries, view commands, dark theme,
+  modified-click new tabs, narrow layout without horizontal overflow, and readable
+  no-JavaScript content with Search disabled. No page errors observed. The actual
+  project vision/delivery folder was also searched and a matching passage opened.
+- Observational baseline on the shared managed container (AMD EPYC 9V74 CPU,
+  Node 24.19.0): first HTML response 57.1ms, cold index/search 76.9ms, and edit to
+  updated search 199.9ms, with the 50-document/100-item fixture. Five warm requests
+  in the browser walkthrough ranged from 3.5ms to 26.6ms. These are individual
+  observations, not agreed budgets or proof of real-user orientation time.
+- Repository gate: `pnpm ready` passed lint, build, typecheck, real
+  PostgreSQL-backed tests, orchestration regressions, and packed consumers. Package
+  suites have 983 passing tests and three existing expected failures; seven
+  orchestration tests passed, with no tests skipped.
+- [Browser acceptance](./delivery/browser-acceptance.md) gives the repeatable
+  review path. [D1 source examples](./delivery/source-examples.md) prepare the next
+  discussion; their metadata is proposed, not implemented.
+
+Steps 04–26 remain open. Step 04 requires D1's source-contract discussion; the
+rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 

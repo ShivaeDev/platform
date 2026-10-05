@@ -6,6 +6,8 @@ import { diagrams } from "#page/diagrams.ts";
 import { libraryScript } from "#page/libraryScript.ts";
 import { navigationScript } from "#page/navigationScript.ts";
 import { readingStateScript } from "#page/readingStateScript.ts";
+import { searchResultsScript } from "#page/searchResultsScript.ts";
+import { searchScript } from "#page/searchScript.ts";
 import { pageStateScript } from "#page/stateScript.ts";
 import { style } from "#page/style.ts";
 import { swap } from "#page/swap.ts";
@@ -15,6 +17,8 @@ export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, strin
 	["/_board/style.css", style, "text/css"],
 	["/_board/client.js", client, "text/javascript"],
 	["/_board/preferences.js", preferences, "text/javascript"],
+	["/_board/search.js", searchScript(), "text/javascript"],
+	["/_board/search-results.js", searchResultsScript(), "text/javascript"],
 	["/_board/library.js", libraryScript(), "text/javascript"],
 	["/_board/navigation.js", navigationScript(), "text/javascript"],
 	["/_board/page-state.js", pageStateScript(), "text/javascript"],
