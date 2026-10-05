@@ -51,7 +51,8 @@
 	"dependencies": {
 		"mermaid": "catalog:",
 		"satteri": "catalog:",
-		"shiki": "catalog:"
+		"shiki": "catalog:",
+		"yaml": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",

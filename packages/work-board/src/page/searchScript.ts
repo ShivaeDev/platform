@@ -38,13 +38,14 @@ const search = async () => {
 };
 open.addEventListener("click", () => {
  previous = document.activeElement;
+ dialog.returnValue = "";
  dialog.showModal();
  input.focus();
  input.select();
  search();
 });
 document.getElementById("search-close").addEventListener("click", () => dialog.close());
-dialog.addEventListener("close", () => { invalidate(); previous?.focus({ preventScroll: true }); });
+dialog.addEventListener("close", () => { invalidate(); if (dialog.returnValue !== "navigate") previous?.focus({ preventScroll: true }); });
 dialog.addEventListener("cancel", () => invalidate());
 dialog.addEventListener("keydown", (event) => {
  if (event.key === "Escape") { event.preventDefault(); dialog.close(); }

@@ -55,6 +55,7 @@ catalog:
   satteri: 0.9.5
   shiki: 4.4.2
   typescript: npm:@typescript/typescript6@6.0.2
+  yaml: 2.9.0
   vitest: 4.1.9
   "@vercel/detect-agent": 1.2.3
 

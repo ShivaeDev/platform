@@ -4,6 +4,16 @@
 
 ### Added
 
+- Read optional YAML frontmatter for stable item identity, explicit work fields,
+  relationships, board membership, criteria, and recorded evidence provenance.
+  Keep ordinary Markdown/heading boards valid, retain unknown source metadata,
+  and disclose malformed fields, duplicate IDs, and unresolved references.
+  Rebuild identities from the existing local index; identity links survive file
+  and heading renames, and criterion search opens its source context. Recorded
+  outcomes remain distinct from independently verified acceptance.
+- Show source lines in search results and preserve reading state when an item
+  moves. Keep passage focus when a search result targets the active document.
+
 - Add local workspace search with document, heading, and passage results, snippets,
   keyboard navigation, and a command dialog for existing view controls. Rebuild
   the in-memory index after file changes, disclose unreadable files, and prevent

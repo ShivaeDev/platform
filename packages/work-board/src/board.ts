@@ -4,6 +4,7 @@ import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { events } from "#http/events.ts";
+import { identity } from "#http/identity.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
@@ -40,7 +41,8 @@ const routes = (options: BoardOptions) =>
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			const pages = page({ home, root: options.root }, changes);
+			const pages = page({ home, root: options.root }, changes, index);
+			yield* serve("/_board/item/*", identity(index, pages, changes, home));
 			yield* serve("/", pages);
 			yield* serve("/*", pages);
 		}),

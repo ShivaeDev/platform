@@ -1,12 +1,12 @@
-# D1 review: optional source structure
+# Optional source structure
 
-These are proposed plain-text examples for the discussion gate before step 04.
-They are not supported metadata syntax or an adopted API. Steps 01–03 read normal
-Markdown and do not interpret these fields. The maintainer must choose the source
-convention before implementation. No schema or dependency has been adopted; no
-migration is required by this proposal.
+Work Board reads optional YAML frontmatter at the beginning of a Markdown file.
+The file remains authoritative; the in-memory identity/search index is rebuilt
+from readable files and invalidated by the watcher. No database, generated source
+files, cloud service, or migration is required. Parsing uses `yaml` 2.9.0 and
+Effect Schema. The UI reads this structure and never rewrites it.
 
-## Existing heading board stays useful
+## Existing heading boards
 
 ```markdown
 # Navigation delivery
@@ -15,8 +15,7 @@ migration is required by this proposal.
 
 ### Search the workspace
 
-Find document titles, headings, and passages. Verify keyboard focus and missing
-results against the large fixture.
+Find document titles, headings, and passages.
 
 ## In review
 
@@ -25,17 +24,12 @@ results against the large fixture.
 Evidence: [navigation PR](https://github.com/ShivaeDev/platform/pull/77).
 ```
 
-This remains the current format. Its section names are presentation, not inferred
-workflow transitions. An unannotated card has no durable identity, owner,
-acceptance decision, or machine-readable status. Renaming a heading can change
-its passage URL. The richer model must not invent missing fields.
+Existing heading boards render as before. Section names are presentation, never
+inferred workflow transitions. An unannotated card has no durable identity,
+owner, acceptance decision, or machine-readable status. Its passage URL can
+change when its heading changes. Richer identity uses one file per item.
 
-## A richer item as one readable file
-
-Working recommendation: optional YAML frontmatter in a Markdown file, with an
-explicit project-local ID. One file can represent a richer item while existing
-heading boards remain readable. The exact keys, YAML support, and how existing
-cards opt into identity are decisions for D1, not implementation promises.
+## A richer item
 
 ```markdown
 ---
@@ -55,21 +49,35 @@ relationships:
 ---
 # Search the workspace
 
-Use deterministic local matching first. Keep plain Markdown authoritative and
-let the index be rebuilt from the files. Human review remains distinct from an
-agent finishing a run.
+Use deterministic local matching first. Keep Markdown authoritative.
 ```
 
-`owner` identifies responsibility, not who authored every sentence. Status must
-be explicitly recorded; a section heading or an agent's claim cannot set it.
-Criteria have IDs so evidence can name the precise assertion it supports.
+Every top-level field is optional. Missing values show as **Not recorded** in
+work details. `owner` records responsibility, without claiming authorship.
+`status` and `next_action` are explicit source text; no status vocabulary or
+transition rules are inferred.
 
-Implementing YAML frontmatter would need a declared YAML parser dependency. The
-concrete option for review is `yaml` 2.9.0 (already a transitive dependency in the
-repository lockfile), plus Effect Schema validation. Do not implement a partial
-handwritten YAML parser. This dependency is proposed only; step 03 adds none.
+| Field | Source shape |
+| --- | --- |
+| `id` | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-` |
+| `kind` | `task`, `investigation`, `decision`, `result`, `project`, or `board` |
+| `status`, `owner`, `next_action` | Nonblank strings |
+| `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
+| `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, or `relates_to`; target is an item ID or `item.id#criterion-id` |
+| `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
+| `evidence` | List of records described below |
 
-## A decision linked to revision-specific evidence
+A unique ID resolves at `/_board/item/work.search/`. This URL survives file and
+heading renames while the ID remains unchanged and unique. A criterion resolves
+at `/_board/item/work.search/#criterion-keyboard`. Normal file and generated
+heading URLs continue working; favorites/recents still refer to file paths.
+
+Search includes declared ID, kind, status, owner, next action, and criteria.
+Results show source lines where known; criterion results open and focus the
+criterion's work-details context. Source diagnostics identify file/line, and
+**Original frontmatter** exposes the retained header.
+
+## Relationships and board declarations
 
 ```markdown
 ---
@@ -80,55 +88,63 @@ relationships:
   - kind: informs
     target: work.search
 ---
-# Start with deterministic text matching
+# Deterministic matching
 
-Option A: token matching, a bounded result list, and rebuildable local data.
-Option B: fuzzy ranking, with more tuning and less predictable results.
+Option A: token matching with deterministic ranking.
+Option B: fuzzy ranking with additional tuning.
 
-Recommendation: A for the first reading workflow. The decision remains proposed
-until the person responsible records acceptance.
-
-## Evidence
-
-- Source: [search regression](../../../src/search/entries.test.ts)
-- Supports: work.search#passage
-- Checked revision: an explicit full Git commit SHA
-- Observed time: an explicit ISO timestamp from the checking tool
-- Method: real filesystem/HTTP test or named browser walkthrough
+Recommendation: A. A person's acceptance remains a separate decision.
 ```
 
-The example's revision/time placeholders are not evidence. A real record must
-supply actual values; missing checks stay unknown. A link to a test or PR alone
-does not prove acceptance, freshness, or the criterion's result. We need to agree
-whether evidence fields live in structured frontmatter, readable prose, or a
-separate explicitly linked document before parsing them.
+```yaml
+id: board.navigation
+kind: board
+items: [work.search, work.reading-state]
+```
 
-## Invalid and duplicate cases
+Relationships and membership resolve only against explicit IDs. They are shown
+as readable links; unresolved or ambiguous targets stay visible with diagnostics.
+These declarations do not turn a section name into a workflow rule.
 
-- Two files declaring `id: work.search`: show both sources and a duplicate-ID
-  diagnostic; do not select a winner or rewrite either file.
-- `criteria: keyboard`: malformed under the proposed list shape; render the
-  document and show the field diagnostic rather than silently dropping it.
-- A relationship targeting `work.missing`: show the unresolved target.
-- An unknown field such as `risk_budget`: preserve the source and identify it as
-  uninterpreted; do not guess its meaning.
-- Evidence checked at an older revision: display its recorded revision and time;
-  do not imply the current source was checked.
+## Criterion-level recorded evidence
 
-## Decisions to settle
+Each record requires a nonblank `source`. All other evidence fields are optional:
+`criterion` names an item or criterion reference; `checked_revision` is a full
+40- or 64-digit hexadecimal Git revision; `observed_at` is a parseable ISO
+timestamp with a timezone; `method` and `outcome` are nonblank strings.
 
-1. Use optional per-file frontmatter as the first richer-item convention, and
-   retain heading boards without requiring migration?
-2. Start with ID, kind, explicit status, owner, next action, and typed links; add
-   criteria/evidence only where these examples need them?
-3. Keep legacy cards without durable IDs initially, and opt into durable
-   identity by using a richer per-item file? This avoids an additional inline
-   card syntax. Recommend explicit lists of item IDs for richer boards when
-   step 05 introduces those views; no inference from section names.
-4. Start with structured criterion/evidence records in the richer file, with
-   source, checked revision, observation time, method, and recorded outcome?
-   Display those as source claims until actually verified. Human acceptance
-   stays an explicit separate decision, never inferred from an agent finishing.
+```yaml
+evidence:
+  - source: ../evidence/browser-walkthrough.md
+    criterion: work.search#keyboard
+    method: real Chromium walkthrough
+    outcome: passed
+```
 
-Review the actual project notes with steps 01–03 before choosing. D1 approval
-settles a source contract; automatic PR merging does not settle these open choices.
+This example deliberately has no revision or observation time; they remain
+**Not recorded**. Supply real values when available. Relative source links resolve
+from the file containing the record. HTTP(S) sources are ordinary links;
+executable URL schemes stay plain text. Non-Markdown local assets are not served
+by this source structure.
+
+Records are labeled **Source claims — not independently verified**. A recorded
+outcome, test link, agent run completion, or proposed decision does not establish
+verified acceptance. Work Board neither runs checks nor verifies freshness here.
+
+## Invalid, unknown, and unavailable sources
+
+- A header opens with `---` on the first line, optionally after a BOM, and closes
+  with a separate `---` line. CRLF is supported. Scalar/list headers and unclosed
+  headers retain the original Markdown and show a diagnostic.
+- YAML syntax errors, duplicate keys, unsupported tags, or excessive alias
+  expansion leave the header uninterpreted and retain readable body prose.
+- Unknown top-level fields stay in the original header with a diagnostic. An
+  invalid known field, including unknown nested keys, stays uninterpreted as a
+  whole. Independent valid fields still render. No source bytes are rewritten.
+- Duplicate IDs show all matching source files and a conflict page; no winner
+  is chosen. Duplicate criterion IDs do not receive selectable criterion links.
+- Missing IDs/criteria remain unresolved. Removing the source yields an explicit
+  missing-item page. Removing or changing its ID does not preserve that identity.
+- If any listed file cannot be read, identity links report an incomplete index
+  rather than asserting uniqueness. Readable documents and partial search remain
+  usable; reference validation waits for a complete index.

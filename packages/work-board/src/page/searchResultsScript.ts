@@ -34,7 +34,7 @@ export const showResults = (items) => {
   const title = document.createElement("strong");
   title.textContent = item.title;
   const source = document.createElement("small");
-  source.textContent = item.kind + (item.file ? " · " + item.file : "");
+  source.textContent = item.kind + (item.file ? " · " + item.file + (item.line ? ":" + item.line : "") : "");
   link.append(title, source);
   if (item.snippet) {
    const snippet = document.createElement("p");
@@ -57,7 +57,7 @@ results.addEventListener("click", (event) => {
    control.dispatchEvent(new Event("change"));
   }
  }
- document.getElementById("search-dialog").close();
+ document.getElementById("search-dialog").close(!control && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey ? "navigate" : "");
 });
 `;
 }

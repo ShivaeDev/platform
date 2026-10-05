@@ -48,8 +48,8 @@ actual results, and any limitations in the PR. Stop with Ctrl-C after review.
    work and explain that choices apply only to the current page.
 
 The fixture includes duplicate headings, a missing link, long prose, an encoded
-filename, a diagram, details, and malformed example metadata. Missing references
-and metadata are reading samples here; schema validation belongs to later steps.
+filename, a diagram, details, and malformed example metadata. The additional
+`identityFixture()` supplies richer items, explicit references, and recorded claims.
 Performance timings from this fixture are observations, not established budgets
 or proof of the north star's usability targets.
 
@@ -97,3 +97,24 @@ or proof of the north star's usability targets.
 Search observations from a named machine may be recorded as a baseline; they are
 not an agreed performance budget or usability proof. Source-in-editor links
 remain deferred until a local editor mechanism is agreed.
+
+## Optional identity acceptance — step 04
+
+Add `identityFixture()` from `test/support/identityFixture.ts` to the large fixture.
+
+1. Open the legacy board: its 100 cards remain unchanged. Search an explicit ID,
+   owner, and criterion phrase. Check source line labels, then use Enter to open
+   an item/criterion. Criteria expand work details and receive keyboard focus,
+   including when searching within the already active item.
+2. Inspect work details, relationship/source links, and original frontmatter.
+   Missing fields say Not recorded. Evidence shows recorded revision/time/method
+   and outcome with an explicit notice that the claim is not independently verified.
+3. Open content details and select prose. Rename the source file while its stable
+   item URL is open; details, selection, and location remain. Edit the heading;
+   its title updates. Navigate to its decision and use Back to restore details.
+4. Add a duplicate ID; the active item must become a conflict explanation with
+   source choices. Remove the duplicate and recover. Delete the remaining source;
+   its stable URL must show an explicit missing-item page.
+5. Read a malformed/unknown field and an unresolved reference. Prose and original
+   metadata remain readable. Repeat item/criterion navigation at 390 × 844, in
+   dark mode, and with JavaScript disabled. Check narrow overflow and page errors.

@@ -19,7 +19,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
 - [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
 - [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
-- [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
+- [x] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
 - [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
 - [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
@@ -73,7 +73,7 @@ navigation preserves scroll, text selection, and expanded sections. Favorites
 and ten recent documents are stored per workspace and browser origin; bounded
 reading records survive reloads within a tab. Missing documents and passages are
 explained. Heading text/order changes can change generated anchors; durable IDs
-remain step 04 work. Project content is not modified.
+are supported for richer per-item files in step 04. Project content is not modified.
 
 - Work Board: 89 passing tests, including heading collisions, Unicode, encoded
   filenames, nested-home links, history restoration, workspace isolation,
@@ -124,11 +124,43 @@ reconnect. Source-in-editor links await an agreed local editor mechanism.
   suites have 983 passing tests and three existing expected failures; seven
   orchestration tests passed, with no tests skipped.
 - [Browser acceptance](./delivery/browser-acceptance.md) gives the repeatable
-  review path. [D1 source examples](./delivery/source-examples.md) prepare the next
-  discussion; their metadata is proposed, not implemented.
+  review path. [Source examples](./delivery/source-examples.md) describe the optional
+  read-side convention.
 
-Steps 04–26 remain open. Step 04 requires D1's source-contract discussion; the
-rest of W1.2/W1.3 remains proposed.
+## Step 04 evidence
+
+D1 approved optional per-file YAML frontmatter with `yaml` 2.9.0, explicit stable
+IDs, unchanged legacy heading boards, explicit relationships/board membership,
+and criterion-level recorded evidence distinct from verified acceptance. The
+package now reads that [source convention](./delivery/source-examples.md), extends
+the existing index, and exposes stable item/criterion links and diagnostics.
+
+- Work Board: 128 passing tests covering plain Markdown compatibility, BOM/CRLF
+  and exact source lines, independent valid fields, unknown/nested-invalid fields,
+  malformed YAML/duplicate keys/tags/alias bounds, case-sensitive ASCII identity,
+  explicit references, duplicate IDs/criteria, incomplete-workspace validation,
+  real HTTP/watch rename/delete/conflict recovery, identity read-race rejection,
+  reserved-prefix/encoded Markdown paths, restart rebuilding, metadata
+  escaping, and criterion search/focus. DOM regressions preserve open details and
+  selection through live item renames and navigation; same-document search keeps
+  passage focus after closing the dialog.
+- Chromium 151: 50-document/100-card fixture plus richer item examples at
+  1440 × 1000 and 390 × 844; original cards unchanged, ID/owner/criterion search
+  with exact line labels, recorded-provenance disclosure, relationship navigation,
+  criterion focus/expansion, live file/heading renames, Back restoration,
+  duplicate/deletion explanations and recovery, unknown-field raw preservation,
+  dark mode, no-JavaScript reading, and no narrow horizontal overflow. No page
+  errors observed. This is fixture evidence, not user adoption or verified
+  acceptance of its example evidence records.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,011
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no tests skipped. The quality baseline did not grow.
+- [Browser acceptance](./delivery/browser-acceptance.md#optional-identity-acceptance--step-04)
+  gives the repeatable path. Richer board/table/detail views remain step 05;
+  legacy card IDs and source-in-editor navigation remain outside this checkpoint.
+
+Steps 05–26 remain open; the rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 
@@ -153,7 +185,7 @@ the UI does not mutate project content in this wave.
 | W1.6 Awareness | Changed since last visit, source/freshness labels, stale evidence, restrained update highlighting, pause/resume updates | New content is distinguishable from activity; resuming catches up while preserving position and expanded content |
 | W1.7 Finish | Themes, responsive layouts, accessible focus/status, print/local HTML export, targeted updates | Browser checks cover desktop and narrow layout, keyboard, reduced motion, reconnect, and offline core use |
 
-- [ ] Agree the smallest optional read-side metadata convention; support legacy
+- [x] Agree the smallest optional read-side metadata convention; support legacy
   heading-based boards unchanged and treat missing metadata as unknown.
 - [ ] Deliver W1.2 + W1.3 as the first vertical slice: a larger workspace can be
   searched, browsed, and inspected comfortably.

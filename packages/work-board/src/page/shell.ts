@@ -9,7 +9,7 @@ function location(file: string): string {
 		.join('<span class="separator">/</span>');
 }
 
-export const shell = (title: string, nav: string, main: string, workspace: string, board: boolean): string =>
+export const shell = (title: string, nav: string, main: string, workspace: string, board: boolean, identity?: string): string =>
 	[
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
@@ -26,6 +26,6 @@ export const shell = (title: string, nav: string, main: string, workspace: strin
 		'<div class="preference"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>',
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
 		'<span id="preference-status" role="status"></span></div>',
-		`<main id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
+		`<main${identity ? ` data-identity="${escapeHtml(identity)}"` : ""} id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
 		`</div></div>${searchDialog}</body></html>`,
 	].join("");
