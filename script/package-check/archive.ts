@@ -9,10 +9,13 @@ const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
 const packedPath = (path: string): string => posix.join("package", path);
+const TEST_FILE = /(?:^|\/)(?:tests?|test-support)\/|\.(?:test|spec)\.[^/]*$/u;
 
 function filesEntryHolds(pattern: string, contents: ReadonlySet<string>): boolean {
 	return pattern.startsWith("!")
-		? ![...contents].some((path) => posix.matchesGlob(path, packedPath(pattern.slice(1))))
+		? ![...contents].some(
+				(path) => posix.matchesGlob(path, packedPath(pattern.slice(1))) || posix.matchesGlob(path, packedPath(`${pattern.slice(1)}/**`)),
+			)
 		: [...contents].some((path) => path === packedPath(pattern) || path.startsWith(`${packedPath(pattern)}/`));
 }
 
@@ -79,7 +82,7 @@ function checkImports(tarball: string, manifest: Manifest, contents: ReadonlySet
 const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<string>) =>
 	Effect.gen(function* () {
 		for (const path of contents) {
-			yield* requireThat(!/(^|\/)tests?\//u.test(path), `packed test file ${path}`);
+			yield* requireThat(!TEST_FILE.test(path), `packed test file ${path}`);
 			if (!path.endsWith(".map")) {
 				continue;
 			}
