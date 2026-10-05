@@ -27,7 +27,12 @@ describe("tests/story-setup flags setup helpers", () => {
 			sources: [{ content: "import { it } from 'vitest';\n\nfunction setupPaidOrder(): void {}\n", path: "src/orders/checkout.spec.ts" }],
 		});
 		expect(findings).toEqual([
-			{ file: "src/orders/checkout.spec.ts", line: 3, message: `Declares the setup helper "setupPaidOrder". ${STORY_KIT}`, subject: "setupPaidOrder" },
+			{
+				file: "src/orders/checkout.spec.ts",
+				line: 3,
+				message: `Declares the setup helper "setupPaidOrder". ${STORY_KIT}`,
+				subject: "setupPaidOrder",
+			},
 		]);
 	});
 
