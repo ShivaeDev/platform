@@ -12,6 +12,10 @@ the target interactions. The [vision prototype](./mockups/index.html) illustrate
 the end state with fictional data; it is not the implemented application.
 The [package README](../../README.md) describes shipped behavior.
 
+The [delivery plan](./delivery/README.md) breaks the waves into 26 ordered steps,
+with prerequisites, concrete acceptance checks, and design decisions at the point
+they become necessary. It starts with three usable navigation and search changes.
+
 ## Visual direction
 
 ![Work Board vision board](./mockups/images/vision-board.png)

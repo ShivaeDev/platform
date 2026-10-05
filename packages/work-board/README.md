@@ -10,7 +10,7 @@ work-board ./project-notes --port 4747 --home plan.md
 ```
 
 It listens on `127.0.0.1` only and answers only requests addressed to a
-loopback host. Every `.md` file under the folder appears in the top bar with how
+loopback host. Every `.md` file under the folder appears in the collapsible sidebar with how
 long ago it changed. Below the folder, files and folders starting with a dot and
 `node_modules` are never entered, and anything that is not markdown is skipped;
 the folder itself may be a dot folder such as `.notes`. No path outside the
@@ -23,13 +23,67 @@ footnotes, raw HTML (including `<details>` with markdown inside) and fenced code
 highlighted with Shiki's GitHub light and dark themes. Raw HTML is not
 sanitized, so serve only folders you trust. Pages send a content security
 policy that allows only the board's own scripts, and `Cache-Control: no-store`.
-The page uses system fonts and follows the light or dark colour scheme.
+The page uses system fonts. Theme can follow the system or stay light or dark.
+Theme, compact/comfortable density, and sidebar visibility are remembered in
+browser storage for this folder and server origin. When storage is unavailable,
+controls still work for the current page and show a notice.
+
+The file location appears above the content. Documents use a readable line
+length; boards use a wider grid that stacks on narrow screens. The sidebar has
+its own scroll area and starts collapsed on narrow screens unless a saved
+preference says otherwise. A keyboard skip link moves directly to the content.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
+
+## Document navigation
+
+Markdown headings have passage links and an **On this page** outline, including separate
+anchors for duplicate headings. Use the heading's `#` link to copy a passage URL.
+Generated anchors use the heading text and duplicate order; changing either can
+change the anchor. Renaming a file changes its document URL. Authored HTML IDs
+and footnote links remain intact; stable work-item IDs are a later roadmap step.
+
+Markdown links resolve from their source file, including a nested `--home` file
+served at `/`. Links within the workspace open in place; modified clicks and
+links targeting another window keep their normal browser behavior. The browser
+title and active file tooltip follow the document's main heading.
+
+Back and forward restore the previous scroll, selected text, and open details.
+The client keeps up to 30 page snapshots and tab-scoped reading records; it
+fetches the current file again on return so changes and deletions are visible.
+A missing document explains what happened, and a missing passage shows a notice.
+
+**Save favorite** pins a document to the sidebar. Recent documents are deduplicated
+and limited to the last ten. Favorites and recents use browser storage scoped to
+the folder and server origin. Deleted favorites remain visible with a missing
+label. If storage is unavailable, favorites and recents work on the current page;
+reading navigation still works in the open tab. Content and the outline remain
+readable with JavaScript disabled.
+
+## Workspace search
+
+Use **Search** or Ctrl/Cmd+K to find document titles/paths, Markdown headings, and
+passage text. Results identify their type and source file, include text snippets,
+and open the corresponding heading when available. Matching is case-insensitive
+with Unicode normalization; all query terms must occur in a block. Titles rank
+before headings, then passages, with stable source order within each group.
+Results are limited to 40 and report the full match count. This is deterministic
+text search, without fuzzy matching or semantic inference.
+
+Arrow keys choose a result while the search field is focused; Enter opens it.
+Escape closes the dialog and restores focus. With an empty query, commands open
+the workspace or change the existing sidebar, density, and theme controls.
+
+The server keeps a rebuildable index in memory and invalidates it when the file
+watcher changes. An open dialog refreshes on edits and reconnects; older requests
+cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
+the workspace are excluded. Unreadable files produce an incomplete-results notice.
+All indexing and requests stay local. Search needs JavaScript; document reading
+does not. Source-in-editor links await an agreed local editor mechanism.
 
 ## Diagrams
 

@@ -13,7 +13,7 @@ const load = async () => {
     securityLevel: "strict",
     theme: "base",
     themeVariables: {
-      darkMode: dark.matches,
+      darkMode: schemeNow() === "dark",
       background: token("--bg"),
       primaryColor: token("--surface"),
       primaryTextColor: token("--text"),
@@ -26,7 +26,8 @@ const load = async () => {
   return mermaid;
 };
 
-const schemeNow = () => (dark.matches ? "dark" : "light");
+const schemeNow = () => document.documentElement.dataset.scheme ?? (dark.matches ? "dark" : "light");
+let lastScheme = schemeNow();
 
 const draw = async (figure) => {
   const source = figure.querySelector(".diagram-source").textContent;
@@ -65,8 +66,15 @@ export const renderDiagrams = (root, selector = "figure.diagram:not([data-state=
   return Promise.all([...root.querySelectorAll(selector)].map(draw));
 };
 
-dark.addEventListener("change", () => {
+const themeChanged = () => {
+  const scheme = schemeNow();
+  if (lastScheme === scheme) return;
+  lastScheme = scheme;
+  const doc = document.getElementById("doc");
+  if (doc) doc.dataset.scheme = scheme;
   mermaid = undefined;
   renderDiagrams(document, "figure.diagram");
-});
+};
+document.addEventListener("board-theme", themeChanged);
+dark.addEventListener("change", themeChanged);
 `;

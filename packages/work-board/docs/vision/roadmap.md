@@ -5,6 +5,131 @@ proposed and unimplemented. Completion requires the stated observable behavior
 and relevant checks; a mockup or a checked design document is not feature proof.
 Waves describe dependency order, not a calendar commitment.
 
+The [step-by-step delivery plan](./delivery/README.md) turns these waves into
+26 bounded implementation steps. Start with steps 01–03: workspace shell,
+document locations, then search. Each step names its prerequisites and acceptance
+evidence; the plan also records the source-format, mutation, handoff, and integration
+discussion gates. Record completed step IDs and their proof here as delivery
+proceeds.
+
+## Delivery checklist
+
+Check a step only after its acceptance is demonstrated in the package.
+
+- [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
+- [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
+- [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
+- [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
+- [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
+- [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
+- [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
+- [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
+- [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
+- [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
+- [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
+- [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
+- [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
+- [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
+- [ ] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
+- [ ] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
+- [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
+- [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
+- [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
+- [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
+- [ ] [21 Successive contributions with clear ownership](./delivery/wave3.md#21-successive-contributions-with-clear-ownership)
+- [ ] [22 Several local projects, one attention view](./delivery/wave3.md#22-several-local-projects-one-attention-view)
+- [ ] [23 Richer plans and local review packets](./delivery/wave3.md#23-richer-plans-and-local-review-packets)
+- [ ] [24 One optional read-only GitHub adapter](./delivery/wave3.md#24-one-optional-read-only-github-adapter)
+- [ ] [25 Read existing local test and build artifacts](./delivery/wave3.md#25-read-existing-local-test-and-build-artifacts)
+- [ ] [26 Quiet rules and a real collaboration review](./delivery/wave3.md#26-quiet-rules-and-a-real-collaboration-review)
+
+## Step 01 evidence
+
+The package now serves a collapsible file sidebar, file location, readable
+documents, responsive board columns, and remembered theme/density/sidebar
+preferences. The source format and public CLI/embedding API are unchanged.
+
+- Work Board: 78 passing tests, including the shared 50-document/100-item
+  fixture, preference restoration and isolation, unavailable storage, explicit
+  diagram themes, and live-update preservation. Happy DOM uses a Mermaid stub.
+- Chromium 151: actual local server and Mermaid, 1440 × 1000 desktop,
+  390 × 844 mobile, and 720px reflow; keyboard skip/focus and sidebar toggle,
+  reload/navigation persistence, Shiki theme override, blocked storage,
+  unchanged diagram/open-details preservation, and readable no-JavaScript content.
+  No page errors were observed in the desktop/mobile walkthrough.
+- Repository gate: lint, build, typecheck, PostgreSQL-backed tests, and packed
+  consumers passed. The suite has 961 passing tests and three existing expected
+  failures; no tests were skipped.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md) provides
+  the fixture launcher and review sequence. This is fixture evidence, not
+  real-project adoption or a usability/performance budget.
+
+## Step 02 evidence
+
+The package now gives Markdown headings unique passage links and an outline,
+uses the active document's main heading as its browser title, and resolves links
+from the source file even when a nested home file is served at `/`. Back/forward
+navigation preserves scroll, text selection, and expanded sections. Favorites
+and ten recent documents are stored per workspace and browser origin; bounded
+reading records survive reloads within a tab. Missing documents and passages are
+explained. Heading text/order changes can change generated anchors; durable IDs
+remain step 04 work. Project content is not modified.
+
+- Work Board: 89 passing tests, including heading collisions, Unicode, encoded
+  filenames, nested-home links, history restoration, workspace isolation,
+  unavailable storage, missing favorites, and stale live responses after navigation
+  (successful, HTTP-failure, and network-failure responses). Happy DOM does not
+  prove scroll layout or actual Mermaid rendering.
+- Chromium 151: the shared 50-document/100-item fixture at 1440 × 1000 and
+  390 × 844; scroll/selection/expanded sections through back/forward and reload;
+  duplicate outline links and focus; favorite/recents reload; encoded paths;
+  missing documents and copied missing-passage links; failed-navigation retry;
+  stale-response isolation; actual Mermaid theme restoration; modified-click
+  new tabs; blocked storage; and readable no-JavaScript content/outline.
+  No page errors were observed in the desktop/mobile walkthrough.
+- Repository gate: `pnpm ready` passed lint, build, typecheck, real
+  PostgreSQL-backed tests, and packed consumers. The suite has 972 passing tests
+  and three existing expected failures; no tests were skipped.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md) records the
+  review path. This is fixture evidence, not real-project adoption or performance
+  measurement.
+
+## Step 03 evidence
+
+The package now searches local document titles/paths, Markdown headings, and
+passage text using a rebuildable in-memory index. A keyboard-opened dialog shows
+result types, snippets, bounded counts, empty/failure states, and links to the
+matching heading. It also commands the existing workspace/sidebar/density/theme
+controls. File changes invalidate the index; open results refresh on edits and
+reconnect. Source-in-editor links await an agreed local editor mechanism.
+
+- Work Board: 100 passing tests, including exact duplicate-heading targets,
+  encoded paths, Unicode/GFM/code text, deterministic ranking/result bounds,
+  real filesystem/HTTP edit/add/delete invalidation, root/hidden-file boundaries,
+  incomplete-result notices, keyboard commands, focus restoration, stale-response
+  rejection even when cancellation is ignored, retry, and safe snippet rendering.
+- Chromium 151: 50-document/100-item fixture at 1440 × 1000 and 390 × 844;
+  typed results, duplicate passage navigation, arrows/Enter/Escape, modal focus,
+  edits/deletions, delayed-response isolation, retries, view commands, dark theme,
+  modified-click new tabs, narrow layout without horizontal overflow, and readable
+  no-JavaScript content with Search disabled. No page errors observed. The actual
+  project vision/delivery folder was also searched and a matching passage opened.
+- Observational baseline on the shared managed container (AMD EPYC 9V74 CPU,
+  Node 24.19.0): first HTML response 57.1ms, cold index/search 76.9ms, and edit to
+  updated search 199.9ms, with the 50-document/100-item fixture. Five warm requests
+  in the browser walkthrough ranged from 3.5ms to 26.6ms. These are individual
+  observations, not agreed budgets or proof of real-user orientation time.
+- Repository gate: `pnpm ready` passed lint, build, typecheck, real
+  PostgreSQL-backed tests, orchestration regressions, and packed consumers. Package
+  suites have 983 passing tests and three existing expected failures; seven
+  orchestration tests passed, with no tests skipped.
+- [Browser acceptance](./delivery/browser-acceptance.md) gives the repeatable
+  review path. [D1 source examples](./delivery/source-examples.md) prepare the next
+  discussion; their metadata is proposed, not implemented.
+
+Steps 04–26 remain open. Step 04 requires D1's source-contract discussion; the
+rest of W1.2/W1.3 remains proposed.
+
 ## Current foundation
 
 The existing package serves a local Markdown folder, renders a designated home

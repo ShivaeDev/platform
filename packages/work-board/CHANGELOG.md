@@ -9,6 +9,27 @@
 
 ### Added
 
+- Add local workspace search with document, heading, and passage results, snippets,
+  keyboard navigation, and a command dialog for existing view controls. Rebuild
+  the in-memory index after file changes, disclose unreadable files, and prevent
+  older search responses from replacing newer queries.
+
+- Add heading passage links and an outline, in-place document navigation with
+  back/forward reading-state restoration, workspace-scoped favorites and recents,
+  active document titles, and readable missing-document/passage states.
+- Resolve Markdown links relative to the source file, including nested home
+  files served at `/`. Ignore stale page responses after navigation and render
+  cached diagrams using the current theme.
+- Add the first workspace shell: a collapsible file sidebar, file location,
+  responsive board columns, readable documents, and keyboard skip navigation.
+  Remember theme, density, and sidebar choices per folder and server origin;
+  code highlighting and diagrams follow the selected theme. Controls remain
+  usable when browser storage is unavailable.
+
+- Add a step-by-step delivery plan for the vision, with 26 bounded implementation
+  steps, dependencies, acceptance evidence, and explicit design gates before
+  richer source formats, mutations, agent handoffs, and external integrations.
+
 - Document the local Work Board north star, three-wave roadmap, experience design,
   and interactive vision mockups with desktop and mobile captures. The package
   README links to the proposed direction separately from its current behavior.

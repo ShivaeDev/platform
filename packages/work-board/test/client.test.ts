@@ -134,22 +134,22 @@ describe("live page", () => {
 
 	it("keeps each of two same-named details blocks open or closed as it was", async () => {
 		await open("/twins.md");
-		const [, second] = page.document.querySelectorAll("#doc details");
+		const [, second] = page.document.querySelectorAll("#doc article details");
 		second?.setAttribute("open", "");
 		notes.write("twins.md", TWINS.replace("First.", "First, edited."));
 		await waitFor(() => expect(paragraph("First, edited.")).toBeDefined());
-		const [first, again] = page.document.querySelectorAll("#doc details");
+		const [first, again] = page.document.querySelectorAll("#doc article details");
 		expect(first?.hasAttribute("open")).toBe(false);
 		expect(again?.hasAttribute("open")).toBe(true);
 	});
 
 	it("keeps the open state with its block when a same-named details block is inserted above", async () => {
 		await open("/twins.md");
-		const [, second] = page.document.querySelectorAll("#doc details");
+		const [, second] = page.document.querySelectorAll("#doc article details");
 		second?.setAttribute("open", "");
 		notes.write("twins.md", TWINS.replace("# Twins\n\n", `# Twins\n\n${STEPS("Zero.")}\n\n`));
 		await waitFor(() => expect(paragraph("Zero.")).toBeDefined());
-		const state = [...page.document.querySelectorAll("#doc details")].map((details) => [
+		const state = [...page.document.querySelectorAll("#doc article details")].map((details) => [
 			details.querySelector("p")?.textContent,
 			details.hasAttribute("open"),
 		]);

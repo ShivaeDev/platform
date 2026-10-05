@@ -40,7 +40,8 @@
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
-		"test": "prisma generate --config test/prisma.config.ts --no-hints && vitest run",
+		"test": "pnpm test:prepare && vitest run",
+		"test:prepare": "prisma generate --config test/prisma.config.ts --no-hints",
 		"typecheck": "prisma generate --config test/prisma.config.ts --no-hints && tsc --noEmit"
 	},
 	"dependencies": {

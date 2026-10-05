@@ -1,16 +1,15 @@
 import type { MarkdownFile } from "#files/list.ts";
+import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "./escape.ts";
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
 
 const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 
-const hrefOf = (path: string): string => `/${path.split("/").map(encodeURIComponent).join("/")}`;
-
 const link = (file: MarkdownFile, current: string): string => {
 	const here = file.path === current ? ' aria-current="page"' : "";
 	const age = `<span class="age short" data-modified="${file.modified}"></span>`;
-	return `<a href="${hrefOf(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
+	return `<a href="${fileUrl(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
 };
 
 const folder = (name: string, files: readonly MarkdownFile[], current: string): string => {
@@ -23,6 +22,8 @@ export const navHtml = (files: readonly MarkdownFile[], current: string, home: s
 	const ordered = [...files.filter((file) => file.path === home), ...files.filter((file) => file.path !== home)];
 	const folders = Map.groupBy(ordered, (file) => (file.path === home ? "" : folderOf(file.path)));
 	return [...folders]
-		.map(([name, grouped]) => (name === "" ? grouped.map((file) => `<span>${link(file, current)}</span>`).join("") : folder(name, grouped, current)))
+		.map(([name, grouped]) =>
+			name === "" ? `<ul>${grouped.map((file) => `<li>${link(file, current)}</li>`).join("")}</ul>` : folder(name, grouped, current),
+		)
 		.join("");
 };

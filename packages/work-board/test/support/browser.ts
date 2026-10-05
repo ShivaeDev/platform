@@ -1,5 +1,5 @@
 import { Browser, type BrowserWindow, type IFetchInterceptor } from "happy-dom";
-import type { RunningBoard } from "./board.ts";
+import { type RunningBoard, rawGet } from "./board.ts";
 
 const MERMAID_STUB = `
 const control = globalThis.mermaidStub;
@@ -57,7 +57,7 @@ const eventNames = (buffer: string): { readonly names: readonly string[]; readon
 const eventSourceOver = (window: BrowserWindow, streams: LiveStream[]) =>
 	class ServerEvents extends window.EventTarget implements LiveStream {
 		readonly url: string;
-		#controller = new AbortController();
+		#controller = new window.AbortController();
 
 		constructor(url: string) {
 			super();
@@ -67,7 +67,7 @@ const eventSourceOver = (window: BrowserWindow, streams: LiveStream[]) =>
 		}
 
 		connect() {
-			this.#controller = new AbortController();
+			this.#controller = new window.AbortController();
 			void this.#read(this.#controller.signal).catch(() => undefined);
 		}
 
@@ -84,12 +84,13 @@ const eventSourceOver = (window: BrowserWindow, streams: LiveStream[]) =>
 			this.#controller.abort();
 		}
 
-		async #read(signal: AbortSignal) {
-			const body = (await fetch(this.url, { signal })).body;
-			const reader = body?.pipeThrough(new TextDecoderStream()).getReader();
+		async #read(signal: InstanceType<BrowserWindow["AbortSignal"]>) {
+			const body = (await window.fetch(this.url, { signal })).body;
+			const reader = body?.getReader();
+			const decoder = new TextDecoder();
 			let buffer = "";
 			for (let chunk = await reader?.read(); chunk !== undefined && !chunk.done; chunk = await reader?.read()) {
-				const { names, rest } = eventNames(buffer + chunk.value);
+				const { names, rest } = eventNames(buffer + decoder.decode(chunk.value, { stream: true }));
 				buffer = rest;
 				for (const name of names) {
 					this.dispatchEvent(new window.Event(name));
@@ -129,7 +130,11 @@ const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: 
 	},
 });
 
-export const openPage = async (board: RunningBoard, path = "/", beforeScripts = async () => {}): Promise<OpenPage> => {
+export const openPage = async (
+	board: RunningBoard,
+	path = "/",
+	beforeScripts: (window: BrowserWindow) => void | Promise<void> = async () => {},
+): Promise<OpenPage> => {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
 	const streams: LiveStream[] = [];
@@ -145,8 +150,8 @@ export const openPage = async (board: RunningBoard, path = "/", beforeScripts = 
 	const mermaid: MermaidControl = { calls: [], configs: [], gate: Promise.resolve() };
 	Object.assign(window, { EventSource: eventSourceOver(window, streams), mermaidStub: mermaid });
 	page.url = `${board.url}${path}`;
-	const html = await (await fetch(`${board.url}${path}`)).text();
-	await beforeScripts();
+	const html = (await rawGet(board, path)).body;
+	await beforeScripts(window);
 	page.content = html;
 	const close = async () => {
 		for (const stream of streams) {

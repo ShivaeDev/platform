@@ -1,6 +1,10 @@
 export const client = `
+import "/_board/preferences.js";
+import "/_board/search.js";
 import { renderDiagrams } from "/_board/diagrams.js";
-import { remember, swap } from "/_board/swap.js";
+import { applyPage } from "/_board/page-state.js";
+import { pageVersion } from "/_board/navigation.js";
+import { remember } from "/_board/swap.js";
 
 const since = (modified) => {
   const seconds = Math.max(0, Math.round((Date.now() - modified) / 1000));
@@ -32,22 +36,23 @@ const show = () => {
 };
 
 const load = async () => {
+  const version = pageVersion();
+  const path = location.pathname + location.search;
   try {
-    const response = await fetch(location.pathname, { cache: "no-store" });
+    const response = await fetch(path, { cache: "no-store" });
     const next = new DOMParser().parseFromString(await response.text(), "text/html");
     const files = next.getElementById("files");
     const doc = next.getElementById("doc");
+    if (version !== pageVersion()) return;
     if (files === null || doc === null) {
       failure = "refresh failed (" + response.status + ")";
       return;
     }
     failure = "";
-    swap(document.getElementById("files"), files);
-    swap(document.getElementById("doc"), doc);
-    document.title = next.title;
+    applyPage(next, true);
     tick();
-    renderDiagrams(document);
   } catch {
+    if (version !== pageVersion()) return;
     failure = "refresh failed";
   }
 };
@@ -71,6 +76,7 @@ const refresh = async () => {
 const events = new EventSource("/events");
 events.addEventListener("ready", () => {
   connected = true;
+  document.dispatchEvent(new Event("board-index-change"));
   show();
   if (dropped) refresh();
   dropped = false;
@@ -80,11 +86,62 @@ const down = () => {
   dropped = true;
   show();
 };
-events.addEventListener("change", refresh);
+events.addEventListener("change", () => { refresh(); document.dispatchEvent(new Event("board-index-change")); });
 events.addEventListener("down", down);
 events.addEventListener("error", down);
 
+document.addEventListener("board-page", tick);
 tick();
 setInterval(tick, 5000);
 renderDiagrams(document);
+`;
+export const preferences = `
+const root = document.documentElement;
+const key = "work-board:appearance:" + root.dataset.workspace;
+const theme = document.getElementById("theme");
+const density = document.getElementById("density");
+const sidebar = document.getElementById("sidebar");
+const toggle = document.getElementById("sidebar-toggle");
+const status = document.getElementById("preference-status");
+const system = matchMedia("(prefers-color-scheme: dark)");
+let saved = {};
+try {
+  const value = JSON.parse(localStorage.getItem(key) ?? "{}");
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) saved = value;
+} catch {
+  status.textContent = "Preferences apply to this page only.";
+}
+
+theme.value = ["light", "dark"].includes(saved.theme) ? saved.theme : "system";
+density.value = saved.density === "compact" ? "compact" : "comfortable";
+let closed = typeof saved.closed === "boolean" ? saved.closed : matchMedia("(max-width: 760px)").matches;
+
+const appearance = () => {
+  root.dataset.theme = theme.value;
+  root.dataset.scheme = theme.value === "system" ? (system.matches ? "dark" : "light") : theme.value;
+  root.dataset.density = density.value;
+  root.dataset.sidebar = closed ? "closed" : "open";
+  sidebar.hidden = closed;
+  toggle.setAttribute("aria-expanded", String(!closed));
+  document.dispatchEvent(new Event("board-theme"));
+};
+
+const save = () => {
+  appearance();
+  try {
+    localStorage.setItem(key, JSON.stringify({ theme: theme.value, density: density.value, closed }));
+    status.textContent = "";
+  } catch {
+    status.textContent = "Preferences apply to this page only.";
+  }
+};
+
+theme.addEventListener("change", save);
+density.addEventListener("change", save);
+toggle.addEventListener("click", () => {
+  closed = !closed;
+  save();
+});
+system.addEventListener("change", appearance);
+appearance();
 `;
