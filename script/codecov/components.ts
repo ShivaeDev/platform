@@ -2,15 +2,6 @@ import type { WorkspacePackage } from "#lint/workspace.ts";
 
 const HEADING = "component_management:";
 const TOP_LEVEL = /^\S/u;
-const DEFAULT_RULES = [
-	"  default_rules:",
-	"    statuses:",
-	"      - type: project",
-	"        informational: true",
-	"      - type: patch",
-	"        informational: true",
-	"        only_pulls: true",
-];
 
 export function components(packages: readonly WorkspacePackage[]): string {
 	const entries = packages
@@ -21,7 +12,7 @@ export function components(packages: readonly WorkspacePackage[]): string {
 			"      paths:",
 			`        - "${root}/src/**"`,
 		]);
-	return [HEADING, ...DEFAULT_RULES, "  individual_components:", ...entries].join("\n");
+	return [HEADING, "  individual_components:", ...entries].join("\n");
 }
 
 function bounds(codecov: string): { readonly end: number; readonly lines: readonly string[]; readonly start: number } {

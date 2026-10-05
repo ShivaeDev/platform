@@ -13,9 +13,6 @@ coverage:
       default:
         informational: true
         only_pulls: true
-    changes:
-      default:
-        informational: true
 
 comment:
   layout: "header, diff, flags, components, files, reach, footer"
@@ -36,13 +33,6 @@ github_checks:
   annotations: true
 
 component_management:
-  default_rules:
-    statuses:
-      - type: project
-        informational: true
-      - type: patch
-        informational: true
-        only_pulls: true
   individual_components:
     - component_id: effect-changes
       name: "@shivaedev/effect-changes"
