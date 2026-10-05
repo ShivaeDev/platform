@@ -47,17 +47,17 @@ const invalidArguments = [
 	"--allowImportingTsExtensions",
 	"--customConditions",
 	"source",
-	...Object.keys(invalidFixtures).map((fixture) => `test/fixtures/invalid/${fixture}.ts`),
+	...Object.keys(invalidFixtures).map((fixture) => `src/test-support/fixtures/invalid/${fixture}.ts`),
 ];
 
 describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
 	it("accepts the valid contract, binding and handlers", () => {
 		const output = mkdtempSync(join(tmpdir(), "effect-contract-"));
 		try {
-			const result = compile(["-p", "test/fixtures/tsconfig.json", "--outDir", output]);
+			const result = compile(["-p", "src/test-support/fixtures/tsconfig.json", "--outDir", output]);
 			expect(result.stderr || result.stdout).toBe("");
 			expect(result.status).toBe(0);
-			const declaration = readFileSync(join(output, "test/fixtures/valid.d.ts"), "utf8");
+			const declaration = readFileSync(join(output, "src/test-support/fixtures/valid.d.ts"), "utf8");
 			expect(declaration).toContain('api: import("#bind.ts").Bound<"notes"');
 			expect(declaration).toContain('Rpc<"notes.rename"');
 		} finally {
@@ -67,10 +67,10 @@ describe("contract compiler fixtures", { timeout: compilerTimeout }, () => {
 
 	it("rejects each invalid use with a specific diagnostic", () => {
 		const result = compile(invalidArguments);
-		const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/mu);
+		const diagnostics = (result.stderr || result.stdout).split(/(?=^src\/test-support\/fixtures\/invalid\/)/mu);
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expected] of Object.entries(invalidFixtures)) {
-			const found = diagnostics.filter((message) => message.startsWith(`test/fixtures/invalid/${fixture}.ts(`)).join("\n");
+			const found = diagnostics.filter((message) => message.startsWith(`src/test-support/fixtures/invalid/${fixture}.ts(`)).join("\n");
 			expect(found, fixture).toContain(expected);
 		}
 	});

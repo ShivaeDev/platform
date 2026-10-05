@@ -69,15 +69,16 @@ Invalidation does not automatically broadcast changes to other clients.
 
 ## Executable evidence
 
-- [Contract round trips](../../packages/effect-contract/test/contract.test.ts):
+- [Contract round trips](../../packages/effect-contract/src/contract.test.ts):
   declared operations return handler results and preserve rejections through a
   native client; middleware can deny a request.
-- [Public error round trips](../../packages/platform/test/errors.test.ts):
+- [Public error round trips](../../packages/platform/src/errors/roundTrip.spec.ts):
   taxonomy errors cross native RPC JSON as decoded instances with their fields.
-- [Compile assertions](../../packages/platform/test/native-rpc.typecheck.test.ts): the
-  generated client preserves success and error types; incorrect payloads,
-  undeclared methods, missing handlers, incorrect handler results and undeclared
-  failures are rejected by TypeScript.
+- [Compile assertions](../../packages/effect-contract/src/compilerFixtures.spec.ts):
+  incorrect payloads, incorrect handler results and undeclared rejections are
+  rejected by TypeScript, and the
+  [bound client](../../packages/effect-contract/src/bind.typecheck.test.ts) keeps
+  the native client's success, error and payload types.
 
 The contract tests use the in-memory transport. Error tests include JSON
 serialization. Neither establishes production cancellation or reconnection;

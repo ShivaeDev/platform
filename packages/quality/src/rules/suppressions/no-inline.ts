@@ -3,7 +3,7 @@ import { type SourceComment, scanComments } from "#rules/comments/scan.ts";
 import { suppressionIn } from "./directives.ts";
 import { STYLESHEET, stylesheetComments } from "./stylesheet-comments.ts";
 
-const TYPE_TEST = /(?:^|[/.])typecheck\.test\.[cm]?[jt]sx?$/u;
+const TYPE_TEST = /(?:(?:^|\/)typecheck\.test|\.typecheck\.(?:test|spec))\.[cm]?[jt]sx?$/u;
 
 const TYPE_TEST_DIRECTIVE = "@ts-expect-error";
 
@@ -33,7 +33,7 @@ export const noInline = defineRule({
 			(site) => !allowed(site),
 		),
 	description:
-		"A suppression silences a check at one site instead of fixing the cause. Fix the code; where a lint rule truly cannot apply, turn it off for that scope in the Biome config and declare it under suppressions/biome-overrides. A type test asserts a compile error with @ts-expect-error in a *.typecheck.test.ts file.",
+		"A suppression silences a check at one site instead of fixing the cause. Fix the code; where a lint rule truly cannot apply, turn it off for that scope in the Biome config and declare it under suppressions/biome-overrides. A type test asserts a compile error with @ts-expect-error in a *.typecheck.test.ts or *.typecheck.spec.ts file.",
 	id: "suppressions/no-inline",
 	registrable: false,
 });

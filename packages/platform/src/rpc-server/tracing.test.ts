@@ -7,7 +7,7 @@ import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { isSensitiveKey } from "#rpc-server/sensitive.ts";
 import { type RequestTracingOptions, requestTracingLayer } from "#rpc-server/tracing.ts";
-import { annotationsOf, recorder } from "#test/rpc/support.ts";
+import { annotationsOf, recorder } from "#test/rpc/harness.ts";
 
 const Registration = Schema.Struct({
 	devices: Schema.Array(Schema.Struct({ name: Schema.String, refreshToken: Schema.String })),

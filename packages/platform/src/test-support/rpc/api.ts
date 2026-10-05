@@ -7,7 +7,7 @@ import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts
 import type { OriginPolicy } from "#rpc-server/origin.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
-import { httpClient, type Provider, recorder, rpcHttp, serve } from "./support.ts";
+import { httpClient, type Provider, recorder, rpcHttp, serve } from "./harness.ts";
 
 const Account = RpcGroup.make(
 	Rpc.make("Whoami", { success: Schema.String }),

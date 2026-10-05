@@ -135,6 +135,14 @@
 			"path": "packages/game/src/words.ts"
 		},
 		{
+			"content": "import { edit } from \"../../cms/src/edit.ts\";\nimport { play } from \"./play.ts\";\n\nexport const tested = [edit, play];\n",
+			"path": "packages/game/src/play.test.ts"
+		},
+		{
+			"content": "import { step } from \"../../simulation/src/step.ts\";\nimport { voyage } from \"../../vocabulary/src/voyage/route.ts\";\n\nexport const tested = [step, voyage];\n",
+			"path": "packages/game/src/voyageFlow.spec.ts"
+		},
+		{
 			"content": "import { edit } from \"../../cms/src/edit.ts\";\n\nexport const tested = edit;\n",
 			"path": "packages/game/test/play.test.ts"
 		},

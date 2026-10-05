@@ -11,7 +11,7 @@
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local script/setup-database.ts",
 		"format": "node --conditions=source packages/quality/src/cli.ts fix",
 		"heavy": "node --conditions=source packages/heavy-lock/src/cli.ts --",
-		"lint": "node script/lint.ts && pnpm lint:quality",
+		"lint": "node --conditions=source script/lint.ts && pnpm lint:quality",
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
 		"setup": "pnpm install --frozen-lockfile && pnpm db:setup",

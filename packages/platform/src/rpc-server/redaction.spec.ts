@@ -8,7 +8,7 @@ import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts
 import { redact } from "#rpc-server/redact.ts";
 import { redactingErrorReporter } from "#rpc-server/redact-cause.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
-import { recorder } from "#test/rpc/support.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
 const leaks = (value: unknown, secrets: readonly string[]) => {
 	const rendered = inspect(value, { depth: 20 });
