@@ -8,7 +8,7 @@ import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts"
 import { makePlatformRuntime } from "#runtime/make.ts";
 import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
-import { environmentVariable } from "#test/support/environment.ts";
+import { environmentVariable } from "#test/environment.ts";
 import { makePlatformIt } from "#testing/vitest.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");

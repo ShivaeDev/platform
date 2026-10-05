@@ -6,7 +6,7 @@
 		"sqlite-contract.json": "packages/effect-prisma/src/test-support/sqlite/generated/contract.json"
 	},
 	"platform": {
-		"contract.d.ts": "packages/platform/test/auth/generated/contract.d.ts",
-		"contract.json": "packages/platform/test/auth/generated/contract.json"
+		"contract.d.ts": "packages/platform/src/test-support/auth/generated/contract.d.ts",
+		"contract.json": "packages/platform/src/test-support/auth/generated/contract.json"
 	}
 }

@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import { type OriginPolicy, trustedOrigins } from "#rpc-server/origin.ts";
 import { makeApp } from "#test/rpc/api.ts";
-import { annotationsOf, createProvider, origin, signup } from "#test/rpc/support.ts";
+import { annotationsOf, createProvider, origin, signup } from "#test/rpc/harness.ts";
 
 const browser = trustedOrigins({ allow: [origin, "capacitor://localhost"], missing: "reject" });
 

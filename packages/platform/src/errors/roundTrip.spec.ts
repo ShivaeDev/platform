@@ -3,7 +3,7 @@ import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
 import { expect, it } from "vitest";
 import { rejectedField } from "#errors/rejected-field.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
-import { httpClient, rpcHttp, serve } from "#test/rpc/support.ts";
+import { httpClient, rpcHttp, serve } from "#test/rpc/harness.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests]);
 const Profiles = RpcGroup.make(Rpc.make("Rename", { error: Rejection, payload: { name: Schema.String }, success: Schema.String }));

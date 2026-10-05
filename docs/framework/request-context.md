@@ -217,7 +217,7 @@ preflight.
 
 ## Evidence
 
-- [rpc-session.test.ts](../../packages/platform/test/rpc-session.test.ts) signs up
+- [session.test.ts](../../packages/platform/src/rpc-server/session.test.ts) signs up
   users through real Better Auth with an ephemeral SQLite database and calls
   through the native HTTP client, JSON serialization and a Web handler. It checks
   that twelve concurrent requests alternating between two users each receive
@@ -229,35 +229,35 @@ preflight.
   an attacker origin, `null`, a missing header under both `missing` settings, and
   a custom per-RPC policy. It also checks that rejected origins never reach the
   provider.
-- [rpc-transport-headers.test.ts](../../packages/platform/test/rpc-transport-headers.test.ts)
+- [transport.test.ts](../../packages/platform/src/rpc-server/transport.test.ts)
   posts raw `text/plain` bodies to the Web handler. A trusted `origin` set in the
   message header list, with an attacker or missing transport Origin and the
   victim's cookie, fails with `Forbidden`. A cookie or `authorization` set only
   in the message fails with `Unauthorized`.
-- [rpc-websocket-headers.test.ts](../../packages/platform/test/rpc-websocket-headers.test.ts)
+- [websocketHeaders.spec.ts](../../packages/platform/src/rpc-server/websocketHeaders.spec.ts)
   runs the RpcServer WebSocket protocol over an in-memory socket and checks the
   same Origin and cookie cases against the upgrade request.
-- [rpc-tracing.test.ts](../../packages/platform/test/rpc-tracing.test.ts) uses
+- [tracing.test.ts](../../packages/platform/src/rpc-server/tracing.test.ts) uses
   `RpcTest`. It checks that the request id reaches the handler, the logs and the
   server span, that missing, malformed and oversized ids are replaced, that
   failure and defect logs redact nested, array and `Redacted` payload fields, and
   that a custom sensitive-key policy applies.
-- [rpc-redaction.test.ts](../../packages/platform/test/rpc-redaction.test.ts)
+- [redaction.spec.ts](../../packages/platform/src/rpc-server/redaction.spec.ts)
   checks the extended key list, word matching and its near misses, the caps on
   arrays, objects and strings, masking of tokens, URL passwords and sensitive
   assignments inside text, binary summaries, that the defect seen by the client,
   an installed `ErrorReporter` and the server span is redacted, that
   `redactingErrorReporter` keeps severity and attributes, that defect logs redact an error's own fields and its `cause`, and
   that provider failures do not log credential fields.
-- [errors.test.ts](../../packages/platform/test/errors.test.ts) sends taxonomy
+- [roundTrip.spec.ts](../../packages/platform/src/errors/roundTrip.spec.ts) sends taxonomy
   errors through HTTP JSON and checks that they decode to class instances, keep
   their field, and are recognized by `rejectedField`.
-- [trpc-rejections.test.ts](../../packages/platform/test/trpc-rejections.test.ts)
+- [trpcRejections.spec.ts](../../packages/platform/src/errors/trpcRejections.spec.ts)
   sends taxonomy errors and an invalid input through tRPC over HTTP with
   superjson and checks their codes and statuses, that they decode to class
   instances, and that `rejectedField` reads the field from the encoded
   rejection.
-- [rpc.typecheck.test.ts](../../packages/platform/test/rpc.typecheck.test.ts) checks at compile
+- [guardedRpc.typecheck.spec.ts](../../packages/platform/src/guardedRpc.typecheck.spec.ts) checks at compile
   time that `Identity` is only available behind `Authenticated`, that client
   error types include the middleware errors, and that `trustedOrigins` requires
   a `missing` decision.

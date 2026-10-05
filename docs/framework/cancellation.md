@@ -8,7 +8,7 @@ completion cannot replace the latest rendered result.
 For Node request lifetimes,
 [`nodeSubscriptionSignal`](../../packages/platform/src/node-http.ts) combines
 request and caller abort signals. Its
-[tests](../../packages/platform/test/node-http.test.ts) cover disconnects,
+[tests](../../packages/platform/src/node-http/subscription-signal.test.ts) cover disconnects,
 completed requests and listener disposal.
 
 An HTTP host must forward the disconnect to the Web Request's AbortSignal for
