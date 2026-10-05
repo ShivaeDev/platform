@@ -13,6 +13,7 @@ import { importCycles } from "#rules/imports/cycles.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
+import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
 import { noInline } from "#rules/suppressions/no-inline.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
@@ -35,6 +36,7 @@ export const builtInRules = [
 	noDoubleCast,
 	noIgnoreDeprecations,
 	biomeOverrides,
+	biomeRecommended,
 	biome,
 	importCycles,
 	importFences,

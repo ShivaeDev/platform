@@ -24,14 +24,22 @@ function findingOf(diagnostic: Diagnostic): Finding {
 	};
 }
 
-async function presetFinding(readText: RuleInputs["readText"]): Promise<readonly Finding[]> {
+interface RootConfig {
+	readonly extendsPreset: boolean;
+	readonly path: string;
+}
+
+export async function rootConfig(readText: RuleInputs["readText"]): Promise<RootConfig> {
 	const texts = await Promise.all(ROOT_CONFIGS.map(async (path) => ({ path, text: await readText(path) })));
 	const found = texts.find((candidate) => candidate.text !== undefined);
 	const parsed = found?.text === undefined ? undefined : parseJsonc(found.path, found.text);
 	const extended = parsed?._tag === "Parsed" ? itemsOf(member(parsed.json, "extends")).map(textOf) : [];
-	return extended.includes(PRESET)
-		? []
-		: [{ file: found?.path ?? "biome.json", message: `Extend "${PRESET}" from the root Biome config.`, subject: "preset" }];
+	return { extendsPreset: extended.includes(PRESET), path: found?.path ?? "biome.json" };
+}
+
+async function presetFinding(readText: RuleInputs["readText"]): Promise<readonly Finding[]> {
+	const { extendsPreset, path } = await rootConfig(readText);
+	return extendsPreset ? [] : [{ file: path, message: `Extend "${PRESET}" from the root Biome config.`, subject: "preset" }];
 }
 
 const bridge = defineRule({
