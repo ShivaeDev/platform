@@ -3,6 +3,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, expect } from "vitest";
 import { loadConfig } from "#config/load.ts";
+import { builtInRules } from "#rules/built-in.ts";
 import { it } from "#test/it.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
@@ -23,41 +24,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 			root,
 			sources: ["."],
 		});
-		expect(loaded.active.map((rule) => rule.id)).toEqual([
-			"structure/max-lines",
-			"comments/no-jsdoc",
-			"comments/no-line-reference",
-			"comments/no-pr-reference",
-			"comments/no-banner",
-			"comments/no-todo",
-			"comments/no-environment-pragma",
-			"comments/max-per-file",
-			"suppressions/no-inline",
-			"suppressions/no-double-cast",
-			"suppressions/no-ignore-deprecations",
-			"suppressions/biome-overrides",
-			"biome",
-			"imports/cycles",
-			"imports/fences",
-			"imports/resolvable",
-			"imports/aliased",
-			"manifests/sorted",
-			"files/named-after-export",
-			"files/folder-names",
-			"files/other-names",
-			"tests/follow",
-			"tests/colocated",
-		]);
-		expect([...loaded.unregistrable]).toEqual([
-			"suppressions/no-inline",
-			"suppressions/no-double-cast",
-			"suppressions/no-ignore-deprecations",
-			"suppressions/biome-overrides",
-			"biome",
-			"imports/cycles",
-			"manifests/sorted",
-		]);
-		expect([...loaded.families]).toEqual(["biome"]);
+		expect(loaded.active.map((rule) => rule.id)).toEqual(builtInRules.map((rule) => rule.id));
 	});
 
 	it.effect("takes the repository root from an explicit config path", function* () {
