@@ -13,7 +13,7 @@ async function findingsIn(content: string, path = "src/cart/cart.test.ts"): Prom
 describe("tests/story-setup flags setup helpers", () => {
 	it.each([
 		"function seedCart() {}",
-		"export function makeRun() {}",
+		"export function makeClient() {}",
 		"const buildOrder = () => ({});",
 		"const setup = function () {};",
 		"let makeLayer = (() => 1);",
@@ -24,10 +24,10 @@ describe("tests/story-setup flags setup helpers", () => {
 
 	it("names the helper and points at the story kit", async () => {
 		const findings = await checkRule(storySetup, undefined, {
-			sources: [{ content: "import { it } from 'vitest';\n\nfunction setupDyingRun(): void {}\n", path: "src/engine/death.spec.ts" }],
+			sources: [{ content: "import { it } from 'vitest';\n\nfunction setupPaidOrder(): void {}\n", path: "src/orders/checkout.spec.ts" }],
 		});
 		expect(findings).toEqual([
-			{ file: "src/engine/death.spec.ts", line: 3, message: `Declares the setup helper "setupDyingRun". ${STORY_KIT}`, subject: "setupDyingRun" },
+			{ file: "src/orders/checkout.spec.ts", line: 3, message: `Declares the setup helper "setupPaidOrder". ${STORY_KIT}`, subject: "setupPaidOrder" },
 		]);
 	});
 
