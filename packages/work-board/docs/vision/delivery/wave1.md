@@ -109,6 +109,8 @@ records the known edit sequence, schema/HTTP/DOM limits, real-browser checks and
 full repository handoff. Step 07's representative-reader exercise remains separate.
 The [reference-directory follow-up](../roadmap.md#reference-directory-follow-up-and-040-release)
 closes the linked-document gap in the same 0.4.0 checkpoint.
+The [explicit-observation follow-up](../roadmap.md#explicit-observation-follow-up-and-041-release)
+keeps Mark seen reliable when source updates arrive during that action.
 
 ## 09 Live updates that preserve orientation
 
