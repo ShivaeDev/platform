@@ -155,7 +155,7 @@ Decision options, comparison tables, and rationale remain body Markdown. A resul
 can declare `kind: implements` with `target: plan.search` in a relationship record; that plan
 can declare an `implements` relationship to `decision.search`. The reader reaches
 its rationale in two links without adding decision-specific frontmatter fields.
-`reasoningFixture()` in `test/support/reasoningFixture.ts` supplies the executable
+`reasoningFixture()` in `src/test-support/reasoningFixture.ts` supplies the executable
 example with a plan, decision, result, ordinary evidence file, and shared board.
 
 Criteria list claims from all readable files that explicitly name their unique

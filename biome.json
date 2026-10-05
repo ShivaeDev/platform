@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"extends": ["@shivaedev/quality/biome"],
 	"files": {
-		"includes": ["**", "!**/test/generated", "!**/test/*/generated", "!**/test-support/generated", "!**/test-support/*/generated"]
+		"includes": ["**", "!**/test/*/generated", "!**/test-support/generated", "!**/test-support/*/generated"]
 	},
 	"overrides": [
 		{

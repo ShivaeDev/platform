@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-10-05
+
+### Changed
+
+- The README names the protocol fixture at its new place, `src/test-support/fixtures/reference-holder.lock`. Tests sit beside the code they cover in `src`, and neither they nor their support files are built or packed.
+
 ## 0.3.0 - 2026-10-04
 
 ### Changed

@@ -28,8 +28,8 @@ requests. Every runner of a ledger must use the same helper and ledger spelling.
 
 ## Tested behavior
 
-The [migration tests](../../packages/effect-sql/test/postgres-migrations.test.ts)
-and [bootstrap tests](../../packages/effect-sql/test/postgres-migration-bootstrap.test.ts)
+The [migration tests](../../packages/effect-sql/src/postgresMigrations.spec.ts)
+and [bootstrap tests](../../packages/effect-sql/src/postgresMigrationBootstrap.spec.ts)
 call the public helper against PostgreSQL 18 with unique table names.
 
 | Scenario | Result |

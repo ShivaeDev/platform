@@ -4,7 +4,7 @@ The repository can preserve exact decimal values and validate PostgreSQL JSON
 without another model adapter. The important boundary is the value the driver
 actually returns: Schema decodes that value, not PostgreSQL's abstract column type.
 
-[Executable PostgreSQL coverage](../../packages/effect-sql/test/postgres-codecs.test.ts)
+[Executable PostgreSQL coverage](../../packages/effect-sql/src/postgresCodecs.spec.ts)
 uses `@effect/sql-pg` / Effect `4.0.0-rc.112`, its resolved `pg` `8.23.0`, default
 node-postgres type parsers, and PostgreSQL 18. No global parser overrides are
 installed. Every test uses an independently named temporary table inside a

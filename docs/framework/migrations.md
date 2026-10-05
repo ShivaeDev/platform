@@ -54,7 +54,7 @@ can change its name without a Platform wrapper.
   Startup should fail visibly; catching only the typed error channel does not
   capture this failure. A caller inspecting completion can use `Effect.exit`.
 
-The [PostgreSQL tests](../../packages/effect-sql/test/postgres-migrations.test.ts)
+The [PostgreSQL tests](../../packages/effect-sql/src/postgresMigrations.spec.ts)
 exercise `migratePostgres` for creation, upgrades, reruns and failed batches.
 The [PostgreSQL guide](./postgres-migrations.md) describes concurrent runners and
 lock timeouts. Native SQLite migration behavior belongs to Effect; the example

@@ -9,8 +9,8 @@ From the repository root, after installing dependencies and building packages:
 
 ```sh
 node --conditions=source --input-type=module <<'JS'
-import { folder, startBoard } from './packages/work-board/test/support/board.ts';
-import { workspaceFixture } from './packages/work-board/test/support/workspaceFixture.ts';
+import { folder, startBoard } from './packages/work-board/src/test-support/board.ts';
+import { workspaceFixture } from './packages/work-board/src/test-support/workspaceFixture.ts';
 const notes = folder(workspaceFixture());
 const board = await startBoard(notes.root, 'board.md');
 console.log(`Open ${board.url}\nEdit files in ${notes.root}`);
@@ -100,7 +100,7 @@ remain deferred until a local editor mechanism is agreed.
 
 ## Optional identity acceptance — step 04
 
-Add `identityFixture()` from `test/support/identityFixture.ts` to the large fixture.
+Add `identityFixture()` from `src/test-support/identityFixture.ts` to the large fixture.
 
 1. Open the legacy board: its 100 cards remain unchanged. Search an explicit ID,
    owner, and criterion phrase. Check source line labels, then use Enter to open
@@ -121,7 +121,7 @@ Add `identityFixture()` from `test/support/identityFixture.ts` to the large fixt
 
 ## Work board/detail acceptance — step 05 first checkpoint
 
-Add `viewsFixture()` from `test/support/viewsFixture.ts` to the large fixture.
+Add `viewsFixture()` from `src/test-support/viewsFixture.ts` to the large fixture.
 
 1. Confirm the legacy home still has 100 cards. Open Work and select Review work
    then Shared investigation. The same work.search ID appears in both with the
@@ -161,7 +161,7 @@ Add `viewsFixture()` from `test/support/viewsFixture.ts` to the large fixture.
 
 ## Reasoning and evidence acceptance — step 06
 
-Add `reasoningFixture()` from `test/support/reasoningFixture.ts` to the large fixture.
+Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the large fixture.
 
 1. Open Search reasoning in Table with result.search selected. Follow its
    Implements link to plan.search and that plan's link to decision.search. The
