@@ -4,6 +4,14 @@
 
 ### Added
 
+- Add source backlinks for explicit relationships, board membership, criterion
+  evidence, local evidence sources, and Markdown hyperlinks, including plain
+  files. Reuse the existing parse/index and disclose incomplete references.
+  Associate criterion claims across files and link directly to their records;
+  show missing claims, origin lines, retained old revisions, and missing local
+  Markdown sources without implying verified acceptance. Decision options and
+  rationale stay ordinary Markdown; source files remain unchanged.
+
 - Add a table layout sharing board projections, filters, sorting, and selected
   source detail. Switch layouts without losing URL context and read/filter tables
   without JavaScript. Save, update, reopen, remove, or clear up to 10 local named

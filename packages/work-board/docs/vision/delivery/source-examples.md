@@ -148,3 +148,25 @@ verified acceptance. Work Board neither runs checks nor verifies freshness here.
 - If any listed file cannot be read, identity links report an incomplete index
   rather than asserting uniqueness. Readable documents and partial search remain
   usable; reference validation waits for a complete index.
+
+## Reading the reasoning and recorded claims
+
+Decision options, comparison tables, and rationale remain body Markdown. A result
+can declare `kind: implements` with `target: plan.search` in a relationship record; that plan
+can declare an `implements` relationship to `decision.search`. The reader reaches
+its rationale in two links without adding decision-specific frontmatter fields.
+`reasoningFixture()` in `test/support/reasoningFixture.ts` supplies the executable
+example with a plan, decision, result, ordinary evidence file, and shared board.
+
+Criteria list claims from all readable files that explicitly name their unique
+item/criterion reference. Claim counts are not acceptance counts. Records expose
+origin file/line and supplied provenance; old checked revisions remain visible
+without a comparison to current Git state. Missing/ambiguous criteria or an
+incomplete index prevent association rather than selecting a winner. Record
+anchors use their array position and can change on insertion/reordering.
+
+Source backlinks also include explicit Markdown hyperlinks and evidence-source
+paths, resolved relative to each source file, with `/` mapped to the configured
+home or first file. Code examples, external URLs, and self references are excluded.
+Plain files can show incoming links without acquiring an ID or inferred work kind.
+Non-Markdown local asset previews remain outside this source-reading behavior.

@@ -3,6 +3,7 @@ import { fileUrl } from "#files/url.ts";
 import { boardOf } from "#render/board.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { searchCollector } from "./collector.ts";
+import { linkCollector } from "./linkCollector.ts";
 
 export interface Entry {
 	readonly file: string;
@@ -22,7 +23,7 @@ function fragmentLocation(source: string, fragment: string, bodyLine: number, se
 	return bodyLine + source.slice(0, start).split("\n").length - 1;
 }
 
-export async function entriesOf(source: string, file: string, home: boolean, bodyLine = 1): Promise<readonly Entry[]> {
+export async function entriesOf(source: string, file: string, home: boolean, bodyLine = 1, links = new Set<string>()): Promise<readonly Entry[]> {
 	const headings = documentHeadings();
 	let fragmentLine: number | undefined = bodyLine;
 	let fragmentLength = 0;
@@ -40,7 +41,9 @@ export async function entriesOf(source: string, file: string, home: boolean, bod
 		if (fragment) {
 			fragmentLength = fragment.split("\n").length;
 			fragmentLine = board ? fragmentLocation(source, fragment, bodyLine, seenFragments) : bodyLine;
-			await markdownToHtml(board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment, { hastPlugins: [headings.plugin, plugin] });
+			await markdownToHtml(board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment, {
+				hastPlugins: [headings.plugin, plugin, linkCollector(links)],
+			});
 		}
 	}
 	const title = headings.entries.find((heading) => heading.depth === 1)?.title || file;

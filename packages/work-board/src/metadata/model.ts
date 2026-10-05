@@ -3,15 +3,18 @@ import { metadataProblems } from "./problems.ts";
 
 export interface MetadataDocument {
 	readonly file: string;
+	readonly links?: readonly string[];
 	readonly parsed: ParsedMetadata;
 }
 export interface MetadataModel {
 	readonly diagnostics: ReadonlyMap<string, readonly Diagnostic[]>;
+	readonly documents: readonly MetadataDocument[];
 	readonly ids: ReadonlyMap<string, readonly MetadataDocument[]>;
+	readonly rootFile: string | undefined;
 	readonly unavailable: readonly string[];
 }
 
-export function metadataModel(documents: readonly MetadataDocument[], unavailable: readonly string[] = []): MetadataModel {
+export function metadataModel(documents: readonly MetadataDocument[], unavailable: readonly string[] = [], rootFile?: string): MetadataModel {
 	const ids = new Map<string, MetadataDocument[]>();
 	for (const document of documents) {
 		const id = document.parsed.fields.id;
@@ -20,5 +23,5 @@ export function metadataModel(documents: readonly MetadataDocument[], unavailabl
 		}
 	}
 	const diagnostics = new Map(documents.map((document) => [document.file, metadataProblems(document, ids, unavailable)]));
-	return { diagnostics, ids, unavailable };
+	return { diagnostics, documents, ids, rootFile, unavailable };
 }

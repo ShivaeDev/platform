@@ -136,6 +136,28 @@ from the view picker. Unsafe stored destinations are ignored. If storage is
 unavailable, named views work for the current page only; source files are unchanged.
 Saving requires JavaScript; board/table reading does not.
 
+## Reasoning and evidence context
+
+Follow explicit relationships from a result to its plan and decision. Decisions
+keep options, comparisons, and rationale in ordinary Markdown; no new decision
+fields are required. **Referenced by** lists incoming relationships, board
+membership, criterion claims, evidence-source links, and local Markdown hyperlinks,
+including plain files without frontmatter. Relative/encoded paths and root home
+links use the source file's location. Repeated prose links from one file count
+once; code examples do not become links. External URLs are not local backlinks.
+Incomplete workspaces disclose partial references and do not select ambiguous IDs.
+
+Each uniquely identified criterion lists claims recorded across the readable
+workspace, with links to their source records. Missing claims say that acceptance
+is not established. A record shows origin file/line, checked revision, observed
+time, method, and outcome; missing provenance stays **Not recorded**. Old recorded
+revisions remain visible, and Work Board does not compare them to a current Git
+revision or infer human acceptance. Missing local Markdown evidence sources remain
+linked with a notice. Generated `recorded-evidence-<index>` anchors follow source
+array order and may change after insertion/reordering; item and criterion IDs are
+the explicit stable references. Backlinks/claim associations rebuild on file
+changes and after restart, without writing an event history.
+
 ## Diagrams
 
 A ` ```mermaid ` block is drawn in the browser. Mermaid loads from the installed
