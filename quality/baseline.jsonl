@@ -548,8 +548,6 @@
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/baseline/update.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":7}
-{"path":"packages/quality/src/biome/preset.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/quality/src/biome/preset.spec.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
 {"path":"packages/quality/src/biome/report.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/cli.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/cli/args.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
