@@ -17,6 +17,29 @@ built for ShivaeDev applications and may change without a deprecation period.
 pnpm add --save-dev @shivaedev/effect-test @effect/vitest effect vitest
 ```
 
+## `it`
+
+`@shivaedev/effect-test/it.ts` exports Vitest's `it` with `effect` and `live`
+testers that take the generator itself and run it with `Effect.gen`:
+
+```ts
+import { it } from "@shivaedev/effect-test/it.ts"
+
+it.effect("starts at time zero", function* ({ task }) {
+  expect(yield* Clock.currentTimeMillis).toBe(0)
+})
+
+it.live("waits on the real clock", function* () {
+  yield* Effect.sleep("10 millis")
+})
+```
+
+The body receives the Vitest test context; destructure what it reads. `effect`
+installs TestClock and the other test services, `live` keeps the live ones, and
+both run the body in a Scope. A function that returns an Effect works as well,
+as with `@effect/vitest`. Both support `each`, `fails`, `only`, `runIf`, `skip`
+and `skipIf`; an `each` body receives the table case.
+
 ## `makeEffectIt`
 
 ```ts

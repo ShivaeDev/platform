@@ -1,5 +1,6 @@
 import type { TestContext, TestOptions } from "@effect/vitest";
-import type { Effect, Layer } from "effect";
+import type { Effect, Layer, Scope } from "effect";
+import type { TestAPI } from "vitest";
 import type { AnyTestLayer } from "./any-test-layer.ts";
 
 export type EffectClock = "test" | "live";
@@ -41,3 +42,26 @@ export interface MakeEffectItOptions<Harness, TestLayer extends AnyTestLayer> {
 export interface MakeEffectItResult<Harness, Provided> {
 	readonly effectApp: EffectTester<Harness, Provided>;
 }
+
+export interface EffectItTest<R, TArgs extends readonly unknown[] = [context: TestContext]> {
+	<TEffect extends Effect.Effect<unknown, unknown, R>, A>(
+		name: string,
+		body: (...args: TArgs) => Generator<TEffect, A, never>,
+		options?: number | TestOptions,
+	): void;
+	<A, E>(name: string, body: (...args: TArgs) => Effect.Effect<A, E, R>, options?: number | TestOptions): void;
+}
+
+export interface EffectItTester<R> extends EffectItTest<R> {
+	readonly each: <TItem>(cases: readonly TItem[]) => EffectItTest<R, [item: TItem]>;
+	readonly fails: EffectItTest<R>;
+	readonly only: EffectItTest<R>;
+	readonly runIf: (condition: unknown) => EffectItTest<R>;
+	readonly skip: EffectItTest<R>;
+	readonly skipIf: (condition: unknown) => EffectItTest<R>;
+}
+
+export type EffectIt = TestAPI & {
+	readonly effect: EffectItTester<Scope.Scope>;
+	readonly live: EffectItTester<Scope.Scope>;
+};
