@@ -4,7 +4,7 @@ import { expect } from "vitest";
 import type { AnySqlContract } from "#internal/executor.ts";
 import { executeQuery } from "#internal/query-execution.ts";
 import { releaseTestTransaction, releaseTransaction, type TransactionResource, withTransactionSemaphore } from "#internal/transaction.ts";
-import { unusedClient } from "#test/support/unused-client.ts";
+import { unusedClient } from "#test/unused-client.ts";
 
 interface ResourceOptions {
 	readonly commitFailure?: unknown;

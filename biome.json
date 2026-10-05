@@ -16,7 +16,7 @@
 			}
 		},
 		{
-			"includes": ["packages/effect-prisma/test/support/controlled-collection.ts"],
+			"includes": ["packages/effect-prisma/src/test-support/controlled-collection.ts"],
 			"linter": {
 				"rules": {
 					"suspicious": {

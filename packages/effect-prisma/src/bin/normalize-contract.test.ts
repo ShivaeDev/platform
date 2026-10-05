@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 
 const directories: string[] = [];
-const cli = fileURLToPath(new URL("../src/bin/normalize-contract.ts", import.meta.url));
+const cli = fileURLToPath(new URL("./normalize-contract.ts", import.meta.url));
 const contract = (source: string) => {
 	const directory = mkdtempSync(join(tmpdir(), "contract-normalization-"));
 	directories.push(directory);

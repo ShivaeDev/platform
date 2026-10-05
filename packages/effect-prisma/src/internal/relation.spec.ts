@@ -5,8 +5,8 @@ import { acquireConnectedClient, assertAvailableModelNames } from "#internal/cli
 import type { DatabaseExecutor } from "#internal/executor.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
 import { makeModelRelation } from "#internal/relation-runtime.ts";
-import { FakeResult } from "#test/support/controlled-collection.ts";
-import { unusedClient } from "#test/support/unused-client.ts";
+import { FakeResult } from "#test/controlled-collection.ts";
+import { unusedClient } from "#test/unused-client.ts";
 
 interface User {
 	readonly active: boolean;

@@ -3,8 +3,8 @@ import { Effect, Exit, Fiber, Semaphore, Stream } from "effect";
 import { expect } from "vitest";
 import type { DatabaseExecutor } from "#internal/executor.ts";
 import { makeModelRelation } from "#internal/relation-runtime.ts";
-import { ControlledCollection, EventStreamCollection } from "#test/support/controlled-collection.ts";
-import { unusedClient } from "#test/support/unused-client.ts";
+import { ControlledCollection, EventStreamCollection } from "#test/controlled-collection.ts";
+import { unusedClient } from "#test/unused-client.ts";
 
 interface User {
 	readonly id: number;

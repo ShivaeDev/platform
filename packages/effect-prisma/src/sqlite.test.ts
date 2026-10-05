@@ -5,7 +5,7 @@ import { afterAll, expect } from "vitest";
 import { makeSqliteDatabase } from "#sqlite.ts";
 import { type Contract, contractJson } from "#test/sqlite/contract.ts";
 import { Database, DatabaseLive, temporary, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
-import { makeTemporaryDatabase } from "#test/sqlite/support.ts";
+import { makeTemporaryDatabase } from "#test/sqlite/makeTemporaryDatabase.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 
 const auditTemporary = makeTemporaryDatabase();

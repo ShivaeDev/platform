@@ -101,7 +101,7 @@ export default defineConfig({
 						rule: "lint/suspicious/noExplicitAny",
 					},
 					{
-						includes: ["packages/effect-prisma/test/support/controlled-collection.ts"],
+						includes: ["packages/effect-prisma/src/test-support/controlled-collection.ts"],
 						reason:
 							"Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption.",
 						rule: "lint/suspicious/noThenProperty",

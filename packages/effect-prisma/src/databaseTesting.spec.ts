@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { makeDatabase } from "#database.ts";
-import { environmentVariable } from "#test/support/environment.ts";
+import { type Contract, contractJson } from "#test/contract.ts";
+import { environmentVariable } from "#test/environment.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 import { makeDatabaseIt } from "#testing/vitest.ts";
-import { type Contract, contractJson } from "./contract.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/TestingDatabase", {

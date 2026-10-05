@@ -4,9 +4,9 @@ import { expectTypeOf } from "vitest";
 import { makeDatabase } from "#database.ts";
 import type { DatabaseServiceOf } from "#databaseTypes.ts";
 import type { PrismaError } from "#error.ts";
-import { AuditDatabase, Database, type User } from "#test/support/typed-database.ts";
+import { type Contract, contractJson } from "#test/contract.ts";
+import { AuditDatabase, Database, type User } from "#test/typed-database.ts";
 import { makeDatabaseIt } from "#testing/vitest.ts";
-import { type Contract, contractJson } from "./contract.ts";
 
 type ContractEmail = ExtractFieldOutputTypes<Contract>["public"]["User"]["email"];
 expectTypeOf<ContractEmail>().not.toBeAny();
