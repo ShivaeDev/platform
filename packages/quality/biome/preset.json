@@ -332,6 +332,7 @@
 				},
 				"useConsistentObjectKeys": "error",
 				"useConsistentTestIt": {
+					"fix": "none",
 					"level": "error",
 					"options": {
 						"function": "it",

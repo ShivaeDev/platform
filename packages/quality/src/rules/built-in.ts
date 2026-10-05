@@ -15,6 +15,7 @@ import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
 import { noInline } from "#rules/suppressions/no-inline.ts";
+import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { biome } from "./biome.ts";
@@ -32,6 +33,7 @@ export const builtInRules = [
 	maxPerFile,
 	noInline,
 	noDoubleCast,
+	noIgnoreDeprecations,
 	biomeOverrides,
 	biome,
 	importCycles,

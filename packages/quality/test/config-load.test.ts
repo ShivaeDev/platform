@@ -35,6 +35,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 				"comments/max-per-file",
 				"suppressions/no-inline",
 				"suppressions/no-double-cast",
+				"suppressions/no-ignore-deprecations",
 				"suppressions/biome-overrides",
 				"biome",
 				"imports/cycles",
@@ -51,6 +52,7 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 			expect([...loaded.unregistrable]).toEqual([
 				"suppressions/no-inline",
 				"suppressions/no-double-cast",
+				"suppressions/no-ignore-deprecations",
 				"suppressions/biome-overrides",
 				"biome",
 				"imports/cycles",
