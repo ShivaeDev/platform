@@ -104,6 +104,10 @@ component_management:
       name: "@shivaedev/quality"
       paths:
         - "packages/quality/src/**"
+    - component_id: skills
+      name: "@shivaedev/skills"
+      paths:
+        - "packages/skills/src/**"
     - component_id: types
       name: "@shivaedev/types"
       paths:
