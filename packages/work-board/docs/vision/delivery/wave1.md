@@ -127,7 +127,12 @@ paused and reconnecting states catch up without claiming stale data is current.
 Delivery direction: establish reusable native RPC/reactivity/client lifecycle
 support in Platform first, then have Work Board adopt it. The reference-directory
 fix extends existing filesystem watching; it does not complete this checkpoint.
-Resolve the proposed browser-build dependency before adopting it.
+The user approved esbuild 0.28.1 and native RPC/AtomRegistry with Changed/Resync
+hints. The [Platform consumer checkpoint](../../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
+has real HTTP/Chromium and repository evidence, including the approved shared
+browser lifecycle extraction and compatible effect-react entry. Work Board
+adoption remains open. Its library fixture does not establish this
+step's DOM/orientation acceptance.
 
 ## 10 Local visual evidence
 

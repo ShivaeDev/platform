@@ -57,9 +57,6 @@
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/bind.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-contract/src/bind.test.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-contract/src/bind.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-contract/src/bind.ts","rule":"biome/lint/style/useNamingConvention","count":18}
-{"path":"packages/effect-contract/src/bind.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-contract/src/bind.typecheck.test.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
@@ -71,6 +68,7 @@
 {"path":"packages/effect-contract/src/keys.test.ts","rule":"biome/lint/suspicious/useArraySortCompare","count":2}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/style/useNamingConvention","count":6}
+{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/style/useNamingConvention","count":25}
 {"path":"packages/effect-contract/src/rejection.ts","rule":"biome/lint/style/useNamingConvention","count":21}
@@ -280,8 +278,6 @@
 {"path":"packages/effect-react/src/result-state.typecheck.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/resume-signal.dom.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-react/src/resume-signal.dom.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
-{"path":"packages/effect-react/src/resume-signal.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/effect-react/src/resume-signal.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-react/src/resume-signal.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/save-state.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/save-state.ts","rule":"biome/lint/style/useNamingConvention","count":2}

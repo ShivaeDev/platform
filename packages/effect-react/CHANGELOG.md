@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-05
+
+### Changed
+
+- Delegate the existing `resume-signal.ts` entry to the shared browser-safe implementation in effect-contract. Install that package as a runtime dependency so existing imports keep working; signal types and behavior remain compatible. Work Board can import the shared native implementation without React peers.
+
 ## 0.2.0 - 2026-10-04
 
 ### Changed

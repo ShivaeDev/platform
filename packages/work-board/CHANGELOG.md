@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adoption and step 09 orientation acceptance remain open.
+
 ## 0.4.1 - 2026-10-05
 
 ### Fixed

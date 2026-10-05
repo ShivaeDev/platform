@@ -1,4 +1,4 @@
-import type { Schema } from "effect";
+import { Schema } from "effect";
 
 export type Identity = string | number;
 
@@ -14,6 +14,11 @@ export interface ItemKey<Name extends string = string> {
 }
 
 export type Key = ListKey | ItemKey;
+
+export const Key = Schema.Union([
+	Schema.Struct({ _tag: Schema.Literal("List"), collection: Schema.String }),
+	Schema.Struct({ _tag: Schema.Literal("Item"), collection: Schema.String, id: Schema.Union([Schema.String, Schema.Number]) }),
+]);
 
 export interface Collection<Name extends string, Id extends Identity> {
 	readonly item: (id: Id) => ItemKey<Name>;

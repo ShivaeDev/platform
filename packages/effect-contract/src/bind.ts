@@ -12,13 +12,13 @@ import { invalidationKeys, type Key, readKeys } from "./keys.ts";
 import type { CommandShape, QueryShape } from "./operation.ts";
 
 export type Failure<R extends Rpc.Any> =
-	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer Error, infer Middleware, infer _Requires>
-		? Error["Type"] | Middleware["error"]["Type"] | RpcClientError
+	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer TError, infer TMiddleware, infer _Requires>
+		? TError["Type"] | TMiddleware["error"]["Type"] | RpcClientError
 		: never;
 
 export type RunFailure<R extends Rpc.Any> =
-	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer Middleware, infer _Requires>
-		? Failure<R> | Middleware["~ClientError"]
+	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
+		? Failure<R> | TMiddleware["~ClientError"]
 		: never;
 
 export interface QueryOptions {
@@ -27,54 +27,68 @@ export interface QueryOptions {
 	readonly timeToLive?: Duration.Input;
 }
 
-export interface BoundQuery<R extends Rpc.Any, Self> {
+export interface BoundQuery<R extends Rpc.Any, TSelf> {
 	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R>>>;
-	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, Self>;
+	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
 }
 
-export interface BoundCommand<R extends Rpc.Any, Self> {
-	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, Self | Reactivity.Reactivity>;
+export interface BoundCommand<R extends Rpc.Any, TSelf> {
+	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf | Reactivity.Reactivity>;
 }
 
 export type Bound<
-	Name extends string,
-	Queries extends readonly QueryShape[],
-	Commands extends readonly CommandShape[],
-	Rpcs extends Rpc.Any,
-	Self,
+	TName extends string,
+	TQueries extends readonly QueryShape[],
+	TCommands extends readonly CommandShape[],
+	TRpcs extends Rpc.Any,
+	TSelf,
 > = {
-	readonly [Query in Queries[number] as Query["name"]]: BoundQuery<Rpc.ExtractTag<Rpcs, Tag<Name, Query["name"]>>, Self>;
+	readonly [TQuery in TQueries[number] as TQuery["name"]]: BoundQuery<Rpc.ExtractTag<TRpcs, Tag<TName, TQuery["name"]>>, TSelf>;
 } & {
-	readonly [Command in Commands[number] as Command["name"]]: BoundCommand<Rpc.ExtractTag<Rpcs, Tag<Name, Command["name"]>>, Self>;
+	readonly [TCommand in TCommands[number] as TCommand["name"]]: BoundCommand<Rpc.ExtractTag<TRpcs, Tag<TName, TCommand["name"]>>, TSelf>;
 };
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
-const invalidateAfter = Effect.fn("EffectContract.invalidate")(function* (keys: readonly Key[]) {
+type MatchingClient<TRpcs extends Rpc.Any, TClientRpcs extends Rpc.Any> = [TRpcs] extends [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>]
+	? [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>] extends [TRpcs]
+		? unknown
+		: "Client must preserve the contract RPC types"
+	: "Client must implement the contract RPCs";
+
+const invalidateAfter = Effect.fn("EffectContract.invalidateAfter")(function* (keys: readonly Key[]) {
 	yield* Reactivity.invalidate(invalidationKeys(keys));
 });
 
-const boundQuery = (service: ErasedClient, tag: string, query: QueryShape) => {
-	const reads = (payload: unknown) => readKeys(query.reads(payload));
+function boundQuery(service: ErasedClient, tag: string, query: QueryShape) {
+	function reads(payload: unknown) {
+		return readKeys(query.reads(payload));
+	}
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => service.query(tag, payload, { ...options, reactivityKeys: reads(payload) }),
 		run: (payload: unknown) => service.use((client) => client(tag, payload)),
 	};
-};
+}
 
-const boundCommand = (service: ErasedClient, tag: string, command: CommandShape) => ({
-	run: (payload: unknown) =>
-		service.use((client) => client(tag, payload)).pipe(Effect.tap((result) => invalidateAfter(command.invalidates(payload, result)))),
-});
+function boundCommand(service: ErasedClient, tag: string, command: CommandShape) {
+	return {
+		run: (payload: unknown) =>
+			service.use((client) => client(tag, payload)).pipe(Effect.tap((result) => invalidateAfter(command.invalidates(payload, result)))),
+	};
+}
 
 export function bind<
-	Name extends string,
-	Queries extends readonly QueryShape[],
-	Commands extends readonly CommandShape[],
-	Rpcs extends Rpc.Any,
-	Self,
-	Id extends string,
->(contract: Contract<Name, Queries, Commands, Rpcs>, service: AtomRpc.AtomRpcClient<Self, Id, Rpcs>): Bound<Name, Queries, Commands, Rpcs, Self>;
+	TName extends string,
+	TQueries extends readonly QueryShape[],
+	TCommands extends readonly CommandShape[],
+	TRpcs extends Rpc.Any,
+	TSelf,
+	TId extends string,
+	TClientRpcs extends Rpc.Any,
+>(
+	contract: Contract<TName, TQueries, TCommands, TRpcs>,
+	service: AtomRpc.AtomRpcClient<TSelf, TId, TClientRpcs> & MatchingClient<NoInfer<TRpcs>, TClientRpcs>,
+): Bound<TName, TQueries, TCommands, TRpcs, TSelf>;
 export function bind(
 	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[]> },
 	service: ErasedClient,
