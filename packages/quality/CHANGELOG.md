@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 - 2026-10-05
+
+### Added
+
+- `suppressions/biome-recommended` reports each rule the installed Biome recommends that the shared preset neither sets to `error` nor declares in its `declarations.json`, so a Biome upgrade that adds or changes a recommended rule fails the gate instead of running at Biome's default level. It asks Biome itself for the recommended set, through `biome rage --linter` under the `recommended` preset, and each finding names the rule and says to set it to `error` or declare why not. It takes no registry exceptions. The shipped preset passes it, so a repository that upgrades has nothing to record.
+
 ## 0.14.0 - 2026-10-05
 
 ### Added

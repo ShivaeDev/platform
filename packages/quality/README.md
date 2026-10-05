@@ -101,13 +101,14 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Four rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
+A check that is silenced at one site hides the problem instead of fixing it. Five rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except `@ts-expect-error` in a type test | none |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
 | `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
+| `suppressions/biome-recommended` | A rule the installed Biome recommends that the [Biome preset](#biome-preset) neither sets to `error` nor declares | none |
 | `suppressions/no-ignore-deprecations` | `compilerOptions.ignoreDeprecations` in a tsconfig, which silences TypeScript's errors for deprecated options | none |
 
 `suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
@@ -196,6 +197,10 @@ A package that ships a preset declares the weakenings the preset makes in a `dec
 ```
 
 A weakening the preset makes without such a declaration is reported at the line of the repository's `extends` entry, and the repository's own declaration covers it. A weakening the repository adds beyond the preset needs its own declaration, and a repository declaration that repeats one the preset ships is reported until it is removed. A preset entry that cannot be resolved or read, or whose `declarations.json` is invalid, is reported at the `extends` entry as well.
+
+#### Recommended Biome rules
+
+`suppressions/biome-recommended` holds the [Biome preset](#biome-preset) to every rule Biome recommends, so a Biome upgrade that adds a recommended rule, or recommends one the preset leaves below `error`, fails the gate until the preset takes a position on it. It asks the installed Biome, the one `quality` runs, which rules its `recommended` preset enables, through `biome rage --linter`, so the list is never written down. When the root Biome config extends `@shivaedev/quality/biome`, it reads that preset and its `declarations.json`, resolved from the repository root as under [Shared presets](#shared-presets); a repository that does not extend the preset is left to the `biome` rule, which asks for it. A recommended rule is in order when the preset's `linter.rules` sets it to `error`, directly or through its group's severity, or when a declaration names it, whatever the declaration's `includes`. Every other recommended rule is reported at the preset, one finding per rule: set it to `error`, or declare why not.
 
 ### Imports
 
@@ -397,7 +402,7 @@ The preset sets:
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and the naming plugins under [Naming](#naming). They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
 
-The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It keeps `noUndeclaredClasses` off, because the rule cannot resolve a stylesheet imported through an alias and Tailwind utilities are not declared in CSS, and `noInlineStyles` off, because an inline style is the right tool for a value computed at run time. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
+The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It keeps `noUndeclaredClasses` off, because the rule cannot resolve a stylesheet imported through an alias and Tailwind utilities are not declared in CSS, and `noInlineStyles` off, because an inline style is the right tool for a value computed at run time. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared and `suppressions/biome-recommended` accepts the recommended rules among them. Every other weakening a repository adds is an override it declares with a reason.
 
 An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useConsistentTestIt`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
 
