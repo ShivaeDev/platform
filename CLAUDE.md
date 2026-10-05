@@ -23,5 +23,4 @@ Make each change on its own branch in `.worktrees/<name>`, created with `git wor
 - For the framework design and its boundaries, read `docs/framework/README.md`.
 - For what is built and what is still open, read `docs/framework/roadmap.md`.
 - For how PostgreSQL, auth, interruption and client behavior are validated, read `docs/framework/boundary-validation.md`.
-- For a package's API and recent changes, read its `README.md` and `CHANGELOG.md`.
 - For the quality rules and how the baseline moves, read `packages/quality/README.md`.
