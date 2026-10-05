@@ -59,10 +59,3 @@ export const transact: {
 		options: TransactOptions<E2>,
 	): Effect.Effect<A, Exclude<E, SqlError> | E2, R | SqlClient.SqlClient | Reactivity.Reactivity>;
 } = dual(2, run);
-
-export function codecovProbe(value: number): number {
-	if (value > 0) {
-		return value * 2;
-	}
-	return -value;
-}
