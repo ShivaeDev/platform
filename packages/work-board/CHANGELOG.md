@@ -4,6 +4,13 @@
 
 ### Added
 
+- Add Work board selection and explicit shared-item projections, exact status/
+  owner filters, text matching, and sorting. URL state restores board/filter/
+  selected detail context; source Markdown stays readable in a side pane.
+  Disclose missing/ambiguous memberships and selections, retain filters and
+  focused unsent search through live updates, and keep native links/GET filters
+  usable without JavaScript. Existing heading boards remain unchanged.
+
 - Read optional YAML frontmatter for stable item identity, explicit work fields,
   relationships, board membership, criteria, and recorded evidence provenance.
   Keep ordinary Markdown/heading boards valid, retain unknown source metadata,

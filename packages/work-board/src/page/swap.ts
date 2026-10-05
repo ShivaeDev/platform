@@ -1,5 +1,5 @@
 export const swap = `
-const containers = new Set(["DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "MAIN", "NAV"]);
+const containers = new Set(["DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "MAIN", "NAV", "FORM", "SELECT", "LABEL", "ASIDE"]);
 
 const structural = (element) => [...element.childNodes].every((node) => node.nodeType === 1 || node.textContent.trim() === "");
 
@@ -56,6 +56,8 @@ const matches = (a, b) => {
 };
 
 const patch = (current, incoming) => {
+  const selected = current.tagName === "SELECT" ? current.value : null;
+  const fallback = incoming.tagName === "SELECT" ? incoming.value : null;
   if (!structural(current) || !structural(incoming)) {
     current.replaceChildren(...incoming.childNodes);
     for (const child of current.children) remember(child);
@@ -83,6 +85,7 @@ const patch = (current, incoming) => {
     i++;
     j++;
   }
+  if (selected !== null) current.value = [...current.options].some((option) => option.value === selected) ? selected : fallback;
 };
 
 const keysOf = (root) => {

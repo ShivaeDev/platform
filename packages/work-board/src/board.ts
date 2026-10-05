@@ -9,6 +9,7 @@ import { loopbackOnly } from "#http/loopback.ts";
 import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
 import { search } from "#http/search.ts";
+import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
@@ -37,6 +38,7 @@ const routes = (options: BoardOptions) =>
 			yield* serve("/events", events(changes));
 			const index = yield* searchSnapshot(options.root, home, changes);
 			yield* serve("/_board/search", search(index));
+			yield* serve("/_board/work", work(index, changes, home));
 			for (const [route, body, contentType] of ASSETS) {
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}

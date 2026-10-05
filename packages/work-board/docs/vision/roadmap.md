@@ -1,7 +1,6 @@
 # Work Board roadmap
 
-The [north star](./README.md) defines the direction. All unchecked work below is
-proposed and unimplemented. Completion requires the stated observable behavior
+The [north star](./README.md) defines the direction. Unchecked work remains incomplete; partial checkpoints are recorded below. Completion requires the stated observable behavior
 and relevant checks; a mockup or a checked design document is not feature proof.
 Waves describe dependency order, not a calendar commitment.
 
@@ -159,6 +158,29 @@ the existing index, and exposes stable item/criterion links and diagnostics.
 - [Browser acceptance](./delivery/browser-acceptance.md#optional-identity-acceptance--step-04)
   gives the repeatable path. Richer board/table/detail views remain step 05;
   legacy card IDs and source-in-editor navigation remain outside this checkpoint.
+
+## Step 05 board/detail checkpoint evidence
+
+Step 05 remains open: table views and saved local views are the next checkpoint.
+The board/detail checkpoint reads shared items from explicit board declarations,
+uses recorded status columns, and restores filtering/sorting/selection from URLs.
+
+- Work Board: 137 passing tests. New real HTTP/watch and DOM regressions cover
+  shared board counts, unchanged legacy headings, missing-field filters,
+  deterministic sorting, missing/repeated/ambiguous memberships, incomplete-index
+  refusal, filtered-out selections, live status edits and deletion explanations,
+  Back/Forward detail restoration, and retained focused unsent search.
+- Chromium 151: large 50-document/100-card fixture plus richer work at
+  1440 × 1000 and 390 × 844. Verified explicit shared boards/counts, detail source
+  links and real Mermaid, Back/reload URL restoration, live filters/focus,
+  deleted selection explanation, dark theme, reduced motion, no horizontal
+  overflow, and native no-JavaScript GET filters/detail links. No page errors.
+  This is fixture evidence, not real-user adoption or orientation-time proof.
+
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,020
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no tests skipped. The quality baseline did not grow.
 
 Steps 05–26 remain open; the rest of W1.2/W1.3 remains proposed.
 
