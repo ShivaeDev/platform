@@ -17,14 +17,14 @@ const byFolder = (left: string, right: string): number => folderOf(left).localeC
 
 type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
-export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root: string, realRoot: string) {
+export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root: string, realRoot: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const visited = new Set<string>();
-	const entry = (relative: string): Listing =>
+	const roots: Array<{ readonly real: string; readonly relative: string }> = [{ real: realRoot, relative: "" }];
+	const entry = (relative: string, boundary: string, ancestors: ReadonlySet<string>, parent: string): Listing =>
 		Effect.gen(function* () {
 			const real = yield* Effect.option(fs.realPath(path.join(root, relative)));
-			if (Option.isNone(real) || !within(realRoot, path.sep, real.value)) {
+			if (Option.isNone(real)) {
 				return [];
 			}
 			const info = yield* Effect.option(fs.stat(real.value));
@@ -32,24 +32,35 @@ export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root:
 				return [];
 			}
 			if (info.value.type === "Directory") {
-				return yield* Effect.orElseSucceed(folder(relative, real.value), () => []);
+				return yield* directory(relative, real.value, boundary, ancestors, real.value !== path.join(parent, path.basename(relative)));
 			}
 			const modified = Option.match(info.value.mtime, { onNone: () => 0, onSome: (date) => date.getTime() });
-			return info.value.type === "File" && relative.endsWith(".md") ? [{ modified, path: relative }] : [];
+			return info.value.type === "File" && relative.endsWith(".md") && within(boundary, path.sep, real.value) ? [{ modified, path: relative }] : [];
 		});
-	const folder = (relative: string, real: string): Listing =>
+	function directory(relative: string, real: string, boundary: string, ancestors: ReadonlySet<string>, alias: boolean): Listing {
+		if (ancestors.has(real) || within(real, path.sep, realRoot)) {
+			return Effect.succeed([]);
+		}
+		const linked = !within(boundary, path.sep, real);
+		if (alias) {
+			roots.push({ real, relative });
+		}
+		return Effect.orElseSucceed(folder(relative, real, linked ? real : boundary, ancestors), () => []);
+	}
+	const folder = (relative: string, real: string, boundary: string, ancestors: ReadonlySet<string>): Listing =>
 		Effect.gen(function* () {
-			if (visited.has(real)) {
-				return [];
-			}
-			visited.add(real);
+			const branch = new Set([...ancestors, real]);
 			const names = yield* fs.readDirectory(real);
 			const found = yield* Effect.forEach(
 				names.filter((name) => !skipped(name)),
-				(name) => entry(relative === "" ? name : `${relative}/${name}`),
+				(name) => entry(relative === "" ? name : `${relative}/${name}`, boundary, branch, real),
 			);
 			return found.flat();
 		});
-	const files = yield* folder("", realRoot);
-	return files.toSorted((left, right) => byFolder(left.path, right.path));
+	const files = yield* folder("", realRoot, realRoot, new Set());
+	return { files: files.toSorted((left, right) => byFolder(left.path, right.path)), roots };
+});
+
+export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root: string, realRoot: string) {
+	return (yield* scanMarkdown(root, realRoot)).files;
 });

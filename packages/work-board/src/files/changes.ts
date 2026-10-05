@@ -1,5 +1,6 @@
-import { Data, Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule, Stream } from "effect";
-import { isMarkdown, listMarkdown, type MarkdownFile } from "./list.ts";
+import { Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule } from "effect";
+import { listMarkdown, type MarkdownFile } from "./list.ts";
+import { watchDirectories } from "./watchDirectories.ts";
 
 export type Change = { readonly _tag: "Changed"; readonly paths: readonly string[] } | { readonly _tag: "Watching"; readonly watching: boolean };
 
@@ -16,10 +17,6 @@ interface Cached {
 	readonly generation: number;
 }
 
-class WatchEnded extends Data.TaggedError("WatchEnded") {}
-
-const SETTLE = "100 millis";
-const BATCH = 256;
 const BACKLOG = 16;
 const RETRY = Schedule.min([Schedule.exponential("100 millis"), Schedule.spaced("5 seconds")]);
 
@@ -33,7 +30,6 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	const cached = yield* Ref.make(Option.none<Cached>());
 	const settled = yield* Deferred.make<void>();
 	const stale = Ref.update(generation, (count) => count + 1);
-	const relative = (changed: string) => (path.isAbsolute(changed) ? path.relative(root, changed) : changed).split(path.sep).join("/");
 	const setWatching = (now: boolean) =>
 		Effect.andThen(
 			Effect.flatMap(Ref.getAndSet(watching, now), (was) =>
@@ -41,15 +37,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 			),
 			Deferred.succeed(settled, undefined),
 		);
-	const watchOnce = fs.watch(root, { recursive: true }).pipe(
-		Stream.tap(() => stale),
-		Stream.map((event) => relative(event.path)),
-		Stream.filter(isMarkdown),
-		Stream.groupedWithin(BATCH, SETTLE),
-		Stream.runForEach((paths) => PubSub.publish(events, { _tag: "Changed", paths: [...new Set(paths)] })),
-		Effect.andThen(Effect.fail(new WatchEnded())),
-	);
-	const attempt = Effect.scoped(Effect.andThen(Effect.forkScoped(Effect.delay(setWatching(true), SETTLE)), watchOnce));
+	const attempt = watchDirectories(root, realRoot, stale, setWatching, (paths) => PubSub.publish(events, { _tag: "Changed", paths }));
 	yield* attempt.pipe(
 		Effect.sandbox,
 		Effect.tapError((cause) => Effect.andThen(setWatching(false), Effect.logWarning("Watching the folder failed; retrying", cause))),

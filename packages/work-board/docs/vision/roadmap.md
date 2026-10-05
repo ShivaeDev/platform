@@ -311,6 +311,44 @@ Opening Changes or receiving a live update never acknowledges source changes.
   claimed while the browser is closed. Source files remain untouched.
 
 
+## Reference-directory follow-up and 0.4.0 release
+
+The same checkpoint includes the approved linked-reference fix and release bump.
+Directory symlinks include Markdown from the main checkout without copying it or
+adding a mount API. Logical workspace paths remain the reading/search/link
+identity. Native recursive watches cover the included directories; watches of
+link parents catch replacements that Node's recursive watcher can miss.
+
+- Work Board: 189 passing tests. Seven reference regressions cover external and
+  internal aliases, nested-home/relative links, search, cycle/ancestor exclusion,
+  broken links, hidden/dependency entries, escaping file links, external edits,
+  add/rename/delete, newly linked/retargeted directories and watcher recovery.
+  Existing identity rename/deletion tests retain delivery of changed-file events;
+  ordinary file changes do not restart the watch.
+- Chromium 151: a real symlink to the main checkout's documentation opens the
+  framework README, follows its relative roadmap link and returns with Back.
+  A temporary external nested home works at `/`; external edits retain open
+  source details through live refresh and Back. Search, new/retargeted links and
+  subsequent live edits pass. Desktop 1440 × 1000 and mobile 390 × 844 with dark
+  theme/reduced motion have no page overflow or browser errors; native reading
+  also works with JavaScript disabled.
+- [x] Full `pnpm ready` passed lint, nine orchestration tests, builds, typechecks,
+  real PostgreSQL suites and every packed consumer, including the installed
+  Work Board CLI's matching 0.4.0 version. Package suites reported 1,085 passes
+  and four existing expected failures; the single existing intentional
+  `effect-test` skip remains. No Work Board/database test skipped and the quality
+  baseline did not grow.
+- Package manifest and CLI version are both 0.4.0, triggering the existing
+  package-publish workflow after merge. No dependency, source-schema change,
+  source write, cloud operation or verified-acceptance inference is introduced.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#linked-reference-directory-acceptance--040-follow-up)
+  covers this fix. A linked target missing when the watch was built needs a
+  restart once restored. Multiple aliases retain existing duplicate-ID rules.
+  Step 07's representative-reader timing remains pending. Step 09 stays open:
+  the approved direction establishes reusable Platform support before Work Board
+  adopts it; the proposed browser-build dependency remains under discussion.
+
+
 ## Current foundation
 
 The existing package serves a local Markdown folder, renders a designated home

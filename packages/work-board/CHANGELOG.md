@@ -1,11 +1,6 @@
 # Changelog
 
-## 0.3.0 - 2026-10-04
-
-### Changed
-
-- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
-  - `@shivaedev/work-board`: `@shivaedev/work-board/board.ts` (`BoardOptions`, `boardLayer`)
+## 0.4.0 - 2026-10-05
 
 ### Added
 
@@ -16,13 +11,30 @@
   history explicit; live updates never silently acknowledge changes. No source
   writes, server history, cloud sync, inferred authorship or verified acceptance.
 
-
 - Read explicit per-item attention request lists and expose a local overview for
   decisions, reviews and blockers with reason, response labels, target links and
   source provenance. Preserve exact request navigation, search/backlink context,
   native links and live updates. Keep invalid/ambiguous requests unclassified and
   incomplete indexes uncounted; closed requests do not imply acceptance. Existing
   Markdown and arbitrary status/owner fields remain unchanged.
+
+### Fixed
+
+- Include symlinked reference directories outside the workspace in document
+  reading, logical relative links, home selection and search. Watch linked
+  directory edits and rediscover added/retargeted links. Skip broken links,
+  ancestor/cycle traversal, hidden entries and dependencies; standalone file
+  symlinks still cannot escape their containing workspace/reference directory.
+  Reference files are read only.
+
+## 0.3.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/work-board`: `@shivaedev/work-board/board.ts` (`BoardOptions`, `boardLayer`)
+
+### Added
 
 - Add source backlinks for explicit relationships, board membership, criterion
   evidence, local evidence sources, and Markdown hyperlinks, including plain

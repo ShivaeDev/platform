@@ -9,14 +9,30 @@ pnpm add --global @shivaedev/work-board
 work-board ./project-notes --port 4747 --home plan.md
 ```
 
-It listens on `127.0.0.1` only and answers only requests addressed to a
-loopback host. Every `.md` file under the folder appears in the collapsible sidebar with how
-long ago it changed. Below the folder, files and folders starting with a dot and
-`node_modules` are never entered, and anything that is not markdown is skipped;
-the folder itself may be a dot folder such as `.notes`. No path outside the
-folder is served, and a symlink is followed only when it leads to a place
-inside the folder. One long-lived process picks up new files and edits without
-a restart.
+It listens on `127.0.0.1` only and answers only requests addressed to a loopback
+host. Every `.md` file under the folder appears in the collapsible sidebar with
+how long ago it changed. Below the folder, files and folders starting with a dot
+and `node_modules` are never entered, and anything that is not Markdown is
+skipped; the folder itself may be a dot folder such as `.notes`.
+
+Directory symlinks explicitly include reference folders, including ones outside
+the workspace. Their Markdown keeps the link's workspace-relative URLs. Broken
+links, ancestor links and directory cycles are skipped. File symlinks stay inside
+the workspace or the reference directory containing them. Unlisted paths and URL
+traversal are never served. One long-lived process picks up new files and edits
+without a restart.
+
+For example, include the main checkout's documentation without copying it:
+
+```sh
+ln -s /path/to/platform/docs ./project-notes/reference
+work-board ./project-notes --home plan.md
+```
+
+Read `/reference/framework/README.md` and follow its relative Markdown links.
+Only link directories you intend to expose locally. Multiple aliases remain
+separate source paths; if they repeat an explicit item ID, existing ambiguity
+rules apply rather than choosing an identity winner.
 
 Pages render GitHub Flavored Markdown on the server: tables, task lists,
 footnotes, raw HTML (including `<details>` with markdown inside) and fenced code,
@@ -80,8 +96,9 @@ the workspace or change the existing sidebar, density, and theme controls.
 
 The server keeps a rebuildable index in memory and invalidates it when the file
 watcher changes. An open dialog refreshes on edits and reconnects; older requests
-cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
-the workspace are excluded. Unreadable files produce an incomplete-results notice.
+cannot replace a newer query. Hidden entries, `node_modules`, and escaping standalone file
+symlinks are excluded; linked reference directories are included. Unreadable
+files produce an incomplete-results notice.
 All indexing and requests stay local. Search needs JavaScript; document reading
 does not. Source-in-editor links await an agreed local editor mechanism.
 
@@ -265,7 +282,11 @@ Finished work moves to the changelog.
 
 ## Live updates
 
-The server watches the folder recursively. Changes settle for 100 ms, then
+The server watches the workspace and linked reference directories recursively.
+Adding or retargeting a directory link rebuilds the watch and triggers catch-up.
+Broken links are ignored; after restoring a target that was missing when the
+watch was built, restart the server to include it. No reference file is written.
+Changes settle for 100 ms, then
 `/events` sends one server-sent event naming the markdown files that changed:
 
 ```text

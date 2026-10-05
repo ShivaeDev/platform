@@ -241,3 +241,27 @@ Use the same 100-card legacy home plus attention/reasoning fixture.
 
 These checks establish comparison behavior, not the separate representative-user
 orientation target for step 07.
+
+## Linked reference directory acceptance — 0.4.0 follow-up
+
+1. Symlink the main checkout's `docs` directory into the workspace as `repo-docs`.
+   Open `/repo-docs/framework/README.md`, follow its relative roadmap link and
+   return with Back. Read the same files with JavaScript disabled.
+2. Include a temporary external reference directory containing nested Markdown.
+   Choose its nested file as `--home`: `/` retains the requested logical alias and
+   resolves relative links. Open a source disclosure, edit the physical reference
+   file and retain the disclosure through live refresh and navigation/Back.
+   Search must find the edited source through its workspace-relative URL.
+3. Add another directory link while the server runs, then retarget it to a
+   different reference folder. Its navigation and reads catch up, obsolete paths
+   disappear, and later edits of the new target refresh the active page.
+4. Repeat at 1440 × 1000 and 390 × 844, including dark theme/reduced motion.
+   Check overflow and browser errors. Native HTTP regressions separately cover
+   cycles/ancestor traversal, broken links, hidden/dependency entries, escaping
+   file links, internal aliases, external add/rename/delete and watcher recovery.
+
+Links explicitly include trusted reference directories; the server never writes
+those sources. A target missing when the watch was built needs a server restart
+once restored. Multiple aliases remain separate paths and existing duplicate-ID
+rules apply. These checks do not establish step 09's selective invalidation,
+pause/resume or representative-reader orientation timing.

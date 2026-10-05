@@ -38,11 +38,13 @@ export const faultyWatch = (): FaultyWatch => {
 
 export const silentWatch: FileSystemWrapper = (fs) => ({ ...fs, watch: () => Stream.never });
 
-export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[] } => {
+export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[]; readonly listed: readonly string[] } => {
 	const visited: string[] = [];
+	const listed: string[] = [];
 	const wrap: FileSystemWrapper = (fs) => ({
 		...fs,
 		readDirectory: (path, options) => {
+			listed.push(path);
 			visited.push(path);
 			return fs.readDirectory(path, options);
 		},
@@ -55,5 +57,5 @@ export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly vi
 			return fs.stat(path);
 		},
 	});
-	return { visited, wrap };
+	return { listed, visited, wrap };
 };

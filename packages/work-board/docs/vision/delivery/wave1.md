@@ -107,6 +107,8 @@ Implemented with the approved [explicit baseline contract](./change-history-exam
 [Acceptance evidence](../roadmap.md#step-08-baseline-decision-and-acceptance-evidence)
 records the known edit sequence, schema/HTTP/DOM limits, real-browser checks and
 full repository handoff. Step 07's representative-reader exercise remains separate.
+The [reference-directory follow-up](../roadmap.md#reference-directory-follow-up-and-040-release)
+closes the linked-document gap in the same 0.4.0 checkpoint.
 
 ## 09 Live updates that preserve orientation
 
@@ -119,6 +121,11 @@ optimization when events may have been missed.
 **Depends on:** 05–08. **Accept:** unrelated edits avoid full active-document
 rerenders; focused controls, open details, and diagrams survive relevant changes;
 paused and reconnecting states catch up without claiming stale data is current.
+
+Delivery direction: establish reusable native RPC/reactivity/client lifecycle
+support in Platform first, then have Work Board adopt it. The reference-directory
+fix extends existing filesystem watching; it does not complete this checkpoint.
+Resolve the proposed browser-build dependency before adopting it.
 
 ## 10 Local visual evidence
 
