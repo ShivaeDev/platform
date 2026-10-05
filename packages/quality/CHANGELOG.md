@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1 - 2026-10-05
+
+### Changed
+
+- The optional `vitest` peer dependency requires Vitest 4.1.11, the latest 4.x patch.
+
 ## 0.11.0 - 2026-10-05
 
 ### Added
