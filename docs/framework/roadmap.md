@@ -22,7 +22,7 @@ The full `pnpm ready` gate passed: formatting, builds, TypeScript 6 and 7,
 runtime tests, and installed-package consumers. PostgreSQL tests ran against an
 isolated PostgreSQL 18 instance; CI is configured to run the new SQL test too.
 
-The [rendered feature fixture](../../packages/effect-react/test/native-feature.test.tsx)
+The [rendered feature fixture](../../packages/effect-react/src/nativeFeature.dom.spec.tsx)
 connects an actual SQLite repository, native RPC handlers/client, AtomRpc and
 React. A successful action refreshes the list; a rejected action leaves persisted
 and rendered data intact. It uses in-process RpcTest, not HTTP serialization or
