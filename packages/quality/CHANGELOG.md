@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 - 2026-10-06
+
+### Added
+
+- The README states the story-test convention: a test reads as a story over a domain kit the repository keeps in `test-support/`, names its setup as traits, acts through real entry points and prints the story when it fails.
+- `tests/story-setup` reports, in a test file, a top-level function named `seed…`, `make…`, `build…` or `setup…`, and each call that writes fixture files through Node's `fs` or `fs/promises`, such as `writeFileSync`, `mkdirSync` or `mkdtemp`. Its message asks for the setup as traits of the story kit and points at the convention. Files under `test-support/` are not tests, so the kit itself is not reported. The rule has no fix. A repository that upgrades records its existing findings with `quality baseline write --rule tests/story-setup`.
+
 ## 0.15.0 - 2026-10-05
 
 ### Added

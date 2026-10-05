@@ -522,6 +522,33 @@ Both rules take a `suites` option, `.gitignore` patterns of folders that hold te
 
 Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the one folder name for the fixtures, harnesses and generated clients that tests share. Test code ships nowhere, so the rules that check shipped code skip it: `imports/fences` never holds it, and `structure/max-lines` gives it the test limit. The test rules still read only test files: a file under `test-support/` is not a test, so `tests/follow` and `tests/colocated` leave it alone.
 
+## Story tests
+
+A test reads as a short story over the domain: what exists, what someone does, and what is true afterwards. The words come from a story kit that the repository keeps in `test-support/`, so a test says what it needs in domain words and never builds state by hand.
+
+```ts
+it("ships a paid order from stock", () => {
+	const { customer, warehouse } = newShop(hasInStock(3, "lamp"), hasInCart(1, "lamp"));
+
+	customer.checksOut();
+	warehouse.settles();
+
+	expect(warehouse.shipped()).toEqual(["lamp"]);
+	expect(warehouse.inStock("lamp")).toBe(2);
+});
+```
+
+- **Setup is traits.** A trait is one sentence of setup in domain words and the change it makes, such as `hasInStock(3, "lamp")`. A test hands the traits it needs to the kit's entry point, such as `newShop(...traits)`, and a setup that recurs becomes one named trait made of others. A trait that asks for an impossible state refuses and fails the test, instead of seeding it quietly.
+- **Actions go through real entry points.** The test acts the way a user or caller does: through the command, service, route or UI path they reach, never by writing internal state.
+- **Failures print the story.** Every trait and action adds a line to the story log, and a failing test prints it, so the failure says what happened, not only which values differ.
+
+`tests/story-setup` holds test files to this. In a test file, it reports:
+
+- a top-level function whose name starts with the word `seed`, `make`, `build` or `setup`, declared as a function or as a variable that holds an arrow function or function expression: `function seedCart()`, `const makeRun = () => …`. The prefix is a whole word, so `builder` and `settings` pass;
+- a call that writes fixture files through Node's `fs` or `fs/promises`: `writeFile`, `appendFile`, `mkdir`, `mkdtemp`, `copyFile`, `cp` and `symlink`, each in its sync form too, whether imported by name, through a namespace or default import, or through `promises`.
+
+Each finding names its line and has the helper or the function it calls as its subject. Its message asks for the setup as traits of the story kit in `test-support/` and points here. A file under `test-support/` is not a test, so the kit itself builds state and writes files freely. The rule only reports; nothing rewrites a test. A repository adopts it through the baseline: `quality baseline write --rule tests/story-setup`.
+
 ## Vitest projects
 
 `@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
@@ -587,4 +614,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, `tests/story-setup` against seeded test, source and `test-support/` files, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
