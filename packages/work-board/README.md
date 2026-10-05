@@ -9,14 +9,30 @@ pnpm add --global @shivaedev/work-board
 work-board ./project-notes --port 4747 --home plan.md
 ```
 
-It listens on `127.0.0.1` only and answers only requests addressed to a
-loopback host. Every `.md` file under the folder appears in the collapsible sidebar with how
-long ago it changed. Below the folder, files and folders starting with a dot and
-`node_modules` are never entered, and anything that is not markdown is skipped;
-the folder itself may be a dot folder such as `.notes`. No path outside the
-folder is served, and a symlink is followed only when it leads to a place
-inside the folder. One long-lived process picks up new files and edits without
-a restart.
+It listens on `127.0.0.1` only and answers only requests addressed to a loopback
+host. Every `.md` file under the folder appears in the collapsible sidebar with
+how long ago it changed. Below the folder, files and folders starting with a dot
+and `node_modules` are never entered, and anything that is not Markdown is
+skipped; the folder itself may be a dot folder such as `.notes`.
+
+Directory symlinks explicitly include reference folders, including ones outside
+the workspace. Their Markdown keeps the link's workspace-relative URLs. Broken
+links, ancestor links and directory cycles are skipped. File symlinks stay inside
+the workspace or the reference directory containing them. Unlisted paths and URL
+traversal are never served. One long-lived process picks up new files and edits
+without a restart.
+
+For example, include the main checkout's documentation without copying it:
+
+```sh
+ln -s /path/to/platform/docs ./project-notes/reference
+work-board ./project-notes --home plan.md
+```
+
+Read `/reference/framework/README.md` and follow its relative Markdown links.
+Only link directories you intend to expose locally. Multiple aliases remain
+separate source paths; if they repeat an explicit item ID, existing ambiguity
+rules apply rather than choosing an identity winner.
 
 Pages render GitHub Flavored Markdown on the server: tables, task lists,
 footnotes, raw HTML (including `<details>` with markdown inside) and fenced code,
@@ -80,8 +96,9 @@ the workspace or change the existing sidebar, density, and theme controls.
 
 The server keeps a rebuildable index in memory and invalidates it when the file
 watcher changes. An open dialog refreshes on edits and reconnects; older requests
-cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
-the workspace are excluded. Unreadable files produce an incomplete-results notice.
+cannot replace a newer query. Hidden entries, `node_modules`, and escaping standalone file
+symlinks are excluded; linked reference directories are included. Unreadable
+files produce an incomplete-results notice.
 All indexing and requests stay local. Search needs JavaScript; document reading
 does not. Source-in-editor links await an agreed local editor mechanism.
 
@@ -135,6 +152,44 @@ one or update a name; views are never silently evicted. Remove one or clear all
 from the view picker. Unsafe stored destinations are ignored. If storage is
 unavailable, named views work for the current page only; source files are unchanged.
 Saving requires JavaScript; board/table reading does not.
+
+## Attention overview
+
+Open **Overview** to read explicit decision, review and blocker requests grouped
+by kind and ordered by source title, item ID and request ID. Each entry shows the
+recorded reason, response labels, target links and origin file/line. Opening it
+focuses its source request, beside ordinary Markdown reasoning and evidence.
+Source edits refresh the queues; native links also work without JavaScript.
+
+Add optional [attention records](./docs/vision/delivery/attention-examples.md) to
+item frontmatter. Status, owner, next action, file activity and finished runs do
+not imply requests. Closed requests remain readable/searchable without implying
+an answer or acceptance. Duplicate IDs, invalid records and unresolved targets
+stay outside the queues with source diagnostics. An incomplete index withholds
+counts rather than presenting a quiet workspace. The viewer never writes source
+files or interrupts/starts agents; recipients are authored local labels.
+
+## Changes since seen
+
+Open **Changes**, then **Start remembering changes** to record one explicit
+browser-local workspace baseline. Live updates and opening the view never mark
+changes seen. After review, **Mark current workspace seen** replaces it;
+**Clear remembered history** removes it and stays off until you start again.
+
+Compare additions, removals, explicit field changes, decision Markdown and
+recorded evidence with current source links and escaped before/after source text.
+Unique explicit item IDs can match moved files; ordinary renames show removed
+and added paths. Duplicate IDs have no winner. Content comparison ignores mtime
+and does not establish authorship, decision acceptance or verified evidence.
+
+Each origin/workspace retains at most one 2 MiB serialized snapshot for 30 days.
+Old/deleted source may remain until replacement, clearing or expiry; expired data
+is removed on the next workspace visit or an open-page check. Invalid/unsupported
+history, incomplete reads and oversized workspaces are explained without invented
+removals or truncated history. Blocked storage allows a disclosed page-only
+baseline. The local server validates and compares observations without retaining
+history, modifying Markdown or contacting a cloud service. Without JavaScript,
+Changes explains the limitation while source reading, Overview and Work remain usable.
 
 ## Reasoning and evidence context
 
@@ -227,7 +282,11 @@ Finished work moves to the changelog.
 
 ## Live updates
 
-The server watches the folder recursively. Changes settle for 100 ms, then
+The server watches the workspace and linked reference directories recursively.
+Adding or retargeting a directory link rebuilds the watch and triggers catch-up.
+Broken links are ignored; after restoring a target that was missing when the
+watch was built, restart the server to include it. No reference file is written.
+Changes settle for 100 ms, then
 `/events` sends one server-sent event naming the markdown files that changed:
 
 ```text

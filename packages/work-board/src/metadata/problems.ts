@@ -1,3 +1,4 @@
+import { attentionProblems } from "./attentionProblems.ts";
 import type { MetadataDocument } from "./model.ts";
 import type { Diagnostic } from "./parse.ts";
 
@@ -26,6 +27,9 @@ function criterionProblems(document: MetadataDocument): readonly Diagnostic[] {
 function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>): readonly Diagnostic[] {
 	const { fields, lines } = document.parsed;
 	const references = [
+		...(fields.attention?.flatMap((request, index) =>
+			request.unblocks.map((target, targetIndex) => ({ field: "attention", key: `attention.${index}.unblocks.${targetIndex}`, target })),
+		) ?? []),
 		...(fields.relationships?.map((link, index) => ({ field: "relationships", key: `relationships.${index}.target`, target: link.target })) ?? []),
 		...(fields.items?.map((target, index) => ({ field: "items", key: `items.${index}`, target })) ?? []),
 		...(fields.evidence?.flatMap((item, index) =>
@@ -39,7 +43,7 @@ function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, 
 }
 export function metadataProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>, unavailable: readonly string[]) {
 	const { parsed } = document;
-	const problems = [...parsed.diagnostics, ...criterionProblems(document)];
+	const problems = [...parsed.diagnostics, ...criterionProblems(document), ...attentionProblems(document)];
 	const matches = parsed.fields.id ? ids.get(parsed.fields.id) : undefined;
 	if (matches && matches.length > 1) {
 		problems.push({

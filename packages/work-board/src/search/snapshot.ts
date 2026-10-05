@@ -1,6 +1,6 @@
-import { Effect, FileSystem, Option, Path, Ref, Semaphore } from "effect";
+import { Effect, FileSystem, Option, Ref, Semaphore } from "effect";
 import type { Changes } from "#files/changes.ts";
-import { within } from "#files/list.ts";
+import { markdownPath } from "#files/markdownPath.ts";
 import { type MetadataDocument, metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { type Entry, entriesOf } from "./entries.ts";
@@ -24,7 +24,6 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 			return hit;
 		}
 		const fs = yield* FileSystem.FileSystem;
-		const path = yield* Path.Path;
 		const files = yield* changes.files;
 		const entries: Entry[] = [];
 		const documents: MetadataDocument[] = [];
@@ -32,8 +31,8 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 		for (const file of files) {
 			const found = yield* Effect.option(
 				Effect.gen(function* () {
-					const real = yield* fs.realPath(path.join(root, file.path));
-					if (!within(changes.realRoot, path.sep, real)) {
+					const real = yield* markdownPath(root, changes.realRoot, file.path);
+					if (real === undefined) {
 						return undefined;
 					}
 					const source = yield* fs.readFileString(real);

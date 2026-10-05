@@ -83,7 +83,7 @@ describe("pages", () => {
 		expect(response.body).not.toContain("Outside the folder");
 	});
 
-	it("never lists or serves a symlink that leads outside the folder", async () => {
+	it("includes explicit linked folders but refuses escaping file links and ancestor folders", async () => {
 		await board.stop();
 		symlinkSync(join(outside.root, "private.md"), join(notes.root, "leak.md"));
 		symlinkSync("..", join(notes.root, "up"));
@@ -92,11 +92,11 @@ describe("pages", () => {
 		board = await startBoard(notes.root, "plan.md");
 		const html = await (await get("/")).text();
 		expect(html).not.toContain("leak.md");
-		expect(html).not.toContain("elsewhere");
-		expect(html).not.toContain("private.md");
+		expect(html).toContain('<a href="/notes/elsewhere/private.md">private</a>');
+		expect(await (await get("/notes/elsewhere/private.md")).text()).toContain("Outside the folder");
 		expect(html).not.toContain("Outside the folder");
 		expect(html).toContain('<a href="/notes/alias.md">alias</a>');
-		for (const path of ["/leak.md", "/notes/elsewhere/private.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
+		for (const path of ["/leak.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
 			const response = await get(path);
 			expect(response.status).toBe(404);
 			expect(await response.text()).not.toContain("Outside the folder");
@@ -152,7 +152,7 @@ describe("pages", () => {
 		await board.stop();
 		const counting = countingPaths();
 		board = await startBoard(notes.root, "plan.md", counting.wrap);
-		const listings = () => counting.visited.filter((path) => path.endsWith("/notes")).length;
+		const listings = () => counting.listed.filter((path) => path.endsWith("/notes")).length;
 		await get("/");
 		const once = listings();
 		await get("/");

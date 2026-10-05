@@ -20,6 +20,10 @@ export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, hom
 		return yield* missing;
 	}
 	const files = yield* listMarkdown(root, realRoot);
+	const logical = path.relative(root, path.resolve(root, home)).split(path.sep).join("/");
+	if (files.some((file) => file.path === logical)) {
+		return logical;
+	}
 	const relative = path.relative(realRoot, real.value).split(path.sep).join("/");
 	if (files.some((file) => file.path === relative)) {
 		return relative;

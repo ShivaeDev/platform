@@ -10,6 +10,13 @@ export interface Backlink {
 function references(document: MetadataDocument, model: MetadataModel) {
 	const { fields, lines } = document.parsed;
 	return [
+		...(fields.attention?.flatMap((request, index) =>
+			request.unblocks.map((target, targetIndex) => ({
+				kind: "attention target",
+				line: lines[`attention.${index}.unblocks.${targetIndex}`],
+				target: referenceFile(target, model),
+			})),
+		) ?? []),
 		...(fields.relationships?.map((link, index) => ({
 			kind: link.kind,
 			line: lines[`relationships.${index}.target`],

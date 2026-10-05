@@ -1,6 +1,7 @@
 import type { MetadataModel } from "#metadata/model.ts";
 import type { ParsedMetadata } from "#metadata/parse.ts";
 import { relationshipLabel } from "#metadata/relationshipLabel.ts";
+import { attentionDetails } from "./attentionDetails.ts";
 import { criteriaEvidence } from "./criteriaEvidence.ts";
 import { escapeHtml } from "./escape.ts";
 import { referenceHtml, valueHtml } from "./metadataLinks.ts";
@@ -18,6 +19,7 @@ export function metadataDetails(parsed: ParsedMetadata, file: string, model: Met
 			: "",
 
 		criteriaEvidence(parsed, model),
+		attentionDetails(parsed, file, model),
 		recordedEvidence(parsed, file, model),
 	].join("");
 	return details;

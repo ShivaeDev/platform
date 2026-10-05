@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0 - 2026-10-05
+
+### Added
+
+- Add explicit Changes since seen comparisons with one browser-local baseline
+  per workspace, 30-day expiry, a 2 MiB serialized limit and clearing. Compare
+  source additions/removals, unique-ID moves and recorded field/content changes
+  with escaped old/current source. Keep incomplete, corrupt, expired and oversized
+  history explicit; live updates never silently acknowledge changes. No source
+  writes, server history, cloud sync, inferred authorship or verified acceptance.
+
+- Read explicit per-item attention request lists and expose a local overview for
+  decisions, reviews and blockers with reason, response labels, target links and
+  source provenance. Preserve exact request navigation, search/backlink context,
+  native links and live updates. Keep invalid/ambiguous requests unclassified and
+  incomplete indexes uncounted; closed requests do not imply acceptance. Existing
+  Markdown and arbitrary status/owner fields remain unchanged.
+
+### Fixed
+
+- Include symlinked reference directories outside the workspace in document
+  reading, logical relative links, home selection and search. Watch linked
+  directory edits and rediscover added/retargeted links. Skip broken links,
+  ancestor/cycle traversal, hidden entries and dependencies; standalone file
+  symlinks still cannot escape their containing workspace/reference directory.
+  Reference files are read only.
+
 ## 0.3.0 - 2026-10-04
 
 ### Changed

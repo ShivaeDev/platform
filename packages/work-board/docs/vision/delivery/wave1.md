@@ -87,6 +87,11 @@ empty states. Do not treat file churn, heartbeat, or a finished agent run as pro
 **Depends on:** 05–06. **Accept:** representative users can find the intended next
 judgment within the proposed 30-second target; ambiguous items stay unclassified.
 
+The source contract and overview are implemented with HTTP/DOM regressions and
+real-browser evidence. [Checkpoint evidence](../roadmap.md#step-07-source-decision-and-implementation-evidence)
+records the checks. Step 07 stays unchecked while the representative-reader
+orientation exercise is pending; automated fixtures do not prove that target.
+
 ## 08 What changed since I last looked
 
 **Outcome:** readers distinguish meaningful changes from an unchanged busy process.
@@ -97,6 +102,13 @@ snapshots. If history is unavailable, say so; modification time is not a diff.
 **Depends on:** 04 and 07. **Accept:** a returning view summarizes a known sequence
 of edits correctly; a first visit, cleared storage, or renamed source never invents
 history or authorship. No durable event journal is required.
+
+Implemented with the approved [explicit baseline contract](./change-history-examples.md).
+[Acceptance evidence](../roadmap.md#step-08-baseline-decision-and-acceptance-evidence)
+records the known edit sequence, schema/HTTP/DOM limits, real-browser checks and
+full repository handoff. Step 07's representative-reader exercise remains separate.
+The [reference-directory follow-up](../roadmap.md#reference-directory-follow-up-and-040-release)
+closes the linked-document gap in the same 0.4.0 checkpoint.
 
 ## 09 Live updates that preserve orientation
 
@@ -109,6 +121,11 @@ optimization when events may have been missed.
 **Depends on:** 05–08. **Accept:** unrelated edits avoid full active-document
 rerenders; focused controls, open details, and diagrams survive relevant changes;
 paused and reconnecting states catch up without claiming stale data is current.
+
+Delivery direction: establish reusable native RPC/reactivity/client lifecycle
+support in Platform first, then have Work Board adopt it. The reference-directory
+fix extends existing filesystem watching; it does not complete this checkpoint.
+Resolve the proposed browser-build dependency before adopting it.
 
 ## 10 Local visual evidence
 

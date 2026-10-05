@@ -86,7 +86,7 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest?.("a[href]");
   if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
   const target = new URL(link.href, location.href);
-  if (target.origin !== location.origin || !(target.pathname === "/" || (target.pathname === "/_board/work" || target.pathname.startsWith("/_board/item/")) || /\\.md$/i.test(target.pathname))) return;
+  if (target.origin !== location.origin || !(target.pathname === "/" || (target.pathname === "/_board/changes" || target.pathname === "/_board/overview" || target.pathname === "/_board/work" || target.pathname.startsWith("/_board/item/")) || /\\.md$/i.test(target.pathname))) return;
   event.preventDefault();
   navigate(target);
 });

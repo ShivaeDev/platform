@@ -1,7 +1,8 @@
-import { Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option } from "effect";
 import type { HttpServerRequest } from "effect/unstable/http";
 import type { Changes } from "#files/changes.ts";
-import { type MarkdownFile, within } from "#files/list.ts";
+import type { MarkdownFile } from "#files/list.ts";
+import { markdownPath } from "#files/markdownPath.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { boardHtml } from "#page/board.ts";
@@ -33,12 +34,11 @@ const message = (text: string): string => `<p class="empty">${escapeHtml(text)}<
 export const page = (options: PageOptions, changes: Changes, index: Effect.Success<ReturnType<typeof searchSnapshot>>) => {
 	const body = Effect.fn("WorkBoard.pageBody")(function* (file: MarkdownFile, expectedIdentity?: string) {
 		const fs = yield* FileSystem.FileSystem;
-		const path = yield* Path.Path;
-		const real = yield* Effect.option(fs.realPath(path.join(options.root, file.path)));
-		if (Option.isNone(real) || !within(changes.realRoot, path.sep, real.value)) {
+		const real = yield* markdownPath(options.root, changes.realRoot, file.path);
+		if (real === undefined) {
 			return Option.none();
 		}
-		const source = yield* fs.readFileString(real.value);
+		const source = yield* fs.readFileString(real);
 		const parsed = metadataParse(source);
 		let identity: string | undefined;
 		const snapshot = yield* index;

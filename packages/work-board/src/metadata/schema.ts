@@ -3,6 +3,14 @@ import { Schema } from "effect";
 export const Identity = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*$/u));
 export const Reference = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*(?:#[a-zA-Z\d][a-zA-Z\d._-]*)?$/u));
 const Text = Schema.String.check(Schema.isPattern(/\S/u));
+const Attention = Schema.Struct({
+	id: Identity,
+	kind: Schema.Literals(["decision", "review", "blocker"]),
+	reason: Text,
+	responseFrom: Schema.Array(Text).check(Schema.isMinLength(1)),
+	state: Schema.Literals(["open", "closed"]),
+	unblocks: Schema.Array(Reference).check(Schema.isMinLength(1)),
+}).pipe(Schema.encodeKeys({ responseFrom: "response_from" }));
 const Criterion = Schema.Struct({ id: Identity, text: Text });
 const Relationship = Schema.Struct({ kind: Schema.Literals(["implements", "informs", "depends_on", "relates_to"]), target: Reference });
 const Evidence = Schema.Struct({
@@ -23,6 +31,7 @@ const Evidence = Schema.Struct({
 }).pipe(Schema.encodeKeys({ checkedRevision: "checked_revision", observedAt: "observed_at" }));
 
 export const Metadata = Schema.Struct({
+	attention: Schema.optional(Schema.Array(Attention)),
 	criteria: Schema.optional(Schema.Array(Criterion)),
 	evidence: Schema.optional(Schema.Array(Evidence)),
 	id: Schema.optional(Identity),

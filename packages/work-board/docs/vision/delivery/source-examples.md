@@ -66,6 +66,7 @@ transition rules are inferred.
 | `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, or `relates_to`; target is an item ID or `item.id#criterion-id` |
 | `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
 | `evidence` | List of records described below |
+| `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
 
 A unique ID resolves at `/_board/item/work.search/`. This URL survives file and
 heading renames while the ID remains unchanged and unique. A criterion resolves

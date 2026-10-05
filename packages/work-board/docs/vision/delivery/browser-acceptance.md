@@ -183,3 +183,85 @@ Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the larg
 5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow,
    errors, and real Mermaid. Disable JavaScript and follow result → plan →
    decision natively. Existing legacy home cards remain unchanged.
+
+## Explicit attention acceptance — step 07
+
+Use `attentionFixture()` alongside `workspaceFixture()` with the 100-card legacy
+home; add a Mermaid diagram to the keyboard task. Open Overview from the legacy
+home and verify three requests: the review and decision on `request.search`, and
+the fixture blocker. `ordinary.review` has status/owner/action but no request;
+`prior-review` is explicitly closed and must not enter the queue.
+
+1. Read why each request appears, its response labels and target links. Open the
+   keyboard review: focus the exact record and expand its source context. Reload,
+   follow its criterion claims and real Mermaid, then Back twice. The overview's
+   issue disclosure remains open. Follow the decision into options/rationale.
+2. Repeat at 1440 × 1000 and 390 × 844, dark theme and reduced motion. Verify no
+   page overflow and native request/criterion navigation with JavaScript disabled.
+   Chromium opens the ancestor details for a fragment target natively.
+3. Close the review/decision in their source; only the blocker remains. Rename
+   the blocker file with spaces and `&`; its identity and encoded source link
+   survive. Delete the criterion's item; the remaining request leaves the queue
+   with an unresolved source issue. No source issue becomes a quiet workspace.
+4. HTTP regressions cover invalid/duplicate/missing identities and requests,
+   unreadable source files, malformed YAML, stable restart and genuine quiet
+   states. Unreadable indexes return 503 and withhold counts/classification.
+
+For the proposed 30-second orientation target, ask a representative reader to
+identify the judgment requested from them and what it would unblock before
+opening the details, recording elapsed time and feedback. Then ask them to follow
+its rationale/evidence. Automated fixture behavior cannot establish this user
+acceptance; record the exercise separately in the roadmap.
+
+## Explicit change baseline acceptance — step 08
+
+Use the same 100-card legacy home plus attention/reasoning fixture.
+
+1. Open Changes: first visit has no history. Start remembering, then edit recorded
+   status, an attention state and decision Markdown; add a file, move a unique-ID
+   item, and rename a plain file. The view explains changes with current links and
+   escaped remembered/current text. A plain rename is removal/addition; identity
+   moves match only a unique ID. No edit implies authorship or accepted evidence.
+2. Keep the baseline unchanged through live updates, source navigation, Back and
+   reload. Open a remembered-source disclosure and retain it through live edits
+   and Back. Mark seen replaces the baseline; Clear removes it and reload stays
+   off. Touching unchanged source must not create a content change.
+3. Inject an expired record, then open ordinary Markdown: the record is removed
+   without silently rebaselining. Invalid/future/unsupported records establish no
+   comparison. Another workspace key stays untouched. Block storage: explicitly
+   marked history works for this page with a visible persistence limitation.
+4. Repeat at 1440 × 1000 and 390 × 844 with dark theme/reduced motion and check
+   page overflow/errors. Old source containing script/image Markdown is plain
+   text. Disable JavaScript: retention controls are disabled with an explanation,
+   and native Work/source navigation remains available.
+5. HTTP regressions refuse an incomplete observation and a complete oversized
+   workspace without deletion counts or partial snapshots. Schema regressions
+   exercise exact UTF-8 limits, corrupt/unsupported records and unsafe/duplicate
+   paths. Source-comparison fixtures cover ambiguous IDs and unknown frontmatter.
+
+These checks establish comparison behavior, not the separate representative-user
+orientation target for step 07.
+
+## Linked reference directory acceptance — 0.4.0 follow-up
+
+1. Symlink the main checkout's `docs` directory into the workspace as `repo-docs`.
+   Open `/repo-docs/framework/README.md`, follow its relative roadmap link and
+   return with Back. Read the same files with JavaScript disabled.
+2. Include a temporary external reference directory containing nested Markdown.
+   Choose its nested file as `--home`: `/` retains the requested logical alias and
+   resolves relative links. Open a source disclosure, edit the physical reference
+   file and retain the disclosure through live refresh and navigation/Back.
+   Search must find the edited source through its workspace-relative URL.
+3. Add another directory link while the server runs, then retarget it to a
+   different reference folder. Its navigation and reads catch up, obsolete paths
+   disappear, and later edits of the new target refresh the active page.
+4. Repeat at 1440 × 1000 and 390 × 844, including dark theme/reduced motion.
+   Check overflow and browser errors. Native HTTP regressions separately cover
+   cycles/ancestor traversal, broken links, hidden/dependency entries, escaping
+   file links, internal aliases, external add/rename/delete and watcher recovery.
+
+Links explicitly include trusted reference directories; the server never writes
+those sources. A target missing when the watch was built needs a server restart
+once restored. Multiple aliases remain separate paths and existing duplicate-ID
+rules apply. These checks do not establish step 09's selective invalidation,
+pause/resume or representative-reader orientation timing.

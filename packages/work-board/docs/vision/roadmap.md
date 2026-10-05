@@ -22,7 +22,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
 - [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
-- [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
+- [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
 - [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
 - [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
@@ -237,9 +237,117 @@ or human acceptance; missing sources and old revisions stay visible.
   content mutation remain unchanged. Record anchors follow array position;
   explicit item and criterion IDs remain the durable source identities.
 
-Steps 07–26 remain open. Step 07's explicit attention-request metadata needs
-examples and user discussion before implementation; arbitrary statuses and owners
-must not become inferred requests. The rest of W1.2/W1.3 remains proposed.
+## Step 07 source decision and implementation evidence
+
+The user approved an optional per-item attention list on 2026-10-05: independent
+request IDs, explicit decision/review/blocker kinds, open/closed source state,
+nonempty literal response labels, reason and item/criterion targets. Arbitrary
+status, owner and action fields must not imply requests. [Attention records](./delivery/attention-examples.md)
+states the implemented contract and links the Antumbra design references.
+
+The read-only overview, exact source links, search/backlink context, diagnostics,
+quiet state and live updates are implemented.
+
+- Work Board: 166 passing tests. Schema regressions retain invalid lists and
+  independent fields; HTTP regressions cover multiple explicit judgments,
+  arbitrary-label exclusion, duplicate/missing IDs, unresolved criteria,
+  malformed source, incomplete indexes, source renames, closure and restart.
+  Ordering/escaping and DOM exact-record focus, Back and live disclosure are covered.
+- Chromium 151: a 100-card legacy fixture plus richer requests verified grouping,
+  closed/arbitrary-label exclusions, request focus/reload/Back, criterion claims,
+  real Mermaid, decision options/rationale, and live close/rename/deleted targets.
+  Desktop 1440 × 1000 and mobile 390 × 844, dark/reduced motion and native
+  no-JavaScript navigation passed without page overflow or page errors.
+- Repository gate: `pnpm ready` passed lint, nine orchestration tests, build,
+  typecheck, real PostgreSQL-backed suites and all packed consumers. Package
+  suites have 1,062 passing tests and four existing expected failures. One existing
+  `effect-test` fixture intentionally exercises `skipIf(true)`; no Work Board or
+  database tests skipped. Quality baseline did not grow (2,508 retained findings).
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#explicit-attention-acceptance--step-07)
+  separates the source/browser checks from the reader exercise below.
+
+Representative-user evidence for
+the proposed 30-second orientation target remains pending; step 07 stays open
+until that acceptance exercise is recorded. Step 08's explicitly approved
+implementation is complete; steps 09–26 remain open. The rest of W1.2/W1.3
+remains proposed.
+
+## Step 08 baseline decision and acceptance evidence
+
+The user approved one explicit browser-local Mark seen baseline per workspace,
+30-day expiry, a 2 MiB serialized limit and clearing. The [change-history contract](./delivery/change-history-examples.md)
+states retention, observation semantics and incomplete/unknown-history behavior.
+Opening Changes or receiving a live update never acknowledges source changes.
+
+- Work Board: 182 passing tests, including 16 new history regressions. Schema
+  checks cover exact UTF-8 limits, version/corruption/future/expiry, unsafe paths
+  and duplicate source paths. Comparison checks cover recorded fields, decision
+  Markdown, ordinary renames, unique-ID moves, ambiguous IDs and escaped old text.
+- Native HTTP checks compare observed source edits after watcher delivery, reject
+  cross-origin/unknown/oversized queries, and refuse incomplete or oversized
+  workspaces without false removals or partial retention. DOM checks cover
+  explicit marking, unchanged baseline through live updates, keyed disclosure
+  preservation when earlier changes appear, source navigation/Back, replacement,
+  clear, stored baseline restoration, workspace isolation, expiry/corruption and
+  disclosed blocked-storage behavior.
+- Chromium 151: the 100-card legacy home plus richer sources produced exactly
+  two additions, one removal and four changed sources after a known status,
+  attention, criterion-evidence, decision, added-file, plain rename and unique-ID
+  move sequence. Source/Back/reload and live updates kept the baseline; old source
+  remained plain text. Clear/reload stayed off, expiry cleared on an ordinary
+  workspace visit, and blocked storage retained a disclosed page-only baseline.
+  Desktop 1440 × 1000, mobile 390 × 844/dark/reduced motion and native no-JavaScript
+  fallback passed without page overflow or page errors.
+- `pnpm ready` passed lint, nine orchestration tests, builds, typechecks, real
+  PostgreSQL suites and all packed consumers. Package suites reported 1,078
+  passes and four existing expected failures; one existing `effect-test`
+  `skipIf(true)` fixture remains intentional. No Work Board/database tests skipped;
+  the quality baseline remains 2,508 findings without growth.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#explicit-change-baseline-acceptance--step-08)
+  describes the known sequence and boundary checks. This is observed Markdown
+  comparison, not an atomic filesystem snapshot, event journal, authorship,
+  Git verification, human orientation timing or accepted evidence. Expired stored
+  data is removed on the next visit/open-page check; no background deletion is
+  claimed while the browser is closed. Source files remain untouched.
+
+
+## Reference-directory follow-up and 0.4.0 release
+
+The same checkpoint includes the approved linked-reference fix and release bump.
+Directory symlinks include Markdown from the main checkout without copying it or
+adding a mount API. Logical workspace paths remain the reading/search/link
+identity. Native recursive watches cover the included directories; watches of
+link parents catch replacements that Node's recursive watcher can miss.
+
+- Work Board: 189 passing tests. Seven reference regressions cover external and
+  internal aliases, nested-home/relative links, search, cycle/ancestor exclusion,
+  broken links, hidden/dependency entries, escaping file links, external edits,
+  add/rename/delete, newly linked/retargeted directories and watcher recovery.
+  Existing identity rename/deletion tests retain delivery of changed-file events;
+  ordinary file changes do not restart the watch.
+- Chromium 151: a real symlink to the main checkout's documentation opens the
+  framework README, follows its relative roadmap link and returns with Back.
+  A temporary external nested home works at `/`; external edits retain open
+  source details through live refresh and Back. Search, new/retargeted links and
+  subsequent live edits pass. Desktop 1440 × 1000 and mobile 390 × 844 with dark
+  theme/reduced motion have no page overflow or browser errors; native reading
+  also works with JavaScript disabled.
+- [x] Full `pnpm ready` passed lint, nine orchestration tests, builds, typechecks,
+  real PostgreSQL suites and every packed consumer, including the installed
+  Work Board CLI's matching 0.4.0 version. Package suites reported 1,085 passes
+  and four existing expected failures; the single existing intentional
+  `effect-test` skip remains. No Work Board/database test skipped and the quality
+  baseline did not grow.
+- Package manifest and CLI version are both 0.4.0, triggering the existing
+  package-publish workflow after merge. No dependency, source-schema change,
+  source write, cloud operation or verified-acceptance inference is introduced.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#linked-reference-directory-acceptance--040-follow-up)
+  covers this fix. A linked target missing when the watch was built needs a
+  restart once restored. Multiple aliases retain existing duplicate-ID rules.
+  Step 07's representative-reader timing remains pending. Step 09 stays open:
+  the approved direction establishes reusable Platform support before Work Board
+  adopts it; the proposed browser-build dependency remains under discussion.
+
 
 ## Current foundation
 
