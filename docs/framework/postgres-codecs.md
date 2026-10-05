@@ -107,7 +107,7 @@ ordering and limit; the tests add no query DSL or relationship engine.
 
 ```sh
 PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://... \
-  pnpm heavy pnpm --filter @shivaedev/effect-sql exec vitest run test/postgres-codecs.test.ts
+  pnpm heavy pnpm --filter @shivaedev/effect-sql exec vitest run src/postgresCodecs.spec.ts
 ```
 
 The suite skips when the variable is absent. It has also been run with both

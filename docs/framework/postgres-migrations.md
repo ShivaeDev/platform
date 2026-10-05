@@ -63,7 +63,7 @@ remain application choices.
 
 ```sh
 PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://... \
-  pnpm heavy pnpm --filter @shivaedev/effect-sql test test/postgres-migrations.test.ts test/postgres-migration-bootstrap.test.ts
+  pnpm heavy pnpm --filter @shivaedev/effect-sql test src/postgresMigrations.spec.ts src/postgresMigrationBootstrap.spec.ts
 ```
 
 The tests skip without the database URL. The workspace CI supplies a PostgreSQL
