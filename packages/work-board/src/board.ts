@@ -6,6 +6,7 @@ import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } 
 import { events } from "#http/events.ts";
 import { identity } from "#http/identity.ts";
 import { loopbackOnly } from "#http/loopback.ts";
+import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
 import { search } from "#http/search.ts";
@@ -39,6 +40,7 @@ const routes = (options: BoardOptions) =>
 			const index = yield* searchSnapshot(options.root, home, changes);
 			yield* serve("/_board/search", search(index));
 			yield* serve("/_board/work", work(index, changes, home));
+			yield* serve("/_board/overview", overview(index, changes, home));
 			for (const [route, body, contentType] of ASSETS) {
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}

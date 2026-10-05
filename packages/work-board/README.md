@@ -136,6 +136,22 @@ from the view picker. Unsafe stored destinations are ignored. If storage is
 unavailable, named views work for the current page only; source files are unchanged.
 Saving requires JavaScript; board/table reading does not.
 
+## Attention overview
+
+Open **Overview** to read explicit decision, review and blocker requests grouped
+by kind and ordered by source title, item ID and request ID. Each entry shows the
+recorded reason, response labels, target links and origin file/line. Opening it
+focuses its source request, beside ordinary Markdown reasoning and evidence.
+Source edits refresh the queues; native links also work without JavaScript.
+
+Add optional [attention records](./docs/vision/delivery/attention-examples.md) to
+item frontmatter. Status, owner, next action, file activity and finished runs do
+not imply requests. Closed requests remain readable/searchable without implying
+an answer or acceptance. Duplicate IDs, invalid records and unresolved targets
+stay outside the queues with source diagnostics. An incomplete index withholds
+counts rather than presenting a quiet workspace. The viewer never writes source
+files or interrupts/starts agents; recipients are authored local labels.
+
 ## Reasoning and evidence context
 
 Follow explicit relationships from a result to its plan and decision. Decisions

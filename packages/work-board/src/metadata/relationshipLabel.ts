@@ -1,4 +1,5 @@
 const labels = new Map([
+	["attention target", "Attention request"],
 	["board member", "Board membership"],
 	["criterion evidence", "Criterion evidence"],
 	["depends_on", "Depends on"],

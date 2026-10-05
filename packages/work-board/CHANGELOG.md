@@ -9,6 +9,13 @@
 
 ### Added
 
+- Read explicit per-item attention request lists and expose a local overview for
+  decisions, reviews and blockers with reason, response labels, target links and
+  source provenance. Preserve exact request navigation, search/backlink context,
+  native links and live updates. Keep invalid/ambiguous requests unclassified and
+  incomplete indexes uncounted; closed requests do not imply acceptance. Existing
+  Markdown and arbitrary status/owner fields remain unchanged.
+
 - Add source backlinks for explicit relationships, board membership, criterion
   evidence, local evidence sources, and Markdown hyperlinks, including plain
   files. Reuse the existing parse/index and disclose incomplete references.

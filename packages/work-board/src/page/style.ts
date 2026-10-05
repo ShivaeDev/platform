@@ -1,3 +1,4 @@
+import { attentionStyle } from "#attention/style.ts";
 import { workStyle } from "#views/workStyle.ts";
 import { metadataStyles } from "./metadata.ts";
 import { readingStyles } from "./readingStyles.ts";
@@ -55,4 +56,4 @@ figure.diagram[data-state="failed"]::after { content: attr(data-error); color: v
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
-export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle();
+export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle() + attentionStyle();

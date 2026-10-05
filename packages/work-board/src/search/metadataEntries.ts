@@ -1,6 +1,7 @@
 import { fileUrl } from "#files/url.ts";
 import { identityUrl } from "#metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
+import { attentionEntries } from "./attentionEntries.ts";
 import type { Entry } from "./entries.ts";
 
 function itemUrl(document: MetadataDocument, model: MetadataModel): string {
@@ -22,6 +23,7 @@ export function metadataEntries(entries: readonly Entry[], documents: readonly M
 		};
 	});
 	for (const document of documents) {
+		enriched.push(...attentionEntries(document, itemUrl(document, model)));
 		const criteria = document.parsed.fields.criteria ?? [];
 		for (const [index, criterion] of criteria.entries()) {
 			if (criteria.filter((item) => item.id === criterion.id).length !== 1) {

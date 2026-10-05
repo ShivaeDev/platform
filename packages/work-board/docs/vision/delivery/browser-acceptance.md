@@ -183,3 +183,32 @@ Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the larg
 5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow,
    errors, and real Mermaid. Disable JavaScript and follow result → plan →
    decision natively. Existing legacy home cards remain unchanged.
+
+## Explicit attention acceptance — step 07
+
+Use `attentionFixture()` alongside `workspaceFixture()` with the 100-card legacy
+home; add a Mermaid diagram to the keyboard task. Open Overview from the legacy
+home and verify three requests: the review and decision on `request.search`, and
+the fixture blocker. `ordinary.review` has status/owner/action but no request;
+`prior-review` is explicitly closed and must not enter the queue.
+
+1. Read why each request appears, its response labels and target links. Open the
+   keyboard review: focus the exact record and expand its source context. Reload,
+   follow its criterion claims and real Mermaid, then Back twice. The overview's
+   issue disclosure remains open. Follow the decision into options/rationale.
+2. Repeat at 1440 × 1000 and 390 × 844, dark theme and reduced motion. Verify no
+   page overflow and native request/criterion navigation with JavaScript disabled.
+   Chromium opens the ancestor details for a fragment target natively.
+3. Close the review/decision in their source; only the blocker remains. Rename
+   the blocker file with spaces and `&`; its identity and encoded source link
+   survive. Delete the criterion's item; the remaining request leaves the queue
+   with an unresolved source issue. No source issue becomes a quiet workspace.
+4. HTTP regressions cover invalid/duplicate/missing identities and requests,
+   unreadable source files, malformed YAML, stable restart and genuine quiet
+   states. Unreadable indexes return 503 and withhold counts/classification.
+
+For the proposed 30-second orientation target, ask a representative reader to
+identify the judgment requested from them and what it would unblock before
+opening the details, recording elapsed time and feedback. Then ask them to follow
+its rationale/evidence. Automated fixture behavior cannot establish this user
+acceptance; record the exercise separately in the roadmap.

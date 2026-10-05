@@ -87,6 +87,11 @@ empty states. Do not treat file churn, heartbeat, or a finished agent run as pro
 **Depends on:** 05–06. **Accept:** representative users can find the intended next
 judgment within the proposed 30-second target; ambiguous items stay unclassified.
 
+The source contract and overview are implemented with HTTP/DOM regressions and
+real-browser evidence. [Checkpoint evidence](../roadmap.md#step-07-source-decision-and-implementation-evidence)
+records the checks. Step 07 stays unchecked while the representative-reader
+orientation exercise is pending; automated fixtures do not prove that target.
+
 ## 08 What changed since I last looked
 
 **Outcome:** readers distinguish meaningful changes from an unchanged busy process.

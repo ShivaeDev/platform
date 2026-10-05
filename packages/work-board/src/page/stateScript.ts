@@ -30,6 +30,7 @@ export const applyPage = (page, preserve = false) => {
   doc.dataset.url = incoming.dataset.url;
   if (incoming.dataset.view) doc.dataset.view = incoming.dataset.view; else delete doc.dataset.view;
   document.getElementById("work-open")?.setAttribute("aria-current", doc.dataset.view === "work" ? "page" : "false");
+  document.getElementById("overview-open")?.setAttribute("aria-current", doc.dataset.view === "overview" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
   const crumbs = page.getElementById("breadcrumbs");

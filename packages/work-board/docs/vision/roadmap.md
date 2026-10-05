@@ -237,9 +237,40 @@ or human acceptance; missing sources and old revisions stay visible.
   content mutation remain unchanged. Record anchors follow array position;
   explicit item and criterion IDs remain the durable source identities.
 
-Steps 07–26 remain open. Step 07's explicit attention-request metadata needs
-examples and user discussion before implementation; arbitrary statuses and owners
-must not become inferred requests. The rest of W1.2/W1.3 remains proposed.
+## Step 07 source decision and implementation evidence
+
+The user approved an optional per-item attention list on 2026-10-05: independent
+request IDs, explicit decision/review/blocker kinds, open/closed source state,
+nonempty literal response labels, reason and item/criterion targets. Arbitrary
+status, owner and action fields must not imply requests. [Attention records](./delivery/attention-examples.md)
+states the implemented contract and links the Antumbra design references.
+
+The read-only overview, exact source links, search/backlink context, diagnostics,
+quiet state and live updates are implemented.
+
+- Work Board: 166 passing tests. Schema regressions retain invalid lists and
+  independent fields; HTTP regressions cover multiple explicit judgments,
+  arbitrary-label exclusion, duplicate/missing IDs, unresolved criteria,
+  malformed source, incomplete indexes, source renames, closure and restart.
+  Ordering/escaping and DOM exact-record focus, Back and live disclosure are covered.
+- Chromium 151: a 100-card legacy fixture plus richer requests verified grouping,
+  closed/arbitrary-label exclusions, request focus/reload/Back, criterion claims,
+  real Mermaid, decision options/rationale, and live close/rename/deleted targets.
+  Desktop 1440 × 1000 and mobile 390 × 844, dark/reduced motion and native
+  no-JavaScript navigation passed without page overflow or page errors.
+- Repository gate: `pnpm ready` passed lint, nine orchestration tests, build,
+  typecheck, real PostgreSQL-backed suites and all packed consumers. Package
+  suites have 1,062 passing tests and four existing expected failures. One existing
+  `effect-test` fixture intentionally exercises `skipIf(true)`; no Work Board or
+  database tests skipped. Quality baseline did not grow (2,508 retained findings).
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#explicit-attention-acceptance--step-07)
+  separates the source/browser checks from the reader exercise below.
+
+Representative-user evidence for
+the proposed 30-second orientation target remains pending; step 07 stays open
+until that acceptance exercise is recorded. Steps 08–26 remain open. Bounded
+retention and clearing must be defined before step 08 retains source snapshots.
+The rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 
