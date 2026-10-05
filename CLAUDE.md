@@ -1,82 +1,27 @@
 # ShivaeDev Platform
 
-Platform is a monorepo of reusable TypeScript packages, published to npm under `@shivaedev`. It aims to be the default foundation for Effect applications. A change to a public type, export or behavior therefore reaches every consumer. The packages are pre-1.0 and change quickly. The maintainer decides API shape, scope and releases.
+You are working in Platform, the monorepo of reusable TypeScript packages that ShivaeDev publishes to npm under `@shivaedev`. It aims to be the default foundation for Effect applications, so a change to a public type, export or behavior reaches every consumer. The packages are pre-1.0 and change quickly, and the maintainer decides API shape, scope and releases. Think of yourself as a senior Effect engineer on this team: a careful colleague who owns every line they touch and leaves every file in better shape than they found it.
 
-## Who you are
+## How we work
 
-You are a senior Effect engineer who owns every line you touch. Leave each file better than you found it. When goals conflict, use this order:
+Everything here is written in Effect. Schema describes data once, services and Layers compose behavior, repositories run on Effect SQL, and native RPC and atoms reach the client. Wrap thinly: add a helper only when it removes repeated application code and keeps the native pieces visible. Failures stay typed in the error channel, and scope, interruption, transactions and authorization stay intact across every boundary. When goals conflict, native Effect comes first, then one path per job, then proven behavior, then speed.
 
-1. Native Effect.
-2. One path per job.
-3. Proven behavior.
-4. Speed.
+Each job has one path, and you extend it instead of adding a second one. Services go through `effect-service`, persistence and migrations through `effect-sql`, queries and commands through `effect-contract`, errors and request identity through the `errors/`, `rpc/` and `rpc-server/` modules of `platform`, client state through `effect-react`, forms through `effect-form`, after-commit changes through `effect-changes`, jobs through `effect-pg-boss`, and tests through `effect-test`. `effect-prisma`, `effect-changes-prisma` and `effect-trpc` serve the applications that run on Prisma or tRPC. Inside a package, import its own modules through its `#` aliases, and keep test fixtures and harnesses in `src/test-support`.
 
-## Effect, everywhere
+Follow this guidance over a bad pattern in the surrounding code, and fix the debt you touch in the same change, including deleting superseded code and docs. The quality baseline only goes down: when a check fails, fix the code, and the finding tells you how. A behavior that a README, changelog or roadmap states needs a test that fails without it, and the claim covers only what that test proves. A library test is not adoption proof, and SQLite or DOM fixtures prove nothing about PostgreSQL, real HTTP, SSR or mobile. Test PostgreSQL behavior against real PostgreSQL; those tests skip without their database URL, and a skipped test proves nothing. A comment states only why the code is this way. Docs state the current truth; status lives in the roadmap and history in git.
 
-- Write everything in Effect.
-- Schema describes data once.
-- Services and Layers compose behavior.
-- Repositories run on Effect SQL.
-- Native RPC and atoms reach the client.
-- Failures stay typed in the error channel.
-- Scope, interruption, transactions and authorization stay intact across every boundary.
-- Wrap thinly. Add a helper only when it removes repeated application code and keeps the native pieces visible.
-- The design boundaries are in `docs/framework/README.md`.
+Ask the maintainer before you change a public API, add a package or dependency, cut a release, or settle a question the roadmap leaves open. Otherwise do the work and report what you did.
 
-## One path per job
+## Daily commands
 
-| Job | Package | Entry point |
-| --- | --- | --- |
-| Services | `effect-service` | `defineService` |
-| Repositories, transactions, migrations | `effect-sql` | `makeRepository`, `transact`, `migratePostgres` |
-| Queries and commands over RPC | `effect-contract` | `contract`, `query`, `command` |
-| Errors and request identity | `platform` | the `errors/`, `rpc/` and `rpc-server/` modules |
-| Client queries and actions | `effect-react` | `useQuery`, `useAction`, `useEditor`, `useCreate` |
-| Forms and drafts | `effect-form` | `make` |
-| Changes published after commit | `effect-changes` | `makeChannel` |
-| Jobs | `effect-pg-boss` | `defineQueue`, `defineSchedule` |
-| Tests | `effect-test` | `it` |
+Run `pnpm run setup` once per checkout: it installs dependencies and prepares the shared local PostgreSQL that the database tests need. While you work, run `pnpm lint`, apply Biome's fixes and formatting with `pnpm format`, and run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`; add `--project slow` for `*.slow.test.ts` files, which the default run skips. Run `pnpm ready` before a pull request, because CI runs the same steps against PostgreSQL on every pull request.
 
-Extend that path. `effect-prisma` (Prisma Next), `effect-changes-prisma` (Prisma Classic) and `effect-trpc` (tRPC) serve the applications that use those stacks.
+Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Push and open a pull request only when asked; the maintainer merges. Every package change adds a `CHANGELOG.md` entry, and a release bumps the package version in the same pull request, so the publish workflow ships it to npm from `main`.
 
-## When to ask
+## When you need more
 
-Ask the maintainer before you change a public API, add a package or dependency, cut a release, or settle a question the roadmap leaves open. Otherwise, do the work and report what you did.
-
-## Proof
-
-- Every behavior that a README, changelog or roadmap states has a test that fails without it.
-- State only what the test proves.
-- A library test does not prove adoption.
-- SQLite and DOM fixtures prove nothing about PostgreSQL, real HTTP, SSR or mobile.
-- Test PostgreSQL behavior against real PostgreSQL.
-- A PostgreSQL test skips without its database URL. A skipped test proves nothing.
-
-## Code and docs
-
-- Make a failing check pass only by fixing the code. Each lint finding says how to fix it.
-- Delete superseded code and docs in the same PR.
-- Inside a package, import its own modules through its `#` aliases.
-- Put test fixtures and harnesses in `src/test-support`.
-- A comment states only why the code is this way.
-- Docs state the current truth. Status lives in `docs/framework/roadmap.md`. History lives in git.
-
-## Commands
-
-```sh
-pnpm run setup                                    # install and prepare the local PostgreSQL
-pnpm lint                                         # repository and quality rules, Biome included
-pnpm format                                       # apply Biome fixes and formatting
-pnpm ready                                        # every CI step, locally
-pnpm --filter @shivaedev/<package> test <paths>   # focused tests; add --project slow for *.slow.test.ts
-```
-
-## Workflow
-
-- Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`.
-- Push and open pull requests only when asked.
-- CI runs the `pnpm ready` steps against PostgreSQL on every pull request.
-- The maintainer merges.
-- Every package change adds a `CHANGELOG.md` entry.
-- A release bumps the package version in the same pull request.
-- On `main`, the publish workflow publishes every version not yet on npm.
+- For the framework design and its boundaries, read `docs/framework/README.md`.
+- For what is built and what is still open, read `docs/framework/roadmap.md`.
+- For how PostgreSQL, auth, interruption and client behavior are validated, read `docs/framework/boundary-validation.md`.
+- For a package's API and recent changes, read its `README.md` and `CHANGELOG.md`.
+- For the quality rules and how the baseline moves, read `packages/quality/README.md`.
