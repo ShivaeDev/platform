@@ -13,6 +13,7 @@ export interface TextFile {
 }
 
 export interface Inventory {
+	readonly codecov: string;
 	readonly manifests: readonly TextFile[];
 	readonly root: string;
 	readonly sources: readonly SourceFile[];
@@ -55,5 +56,6 @@ export const collectInventory = (root: string): Effect.Effect<Inventory, Filesys
 		];
 		const manifests = yield* Effect.all(manifestEntries.map(readText), { concurrency: INVENTORY_CONCURRENCY });
 		const workspaceCatalog = yield* readRequiredText(join(root, "pnpm-workspace.yaml"));
-		return { manifests, root, sources: texts.map(toSource), workspaceCatalog };
+		const codecov = yield* readRequiredText(join(root, "codecov.yml"));
+		return { codecov, manifests, root, sources: texts.map(toSource), workspaceCatalog };
 	});
