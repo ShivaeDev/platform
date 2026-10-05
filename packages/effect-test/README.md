@@ -36,9 +36,9 @@ it.live("waits on the real clock", function* () {
 
 The body receives the Vitest test context; destructure what it reads. `effect`
 installs TestClock and the other test services, `live` keeps the live ones, and
-both run the body in a Scope. A function that returns an Effect works as well,
-as with `@effect/vitest`. Both support `each`, `fails`, `only`, `runIf`, `skip`
-and `skipIf`; an `each` body receives the table case.
+each runs the body in a Scope. A function that returns an Effect works as well,
+as with `@effect/vitest`. Each tester supports `each`, `fails`, `only`, `runIf`,
+`skip` and `skipIf`; an `each` body receives the table case.
 
 ## `makeEffectIt`
 

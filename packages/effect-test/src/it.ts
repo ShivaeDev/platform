@@ -1,5 +1,6 @@
 import { it as effectIt, type TestContext, type TestOptions, type Vitest } from "@effect/vitest";
 import { Effect } from "effect";
+import type { TestAPI } from "vitest";
 import type { EffectIt, EffectItTest, EffectItTester } from "./types.ts";
 
 type Body<TArgs extends readonly unknown[], R> = (
@@ -31,7 +32,14 @@ function bodyTester<R>(register: Vitest.Tester<R>): EffectItTester<R> {
 	});
 }
 
-export const it: EffectIt = Object.assign(effectIt.extend({}), {
+const testers: Record<PropertyKey, unknown> = {};
+
+const vitestTests = new Proxy<TestAPI>(effectIt, {
+	get: (target, key, receiver) => (Object.hasOwn(testers, key) ? testers[key] : Reflect.get(target, key, receiver)),
+	set: (_target, key, value) => Reflect.set(testers, key, value),
+});
+
+export const it: EffectIt = Object.assign(vitestTests, {
 	effect: bodyTester(effectIt.effect),
 	live: bodyTester(effectIt.live),
 });

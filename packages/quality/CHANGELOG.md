@@ -6,7 +6,7 @@
 
 - The `effect-fn-functions` plugin reports a top-level function whose whole body is `Effect.gen(…)`, written as an arrow or as a function that only returns it. Write it as `const loadItem = Effect.fn("ItemStore.loadItem")(function* (id: string) { … })`, which names its span after the function, or as `Effect.fnUntraced(…)` when it needs no span. A function nested in another, an object member, a `.pipe(…)` on the `Effect.gen` and a function that runs other statements before it are not reported. The rule has no fix.
 - The `effect-test-bodies` plugin reports, in test code, a callback whose whole body is `Effect.gen(function* () { … })` passed to `it`, `test` or one of their members, such as `it.effect` or `it.effect.skipIf(…)`. Pass the generator to the test instead, `it.effect("loads the item", function* () { … })`, and let the test helper run it with `Effect.gen`; `@shivaedev/effect-test/it.ts` provides such an `it`. Test code is a test file or a file under `test-support/`, as for every other rule. The rule has no fix.
-- A repository that upgrades records the existing findings of both with `quality baseline write --rule biome/plugin`.
+- A repository that upgrades records the existing findings of the two plugins with `quality baseline write --rule biome/plugin`.
 
 ## 0.13.0 - 2026-10-05
 
