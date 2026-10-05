@@ -143,6 +143,10 @@
 			"path": "packages/game/src/voyageFlow.spec.ts"
 		},
 		{
+			"content": "import { step } from \"../../../simulation/src/step.ts\";\nimport { voyage } from \"../../../vocabulary/src/voyage/route.ts\";\n\nexport const server = [step, voyage];\n",
+			"path": "packages/game/src/test-support/server.ts"
+		},
+		{
 			"content": "import { edit } from \"../../cms/src/edit.ts\";\n\nexport const tested = edit;\n",
 			"path": "packages/game/test/play.test.ts"
 		},

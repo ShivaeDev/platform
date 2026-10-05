@@ -7,7 +7,7 @@ local state, so replacing only the registry is insufficient as a general reset
 policy.
 
 `SessionBoundary` owns the registry and React subtree for each session generation.
-The [executable example](../../packages/effect-react/test/session-boundary.test.tsx)
+The [executable example](../../packages/effect-react/src/session-boundary.dom.test.tsx)
 uses `makeOrderEditor` against the order feature's real loopback HTTP endpoint.
 
 ## Session transition
@@ -71,7 +71,7 @@ runtimes and RPC connections close) as soon as the render settles. StrictMode's 
 fails with a tagged `Unauthorized` error. They do not clear retained data: the
 auth owner decides whether the session ended and, if so, changes `session`,
 which tears the generation down. The
-[boundary tests](../../packages/effect-react/test/session-boundary.test.tsx) cover
+[boundary tests](../../packages/effect-react/src/session-boundary.dom.test.tsx) cover
 switching accounts, signing out, re-entering the same account under a new key,
 Unauthorized re-checks, StrictMode, `<Activity>` hide and reveal and credential
 rotation under a fixed or generation-bearing key.
@@ -94,7 +94,7 @@ const profile = Atom.swr(api.query("Profile", undefined), {
 
 `makeRefreshOnSignal` refetches on every signal; a visibility change and a
 reconnect arriving together refetch twice. `swr` skips fresh or in-flight
-results. [Synthetic-signal tests](../../packages/effect-react/test/resume-signal.test.ts)
+results. [Synthetic-signal tests](../../packages/effect-react/src/resume-signal.dom.test.ts)
 cover hidden/visible events, native resume, staleness and listener removal. They do
 not validate a real Capacitor lifecycle or suspended network requests.
 
@@ -152,7 +152,7 @@ These details were checked against the installed Effect `4.0.0-rc.112` source:
 Run:
 
 ```sh
-pnpm heavy pnpm --filter @shivaedev/effect-react test test/session-boundary.test.tsx
+pnpm heavy pnpm --filter @shivaedev/effect-react test src/session-boundary.dom.test.tsx
 ```
 
 These tests use happy-dom and actual HTTP serialization, authentication and

@@ -11,8 +11,14 @@ describe("structure/max-lines fires", () => {
 		expect(findings).toEqual([{ count: 18, file: "src/big.ts", message: "168 lines exceeds the 150-line limit.", threshold: 150 }]);
 	});
 
-	it("on a test file over 300 lines, wherever tests live", async () => {
-		const paths = ["src/a.test.ts", "src/b.spec.tsx", "packages/x/test/support.ts", "tests/e2e.ts", "src/__tests__/c.ts"];
+	it("on test code over 300 lines: a test file, or a file under a test-support folder", async () => {
+		const paths = [
+			"src/a.test.ts",
+			"src/b.spec.tsx",
+			"tests/e2e.spec.ts",
+			"packages/x/src/test-support/harness.ts",
+			"src/test-support/fixtures/tree.ts",
+		];
 		const findings = await checkRule(maxLines, undefined, { sources: paths.map((path) => source(path, 301)) });
 		expect(findings.map((finding) => finding.file)).toEqual(paths);
 		expect(findings.every((finding) => finding.message.includes("300-line limit"))).toBe(true);
@@ -23,9 +29,10 @@ describe("structure/max-lines fires", () => {
 		expect(findings.map((finding) => finding.message)).toEqual(["101 lines exceeds the 100-line limit.", "121 lines exceeds the 120-line limit."]);
 	});
 
-	it("on a file the configured test patterns no longer treat as a test", async () => {
-		const findings = await checkRule(maxLines, { testFiles: ["e2e/"] }, { sources: [source("src/a.test.ts", 151), source("e2e/flow.ts", 151)] });
-		expect(findings.map((finding) => finding.file)).toEqual(["src/a.test.ts"]);
+	it("on a helper outside test-support at the source limit, unless testFiles names its folder", async () => {
+		const sources = [source("src/a.test.ts", 151), source("e2e/flow.ts", 151), source("test/support.ts", 151)];
+		const findings = await checkRule(maxLines, { testFiles: ["e2e/"] }, { sources });
+		expect(findings.map((finding) => finding.file)).toEqual(["test/support.ts"]);
 	});
 
 	it("counts a final line without a newline", async () => {

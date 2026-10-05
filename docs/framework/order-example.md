@@ -6,18 +6,18 @@ migration of an existing application or a deployed application.
 
 ## Code to read
 
-- [Contract](../../packages/effect-react/test/order-example/contract.ts): shared
+- [Contract](../../packages/effect-react/src/test-support/order-example/contract.ts): shared
   Schema values and `effect-contract` get/list/save declarations with typed
   rejections and order reactivity keys, grouped into a native RPC group. Browser
   code imports this module without importing database drivers or server
   initialization.
-- [Backend](../../packages/effect-react/test/order-example/backend.ts):
+- [Backend](../../packages/effect-react/src/test-support/order-example/backend.ts):
   model-derived repository, service declaration, business validation and
   request authentication.
-- [Frontend](../../packages/effect-react/test/order-example/frontend.tsx): the
+- [Frontend](../../packages/effect-react/src/test-support/order-example/frontend.tsx): the
   contract bound to a native AtomRpc service, encoded form fields and decoded
   submission.
-- [Behavior tests](../../packages/effect-react/test/order-example.test.tsx):
+- [Behavior tests](../../packages/effect-react/src/orderExample.dom.spec.tsx):
   rendered editing and actual HTTP requests through the feature.
 
 ## Boundaries
@@ -78,6 +78,6 @@ The focused test runs four scenarios:
 - With the list and two order editors mounted, saving one order refetches that
   order and the list; the server sees no second read of the other order.
 
-Run `pnpm --filter @shivaedev/effect-react exec vitest run test/order-example.test.tsx`
+Run `pnpm --filter @shivaedev/effect-react exec vitest run src/orderExample.dom.spec.tsx`
 from the workspace. The test binds an ephemeral loopback port and requires local
 network access. The full workspace gate is `pnpm ready`.

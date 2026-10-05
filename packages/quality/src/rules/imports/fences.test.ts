@@ -84,7 +84,7 @@ describe("imports/fences fires", () => {
 });
 
 describe("imports/fences skips", () => {
-	it("a test or spec file in the modules a fence holds, because it ships nowhere", async () => {
+	it("test code in the modules a fence holds, a test or spec file or a file under test-support, because it ships nowhere", async () => {
 		const findings = await Promise.all([gameKeepsOutOfCms, gameNeverReachesCms, gameSpeaksCards].map((one) => check([one])));
 		expect(findings.flat().map((finding) => finding.file)).toEqual([
 			"packages/game/src/play.ts",

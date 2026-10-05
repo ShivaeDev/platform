@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
-import { sessions, shell } from "#test/support/session.ts";
+import { sessions, shell } from "#test/session.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 

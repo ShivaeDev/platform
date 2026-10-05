@@ -1,12 +1,12 @@
 # Cancellation
 
 The client helpers retain native Effect and atom lifetimes. The
-[hook tests](../../packages/effect-react/test/hooks.test.ts) drive `useAction`
+[hook tests](../../packages/effect-react/src/result-state.dom.test.ts) drive `useAction`
 through React: a newer dispatch interrupts the earlier action, and an older
 completion cannot replace the latest rendered result.
 
 For Node request lifetimes,
-[`nodeSubscriptionSignal`](../../packages/platform/src/node-http.ts) combines
+[`nodeSubscriptionSignal`](../../packages/platform/src/node-http/subscription-signal.ts) combines
 request and caller abort signals. Its
 [tests](../../packages/platform/src/node-http/subscription-signal.test.ts) cover disconnects,
 completed requests and listener disposal.

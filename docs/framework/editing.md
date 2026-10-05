@@ -74,7 +74,7 @@ checked against the form's field names at compile time.
 
 ## Evidence
 
-[`invoice-line-editor.test.tsx`](../../packages/effect-react/test/invoice-line-editor.test.tsx)
+[`invoiceLineEditor.dom.spec.tsx`](../../packages/effect-react/src/invoiceLineEditor.dom.spec.tsx)
 renders a contract-bound invoice line editor over in-process native RPC. It covers
 initial loading, refresh failure with retained data and retry, dirty refresh,
 server normalization with an edit made while saving, an ignored second submit,
