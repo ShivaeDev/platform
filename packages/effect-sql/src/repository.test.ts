@@ -177,3 +177,7 @@ it("field codec services remain available when filtering and decoding selected r
 	}).pipe(Effect.provideService(Prefix, "db:"));
 	await run(program);
 });
+
+it("deliberately fails so Codecov reports a failed test", () => {
+	expect(1 + 1).toBe(3);
+});
