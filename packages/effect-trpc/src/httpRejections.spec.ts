@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { decodeRejection, rejectionOf } from "#client/rejection.ts";
 import { notFound } from "#errors.ts";
 import { rejectWith } from "#rejection.ts";
-import { failureOf, inProcess, procedure, runtime, t } from "#test/support/http.ts";
+import { failureOf, inProcess, procedure, runtime, t } from "#test/http.ts";
 
 const described = { message: Schema.String };
 const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };

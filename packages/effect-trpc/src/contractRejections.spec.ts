@@ -5,7 +5,7 @@ import { command } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 import { decodeRejection, rejectionOf } from "#client/rejection.ts";
 import { rejectWith } from "#rejection.ts";
-import { failureOf, inProcess, procedure, runtime, t } from "#test/support/http.ts";
+import { failureOf, inProcess, procedure, runtime, t } from "#test/http.ts";
 
 class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}
 
