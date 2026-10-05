@@ -103,7 +103,7 @@ jobs:
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
           --reporter=default --reporter=json --reporter=junit
           --outputFile.json=${{ github.workspace }}/.ci/tests.json
           --outputFile.junit=${{ github.workspace }}/.ci/tests.junit.xml
@@ -114,12 +114,30 @@ jobs:
         if: always()
         with:
           overwrite: true
-          name: test-results-${{ matrix.shard }}
-          path: |
-            .ci/tests.json
-            .ci/tests.junit.xml
+          name: test-timings-${{ matrix.shard }}
+          path: .ci/tests.json
           include-hidden-files: true
           retention-days: 14
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: .ci/coverage/lcov.info
+          disable_search: true
+          flags: workspace
+          name: tests-${{ matrix.shard }}
+          fail_ci_if_error: false
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          report_type: test_results
+          files: .ci/tests.junit.xml
+          disable_search: true
+          name: tests-${{ matrix.shard }}
+          fail_ci_if_error: false
 
   consumers:
     name: packed consumers (${{ matrix.shard }})
@@ -212,80 +230,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  test-results:
-    name: Codecov test analytics
-    if: ${{ !cancelled() }}
-    needs: verify
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          pattern: test-results-*
-          path: .ci/test-results
-      - name: Upload JUnit reports
-        continue-on-error: true
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          report_type: test_results
-          directory: .ci/test-results
-          handle_no_reports_found: true
-          fail_ci_if_error: false
-
-  coverage:
-    name: Codecov coverage (${{ matrix.shard }})
-    if: ${{ !cancelled() }}
-    needs: verify
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-    services:
-      postgres:
-        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - run: pnpm db:setup
-      - name: Collect V8 coverage
-        run: pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        if: always()
-        with:
-          name: coverage-${{ matrix.shard }}
-          path: .ci/coverage
-          include-hidden-files: true
-          overwrite: true
-          retention-days: 14
-      - name: Upload coverage shard
-        if: always()
-        continue-on-error: true
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          files: .ci/coverage/lcov.info
-          disable_search: true
-          flags: workspace
-          name: workspace-${{ matrix.shard }}
-          fail_ci_if_error: false
-
   bundles:
     name: Codecov bundle analysis
     if: ${{ !cancelled() && needs.build.result == 'success' }}
@@ -303,7 +247,8 @@ jobs:
       - uses: ./.github/actions/await-packages
         with:
           token: ${{ github.token }}
-      - name: Analyze every packed JavaScript entry
+      - name: Measure every packed package
+        continue-on-error: true
         run: pnpm report:bundles
         env:
           CODECOV_UPLOAD: 'true'
@@ -311,7 +256,7 @@ jobs:
         if: always()
         with:
           name: bundle-analysis
-          path: .ci/bundles/*/output
+          path: .ci/bundles/*.json
           include-hidden-files: true
           overwrite: true
           retention-days: 14

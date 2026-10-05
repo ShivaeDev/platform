@@ -24,9 +24,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@codecov/rollup-plugin": "catalog:",
+		"@codecov/bundle-analyzer": "catalog:",
 		"@effect/platform-node": "catalog:",
-		"@rollup/plugin-node-resolve": "catalog:",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
@@ -34,7 +33,6 @@
 		"@vitest/coverage-v8": "catalog:",
 		"effect": "catalog:",
 		"ignore": "catalog:",
-		"rollup": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:",
 		"yaml": "catalog:"

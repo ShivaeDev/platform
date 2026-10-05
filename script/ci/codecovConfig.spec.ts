@@ -14,13 +14,13 @@ const Codecov = Schema.Struct({
 	}).pipe(Schema.encodeKeys({ individual: "individual_components" })),
 }).pipe(Schema.encodeKeys({ components: "component_management" }));
 const Workflow = Schema.Struct({
-	jobs: Schema.Struct({ coverage: Schema.Struct({ strategy: Schema.Struct({ matrix: Schema.Struct({ shard: Schema.Array(Schema.Number) }) }) }) }),
+	jobs: Schema.Struct({ tests: Schema.Struct({ strategy: Schema.Struct({ matrix: Schema.Struct({ shard: Schema.Array(Schema.Number) }) }) }) }),
 });
 const codecov = Schema.decodeUnknownSync(Codecov)(parse(readFileSync("codecov.yml", "utf8")));
 const workflow = Schema.decodeUnknownSync(Workflow)(parse(readFileSync(".github/workflows/ci.yml", "utf8")));
 
-it("Codecov waits for every coverage shard before it reports", () => {
-	assert.equal(codecov.codecov.notify.expectedUploads, workflow.jobs.coverage.strategy.matrix.shard.length);
+it("Codecov waits for every test shard before it reports", () => {
+	assert.equal(codecov.codecov.notify.expectedUploads, workflow.jobs.tests.strategy.matrix.shard.length);
 });
 
 it("every published package has a Codecov component over its source", () => {

@@ -58,9 +58,7 @@ catalog:
   yaml: 2.9.0
   vitest: 4.1.11
   "@vitest/coverage-v8": 4.1.11
-  "@codecov/rollup-plugin": 2.0.1
-  "@rollup/plugin-node-resolve": 16.0.3
-  rollup: 4.63.5
+  "@codecov/bundle-analyzer": 2.0.1
   "@vercel/detect-agent": 1.2.3
 
 minimumReleaseAge: 10080
