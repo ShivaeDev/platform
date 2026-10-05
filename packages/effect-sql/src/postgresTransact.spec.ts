@@ -1,7 +1,7 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { integration, onClient, onSqlError, Rejected, runPostgres, secondPool, setup, Unavailable } from "#test/support/postgres-transact.ts";
+import { integration, onClient, onSqlError, Rejected, runPostgres, secondPool, setup, Unavailable } from "#test/postgres-transact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 integration("a committed transaction invalidates its marked keys once, after the body finishes", () =>

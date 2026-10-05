@@ -4,7 +4,7 @@ import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, expectTypeOf, test } from "vitest";
 import { makeRepository } from "#repository.ts";
-import { environmentVariable } from "#test/support/environment.ts";
+import { environmentVariable } from "#test/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;

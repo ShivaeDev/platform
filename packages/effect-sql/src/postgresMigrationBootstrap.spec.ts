@@ -3,7 +3,7 @@ import { Cause, Deferred, Duration, Effect, Exit, Fiber, Redacted, type Scope } 
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 import { migratePostgres } from "#migrations.ts";
-import { environmentVariable } from "#test/support/environment.ts";
+import { environmentVariable } from "#test/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
