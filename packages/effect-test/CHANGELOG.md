@@ -4,7 +4,7 @@
 
 ### Added
 
-- `@shivaedev/effect-test/it.ts` exports `it`: Vitest's `it` with `effect` and `live` testers that take a generator function and run it with `Effect.gen`, so a test reads `it.effect("loads the item", function* () { … })`. They take a function that returns an Effect as well, as `@effect/vitest`'s testers do, so a file switches its import without rewriting other tests. Each tester supports `each`, `fails`, `only`, `runIf`, `skip` and `skipIf`, runs the body in a Scope, and types the yielded values, failures and requirements: a body that needs a service the test does not provide does not type-check. `effect` installs the test services, such as TestClock; `live` uses the live ones. The types are `EffectIt`, `EffectItTest` and `EffectItTester` in `@shivaedev/effect-test/types.ts`.
+- `@shivaedev/effect-test/it.ts` exports `it`: the `it` of `@effect/vitest`, whose `effect` and `live` testers also take a generator function and run it with `Effect.gen`, so a test reads `it.effect("loads the item", function* () { … })`. They take a function that returns an Effect as well, as `@effect/vitest`'s testers do, so a file switches its import without rewriting other tests. Each tester supports `each`, `fails`, `only`, `runIf`, `skip` and `skipIf`, runs the body in a Scope, and types the yielded values, failures and requirements: a body that needs a service the test does not provide does not type-check. `effect` installs the test services, such as TestClock; `live` uses the live ones. The types are `EffectIt`, `EffectItTest` and `EffectItTester` in `@shivaedev/effect-test/types.ts`.
 
 ## 0.2.0 - 2026-10-04
 

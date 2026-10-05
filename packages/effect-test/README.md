@@ -19,8 +19,8 @@ pnpm add --save-dev @shivaedev/effect-test @effect/vitest effect vitest
 
 ## `it`
 
-`@shivaedev/effect-test/it.ts` exports Vitest's `it` with `effect` and `live`
-testers that take the generator itself and run it with `Effect.gen`:
+`@shivaedev/effect-test/it.ts` exports the `it` of `@effect/vitest`, whose `effect` and `live`
+testers also take the generator itself and run it with `Effect.gen`:
 
 ```ts
 import { it } from "@shivaedev/effect-test/it.ts"
