@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0 - 2026-10-05
+
+### Added
+
+- `suppressions/no-ignore-deprecations` reports `compilerOptions.ignoreDeprecations` in every tsconfig the repository owns, whatever the file is named, outside the sources too, and names the line of the setting. The setting silences TypeScript's errors for deprecated options; replace the deprecated option and remove it. The rule takes no registry exceptions. A repository that upgrades records its existing findings with `quality baseline write --rule suppressions/no-ignore-deprecations`.
+
+### Changed
+
+- `useConsistentTestIt`, which asks for `it` over `test`, inside a `describe` too, only reports: `quality fix` no longer rewrites `test` to `it`, and the author decides.
+
 ## 0.9.0 - 2026-10-04
 
 ### Changed

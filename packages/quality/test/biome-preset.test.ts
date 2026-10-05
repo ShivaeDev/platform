@@ -46,6 +46,7 @@ const REPORT_ONLY: readonly string[] = [
 	"correctness/noUnusedPrivateClassMembers",
 	"correctness/useExhaustiveDependencies",
 	"nursery/noFloatingPromises",
+	"nursery/useConsistentTestIt",
 	"nursery/useRegexpTest",
 	"nursery/useUnicodeRegex",
 	"style/noNonNullAssertion",

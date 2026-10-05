@@ -101,13 +101,14 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
+A check that is silenced at one site hides the problem instead of fixing it. Four rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except `@ts-expect-error` in a type test | none |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
 | `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
+| `suppressions/no-ignore-deprecations` | `compilerOptions.ignoreDeprecations` in a tsconfig, which silences TypeScript's errors for deprecated options | none |
 
 `suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
 
@@ -118,6 +119,8 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 - Flow: `$FlowFixMe`, `$FlowIgnore`, `$FlowExpectedError`, `$FlowIssue` and `@noflow`.
 
 Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
+
+`suppressions/no-ignore-deprecations` reads every JSON file in the repository whose `compilerOptions` sets `ignoreDeprecations`, whatever the file is named, so a shared config such as `tsconfig/base.json` counts as much as a `tsconfig.json`. Like `manifests/sorted`, it walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. Each finding names the line of the setting. Replace the deprecated option it hides, then remove it.
 
 #### Type tests
 
@@ -394,7 +397,7 @@ The preset sets:
 
 The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
-An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
+An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useConsistentTestIt`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
