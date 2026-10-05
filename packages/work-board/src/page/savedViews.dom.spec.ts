@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/support/board.ts";
 import { type OpenPage, openPage } from "#test/support/browser.ts";
@@ -17,7 +18,7 @@ afterEach(async () => {
 	notes.remove();
 });
 function key() {
-	return `work-board:views:${notes.root}`;
+	return `work-board:views:${realpathSync(notes.root)}`;
 }
 async function ready() {
 	await waitFor(() => expect(page.document.querySelector("#save-work-view button")).toHaveProperty("disabled", false));

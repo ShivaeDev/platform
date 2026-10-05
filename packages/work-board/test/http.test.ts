@@ -91,12 +91,16 @@ describe("pages", () => {
 		symlinkSync(join(notes.root, "plan.md"), join(notes.root, "notes/alias.md"));
 		board = await startBoard(notes.root, "plan.md");
 		const html = await (await get("/")).text();
-		expect(html).not.toContain("leak");
-		expect(html).not.toContain("private");
+		expect(html).not.toContain("leak.md");
+		expect(html).not.toContain("elsewhere");
+		expect(html).not.toContain("private.md");
+		expect(html).not.toContain("Outside the folder");
 		expect(html).toContain('<a href="/notes/alias.md">alias</a>');
-		expect((await get("/leak.md")).status).toBe(404);
-		expect((await get("/notes/elsewhere/private.md")).status).toBe(404);
-		expect((await get(`/up/${outside.root.split("/").at(-1)}/private.md`)).status).toBe(404);
+		for (const path of ["/leak.md", "/notes/elsewhere/private.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
+			const response = await get(path);
+			expect(response.status).toBe(404);
+			expect(await response.text()).not.toContain("Outside the folder");
+		}
 		expect(await (await get("/notes/alias.md")).text()).toContain(
 			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
 		);
