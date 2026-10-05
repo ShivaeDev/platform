@@ -25,13 +25,14 @@ export default async function workspace() {
 		root,
 		test: {
 			coverage: {
+				// The project filter makes every package a coverage root, and each root counts the other packages only as external files.
 				allowExternal: true,
-				exclude: ["**/node_modules/**", "**/*.d.ts", "**/*.test.*", "**/*.spec.*"],
+				exclude: ["**/*.d.ts", "**/*.test.*", "**/*.spec.*", "**/test-support/**"],
 				include: [`${root}packages/*/src/**/*.{ts,tsx}`],
 				provider: "v8" as const,
-				reporter: ["lcov", "json", "text-summary"],
+				reporter: ["lcov", "text-summary"],
 				reportOnFailure: true,
-				reportsDirectory: `${root}/.ci/coverage`,
+				reportsDirectory: `${root}.ci/coverage`,
 			},
 			project: ["*:unit", "*:dom"],
 			projects,

@@ -1,20 +1,30 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import process from "node:process";
-import { it } from "node:test";
+import { test as it } from "node:test";
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js";
 import { createVitest } from "vitest/node";
 import workspace from "#test/vitest.config.ts";
 
-it("coverage includes never-imported source in future packages without tests, excluding declarations", async () => {
-	const root = mkdtempSync(join(tmpdir(), "platform-coverage-"));
+const files = {
+	"existing/src/index.test.ts": "export const checked = true;\n",
+	"existing/src/index.ts": "export const value = 42;\n",
+	"existing/src/types.d.ts": "export declare const value: number;\n",
+	"future/src/index.ts": "export const value = 42;\n",
+	"future/src/test-support/fixture.ts": "export const fixture = 1;\n",
+	"future/src/test-support/generated/client.ts": "export const client = 1;\n",
+	"future/src/value.spec.ts": "export const checked = true;\n",
+	"other/src/index.ts": "export const value = 42;\n",
+};
+
+it("coverage includes never-imported package source and leaves out declarations, tests and test support", async () => {
+	const root = realpathSync(mkdtempSync(join(tmpdir(), "platform-coverage-")));
 	try {
-		for (const name of ["existing", "future"]) {
-			mkdirSync(join(root, "packages", name, "src"), { recursive: true });
-			writeFileSync(join(root, "packages", name, "src", "index.ts"), "export const value = 42;\n");
-			writeFileSync(join(root, "packages", name, "src", "types.d.ts"), "export declare const value: number;\n");
+		for (const [path, content] of Object.entries(files)) {
+			mkdirSync(dirname(join(root, "packages", path)), { recursive: true });
+			writeFileSync(join(root, "packages", path), content);
 		}
 		const { coverage } = (await workspace()).test;
 		const context = await createVitest("test", {
@@ -22,22 +32,22 @@ it("coverage includes never-imported source in future packages without tests, ex
 			coverage: {
 				...coverage,
 				enabled: true,
-				include: coverage.include.map((pattern) => pattern.replace(`${process.cwd()}/`, `${root}/`)),
+				include: coverage.include.map((pattern) => pattern.replace(process.cwd(), root)),
 				reportsDirectory: join(root, "coverage"),
 			},
-			project: ["unit"],
-			projects: [{ root: join(root, "packages", "existing"), test: { name: "unit" } }],
+			project: ["*:unit"],
+			projects: ["existing", "other"].map((name) => ({ root: join(root, "packages", name), test: { name: `${name}:unit` } })),
 			root,
 		});
 		try {
 			const provider = new V8CoverageProvider();
 			provider.initialize(context);
 			const report = await provider.generateCoverage({ allTestsRun: true });
-			assert.ok(report.files().includes(join(root, "packages", "future", "src", "index.ts")));
-			assert.equal(
-				report.files().some((path: string) => path.endsWith(".d.ts")),
-				false,
-			);
+			const reported = report
+				.files()
+				.map((path) => path.slice(join(root, "packages").length + 1))
+				.toSorted();
+			assert.deepEqual(reported, ["existing/src/index.ts", "future/src/index.ts", "other/src/index.ts"]);
 			assert.equal(report.fileCoverageFor(join(root, "packages", "future", "src", "index.ts")).toSummary().lines.pct, 0);
 		} finally {
 			await context.close();
