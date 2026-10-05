@@ -265,3 +265,22 @@ those sources. A target missing when the watch was built needs a server restart
 once restored. Multiple aliases remain separate paths and existing duplicate-ID
 rules apply. These checks do not establish step 09's selective invalidation,
 pause/resume or representative-reader orientation timing.
+
+## Explicit observation overlap acceptance — 0.4.1 follow-up
+
+1. Start with two Markdown sources. Hold an actual HTTP `observe` response after
+   it captures the first source revision, then edit that physical source and let
+   its native watcher/SSE page refresh finish. Release the response: Mark seen
+   retains the captured revision and comparison reports the subsequent change.
+   A later explicit Mark seen replaces that baseline and reports no changes.
+2. Hold another observation, then Clear from a second tab sharing this workspace
+   and browser storage. Release the old response. Both tabs stay without history;
+   the cancelled observation must not restore the deleted baseline.
+3. Check ordinary marking at 390 × 844 with dark theme/reduced motion, page
+   overflow and browser errors. DOM regressions separately force the overlap
+   before the HTTP observation begins and assert cancellation by another tab's
+   storage event. Keep the existing expiry, size and blocked-storage checks.
+
+These checks preserve explicit observation semantics; they do not establish an
+atomic filesystem snapshot, source mutation or verified acceptance. Step 09's
+Platform-first lifecycle work remains separate.

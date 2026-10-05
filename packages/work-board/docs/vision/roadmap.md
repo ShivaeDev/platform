@@ -349,6 +349,37 @@ link parents catch replacements that Node's recursive watcher can miss.
   adopts it; the proposed browser-build dependency remains under discussion.
 
 
+## Explicit observation follow-up and 0.4.1 release
+
+An explicit Mark seen action completes through background comparison/live refresh
+and then compares the retained observation with current source. Newer explicit
+clearing/storage changes cancel the pending action and remain authoritative.
+
+- [x] A controlled DOM overlap reproduces the cancellation timeout without the
+  fix. Hold the observation, deliver a real source change/SSE page refresh, then
+  complete marking: the new baseline replaces the restored old one and includes
+  the source actually observed. A separate storage-clear regression asserts that
+  the pending request is aborted and cannot restore history.
+- [x] Chromium 151 holds an actual captured HTTP observation while a source edit
+  and native page refresh arrive. The saved observation retains the earlier
+  source and reports the subsequent change; the next explicit Mark seen clears
+  that change. A second tab's Clear cancels another held observation without
+  resurrecting history. Desktop and mobile 390 × 844/dark/reduced motion pass
+  without page overflow or browser errors.
+- [x] Full `pnpm ready` passed lint, nine orchestration tests, builds, typechecks,
+  real PostgreSQL suites and all packed consumers, including CLI version 0.4.1.
+  Work Board has 190 passing tests; package suites reported 1,106 passes and four
+  existing expected failures. The single existing intentional `effect-test` skip
+  remains; no Work Board/database test skipped and the quality baseline did not
+  grow.
+- Package and CLI versions are 0.4.1. Retention, source schema, Markdown
+  compatibility and local-only operation are unchanged. This closes an explicit
+  observation race; step 09's Platform-first work and step 07's reader timing
+  remain separate.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#explicit-observation-overlap-acceptance--041-follow-up)
+  records the ordering and comparison limits.
+
+
 ## Current foundation
 
 The existing package serves a local Markdown folder, renders a designated home

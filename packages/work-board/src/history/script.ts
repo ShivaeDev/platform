@@ -8,6 +8,7 @@ let storageNotice = "";
 let unavailableHtml = "";
 let generation = 0;
 let controller;
+let observing = null;
 const baseline = () => {
  if (memory !== undefined) return memory;
  try { return localStorage.getItem(key); }
@@ -63,6 +64,7 @@ const query = async (action) => {
  return result;
 };
 const refresh = async () => {
+ if (observing !== null) return;
  const visible = document.getElementById("doc")?.dataset.view === "changes";
  try {
   const result = await query(visible ? "compare" : "check");
@@ -81,6 +83,7 @@ const refresh = async () => {
 };
 document.addEventListener("click", async (event) => {
  if (event.target.closest?.("#history-clear")) {
+  observing = null;
   ++generation;
   controller?.abort();
   forget();
@@ -88,6 +91,9 @@ document.addEventListener("click", async (event) => {
   await refresh();
  }
  if (event.target.closest?.("#history-mark")) {
+  if (observing !== null) return;
+  const mine = generation + 1;
+  observing = mine;
   controls(false, true);
   try {
    const result = await query("observe");
@@ -95,16 +101,22 @@ document.addEventListener("click", async (event) => {
    if (result.snapshot === null) { render(result.html); controls(false); return; }
    keep(result.snapshot);
    unavailableHtml = "";
-   await refresh();
   } catch (error) {
    if (error.name !== "AbortError") { render("<p>Could not remember the current observation. Your previous baseline is preserved.</p>"); controls(false); }
-  }
+   return;
+  } finally { if (observing === mine) observing = null; }
+  await refresh();
  }
 });
 document.addEventListener("board-page", refresh);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 window.addEventListener("storage", (event) => {
- if (event.key === key || event.key === null) { memory = undefined; storageNotice = ""; unavailableHtml = ""; refresh(); }
+ if (event.key === key || event.key === null) {
+  observing = null;
+  ++generation;
+  controller?.abort();
+  memory = undefined; storageNotice = ""; unavailableHtml = ""; refresh();
+ }
 });
 setInterval(() => { if (baseline() !== null) refresh(); }, 60000);
 refresh();

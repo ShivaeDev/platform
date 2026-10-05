@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { baselineJson } from "#test/historyFixture.ts";
+import { historyObservation } from "#test/historyObservation.ts";
 import { waitFor } from "#test/live.ts";
 import { MAX_AGE } from "./limits.ts";
 
@@ -75,18 +76,44 @@ it("remembers only on explicit action and preserves old-source disclosures throu
 	await waitFor(() => expect(page.document.getElementById("history-mark")?.textContent).toBe("Start remembering changes"));
 	expect(page.window.localStorage.getItem(key())).toBeNull();
 });
-it("restores a valid workspace baseline on reload and replaces it only on Mark seen", async () => {
+it("restores a valid baseline and completes Mark seen through overlapping background refresh", async () => {
+	const observation = historyObservation();
 	page = await openPage(board, "/_board/changes", (window) => {
 		window.localStorage.setItem(
 			`work-board:changes:${notes.root}`,
 			baselineJson({ "home.md": "# Home", "item.md": "# Older" }, Effect.runSync(Clock.currentTimeMillis) - 1000),
 		);
+		observation.install(window);
 	});
 	await waitFor(() => expect(text()).toContain("# Older"));
 	expect(text()).toContain("1 changed");
+	await ready();
+	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1));
+	const answered = page.pageRequests.answered;
 	click("#history-mark");
+	await observation.started;
+	notes.write("home.md", "# Home changed during observation");
+	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThan(answered));
+	page.document.dispatchEvent(new page.window.Event("board-page"));
+	observation.release();
 	await waitFor(() => expect(text()).toContain("No source changes"));
 	expect(page.window.localStorage.getItem(key())).not.toContain("# Older");
+	expect(page.window.localStorage.getItem(key())).toContain("# Home changed during observation");
+});
+it("lets another tab's explicit clear cancel pending Mark seen without restoring its baseline", async () => {
+	const observation = historyObservation();
+	page = await openPage(board, "/_board/changes", (window) => observation.install(window));
+	await ready();
+	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1));
+	click("#history-mark");
+	const aborted = await observation.started;
+	page.window.localStorage.removeItem(key());
+	page.window.dispatchEvent(new page.window.StorageEvent("storage", { key: key() }));
+	expect(aborted()).toBe(true);
+	observation.release();
+	await ready();
+	expect(text()).toContain("No previous snapshot");
+	expect(page.window.localStorage.getItem(key())).toBeNull();
 });
 it("discards expired or corrupt history even on an ordinary workspace visit and does not silently rebaseline", async () => {
 	page = await openPage(board, "/", (window) => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 - 2026-10-05
+
+### Fixed
+
+- Let an explicit Mark seen observation finish through background/live refresh
+  and then reconcile current source. Keep newer clearing or another tab's
+  storage changes authoritative so a cancelled observation cannot restore
+  discarded history. Preserve the existing browser-local retention limits.
+
 ## 0.4.0 - 2026-10-05
 
 ### Added
