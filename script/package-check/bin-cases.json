@@ -39,6 +39,19 @@
 		},
 		"output": "recorded"
 	},
+	"shivaedev-skills": {
+		"args": ["sync"],
+		"checkVersion": true,
+		"expectedFiles": {
+			".agents/skills/.shivaedev-skills.json": "\"pr-description\": \"",
+			".agents/skills/pr-description/SKILL.md": "name: pr-description",
+			".claude/skills/pr-description/SKILL.md": "name: pr-description"
+		},
+		"files": {
+			"package.json": "{ \"name\": \"consumer\", \"shivaedevSkills\": [\"pr-description\"] }\n"
+		},
+		"output": "Synced pr-description from @shivaedev/skills"
+	},
 	"work-board": {
 		"args": ["board", "--port", "0", "--home", "plan.md"],
 		"checkVersion": true,

@@ -16,6 +16,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	"heavy-lock": { allowed: [], module: "acquire" },
 	"local-postgres": { allowed: [], module: "localPostgres" },
 	quality: { allowed: ["types"], module: "config" },
+	skills: { allowed: [], module: "syncSkills" },
 	types: { allowed: [], module: "bivariant" },
 	"work-board": { allowed: [], module: "board" },
 };
