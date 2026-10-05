@@ -3,7 +3,7 @@ import { Effect, Ref } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
 import { contract } from "#contract.ts";
 import { type CommandShape, command, type QueryShape } from "#operation.ts";
-import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "./notes.ts";
+import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "#test/notes.ts";
 
 describe("contract", () => {
 	it("rejects duplicate operation names at construction when the compiler cannot see them", () => {

@@ -6,7 +6,7 @@ import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcTest } from "effect/unstable/rpc";
 import { expect, it, vi } from "vitest";
 import { bind } from "#bind.ts";
-import { makeServer, Notes } from "./notes.ts";
+import { makeServer, Notes } from "#test/notes.ts";
 
 const setup = async () => {
 	const server = await Effect.runPromise(makeServer);

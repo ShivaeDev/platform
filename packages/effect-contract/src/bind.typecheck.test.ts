@@ -5,7 +5,7 @@ import type { RpcClient, RpcGroup } from "effect/unstable/rpc";
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import type { Bound } from "#bind.ts";
-import type { Notes } from "./notes.ts";
+import type { Notes } from "#test/notes.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Self = "test/Self";

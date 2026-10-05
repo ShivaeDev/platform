@@ -3,9 +3,9 @@
 		"declaration": true,
 		"emitDeclarationOnly": true,
 		"noEmit": false,
-		"rootDir": "../.."
+		"rootDir": "../../.."
 	},
 	"exclude": [],
-	"extends": "../../tsconfig.json",
+	"extends": "../../../tsconfig.json",
 	"include": ["valid.ts"]
 }
