@@ -1,4 +1,4 @@
-import { testName } from "@shivaedev/quality/naming/testName.ts";
+import { isTestCode } from "@shivaedev/quality/naming/testName.ts";
 import { type Inventory, isDeclaration } from "#lint/inventory.ts";
 import { specifiersOf } from "#lint/rules/specifiers.ts";
 import type { Violation } from "#lint/violation.ts";
@@ -40,7 +40,7 @@ const reaching = (specifier: string): boolean => specifier.startsWith("node:") |
 export const browserSafeViolations = (inventory: Inventory): readonly Violation[] => {
 	const packages = workspacePackages(inventory);
 	return inventory.sources
-		.filter((file) => !isDeclaration(file.path) && testName(file.path) === undefined)
+		.filter((file) => !(isDeclaration(file.path) || isTestCode(file.path)))
 		.flatMap((file) => {
 			const owner = packageOf(packages, file.path);
 			if (owner === undefined || !BROWSER_PACKAGES.includes(owner.name) || !file.path.startsWith(`${owner.root}/src/`)) {
