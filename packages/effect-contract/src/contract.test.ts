@@ -1,6 +1,7 @@
-import { describe, expect, it } from "@effect/vitest";
+import { describe, expect } from "@effect/vitest";
 import { Effect, Ref } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { contract } from "#contract.ts";
 import { type CommandShape, command, type QueryShape } from "#operation.ts";
 import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "#test/notes.ts";
@@ -13,16 +14,14 @@ describe("contract", () => {
 		expect(() => contract("dupes", { commands, queries: [Get] })).toThrow("Operation names must be unique; duplicated: get");
 	});
 
-	it.effect("reuses declared rejection classes and generates classes for field specs", () =>
-		Effect.gen(function* () {
-			expect(Get.Rejection.NoteMissing).toBe(NoteMissing);
-			expect(Rename.Rejection.NoteMissing).toBe(NoteMissing);
-			const invalid = yield* Effect.flip(Rename.reject.Invalid({ field: "title", message: "Enter a title" }));
-			expect(invalid).toBeInstanceOf(Rename.Rejection.Invalid);
-			expect(invalid).toMatchObject({ _tag: "Invalid", field: "title", message: "Enter a title" });
-			expect(Create.Rejection.Invalid).not.toBe(Rename.Rejection.Invalid);
-		}),
-	);
+	it.effect("reuses declared rejection classes and generates classes for field specs", function* () {
+		expect(Get.Rejection.NoteMissing).toBe(NoteMissing);
+		expect(Rename.Rejection.NoteMissing).toBe(NoteMissing);
+		const invalid = yield* Effect.flip(Rename.reject.Invalid({ field: "title", message: "Enter a title" }));
+		expect(invalid).toBeInstanceOf(Rename.Rejection.Invalid);
+		expect(invalid).toMatchObject({ _tag: "Invalid", field: "title", message: "Enter a title" });
+		expect(Create.Rejection.Invalid).not.toBe(Rename.Rejection.Invalid);
+	});
 
 	it.effect("round-trips successes and declared rejections through the native client and handlers", () =>
 		Effect.gen(function* () {

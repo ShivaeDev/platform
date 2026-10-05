@@ -1,6 +1,6 @@
-import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Stream } from "effect";
 import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { Database, DatabaseLive, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 
@@ -169,30 +169,28 @@ it.effect("refuses an escaped transaction Relation used as an include", () =>
 	),
 );
 
-it.effect("fails closed when Database values escape their Layer", () =>
-	Effect.gen(function* () {
-		const escaped = yield* Effect.gen(function* () {
-			const db = yield* Database;
-			return { db, stream: db.User.stream };
-		}).pipe(Effect.provide(DatabaseLive));
-		const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
-		const transactionError = yield* Effect.flip(
-			escaped.db
-				.transaction(
-					Effect.gen(function* () {
-						yield* Database;
-					}),
-				)
-				.pipe(Effect.provide(DatabaseLive)),
-		);
+it.effect("fails closed when Database values escape their Layer", function* () {
+	const escaped = yield* Effect.gen(function* () {
+		const db = yield* Database;
+		return { db, stream: db.User.stream };
+	}).pipe(Effect.provide(DatabaseLive));
+	const streamError = yield* Effect.flip(Stream.runCollect(escaped.stream));
+	const transactionError = yield* Effect.flip(
+		escaped.db
+			.transaction(
+				Effect.gen(function* () {
+					yield* Database;
+				}),
+			)
+			.pipe(Effect.provide(DatabaseLive)),
+	);
 
-		expect(streamError.reason).toMatchObject({
-			_tag: "PrismaRuntimeFailure",
-			code: "RUNTIME.DATABASE_CLOSED",
-		});
-		expect(transactionError.reason).toMatchObject({
-			_tag: "PrismaRuntimeFailure",
-			code: "RUNTIME.DATABASE_CLOSED",
-		});
-	}),
-);
+	expect(streamError.reason).toMatchObject({
+		_tag: "PrismaRuntimeFailure",
+		code: "RUNTIME.DATABASE_CLOSED",
+	});
+	expect(transactionError.reason).toMatchObject({
+		_tag: "PrismaRuntimeFailure",
+		code: "RUNTIME.DATABASE_CLOSED",
+	});
+});

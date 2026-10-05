@@ -1,9 +1,9 @@
 import { NodeFileSystem } from "@effect/platform-node";
-import { it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { afterEach, expect } from "vitest";
 import { collectInventory } from "#inventory/collect.ts";
 import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
+import { it } from "#test/it.ts";
 import { removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -22,39 +22,31 @@ const pathsOf = (root: string, sources: readonly string[] = ["."]) =>
 
 // Expected paths were captured from git check-ignore against the same fixture.
 it.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {
-	it.effect("keeps gitignored files out of the inventory", () =>
-		Effect.gen(function* () {
-			const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept));
-			for (const path of tree.ignoredPaths) {
-				expect(paths).not.toContain(path);
-			}
-			for (const path of tree.keptPaths) {
-				expect(paths).toContain(path);
-			}
-		}),
-	);
+	it.effect("keeps gitignored files out of the inventory", function* () {
+		const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept));
+		for (const path of tree.ignoredPaths) {
+			expect(paths).not.toContain(path);
+		}
+		for (const path of tree.keptPaths) {
+			expect(paths).toContain(path);
+		}
+	});
 
-	it.effect("walks the identical tree in full when nothing is ignored", () =>
-		Effect.gen(function* () {
-			const paths = yield* pathsOf(seedTree(ignored, kept));
-			expect(paths).toEqual([...tree.ignoredPaths, ...tree.keptPaths].sort());
-		}),
-	);
+	it.effect("walks the identical tree in full when nothing is ignored", function* () {
+		const paths = yield* pathsOf(seedTree(ignored, kept));
+		expect(paths).toEqual([...tree.ignoredPaths, ...tree.keptPaths].sort());
+	});
 
-	it.effect("applies the ignore files above a nested source directory", () =>
-		Effect.gen(function* () {
-			const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept), ["packages/y", "packages/w"]);
-			expect(paths).toEqual(["packages/y/generated/keep.ts"]);
-		}),
-	);
+	it.effect("applies the ignore files above a nested source directory", function* () {
+		const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept), ["packages/y", "packages/w"]);
+		expect(paths).toEqual(["packages/y/generated/keep.ts"]);
+	});
 
-	it.effect("prunes vendored directories with no .gitignore present", () =>
-		Effect.gen(function* () {
-			const root = seedTree([
-				{ content: "export const k = 1;\n", path: "packages/x/src/mod.ts" },
-				{ content: "export const v = 1;\n", path: "packages/x/node_modules/v/index.ts" },
-			]);
-			expect(yield* pathsOf(root)).toEqual(["packages/x/src/mod.ts"]);
-		}),
-	);
+	it.effect("prunes vendored directories with no .gitignore present", function* () {
+		const root = seedTree([
+			{ content: "export const k = 1;\n", path: "packages/x/src/mod.ts" },
+			{ content: "export const v = 1;\n", path: "packages/x/node_modules/v/index.ts" },
+		]);
+		expect(yield* pathsOf(root)).toEqual(["packages/x/src/mod.ts"]);
+	});
 });

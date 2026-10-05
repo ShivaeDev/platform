@@ -1,5 +1,6 @@
-import { describe, expect, it } from "@effect/vitest";
+import { describe, expect } from "@effect/vitest";
 import { Context, Effect, Layer, Ref, type Scope } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { defineService } from "#define-service.ts";
 import type { ServiceRequirements } from "#service-requirements.ts";
 
@@ -78,42 +79,38 @@ describe("defineService", () => {
 	it.effect("initializes private state and constructs methods once per layer", processLifetimeProof);
 });
 
-it.effect("keeps declared dependencies bound when the caller provides another value", () =>
-	Effect.gen(function* () {
-		class Prefix extends Context.Service<Prefix, string>()("test/BoundPrefix") {}
-		const Greetings = defineService({
-			id: "test/BoundGreetings",
-			initialize: Effect.void,
-			methods: () => ({
-				greet: () => Effect.map(Prefix, (prefix) => prefix),
-			}),
-			requires: [Prefix],
-		});
-		const result = yield* Effect.gen(function* () {
-			const greetings = yield* Greetings;
-			return yield* greetings.greet().pipe(Effect.provideService(Prefix, "caller"));
-		}).pipe(Effect.provide(Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "declared")))));
-		expect(result).toBe("declared");
-	}),
-);
+it.effect("keeps declared dependencies bound when the caller provides another value", function* () {
+	class Prefix extends Context.Service<Prefix, string>()("test/BoundPrefix") {}
+	const Greetings = defineService({
+		id: "test/BoundGreetings",
+		initialize: Effect.void,
+		methods: () => ({
+			greet: () => Effect.map(Prefix, (prefix) => prefix),
+		}),
+		requires: [Prefix],
+	});
+	const result = yield* Effect.gen(function* () {
+		const greetings = yield* Greetings;
+		return yield* greetings.greet().pipe(Effect.provideService(Prefix, "caller"));
+	}).pipe(Effect.provide(Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "declared")))));
+	expect(result).toBe("declared");
+});
 
-it.effect("releases method resources with the caller scope while the service remains live", () =>
-	Effect.gen(function* () {
-		const released = yield* Ref.make(0);
-		const Resources = defineService({
-			id: "test/CallerResources",
-			initialize: Effect.void,
-			methods: () => ({
-				open: () => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (n) => n + 1)),
-			}),
-			requires: [],
-		});
-		yield* Effect.gen(function* () {
-			const resources = yield* Resources;
-			expect(yield* Effect.scoped(resources.open())).toBe("resource");
-			expect(yield* Ref.get(released)).toBe(1);
-			expect(yield* Effect.scoped(resources.open())).toBe("resource");
-			expect(yield* Ref.get(released)).toBe(2);
-		}).pipe(Effect.provide(Resources.layer));
-	}),
-);
+it.effect("releases method resources with the caller scope while the service remains live", function* () {
+	const released = yield* Ref.make(0);
+	const Resources = defineService({
+		id: "test/CallerResources",
+		initialize: Effect.void,
+		methods: () => ({
+			open: () => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (n) => n + 1)),
+		}),
+		requires: [],
+	});
+	yield* Effect.gen(function* () {
+		const resources = yield* Resources;
+		expect(yield* Effect.scoped(resources.open())).toBe("resource");
+		expect(yield* Ref.get(released)).toBe(1);
+		expect(yield* Effect.scoped(resources.open())).toBe("resource");
+		expect(yield* Ref.get(released)).toBe(2);
+	}).pipe(Effect.provide(Resources.layer));
+});

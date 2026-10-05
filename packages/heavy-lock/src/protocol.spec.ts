@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { expect, it } from "@effect/vitest";
+import { expect } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { decodeHolder, encodeHolder, type Holder } from "#holder.ts";
 import { tryAcquire } from "#lock-file.ts";
 import { readLock, removeTemporaryDirectories, services, startTime, temporaryLock, writeLock } from "#test/lock.ts";
@@ -22,22 +23,20 @@ const referenceHolder: Holder = {
 	startedAtMs: 1_790_409_600_123,
 };
 
-it.effect("a holder encodes byte for byte as the protocol fixture, whatever order its fields were given in", () =>
-	Effect.gen(function* () {
-		const reordered: Holder = {
-			command: referenceHolder.command,
-			cwd: "/repo/checkout",
-			id: referenceHolder.id,
-			pid: 4242,
-			processStartedAt: referenceHolder.processStartedAt,
-			startedAtMs: 1_790_409_600_123,
-		};
+it.effect("a holder encodes byte for byte as the protocol fixture, whatever order its fields were given in", function* () {
+	const reordered: Holder = {
+		command: referenceHolder.command,
+		cwd: "/repo/checkout",
+		id: referenceHolder.id,
+		pid: 4242,
+		processStartedAt: referenceHolder.processStartedAt,
+		startedAtMs: 1_790_409_600_123,
+	};
 
-		expect(yield* encodeHolder(referenceHolder)).toBe(REFERENCE);
-		expect(yield* encodeHolder(reordered)).toBe(REFERENCE);
-		expect(decodeHolder(REFERENCE)).toEqual(Option.some(referenceHolder));
-	}),
-);
+	expect(yield* encodeHolder(referenceHolder)).toBe(REFERENCE);
+	expect(yield* encodeHolder(reordered)).toBe(REFERENCE);
+	expect(decodeHolder(REFERENCE)).toEqual(Option.some(referenceHolder));
+});
 
 it.effect("a lock in the reference format naming a live process blocks the lock", () =>
 	Effect.gen(function* () {

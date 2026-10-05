@@ -49,6 +49,7 @@
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",

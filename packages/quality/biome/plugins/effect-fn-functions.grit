@@ -1,0 +1,15 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+or {
+	JsVariableDeclarator(id=$name, initializer=JsInitializerClause(expression=JsArrowFunctionExpression(body=$body))),
+	JsFunctionDeclaration(id=$name, body=$body),
+	JsFunctionExportDefaultDeclaration(id=$name, body=$body)
+} as $function where {
+	$body <: or {
+		JsFunctionBody(statements=[JsReturnStatement(argument=`Effect.gen($...)`)]),
+		`Effect.gen($...)`
+	},
+	! $function <: within JsFunctionBody() ,
+	register_diagnostic(span=$name, message="A top-level function whose whole body is Effect.gen is an Effect.fn, which names its span and keeps the call site in traces: const loadItem = Effect.fn('ItemStore.loadItem')(function* (id: string) { ... }). Effect.fnUntraced fits a function that needs no span.")
+}
