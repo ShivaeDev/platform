@@ -3,8 +3,8 @@ import { Data, Effect } from "effect";
 import { expect } from "vitest";
 import { checkCoverage } from "#coverage.ts";
 import { tablesOf, tableWrites, writtenTables } from "#tables.ts";
-import { type Change, makeChanges, models } from "#test/support/changes.ts";
-import { integration, makeDatabase } from "#test/support/database.ts";
+import { type Change, makeChanges, models } from "#test/changes.ts";
+import { integration, makeDatabase } from "#test/database.ts";
 
 class Rejected extends Data.TaggedError("Rejected") {}
 
@@ -26,7 +26,7 @@ integration("the coverage check reads the tables a test transaction wrote and re
 				const { schema, client, execute } = yield* makeDatabase;
 				yield* execute(`create table "${schema}".changes_prisma_lookup (id text primary key)`);
 				const { changes, observations, unnamed, observe } = makeChanges(client);
-				const tables = tablesOf(yield* Effect.promise(() => readFile(new URL("./prisma/schema.prisma", import.meta.url), "utf8")));
+				const tables = tablesOf(yield* Effect.promise(() => readFile(new URL("./test-support/prisma/schema.prisma", import.meta.url), "utf8")));
 				const application = Effect.gen(function* () {
 					yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } }));
 					yield* Effect.ignore(

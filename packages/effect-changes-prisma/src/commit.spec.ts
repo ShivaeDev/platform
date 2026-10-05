@@ -1,8 +1,8 @@
 import { Cause, Deferred, Effect, Exit, Fiber, Schedule } from "effect";
 import { expect } from "vitest";
+import { makeChanges } from "#test/changes.ts";
+import { integration, makeDatabase, orderIds } from "#test/database.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
-import { makeChanges } from "#test/support/changes.ts";
-import { integration, makeDatabase, orderIds } from "#test/support/database.ts";
 
 const slowCommit = (schema: string, seconds: number) => [
 	`create function "${schema}".slow_commit() returns trigger language plpgsql as $$ begin perform pg_sleep(${seconds}); return null; end $$`,

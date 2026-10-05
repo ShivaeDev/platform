@@ -4,8 +4,8 @@ import { expectTypeOf } from "vitest";
 import { makePrismaChanges } from "#changes.ts";
 import type { PrismaError, TransactionExpired } from "#error.ts";
 import type { ChangeMap, ModelName, ModelRow } from "#model.ts";
+import { type Change, models } from "#test/changes.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
-import { type Change, models } from "#test/support/changes.ts";
 
 declare const prisma: PrismaClient;
 class Rejected extends Data.TaggedError("Rejected") {}

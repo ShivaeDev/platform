@@ -1,9 +1,9 @@
 import { Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
 import { PrismaError, TransactionExpired } from "#error.ts";
-import { makeChanges } from "#test/support/changes.ts";
-import { connect, integration, makeDatabase, orderIds } from "#test/support/database.ts";
-import { createOrder, expiredIn, harnessed, warm } from "#test/support/expiry.ts";
+import { makeChanges } from "#test/changes.ts";
+import { connect, integration, makeDatabase, orderIds } from "#test/database.ts";
+import { createOrder, expiredIn, harnessed, warm } from "#test/expiry.ts";
 
 const closedTransaction = Object.assign(new Error("Transaction already closed"), { code: "P2028" });
 

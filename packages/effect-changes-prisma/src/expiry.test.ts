@@ -3,10 +3,10 @@ import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { TransactionExpired } from "#error.ts";
 import type { TransactionOptions } from "#model.ts";
+import { makeChanges } from "#test/changes.ts";
+import { connect, integration, makeDatabase, orderIds } from "#test/database.ts";
+import { createOrder, probe, timed, warm } from "#test/expiry.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
-import { makeChanges } from "#test/support/changes.ts";
-import { connect, integration, makeDatabase, orderIds } from "#test/support/database.ts";
-import { createOrder, probe, timed, warm } from "#test/support/expiry.ts";
 
 const expires = (client: PrismaClient, options?: TransactionOptions, current: PrismaClient = client) =>
 	Effect.gen(function* () {
