@@ -19,7 +19,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
 - [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
 - [x] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
-- [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
+- [x] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
 - [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
@@ -161,7 +161,8 @@ the existing index, and exposes stable item/criterion links and diagnostics.
 
 ## Step 05 board/detail checkpoint evidence
 
-Step 05 remains open: table views and saved local views are the next checkpoint.
+The first checkpoint delivered board/detail views; the completion evidence below
+covers table views and saved local views.
 The board/detail checkpoint reads shared items from explicit board declarations,
 uses recorded status columns, and restores filtering/sorting/selection from URLs.
 
@@ -182,7 +183,35 @@ uses recorded status columns, and restores filtering/sorting/selection from URLs
   passing tests and three existing expected failures; nine orchestration tests
   passed, with no tests skipped. The quality baseline did not grow.
 
-Steps 05–26 remain open; the rest of W1.2/W1.3 remains proposed.
+## Step 05 completion evidence
+
+Board and table now share explicit item projections, filter/sort state, counts,
+and selected source detail. URLs restore the layout and context; named browser
+views retain applied board/filter/sort/layout preferences without item selection
+or content writes. Legacy heading boards and personal compact density remain valid.
+
+- Work Board: 144 passing tests. New HTTP regressions compare board/table IDs,
+  counts and selected detail, missing-field ordering, escaped source cells, empty
+  results, and unsupported-layout fallback. DOM regressions cover applied-state
+  saving, excluded unsent input/selection, reopening, same-name updates, removal/
+  clearing, workspace isolation, external/executable URL rejection, textual names,
+  capacity without silent eviction, blocked storage, and malformed-JSON recovery.
+- Chromium 151: 50-document/100-card fixture plus shared richer items at
+  1440 × 1000 and 390 × 844. Verified board/table counts and selection, real
+  Mermaid/source detail, Back/reload, named-view save/update/reopen/clear, measured
+  compact row padding, live filters/focused unsent input/deleted selection,
+  dark/reduced-motion layout without page overflow, blocked-storage fallback,
+  and no-JavaScript table/GET filter/detail navigation. No page errors observed.
+  This is fixture evidence, not adoption or an orientation-time measurement.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,027
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no skips or quality baseline growth.
+- [Browser acceptance](./delivery/browser-acceptance.md#table-and-saved-view-acceptance--step-05-completion)
+  gives the repeatable completion path. Evidence/backlink context follows in 06;
+  overview/attention remains 07, and no source mutations are implemented.
+
+Steps 06–26 remain open; the rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 

@@ -4,6 +4,13 @@
 
 ### Added
 
+- Add a table layout sharing board projections, filters, sorting, and selected
+  source detail. Switch layouts without losing URL context and read/filter tables
+  without JavaScript. Save, update, reopen, remove, or clear up to 10 local named
+  views per workspace; reject unsafe destinations and disclose unavailable
+  storage. Keep saved filters separate from URL item selection and never silently
+  evict a saved view at capacity. Source Markdown stays unchanged.
+
 - Add Work board selection and explicit shared-item projections, exact status/
   owner filters, text matching, and sorting. URL state restores board/filter/
   selected detail context; source Markdown stays readable in a side pane.

@@ -28,7 +28,7 @@ export function workControls(projection: Projection, state: State): string {
 	const boards = option("", "All work", state.board) + projection.boards.map((board) => option(board.id, board.title, state.board)).join("");
 	const unavailable = state.board && !projection.validBoard ? option(state.board, `${state.board} (unavailable)`, state.board) : "";
 	return `<form id="work-filters" class="work-filters" action="/_board/work#work-results" method="get">
- <input type="hidden" name="view" value="board"><input type="hidden" name="item" value="${escapeHtml(state.item)}">
+ <input type="hidden" name="view" value="${state.view}"><input type="hidden" name="item" value="${escapeHtml(state.item)}">
  <label><span>Board</span><select name="board" id="work-board">${boards}${unavailable}</select></label>
  <label><span>Status</span><select name="status" id="work-status">${fieldOptions(projection.items, "status", state.status)}</select></label>
  <label><span>Owner</span><select name="owner" id="work-owner">${fieldOptions(projection.items, "owner", state.owner)}</select></label>
