@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.14.0 - 2026-10-05
+
+### Added
+
+- The `effect-fn-functions` plugin reports a top-level function whose whole body is `Effect.gen(…)`, written as an arrow or as a function that only returns it. Write it as `const loadItem = Effect.fn("ItemStore.loadItem")(function* (id: string) { … })`, which names its span after the function, or as `Effect.fnUntraced(…)` when it needs no span. A function nested in another, an object member, a `.pipe(…)` on the `Effect.gen` and a function that runs other statements before it are not reported. The rule has no fix.
+- The `effect-test-bodies` plugin reports, in test code, a callback whose whole body is `Effect.gen(function* () { … })` passed to `it`, `test` or one of their members, such as `it.effect` or `it.effect.skipIf(…)`. Pass the generator to the test instead, `it.effect("loads the item", function* () { … })`, and let the test helper run it with `Effect.gen`; `@shivaedev/effect-test/it.ts` provides such an `it`. Test code is a test file or a file under `test-support/`, as for every other rule. The rule has no fix.
+- A repository that upgrades records the existing findings of the two plugins with `quality baseline write --rule biome/plugin`.
+
+## 0.13.0 - 2026-10-05
+
+### Changed
+
+- Test code has one definition: a test file, as the `tests/*` rules read the name, or any file under a `test-support/` folder. `test-support/` is the one folder name for test helpers, and every rule that checks shipped code skips it. `tests/follow` and `tests/colocated` still read only test files.
+- `imports/fences` skips files under `test-support/` too, beside test and spec files, so a harness may import what the tests need.
+- `structure/max-lines` gives test code the test limit without configuration. `testFiles` now adds further folders, such as a Playwright suite in `e2e/`, and is empty by default: `*.test.*` and `*.spec.*` count without it, and a helper in a `test/`, `tests/` or `__tests__/` folder is source until it moves to `test-support/` or the option names its folder. A config that listed the old defaults keeps working.
+
+## 0.12.0 - 2026-10-05
+
+### Changed
+
+- `imports/fences` skips test files: a file the `tests/*` rules read as a test, `*.test.ts` or `*.spec.ts` with any environment, is never a module a fence holds, so a test beside shipped code may import what it needs. Fences guard shipped code, and a test ships nowhere. Nothing turns this off.
+- `suppressions/no-inline` allows `@ts-expect-error` in `*.typecheck.spec.ts` files too, the type test of a behaviour, exactly as in `*.typecheck.test.ts`.
+
+## 0.11.1 - 2026-10-05
+
+### Changed
+
+- The optional `vitest` peer dependency requires Vitest 4.1.11, the latest 4.x patch.
+
+## 0.11.0 - 2026-10-05
+
+### Added
+
+- The preset turns on `noNonScalableViewport` at `error`: a `<meta name="viewport">` with `user-scalable=no` stops people from zooming. The rule has no fix. A repository that upgrades records its existing findings with `quality baseline write --rule biome`.
+
+### Changed
+
+- The preset sets `noUndeclaredClasses` and `noInlineStyles` off and declares why: the first cannot resolve a stylesheet imported through an alias and does not know Tailwind utilities, and an inline style is the right tool for a value computed at run time.
+
+## 0.10.0 - 2026-10-05
+
+### Added
+
+- `suppressions/no-ignore-deprecations` reports `compilerOptions.ignoreDeprecations` in every tsconfig the repository owns, whatever the file is named, outside the sources too, and names the line of the setting. The setting silences TypeScript's errors for deprecated options; replace the deprecated option and remove it. The rule takes no registry exceptions. A repository that upgrades records its existing findings with `quality baseline write --rule suppressions/no-ignore-deprecations`.
+
+### Changed
+
+- `useConsistentTestIt`, which asks for `it` over `test`, inside a `describe` too, only reports: `quality fix` no longer rewrites `test` to `it`, and the author decides.
+
+## 0.9.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/quality`: `@shivaedev/quality/imports/fences/dsl.ts` (`fence`), `@shivaedev/quality/imports/fences/model.ts` (`Chain`, `ExampleStep`, `Examples`, `External`, `Fence`, `Target`), `@shivaedev/quality/imports/fences/selectors.ts` (`anyOf`, `anything`, `external`, `files`, `folders`, `modules`, `packages`, `scopes`, `workspace`), `@shivaedev/quality/config.ts` (`BuiltInRules`, `Level`, `QualityConfig`, `RuleSetting`, `RuleSettings`, `defineConfig`), `@shivaedev/quality/rule.ts` (`Configured`, `Finding`, `Findings`, `Rule`, `RuleContext`, `RuleInputs`, `SourceFile`, `defineRule`), `@shivaedev/quality/standard-schema.ts` (`StandardIssue`, `StandardResult`, `StandardSchemaV1`)
+  - `@shivaedev/quality/vitest`: `@shivaedev/quality/vitest.ts`
+- A consumer `quality.config.ts` imports `defineConfig` from `@shivaedev/quality/config.ts`, `defineRule` from `rule.ts`, `fence` from `imports/fences/dsl.ts` and the selectors from `imports/fences/selectors.ts`. `./biome`, `./tsconfig/base.json` and `./tsconfig/package.json` are unchanged.
+
 ## 0.8.2 - 2026-10-04
 
 ### Changed

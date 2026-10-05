@@ -1,0 +1,408 @@
+{
+	"aliases": [
+		{
+			"content": "packages:\n  - 'packages/*'\n",
+			"path": "pnpm-workspace.yaml"
+		},
+		{
+			"content": "{\"name\": \"@demo/root\"}\n",
+			"path": "package.json"
+		},
+		{
+			"content": "{\"compilerOptions\": {\"paths\": {\"auth-kit\": [\"./node_modules/better-auth\"]}}}\n",
+			"path": "tsconfig.json"
+		},
+		{
+			"content": "{\"name\": \"@demo/core\", \"imports\": {\"#auth\": \"better-auth\"}}\n",
+			"path": "packages/core/package.json"
+		},
+		{
+			"content": "import type { Options } from \"#auth\";\n\nexport type Hashed = Options;\n",
+			"path": "packages/core/src/hash.ts"
+		},
+		{
+			"content": "import type {} from \"../../../node_modules/@trpc/server/src/http.ts\";\n\nexport const relative = 1;\n",
+			"path": "packages/core/src/relative.ts"
+		},
+		{
+			"content": "import type { Options } from \"auth-kit\";\n\nexport type Pathed = Options;\n",
+			"path": "packages/core/src/paths.ts"
+		},
+		{
+			"content": "import type { Root } from \"hast\";\nimport type { Kit } from \"@demo/kit\";\n\nexport type Both = [Root, Kit];\n",
+			"path": "packages/core/src/types.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/hast\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/hast/package.json"
+		},
+		{
+			"content": "export interface Root {}\n",
+			"path": "node_modules/@types/hast/index.d.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/demo__kit\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/demo__kit/package.json"
+		},
+		{
+			"content": "export interface Kit {}\n",
+			"path": "node_modules/@types/demo__kit/index.d.ts"
+		},
+		{
+			"content": "import { Effect } from \"effect\";\n\nexport const plain = Effect;\n",
+			"path": "packages/core/src/plain.ts"
+		},
+		{
+			"content": "{\"name\": \"better-auth\", \"exports\": {\".\": {\"types\": \"./index.d.ts\", \"default\": \"./index.js\"}}}\n",
+			"path": "node_modules/better-auth/package.json"
+		},
+		{
+			"content": "export const auth = 1;\n",
+			"path": "node_modules/better-auth/index.js"
+		},
+		{
+			"content": "export interface Options {}\nexport declare const auth: number;\n",
+			"path": "node_modules/better-auth/index.d.ts"
+		},
+		{
+			"content": "{\"name\": \"@trpc/server\"}\n",
+			"path": "node_modules/@trpc/server/package.json"
+		},
+		{
+			"content": "export const http = 1;\n",
+			"path": "node_modules/@trpc/server/src/http.ts"
+		},
+		{
+			"content": "{\"name\": \"effect\", \"exports\": {\".\": \"./index.js\"}}\n",
+			"path": "node_modules/effect/package.json"
+		},
+		{
+			"content": "export const Effect = 1;\n",
+			"path": "node_modules/effect/index.js"
+		}
+	],
+	"cycle": [
+		{
+			"content": "import { b } from \"./b.ts\";\n\nexport const a = (): number => b;\n",
+			"path": "src/a.ts"
+		},
+		{
+			"content": "import { c } from \"./c.ts\";\n\nexport const b = c + 1;\n",
+			"path": "src/b.ts"
+		},
+		{
+			"content": "import { a } from \"./a.ts\";\n\nexport const c = typeof a === \"function\" ? 1 : 0;\n",
+			"path": "src/c.ts"
+		},
+		{
+			"content": "import { a } from \"./a.ts\";\n\nexport const called = a();\n",
+			"path": "src/caller.ts"
+		},
+		{
+			"content": "export const load = () => import(\"./lazy.ts\");\n",
+			"path": "src/lazy.ts"
+		}
+	],
+	"empty": [
+		{
+			"content": "# Notes\n",
+			"path": "README.md"
+		},
+		{
+			"content": "# Guide\n",
+			"path": "docs/guide.md"
+		}
+	],
+	"fence": [
+		{
+			"content": "packages:\n  - packages/gam?\n# the content side\n  - \"packages/{cms,simulation}\" # editors\n  - 'packages/vocab[!0-9]lary'\n\ncatalog:\n  effect: 4.0.0\n",
+			"path": "pnpm-workspace.yaml"
+		},
+		{
+			"content": "{\"name\": \"@demo/game\"}\n",
+			"path": "packages/game/package.json"
+		},
+		{
+			"content": "import { edit } from \"../../cms/src/edit.ts\";\n\nexport const play = edit;\n",
+			"path": "packages/game/src/play.ts"
+		},
+		{
+			"content": "import { step } from \"../../simulation/src/step.ts\";\n\nexport const run = step;\n",
+			"path": "packages/game/src/run.ts"
+		},
+		{
+			"content": "import { cards } from \"../../vocabulary/src/cards.ts\";\nimport { voyage } from \"../../vocabulary/src/voyage/route.ts\";\n\nexport const words = [cards, voyage];\n",
+			"path": "packages/game/src/words.ts"
+		},
+		{
+			"content": "import { edit } from \"../../cms/src/edit.ts\";\nimport { play } from \"./play.ts\";\n\nexport const tested = [edit, play];\n",
+			"path": "packages/game/src/play.test.ts"
+		},
+		{
+			"content": "import { step } from \"../../simulation/src/step.ts\";\nimport { voyage } from \"../../vocabulary/src/voyage/route.ts\";\n\nexport const tested = [step, voyage];\n",
+			"path": "packages/game/src/voyageFlow.spec.ts"
+		},
+		{
+			"content": "import { step } from \"../../../simulation/src/step.ts\";\nimport { voyage } from \"../../../vocabulary/src/voyage/route.ts\";\n\nexport const server = [step, voyage];\n",
+			"path": "packages/game/src/test-support/server.ts"
+		},
+		{
+			"content": "import { edit } from \"../../cms/src/edit.ts\";\n\nexport const tested = edit;\n",
+			"path": "packages/game/test/play.test.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/cms\"}\n",
+			"path": "packages/cms/package.json"
+		},
+		{
+			"content": "import { readFileSync } from \"fs\";\n\nexport const edit = readFileSync;\n",
+			"path": "packages/cms/src/edit.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/simulation\"}\n",
+			"path": "packages/simulation/package.json"
+		},
+		{
+			"content": "import { edit } from \"../../cms/src/edit.ts\";\n\nexport const step = edit;\n",
+			"path": "packages/simulation/src/step.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/vocabulary\"}\n",
+			"path": "packages/vocabulary/package.json"
+		},
+		{
+			"content": "export const cards = \"cards\";\n",
+			"path": "packages/vocabulary/src/cards.ts"
+		},
+		{
+			"content": "export const session = \"session\";\n",
+			"path": "packages/vocabulary/src/session.ts"
+		},
+		{
+			"content": "export const voyage = \"voyage\";\n",
+			"path": "packages/vocabulary/src/voyage/route.ts"
+		}
+	],
+	"generatedAlias": [
+		{
+			"content": "test/generated/\ntest/cache/\n",
+			"path": ".gitignore"
+		},
+		{
+			"content": "{\"name\": \"@demo/generated\", \"imports\": {\"#test/*\": \"./test/*\"}}\n",
+			"path": "package.json"
+		},
+		{
+			"content": "import { client } from \"#test/generated/client.ts\";\nimport { cached } from \"#test/cache/client.ts\";\n\nexport const used = [client, cached];\n",
+			"path": "test/client.test.ts"
+		}
+	],
+	"nested": [
+		{
+			"content": "{\"name\": \"@demo/root\", \"workspaces\": [\"packages/*\"]}\n",
+			"path": "package.json"
+		},
+		{
+			"content": "{\"name\": \"@demo/game\"}\n",
+			"path": "packages/game/package.json"
+		},
+		{
+			"content": "import { draft } from \"../../cms/test/fixtures/draft.ts\";\n\nexport const preview = draft;\n",
+			"path": "packages/game/src/preview.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/cms\"}\n",
+			"path": "packages/cms/package.json"
+		},
+		{
+			"content": "export const edit = 1;\n",
+			"path": "packages/cms/src/edit.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/draft-fixture\"}\n",
+			"path": "packages/cms/test/fixtures/package.json"
+		},
+		{
+			"content": "export const draft = 1;\n",
+			"path": "packages/cms/test/fixtures/draft.ts"
+		}
+	],
+	"pending": [
+		{
+			"content": "packages: [packages/*]\n",
+			"path": "pnpm-workspace.yaml"
+		},
+		{
+			"content": "generated/\n",
+			"path": "packages/cms/.gitignore"
+		},
+		{
+			"content": "{\"name\": \"@demo/cms\"}\n",
+			"path": "packages/cms/package.json"
+		},
+		{
+			"content": "export const edit = 1;\n",
+			"path": "packages/cms/src/edit.ts"
+		},
+		{
+			"content": "{\"name\": \"@demo/game\"}\n",
+			"path": "packages/game/package.json"
+		},
+		{
+			"content": "import { client } from \"../../cms/generated/client.ts\";\n\nexport const used = client;\n",
+			"path": "packages/game/src/client.ts"
+		}
+	],
+	"references": [
+		{
+			"content": "/// <reference types=\"present\" />\n/// <reference types=\"absent\" />\n/// <reference path=\"./thing.ts\" />\n/// <reference path=\"./absent.d.ts\" />\n",
+			"path": "src/env.d.ts"
+		},
+		{
+			"content": "/** @import { Thing } from \"./thing.ts\" */\n/** @import { Gone } from \"./gone-type.ts\" */\n\nexport const tool = 1;\n",
+			"path": "src/tool.js"
+		},
+		{
+			"content": "export type Thing = number;\n",
+			"path": "src/thing.ts"
+		},
+		{
+			"content": "export const found = require.resolve(\"./tool.js\");\nexport const lost = require.resolve(\"./nowhere.cjs\");\nexport const metaFound = import.meta.resolve(\"./tool.js\");\nexport const metaLost = import.meta.resolve(\"./nowhere.mjs\");\nexport const metaPackage = import.meta.resolve(\"absent-package\");\n",
+			"path": "src/where.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/present\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/present/package.json"
+		},
+		{
+			"content": "declare const present: number;\n",
+			"path": "node_modules/@types/present/index.d.ts"
+		}
+	],
+	"resolution": [
+		{
+			"content": "{\"compilerOptions\": {\"paths\": {\"~/*\": [\"./src/*\"]}}}\n",
+			"path": "tsconfig.json"
+		},
+		{
+			"content": "{\"name\": \"@demo/app\", \"imports\": {\"#lib/*\": \"./src/lib/*\"}}\n",
+			"path": "package.json"
+		},
+		{
+			"content": "import { aliased } from \"~/aliased.ts\";\nimport { imported } from \"#lib/imported.ts\";\nimport { shared } from \"@demo/shared\";\nimport config from \"./config.json\" with { type: \"json\" };\nconst required = require(\"./required.cjs\");\n\nexport const main = [aliased, imported, shared, config, required];\n",
+			"path": "src/main.ts"
+		},
+		{
+			"content": "export const aliased = 1;\n",
+			"path": "src/aliased.ts"
+		},
+		{
+			"content": "export const imported = 1;\n",
+			"path": "src/lib/imported.ts"
+		},
+		{
+			"content": "{ \"ready\": true }\n",
+			"path": "src/config.json"
+		},
+		{
+			"content": "module.exports = 1;\n",
+			"path": "src/required.cjs"
+		},
+		{
+			"content": "{\"name\": \"@demo/shared\", \"exports\": {\".\": {\"types\": \"./dist/index.d.ts\", \"source\": \"./src/index.ts\", \"default\": \"./dist/index.js\"}}}\n",
+			"path": "packages/shared/package.json"
+		},
+		{
+			"content": "export const shared = 1;\n",
+			"path": "packages/shared/src/index.ts"
+		}
+	],
+	"typeCycle": [
+		{
+			"content": "import type { Line } from \"./line.ts\";\n\nexport interface Order {\n\treadonly lines: readonly Line[];\n}\n",
+			"path": "src/order.ts"
+		},
+		{
+			"content": "export type { Order } from \"./order.ts\";\nimport type { Order } from \"./order.ts\";\n\nexport interface Line {\n\treadonly order: Order;\n\treadonly total: typeof import(\"./total.ts\").total;\n}\n",
+			"path": "src/line.ts"
+		},
+		{
+			"content": "import type { Line } from \"./line.ts\";\n\nexport const total = (lines: readonly Line[]): number => lines.length;\n",
+			"path": "src/total.ts"
+		}
+	],
+	"unresolvable": [
+		{
+			"content": "src/generated/\ndist/\nnode_modules/\n",
+			"path": ".gitignore"
+		},
+		{
+			"content": "{\"include\": [\"src\"]}\n",
+			"path": "tsconfig.json"
+		},
+		{
+			"content": "import { gone } from \"./gone.ts\";\nimport pad from \"left-pad\";\nimport icons from \"virtual:icons\";\nimport \"./style.css\";\nimport logo from \"./logo.svg?url\";\nimport { client } from \"./generated/client.ts\";\nimport { readFileSync } from \"node:fs\";\nimport { join } from \"path\";\nimport \"../dist/does-not-exist.ts\";\nimport \"./node_modules/ghost/index.ts\";\nimport \"./missing.css\";\nimport other from \"other:thing\";\nimport augmented from \"augmented\";\nimport { ghost } from \"./ghost.ts\";\nimport type { Ghost } from \"./ghost.ts\";\nimport { visit } from \"hast\";\nimport type { Root } from \"hast\";\nimport { only } from \"dts-only\";\nimport type { Only } from \"dts-only\";\nimport styles from \"./ghost.css\";\n\nexport const main = [gone, pad, icons, logo, client, readFileSync, join, other, augmented, ghost, visit, only, styles];\nexport type Main = [Ghost, Root, Only];\n",
+			"path": "src/main.ts"
+		},
+		{
+			"content": "p {\n\tmargin: 0;\n}\n",
+			"path": "src/style.css"
+		},
+		{
+			"content": "<svg xmlns=\"http://www.w3.org/2000/svg\"/>\n",
+			"path": "src/logo.svg"
+		},
+		{
+			"content": "declare module \"virtual:*\" {\n\tconst value: string;\n\texport default value;\n}\n",
+			"path": "src/virtual.d.ts"
+		},
+		{
+			"content": "declare module \"*.css\";\n",
+			"path": "src/css.d.ts"
+		},
+		{
+			"content": "declare module \"*\";\n",
+			"path": "src/catchall.d.ts"
+		},
+		{
+			"content": "export const augment = 1;\n\ndeclare module \"augmented\" {\n\tconst value: number;\n\texport default value;\n}\n",
+			"path": "src/augment.ts"
+		},
+		{
+			"content": "export declare const ghost: number;\nexport type Ghost = number;\n",
+			"path": "src/ghost.d.ts"
+		},
+		{
+			"content": "declare const styles: Record<string, string>;\nexport default styles;\n",
+			"path": "src/ghost.d.css.ts"
+		},
+		{
+			"content": "declare module \"**\";\ndeclare module \"*-*\";\n",
+			"path": "src/globs.d.ts"
+		},
+		{
+			"content": "{\"name\": \"dts-only\", \"exports\": {\".\": {\"source\": \"./index.d.ts\", \"import\": \"./index.d.ts\", \"default\": \"./index.d.ts\"}}}\n",
+			"path": "node_modules/dts-only/package.json"
+		},
+		{
+			"content": "export declare const only: number;\nexport type Only = number;\n",
+			"path": "node_modules/dts-only/index.d.ts"
+		},
+		{
+			"content": "{\"include\": [\".\"]}\n",
+			"path": "other/tsconfig.json"
+		},
+		{
+			"content": "declare module \"other:*\" {\n\tconst value: string;\n\texport default value;\n}\n",
+			"path": "other/declare.d.ts"
+		},
+		{
+			"content": "{\"name\": \"@types/hast\", \"types\": \"index.d.ts\"}\n",
+			"path": "node_modules/@types/hast/package.json"
+		},
+		{
+			"content": "export interface Root {}\nexport declare function visit(): void;\n",
+			"path": "node_modules/@types/hast/index.d.ts"
+		}
+	]
+}

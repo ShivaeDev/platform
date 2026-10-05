@@ -2,11 +2,11 @@
 
 The native RPC stack can keep an application's existing authentication provider. An application that already resolves sessions with BetterAuth's `auth.api.getSession({ headers })` can reuse it: native RPC middleware can call that same API and provide a small request-local Effect service to application handlers. Domain repositories do not need to know how authentication sessions are stored.
 
-The executable example is [native-rpc-auth.test.ts](../../packages/platform/test/native-rpc-auth.test.ts). It uses real BetterAuth, its signed session cookies, its own migrations and an ephemeral SQLite database through BetterAuth's supported Node SQLite configuration. It adds no Platform auth adapter or storage implementation. BetterAuth's internals may use their own SQL tooling; the application-facing framework does not expose or adopt that tooling.
+The executable example is [nativeRpcAuth.spec.ts](../../packages/platform/src/nativeRpcAuth.spec.ts). It uses real BetterAuth, its signed session cookies, its own migrations and an ephemeral SQLite database through BetterAuth's supported Node SQLite configuration. It adds no Platform auth adapter or storage implementation. BetterAuth's internals may use their own SQL tooling; the application-facing framework does not expose or adopt that tooling.
 
 Platform now ships this boundary as reusable middleware: `authenticatedLayer`,
-`maybeAuthenticatedLayer` and `betterAuthSessions` from
-`@shivaedev/platform/rpc-server`, with the shared error classes. See
+`maybeAuthenticatedLayer` from `@shivaedev/platform/rpc-server/session.ts` and
+`betterAuthSessions` from `@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts`, with the shared error classes. See
 [errors and request context](./request-context.md). The test described here is
 still the minimal example, written without those helpers.
 

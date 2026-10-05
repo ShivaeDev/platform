@@ -9,8 +9,8 @@ From the repository root, after installing dependencies and building packages:
 
 ```sh
 node --conditions=source --input-type=module <<'JS'
-import { folder, startBoard } from './packages/work-board/test/support/board.ts';
-import { workspaceFixture } from './packages/work-board/test/support/workspaceFixture.ts';
+import { folder, startBoard } from './packages/work-board/src/test-support/board.ts';
+import { workspaceFixture } from './packages/work-board/src/test-support/workspaceFixture.ts';
 const notes = folder(workspaceFixture());
 const board = await startBoard(notes.root, 'board.md');
 console.log(`Open ${board.url}\nEdit files in ${notes.root}`);
@@ -48,8 +48,8 @@ actual results, and any limitations in the PR. Stop with Ctrl-C after review.
    work and explain that choices apply only to the current page.
 
 The fixture includes duplicate headings, a missing link, long prose, an encoded
-filename, a diagram, details, and malformed example metadata. Missing references
-and metadata are reading samples here; schema validation belongs to later steps.
+filename, a diagram, details, and malformed example metadata. The additional
+`identityFixture()` supplies richer items, explicit references, and recorded claims.
 Performance timings from this fixture are observations, not established budgets
 or proof of the north star's usability targets.
 
@@ -75,3 +75,111 @@ or proof of the north star's usability targets.
    release it. The old response must not replace the new page. Simulate a failed
    navigation, restore network access, and retry the same link. Recheck desktop,
    mobile, keyboard, no-JavaScript rendering, and live updates of the active title.
+
+## Workspace search acceptance — step 03
+
+1. Open Search with Ctrl/Cmd+K. Search `project note`, a document filename,
+   `Evidence`, and a phrase from a card. Check the result types, snippets, count,
+   and 40-result limit. A nonexistent phrase must show an empty state.
+2. Search the text under a second duplicate heading in an encoded filename.
+   Use arrows then Enter; the result opens the correct heading. Escape restores
+   focus to the control that opened the dialog. Check the focus trap, dark theme,
+   and dialog/results scrolling at 390 × 844 without horizontal overflow.
+3. With the dialog open, edit/add/delete a Markdown file in the fixture folder.
+   Results must update. Drop and reconnect the event stream; results reconcile.
+4. Hold an earlier search response, type a different query, then release it.
+   The older results must not replace the newer query. Fail a request and use
+   Search to retry. Unreadable files must disclose incomplete results.
+5. Clear the query and use workspace/sidebar/density/theme commands. Confirm
+   native modified clicks on file results still open another tab. With JavaScript
+   disabled, Search is disabled and documents remain readable.
+
+Search observations from a named machine may be recorded as a baseline; they are
+not an agreed performance budget or usability proof. Source-in-editor links
+remain deferred until a local editor mechanism is agreed.
+
+## Optional identity acceptance — step 04
+
+Add `identityFixture()` from `src/test-support/identityFixture.ts` to the large fixture.
+
+1. Open the legacy board: its 100 cards remain unchanged. Search an explicit ID,
+   owner, and criterion phrase. Check source line labels, then use Enter to open
+   an item/criterion. Criteria expand work details and receive keyboard focus,
+   including when searching within the already active item.
+2. Inspect work details, relationship/source links, and original frontmatter.
+   Missing fields say Not recorded. Evidence shows recorded revision/time/method
+   and outcome with an explicit notice that the claim is not independently verified.
+3. Open content details and select prose. Rename the source file while its stable
+   item URL is open; details, selection, and location remain. Edit the heading;
+   its title updates. Navigate to its decision and use Back to restore details.
+4. Add a duplicate ID; the active item must become a conflict explanation with
+   source choices. Remove the duplicate and recover. Delete the remaining source;
+   its stable URL must show an explicit missing-item page.
+5. Read a malformed/unknown field and an unresolved reference. Prose and original
+   metadata remain readable. Repeat item/criterion navigation at 390 × 844, in
+   dark mode, and with JavaScript disabled. Check narrow overflow and page errors.
+
+## Work board/detail acceptance — step 05 first checkpoint
+
+Add `viewsFixture()` from `src/test-support/viewsFixture.ts` to the large fixture.
+
+1. Confirm the legacy home still has 100 cards. Open Work and select Review work
+   then Shared investigation. The same work.search ID appears in both with the
+   source's recorded fields; counts exclude duplicates and undeclared members.
+2. Apply owner/status/text filters and sorting. Missing fields remain distinct
+   from literal text. Open a card, follow its source/evidence link, then use Back.
+   Reload its URL; board, filters, selected ID, and source pane must agree.
+3. Edit the selected item's status. Applied filters remain, even with no matching
+   status; the detail explains it is outside the projection. Keep unsent text
+   focused through that update. Delete its source; explain the missing selection.
+   Duplicate an ID or membership and inspect source diagnostics, without silently
+   selecting a winner or inflating counts. An unreadable index refuses counts.
+4. Repeat at 390 × 844, with dark theme and reduced motion. Real Mermaid in the
+   pane must render; check overflow and errors. Disable JavaScript and submit GET
+   filters/open detail through native links. Table/saved-view acceptance follows
+   in the next checkpoint; do not check step 05 complete yet.
+
+## Table and saved-view acceptance — step 05 completion
+
+1. Use the same richer fixture. Switch Board/Table with an item selected and
+   filters/sorting applied. IDs, counts, source fields, and selected detail agree.
+   Use Back and reload the table URL; selected context remains. Missing sort fields
+   stay last and missing cells remain explicit.
+2. Save a named table view, reload, choose it, and Open. Applied board/filters/sort/
+   layout return without retaining item selection or unsent filter edits. Save
+   the same name in a different layout and confirm it updates rather than doubles.
+   Remove one or Clear all. Another workspace must not inherit these names.
+3. Save 10 views. An eleventh name must request removal/update instead of silently
+   evicting one. Malformed stored JSON recovers on a successful save; external or
+   executable saved URLs are ignored and names render as text. Block browser
+   storage: in-memory saving/opening/removal still works with an explicit notice.
+4. Edit a selected item's status, then delete it. The table/counts update while
+   applied filters, focused unsent input, and selection explanations remain.
+   Verify real Mermaid, compact density, 390 × 844/dark/reduced motion without page
+   overflow, and readable no-JavaScript table/filter/detail navigation. Saved-view
+   controls remain disabled without JavaScript.
+
+## Reasoning and evidence acceptance — step 06
+
+Add `reasoningFixture()` from `src/test-support/reasoningFixture.ts` to the large fixture.
+
+1. Open Search reasoning in Table with result.search selected. Follow its
+   Implements link to plan.search and that plan's link to decision.search. The
+   options comparison and rationale are readable in two navigation steps. Use
+   the rationale heading anchor and Back to restore the selected view context.
+2. Open work.search#keyboard. It lists claims from both its own source and the
+   result file; passage has no recorded evidence. Open the result's record link:
+   its source details expand and the exact evidence record receives focus.
+   Origin file/line, old revision/time, method and recorded outcome are visible;
+   no claim says independently verified or human accepted.
+3. Follow its evidence source to the plain evidence file and inspect Referenced
+   by. Metadata/Markdown backlinks reach their explicit sources, including the
+   encoded review filename. Follow that file's rationale link. The missing local
+   Markdown record remains visible and leads to an explanatory missing page.
+4. Edit the result's criterion reference, delete the evidence source, then remove
+   the result. Claim associations/backlinks reconcile; missing sources/claims
+   remain explicit. Duplicate IDs or unreadable files must prevent validated
+   criterion association and disclose partial references.
+5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow,
+   errors, and real Mermaid. Disable JavaScript and follow result → plan →
+   decision natively. Existing legacy home cards remain unchanged.

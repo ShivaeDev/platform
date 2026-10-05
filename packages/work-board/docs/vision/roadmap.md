@@ -1,7 +1,6 @@
 # Work Board roadmap
 
-The [north star](./README.md) defines the direction. All unchecked work below is
-proposed and unimplemented. Completion requires the stated observable behavior
+The [north star](./README.md) defines the direction. Unchecked work remains incomplete; partial checkpoints are recorded below. Completion requires the stated observable behavior
 and relevant checks; a mockup or a checked design document is not feature proof.
 Waves describe dependency order, not a calendar commitment.
 
@@ -18,10 +17,10 @@ Check a step only after its acceptance is demonstrated in the package.
 
 - [x] [01 A real workspace shell](./delivery/wave1.md#01-a-real-workspace-shell)
 - [x] [02 Document locations and reading state](./delivery/wave1.md#02-document-locations-and-reading-state)
-- [ ] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
-- [ ] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
-- [ ] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
-- [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
+- [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
+- [x] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
+- [x] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
+- [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
@@ -73,7 +72,7 @@ navigation preserves scroll, text selection, and expanded sections. Favorites
 and ten recent documents are stored per workspace and browser origin; bounded
 reading records survive reloads within a tab. Missing documents and passages are
 explained. Heading text/order changes can change generated anchors; durable IDs
-remain step 04 work. Project content is not modified.
+are supported for richer per-item files in step 04. Project content is not modified.
 
 - Work Board: 89 passing tests, including heading collisions, Unicode, encoded
   filenames, nested-home links, history restoration, workspace isolation,
@@ -94,7 +93,153 @@ remain step 04 work. Project content is not modified.
   review path. This is fixture evidence, not real-project adoption or performance
   measurement.
 
-Steps 03–26 remain open. Search and the rest of W1.2/W1.3 are still proposed.
+## Step 03 evidence
+
+The package now searches local document titles/paths, Markdown headings, and
+passage text using a rebuildable in-memory index. A keyboard-opened dialog shows
+result types, snippets, bounded counts, empty/failure states, and links to the
+matching heading. It also commands the existing workspace/sidebar/density/theme
+controls. File changes invalidate the index; open results refresh on edits and
+reconnect. Source-in-editor links await an agreed local editor mechanism.
+
+- Work Board: 100 passing tests, including exact duplicate-heading targets,
+  encoded paths, Unicode/GFM/code text, deterministic ranking/result bounds,
+  real filesystem/HTTP edit/add/delete invalidation, root/hidden-file boundaries,
+  incomplete-result notices, keyboard commands, focus restoration, stale-response
+  rejection even when cancellation is ignored, retry, and safe snippet rendering.
+- Chromium 151: 50-document/100-item fixture at 1440 × 1000 and 390 × 844;
+  typed results, duplicate passage navigation, arrows/Enter/Escape, modal focus,
+  edits/deletions, delayed-response isolation, retries, view commands, dark theme,
+  modified-click new tabs, narrow layout without horizontal overflow, and readable
+  no-JavaScript content with Search disabled. No page errors observed. The actual
+  project vision/delivery folder was also searched and a matching passage opened.
+- Observational baseline on the shared managed container (AMD EPYC 9V74 CPU,
+  Node 24.19.0): first HTML response 57.1ms, cold index/search 76.9ms, and edit to
+  updated search 199.9ms, with the 50-document/100-item fixture. Five warm requests
+  in the browser walkthrough ranged from 3.5ms to 26.6ms. These are individual
+  observations, not agreed budgets or proof of real-user orientation time.
+- Repository gate: `pnpm ready` passed lint, build, typecheck, real
+  PostgreSQL-backed tests, orchestration regressions, and packed consumers. Package
+  suites have 983 passing tests and three existing expected failures; seven
+  orchestration tests passed, with no tests skipped.
+- [Browser acceptance](./delivery/browser-acceptance.md) gives the repeatable
+  review path. [Source examples](./delivery/source-examples.md) describe the optional
+  read-side convention.
+
+## Step 04 evidence
+
+D1 approved optional per-file YAML frontmatter with `yaml` 2.9.0, explicit stable
+IDs, unchanged legacy heading boards, explicit relationships/board membership,
+and criterion-level recorded evidence distinct from verified acceptance. The
+package now reads that [source convention](./delivery/source-examples.md), extends
+the existing index, and exposes stable item/criterion links and diagnostics.
+
+- Work Board: 128 passing tests covering plain Markdown compatibility, BOM/CRLF
+  and exact source lines, independent valid fields, unknown/nested-invalid fields,
+  malformed YAML/duplicate keys/tags/alias bounds, case-sensitive ASCII identity,
+  explicit references, duplicate IDs/criteria, incomplete-workspace validation,
+  real HTTP/watch rename/delete/conflict recovery, identity read-race rejection,
+  reserved-prefix/encoded Markdown paths, restart rebuilding, metadata
+  escaping, and criterion search/focus. DOM regressions preserve open details and
+  selection through live item renames and navigation; same-document search keeps
+  passage focus after closing the dialog.
+- Chromium 151: 50-document/100-card fixture plus richer item examples at
+  1440 × 1000 and 390 × 844; original cards unchanged, ID/owner/criterion search
+  with exact line labels, recorded-provenance disclosure, relationship navigation,
+  criterion focus/expansion, live file/heading renames, Back restoration,
+  duplicate/deletion explanations and recovery, unknown-field raw preservation,
+  dark mode, no-JavaScript reading, and no narrow horizontal overflow. No page
+  errors observed. This is fixture evidence, not user adoption or verified
+  acceptance of its example evidence records.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,011
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no tests skipped. The quality baseline did not grow.
+- [Browser acceptance](./delivery/browser-acceptance.md#optional-identity-acceptance--step-04)
+  gives the repeatable path. Richer board/table/detail views remain step 05;
+  legacy card IDs and source-in-editor navigation remain outside this checkpoint.
+
+## Step 05 board/detail checkpoint evidence
+
+The first checkpoint delivered board/detail views; the completion evidence below
+covers table views and saved local views.
+The board/detail checkpoint reads shared items from explicit board declarations,
+uses recorded status columns, and restores filtering/sorting/selection from URLs.
+
+- Work Board: 137 passing tests. New real HTTP/watch and DOM regressions cover
+  shared board counts, unchanged legacy headings, missing-field filters,
+  deterministic sorting, missing/repeated/ambiguous memberships, incomplete-index
+  refusal, filtered-out selections, live status edits and deletion explanations,
+  Back/Forward detail restoration, and retained focused unsent search.
+- Chromium 151: large 50-document/100-card fixture plus richer work at
+  1440 × 1000 and 390 × 844. Verified explicit shared boards/counts, detail source
+  links and real Mermaid, Back/reload URL restoration, live filters/focus,
+  deleted selection explanation, dark theme, reduced motion, no horizontal
+  overflow, and native no-JavaScript GET filters/detail links. No page errors.
+  This is fixture evidence, not real-user adoption or orientation-time proof.
+
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,020
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no tests skipped. The quality baseline did not grow.
+
+## Step 05 completion evidence
+
+Board and table now share explicit item projections, filter/sort state, counts,
+and selected source detail. URLs restore the layout and context; named browser
+views retain applied board/filter/sort/layout preferences without item selection
+or content writes. Legacy heading boards and personal compact density remain valid.
+
+- Work Board: 144 passing tests. New HTTP regressions compare board/table IDs,
+  counts and selected detail, missing-field ordering, escaped source cells, empty
+  results, and unsupported-layout fallback. DOM regressions cover applied-state
+  saving, excluded unsent input/selection, reopening, same-name updates, removal/
+  clearing, workspace isolation, external/executable URL rejection, textual names,
+  capacity without silent eviction, blocked storage, and malformed-JSON recovery.
+- Chromium 151: 50-document/100-card fixture plus shared richer items at
+  1440 × 1000 and 390 × 844. Verified board/table counts and selection, real
+  Mermaid/source detail, Back/reload, named-view save/update/reopen/clear, measured
+  compact row padding, live filters/focused unsent input/deleted selection,
+  dark/reduced-motion layout without page overflow, blocked-storage fallback,
+  and no-JavaScript table/GET filter/detail navigation. No page errors observed.
+  This is fixture evidence, not adoption or an orientation-time measurement.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and packed consumers. Package suites have 1,027
+  passing tests and three existing expected failures; nine orchestration tests
+  passed, with no skips or quality baseline growth.
+- [Browser acceptance](./delivery/browser-acceptance.md#table-and-saved-view-acceptance--step-05-completion)
+  gives the repeatable completion path. Evidence/backlink context follows in 06;
+  overview/attention remains 07, and no source mutations are implemented.
+
+## Step 06 completion evidence
+
+Explicit relationships connect a sample result to its plan and decision rationale.
+Criteria collect recorded claims across readable workspace files, linking to each
+source record with origin and supplied provenance. Incoming source links remain
+readable on plain Markdown documents. Claims never establish current verification
+or human acceptance; missing sources and old revisions stay visible.
+
+- Work Board: 155 passing tests. Added HTTP/watch/restart and DOM regressions
+  cover two-step reasoning, criterion associations and exact record focus,
+  Markdown/reference links, encoded paths and nested root homes, source deletion,
+  ambiguous IDs, and incomplete-index disclosure.
+- Chromium 151: verified result → plan → decision options/rationale, criterion →
+  exact recorded claim, retained old revisions and missing sources, plain/encoded
+  backlinks, Back and live edits/deletion, real Mermaid, desktop/mobile,
+  dark/reduced motion, and no-JavaScript reasoning navigation. No page errors or
+  page overflow observed. This proves fixture behavior, not user adoption.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and all packed consumers. Package suites have
+  1,038 passing tests and three existing expected failures; nine orchestration
+  tests passed, with no skips or quality baseline growth.
+- [Browser acceptance](./delivery/browser-acceptance.md) includes the repeatable
+  reasoning/evidence scenario. Source schema, dependencies, public exports and
+  content mutation remain unchanged. Record anchors follow array position;
+  explicit item and criterion IDs remain the durable source identities.
+
+Steps 07–26 remain open. Step 07's explicit attention-request metadata needs
+examples and user discussion before implementation; arbitrary statuses and owners
+must not become inferred requests. The rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 
@@ -119,7 +264,7 @@ the UI does not mutate project content in this wave.
 | W1.6 Awareness | Changed since last visit, source/freshness labels, stale evidence, restrained update highlighting, pause/resume updates | New content is distinguishable from activity; resuming catches up while preserving position and expanded content |
 | W1.7 Finish | Themes, responsive layouts, accessible focus/status, print/local HTML export, targeted updates | Browser checks cover desktop and narrow layout, keyboard, reduced motion, reconnect, and offline core use |
 
-- [ ] Agree the smallest optional read-side metadata convention; support legacy
+- [x] Agree the smallest optional read-side metadata convention; support legacy
   heading-based boards unchanged and treat missing metadata as unknown.
 - [ ] Deliver W1.2 + W1.3 as the first vertical slice: a larger workspace can be
   searched, browsed, and inspected comfortably.

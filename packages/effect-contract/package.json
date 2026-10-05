@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-contract",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract#readme",
 	"bugs": {
@@ -15,7 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./test/*",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
@@ -23,17 +23,20 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -48,6 +51,7 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",

@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/support/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 
 let notes: Folder;
 let board: RunningBoard;

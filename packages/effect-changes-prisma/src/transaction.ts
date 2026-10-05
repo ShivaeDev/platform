@@ -1,5 +1,5 @@
 import { type Context, Effect, Exit } from "effect";
-import type { Frame } from "@shivaedev/effect-changes";
+import type { Frame } from "@shivaedev/effect-changes/frame.ts";
 import { PrismaError, TransactionExpired } from "./error.ts";
 import { type Expire, expiring, isTransactionClosed } from "./expiry.ts";
 import type { Transactional, TransactionOptions } from "./model.ts";

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 - 2026-10-05
+
+### Added
+
+- `@shivaedev/effect-test/it.ts` exports `it`: the `it` of `@effect/vitest`, whose `effect` and `live` testers also take a generator function and run it with `Effect.gen`, so a test reads `it.effect("loads the item", function* () { … })`. They take a function that returns an Effect as well, as `@effect/vitest`'s testers do, so a file switches its import without rewriting other tests. Each tester supports `each`, `fails`, `only`, `runIf`, `skip` and `skipIf`, runs the body in a Scope, and types the yielded values, failures and requirements: a body that needs a service the test does not provide does not type-check. `effect` installs the test services, such as TestClock; `live` uses the live ones. The types are `EffectIt`, `EffectItTest` and `EffectItTester` in `@shivaedev/effect-test/types.ts`.
+
+## 0.2.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-test`: `@shivaedev/effect-test/eventually.ts` (`EventuallyOptions`, `eventually`), `@shivaedev/effect-test/types.ts` (`EffectClock`, `EffectTest`, `EffectTester`, `EffectTestOptions`, `MakeEffectItOptions`, `MakeEffectItResult`), `@shivaedev/effect-test/vitest.ts` (`makeEffectIt`)
+
 ## 0.1.3 - 2026-10-04
 
 ### Changed

@@ -23,3 +23,9 @@ export function testName(path: string): TestName | undefined {
 	const [stem = "", ...modifiers] = groups.base.split(".");
 	return { extension: groups.extension, folder: posix.dirname(path), kind, modifiers, stem };
 }
+
+const TEST_SUPPORT = "test-support";
+
+export function isTestCode(path: string): boolean {
+	return testName(path) !== undefined || posix.dirname(path).split("/").includes(TEST_SUPPORT);
+}

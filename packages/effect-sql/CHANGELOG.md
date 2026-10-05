@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-sql`: `@shivaedev/effect-sql/repository.ts` (`FindMany`, `makeRepository`), `@shivaedev/effect-sql/transact.ts` (`InvalidationKeys`, `TransactOptions`, `invalidateOnCommit`, `transact`), `@shivaedev/effect-sql/migrations.ts` (`PostgresMigrationOptions`, `migratePostgres`)
+- `makeRepository` and `FindMany` moved out of the deleted entry file into `repository.ts`.
+
 ## 0.1.1 - 2026-10-04
 
 ### Changed

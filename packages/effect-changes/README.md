@@ -5,7 +5,7 @@ Commit-bound change channels for Effect. Code that writes rows records the chang
 The package imports only `effect` and runs in browsers and servers. It knows nothing about SQL or any ORM: a channel binds to a database through two things you supply, the transaction owner and the native transaction.
 
 ```ts
-import { makeChannel } from "@shivaedev/effect-changes";
+import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 

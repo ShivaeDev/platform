@@ -1,7 +1,7 @@
 import { type Context, Effect } from "effect";
+import type { DatabaseIdentifier, DatabaseService, DefaultModels } from "#databaseTypes.ts";
 import { type PrismaError, toPrismaError } from "#error.ts";
 import { assertAvailableModelNames } from "./client-lifecycle.ts";
-import type { DatabaseIdentifier, DatabaseService, DefaultModels } from "./database-types.ts";
 import type { AnySqlContract, DatabaseExecutor } from "./executor.ts";
 import { makeModelRelation } from "./relation-runtime.ts";
 import { acquireTransaction, releaseTransaction, type TransactionOrm, withTransactionSemaphore } from "./transaction.ts";

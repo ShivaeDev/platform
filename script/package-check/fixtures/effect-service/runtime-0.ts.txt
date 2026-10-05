@@ -1,4 +1,4 @@
-import { defineService } from '@shivaedev/effect-service';
+import { defineService } from '@shivaedev/effect-service/define-service.ts';
 import { Effect } from 'effect';
 const Service = defineService({ id: 'packed/Service', requires: [], initialize: Effect.succeed(41), methods: n => ({ next: () => Effect.succeed(n + 1) }) });
 const result = await Effect.runPromise(Effect.flatMap(Service, s => s.next()).pipe(Effect.provide(Service.layer)));

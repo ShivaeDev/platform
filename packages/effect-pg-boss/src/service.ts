@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, type Option, type Schema } from "effect";
 import type { ConstructorOptions, SendOptions, StopOptions } from "pg-boss";
-import type { PgBossClientFactory } from "#internal/client.ts";
+import type { PgBossClientFactory } from "#client.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { registerJobs, registrationName } from "#internal/register.ts";
 import { makeService } from "#internal/service.ts";

@@ -1,4 +1,4 @@
-import type { Bivariant } from "@shivaedev/types";
+import type { Bivariant } from "@shivaedev/types/bivariant.ts";
 import { countOperations, type RowOperation, rowOperations } from "./model.ts";
 
 export interface Write {

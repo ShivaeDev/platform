@@ -1,6 +1,6 @@
-import { defineConfig } from "@shivaedev/quality"
+import { defineConfig } from "@shivaedev/quality/config.ts"
 // @ts-expect-error verbatimModuleSyntax needs a type-only import for a type.
-import { Level } from "@shivaedev/quality"
+import { Level } from "@shivaedev/quality/config.ts"
 // @ts-expect-error noUncheckedSideEffectImports resolves side-effect imports.
 import "./missing-side-effect.ts"
 import { checkedLength } from "./checked.js"

@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"noEmit": false,
+		"rootDir": "../../.."
+	},
+	"exclude": [],
+	"extends": "../../../tsconfig.json",
+	"include": ["valid.ts"]
+}

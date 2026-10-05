@@ -4,7 +4,7 @@ import type { ReadonlyRecord } from "effect/Record";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { SqlClient } from "effect/unstable/sql";
 import { isSqlError, type SqlError } from "effect/unstable/sql/SqlError";
-import { makeChannel } from "@shivaedev/effect-changes";
+import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
 
 export type InvalidationKeys = readonly unknown[] | ReadonlyRecord<string, readonly unknown[]>;
 

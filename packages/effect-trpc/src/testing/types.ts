@@ -1,6 +1,6 @@
 import type { TestContext, Vitest } from "@effect/vitest";
 import type { Effect, Layer } from "effect";
-import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
 import type { EffectTRPCAdapter } from "#adapter.ts";
 import type { AnyTestLayer } from "./any-test-layer.ts";
 import type { EffectCallerFactory } from "./caller.ts";

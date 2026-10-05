@@ -1,5 +1,6 @@
 import { join, posix } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
+import { exportTargets } from "#package-check/exports.ts";
 import { CODE, missingImportTargets } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Manifest, type Package, targets } from "#package-check/model.ts";
@@ -8,10 +9,13 @@ const exact = /^(npm:.+@)?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
 const decodeMap = Schema.decodeUnknownSync(SourceMap);
 const packedPath = (path: string): string => posix.join("package", path);
+const TEST_FILE = /(?:^|\/)(?:tests?|test-support)\/|\.(?:test|spec)\.[^/]*$/u;
 
 function filesEntryHolds(pattern: string, contents: ReadonlySet<string>): boolean {
 	return pattern.startsWith("!")
-		? ![...contents].some((path) => posix.matchesGlob(path, packedPath(pattern.slice(1))))
+		? ![...contents].some(
+				(path) => posix.matchesGlob(path, packedPath(pattern.slice(1))) || posix.matchesGlob(path, packedPath(`${pattern.slice(1)}/**`)),
+			)
 		: [...contents].some((path) => path === packedPath(pattern) || path.startsWith(`${packedPath(pattern)}/`));
 }
 
@@ -47,13 +51,14 @@ export const checkPackedArchive = (pkg: Package) =>
 				`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
 			);
 		}
-		const required = [...targets(manifest.exports), ...targets(manifest.types), ...Object.values(bins(manifest))];
+		yield* checkImports(tarball, manifest, contents);
+		const packed = new Set([...contents].map((path) => posix.relative("package", path)));
+		const required = [...exportTargets(manifest, packed), ...targets(manifest.types), ...Object.values(bins(manifest))];
 		for (const target of required) {
 			yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
 		}
 		yield* checkFiles(manifest.name, manifest.files ?? [], contents);
 		yield* checkMaps(directory, tarball, contents);
-		yield* checkImports(tarball, manifest, contents);
 		return manifest;
 	});
 
@@ -77,7 +82,7 @@ function checkImports(tarball: string, manifest: Manifest, contents: ReadonlySet
 const checkMaps = (directory: string, tarball: string, contents: ReadonlySet<string>) =>
 	Effect.gen(function* () {
 		for (const path of contents) {
-			yield* requireThat(!/(^|\/)tests?\//u.test(path), `packed test file ${path}`);
+			yield* requireThat(!TEST_FILE.test(path), `packed test file ${path}`);
 			if (!path.endsWith(".map")) {
 				continue;
 			}

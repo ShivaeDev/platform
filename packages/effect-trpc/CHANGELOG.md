@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module outside `internal/` (`src` under the `source` condition, `dist` otherwise), and `"./internal/*": null` keeps `internal/` modules private, so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-trpc`: `@shivaedev/effect-trpc/client/rejection.ts` (`EncodedRejection`), `@shivaedev/effect-trpc/adapter.ts` (`EffectTRPCAdapter`, `EffectTRPCRuntime`, `MakeEffectTRPCOptions`, `makeEffectTRPC`), `@shivaedev/effect-trpc/errors.ts` (`badRequest`, `conflict`, `fail`, `forbidden`, `internalServerError`, `notFound`, `preconditionFailed`, `unauthorized`), `@shivaedev/effect-trpc/procedure.ts` (`EffectProcedureBuilder`), `@shivaedev/effect-trpc/rejection.ts` (`RejectionError`, `RejectWithOptions`, `rejectionCode`, `rejectWith`), `@shivaedev/effect-trpc/rejection-formatter.ts` (`RejectionData`, `RejectionErrorShape`, `rejectionFormatter`, `withRejection`), `@shivaedev/effect-trpc/request-services.ts` (`EffectProcedureRequestServices`, `extendRequestServices`, `makeRequestServices`), `@shivaedev/effect-trpc/request-signal.ts` (`RequestSignal`), `@shivaedev/effect-trpc/types.ts` (`EffectTRPCErrorContext`, `EffectTRPCErrorMapper`, `EffectTRPCInstrument`, `EffectTRPCStreamInstrument`, `ProcedureInfo`, `ProcedureKind`)
+  - `@shivaedev/effect-trpc/client`: `@shivaedev/effect-trpc/client/rejection.ts` (`decodeRejection`, `EncodedRejection`, `rejectionOf`)
+  - `@shivaedev/effect-trpc/testing`: `@shivaedev/effect-trpc/testing/caller.ts` (`EffectCaller`, `EffectCallerFactory`, `makeEffectCaller`, `makeEffectCallerFactory`), `@shivaedev/effect-trpc/testing/types.ts` (`CallerOptions`, `CallerResult`, `MakeTrpcHarnessItOptions`, `MakeTrpcItOptions`, `TrpcHarnessIt`, `TrpcHarnessTest`, `TrpcHarnessTester`, `TrpcIt`, `TrpcTest`, `TrpcTester`), `@shivaedev/effect-trpc/testing/vitest.ts` (`makeTrpcHarnessIt`, `makeTrpcIt`)
+
 ## 0.5.1 - 2026-10-04
 
 ### Changed

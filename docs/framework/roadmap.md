@@ -22,7 +22,7 @@ The full `pnpm ready` gate passed: formatting, builds, TypeScript 6 and 7,
 runtime tests, and installed-package consumers. PostgreSQL tests ran against an
 isolated PostgreSQL 18 instance; CI is configured to run the new SQL test too.
 
-The [rendered feature fixture](../../packages/effect-react/test/native-feature.test.tsx)
+The [rendered feature fixture](../../packages/effect-react/src/nativeFeature.dom.spec.tsx)
 connects an actual SQLite repository, native RPC handlers/client, AtomRpc and
 React. A successful action refreshes the list; a rejected action leaves persisted
 and rendered data intact. It uses in-process RpcTest, not HTTP serialization or
@@ -56,7 +56,7 @@ These are executable boundary examples, not an application deployment. See the
 
 - [x] Strict shared `tsconfig.base.json` and `.ts` relative imports with `rewriteRelativeImportExtensions`.
 - [x] GritQL bans: type assertions, ambient runtime, relative import extensions, `Effect.fn` span names (`Owner.operation`).
-- [x] Repository rules: nesting depth, `index.ts` only as package entry.
+- [x] Repository rules: nesting depth, no `index.ts` barrels.
 - [x] Manifests: `catalog:`/`workspace:*` dependencies with exact catalog versions.
 - [x] Browser-safe sources for effect-contract, effect-form and effect-react.
 - [x] Package boundaries: leaf packages stay leaves; browser packages never import server packages.

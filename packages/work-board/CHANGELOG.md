@@ -1,8 +1,50 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/work-board`: `@shivaedev/work-board/board.ts` (`BoardOptions`, `boardLayer`)
 
 ### Added
+
+- Add source backlinks for explicit relationships, board membership, criterion
+  evidence, local evidence sources, and Markdown hyperlinks, including plain
+  files. Reuse the existing parse/index and disclose incomplete references.
+  Associate criterion claims across files and link directly to their records;
+  show missing claims, origin lines, retained old revisions, and missing local
+  Markdown sources without implying verified acceptance. Decision options and
+  rationale stay ordinary Markdown; source files remain unchanged.
+
+- Add a table layout sharing board projections, filters, sorting, and selected
+  source detail. Switch layouts without losing URL context and read/filter tables
+  without JavaScript. Save, update, reopen, remove, or clear up to 10 local named
+  views per workspace; reject unsafe destinations and disclose unavailable
+  storage. Keep saved filters separate from URL item selection and never silently
+  evict a saved view at capacity. Source Markdown stays unchanged.
+
+- Add Work board selection and explicit shared-item projections, exact status/
+  owner filters, text matching, and sorting. URL state restores board/filter/
+  selected detail context; source Markdown stays readable in a side pane.
+  Disclose missing/ambiguous memberships and selections, retain filters and
+  focused unsent search through live updates, and keep native links/GET filters
+  usable without JavaScript. Existing heading boards remain unchanged.
+
+- Read optional YAML frontmatter for stable item identity, explicit work fields,
+  relationships, board membership, criteria, and recorded evidence provenance.
+  Keep ordinary Markdown/heading boards valid, retain unknown source metadata,
+  and disclose malformed fields, duplicate IDs, and unresolved references.
+  Rebuild identities from the existing local index; identity links survive file
+  and heading renames, and criterion search opens its source context. Recorded
+  outcomes remain distinct from independently verified acceptance.
+- Show source lines in search results and preserve reading state when an item
+  moves. Keep passage focus when a search result targets the active document.
+
+- Add local workspace search with document, heading, and passage results, snippets,
+  keyboard navigation, and a command dialog for existing view controls. Rebuild
+  the in-memory index after file changes, disclose unreadable files, and prevent
+  older search responses from replacing newer queries.
 
 - Add heading passage links and an outline, in-place document navigation with
   back/forward reading-state restoration, workspace-scoped favorites and recents,

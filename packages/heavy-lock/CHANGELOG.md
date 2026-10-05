@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 - 2026-10-05
+
+### Changed
+
+- The README names the protocol fixture at its new place, `src/test-support/fixtures/reference-holder.lock`. Tests sit beside the code they cover in `src`, and neither they nor their support files are built or packed.
+
+## 0.3.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/heavy-lock`: `@shivaedev/heavy-lock/acquire.ts` (`acquireHeavyLock`, `HeavyLockOptions`, `HeavyLockServices`), `@shivaedev/heavy-lock/error.ts` (`HeavyLockError`), `@shivaedev/heavy-lock/held-lock.ts` (`HeldLock`, `HeldLockShape`), `@shivaedev/heavy-lock/holder.ts` (`HOLDER_ID_ENV`, `Holder`), `@shivaedev/heavy-lock/with-heavy-lock.ts` (`heavyLockLayer`, `withHeavyLock`)
+
 ## 0.2.1 - 2026-10-04
 
 ### Changed

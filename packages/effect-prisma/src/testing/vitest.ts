@@ -1,8 +1,10 @@
 import { it as effectIt } from "@effect/vitest";
 import type { Effect, Layer } from "effect";
-import { type EffectClock, makeEffectIt } from "@shivaedev/effect-test";
+import type { EffectClock } from "@shivaedev/effect-test/types.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import type { AnyDatabase } from "#databaseTypes.ts";
 import { withTestTransaction } from "./transaction.ts";
-import type { AnyDatabase, DatabaseIt, MakeDatabaseItOptions } from "./types.ts";
+import type { DatabaseIt, MakeDatabaseItOptions } from "./types.ts";
 
 export function makeDatabaseIt<Database extends AnyDatabase, Provided, LayerError>(
 	options: MakeDatabaseItOptions<Database, Provided, LayerError> & {

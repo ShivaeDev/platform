@@ -21,7 +21,7 @@ Node 24 or later loads `quality.config.ts` directly (type stripping), so no buil
 
 ```ts
 // quality.config.ts
-import { defineConfig } from "@shivaedev/quality";
+import { defineConfig } from "@shivaedev/quality/config.ts";
 import { noConsoleLog } from "./quality/no-console-log.ts";
 
 export default defineConfig({
@@ -56,7 +56,7 @@ The config is typed: an unknown rule id, a misspelled option or an option of the
 
 ## Rules
 
-`structure/max-lines` keeps each module to one job: a source file may have 150 lines and a test file 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns that mark test files (`*.test.*`, `*.spec.*`, `test/`, `tests/` and `__tests__/` by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
+`structure/max-lines` keeps each module to one job: a source file may have 150 lines and [test code](#test-code) 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (the limits) and `testFiles`, `.gitignore` patterns of further folders whose files count as tests, such as a Playwright suite in `e2e/` (none by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
 
 ### Comments
 
@@ -101,13 +101,14 @@ A repository with existing comments adopts the rules through the baseline, for e
 
 ### Suppressions
 
-A check that is silenced at one site hides the problem instead of fixing it. Three rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
+A check that is silenced at one site hides the problem instead of fixing it. Four rules close the escape hatches, and none of them takes registry exceptions: a registry entry that names one fails the gate as stale. A repository with existing suppressions adopts the rules through the baseline.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `suppressions/no-inline` | Every comment directive that silences a linter, the compiler or a formatter, except `@ts-expect-error` in a type test | none |
 | `suppressions/no-double-cast` | A cast through `unknown`, `any` or `never`: `x as unknown as T`, `x as any as T`, `x as never as T`, `<T><unknown>x` | none |
 | `suppressions/biome-overrides` | A Biome setting that turns a check off or down, or keeps files out of it, without a declaration, and a declaration that matches no setting | `declared` |
+| `suppressions/no-ignore-deprecations` | `compilerOptions.ignoreDeprecations` in a tsconfig, which silences TypeScript's errors for deprecated options | none |
 
 `suppressions/no-inline` reports these directives, wherever a line of a comment starts with one:
 
@@ -119,9 +120,11 @@ A check that is silenced at one site hides the problem instead of fixing it. Thr
 
 Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
 
+`suppressions/no-ignore-deprecations` reads every JSON file in the repository whose `compilerOptions` sets `ignoreDeprecations`, whatever the file is named, so a shared config such as `tsconfig/base.json` counts as much as a `tsconfig.json`. Like `manifests/sorted`, it walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. Each finding names the line of the setting. Replace the deprecated option it hides, then remove it.
+
 #### Type tests
 
-A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, is allowed in a type test: a file named `*.typecheck.test.ts` or `typecheck.test.ts` (or `.tsx`). The compiler checks these files; [Vitest projects](#vitest-projects) never run them. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in them. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
+A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, is allowed in a type test: a file named `*.typecheck.test.ts`, `*.typecheck.spec.ts` or `typecheck.test.ts` (or `.tsx`). The compiler checks these files; [Vitest projects](#vitest-projects) never run them. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in them. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
 
 `suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
 
@@ -214,7 +217,7 @@ Each import resolves the way the compiler resolves it, with the options of the n
 - A module that resolves into `node_modules` or outside the root is external, and its package is the one it resolves into, whatever alias the import uses. A `@types` package counts as the package it describes: `@types/hast` is `hast`, `@types/scope__name` is `@scope/name`.
 
 ```ts
-"imports/resolvable": { options: { generated: ["packages/db/test/generated"] } },
+"imports/resolvable": { options: { generated: ["packages/db/src/test-support/generated"] } },
 ```
 
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
@@ -243,7 +246,9 @@ The rule only reports; nothing rewrites the import. Whoever writes the import pi
 A fence is one prohibition, stated in the config without patterns:
 
 ```ts
-import { defineConfig, external, fence, folders, packages } from "@shivaedev/quality";
+import { defineConfig } from "@shivaedev/quality/config.ts";
+import { external, folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
+import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
 
 const fences = [
 	fence("ui-never-imports-server")
@@ -251,8 +256,8 @@ const fences = [
 		.from(folders("packages/ui/src"))
 		.mayNotImport(packages("server"))
 		.demonstratedBy({
-			illegal: ["packages/ui/src/index.ts", "packages/server/src/index.ts"],
-			legal: ["packages/ui/src/index.ts", external("effect")],
+			illegal: ["packages/ui/src/app.ts", "packages/server/src/db.ts"],
+			legal: ["packages/ui/src/app.ts", external("effect")],
 		}),
 ];
 
@@ -269,6 +274,8 @@ Targets are `packages(...)` (workspace packages by name, with or without their s
 
 The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
 
+Fences guard shipped code, and [test code](#test-code) ships nowhere, so a fence never holds it: a test file or a file under `test-support/` may import across every fence. There is no option to check them.
+
 A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
 
 ### Manifests
@@ -278,7 +285,7 @@ A finding has its fence's name as its subject, so a registry entry with that sub
 ### Local rules
 
 ```ts
-import { defineRule } from "@shivaedev/quality";
+import { defineRule } from "@shivaedev/quality/rule.ts";
 
 export const noConsoleLog = defineRule({
 	id: "local/no-console-log",
@@ -384,15 +391,15 @@ quality baseline migrate [--config <file>] [--from <file>]
 The preset sets:
 
 - **Formatting:** tabs, a line width of 150, double quotes, semicolons, trailing commas and operators at the start of a wrapped line. An object key keeps its quotes, because a quoted key marks a [foreign name](#foreign-names).
-- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, and the naming rules under [Naming](#naming).
+- **Lint:** every rule Biome recommends, at `error`, and a list of stricter rules on top, among them `noUnsafeTypeAssertion`, `useBlockStatements`, `useNumericSeparators`, `useUnicodeRegex`, `useLiteralKeys`, `noFloatingPromises`, `useExhaustiveDependencies`, `it` for every test, no viewport that disables zoom (`noNonScalableViewport`), function declarations over function expressions, interfaces for object types, a cognitive complexity limit of 15, no nested ternaries, and the naming rules under [Naming](#naming).
 - **Imports:** organized in five groups: Node and Bun builtins, packages, `@shivaedev/*` packages, aliases and relative paths. Biome counts as an alias a specifier that starts with `#`, `@/`, `~`, `$` or `%`; a tsconfig path such as `@app/*` sorts with the packages, and Biome's `noUndeclaredDependencies` takes it for one, so name aliases in a form Biome recognizes.
 - **Assist:** organized imports and sorted keys, attributes, enum members, interface members and properties. Keys are sorted in JSON and in object literals alike, but only reported: `quality fix` leaves the order to the author. `package.json` is left out, because `manifests/sorted` gives it the order npm users expect.
 - **Plugins:** GritQL rules that ban ambient time, randomness, `console` and `process.env` for Effect's services, and the naming plugins under [Naming](#naming). They load from `./node_modules/@shivaedev/quality/biome/plugins`, so the package must be installed at the repository root.
 - Files ignored by git are skipped.
 
-The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
+The preset turns off `noUnusedVariables` and `noUnusedFunctionParameters`, because the tsconfig presets report them through TypeScript, allows default exports in `*.config.*` files, which tools load through the default export, and turns off `useComponentExportOnlyModules` in `*.test.*` and `*.spec.*` files, which define the helper and harness components they render. It also turns off `noProcessGlobal`, `useJsonImportAttributes`, `noMisusedPromises`, `useExhaustiveSwitchCases`, `useSortedClasses`, `noDelete`, `useConsistentArrayType`, `useConsistentCurlyBraces`, `noEqualsToNull` and `noSkippedTests`, because `quality fix` applies every lint fix and their fixes changed behavior or did not terminate on real code. It keeps `noUndeclaredClasses` off, because the rule cannot resolve a stylesheet imported through an alias and Tailwind utilities are not declared in CSS, and `noInlineStyles` off, because an inline style is the right tool for a value computed at run time. It declares these weakenings in its `declarations.json`, so `suppressions/biome-overrides` takes them as declared. Every other weakening a repository adds is an override it declares with a reason.
 
-An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
+An autofix applies only a change that removes no decision; a fix that can change behavior or delete something written on purpose reports only, and the author decides. The preset keeps `noAccessKey`, `noAriaHiddenOnFocusable`, `noAutofocus`, `noInteractiveElementToNoninteractiveRole`, `noNoninteractiveElementToInteractiveRole`, `noNoninteractiveTabindex`, `noRedundantRoles`, `useValidAriaProps`, `useValidAriaRole`, `noImportantStyles`, `noConstAssign`, `noUnusedPrivateClassMembers`, `useExhaustiveDependencies`, `noFloatingPromises`, `useConsistentTestIt`, `useRegexpTest`, `useUnicodeRegex`, `noNonNullAssertion`, `useAtIndex`, `noParametersOnlyUsedInRecursion` and `useNamingConvention` at `error` with their fixes off, and `quality fix` skips `noDuplicateObjectKeys` and `useSortedKeys`, whose fixes Biome's config cannot turn off.
 
 The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error`, such as a rule a repository declared at `warn`, is not reported. The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
@@ -415,6 +422,8 @@ A name says what a thing is, and the same kind of thing is named the same way ev
 | Schemas | PascalCase and named like their type: `const Item = Schema.Struct(...)` with `type Item = typeof Item.Type`. | `schema-names` plugin |
 | `Schema.Struct` fields | camelCase, also when quoted. Outside data keeps its keys only at the edge: `Schema.Struct({ createdAt: Schema.String }).pipe(Schema.encodeKeys({ createdAt: "created_at" }))`. | `schema-struct-keys` plugin, `key-names` plugin |
 | `Effect.fn` spans | `"Owner.operation"`, where the owner is the service or module and the operation is the name the function is bound to: `const loadItem = Effect.fn("ItemStore.loadItem")`, and `loadItem: Effect.fn("ItemStore.loadItem")` in an object. | `effect-fn-spans` plugin |
+| `Effect.gen` functions | A top-level function whose whole body is `Effect.gen` is an `Effect.fn`: `const loadItem = Effect.fn("ItemStore.loadItem")(function* (id: string) { … })`, or `Effect.fnUntraced` when it needs no span. | `effect-fn-functions` plugin |
+| Effect test bodies | In test code, a test takes the generator itself: `it.effect("loads the item", function* () { … })`, never `() => Effect.gen(function* () { … })`. The test helper runs it with `Effect.gen`. | `effect-test-bodies` plugin |
 | Service Layers | A static `layer` on the service, read as `ItemStore.layer`. No exported `ItemStoreLive` or `ItemStoreLayer` constant. A Layer that wires an application together stays unexported. | `service-layers` plugin |
 | Private members | A `#field`. No `private`, `protected` or `public` modifier. | `useConsistentMemberAccessibility` |
 | React | A function passed to an `onX` prop is `handleX`, an `onX` prop forwarded as it is, or a state setter passed as it is: `onOpenChange={setOpen}`. A context is `ThemeContext`, a ref `inputRef`, an id `fieldId`. A module that exports a component exports only components; a test may define the components it renders. | `handler-names` plugin, `useReactNamingConvention`, `useComponentExportOnlyModules` |
@@ -491,6 +500,7 @@ A test sits beside the code it covers, and its name says what it covers and wher
 | `cart/Basket.dom.test.tsx` | `cart/Basket.tsx`, in a DOM | Yes |
 | `cart/checkoutFlow.spec.ts` | A behaviour of the `cart/` folder as a whole, such as a flow across several files | Yes |
 | `cart/checkoutFlow.dom.spec.tsx` | The same, in a DOM | Yes |
+| `cart/checkoutFlow.typecheck.spec.ts` | The types of that behaviour, checked by the compiler | Yes |
 | `cart/totals.test.ts` | No `cart/totals.ts` beside it | No: a `.test` follows a file, and a test of the folder is a `.spec` |
 | `cart/cart.spec.ts` | | No: a `.spec` names a behaviour, so it may not share a stem with a file beside it |
 | `cart/cart.hydration.test.ts` | | No: an aspect gets its own file in the module's folder, or a `.spec` |
@@ -503,13 +513,17 @@ A test sits beside the code it covers, and its name says what it covers and wher
 
 Both rules take a `suites` option, `.gitignore` patterns of folders that hold tests with their own layout, such as tests across several packages or a Playwright suite, whose `.spec.ts` files mean something else. The rules skip those folders.
 
+### Test code
+
+Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the one folder name for the fixtures, harnesses and generated clients that tests share. Test code ships nowhere, so the rules that check shipped code skip it: `imports/fences` never holds it, and `structure/max-lines` gives it the test limit. The test rules still read only test files: a file under `test-support/` is not a test, so `tests/follow` and `tests/colocated` leave it alone.
+
 ## Vitest projects
 
-`@shivaedev/quality/vitest` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
+`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
 
 ```ts
 // vitest.config.ts
-import { testProjects } from "@shivaedev/quality/vitest";
+import { testProjects } from "@shivaedev/quality/vitest.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({ test: testProjects() });

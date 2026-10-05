@@ -1,0 +1,12 @@
+engine biome(1.0)
+language js(typescript, jsx)
+
+`$test($title, $callback, $...)` where {
+	$test <: r"it|test|it\.[A-Za-z.]+|test\.[A-Za-z.]+|it\.[A-Za-z.]+\(.*\)|test\.[A-Za-z.]+\(.*\)",
+	$callback <: JsArrowFunctionExpression(body=$body),
+	$body <: or {
+		`Effect.gen(function* () { $... })`,
+		JsFunctionBody(statements=[JsReturnStatement(argument=`Effect.gen(function* () { $... })`)])
+	},
+	register_diagnostic(span=$callback, message="A test body that is only Effect.gen is the generator itself: pass the function* to the test, as in it.effect('loads the item', function* () { ... }), and the test helper runs it with Effect.gen. @shivaedev/effect-test/it.ts provides an it whose effect and live testers take one.")
+}

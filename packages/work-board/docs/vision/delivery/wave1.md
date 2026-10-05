@@ -72,6 +72,11 @@ verified results. Begin with readable links; inline asset previews arrive in 10.
 **Depends on:** 04–05. **Accept:** the sample result reaches its source rationale
 in two navigation steps; broken links and evidence for an old revision stay visible.
 
+Step 06 is complete. HTTP/DOM regression tests and Chromium verify two-step
+reasoning navigation, exact cross-file claim links, backlinks, retained old
+revisions and broken sources. [Completion evidence](../roadmap.md#step-06-completion-evidence)
+records the repository handoff checks and their limits.
+
 ## 07 An attention-first overview
 
 **Outcome:** returning users can identify the next judgment without reading a log.

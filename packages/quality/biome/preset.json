@@ -287,6 +287,7 @@
 				"noExtendNative": "error",
 				"noFloatingPromises": { "fix": "none", "level": "error" },
 				"noIdenticalTestTitle": "error",
+				"noInlineStyles": "off",
 				"noInvalidFileInputAccept": "error",
 				"noInvalidPropertyInitValue": "error",
 				"noJsonUnsafeValues": "error",
@@ -295,6 +296,7 @@
 				"noLoopFunc": "error",
 				"noMisusedPromises": "off",
 				"noNegationInEqualityCheck": "error",
+				"noNonScalableViewport": "error",
 				"noObsoleteTags": "error",
 				"noPlaywrightElementHandle": "error",
 				"noPlaywrightEval": "error",
@@ -309,6 +311,7 @@
 				"noReactStringRefs": "error",
 				"noThisOutsideOfClass": "error",
 				"noTopLevelLiterals": "error",
+				"noUndeclaredClasses": "off",
 				"noUnmodifiedLoopCondition": "error",
 				"noUnnecessaryTemplateExpression": "error",
 				"noUnsafeIframeSandbox": "error",
@@ -332,6 +335,7 @@
 				},
 				"useConsistentObjectKeys": "error",
 				"useConsistentTestIt": {
+					"fix": "none",
 					"level": "error",
 					"options": {
 						"function": "it",
@@ -642,6 +646,14 @@
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-fn-spans.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-fn-functions.grit"
+		},
+		{
+			"includes": ["**/*.test.*", "**/*.spec.*", "**/test-support/**", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-test-bodies.grit"
 		},
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],

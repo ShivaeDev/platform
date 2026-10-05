@@ -7,12 +7,13 @@ database, transport, and test framework.
 Generic Prisma and tRPC integrations remain available separately from
 `@shivaedev/effect-prisma` and `@shivaedev/effect-trpc`.
 
-`effect` is the only required peer. The `runtime`, `node-http`, `errors`, `rpc`
-and `rpc-server` entries need nothing else. Install the optional peers for the
-entries that use them:
+`effect` is the only required peer. The modules under `runtime/`, `node-http/`,
+`errors/`, `rpc/` and `rpc-server/` need nothing else. Install the optional peers
+for the modules that use them:
 
-- `better-auth`: `better-auth` and `@shivaedev/effect-prisma`
-- `testing`: `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`,
+- `better-auth/`: `better-auth`, `@shivaedev/effect-prisma` and
+  `@prisma-next/sql-orm-client`
+- `testing/`: `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`,
   `@trpc/server`, and `@effect/vitest`
 
 ## Runtime
@@ -20,7 +21,7 @@ entries that use them:
 Build one managed runtime for the application and share it with integrations:
 
 ```ts
-import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts"
 
 export const runtime = makePlatformRuntime(ApplicationLive, {
   developmentCacheKey: "application",
@@ -39,7 +40,7 @@ available Web, procedure, request, and socket signals at the subscription
 boundary:
 
 ```ts
-import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http/subscription-signal.ts"
 
 const subscription = nodeSubscriptionSignal({
   request,
@@ -63,7 +64,7 @@ Applications still own subscription limits, event buses, and transport policy.
 Prisma database and runtime, including Better Auth transactions:
 
 ```ts
-import { effectPrismaAdapter } from "@shivaedev/platform/better-auth"
+import { effectPrismaAdapter } from "@shivaedev/platform/better-auth/adapter.ts"
 import { betterAuth } from "better-auth"
 
 const auth = betterAuth({
@@ -78,22 +79,25 @@ fallback remains available.
 
 ## Errors and native RPC request context
 
-`@shivaedev/platform/errors` exports browser-safe `Schema.TaggedError` classes:
+`@shivaedev/platform/errors/taxonomy.ts` exports browser-safe `Schema.TaggedError` classes:
 `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest` and `Conflict` (both with an
 optional `field`), `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable`.
 Use them as native RPC error schemas or effect-contract rejections.
-`rejectedField(error)` extracts `{ field, message }` from any field rejection so a
+`rejectedField(error)` from `@shivaedev/platform/errors/rejected-field.ts` extracts `{ field, message }` from any field rejection so a
 form can show it.
 
-`@shivaedev/platform/rpc` declares the `RequestTracing`, `Authenticated` and
-`MaybeAuthenticated` middleware and the `RequestId`, `Identity` and
-`OptionalIdentity` services they provide. It is browser-safe, so shared `RpcGroup`
-declarations can use it. Implement the middleware on the server with
-`@shivaedev/platform/rpc-server`:
+`@shivaedev/platform/rpc/middleware.ts` declares the `RequestTracing`, `Authenticated` and
+`MaybeAuthenticated` middleware, and `@shivaedev/platform/rpc/identity.ts` declares the
+`RequestId`, `Identity` and `OptionalIdentity` services they provide.
+These modules are browser-safe, so shared `RpcGroup` declarations can use them. Implement
+the middleware on the server with the modules under `@shivaedev/platform/rpc-server/`:
 
 ```ts
-import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc"
-import { authenticatedLayer, betterAuthSessions, requestTracingLayer, trustedOrigins } from "@shivaedev/platform/rpc-server"
+import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc/middleware.ts"
+import { authenticatedLayer } from "@shivaedev/platform/rpc-server/session.ts"
+import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts"
+import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts"
+import { trustedOrigins } from "@shivaedev/platform/rpc-server/origin.ts"
 
 const Api = RpcGroup.make(/* ... */).middleware(Authenticated).middleware(RequestTracing)
 
@@ -120,7 +124,7 @@ trade-offs between browsers and native clients.
 Configure the application database, tRPC caller, and test Layer once:
 
 ```ts
-import { makePlatformIt } from "@shivaedev/platform/testing"
+import { makePlatformIt } from "@shivaedev/platform/testing/vitest.ts"
 
 export const it = makePlatformIt(Database)({
   adapter: effectTrpc,

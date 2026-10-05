@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/platform/better-auth`: `@shivaedev/platform/better-auth/adapter.ts` (`EffectPrismaAdapterOptions`, `effectPrismaAdapter`)
+  - `@shivaedev/platform/errors`: `@shivaedev/platform/errors/rejected-field.ts` (`RejectedField`, `rejectedField`), `@shivaedev/platform/errors/taxonomy.ts` (`AuthUnavailable`, `BadRequest`, `Conflict`, `Forbidden`, `NotFound`, `PreconditionFailed`, `TooManyRequests`, `Unauthorized`)
+  - `@shivaedev/platform/node-http`: `@shivaedev/platform/node-http/subscription-signal.ts` (`NodeSubscriptionSignal`, `NodeSubscriptionSignalOptions`, `nodeSubscriptionSignal`)
+  - `@shivaedev/platform/rpc-server`: `@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts` (`betterAuthSessions`, `GetSession`), `@shivaedev/platform/rpc-server/origin.ts` (`OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`, `trustedOrigins`), `@shivaedev/platform/rpc-server/redact.ts` (`redact`), `@shivaedev/platform/rpc-server/redact-cause.ts` (`redactCause`, `redactDefect`, `redactingErrorReporter`), `@shivaedev/platform/rpc-server/sensitive.ts` (`isSensitiveKey`, `SensitiveKey`), `@shivaedev/platform/rpc-server/session.ts` (`authenticatedLayer`, `maybeAuthenticatedLayer`, `resolveSession`, `SessionPolicy`, `SessionProvider`, `SessionShape`), `@shivaedev/platform/rpc-server/tracing.ts` (`RequestTracingOptions`, `requestTracingLayer`), `@shivaedev/platform/rpc-server/transport.ts` (`transportHeaders`)
+  - `@shivaedev/platform/rpc`: `@shivaedev/platform/rpc/identity.ts` (`Identity`, `IdentityValue`, `OptionalIdentity`, `RequestId`), `@shivaedev/platform/rpc/middleware.ts` (`Authenticated`, `MaybeAuthenticated`, `RequestTracing`)
+  - `@shivaedev/platform/runtime`: `@shivaedev/platform/runtime/make.ts` (`makePlatformRuntime`), `@shivaedev/platform/runtime/types.ts` (`PlatformRuntime`, `PlatformRuntimeBuildError`, `PlatformRuntimeOptions`, `PlatformRuntimeServices`)
+  - `@shivaedev/platform/testing`: `@shivaedev/platform/testing/types.ts` (`MakePlatformItOptions`, `PlatformHarness`, `PlatformIt`, `PlatformTest`, `PlatformTester`), `@shivaedev/platform/testing/vitest.ts` (`makePlatformIt`)
+- The `better-auth/` modules import `all` and `or` from `@prisma-next/sql-orm-client`, so it is a new optional peer beside `@shivaedev/effect-prisma` for `better-auth/adapter.ts`.
+
 ## 0.5.2 - 2026-10-04
 
 ### Changed

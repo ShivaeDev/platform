@@ -21,7 +21,8 @@ export const importFences = defineRule({
 		const policy = compilePolicy(options.fences, { files: inputs.files, packages: graph.packages });
 		return policy.flatMap((compiled) => compiled.evaluate(graph));
 	},
-	description: "Imports respect the fences the repository declares. Move the code to the side of the fence its imports belong to.",
+	description:
+		"Imports of shipped code respect the fences the repository declares; a test file ships nowhere, so no fence holds it. Move the code to the side of the fence its imports belong to.",
 	id: "imports/fences",
 	options: Schema.toStandardSchemaV1(FencesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 });

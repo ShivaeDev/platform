@@ -26,7 +26,7 @@ runtime `Date` codecs. It fails when Prisma emits an unfamiliar timestamp shape
 instead of silently producing weakened types.
 
 ```ts
-import { makeDatabase } from "@shivaedev/effect-prisma"
+import { makeDatabase } from "@shivaedev/effect-prisma/database.ts"
 import { contractJson, type Contract } from "./generated/contract.js"
 
 export const Database = makeDatabase<Contract>()("@app/Database", {
@@ -48,12 +48,12 @@ scope. Database values do not outlive that scope.
 
 ## SQLite (experimental)
 
-A SQLite contract emitted with `@prisma-next/sqlite` uses the same API through a
-separate entrypoint. Its `DateTime` fields already declare `Date`, so the
+A SQLite contract emitted with `@prisma-next/sqlite` uses the same API through the
+separate `sqlite.ts` module. Its `DateTime` fields already declare `Date`, so the
 normalization step above is PostgreSQL-only.
 
 ```ts
-import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite"
+import { makeSqliteDatabase } from "@shivaedev/effect-prisma/sqlite.ts"
 import { contractJson, type Contract } from "./generated/contract.js"
 
 export const Database = makeSqliteDatabase<Contract>()("@app/Database", {
@@ -80,7 +80,7 @@ not coordinate multiple Database Layers against the same SQLite file.
 
 SQLite stores `DateTime` as text, and `prisma-next db init` generates
 `DEFAULT (datetime('now'))`, which writes a UTC instant without a zone
-designator. The entrypoint decodes zone-less datetime text as UTC, so generated
+designator. The module decodes zone-less datetime text as UTC, so generated
 column defaults round-trip to the instant SQLite wrote without hand-editing the
 DDL. Values that already carry `Z` or a numeric offset decode unchanged.
 `datetime('now')` itself stores whole seconds; write
@@ -198,7 +198,7 @@ Streams outside transactions retain incremental fetching.
 
 ## Vitest
 
-Install `@effect/vitest` to use the optional testing entrypoint:
+Install `@effect/vitest` to use the optional `testing/` modules:
 
 ```sh
 pnpm add --save-dev @effect/vitest vitest
@@ -207,7 +207,7 @@ pnpm add --save-dev @effect/vitest vitest
 Configure the database once in the application's test support:
 
 ```ts
-import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing"
+import { makeDatabaseIt } from "@shivaedev/effect-prisma/testing/vitest.ts"
 
 export const it = makeDatabaseIt({
   database: Database,

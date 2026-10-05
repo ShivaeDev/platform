@@ -60,7 +60,8 @@ allowBuilds:
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
-import { HeldLock, withHeavyLock } from "@shivaedev/heavy-lock";
+import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
+import { withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
@@ -172,6 +173,6 @@ language; every implementation must follow it exactly to share the lock.
    `heavy-process lock: acquired after <elapsed>`. The time is local, and
    `<elapsed>` is `<s>s` under a minute and `<m>m <s>s` from a minute on.
 
-The package's `test/fixtures/reference-holder.lock` holds a holder file in the
+The package's `src/test-support/fixtures/reference-holder.lock` holds a holder file in the
 protocol's exact byte format; its tests encode, decode and wait on it byte
 for byte.

@@ -7,6 +7,7 @@ export interface Changes {
 	readonly events: PubSub.PubSub<Change>;
 	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 	readonly realRoot: string;
+	readonly revision: Effect.Effect<number>;
 	readonly watching: Ref.Ref<boolean>;
 }
 
@@ -66,6 +67,6 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		yield* Ref.set(cached, Option.some({ files: listed, generation: now }));
 		return listed;
 	});
-	const changes: Changes = { events, files, realRoot, watching };
+	const changes: Changes = { events, files, realRoot, revision: Ref.get(generation), watching };
 	return changes;
 });

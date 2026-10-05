@@ -73,5 +73,15 @@
 		"includes": ["**"],
 		"reason": "An unused private member asks whether it is still needed or should be used; deleting it automatically skips that decision.",
 		"rule": "lint/correctness/noUnusedPrivateClassMembers"
+	},
+	{
+		"includes": ["**"],
+		"reason": "The rule cannot resolve a stylesheet imported through an alias, and Tailwind utilities are not declared in any CSS file, so it misses real findings and reports valid classes.",
+		"rule": "lint/nursery/noUndeclaredClasses"
+	},
+	{
+		"includes": ["**"],
+		"reason": "An inline style is the right tool for a value computed at run time, such as a position, a transform or a drag offset.",
+		"rule": "lint/nursery/noInlineStyles"
 	}
 ]

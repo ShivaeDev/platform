@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"extends": ["@shivaedev/quality/biome"],
 	"files": {
-		"includes": ["**", "!**/test/generated", "!**/test/*/generated"]
+		"includes": ["**", "!**/test-support/generated", "!**/test-support/*/generated"]
 	},
 	"overrides": [
 		{
@@ -16,7 +16,7 @@
 			}
 		},
 		{
-			"includes": ["packages/effect-prisma/test/support/controlled-collection.ts"],
+			"includes": ["packages/effect-prisma/src/test-support/controlled-collection.ts"],
 			"linter": {
 				"rules": {
 					"suspicious": {

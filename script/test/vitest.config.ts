@@ -1,5 +1,5 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { testProjects } from "@shivaedev/quality/vitest";
+import type { testProjects } from "@shivaedev/quality/vitest.ts";
 import { testPackages } from "#ci/testPackages.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));

@@ -4,7 +4,10 @@ Declare queries and commands once. Each declaration becomes an ordinary native E
 
 ```ts
 import { Schema } from "effect";
-import { collection, command, contract, fieldRejection, query } from "@shivaedev/effect-contract";
+import { collection } from "@shivaedev/effect-contract/keys.ts";
+import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 
 class Order extends Schema.Class<Order>("Order")({ id: Schema.Number, name: Schema.String, quantity: Schema.Number }) {}
 class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}

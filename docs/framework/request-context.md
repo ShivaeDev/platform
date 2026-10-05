@@ -2,18 +2,19 @@
 
 Applications built on tRPC tend to carry their own copies of the same error
 classes, request id reference, optional identity service and request logging.
-Platform provides these for native Effect RPC in three entry points:
+Platform provides these for native Effect RPC in three folders of modules:
 
-| Entry | Runs in | Contents |
+| Modules | Runs in | Contents |
 | --- | --- | --- |
-| `@shivaedev/platform/errors` | browser and server | Schema error classes and `rejectedField` |
-| `@shivaedev/platform/rpc` | browser and server | `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares |
-| `@shivaedev/platform/rpc-server` | server | Middleware layers, Better Auth sessions, Origin policy and redaction |
+| `@shivaedev/platform/errors/*.ts` | browser and server | Schema error classes and `rejectedField` |
+| `@shivaedev/platform/rpc/*.ts` | browser and server | `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares |
+| `@shivaedev/platform/rpc-server/**/*.ts` | server | Middleware layers, Better Auth sessions, Origin policy and redaction |
 
-The middleware tags live in a browser-safe entry because the shared `RpcGroup`
+The middleware tags live in a browser-safe folder because the shared `RpcGroup`
 declaration names them, and the client imports that declaration. The server layers
-live in a separate entry. The package test follows the import graph of the two
-browser entries and fails if they import anything other than `effect`.
+live in a separate folder. The package test follows the import graph of every
+module in the two browser folders and fails if they import anything other than
+`effect`.
 
 ## Error taxonomy
 
@@ -62,7 +63,7 @@ The set has changed from what the consumers use today:
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
-On tRPC, `rejectWith` from `@shivaedev/effect-trpc` sends these classes as
+On tRPC, `rejectWith` from `@shivaedev/effect-trpc/rejection.ts` sends these classes as
 declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
@@ -177,7 +178,7 @@ server, the RPC headers are used, because there are no transport headers to
 prefer and no browser attaches ambient credentials.
 
 An application-owned middleware that reads any header for a security decision
-should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server`
+should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server/transport.ts`
 instead of using `headers` directly. The request id is still read from the RPC
 headers, so a client can set it per call; it is for correlation only.
 
@@ -216,7 +217,7 @@ preflight.
 
 ## Evidence
 
-- [rpc-session.test.ts](../../packages/platform/test/rpc-session.test.ts) signs up
+- [session.test.ts](../../packages/platform/src/rpc-server/session.test.ts) signs up
   users through real Better Auth with an ephemeral SQLite database and calls
   through the native HTTP client, JSON serialization and a Web handler. It checks
   that twelve concurrent requests alternating between two users each receive
@@ -228,35 +229,35 @@ preflight.
   an attacker origin, `null`, a missing header under both `missing` settings, and
   a custom per-RPC policy. It also checks that rejected origins never reach the
   provider.
-- [rpc-transport-headers.test.ts](../../packages/platform/test/rpc-transport-headers.test.ts)
+- [transport.test.ts](../../packages/platform/src/rpc-server/transport.test.ts)
   posts raw `text/plain` bodies to the Web handler. A trusted `origin` set in the
   message header list, with an attacker or missing transport Origin and the
   victim's cookie, fails with `Forbidden`. A cookie or `authorization` set only
   in the message fails with `Unauthorized`.
-- [rpc-websocket-headers.test.ts](../../packages/platform/test/rpc-websocket-headers.test.ts)
+- [websocketHeaders.spec.ts](../../packages/platform/src/rpc-server/websocketHeaders.spec.ts)
   runs the RpcServer WebSocket protocol over an in-memory socket and checks the
   same Origin and cookie cases against the upgrade request.
-- [rpc-tracing.test.ts](../../packages/platform/test/rpc-tracing.test.ts) uses
+- [tracing.test.ts](../../packages/platform/src/rpc-server/tracing.test.ts) uses
   `RpcTest`. It checks that the request id reaches the handler, the logs and the
   server span, that missing, malformed and oversized ids are replaced, that
   failure and defect logs redact nested, array and `Redacted` payload fields, and
   that a custom sensitive-key policy applies.
-- [rpc-redaction.test.ts](../../packages/platform/test/rpc-redaction.test.ts)
+- [redaction.spec.ts](../../packages/platform/src/rpc-server/redaction.spec.ts)
   checks the extended key list, word matching and its near misses, the caps on
   arrays, objects and strings, masking of tokens, URL passwords and sensitive
   assignments inside text, binary summaries, that the defect seen by the client,
   an installed `ErrorReporter` and the server span is redacted, that
   `redactingErrorReporter` keeps severity and attributes, that defect logs redact an error's own fields and its `cause`, and
   that provider failures do not log credential fields.
-- [errors.test.ts](../../packages/platform/test/errors.test.ts) sends taxonomy
+- [roundTrip.spec.ts](../../packages/platform/src/errors/roundTrip.spec.ts) sends taxonomy
   errors through HTTP JSON and checks that they decode to class instances, keep
   their field, and are recognized by `rejectedField`.
-- [trpc-rejections.test.ts](../../packages/platform/test/trpc-rejections.test.ts)
+- [trpcRejections.spec.ts](../../packages/platform/src/errors/trpcRejections.spec.ts)
   sends taxonomy errors and an invalid input through tRPC over HTTP with
   superjson and checks their codes and statuses, that they decode to class
   instances, and that `rejectedField` reads the field from the encoded
   rejection.
-- [rpc.typecheck.test.ts](../../packages/platform/test/rpc.typecheck.test.ts) checks at compile
+- [guardedRpc.typecheck.spec.ts](../../packages/platform/src/guardedRpc.typecheck.spec.ts) checks at compile
   time that `Identity` is only available behind `Authenticated`, that client
   error types include the middleware errors, and that `trustedOrigins` requires
   a `missing` decision.

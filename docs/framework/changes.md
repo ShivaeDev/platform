@@ -157,21 +157,21 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
 
 ## Evidence
 
-- [Core tests](../../packages/effect-changes/test) use a fake native transaction
+- [Core tests](../../packages/effect-changes/src) use a fake native transaction
   and cover merge and discard, stragglers, batches, concurrent `record`, owners,
   the guard, several subjects per write, idempotent `settle`, a Promise-shaped
   driver, both failure policies for failed, defective and throwing sinks, the
   sink override and the observer.
-- [effect-sql PostgreSQL tests](../../packages/effect-sql/test/transact.postgres.test.ts)
+- [effect-sql PostgreSQL tests](../../packages/effect-sql/src/postgresTransact.spec.ts)
   repeat every SQLite `transact` case on PostgreSQL with two pools as distinct
-  owners. [Commit-boundary tests](../../packages/effect-sql/test/transact-commit.postgres.test.ts)
+  owners. [Commit-boundary tests](../../packages/effect-sql/src/transactCommit.spec.ts)
   hold `COMMIT` open with a deferred `pg_sleep` constraint trigger, interrupt the
   caller and compare the published keys with what a second pool sees committed;
   they also read from a separate pool inside the sink to show publishing happens
   after `COMMIT`, and show that a throwing subscriber is logged while the result
   and the rows stand. The interruption case fails against the previous
   `transact`, which dropped the keys.
-- [Prisma Classic tests](../../packages/effect-changes-prisma/test) run a
+- [Prisma Classic tests](../../packages/effect-changes-prisma/src) run a
   generated Prisma 7 client with `@prisma/adapter-pg` against PostgreSQL: a sink
   reading from a second client sees the committed rows, rollbacks, failed
   deferred commits and timeouts publish nothing, a body that outlives the

@@ -2,7 +2,7 @@ import { type Effect, Option, type Schema } from "effect";
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import type * as Atom from "effect/unstable/reactivity/Atom";
 import { useCallback, useEffect, useState } from "react";
-import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form";
+import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import type { AtomServices, FieldRejectionMapping } from "./field-rejection.ts";
 import { type QueryState, useQuery } from "./result-state.ts";
 import { type SaveState, useSaveState } from "./save-state.ts";

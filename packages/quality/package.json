@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.8.2",
+	"version": "0.14.0",
 	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
@@ -15,7 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./test/*",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
@@ -23,19 +23,13 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./biome": "./biome/preset.json",
-		"./vitest": {
-			"types": "./dist/vitest.d.ts",
-			"source": "./src/vitest.ts",
-			"import": "./dist/vitest.js",
-			"default": "./dist/vitest.js"
-		},
 		"./tsconfig/base.json": "./tsconfig/base.json",
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json"
@@ -47,6 +41,9 @@
 		"dist",
 		"biome",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"tsconfig",
 		"CHANGELOG.md",
 		"README.md"

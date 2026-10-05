@@ -1,6 +1,6 @@
 # PostgreSQL migrations
 
-Use `migratePostgres` from `@shivaedev/effect-sql` with Effect's numbered migration
+Use `migratePostgres` from `@shivaedev/effect-sql/migrations.ts` with Effect's numbered migration
 loaders. It serializes runners for one ledger, including the first run on an
 empty database, and executes each pending batch in a transaction.
 
@@ -28,8 +28,8 @@ requests. Every runner of a ledger must use the same helper and ledger spelling.
 
 ## Tested behavior
 
-The [migration tests](../../packages/effect-sql/test/postgres-migrations.test.ts)
-and [bootstrap tests](../../packages/effect-sql/test/postgres-migration-bootstrap.test.ts)
+The [migration tests](../../packages/effect-sql/src/postgresMigrations.spec.ts)
+and [bootstrap tests](../../packages/effect-sql/src/postgresMigrationBootstrap.spec.ts)
 call the public helper against PostgreSQL 18 with unique table names.
 
 | Scenario | Result |
@@ -63,7 +63,7 @@ remain application choices.
 
 ```sh
 PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://... \
-  pnpm heavy pnpm --filter @shivaedev/effect-sql test test/postgres-migrations.test.ts test/postgres-migration-bootstrap.test.ts
+  pnpm heavy pnpm --filter @shivaedev/effect-sql test src/postgresMigrations.spec.ts src/postgresMigrationBootstrap.spec.ts
 ```
 
 The tests skip without the database URL. The workspace CI supplies a PostgreSQL

@@ -48,6 +48,8 @@ implementation and acceptance criteria.
 - [`@shivaedev/work-board`](./packages/work-board): A local server that shows a
   folder of markdown files as a live page, updated in place when a file changes.
 
+No package has a root entry or a module that re-exports another. Each package exports its source modules through one `"./*.ts"` pattern, with `"./internal/*": null` keeping a package's `internal/` folder private, so you import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
+
 ## Development
 
 Requirements:
@@ -97,7 +99,7 @@ before anything is built; its README describes the protocol.
 `pnpm test:package` packs every publishable package once, validates its manifest
 and source maps, then installs clean consumers with its workspace dependency
 tarballs. Consumers use the catalog Effect versions, reject duplicate Effect
-installations, and check every public entry with both supported TypeScript
+installations, and import every exported module with both supported TypeScript
 versions. The same gate runs executable bins against real input.
 Consumers for packages with executable bins omit the repository's Effect
 overrides, so exact peers must keep their Effect stack aligned. Unrelated
@@ -107,7 +109,12 @@ peer at the same version. The gate removes that peer from a temporary copy of
 the Heavy Lock tarball and verifies that archive validation rejects it.
 Every `#` import in a packed module must name an `imports` entry whose
 targets are all packed; the gate also removes one such target from a copy of
-the Heavy Lock tarball and verifies that archive validation rejects it. Each
+the Heavy Lock tarball and verifies that archive validation rejects it. Every
+source module the `./*.ts` export matches must ship its built `.js` and `.d.ts`;
+the gate removes one built module from a copy of the Heavy Lock tarball and
+verifies that archive validation rejects that too. A module under a `null`
+export such as `./internal/*` is left out, and the consumer verifies that
+importing one fails. Each
 consumer lib-checks the declarations of Platform's packages, third-party
 declarations aside, and rejects an entry that exports a value or type as `any`.
 

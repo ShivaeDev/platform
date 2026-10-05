@@ -7,7 +7,8 @@ It works with PostgreSQL only. The coverage check reads PostgreSQL's `pg_stat_xa
 It binds a [`@shivaedev/effect-changes`](../effect-changes) channel to Prisma: the channel semantics (owners, savepoint merge and discard, batches, sink failures, test seams) are the same, see [commit-bound changes](../../docs/framework/changes.md).
 
 ```ts
-import { type ChangeMap, makePrismaChanges } from "@shivaedev/effect-changes-prisma";
+import type { ChangeMap } from "@shivaedev/effect-changes-prisma/model.ts";
+import { makePrismaChanges } from "@shivaedev/effect-changes-prisma/changes.ts";
 import { Effect } from "effect";
 import { PrismaClient } from "./generated/client.ts";
 

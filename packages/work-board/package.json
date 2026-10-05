@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -15,7 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./test/*",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
@@ -23,11 +23,11 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},
@@ -38,6 +38,8 @@
 		"dist",
 		"src",
 		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -50,7 +52,8 @@
 	"dependencies": {
 		"mermaid": "catalog:",
 		"satteri": "catalog:",
-		"shiki": "catalog:"
+		"shiki": "catalog:",
+		"yaml": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",

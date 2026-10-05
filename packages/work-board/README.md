@@ -45,7 +45,7 @@ Markdown headings have passage links and an **On this page** outline, including 
 anchors for duplicate headings. Use the heading's `#` link to copy a passage URL.
 Generated anchors use the heading text and duplicate order; changing either can
 change the anchor. Renaming a file changes its document URL. Authored HTML IDs
-and footnote links remain intact; stable work-item IDs are a later roadmap step.
+and footnote links remain intact. Richer files can declare stable work-item IDs.
 
 Markdown links resolve from their source file, including a nested `--home` file
 served at `/`. Links within the workspace open in place; modified clicks and
@@ -63,6 +63,100 @@ the folder and server origin. Deleted favorites remain visible with a missing
 label. If storage is unavailable, favorites and recents work on the current page;
 reading navigation still works in the open tab. Content and the outline remain
 readable with JavaScript disabled.
+
+## Workspace search
+
+Use **Search** or Ctrl/Cmd+K to find document titles/paths, Markdown headings, and
+passage text. Results identify their type and source file/line where known, include text snippets,
+and open the corresponding heading when available. Matching is case-insensitive
+with Unicode normalization; all query terms must occur in a block. Titles rank
+before headings, then passages, with stable source order within each group.
+Results are limited to 40 and report the full match count. This is deterministic
+text search, without fuzzy matching or semantic inference.
+
+Arrow keys choose a result while the search field is focused; Enter opens it.
+Escape closes the dialog and restores focus. With an empty query, commands open
+the workspace or change the existing sidebar, density, and theme controls.
+
+The server keeps a rebuildable index in memory and invalidates it when the file
+watcher changes. An open dialog refreshes on edits and reconnects; older requests
+cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
+the workspace are excluded. Unreadable files produce an incomplete-results notice.
+All indexing and requests stay local. Search needs JavaScript; document reading
+does not. Source-in-editor links await an agreed local editor mechanism.
+
+## Optional work identity
+
+A Markdown file can begin with YAML frontmatter declaring an explicit `id`,
+`kind`, `status`, `owner`, `next_action`, relationships, criteria, board membership,
+and evidence. Every field is optional; ordinary Markdown and heading boards need
+no migration. [Source examples and shapes](./docs/vision/delivery/source-examples.md)
+describe the convention. No section name becomes a status or workflow rule.
+
+Work details show recorded fields, source locations, and the original header.
+Malformed/unknown fields, duplicate IDs, and unresolved references remain visible
+with diagnostics while prose stays readable. A unique ID has a shareable
+`/_board/item/<id>/` link that survives file/heading renames; criterion links open
+and focus their context. Search also finds explicit work fields and criteria.
+An incomplete index cannot assert unique identity. The index rebuilds from files
+without persistent storage; the UI never writes project content.
+
+Evidence records show their source, criterion, checked revision, observed time,
+method, and recorded outcome when provided. They are source claims, not
+independently verified acceptance; missing provenance stays **Not recorded**.
+
+## Work views
+
+Open **Work** to read identified items as a board or table. A `kind: board` file with a
+unique ID and an explicit `items` list defines a selectable view; the same item
+can appear in several boards. Board definitions are excluded from All work.
+Missing/ambiguous members and repeated membership are disclosed without choosing
+a duplicate source or counting repeated items twice. Legacy heading cards remain
+on their original pages and do not become inferred identified work.
+
+Columns use the exact recorded status, including a **Status not recorded** column.
+Filter by status, owner, or work text and sort by title, owner, or status. Missing
+values differ from literal text and sort last. Cards open a source detail pane;
+its Markdown links resolve relative to its file. The URL records the board,
+filters, sort, and selected ID, so reload and Back/Forward restore that context.
+A selected item outside the filters stays visible with a notice; deletion or
+ambiguous identity is explained. Live changes retain applied filters, including
+filters with no current matches. Compact density applies to these cards too.
+Board and table use the same projection and selection; switching layouts keeps
+that URL context. Table rows show kind, status, owner, and next action, with
+missing fields disclosed and the same source detail pane. Narrow tables scroll
+inside their own container; compact density reduces row/card spacing.
+Native links and GET filters remain usable without JavaScript.
+
+Save up to 10 named views in browser storage scoped to the workspace and server
+origin. A view retains the applied board, filters, sort, and layout; item selection
+stays in its shareable URL. Saving the same name updates it. At capacity, remove
+one or update a name; views are never silently evicted. Remove one or clear all
+from the view picker. Unsafe stored destinations are ignored. If storage is
+unavailable, named views work for the current page only; source files are unchanged.
+Saving requires JavaScript; board/table reading does not.
+
+## Reasoning and evidence context
+
+Follow explicit relationships from a result to its plan and decision. Decisions
+keep options, comparisons, and rationale in ordinary Markdown; no new decision
+fields are required. **Referenced by** lists incoming relationships, board
+membership, criterion claims, evidence-source links, and local Markdown hyperlinks,
+including plain files without frontmatter. Relative/encoded paths and root home
+links use the source file's location. Repeated prose links from one file count
+once; code examples do not become links. External URLs are not local backlinks.
+Incomplete workspaces disclose partial references and do not select ambiguous IDs.
+
+Each uniquely identified criterion lists claims recorded across the readable
+workspace, with links to their source records. Missing claims say that acceptance
+is not established. A record shows origin file/line, checked revision, observed
+time, method, and outcome; missing provenance stays **Not recorded**. Old recorded
+revisions remain visible, and Work Board does not compare them to a current Git
+revision or infer human acceptance. Missing local Markdown evidence sources remain
+linked with a notice. Generated `recorded-evidence-<index>` anchors follow source
+array order and may change after insertion/reordering; item and criterion IDs are
+the explicit stable references. Backlinks/claim associations rebuild on file
+changes and after restart, without writing an event history.
 
 ## Diagrams
 
@@ -172,7 +266,7 @@ non-loopback address when the server knows the address.
 import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
 import { HttpRouter } from "effect/unstable/http"
-import { boardLayer } from "@shivaedev/work-board"
+import { boardLayer } from "@shivaedev/work-board/board.ts"
 
 const board = HttpRouter.toWebHandler(
   Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),

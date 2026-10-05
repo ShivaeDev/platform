@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-react",
-	"version": "0.1.2",
+	"version": "0.2.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
 	"bugs": {
@@ -15,7 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./test/*",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
@@ -23,23 +23,22 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
-		},
-		"./form": {
-			"types": "./dist/form.d.ts",
-			"source": "./src/form.ts",
-			"import": "./dist/form.js",
-			"default": "./dist/form.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
+		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
