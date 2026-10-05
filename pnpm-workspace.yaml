@@ -56,6 +56,10 @@ catalog:
   shiki: 4.4.2
   typescript: npm:@typescript/typescript6@6.0.2
   vitest: 4.1.9
+  "@vitest/coverage-v8": 4.1.9
+  "@codecov/rollup-plugin": 2.0.1
+  "@rollup/plugin-node-resolve": 16.0.3
+  rollup: 4.63.5
   "@vercel/detect-agent": 1.2.3
 
 minimumReleaseAge: 10080

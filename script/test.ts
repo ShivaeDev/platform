@@ -11,17 +11,7 @@ const program = Effect.gen(function* () {
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
 	const command = workspace
-		? [
-				"--filter",
-				"@shivaedev/quality",
-				"exec",
-				"vitest",
-				"run",
-				"--config",
-				`${process.cwd()}/script/test/vitest.config.ts`,
-				"--configLoader",
-				"native",
-			]
+		? ["exec", "vitest", "run", "--config", `${process.cwd()}/script/test/vitest.config.ts`, "--configLoader", "native"]
 		: ["--recursive", "--workspace-concurrency=1", "--if-present", "test"];
 	if (workspace) {
 		const prepared = yield* spawner.exitCode(

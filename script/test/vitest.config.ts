@@ -21,5 +21,20 @@ export default async function workspace() {
 			});
 		}
 	}
-	return { root, test: { project: ["*:unit", "*:dom"], projects } };
+	return {
+		root,
+		test: {
+			coverage: {
+				allowExternal: true,
+				exclude: ["**/node_modules/**", "**/*.d.ts", "**/*.test.*", "**/*.spec.*"],
+				include: [`${root}packages/*/src/**/*.{ts,tsx}`],
+				provider: "v8" as const,
+				reporter: ["lcov", "json", "text-summary"],
+				reportOnFailure: true,
+				reportsDirectory: `${root}/.ci/coverage`,
+			},
+			project: ["*:unit", "*:dom"],
+			projects,
+		},
+	};
 }

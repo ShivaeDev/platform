@@ -14,6 +14,7 @@
 		"lint": "node script/lint.ts && pnpm lint:quality",
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
+		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
 		"test:orchestration": "node --conditions=source --test script/ci/*.test.ts script/ci/*.spec.ts script/package-check/archives.test.ts",
@@ -23,14 +24,19 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
+		"@codecov/rollup-plugin": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@rollup/plugin-node-resolve": "catalog:",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
+		"@vitest/coverage-v8": "catalog:",
 		"effect": "catalog:",
 		"ignore": "catalog:",
-		"typescript": "catalog:"
+		"rollup": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	},
 	"packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45",
 	"engines": {

@@ -1,0 +1,105 @@
+codecov:
+  require_ci_to_pass: false
+  notify:
+    after_n_builds: 8
+    wait_for_ci: false
+
+coverage:
+  status:
+    project: false
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach,diff,flags,components,files"
+  behavior: default
+  require_changes: true
+  require_bundle_changes: true
+
+flags:
+  workspace:
+    paths:
+      - packages/
+    carryforward: false
+
+component_management:
+  individual_components:
+    - component_id: effect-changes-prisma
+      name: "@shivaedev/effect-changes-prisma"
+      paths:
+        - "packages/effect-changes-prisma/src/**"
+    - component_id: effect-changes
+      name: "@shivaedev/effect-changes"
+      paths:
+        - "packages/effect-changes/src/**"
+    - component_id: effect-contract
+      name: "@shivaedev/effect-contract"
+      paths:
+        - "packages/effect-contract/src/**"
+    - component_id: effect-form
+      name: "@shivaedev/effect-form"
+      paths:
+        - "packages/effect-form/src/**"
+    - component_id: effect-pg-boss
+      name: "@shivaedev/effect-pg-boss"
+      paths:
+        - "packages/effect-pg-boss/src/**"
+    - component_id: effect-prisma
+      name: "@shivaedev/effect-prisma"
+      paths:
+        - "packages/effect-prisma/src/**"
+    - component_id: effect-react
+      name: "@shivaedev/effect-react"
+      paths:
+        - "packages/effect-react/src/**"
+    - component_id: effect-service
+      name: "@shivaedev/effect-service"
+      paths:
+        - "packages/effect-service/src/**"
+    - component_id: effect-sql
+      name: "@shivaedev/effect-sql"
+      paths:
+        - "packages/effect-sql/src/**"
+    - component_id: effect-test
+      name: "@shivaedev/effect-test"
+      paths:
+        - "packages/effect-test/src/**"
+    - component_id: effect-trpc
+      name: "@shivaedev/effect-trpc"
+      paths:
+        - "packages/effect-trpc/src/**"
+    - component_id: heavy-lock
+      name: "@shivaedev/heavy-lock"
+      paths:
+        - "packages/heavy-lock/src/**"
+    - component_id: local-postgres
+      name: "@shivaedev/local-postgres"
+      paths:
+        - "packages/local-postgres/src/**"
+    - component_id: platform
+      name: "@shivaedev/platform"
+      paths:
+        - "packages/platform/src/**"
+    - component_id: quality
+      name: "@shivaedev/quality"
+      paths:
+        - "packages/quality/src/**"
+    - component_id: types
+      name: "@shivaedev/types"
+      paths:
+        - "packages/types/src/**"
+    - component_id: work-board
+      name: "@shivaedev/work-board"
+      paths:
+        - "packages/work-board/src/**"
+
+bundle_analysis:
+  status: informational
+
+test_analytics:
+  flake_detection: true
+  shorten_paths: true
+
+github_checks:
+  annotations: true

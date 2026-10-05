@@ -30,7 +30,22 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm lint
       - name: Test CI orchestration
-        run: pnpm test:orchestration
+        run: |
+          mkdir -p .ci
+          node --conditions=source --test --test-reporter=spec --test-reporter-destination=stdout \
+            --test-reporter=junit --test-reporter-destination=.ci/orchestration.junit.xml \
+            script/ci/*.test.ts script/ci/*.spec.ts script/package-check/archives.test.ts
+      - name: Wrap Node JUnit cases in a standard test suite
+        if: always()
+        run: node script/ci/nodeJunit.ts .ci/orchestration.junit.xml
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: orchestration-results
+          path: .ci/orchestration.junit.xml
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 14
 
   build:
     permissions:
@@ -104,7 +119,9 @@ jobs:
       - name: Test workspace shard
         run: >-
           pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }}
-          --reporter=default --reporter=json --outputFile=${{ github.workspace }}/.ci/tests.json
+          --reporter=default --reporter=json --reporter=junit
+          --outputFile.json=${{ github.workspace }}/.ci/tests.json
+          --outputFile.junit=${{ github.workspace }}/.ci/tests.junit.xml
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
@@ -113,7 +130,9 @@ jobs:
         with:
           overwrite: true
           name: test-timings-${{ matrix.shard }}
-          path: .ci/tests.json
+          path: |
+            .ci/tests.json
+            .ci/tests.junit.xml
           include-hidden-files: true
           retention-days: 14
 
@@ -207,3 +226,128 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+  test-results:
+    name: Codecov test analytics
+    if: ${{ !cancelled() }}
+    needs: verify
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: test-timings-*
+          path: .ci/test-results
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: orchestration-results
+          path: .ci/test-results/orchestration
+      - name: Upload JUnit reports
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
+        with:
+          directory: .ci/test-results
+          handle_no_reports_found: true
+          flags: tests
+          use_oidc: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          fail_ci_if_error: false
+
+  coverage:
+    name: Codecov coverage (${{ matrix.shard }})
+    if: ${{ !cancelled() }}
+    needs: verify
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    services:
+      postgres:
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm db:setup
+      # Include never-imported source in one fresh shard; Codecov merges hits from all eight.
+      - name: Collect V8 coverage
+        run: >-
+          pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
+          --coverage.cleanOnRerun=${{ matrix.shard != 1 }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: .ci/coverage
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 14
+      - name: Upload coverage shard
+        if: always()
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: .ci/coverage/lcov.info
+          disable_search: true
+          flags: workspace
+          name: workspace-${{ matrix.shard }}
+          use_oidc: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          fail_ci_if_error: false
+
+  bundles:
+    name: Codecov bundle analysis
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    needs: [verify, build]
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/await-packages
+        with:
+          token: ${{ github.token }}
+      - name: Restore compiled packages from the shared build
+        run: |
+          for archive in .ci/packages/*.tgz; do
+            package=$(basename "$archive" .tgz)
+            tar -xzf "$archive" --strip-components=1 -C "packages/$package" package/dist
+          done
+      - name: Analyze all published JavaScript entries
+        run: pnpm report:bundles
+        env:
+          CODECOV_UPLOAD: 'true'
+          CODECOV_USE_OIDC: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: bundle-analysis
+          path: .ci/bundles
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 14
