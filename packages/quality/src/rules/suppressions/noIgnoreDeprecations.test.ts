@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RuleInputs } from "#rule.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
-import { removeSeededTrees, type SeedFile, seedTree } from "#test/support/tree.ts";
+import { removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
 
