@@ -3,9 +3,9 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { type Folder, folder, startBoard } from "#test/support/board.ts";
+import { type Folder, folder, startBoard } from "#test/board.ts";
 
-const cli = join(dirname(fileURLToPath(import.meta.url)), "../src/cli.ts");
+const cli = join(dirname(fileURLToPath(import.meta.url)), "cli.ts");
 
 let notes: Folder | undefined;
 

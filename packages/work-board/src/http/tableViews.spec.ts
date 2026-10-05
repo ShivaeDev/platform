@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/support/board.ts";
-import { viewsFixture } from "#test/support/viewsFixture.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { viewsFixture } from "#test/viewsFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;

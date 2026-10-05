@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { changesUntil, type EventStream, type Folder, folder, type RunningBoard, startBoard, subscribe } from "#test/support/board.ts";
-import { faultyWatch } from "#test/support/faults.ts";
+import { changesUntil, type EventStream, type Folder, folder, type RunningBoard, startBoard, subscribe } from "#test/board.ts";
+import { faultyWatch } from "#test/faults.ts";
 
 let notes: Folder;
 let board: RunningBoard;

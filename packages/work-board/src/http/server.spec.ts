@@ -4,8 +4,8 @@ import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loopbackOnly } from "#http/loopback.ts";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/support/board.ts";
-import { countingPaths, silentWatch } from "#test/support/faults.ts";
+import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { countingPaths, silentWatch } from "#test/faults.ts";
 
 let notes: Folder;
 let outside: Folder;

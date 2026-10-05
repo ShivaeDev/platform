@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/support/board.ts";
-import { held, type OpenPage, openPage } from "#test/support/browser.ts";
-import { FILES, MIXED, openLive, paragraphOf, settle, WITH_DIAGRAM, waitFor } from "#test/support/live.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { held, type OpenPage, openPage } from "#test/browser.ts";
+import { FILES, MIXED, openLive, paragraphOf, settle, WITH_DIAGRAM, waitFor } from "#test/live.ts";
 
 let notes: Folder;
 let board: RunningBoard;

@@ -2,8 +2,8 @@ import { rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
 import { afterEach, expect, it } from "vitest";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/support/board.ts";
-import { workspaceFixture } from "#test/support/workspaceFixture.ts";
+import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { workspaceFixture } from "#test/workspaceFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;
