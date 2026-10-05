@@ -1,4 +1,6 @@
-import { collection, contract, invalidationKeys, query } from '@shivaedev/effect-contract';
+import { collection, invalidationKeys } from '@shivaedev/effect-contract/keys.ts';
+import { contract } from '@shivaedev/effect-contract/contract.ts';
+import { query } from '@shivaedev/effect-contract/operation.ts';
 import { Effect, Schema } from 'effect';
 import { RpcTest } from 'effect/unstable/rpc';
 const notes = collection('notes', Schema.Number);

@@ -1,7 +1,7 @@
 {
 	"effect-react": [
 		{
-			"entries": ["."],
+			"entries": ["./result-state.ts", "./resume-signal.ts", "./session-boundary.ts"],
 			"fixtures": ["hooks-types.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": []
@@ -9,7 +9,23 @@
 	],
 	"platform": [
 		{
-			"entries": ["./runtime", "./node-http", "./errors", "./rpc", "./rpc-server"],
+			"entries": [
+				"./errors/rejected-field.ts",
+				"./errors/taxonomy.ts",
+				"./node-http/subscription-signal.ts",
+				"./rpc/identity.ts",
+				"./rpc/middleware.ts",
+				"./rpc-server/adapters/better-auth-sessions.ts",
+				"./rpc-server/origin.ts",
+				"./rpc-server/redact-cause.ts",
+				"./rpc-server/redact.ts",
+				"./rpc-server/sensitive.ts",
+				"./rpc-server/session.ts",
+				"./rpc-server/tracing.ts",
+				"./rpc-server/transport.ts",
+				"./runtime/make.ts",
+				"./runtime/types.ts"
+			],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]
@@ -17,14 +33,14 @@
 	],
 	"quality": [
 		{
-			"entries": ["."],
+			"entries": ["./config.ts"],
 			"fixtures": ["tsconfig/flags.ts.txt", "tsconfig/checked.js.txt"],
 			"omitOptionalPeers": false,
 			"run": [],
 			"tsconfig": "@shivaedev/quality/tsconfig/base.json"
 		},
 		{
-			"entries": ["."],
+			"entries": ["./config.ts"],
 			"fixtures": ["tsconfig/flags.ts.txt", "tsconfig/checked.js.txt", "tsconfig/emit-main.ts.txt", "tsconfig/emit-helper.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": ["dist/emit-main.js"],

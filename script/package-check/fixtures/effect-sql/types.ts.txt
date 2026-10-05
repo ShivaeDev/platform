@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect"
 import { Model } from "effect/unstable/schema"
-import { invalidateOnCommit, makeRepository, transact } from "@shivaedev/effect-sql"
+import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts"
+import { makeRepository } from "@shivaedev/effect-sql/repository.ts"
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
   id: Schema.Number,

@@ -1,5 +1,8 @@
 import { NodeServices } from "@effect/platform-node"
-import { acquireHeavyLock, HeavyLockError, HeldLock, heavyLockLayer, withHeavyLock } from "@shivaedev/heavy-lock"
+import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts"
+import { HeavyLockError } from "@shivaedev/heavy-lock/error.ts"
+import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts"
+import { heavyLockLayer, withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts"
 import { Effect, Layer } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 

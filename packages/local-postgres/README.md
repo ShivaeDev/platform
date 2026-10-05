@@ -5,7 +5,7 @@ Prepare one shared local PostgreSQL service without replacing containers, deleti
 This Node 24+ package has no runtime dependencies. It uses a local Docker daemon when no service is available; an existing native service requires host `psql`. With Docker, the container provides `psql` when it is absent from the host.
 
 ```ts
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres";
+import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
 
 const development = `${localServer}/example_dev`;
 assertLocalDatabase(development, ["example_dev"]);

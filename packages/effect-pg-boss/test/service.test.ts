@@ -1,6 +1,9 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import { deadLetterQueueName, defineQueue, defineSchedule, makePgBoss, PgBossPayloadError } from "#index.ts";
+import { defineQueue, defineSchedule } from "#definition.ts";
+import { PgBossPayloadError } from "#error.ts";
+import { deadLetterQueueName } from "#health.ts";
+import { makePgBoss } from "#service.ts";
 import { constructorOptions, FakeClient, job, queueResult } from "#test/support/fake-client.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("@test/Prefix") {}

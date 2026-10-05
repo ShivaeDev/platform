@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { TransactionExpired, type TransactionOptions } from "#index.ts";
+import { TransactionExpired } from "#error.ts";
+import type { TransactionOptions } from "#model.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
 import { makeChanges } from "#test/support/changes.ts";
 import { connect, integration, makeDatabase, orderIds } from "#test/support/database.ts";

@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { afterAll, describe, expect, it } from "vitest";
-import { makePlatformRuntime } from "#runtime.ts";
+import { makePlatformRuntime } from "#runtime/make.ts";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/PlatformRuntimeValue") {}
 

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect, it } from "vitest";
-import { makePrismaChanges, type UnnamedWrite } from "#index.ts";
+import { makePrismaChanges } from "#changes.ts";
+import type { UnnamedWrite } from "#write.ts";
 
 interface Row {
 	readonly memberId: string;

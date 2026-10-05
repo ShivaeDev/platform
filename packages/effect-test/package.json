@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-test",
-	"version": "0.1.3",
+	"version": "0.2.0",
 	"description": "Generic Effect Vitest runner with worker-scoped Layers and TestClock",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme",
 	"bugs": {
@@ -23,11 +23,11 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
 		"./package.json": "./package.json"
 	},

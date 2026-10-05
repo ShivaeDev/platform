@@ -1,5 +1,6 @@
 import { Context, Effect, Schema } from "effect";
-import { defineQueue, makePgBoss } from "#index.ts";
+import { defineQueue } from "#definition.ts";
+import { makePgBoss } from "#service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
 

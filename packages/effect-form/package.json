@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-form",
-	"version": "0.1.2",
+	"version": "0.2.0",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#readme",
 	"bugs": {
@@ -23,19 +23,13 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json",
-		"./react": {
-			"types": "./dist/react.d.ts",
-			"source": "./src/react.ts",
-			"import": "./dist/react.js",
-			"default": "./dist/react.js"
-		}
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

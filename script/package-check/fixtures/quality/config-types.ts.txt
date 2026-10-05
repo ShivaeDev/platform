@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect"
-import { defineConfig, defineRule } from "@shivaedev/quality"
+import { defineConfig } from "@shivaedev/quality/config.ts"
+import { defineRule } from "@shivaedev/quality/rule.ts"
 
 const Marker = Schema.Struct({ marker: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("TODO"))) })
 

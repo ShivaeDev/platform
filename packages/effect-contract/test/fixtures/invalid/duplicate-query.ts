@@ -1,4 +1,5 @@
-import { contract, query } from "#index.ts";
+import { contract } from "#contract.ts";
+import { query } from "#operation.ts";
 import { Note } from "#test/notes.ts";
 
 contract("dupes", {

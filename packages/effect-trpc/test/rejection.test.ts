@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { Cause, Effect, Exit, Schema, SchemaGetter } from "effect";
 import { describe, expect, it } from "vitest";
-import { RejectionError, rejectionCode, rejectWith, withRejection } from "#index.ts";
+import { RejectionError, rejectionCode, rejectWith } from "#rejection.ts";
+import { withRejection } from "#rejection-formatter.ts";
 
 class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { field: Schema.String, message: Schema.String }) {}
 class Other extends Schema.TaggedError<Other>()("Other", { message: Schema.String }) {}

@@ -3,8 +3,6 @@ import type { Model } from "effect/unstable/schema";
 import { SqlClient, SqlModel } from "effect/unstable/sql";
 import type { SqlError } from "effect/unstable/sql/SqlError";
 
-export { migratePostgres, type PostgresMigrationOptions } from "./migrations.ts";
-
 type Key<S extends Model.Any> = Extract<keyof S["fields"] & keyof Row<S>, string>;
 type Row<S extends Model.Any> = Schema.Struct.Type<S["fields"]>;
 
@@ -69,4 +67,3 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 		}
 		return { ...crud, findMany };
 	});
-export { type InvalidationKeys, invalidateOnCommit, type TransactOptions, transact } from "./transact.ts";

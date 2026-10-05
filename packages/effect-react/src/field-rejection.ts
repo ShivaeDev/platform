@@ -1,7 +1,7 @@
 import { Effect, Predicate, type Schema, type Scope } from "effect";
 import type { AtomRegistry } from "effect/unstable/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/unstable/reactivity/Reactivity";
-import type { FieldFailure, Fields, Name, Submitter } from "@shivaedev/effect-form";
+import type { FieldFailure, Fields, Name, Submitter } from "@shivaedev/effect-form/shape.ts";
 
 export interface FieldRejection<N extends string> {
 	readonly field: N;

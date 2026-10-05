@@ -784,6 +784,9 @@ importers:
       '@prisma-next/sql-contract':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)
+      '@prisma-next/sql-orm-client':
+        specifier: 'catalog:'
+        version: 0.15.0(@typescript/typescript6@6.0.2)
       '@prisma-next/target-postgres':
         specifier: 'catalog:'
         version: 0.15.0(@typescript/typescript6@6.0.2)(typanion@3.14.0)

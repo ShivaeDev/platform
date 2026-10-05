@@ -2,7 +2,7 @@ import { Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import { bind } from "#index.ts";
+import { bind } from "#bind.ts";
 import { Notes } from "#test/notes.ts";
 
 export class Client extends AtomRpc.Service<Client>()("fixture/InvalidClient", {

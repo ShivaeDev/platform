@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import type { Observation } from "@shivaedev/effect-changes";
-import { checkCoverage } from "#index.ts";
+import type { Observation } from "@shivaedev/effect-changes/observe.ts";
+import { checkCoverage } from "#coverage.ts";
 
 interface Change {
 	readonly domain: string;

@@ -1,5 +1,8 @@
 import { Effect, Schema } from "effect"
-import { collection, command, contract, fieldRejection, query, type QueryShape } from "@shivaedev/effect-contract"
+import { collection } from "@shivaedev/effect-contract/keys.ts"
+import { command, query, type QueryShape } from "@shivaedev/effect-contract/operation.ts"
+import { contract } from "@shivaedev/effect-contract/contract.ts"
+import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts"
 
 class Missing extends Schema.TaggedError<Missing>()("Missing", {}) {}
 const Draft = Schema.Struct({ title: Schema.String })

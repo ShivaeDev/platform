@@ -19,7 +19,7 @@ A queue pairs its durable wire schema with its Effect handler. The handler only
 receives decoded data; malformed stored data fails before domain code runs.
 
 ```ts
-import { defineQueue } from "@shivaedev/effect-pg-boss"
+import { defineQueue } from "@shivaedev/effect-pg-boss/definition.ts"
 import { Effect, Schema } from "effect"
 
 export const EmailQueue = defineQueue({
@@ -48,7 +48,7 @@ such as `NumberFromString` have one contract in both directions.
 Schedules are queues with a cron trigger and an Effect that takes no payload:
 
 ```ts
-import { defineSchedule } from "@shivaedev/effect-pg-boss"
+import { defineSchedule } from "@shivaedev/effect-pg-boss/definition.ts"
 
 const Cleanup = defineSchedule({
   name: "cleanup",
@@ -74,7 +74,7 @@ pg-boss, registers workers and schedules, captures their Effect services, and
 stops pg-boss when its scope closes.
 
 ```ts
-import { makePgBoss } from "@shivaedev/effect-pg-boss"
+import { makePgBoss } from "@shivaedev/effect-pg-boss/service.ts"
 
 export const Jobs = makePgBoss("@app/Jobs")
 

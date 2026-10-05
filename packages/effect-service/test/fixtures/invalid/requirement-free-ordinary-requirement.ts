@@ -1,5 +1,6 @@
 import { Context, Effect } from "effect";
-import { defineService, genericMethod } from "#index.ts";
+import { defineService } from "#define-service.ts";
+import { genericMethod } from "#generic-method.ts";
 
 class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-form`: `@shivaedev/effect-form/form.ts` (`make`), `@shivaedev/effect-form/messages.ts` (`FieldMessages`), `@shivaedev/effect-form/optional.ts` (`emptyAsNull`), `@shivaedev/effect-form/shape.ts` (`Checks`, `Config`, `Decoded`, `Encoded`, `Fields`, `Form`, `Name`, `Services`, `Submitter`, `FieldFailure`, `Invalid`)
+  - `@shivaedev/effect-form/react`: `@shivaedev/effect-form/react.ts`
+
 ## 0.1.2 - 2026-10-04
 
 ### Changed

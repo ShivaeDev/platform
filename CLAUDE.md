@@ -18,8 +18,8 @@ A senior engineer who owns the quality of every line you touch.
   - services: `defineService` (`packages/effect-service`);
   - persistence: `makeRepository`, `transact` and `migratePostgres` (`packages/effect-sql`);
   - operations: `contract`, `query` and `command` over native RPC (`packages/effect-contract`);
-  - errors and request identity: `@shivaedev/platform/errors`, `/rpc` and `/rpc-server`;
-  - client state: `useQuery` and `useAction`, and `useEditor` and `useCreate` from `@shivaedev/effect-react/form`;
+  - errors and request identity: the modules under `@shivaedev/platform/errors/`, `/rpc/` and `/rpc-server/`;
+  - client state: `useQuery` and `useAction`, and `useEditor` from `@shivaedev/effect-react/editor.ts` and `useCreate` from `@shivaedev/effect-react/create.ts`;
   - jobs: `packages/effect-pg-boss`; tests: `makeEffectIt` (`packages/effect-test`).
   `effect-prisma` (Prisma Next) and `effect-trpc` (tRPC) integrate those stacks for the applications that use them.
 - **One job per module.** 150 lines is a design goal and a promise to the reader: split along meaning, never golf a file under it.

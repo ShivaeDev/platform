@@ -1,5 +1,5 @@
-import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http"
-import { makePlatformRuntime } from "@shivaedev/platform/runtime"
+import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http/subscription-signal.ts"
+import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts"
 import { Context, Layer } from "effect"
 
 class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}

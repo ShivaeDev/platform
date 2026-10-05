@@ -1,8 +1,8 @@
 import type { orm } from "@prisma-next/sql-orm-client";
 import type { Context, Effect, Layer } from "effect";
 import type { PrismaError } from "#error.ts";
+import type { AnySqlContract } from "#internal/executor.ts";
 import type { Relation } from "#relation.ts";
-import type { AnySqlContract } from "./executor.ts";
 
 type OrmFor<Contract extends AnySqlContract> = ReturnType<typeof orm<Contract>>;
 type DefaultNamespaceId<Contract extends AnySqlContract> = "__unbound__" extends keyof OrmFor<Contract>

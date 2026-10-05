@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { expect, it } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "#errors.ts";
-import { type OriginPolicy, trustedOrigins } from "#rpc-server.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { type OriginPolicy, trustedOrigins } from "#rpc-server/origin.ts";
 import { makeApp } from "#test/rpc/api.ts";
 import { annotationsOf, createProvider, origin, signup } from "#test/rpc/support.ts";
 

@@ -1,4 +1,4 @@
-import type { Observation } from "@shivaedev/effect-changes";
+import type { Observation } from "@shivaedev/effect-changes/observe.ts";
 import type { UnnamedWrite } from "./write.ts";
 
 export type CoverageViolation =

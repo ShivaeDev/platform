@@ -5,7 +5,7 @@ Small repositories over Effect's SQL client and schema models. The model supplie
 ```ts
 import { Effect, Schema } from "effect";
 import { Model } from "effect/unstable/schema";
-import { makeRepository } from "@shivaedev/effect-sql";
+import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
   id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
@@ -45,7 +45,7 @@ Field encoding, result decoding and SQL failures stay in Effect's error channel.
 `transact` wraps native `sql.withTransaction`, maps every `SqlError` through the caller's mapper, and announces changed Reactivity keys only after the outermost transaction commits:
 
 ```ts
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql";
+import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 
 const save = (order: Order) =>
   Effect.gen(function* () {

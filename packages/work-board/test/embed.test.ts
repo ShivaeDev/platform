@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { boardLayer } from "#index.ts";
+import { boardLayer } from "#board.ts";
 import { type Folder, folder } from "#test/support/board.ts";
 
 const embed = (root: string) => HttpRouter.toWebHandler(Layer.provide(boardLayer({ home: "plan.md", root }), NodeServices.layer));

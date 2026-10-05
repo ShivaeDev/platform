@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-trpc",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"description": "Effect-native procedures and testing for tRPC",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc#readme",
 	"bugs": {
@@ -23,24 +23,13 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
-		"./client": {
-			"types": "./dist/client.d.ts",
-			"source": "./src/client.ts",
-			"import": "./dist/client.js",
-			"default": "./dist/client.js"
-		},
-		"./testing": {
-			"types": "./dist/testing.d.ts",
-			"source": "./src/testing.ts",
-			"import": "./dist/testing.js",
-			"default": "./dist/testing.js"
-		},
+		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [

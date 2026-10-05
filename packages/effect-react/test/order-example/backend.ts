@@ -5,9 +5,10 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
-import { invalidationKeys } from "@shivaedev/effect-contract";
-import { defineService } from "@shivaedev/effect-service";
-import { invalidateOnCommit, makeRepository, transact } from "@shivaedev/effect-sql";
+import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import {
 	Authentication,
 	Order,

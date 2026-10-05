@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { expect, it } from "vitest";
-import type { Observation } from "#index.ts";
+import type { Observation } from "#observe.ts";
 import { type Change, change, harness, makeDatabase, on } from "#test/support/fake-database.ts";
 
 const label = (event: Change) => `${event.subject}:${event.domain}`;

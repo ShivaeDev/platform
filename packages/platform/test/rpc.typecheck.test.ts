@@ -1,9 +1,13 @@
 import { Effect, type Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
 import { expectTypeOf } from "vitest";
-import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "#errors.ts";
-import { Authenticated, Identity, OptionalIdentity, RequestId, RequestTracing } from "#rpc.ts";
-import { authenticatedLayer, betterAuthSessions, requestTracingLayer, trustedOrigins } from "#rpc-server.ts";
+import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "#errors/taxonomy.ts";
+import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
+import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
+import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
+import { trustedOrigins } from "#rpc-server/origin.ts";
+import { authenticatedLayer } from "#rpc-server/session.ts";
+import { requestTracingLayer } from "#rpc-server/tracing.ts";
 
 const Guarded = RpcGroup.make(Rpc.make("Mine", { error: NotFound, success: Schema.String }))
 	.middleware(Authenticated)

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 - 2026-10-04
+
+### Changed
+
+- Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module outside `internal/` (`src` under the `source` condition, `dist` otherwise), and `"./internal/*": null` keeps `internal/` modules private, so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
+  - `@shivaedev/effect-prisma`: `@prisma-next/sql-orm-client` (`all`, `and`, `not`, `or`), `@shivaedev/effect-prisma/databaseTypes.ts` (`AnyDatabase`, `DatabaseService`, `DatabaseServiceOf`), `@shivaedev/effect-prisma/database.ts` (`DatabaseDefinition`, `DatabaseLayerOptions`, `makeDatabase`), `@shivaedev/effect-prisma/error.ts` (`PrismaConnectionFailure`, `PrismaError`, `PrismaErrorReason`, `PrismaQueryFailure`, `PrismaRuntimeFailure`), `@shivaedev/effect-prisma/relation.ts` (`Relation`)
+  - `@shivaedev/effect-prisma/testing`: `@shivaedev/effect-prisma/testing/transaction.ts` (`withTestTransaction`), `@shivaedev/effect-prisma/databaseTypes.ts` (`AnyDatabase`), `@shivaedev/effect-prisma/testing/types.ts` (`DatabaseIt`, `DatabaseService`, `DatabaseTest`, `DatabaseTester`, `MakeDatabaseItOptions`), `@shivaedev/effect-prisma/testing/vitest.ts` (`makeDatabaseIt`)
+  - `@shivaedev/effect-prisma/sqlite`: `@shivaedev/effect-prisma/sqlite.ts`
+- `all`, `and`, `not` and `or` are no longer re-exported: import them from `@prisma-next/sql-orm-client`. `AnyDatabase`, `DatabaseService` and `DatabaseServiceOf` live in `databaseTypes.ts`, moved out of `internal/` because they are public, and `database.ts` and `testing/types.ts` no longer re-export them.
+
 ## 0.7.1 - 2026-10-04
 
 ### Changed

@@ -1,6 +1,7 @@
 import { expect, it } from "@effect/vitest";
 import { Context, Effect } from "effect";
-import { defineService, genericMethod } from "#index.ts";
+import { defineService } from "#define-service.ts";
+import { genericMethod } from "#generic-method.ts";
 
 class Caller extends Context.Service<Caller, { readonly value: number }>()("test/GenericCaller") {}
 

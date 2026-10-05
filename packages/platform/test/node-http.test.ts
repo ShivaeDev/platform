@@ -1,7 +1,7 @@
 import { IncomingMessage } from "node:http";
 import { Socket } from "node:net";
 import { describe, expect, it } from "vitest";
-import { nodeSubscriptionSignal } from "#node-http.ts";
+import { nodeSubscriptionSignal } from "#node-http/subscription-signal.ts";
 
 const makeNodeRequest = (complete = false) => {
 	const socket = new Socket();

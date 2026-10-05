@@ -1,13 +1,14 @@
 import { initTRPC } from "@trpc/server";
 import { Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
-import { makeDatabase } from "@shivaedev/effect-prisma";
-import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
-import { effectPrismaAdapter } from "#better-auth.ts";
-import { makePlatformRuntime } from "#runtime.ts";
+import { makeDatabase } from "@shivaedev/effect-prisma/database.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { effectPrismaAdapter } from "#better-auth/adapter.ts";
+import { makePlatformRuntime } from "#runtime/make.ts";
 import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
-import { makePlatformIt } from "#testing.ts";
+import { makePlatformIt } from "#testing/vitest.ts";
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false;
 

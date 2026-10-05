@@ -2,7 +2,7 @@ import { expect, it } from "@effect/vitest";
 import { Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { make } from "#index.ts";
+import { make } from "#form.ts";
 import { fromRef } from "#refs.ts";
 
 const runtime = Atom.runtime(Layer.empty);

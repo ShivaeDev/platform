@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { command } from "#index.ts";
+import { command } from "#operation.ts";
 import { Note, notes } from "#test/notes.ts";
 
 command("touch", {

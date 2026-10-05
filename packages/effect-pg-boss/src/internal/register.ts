@@ -1,9 +1,9 @@
 import { type Context, Effect, Redacted, Schema } from "effect";
 import type { Job } from "pg-boss";
+import type { PgBossClient } from "#client.ts";
 import { type JobRegistration, jobContext, type QueueWorker, type ScheduledWorker } from "#definition.ts";
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
-import type { PgBossClient } from "./client.ts";
 
 const queueOptions = (options: Readonly<Record<string, unknown>>) => ({
 	retryBackoff: true,

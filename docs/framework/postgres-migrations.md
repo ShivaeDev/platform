@@ -1,6 +1,6 @@
 # PostgreSQL migrations
 
-Use `migratePostgres` from `@shivaedev/effect-sql` with Effect's numbered migration
+Use `migratePostgres` from `@shivaedev/effect-sql/migrations.ts` with Effect's numbered migration
 loaders. It serializes runners for one ledger, including the first run on an
 empty database, and executes each pending batch in a transaction.
 

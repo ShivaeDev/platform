@@ -2,13 +2,14 @@ import { expect } from "@effect/vitest";
 import { initTRPC } from "@trpc/server";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { afterAll } from "vitest";
-import { makeDatabase } from "@shivaedev/effect-prisma";
-import { makeEffectTRPC, makeRequestServices } from "@shivaedev/effect-trpc";
-import { makePlatformRuntime } from "#runtime.ts";
+import { makeDatabase } from "@shivaedev/effect-prisma/database.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { makePlatformRuntime } from "#runtime/make.ts";
 import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 import { environmentVariable } from "#test/support/environment.ts";
-import { makePlatformIt } from "#testing.ts";
+import { makePlatformIt } from "#testing/vitest.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {

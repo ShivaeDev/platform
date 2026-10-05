@@ -2,18 +2,19 @@
 
 Applications built on tRPC tend to carry their own copies of the same error
 classes, request id reference, optional identity service and request logging.
-Platform provides these for native Effect RPC in three entry points:
+Platform provides these for native Effect RPC in three folders of modules:
 
-| Entry | Runs in | Contents |
+| Modules | Runs in | Contents |
 | --- | --- | --- |
-| `@shivaedev/platform/errors` | browser and server | Schema error classes and `rejectedField` |
-| `@shivaedev/platform/rpc` | browser and server | `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares |
-| `@shivaedev/platform/rpc-server` | server | Middleware layers, Better Auth sessions, Origin policy and redaction |
+| `@shivaedev/platform/errors/*.ts` | browser and server | Schema error classes and `rejectedField` |
+| `@shivaedev/platform/rpc/*.ts` | browser and server | `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares |
+| `@shivaedev/platform/rpc-server/**/*.ts` | server | Middleware layers, Better Auth sessions, Origin policy and redaction |
 
-The middleware tags live in a browser-safe entry because the shared `RpcGroup`
+The middleware tags live in a browser-safe folder because the shared `RpcGroup`
 declaration names them, and the client imports that declaration. The server layers
-live in a separate entry. The package test follows the import graph of the two
-browser entries and fails if they import anything other than `effect`.
+live in a separate folder. The package test follows the import graph of every
+module in the two browser folders and fails if they import anything other than
+`effect`.
 
 ## Error taxonomy
 
@@ -62,7 +63,7 @@ The set has changed from what the consumers use today:
 The message is for diagnostics and a fallback display. Applications can still
 choose their own wording per tag.
 
-On tRPC, `rejectWith` from `@shivaedev/effect-trpc` sends these classes as
+On tRPC, `rejectWith` from `@shivaedev/effect-trpc/rejection.ts` sends these classes as
 declared rejections. `NotFound`, `Unauthorized`, `Forbidden`, `Conflict`,
 `PreconditionFailed` and `TooManyRequests` get the tRPC codes `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `PRECONDITION_FAILED` and
@@ -177,7 +178,7 @@ server, the RPC headers are used, because there are no transport headers to
 prefer and no browser attaches ambient credentials.
 
 An application-owned middleware that reads any header for a security decision
-should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server`
+should call `transportHeaders(headers)` from `@shivaedev/platform/rpc-server/transport.ts`
 instead of using `headers` directly. The request id is still read from the RPC
 headers, so a client can set it per call; it is for correlation only.
 

@@ -3,7 +3,8 @@ import { Effect } from "effect";
 import { makeSqliteDatabase } from "#sqlite.ts";
 import { type Contract, contractJson } from "#test/sqlite/contract.ts";
 import { makeTemporaryDatabase } from "#test/sqlite/support.ts";
-import { makeDatabaseIt, withTestTransaction } from "#testing.ts";
+import { withTestTransaction } from "#testing/transaction.ts";
+import { makeDatabaseIt } from "#testing/vitest.ts";
 
 const temporary = makeTemporaryDatabase();
 

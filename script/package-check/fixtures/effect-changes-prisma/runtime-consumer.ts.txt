@@ -1,5 +1,9 @@
 import { Effect } from "effect"
-import { type ChangeMap, checkCoverage, makePrismaChanges, type PrismaError, tablesOf, type TransactionExpired } from "@shivaedev/effect-changes-prisma"
+import type { ChangeMap } from "@shivaedev/effect-changes-prisma/model.ts"
+import { checkCoverage } from "@shivaedev/effect-changes-prisma/coverage.ts"
+import { makePrismaChanges } from "@shivaedev/effect-changes-prisma/changes.ts"
+import type { PrismaError, TransactionExpired } from "@shivaedev/effect-changes-prisma/error.ts"
+import { tablesOf } from "@shivaedev/effect-changes-prisma/tables.ts"
 
 interface OrderRow { readonly id: string; readonly ownerId: string }
 interface OrderDelegate {

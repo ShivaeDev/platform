@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
 import { Database, integrationEffect, uniqueEmail, withDatabase } from "#test/support/postgres-database.ts";
-import { withTestTransaction } from "#testing.ts";
+import { withTestTransaction } from "#testing/transaction.ts";
 
 const createNested = (outer: unknown, email: string) =>
 	Effect.gen(function* () {

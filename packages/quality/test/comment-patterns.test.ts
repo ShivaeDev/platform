@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Rule } from "#index.ts";
+import type { Rule } from "#rule.ts";
 import { noBanner } from "#rules/comments/no-banner.ts";
 import { noEnvironmentPragma } from "#rules/comments/no-environment-pragma.ts";
 import { noLineReference } from "#rules/comments/no-line-reference.ts";

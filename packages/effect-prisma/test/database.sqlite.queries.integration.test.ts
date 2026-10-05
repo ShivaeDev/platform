@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
 import { Database, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
-import { withTestTransaction } from "#testing.ts";
+import { withTestTransaction } from "#testing/transaction.ts";
 
 it.effect("runs aggregate, grouping, bulk create, update, and delete terminals", () =>
 	withDatabase(

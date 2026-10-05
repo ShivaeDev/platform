@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-prisma",
-	"version": "0.7.1",
+	"version": "0.8.0",
 	"description": "Effect-native PostgreSQL queries and transactions for Prisma Next",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-prisma#readme",
 	"bugs": {
@@ -23,24 +23,13 @@
 		}
 	},
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"source": "./src/index.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
 		},
-		"./sqlite": {
-			"types": "./dist/sqlite.d.ts",
-			"source": "./src/sqlite.ts",
-			"import": "./dist/sqlite.js",
-			"default": "./dist/sqlite.js"
-		},
-		"./testing": {
-			"types": "./dist/testing.d.ts",
-			"source": "./src/testing.ts",
-			"import": "./dist/testing.js",
-			"default": "./dist/testing.js"
-		},
+		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"bin": {

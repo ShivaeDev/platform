@@ -4,9 +4,13 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Option, Schema } from "effect";
 import superjson from "superjson";
 import { afterAll, expect, it } from "vitest";
-import { makeEffectTRPC, makeRequestServices, rejectionFormatter, rejectWith } from "@shivaedev/effect-trpc";
-import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client";
-import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, rejectedField, TooManyRequests } from "#errors.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/adapter.ts";
+import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/client/rejection.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
+import { rejectedField } from "#errors/rejected-field.ts";
+import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
 
 const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
 

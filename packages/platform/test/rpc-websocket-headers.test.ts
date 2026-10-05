@@ -3,7 +3,7 @@ import { HttpServerRequest } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket } from "effect/unstable/socket";
 import { expect, it } from "vitest";
-import { trustedOrigins } from "#rpc-server.ts";
+import { trustedOrigins } from "#rpc-server/origin.ts";
 import { Api, serverLayer } from "#test/rpc/api.ts";
 import { createProvider, origin, type Provider, signup } from "#test/rpc/support.ts";
 

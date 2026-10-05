@@ -2,8 +2,9 @@ import type { TRPCClientError } from "@trpc/client";
 import { initTRPC, type TRPC_ERROR_CODE_KEY } from "@trpc/server";
 import { Context, Effect, type Option, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
-import { decodeRejection, type EncodedRejection, rejectionOf } from "#client.ts";
-import { type RejectionError, rejectionFormatter, rejectWith, withRejection } from "#index.ts";
+import { decodeRejection, type EncodedRejection, rejectionOf } from "#client/rejection.ts";
+import { type RejectionError, rejectWith } from "#rejection.ts";
+import { rejectionFormatter, withRejection } from "#rejection-formatter.ts";
 
 class NotFound extends Schema.TaggedError<NotFound>()("NotFound", { message: Schema.String }) {}
 class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { field: Schema.String, message: Schema.String }) {}

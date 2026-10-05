@@ -1,6 +1,7 @@
 import { it } from "@effect/vitest";
 import { Effect } from "effect";
-import { type DatabaseServiceOf, makeDatabase } from "#index.ts";
+import { makeDatabase } from "#database.ts";
+import type { DatabaseServiceOf } from "#databaseTypes.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
 import { environmentVariable } from "./environment.ts";
 

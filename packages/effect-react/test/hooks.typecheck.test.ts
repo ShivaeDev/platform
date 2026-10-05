@@ -1,6 +1,6 @@
 import { type Cause, Effect, type Option } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { useAction, useQuery } from "#index.ts";
+import { useAction, useQuery } from "#result-state.ts";
 
 const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const action = Atom.fn<{ readonly title: string }>()((input) =>

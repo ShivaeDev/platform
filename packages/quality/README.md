@@ -21,7 +21,7 @@ Node 24 or later loads `quality.config.ts` directly (type stripping), so no buil
 
 ```ts
 // quality.config.ts
-import { defineConfig } from "@shivaedev/quality";
+import { defineConfig } from "@shivaedev/quality/config.ts";
 import { noConsoleLog } from "./quality/no-console-log.ts";
 
 export default defineConfig({
@@ -243,7 +243,9 @@ The rule only reports; nothing rewrites the import. Whoever writes the import pi
 A fence is one prohibition, stated in the config without patterns:
 
 ```ts
-import { defineConfig, external, fence, folders, packages } from "@shivaedev/quality";
+import { defineConfig } from "@shivaedev/quality/config.ts";
+import { external, folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
+import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
 
 const fences = [
 	fence("ui-never-imports-server")
@@ -251,8 +253,8 @@ const fences = [
 		.from(folders("packages/ui/src"))
 		.mayNotImport(packages("server"))
 		.demonstratedBy({
-			illegal: ["packages/ui/src/index.ts", "packages/server/src/index.ts"],
-			legal: ["packages/ui/src/index.ts", external("effect")],
+			illegal: ["packages/ui/src/app.ts", "packages/server/src/db.ts"],
+			legal: ["packages/ui/src/app.ts", external("effect")],
 		}),
 ];
 
@@ -278,7 +280,7 @@ A finding has its fence's name as its subject, so a registry entry with that sub
 ### Local rules
 
 ```ts
-import { defineRule } from "@shivaedev/quality";
+import { defineRule } from "@shivaedev/quality/rule.ts";
 
 export const noConsoleLog = defineRule({
 	id: "local/no-console-log",
@@ -505,11 +507,11 @@ Both rules take a `suites` option, `.gitignore` patterns of folders that hold te
 
 ## Vitest projects
 
-`@shivaedev/quality/vitest` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
+`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
 
 ```ts
 // vitest.config.ts
-import { testProjects } from "@shivaedev/quality/vitest";
+import { testProjects } from "@shivaedev/quality/vitest.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({ test: testProjects() });

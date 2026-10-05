@@ -4,9 +4,10 @@ import { checkBrowserEntries } from "#package-check/browser.ts";
 import { declarationProblems } from "#package-check/declarations.ts";
 import { consumerDependencies } from "#package-check/dependencies.ts";
 import { checkEffectCopies } from "#package-check/effect-copies.ts";
+import { blockedEntries, exportEntries, packedFiles } from "#package-check/exports.ts";
 import { writeFixtures } from "#package-check/fixtures.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
-import { type Package, targets } from "#package-check/model.ts";
+import type { Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
 import { consumerWorkspace } from "#package-check/workspace.ts";
 
@@ -60,15 +61,16 @@ export const checkConsumer = (
 			compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
 			extends: "./tsconfig.json",
 		});
-		const entries = (
-			scenario?.entries
-			?? Object.entries(pkg.manifest.exports ?? {})
-				.filter(([, target]) => target !== null)
-				.map(([key]) => key)
-		).map((key) => ({
-			json: targets(pkg.manifest.exports?.[key]).some((target) => target.endsWith(".json")),
-			specifier: key === "." ? pkg.manifest.name : `${pkg.manifest.name}${key.slice(1)}`,
-		}));
+		const packed = yield* packedFiles(pkg);
+		const exported = exportEntries(pkg.manifest, packed);
+		const entries =
+			scenario === undefined ? exported : scenario.entries.map((key) => ({ json: false, specifier: `${pkg.manifest.name}${key.slice(1)}` }));
+		for (const { specifier } of entries) {
+			yield* requireThat(
+				exported.some((entry) => entry.specifier === specifier),
+				`${pkg.manifest.name}: scenario entry ${specifier} is not exported`,
+			);
+		}
 		yield* fs.writeFileString(
 			join(consumer, "entries.ts"),
 			entries
@@ -100,7 +102,27 @@ export const checkConsumer = (
 				.join("\n"),
 		]);
 		yield* runFixtures(consumer, scenario?.run ?? []);
+		if (scenario === undefined) {
+			yield* checkBlockedImport(pkg, consumer, blockedEntries(pkg.manifest, packed));
+		}
 	});
+
+function checkBlockedImport(pkg: Package, consumer: string, blocked: readonly string[]) {
+	return Effect.gen(function* () {
+		const [specifier] = blocked;
+		if (specifier === undefined) {
+			yield* requireThat(
+				!Object.values(pkg.manifest.exports ?? {}).includes(null),
+				`${pkg.manifest.name}: no packed module sits under a blocked export`,
+			);
+			return;
+		}
+		const outcome = yield* command(consumer, "node", ["--input-type=module", "--eval", `await import(${JSON.stringify(specifier)});`]).pipe(
+			Effect.match({ onFailure: (error) => error.message, onSuccess: () => "the import succeeded" }),
+		);
+		yield* requireThat(outcome.includes("ERR_PACKAGE_PATH_NOT_EXPORTED"), `${pkg.manifest.name}: ${specifier} must not be importable: ${outcome}`);
+	});
+}
 
 const checkOptionalPeers = (pkg: Package, consumer: string) =>
 	Effect.gen(function* () {

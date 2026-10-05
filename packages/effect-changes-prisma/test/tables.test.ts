@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { tablesOf } from "#index.ts";
+import { tablesOf } from "#tables.ts";
 
 it("tablesOf maps each table to its model, honouring @@map and ignoring comments", () => {
 	const schema = `
