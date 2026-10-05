@@ -45,6 +45,8 @@ implementation and acceptance criteria.
   heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
   service preparation that preserves existing databases and data.
+- [`@shivaedev/skills`](./packages/skills): Shared agent skills that a repository
+  selects in `package.json`, syncs into `.agents/skills` and checks in CI.
 - [`@shivaedev/work-board`](./packages/work-board): A local server that shows a
   folder of markdown files as a live page, updated in place when a file changes.
 

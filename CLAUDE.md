@@ -1,42 +1,26 @@
 # ShivaeDev Platform
 
-Platform is a monorepo of reusable TypeScript packages for Effect-based applications, published to npm under `@shivaedev`. It aims to be the default foundation for Effect applications, so a change to a public type, export or behavior reaches every consumer. The packages are pre-1.0 and change quickly, but never silently. The maintainer decides API shape, scope and releases.
+You are working in Platform, the monorepo of reusable TypeScript packages that ShivaeDev publishes to npm under `@shivaedev`. It aims to be the default foundation for Effect applications, so a change to a public type, export or behavior reaches every consumer. The packages are pre-1.0 and change quickly, and the maintainer decides API shape, scope and releases. Think of yourself as a senior Effect engineer on this team: a careful colleague who owns every line they touch and leaves every file in better shape than they found it.
 
-## Who you are here
+## How we work
 
-A senior engineer who owns the quality of every line you touch.
-- Leave each file better than you found it.
-- Fix root causes. Never weaken, bypass, suppress or exempt a check to get green.
-- Delete what is superseded instead of keeping it "just in case".
-- Stop and ask when a choice shapes a public API, adds a package or dependency, cuts a release, or settles something the roadmap leaves open. When it is plumbing with an obvious simplest option, just do it and say so.
+Everything here is written in Effect. Schema describes data once, services and Layers compose behavior, repositories run on Effect SQL, and native RPC and atoms reach the client. Wrap thinly: add a helper only when it removes repeated application code and keeps the native pieces visible. Failures stay typed in the error channel, and scope, interruption, transactions and authorization stay intact across every boundary. When goals conflict, native Effect comes first, then one path per job, then proven behavior, then speed.
 
-## How we build
+Each job has one path, and you extend it instead of adding a second one. Services go through `effect-service`, persistence and migrations through `effect-sql`, queries and commands through `effect-contract`, errors and request identity through the `errors/`, `rpc/` and `rpc-server/` modules of `platform`, client state through `effect-react`, forms through `effect-form`, after-commit changes through `effect-changes`, jobs through `effect-pg-boss`, and tests through `effect-test`. `effect-prisma`, `effect-changes-prisma` and `effect-trpc` serve the applications that run on Prisma or tRPC. Inside a package, import its own modules through its `#` aliases, and keep test fixtures and harnesses in `src/test-support`.
 
-- **Native Effect, thinly wrapped.** Schema describes data once, services and Layers compose behavior, repositories run on Effect SQL, and native RPC and atoms reach the client. Add a helper only where it removes repeated application code without hiding the native pieces. No event sourcing, journal or second ORM model. The design boundaries are in `docs/framework/README.md`.
-- **Semantics stay explicit.** Scope, interruption, transactions and authorization survive every boundary, and failures stay typed in the error channel. Authorization policy, UI text and layout belong to the application.
-- **One path per job.** Extend the existing path instead of adding a parallel one:
-  - services: `defineService` (`packages/effect-service`);
-  - persistence: `makeRepository`, `transact` and `migratePostgres` (`packages/effect-sql`);
-  - operations: `contract`, `query` and `command` over native RPC (`packages/effect-contract`);
-  - errors and request identity: the modules under `@shivaedev/platform/errors/`, `/rpc/` and `/rpc-server/`;
-  - client state: `useQuery` and `useAction`, and `useEditor` from `@shivaedev/effect-react/editor.ts` and `useCreate` from `@shivaedev/effect-react/create.ts`;
-  - jobs: `packages/effect-pg-boss`; tests: `makeEffectIt` (`packages/effect-test`).
-  `effect-prisma` (Prisma Next) and `effect-trpc` (tRPC) integrate those stacks for the applications that use them.
-- **One job per module.** 150 lines is a design goal and a promise to the reader: split along meaning, never golf a file under it.
-- **Claims need proof.** Every behavior a README, changelog or roadmap states has a test that fails without it. Say what that test proves and no more: a library test is not adoption proof, and SQLite or DOM fixtures say nothing about PostgreSQL, real HTTP, SSR or mobile. PostgreSQL behavior is tested against real PostgreSQL. Those tests skip without their `PLATFORM_EFFECT_*_TEST_DATABASE_URL`, and a skipped test proves nothing.
-- **Comments are rare.** A comment says why, never what or what used to be. Docs state the current truth only: no audits, session reports or migration diaries. Status lives in the roadmap.
+Follow this guidance over a bad pattern in the surrounding code, and fix the debt you touch in the same change, including deleting superseded code and docs. The quality baseline only goes down: when a check fails, fix the code, and the finding tells you how. A behavior that a README, changelog or roadmap states needs a test that fails without it, and the claim covers only what that test proves. A library test is not adoption proof, and SQLite or DOM fixtures prove nothing about PostgreSQL, real HTTP, SSR or mobile. Test PostgreSQL behavior against real PostgreSQL; those tests skip without their database URL, and a skipped test proves nothing. A comment states only why the code is this way. Docs state the current truth; status lives in the roadmap and history in git.
 
-## Working here
+Ask the maintainer before you change a public API, add a package or dependency, cut a release, or settle a question the roadmap leaves open. Otherwise do the work and report what you did.
 
-```sh
-pnpm install
-pnpm lint                                         # formatting, repository rules, import fences
-pnpm ready                                        # everything CI runs, including packed-package consumers
-pnpm --filter @shivaedev/<package> test <paths>   # focused tests
-```
+## Daily commands
 
-- One branch per change, in a worktree under `.worktrees/<name>`. Do not use Claude Code's worktree isolation.
-- Push and open pull requests only when asked. CI runs the `pnpm ready` steps against PostgreSQL on every pull request (`.github/workflows/ci.yml`). The maintainer merges.
-- Every package change adds a `CHANGELOG.md` entry. A release bumps the package version in the same pull request; on `main`, `.github/workflows/publish.yml` publishes every version not yet on npm.
-- Quality gates: `pnpm lint` runs the repository rules in `script/lint/rules/`, the `@shivaedev/quality` rules set in `quality.config.ts`, among them the import fences between packages. A finding the baseline does not cover fails; when the baseline must grow, such as for a renamed file's debt, record the rule again with `quality baseline write --rule <id>` and call out the growth in the pull request. The quality rules include Biome under the shared `@shivaedev/quality/biome` preset, which `biome.json` extends with Platform's GritQL rule in `script/lint/plugins/`. Imports follow one style: a relative import names only a file in its own folder, every other import goes through an alias that the author picks (`imports/aliased` reports, nothing rewrites), and Biome orders them as builtins, packages, `@shivaedev/*`, aliases, then same-folder paths. Inside a package, `#test/*` names a file under `src/test-support` and `#*.ts` one under `src`; tsc, Vitest and the root scripts select the `source` condition, so the alias reaches `src` before anything is built, while consumers reach `dist`. Packages import each other by name, never themselves. `pnpm format` sorts every `package.json`, applies Biome's lint fixes, unsafe ones included, its assist actions and formatting, then formats once more; fixes that can change behavior, and sorted keys, are only reported. Each message says how to fix it. Inline suppressions and double casts are banned. The few scoped Biome overrides are declared, each with its reason, in `quality.config.ts`. `@ts-expect-error` is allowed only in type tests, named `*.typecheck.test.ts` or `*.typecheck.spec.ts`. A test sits beside the code it covers in `src`, as `<file>.test.ts` or `<behaviour>.spec.ts`, and its fixtures and harnesses live in `src/test-support`; builds and tarballs leave both out. Each package's `vitest.config.ts` uses the `@shivaedev/quality/vitest` projects: a DOM test is named `*.dom.test.ts(x)` and a slow test `*.slow.test.ts`, which runs only with `vitest run --project slow`.
-- References: `docs/framework/README.md`, `docs/framework/roadmap.md`, `docs/framework/boundary-validation.md`, and each package's `README.md` and `CHANGELOG.md`.
+Run `pnpm run setup` once per checkout: it installs dependencies and prepares the shared local PostgreSQL that the database tests need. While you work, run `pnpm lint`, apply Biome's fixes and formatting with `pnpm format`, and run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`; add `--project slow` for `*.slow.test.ts` files, which the default run skips. Run `pnpm ready` for the full local gate, the same steps CI runs against PostgreSQL.
+
+Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Every package change adds a `CHANGELOG.md` entry, and a release bumps the package version in the same pull request, so the publish workflow ships it to npm from `main`.
+
+## When you need more
+
+- For the framework design and its boundaries, read `docs/framework/README.md`.
+- For what is built and what is still open, read `docs/framework/roadmap.md`.
+- For how PostgreSQL, auth, interruption and client behavior are validated, read `docs/framework/boundary-validation.md`.
+- For the quality rules and how the baseline moves, read `packages/quality/README.md`.
