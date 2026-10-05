@@ -263,6 +263,9 @@ catalogs:
     effect:
       specifier: 4.0.0-rc.112
       version: 4.0.0-rc.112
+    esbuild:
+      specifier: 0.28.1
+      version: 0.28.1
     happy-dom:
       specifier: 20.11.2
       version: 20.11.2
@@ -415,6 +418,9 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
@@ -433,6 +439,12 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-rc.112
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.1
+      happy-dom:
+        specifier: 'catalog:'
+        version: 20.11.2
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -568,6 +580,10 @@ importers:
         version: 4.1.11(@types/node@24.10.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.2)(vite@8.1.5(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/effect-react:
+    dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -575,9 +591,6 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)
-      '@shivaedev/effect-contract':
-        specifier: workspace:*
-        version: link:../effect-contract
       '@shivaedev/effect-form':
         specifier: workspace:*
         version: link:../effect-form

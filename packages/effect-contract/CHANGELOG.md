@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 - 2026-10-05
+
+### Added
+
+- Optional `live.ts` invalidation over native Streams, Reactivity and AtomRpc runtimes: precise changed keys, explicit full-scope reconciliation after initial/reconnected delivery, bounded paused observations, resume, typed stream failures and scoped teardown. Native query atoms own retained data and stale-request interruption.
+- `Key` and `LiveHint` Schemas for existing list/item keys and Changed/Resync hints. A real streaming HTTP/browser fixture demonstrates their composition with native newline-delimited RPC serialization.
+- Browser-safe `resume.ts` owns the existing native/browser resume signal without React peers; effect-react delegates its existing entry to it.
+
+### Changed
+
+- `bind` accepts a native client group with additional RPC operations while preserving the declared contract's types and rejecting clients missing its operations.
+
 ## 0.3.0 - 2026-10-04
 
 ### Changed

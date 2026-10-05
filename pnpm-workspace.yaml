@@ -50,6 +50,7 @@ catalog:
   superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.0-rc.112
+  esbuild: 0.28.1
   better-auth: 1.6.30
   pg-boss: 12.23.1
   satteri: 0.9.5

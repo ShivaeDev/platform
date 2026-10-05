@@ -1,0 +1,51 @@
+import { Effect, Layer, PubSub, Schema, Stream } from 'effect';
+import * as Atom from 'effect/unstable/reactivity/Atom';
+import * as AtomRegistry from 'effect/unstable/reactivity/AtomRegistry';
+import * as AsyncResult from 'effect/unstable/reactivity/AsyncResult';
+import { collection, readKeys } from '@shivaedev/effect-contract/keys.ts';
+import { live, LiveHint } from '@shivaedev/effect-contract/live.ts';
+import { resumeSignal } from '@shivaedev/effect-contract/resume.ts';
+const workspace = collection('workspace', Schema.String);
+const runtime = Atom.runtime(Layer.empty);
+const events = Effect.runSync(PubSub.bounded<LiveHint>(8));
+const stream = Stream.unwrap(Effect.gen(function* () {
+ const subscription = yield* PubSub.subscribe(events);
+ return Stream.concat(Stream.succeed<LiveHint>({ _tag: 'Resync' }), Stream.fromEffectRepeat(PubSub.take(subscription)));
+}));
+let resumeListener: (() => void) | undefined;
+const resume = resumeSignal({ native: listener => {
+ resumeListener = listener;
+ return () => { resumeListener = undefined; };
+} });
+const source = live(runtime, { stream, resyncKeys: [workspace.list], resume });
+let reads = 0;
+const query = runtime.atom(Effect.sync(() => ++reads)).pipe(runtime.factory.withReactivity(readKeys([workspace.list])));
+const registry = AtomRegistry.make();
+registry.mount(query);
+registry.mount(source.connection);
+async function waitFor(predicate: () => boolean) {
+ const deadline = Date.now() + 3000;
+ while (!predicate()) {
+  if (Date.now() >= deadline) throw new Error('Packed live consumer did not reconcile');
+  await new Promise(resolve => setTimeout(resolve, 5));
+ }
+}
+try {
+ await waitFor(() => registry.get(source.status).connection === 'live' && AsyncResult.isSuccess(registry.get(query)));
+ const before = reads;
+ registry.set(source.paused, true);
+ await Effect.runPromise(PubSub.publish(events, { _tag: 'Resync' }));
+ await waitFor(() => registry.get(source.status).pending === 1);
+ if (reads !== before) throw new Error('Packed paused consumer refreshed automatically');
+ registry.set(source.paused, false);
+ await waitFor(() => reads > before);
+ const resumed = reads;
+ if (resumeListener === undefined) throw new Error('Packed resume source was not initialized');
+ resumeListener();
+ await waitFor(() => reads > resumed);
+ if (Schema.decodeUnknownResult(LiveHint)({ _tag: 'Unknown' })._tag !== 'Failure') throw new Error('Packed hint accepted an unknown tag');
+} finally {
+ registry.dispose();
+ if (resumeListener !== undefined) throw new Error('Packed resume source was not released');
+ await Effect.runPromise(PubSub.shutdown(events));
+}
