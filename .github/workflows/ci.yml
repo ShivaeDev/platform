@@ -311,7 +311,7 @@ jobs:
         if: always()
         with:
           name: bundle-analysis
-          path: .ci/bundles
+          path: .ci/bundles/*/output
           include-hidden-files: true
           overwrite: true
           retention-days: 14

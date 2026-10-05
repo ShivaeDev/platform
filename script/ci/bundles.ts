@@ -45,6 +45,11 @@ const program = Effect.gen(function* () {
 			const bundle = await rollup({
 				external: (id) => !(id.startsWith(".") || id.startsWith("/") || id.startsWith("#")),
 				input: Object.fromEntries(Object.entries(entries).map(([name, path]) => [name, join(directory, "package", path)])),
+				onwarn: (warning, warn) => {
+					if (warning.code !== "EMPTY_BUNDLE") {
+						warn(warning);
+					}
+				},
 				// The uploading plugin runs first so its sizes leave out the stats asset the dry run emits for the artifact.
 				plugins: [nodeResolve(), ...(upload ? [analysis(manifest.name, false)] : []), analysis(manifest.name, true)],
 			});
