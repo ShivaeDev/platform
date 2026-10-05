@@ -15,7 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./test/*",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
@@ -35,6 +35,9 @@
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],

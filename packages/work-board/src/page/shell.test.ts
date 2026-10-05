@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/support/board.ts";
-import { workspaceFixture } from "#test/support/workspaceFixture.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { workspaceFixture } from "#test/workspaceFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;

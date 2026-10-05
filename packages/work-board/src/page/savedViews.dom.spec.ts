@@ -1,9 +1,9 @@
 import { realpathSync } from "node:fs";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, startBoard } from "#test/support/board.ts";
-import { type OpenPage, openPage } from "#test/support/browser.ts";
-import { waitFor } from "#test/support/live.ts";
-import { viewsFixture } from "#test/support/viewsFixture.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { type OpenPage, openPage } from "#test/browser.ts";
+import { waitFor } from "#test/live.ts";
+import { viewsFixture } from "#test/viewsFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;

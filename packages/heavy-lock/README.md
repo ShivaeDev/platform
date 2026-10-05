@@ -173,6 +173,6 @@ language; every implementation must follow it exactly to share the lock.
    `heavy-process lock: acquired after <elapsed>`. The time is local, and
    `<elapsed>` is `<s>s` under a minute and `<m>m <s>s` from a minute on.
 
-The package's `test/fixtures/reference-holder.lock` holds a holder file in the
+The package's `src/test-support/fixtures/reference-holder.lock` holds a holder file in the
 protocol's exact byte format; its tests encode, decode and wait on it byte
 for byte.

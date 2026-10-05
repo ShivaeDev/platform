@@ -162,9 +162,9 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
   the guard, several subjects per write, idempotent `settle`, a Promise-shaped
   driver, both failure policies for failed, defective and throwing sinks, the
   sink override and the observer.
-- [effect-sql PostgreSQL tests](../../packages/effect-sql/test/transact.postgres.test.ts)
+- [effect-sql PostgreSQL tests](../../packages/effect-sql/src/postgresTransact.spec.ts)
   repeat every SQLite `transact` case on PostgreSQL with two pools as distinct
-  owners. [Commit-boundary tests](../../packages/effect-sql/test/transact-commit.postgres.test.ts)
+  owners. [Commit-boundary tests](../../packages/effect-sql/src/transactCommit.spec.ts)
   hold `COMMIT` open with a deferred `pg_sleep` constraint trigger, interrupt the
   caller and compare the published keys with what a second pool sees committed;
   they also read from a separate pool inside the sink to show publishing happens

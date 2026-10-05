@@ -19,7 +19,7 @@ const development = Effect.runSync(Config.string("DATABASE_URL").pipe(Config.wit
 const tests = Effect.runSync(postgresTestEnvironment);
 assertLocalDatabase(development, ["platform_dev"]);
 prepareDatabases([development, ...Object.values(tests)]);
-for (const schema of ["packages/effect-prisma/test/schema.sql", "packages/platform/test/auth/schema.sql"]) {
+for (const schema of ["packages/effect-prisma/src/test-support/schema.sql", "packages/platform/test/auth/schema.sql"]) {
 	const source = readFileSync(schema, "utf8")
 		.replaceAll("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ")
 		.replaceAll("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ");

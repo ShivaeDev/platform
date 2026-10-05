@@ -27,7 +27,7 @@ writes in that operation. PostgreSQL marks a transaction failed after a statemen
 error; catching that error inside the transaction does not restore the database
 transaction. A deliberate nested transaction/savepoint is a separate choice.
 
-[The PostgreSQL test](../../packages/effect-sql/test/postgres-constraints.test.ts)
+[The PostgreSQL test](../../packages/effect-sql/src/postgresConstraints.spec.ts)
 checks a duplicate after an earlier insert, verifies rollback through repository
 reads, and verifies an unrelated check violation retains its native SQL error.
 Constraint names and reason precision are driver-specific: this proof does not

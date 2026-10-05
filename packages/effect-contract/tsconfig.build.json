@@ -3,6 +3,7 @@
 		"outDir": "dist",
 		"rootDir": "src"
 	},
+	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/test-support"],
 	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"],
 	"include": ["src"]
 }
