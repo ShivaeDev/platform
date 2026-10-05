@@ -12,7 +12,7 @@ coverage:
         informational: true
 
 comment:
-  layout: "reach,diff,flags,components,files"
+  layout: "condensed_header, condensed_files, condensed_footer"
   behavior: default
   require_changes: true
   require_bundle_changes: true
@@ -102,4 +102,4 @@ test_analytics:
   shorten_paths: true
 
 github_checks:
-  annotations: true
+  annotations: false
