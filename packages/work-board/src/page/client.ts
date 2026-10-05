@@ -1,4 +1,5 @@
 export const client = `
+import "/_board/saved-views.js";
 import "/_board/preferences.js";
 import "/_board/search.js";
 import { renderDiagrams } from "/_board/diagrams.js";

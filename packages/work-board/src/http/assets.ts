@@ -11,10 +11,12 @@ import { searchScript } from "#page/searchScript.ts";
 import { pageStateScript } from "#page/stateScript.ts";
 import { style } from "#page/style.ts";
 import { swap } from "#page/swap.ts";
+import { savedScript } from "#views/savedScript.ts";
 import { respond } from "./respond.ts";
 
 export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [
 	["/_board/style.css", style, "text/css"],
+	["/_board/saved-views.js", savedScript(), "text/javascript"],
 	["/_board/client.js", client, "text/javascript"],
 	["/_board/preferences.js", preferences, "text/javascript"],
 	["/_board/search.js", searchScript(), "text/javascript"],

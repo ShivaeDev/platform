@@ -138,3 +138,23 @@ Add `viewsFixture()` from `test/support/viewsFixture.ts` to the large fixture.
    pane must render; check overflow and errors. Disable JavaScript and submit GET
    filters/open detail through native links. Table/saved-view acceptance follows
    in the next checkpoint; do not check step 05 complete yet.
+
+## Table and saved-view acceptance — step 05 completion
+
+1. Use the same richer fixture. Switch Board/Table with an item selected and
+   filters/sorting applied. IDs, counts, source fields, and selected detail agree.
+   Use Back and reload the table URL; selected context remains. Missing sort fields
+   stay last and missing cells remain explicit.
+2. Save a named table view, reload, choose it, and Open. Applied board/filters/sort/
+   layout return without retaining item selection or unsent filter edits. Save
+   the same name in a different layout and confirm it updates rather than doubles.
+   Remove one or Clear all. Another workspace must not inherit these names.
+3. Save 10 views. An eleventh name must request removal/update instead of silently
+   evicting one. Malformed stored JSON recovers on a successful save; external or
+   executable saved URLs are ignored and names render as text. Block browser
+   storage: in-memory saving/opening/removal still works with an explicit notice.
+4. Edit a selected item's status, then delete it. The table/counts update while
+   applied filters, focused unsent input, and selection explanations remain.
+   Verify real Mermaid, compact density, 390 × 844/dark/reduced motion without page
+   overflow, and readable no-JavaScript table/filter/detail navigation. Saved-view
+   controls remain disabled without JavaScript.

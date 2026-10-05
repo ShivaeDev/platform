@@ -107,7 +107,7 @@ independently verified acceptance; missing provenance stays **Not recorded**.
 
 ## Work views
 
-Open **Work** to read identified items as a board. A `kind: board` file with a
+Open **Work** to read identified items as a board or table. A `kind: board` file with a
 unique ID and an explicit `items` list defines a selectable view; the same item
 can appear in several boards. Board definitions are excluded from All work.
 Missing/ambiguous members and repeated membership are disclosed without choosing
@@ -122,7 +122,19 @@ filters, sort, and selected ID, so reload and Back/Forward restore that context.
 A selected item outside the filters stays visible with a notice; deletion or
 ambiguous identity is explained. Live changes retain applied filters, including
 filters with no current matches. Compact density applies to these cards too.
+Board and table use the same projection and selection; switching layouts keeps
+that URL context. Table rows show kind, status, owner, and next action, with
+missing fields disclosed and the same source detail pane. Narrow tables scroll
+inside their own container; compact density reduces row/card spacing.
 Native links and GET filters remain usable without JavaScript.
+
+Save up to 10 named views in browser storage scoped to the workspace and server
+origin. A view retains the applied board, filters, sort, and layout; item selection
+stays in its shareable URL. Saving the same name updates it. At capacity, remove
+one or update a name; views are never silently evicted. Remove one or clear all
+from the view picker. Unsafe stored destinations are ignored. If storage is
+unavailable, named views work for the current page only; source files are unchanged.
+Saving requires JavaScript; board/table reading does not.
 
 ## Diagrams
 
