@@ -83,6 +83,18 @@ describe("imports/fences fires", () => {
 	});
 });
 
+describe("imports/fences skips", () => {
+	it("a test or spec file in the modules a fence holds, because it ships nowhere", async () => {
+		const findings = await Promise.all([gameKeepsOutOfCms, gameNeverReachesCms, gameSpeaksCards].map((one) => check([one])));
+		expect(findings.flat().map((finding) => finding.file)).toEqual([
+			"packages/game/src/play.ts",
+			"packages/game/src/play.ts",
+			"packages/game/src/run.ts",
+			"packages/game/src/words.ts",
+		]);
+	});
+});
+
 describe("imports/fences sees through", () => {
 	it("an alias, a tsconfig path, a relative path and a types-only package to the package an import names", async () => {
 		expect((await check([coreNeedsNoAuth], "aliases")).map((finding) => finding.message.split(" across ")[0])).toEqual([

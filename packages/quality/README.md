@@ -124,7 +124,7 @@ Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they l
 
 #### Type tests
 
-A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, is allowed in a type test: a file named `*.typecheck.test.ts` or `typecheck.test.ts` (or `.tsx`). The compiler checks these files; [Vitest projects](#vitest-projects) never run them. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in them. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
+A type test proves that an API rejects what its types forbid, and TypeScript asserts a compile error only through `@ts-expect-error`, which fails as soon as the error it expects goes away. So `@ts-expect-error`, and no other directive, is allowed in a type test: a file named `*.typecheck.test.ts`, `*.typecheck.spec.ts` or `typecheck.test.ts` (or `.tsx`). The compiler checks these files; [Vitest projects](#vitest-projects) never run them. `@ts-ignore`, `@ts-nocheck` and every linter and formatter directive stay reported in them. A test that must pass a rejected value at run time, to prove the runtime refuses it too, calls the API through `Reflect.apply` instead of a directive.
 
 `suppressions/no-double-cast` finds casts with the TypeScript parser, through parentheses and in either assertion syntax. A single cast is left to the linter, and `as const` is not a cast.
 
@@ -273,6 +273,8 @@ A fence has a name, a reason, the modules it holds (`from`) and one prohibition:
 Targets are `packages(...)` (workspace packages by name, with or without their scope; a workspace package is a named `package.json` that `pnpm-workspace.yaml` or the root `package.json` `workspaces` includes, with `*`, `**`, `?`, `{a,b}` and `[...]` in its patterns, none of which match a folder whose name starts with `.` unless the pattern spells the dot, and a `packages` list or pattern the gate cannot read stops the run, and it holds every file below it that no deeper workspace package holds), `folders(...)`, `files(...)`, `modules(...)` (external packages by package name, and Node builtins), `scopes(...)` (every external package of a scope), `anyOf(...)`, `workspace` (every workspace package) and `anything`. Each takes `.except(...)`.
 
 The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
+
+Fences guard shipped code, and a test ships nowhere, so a fence never holds a test file: a `*.test.ts` or `*.spec.ts` file, as the [test rules](#tests) read the name, may import across every fence. There is no option to check them.
 
 A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
 
@@ -496,6 +498,7 @@ A test sits beside the code it covers, and its name says what it covers and wher
 | `cart/Basket.dom.test.tsx` | `cart/Basket.tsx`, in a DOM | Yes |
 | `cart/checkoutFlow.spec.ts` | A behaviour of the `cart/` folder as a whole, such as a flow across several files | Yes |
 | `cart/checkoutFlow.dom.spec.tsx` | The same, in a DOM | Yes |
+| `cart/checkoutFlow.typecheck.spec.ts` | The types of that behaviour, checked by the compiler | Yes |
 | `cart/totals.test.ts` | No `cart/totals.ts` beside it | No: a `.test` follows a file, and a test of the folder is a `.spec` |
 | `cart/cart.spec.ts` | | No: a `.spec` names a behaviour, so it may not share a stem with a file beside it |
 | `cart/cart.hydration.test.ts` | | No: an aspect gets its own file in the module's folder, or a `.spec` |

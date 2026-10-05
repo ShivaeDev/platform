@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 - 2026-10-05
+
+### Changed
+
+- `imports/fences` skips test files: a file the `tests/*` rules read as a test, `*.test.ts` or `*.spec.ts` with any environment, is never a module a fence holds, so a test beside shipped code may import what it needs. Fences guard shipped code, and a test ships nowhere. Nothing turns this off.
+- `suppressions/no-inline` allows `@ts-expect-error` in `*.typecheck.spec.ts` files too, the type test of a behaviour, exactly as in `*.typecheck.test.ts`.
+
 ## 0.11.1 - 2026-10-05
 
 ### Changed

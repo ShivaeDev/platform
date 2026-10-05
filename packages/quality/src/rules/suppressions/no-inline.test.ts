@@ -102,19 +102,24 @@ describe("suppressions/no-inline in type tests", () => {
 		(await checkRule(noInline, undefined, { sources })).map((finding) => `${finding.file}:${finding.line ?? "-"} ${finding.message}`);
 	const expectError = "// @ts-expect-error The types reject it.\n";
 
-	it("allows @ts-expect-error only in files named typecheck.test", async () => {
+	it("allows @ts-expect-error only in files named typecheck.test or typecheck.spec", async () => {
 		expect(
 			await findings([
 				{ content: expectError, path: "test/api.typecheck.test.ts" },
+				{ content: expectError, path: "test/apiFlow.typecheck.spec.ts" },
 				{ content: expectError, path: "test/typecheck.test.tsx" },
 				{ content: expectError, path: "test/api.typecheck.ts" },
 				{ content: expectError, path: "test/api.test.ts" },
+				{ content: expectError, path: "test/api.spec.ts" },
 				{ content: expectError, path: "test/mytypecheck.test.ts" },
+				{ content: expectError, path: "test/mytypecheck.spec.ts" },
 			]),
 		).toEqual([
 			'test/api.typecheck.ts:1 Suppresses a check: "@ts-expect-error".',
 			'test/api.test.ts:1 Suppresses a check: "@ts-expect-error".',
+			'test/api.spec.ts:1 Suppresses a check: "@ts-expect-error".',
 			'test/mytypecheck.test.ts:1 Suppresses a check: "@ts-expect-error".',
+			'test/mytypecheck.spec.ts:1 Suppresses a check: "@ts-expect-error".',
 		]);
 	});
 
