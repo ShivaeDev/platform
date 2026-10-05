@@ -45,7 +45,7 @@ it("coverage includes never-imported package source and leaves out declarations,
 			const report = await provider.generateCoverage({ allTestsRun: true });
 			const reported = report
 				.files()
-				.map((path) => path.slice(join(root, "packages").length + 1))
+				.map((path: string) => path.slice(join(root, "packages").length + 1))
 				.toSorted();
 			assert.deepEqual(reported, ["existing/src/index.ts", "future/src/index.ts", "other/src/index.ts"]);
 			assert.equal(report.fileCoverageFor(join(root, "packages", "future", "src", "index.ts")).toSummary().lines.pct, 0);
