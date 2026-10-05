@@ -212,3 +212,32 @@ identify the judgment requested from them and what it would unblock before
 opening the details, recording elapsed time and feedback. Then ask them to follow
 its rationale/evidence. Automated fixture behavior cannot establish this user
 acceptance; record the exercise separately in the roadmap.
+
+## Explicit change baseline acceptance — step 08
+
+Use the same 100-card legacy home plus attention/reasoning fixture.
+
+1. Open Changes: first visit has no history. Start remembering, then edit recorded
+   status, an attention state and decision Markdown; add a file, move a unique-ID
+   item, and rename a plain file. The view explains changes with current links and
+   escaped remembered/current text. A plain rename is removal/addition; identity
+   moves match only a unique ID. No edit implies authorship or accepted evidence.
+2. Keep the baseline unchanged through live updates, source navigation, Back and
+   reload. Open a remembered-source disclosure and retain it through live edits
+   and Back. Mark seen replaces the baseline; Clear removes it and reload stays
+   off. Touching unchanged source must not create a content change.
+3. Inject an expired record, then open ordinary Markdown: the record is removed
+   without silently rebaselining. Invalid/future/unsupported records establish no
+   comparison. Another workspace key stays untouched. Block storage: explicitly
+   marked history works for this page with a visible persistence limitation.
+4. Repeat at 1440 × 1000 and 390 × 844 with dark theme/reduced motion and check
+   page overflow/errors. Old source containing script/image Markdown is plain
+   text. Disable JavaScript: retention controls are disabled with an explanation,
+   and native Work/source navigation remains available.
+5. HTTP regressions refuse an incomplete observation and a complete oversized
+   workspace without deletion counts or partial snapshots. Schema regressions
+   exercise exact UTF-8 limits, corrupt/unsupported records and unsafe/duplicate
+   paths. Source-comparison fixtures cover ambiguous IDs and unknown frontmatter.
+
+These checks establish comparison behavior, not the separate representative-user
+orientation target for step 07.

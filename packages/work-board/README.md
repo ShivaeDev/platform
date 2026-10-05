@@ -152,6 +152,28 @@ stay outside the queues with source diagnostics. An incomplete index withholds
 counts rather than presenting a quiet workspace. The viewer never writes source
 files or interrupts/starts agents; recipients are authored local labels.
 
+## Changes since seen
+
+Open **Changes**, then **Start remembering changes** to record one explicit
+browser-local workspace baseline. Live updates and opening the view never mark
+changes seen. After review, **Mark current workspace seen** replaces it;
+**Clear remembered history** removes it and stays off until you start again.
+
+Compare additions, removals, explicit field changes, decision Markdown and
+recorded evidence with current source links and escaped before/after source text.
+Unique explicit item IDs can match moved files; ordinary renames show removed
+and added paths. Duplicate IDs have no winner. Content comparison ignores mtime
+and does not establish authorship, decision acceptance or verified evidence.
+
+Each origin/workspace retains at most one 2 MiB serialized snapshot for 30 days.
+Old/deleted source may remain until replacement, clearing or expiry; expired data
+is removed on the next workspace visit or an open-page check. Invalid/unsupported
+history, incomplete reads and oversized workspaces are explained without invented
+removals or truncated history. Blocked storage allows a disclosed page-only
+baseline. The local server validates and compares observations without retaining
+history, modifying Markdown or contacting a cloud service. Without JavaScript,
+Changes explains the limitation while source reading, Overview and Work remain usable.
+
 ## Reasoning and evidence context
 
 Follow explicit relationships from a result to its plan and decision. Decisions

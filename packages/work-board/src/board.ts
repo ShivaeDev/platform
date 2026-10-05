@@ -4,6 +4,7 @@ import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { events } from "#http/events.ts";
+import { changesPage, history } from "#http/history.ts";
 import { identity } from "#http/identity.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
@@ -30,9 +31,9 @@ const routes = (options: BoardOptions) =>
 			const mermaid = yield* mermaidRoot();
 			const changes = yield* watchChanges(options.root);
 			const context = yield* Effect.context<Services>();
-			const serve = <E>(route: HttpRouter.PathInput, handler: Handler<E>) =>
+			const serve = <E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") =>
 				router.add(
-					"GET",
+					method,
 					route,
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
@@ -41,6 +42,8 @@ const routes = (options: BoardOptions) =>
 			yield* serve("/_board/search", search(index));
 			yield* serve("/_board/work", work(index, changes, home));
 			yield* serve("/_board/overview", overview(index, changes, home));
+			yield* serve("/_board/changes", changesPage(changes, home));
+			yield* serve("/_board/history", history(index), "POST");
 			for (const [route, body, contentType] of ASSETS) {
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}

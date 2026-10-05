@@ -103,6 +103,11 @@ snapshots. If history is unavailable, say so; modification time is not a diff.
 of edits correctly; a first visit, cleared storage, or renamed source never invents
 history or authorship. No durable event journal is required.
 
+Implemented with the approved [explicit baseline contract](./change-history-examples.md).
+[Acceptance evidence](../roadmap.md#step-08-baseline-decision-and-acceptance-evidence)
+records the known edit sequence, schema/HTTP/DOM limits, real-browser checks and
+full repository handoff. Step 07's representative-reader exercise remains separate.
+
 ## 09 Live updates that preserve orientation
 
 **Outcome:** the workspace stays current without disturbing active reading.

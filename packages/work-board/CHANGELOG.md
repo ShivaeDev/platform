@@ -9,6 +9,14 @@
 
 ### Added
 
+- Add explicit Changes since seen comparisons with one browser-local baseline
+  per workspace, 30-day expiry, a 2 MiB serialized limit and clearing. Compare
+  source additions/removals, unique-ID moves and recorded field/content changes
+  with escaped old/current source. Keep incomplete, corrupt, expired and oversized
+  history explicit; live updates never silently acknowledge changes. No source
+  writes, server history, cloud sync, inferred authorship or verified acceptance.
+
+
 - Read explicit per-item attention request lists and expose a local overview for
   decisions, reviews and blockers with reason, response labels, target links and
   source provenance. Preserve exact request navigation, search/backlink context,

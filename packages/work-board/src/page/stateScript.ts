@@ -18,6 +18,10 @@ export const applyPage = (page, preserve = false) => {
   const reading = preserve ? captureReading() : null;
   const cachedScheme = incoming.dataset.scheme;
   if (preserve && (current.dataset.file === incoming.dataset.file || (current.dataset.identity && current.dataset.identity === incoming.dataset.identity))) {
+    if (current.dataset.view === "changes" && incoming.dataset.view === "changes") {
+      const content = current.querySelector("#changes-content");
+      if (content) incoming.querySelector("#changes-content")?.replaceWith(content.cloneNode(true));
+    }
     swap(current, incoming);
   } else {
     current.replaceWith(document.importNode(incoming, true));
@@ -31,6 +35,7 @@ export const applyPage = (page, preserve = false) => {
   if (incoming.dataset.view) doc.dataset.view = incoming.dataset.view; else delete doc.dataset.view;
   document.getElementById("work-open")?.setAttribute("aria-current", doc.dataset.view === "work" ? "page" : "false");
   document.getElementById("overview-open")?.setAttribute("aria-current", doc.dataset.view === "overview" ? "page" : "false");
+  document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
   const crumbs = page.getElementById("breadcrumbs");

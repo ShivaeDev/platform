@@ -22,7 +22,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
 - [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
-- [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
+- [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
 - [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
 - [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
@@ -268,9 +268,48 @@ quiet state and live updates are implemented.
 
 Representative-user evidence for
 the proposed 30-second orientation target remains pending; step 07 stays open
-until that acceptance exercise is recorded. Steps 08–26 remain open. Bounded
-retention and clearing must be defined before step 08 retains source snapshots.
-The rest of W1.2/W1.3 remains proposed.
+until that acceptance exercise is recorded. Step 08's explicitly approved
+implementation is complete; steps 09–26 remain open. The rest of W1.2/W1.3
+remains proposed.
+
+## Step 08 baseline decision and acceptance evidence
+
+The user approved one explicit browser-local Mark seen baseline per workspace,
+30-day expiry, a 2 MiB serialized limit and clearing. The [change-history contract](./delivery/change-history-examples.md)
+states retention, observation semantics and incomplete/unknown-history behavior.
+Opening Changes or receiving a live update never acknowledges source changes.
+
+- Work Board: 182 passing tests, including 16 new history regressions. Schema
+  checks cover exact UTF-8 limits, version/corruption/future/expiry, unsafe paths
+  and duplicate source paths. Comparison checks cover recorded fields, decision
+  Markdown, ordinary renames, unique-ID moves, ambiguous IDs and escaped old text.
+- Native HTTP checks compare observed source edits after watcher delivery, reject
+  cross-origin/unknown/oversized queries, and refuse incomplete or oversized
+  workspaces without false removals or partial retention. DOM checks cover
+  explicit marking, unchanged baseline through live updates, keyed disclosure
+  preservation when earlier changes appear, source navigation/Back, replacement,
+  clear, stored baseline restoration, workspace isolation, expiry/corruption and
+  disclosed blocked-storage behavior.
+- Chromium 151: the 100-card legacy home plus richer sources produced exactly
+  two additions, one removal and four changed sources after a known status,
+  attention, criterion-evidence, decision, added-file, plain rename and unique-ID
+  move sequence. Source/Back/reload and live updates kept the baseline; old source
+  remained plain text. Clear/reload stayed off, expiry cleared on an ordinary
+  workspace visit, and blocked storage retained a disclosed page-only baseline.
+  Desktop 1440 × 1000, mobile 390 × 844/dark/reduced motion and native no-JavaScript
+  fallback passed without page overflow or page errors.
+- `pnpm ready` passed lint, nine orchestration tests, builds, typechecks, real
+  PostgreSQL suites and all packed consumers. Package suites reported 1,078
+  passes and four existing expected failures; one existing `effect-test`
+  `skipIf(true)` fixture remains intentional. No Work Board/database tests skipped;
+  the quality baseline remains 2,508 findings without growth.
+- [Repeatable browser acceptance](./delivery/browser-acceptance.md#explicit-change-baseline-acceptance--step-08)
+  describes the known sequence and boundary checks. This is observed Markdown
+  comparison, not an atomic filesystem snapshot, event journal, authorship,
+  Git verification, human orientation timing or accepted evidence. Expired stored
+  data is removed on the next visit/open-page check; no background deletion is
+  claimed while the browser is closed. Source files remain untouched.
+
 
 ## Current foundation
 
