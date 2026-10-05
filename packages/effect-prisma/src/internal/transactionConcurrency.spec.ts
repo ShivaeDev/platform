@@ -1,6 +1,6 @@
-import { it } from "@effect/vitest";
 import { Effect, Exit, Fiber, Semaphore, Stream } from "effect";
 import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import type { DatabaseExecutor } from "#internal/executor.ts";
 import { makeModelRelation } from "#internal/relation-runtime.ts";
 import { ControlledCollection, EventStreamCollection } from "#test/controlled-collection.ts";
@@ -161,73 +161,69 @@ it.effect("holds a transaction query permit until interrupted work settles", () 
 	});
 });
 
-it.effect("keeps a root stream incremental when root queries share an access permit", () =>
-	Effect.gen(function* () {
-		const events: string[] = [];
-		interface StreamModels {
-			readonly Source: EventStreamCollection<User>;
-		}
-		const executor: DatabaseExecutor<StreamModels> = {
-			client: unusedClient(),
-			identity: {},
-			liveness: {
-				closedCode: "RUNTIME.DATABASE_CLOSED",
-				open: true,
-			},
-			mode: "root",
-			models: { Source: new EventStreamCollection(rows, events) },
-			querySemaphore: Semaphore.makeUnsafe(1),
-			transactionIdentity: undefined,
-			transactionSemaphore: undefined,
-		};
-		const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
+it.effect("keeps a root stream incremental when root queries share an access permit", function* () {
+	const events: string[] = [];
+	interface StreamModels {
+		readonly Source: EventStreamCollection<User>;
+	}
+	const executor: DatabaseExecutor<StreamModels> = {
+		client: unusedClient(),
+		identity: {},
+		liveness: {
+			closedCode: "RUNTIME.DATABASE_CLOSED",
+			open: true,
+		},
+		mode: "root",
+		models: { Source: new EventStreamCollection(rows, events) },
+		querySemaphore: Semaphore.makeUnsafe(1),
+		transactionIdentity: undefined,
+		transactionSemaphore: undefined,
+	};
+	const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
 
-		const result = yield* Stream.runCollect(
-			source.stream.pipe(
-				Stream.map((row) => {
-					events.push(`downstream:${row.id}`);
-					return row;
-				}),
-			),
-		);
+	const result = yield* Stream.runCollect(
+		source.stream.pipe(
+			Stream.map((row) => {
+				events.push(`downstream:${row.id}`);
+				return row;
+			}),
+		),
+	);
 
-		expect(result).toEqual(rows);
-		expect(events).toEqual(["source:start", "downstream:1", "downstream:2", "downstream:3", "source:end"]);
-	}),
-);
+	expect(result).toEqual(rows);
+	expect(events).toEqual(["source:start", "downstream:1", "downstream:2", "downstream:3", "source:end"]);
+});
 
-it.effect("buffers a transaction stream before running downstream effects", () =>
-	Effect.gen(function* () {
-		const events: string[] = [];
-		interface StreamModels {
-			readonly Lookup: ControlledCollection<User>;
-			readonly Source: EventStreamCollection<User>;
-		}
-		const executor: DatabaseExecutor<StreamModels> = {
-			client: unusedClient(),
-			identity: {},
-			liveness: {
-				closedCode: "RUNTIME.TRANSACTION_CLOSED",
-				open: true,
-			},
-			mode: "transaction",
-			models: {
-				Lookup: new ControlledCollection(async () => {
-					events.push("lookup");
-					return [...rows];
-				}),
-				Source: new EventStreamCollection(rows, events),
-			},
-			querySemaphore: Semaphore.makeUnsafe(1),
-			transactionIdentity: {},
-			transactionSemaphore: undefined,
-		};
-		const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
-		const lookup = makeModelRelation<ControlledCollection<User>, StreamModels>(executor, "Lookup");
+it.effect("buffers a transaction stream before running downstream effects", function* () {
+	const events: string[] = [];
+	interface StreamModels {
+		readonly Lookup: ControlledCollection<User>;
+		readonly Source: EventStreamCollection<User>;
+	}
+	const executor: DatabaseExecutor<StreamModels> = {
+		client: unusedClient(),
+		identity: {},
+		liveness: {
+			closedCode: "RUNTIME.TRANSACTION_CLOSED",
+			open: true,
+		},
+		mode: "transaction",
+		models: {
+			Lookup: new ControlledCollection(async () => {
+				events.push("lookup");
+				return [...rows];
+			}),
+			Source: new EventStreamCollection(rows, events),
+		},
+		querySemaphore: Semaphore.makeUnsafe(1),
+		transactionIdentity: {},
+		transactionSemaphore: undefined,
+	};
+	const source = makeModelRelation<EventStreamCollection<User>, StreamModels>(executor, "Source");
+	const lookup = makeModelRelation<ControlledCollection<User>, StreamModels>(executor, "Lookup");
 
-		const result = yield* Stream.runCollect(source.stream.pipe(Stream.mapEffect(() => lookup.exists())));
+	const result = yield* Stream.runCollect(source.stream.pipe(Stream.mapEffect(() => lookup.exists())));
 
-		expect(result).toEqual([true, true, true]);
-		expect(events).toEqual(["source:start", "source:end", "lookup", "lookup", "lookup"]);
-	}),
-);
+	expect(result).toEqual([true, true, true]);
+	expect(events).toEqual(["source:start", "source:end", "lookup", "lookup", "lookup"]);
+});

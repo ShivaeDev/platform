@@ -1,5 +1,6 @@
-import { expect, it } from "@effect/vitest";
+import { expect } from "@effect/vitest";
 import { Context, Effect } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { defineService } from "#define-service.ts";
 import { genericMethod } from "#generic-method.ts";
 
@@ -16,14 +17,12 @@ const Generic = defineService({
 	requires: [],
 });
 
-it.effect("preserves each generic call's caller requirement", () =>
-	Effect.gen(function* () {
-		const result = yield* Generic.pipe(
-			Effect.flatMap((service) => service.preserve(Effect.map(Caller, ({ value }) => value))),
-			Effect.provide(Generic.layer, { local: true }),
-			Effect.provideService(Caller, { value: 42 }),
-		);
+it.effect("preserves each generic call's caller requirement", function* () {
+	const result = yield* Generic.pipe(
+		Effect.flatMap((service) => service.preserve(Effect.map(Caller, ({ value }) => value))),
+		Effect.provide(Generic.layer, { local: true }),
+		Effect.provideService(Caller, { value: 42 }),
+	);
 
-		expect(result).toEqual({ value: 42 });
-	}),
-);
+	expect(result).toEqual({ value: 42 });
+});

@@ -1,6 +1,6 @@
-import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, Option, Stream } from "effect";
 import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { acquireConnectedClient, assertAvailableModelNames } from "#internal/client-lifecycle.ts";
 import type { DatabaseExecutor } from "#internal/executor.ts";
 import { fromPrismaPromise } from "#internal/promise.ts";
@@ -65,104 +65,90 @@ const executor: DatabaseExecutor<Models> = {
 	transactionSemaphore: undefined,
 };
 
-it.effect("adapts a Prisma-shaped thenable", () =>
-	Effect.gen(function* () {
-		const result = yield* fromPrismaPromise(() => new FakeResult([{ active: true, id: 1 }]));
-		expect(result).toEqual([{ active: true, id: 1 }]);
-	}),
-);
+it.effect("adapts a Prisma-shaped thenable", function* () {
+	const result = yield* fromPrismaPromise(() => new FakeResult([{ active: true, id: 1 }]));
+	expect(result).toEqual([{ active: true, id: 1 }]);
+});
 
-it.effect("keeps unknown Promise rejections in the defect channel", () =>
-	Effect.gen(function* () {
-		const exit = yield* Effect.exit(fromPrismaPromise(() => Promise.reject(new Error("unknown"))));
+it.effect("keeps unknown Promise rejections in the defect channel", function* () {
+	const exit = yield* Effect.exit(fromPrismaPromise(() => Promise.reject(new Error("unknown"))));
 
-		expect(Exit.isFailure(exit)).toBe(true);
-		if (Exit.isFailure(exit)) {
-			expect(Cause.hasDies(exit.cause)).toBe(true);
-		}
-	}),
-);
+	expect(Exit.isFailure(exit)).toBe(true);
+	if (Exit.isFailure(exit)) {
+		expect(Cause.hasDies(exit.cause)).toBe(true);
+	}
+});
 
-it.effect("closes a connected client when initialization fails", () =>
-	Effect.gen(function* () {
-		let closed = false;
-		const failure = new Error("model discovery failed");
+it.effect("closes a connected client when initialization fails", function* () {
+	let closed = false;
+	const failure = new Error("model discovery failed");
 
-		const exit = yield* Effect.exit(
-			Effect.promise(() =>
-				acquireConnectedClient(
-					{
-						close: () => {
-							closed = true;
-							return Promise.resolve();
-						},
-						connect: () => Promise.resolve(),
+	const exit = yield* Effect.exit(
+		Effect.promise(() =>
+			acquireConnectedClient(
+				{
+					close: () => {
+						closed = true;
+						return Promise.resolve();
 					},
-					() => {
-						throw failure;
-					},
-				),
+					connect: () => Promise.resolve(),
+				},
+				() => {
+					throw failure;
+				},
 			),
-		);
+		),
+	);
 
-		expect(Exit.isFailure(exit)).toBe(true);
-		expect(closed).toBe(true);
-	}),
-);
+	expect(Exit.isFailure(exit)).toBe(true);
+	expect(closed).toBe(true);
+});
 
 it("only reserves names that cannot be represented by the facade", () => {
 	expect(() => assertAvailableModelNames(["transaction"])).toThrow("Prisma model name conflicts with the database facade: transaction");
 	expect(() => assertAvailableModelNames(["constructor", "toString"])).not.toThrow();
 });
 
-it.effect("keeps a base Relation and its branches independent", () =>
-	Effect.gen(function* () {
-		const base = makeModelRelation<FakeCollection<User>, Models>(executor, "User");
-		const active = base.where({ active: true });
-		const firstActive = active.take(1);
+it.effect("keeps a base Relation and its branches independent", function* () {
+	const base = makeModelRelation<FakeCollection<User>, Models>(executor, "User");
+	const active = base.where({ active: true });
+	const firstActive = active.take(1);
 
-		expect(yield* base).toEqual(rows);
-		expect(yield* active).toEqual([rows[0], rows[2]]);
-		expect(yield* firstActive).toEqual([rows[0]]);
-		expect(yield* base).toEqual(rows);
-	}),
-);
+	expect(yield* base).toEqual(rows);
+	expect(yield* active).toEqual([rows[0], rows[2]]);
+	expect(yield* firstActive).toEqual([rows[0]]);
+	expect(yield* base).toEqual(rows);
+});
 
-it.effect("can execute multiple terminals against one Relation", () =>
-	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+it.effect("can execute multiple terminals against one Relation", function* () {
+	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
-		expect(yield* relation.exists()).toBe(true);
-		expect(yield* relation).toEqual([rows[0], rows[2]]);
+	expect(yield* relation.exists()).toBe(true);
+	expect(yield* relation).toEqual([rows[0], rows[2]]);
 
-		const first = yield* relation.first();
-		expect(Option.getOrThrow(first)).toEqual(rows[0]);
-	}),
-);
+	const first = yield* relation.first();
+	expect(Option.getOrThrow(first)).toEqual(rows[0]);
+});
 
-it.effect("replays one Relation independently under concurrency", () =>
-	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+it.effect("replays one Relation independently under concurrency", function* () {
+	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
-		const results = yield* Effect.all([relation, relation], {
-			concurrency: "unbounded",
-		});
+	const results = yield* Effect.all([relation, relation], {
+		concurrency: "unbounded",
+	});
 
-		expect(results).toEqual([
-			[rows[0], rows[2]],
-			[rows[0], rows[2]],
-		]);
-	}),
-);
+	expect(results).toEqual([
+		[rows[0], rows[2]],
+		[rows[0], rows[2]],
+	]);
+});
 
-it.effect("exposes a cold independently consumable Stream", () =>
-	Effect.gen(function* () {
-		const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
+it.effect("exposes a cold independently consumable Stream", function* () {
+	const relation = makeModelRelation<FakeCollection<User>, Models>(executor, "User").where({ active: true });
 
-		const first = yield* Stream.runCollect(relation.stream);
-		const second = yield* Stream.runCollect(relation.stream);
+	const first = yield* Stream.runCollect(relation.stream);
+	const second = yield* Stream.runCollect(relation.stream);
 
-		expect(first).toEqual([rows[0], rows[2]]);
-		expect(second).toEqual(first);
-	}),
-);
+	expect(first).toEqual([rows[0], rows[2]]);
+	expect(second).toEqual(first);
+});
