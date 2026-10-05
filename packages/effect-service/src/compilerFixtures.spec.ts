@@ -75,7 +75,7 @@ describe("service definition compiler fixtures", { timeout: compilerTimeout }, (
 
 	it("rejects each invalid service definition", () => {
 		const result = compile(invalidArguments(Object.keys(invalidFixtures)));
-		const diagnostics = (result.stderr || result.stdout).split(/(?=^test\/fixtures\/invalid\/)/mu);
+		const diagnostics = (result.stderr || result.stdout).split(/(?=^src\/test-support\/fixtures\/invalid\/)/mu);
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expectedDiagnostic] of Object.entries(invalidFixtures)) {
 			const fixtureDiagnostics = diagnostics.filter((message) => message.startsWith(`src/test-support/fixtures/invalid/${fixture}.ts(`)).join("\n");
