@@ -95,6 +95,12 @@ describe("the shipped Biome preset", () => {
 		expect(OFF_FOR_FIXES.filter((rule) => enabled.includes(rule))).toEqual([]);
 	});
 
+	it("reports a viewport that disables zoom, and leaves undeclared classes and inline styles to the author", async () => {
+		const enabled = await enabledRules('{ "extends": ["@shivaedev/quality/biome"] }\n');
+		expect(enabled).toContain("nursery/noNonScalableViewport");
+		expect(["nursery/noInlineStyles", "nursery/noUndeclaredClasses"].filter((rule) => enabled.includes(rule))).toEqual([]);
+	});
+
 	it("keeps the rules whose fixes can change behavior or remove a decision at error, and turns off only their fixes", () => {
 		expect(fixesOff().toSorted((left, right) => left.localeCompare(right))).toEqual(REPORT_ONLY);
 		expect(REPORT_ONLY.filter((rule) => levelIn(rule) !== "error")).toEqual([]);
