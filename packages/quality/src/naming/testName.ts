@@ -26,6 +26,10 @@ export function testName(path: string): TestName | undefined {
 
 const TEST_SUPPORT = "test-support";
 
+export function isTestSupport(path: string): boolean {
+	return posix.dirname(path).split("/").includes(TEST_SUPPORT);
+}
+
 export function isTestCode(path: string): boolean {
-	return testName(path) !== undefined || posix.dirname(path).split("/").includes(TEST_SUPPORT);
+	return testName(path) !== undefined || isTestSupport(path);
 }

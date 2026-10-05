@@ -44,9 +44,39 @@ describe("tests/story-setup flags setup helpers", () => {
 	])("but not on $name", async ({ content }) => {
 		expect(await findingsIn(content)).toEqual([]);
 	});
+
+	it("once for a helper with overloads, and not for a declared function", async () => {
+		const content = [
+			"export function makeClient(url: string): Client;",
+			"export function makeClient(url: URL): Client;",
+			"export function makeClient(url: string | URL): Client {}",
+			"declare function setupOrder(): void;",
+		].join("\n");
+		expect(await findingsIn(content)).toEqual(["3 makeClient"]);
+	});
 });
 
 describe("tests/story-setup flags fixture writes", () => {
+	it.each([
+		"appendFile",
+		"appendFileSync",
+		"copyFile",
+		"copyFileSync",
+		"cp",
+		"cpSync",
+		"mkdir",
+		"mkdirSync",
+		"mkdtemp",
+		"mkdtempSync",
+		"symlink",
+		"symlinkSync",
+		"writeFile",
+		"writeFileSync",
+	])("on %s from fs and from fs/promises", async (name) => {
+		const content = `import { ${name} } from "fs";\nimport * as fsp from "fs/promises";\n${name}("a");\nfsp.${name}("a");\n`;
+		expect(await findingsIn(content)).toEqual([`3 ${name}`, `4 ${name}`]);
+	});
+
 	it("through named, renamed, namespace, default and promises imports, at each call", async () => {
 		const content = [
 			'import fs, { mkdtempSync, writeFileSync as write, promises as fsp } from "node:fs";',

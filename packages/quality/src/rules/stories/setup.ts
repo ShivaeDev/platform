@@ -1,6 +1,5 @@
-import { posix } from "node:path";
 import ts from "typescript";
-import { testName } from "#naming/testName.ts";
+import { isTestSupport, testName } from "#naming/testName.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/syntax.ts";
 import { fixtureWrites } from "./fixtureWrites.ts";
@@ -10,7 +9,7 @@ const STORY_KIT =
 	"Name the setup in domain words as traits of the repository's story kit in test-support/, so the test reads as a story: see https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.";
 
 function isTestFile(path: string): boolean {
-	return testName(path) !== undefined && !posix.dirname(path).split("/").includes("test-support");
+	return testName(path) !== undefined && !isTestSupport(path);
 }
 
 function lineOf(source: ts.SourceFile, node: ts.Node): number {
@@ -27,7 +26,7 @@ function isFunction(node: ts.Expression | undefined): boolean {
 
 function helpersOf(statement: ts.Statement): readonly ts.Identifier[] {
 	if (ts.isFunctionDeclaration(statement)) {
-		return statement.name === undefined ? [] : [statement.name];
+		return statement.name === undefined || statement.body === undefined ? [] : [statement.name];
 	}
 	if (!ts.isVariableStatement(statement)) {
 		return [];

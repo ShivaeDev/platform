@@ -520,7 +520,7 @@ Both rules take a `suites` option, `.gitignore` patterns of folders that hold te
 
 ### Test code
 
-Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the one folder name for the fixtures, harnesses and generated clients that tests share. Test code ships nowhere, so the rules that check shipped code skip it: `imports/fences` never holds it, and `structure/max-lines` gives it the test limit. The test rules still read only test files: a file under `test-support/` is not a test, so `tests/follow` and `tests/colocated` leave it alone.
+Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the one folder name for the fixtures, harnesses and generated clients that tests share. Test code ships nowhere, so the rules that check shipped code skip it: `imports/fences` never holds it, and `structure/max-lines` gives it the test limit. The test rules still read only test files: a file under `test-support/` is not a test, so `tests/follow`, `tests/colocated` and `tests/story-setup` leave it alone.
 
 ## Story tests
 
