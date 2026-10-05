@@ -47,7 +47,17 @@ runs:
         done
         echo "::error::Package artifact was not published within 480 seconds"
         exit 1
-    - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-      with:
-        name: ${{ steps.wait.outputs.name }}
-        path: .ci/packages
+    - name: Download package archives
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ARTIFACT_NAME: ${{ steps.wait.outputs.name }}
+      run: |
+        for attempt in 1 2 3 4 5; do
+          rm -rf .ci/packages
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT_NAME" --dir .ci/packages && exit 0
+          echo "Download attempt $attempt of $ARTIFACT_NAME failed"
+          sleep $((attempt * 3))
+        done
+        echo "::error::Package artifact $ARTIFACT_NAME could not be downloaded"
+        exit 1

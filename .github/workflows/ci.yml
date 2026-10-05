@@ -60,7 +60,7 @@ jobs:
           path: .ci/packages
           if-no-files-found: error
           include-hidden-files: true
-          retention-days: 2
+          retention-days: 30 # GitHub allows re-runs for 30 days, and a re-run of failed jobs reuses these archives
           compression-level: 0
 
   typecheck:
