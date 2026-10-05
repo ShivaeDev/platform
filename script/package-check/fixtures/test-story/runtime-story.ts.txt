@@ -1,0 +1,65 @@
+import { Effect, Exit } from "effect"
+import { settleEffect } from "@shivaedev/test-story/effect/settle.ts"
+import { effectStoryKit } from "@shivaedev/test-story/effect/storyKit.ts"
+import { settle } from "@shivaedev/test-story/settle.ts"
+import { storyKit } from "@shivaedev/test-story/storyKit.ts"
+import { storyLog } from "@shivaedev/test-story/storyLog.ts"
+
+interface Garden {
+  beds: number
+  seeds: number
+  sprouts: number
+}
+
+const kit = storyKit<Garden>()("dug", "planted")
+const garden: Garden = { beds: 0, seeds: 0, sprouts: 0 }
+const log = kit.seed(
+  garden,
+  [
+    kit.trait("planted", "3 seeds are sown", (state) => {
+      state.seeds = 3
+    }),
+    kit.trait("dug", "the garden has 1 bed", (state) => {
+      state.beds = 1
+    }),
+  ],
+  { log: storyLog({ printOnFailure: false }) },
+)
+const sprouts = settle(log, {
+  cap: 10,
+  diagnose: () => "the seeds never sprout",
+  failed: () => undefined,
+  report: () => garden.sprouts,
+  settled: () => garden.seeds === 0,
+  step: () => {
+    garden.seeds -= 1
+    garden.sprouts += 1
+    log.tell("a seed sprouts")
+  },
+})
+
+let refusal = ""
+try {
+  kit.seed(garden, [kit.trait("dug", "the garden is paved", () => {
+    throw new Error("nothing grows on stone")
+  })], { log: storyLog({ printOnFailure: false }) })
+} catch (error) {
+  refusal = error instanceof Error ? error.message : ""
+}
+
+const effectKit = effectStoryKit<Garden>()("dug")
+const exit = await Effect.runPromiseExit(
+  Effect.flatMap(
+    effectKit.seed(garden, [effectKit.trait("dug", "a bed is dug", () => Effect.fail("too dry"))], { log: storyLog({ printOnFailure: false }) }),
+    (story) => settleEffect(story, { cap: 0, diagnose: Effect.succeed(""), failed: Effect.succeed(undefined), report: Effect.void, settled: Effect.succeed(true), step: Effect.void }),
+  ),
+)
+
+if (
+  sprouts !== 3 ||
+  log.lines.join("|") !== "3 seeds are sown|the garden has 1 bed|a seed sprouts|a seed sprouts|a seed sprouts" ||
+  refusal !== 'trait "the garden is paved" refused: nothing grows on stone' ||
+  !Exit.isFailure(exit)
+) {
+  throw new Error("The packed story kit misbehaved")
+}

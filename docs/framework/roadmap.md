@@ -328,6 +328,10 @@ and generic offline writes remain deferred until required by a consumer.
   signals follow connection lifetimes.
 - [ ] Validate deployment host/proxy cancellation and in-transaction interruption.
 - [x] Verify package declarations and installed consumers; run `pnpm ready`.
+- [x] Add `@shivaedev/test-story`, the generic core of a story DSL for tests:
+  staged traits that refuse an impossible setup, a story log added to a failing
+  test, and a settle loop that names why a story never settles, with Effect
+  variants behind the optional `effect` peer.
 - [x] Run a real PostgreSQL repository test for selection, nulls, encoded text,
   generated identity and transaction rollback.
 - [ ] Add broader PostgreSQL codec coverage and actual browser/native checks.

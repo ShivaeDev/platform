@@ -34,6 +34,9 @@ implementation and acceptance criteria.
   runner with worker-scoped Layers and TestClock.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
+- [`@shivaedev/test-story`](./packages/test-story): The core of a story DSL for
+  tests: staged traits that refuse an impossible setup, a story log added to a
+  failing test, and a loop that runs the domain until it settles.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed

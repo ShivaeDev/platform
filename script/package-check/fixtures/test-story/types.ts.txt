@@ -1,0 +1,44 @@
+import { Data, Effect } from "effect"
+import { settleEffect } from "@shivaedev/test-story/effect/settle.ts"
+import { effectStoryKit } from "@shivaedev/test-story/effect/storyKit.ts"
+import { settle } from "@shivaedev/test-story/settle.ts"
+import { type StoryKit, storyKit } from "@shivaedev/test-story/storyKit.ts"
+import { type StoryLog, storyLog } from "@shivaedev/test-story/storyLog.ts"
+
+interface Garden {
+  beds: number
+}
+
+class Dry extends Data.TaggedError("Dry") {}
+
+const kit: StoryKit<Garden, "dug" | "planted"> = storyKit<Garden>()("dug", "planted")
+const dug = kit.trait("dug", "the garden has 2 beds", (garden) => {
+  garden.beds = 2
+})
+const log: StoryLog = kit.seed({ beds: 0 }, [kit.traits(dug)], { after: { dug: () => undefined }, log: storyLog({ printOnFailure: false }) })
+const beds: number = settle(log, {
+  cap: 1,
+  diagnose: () => "never",
+  failed: () => undefined,
+  report: () => 2,
+  settled: () => true,
+  step: () => undefined,
+})
+void beds
+
+// @ts-expect-error A trait names one of the kit's stages.
+kit.trait("harvested", "the garden is harvested", () => undefined)
+
+const effectKit = effectStoryKit<Garden>()("dug")
+const seeded: Effect.Effect<StoryLog> = effectKit.seed({ beds: 0 }, [effectKit.trait("dug", "a bed is dug", () => Effect.fail(new Dry()))])
+const settled: Effect.Effect<number, Dry> = Effect.flatMap(seeded, (story) =>
+  settleEffect(story, {
+    cap: 1,
+    diagnose: Effect.succeed("never"),
+    failed: Effect.succeed(undefined),
+    report: Effect.succeed(1),
+    settled: Effect.succeed(false),
+    step: Effect.fail(new Dry()),
+  }),
+)
+void settled
