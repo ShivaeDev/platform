@@ -1,6 +1,7 @@
 import { identityUrl } from "#metadata/links.ts";
 import type { MetadataModel } from "#metadata/model.ts";
 import type { ParsedMetadata } from "#metadata/parse.ts";
+import { stateOf, viewUrl } from "#views/state.ts";
 import { escapeHtml } from "./escape.ts";
 import { metadataDetails } from "./metadataDetails.ts";
 
@@ -20,7 +21,11 @@ export function metadataHtml(parsed: ParsedMetadata, file: string, model: Metada
 			? `<a href="${identityUrl(fields.id)}">Item link: ${escapeHtml(fields.id)}</a>`
 			: `ID: ${escapeHtml(fields.id ?? "Not recorded")}`;
 	const details = metadataDetails(parsed, file, model);
-	return `<section class="work-meta" aria-label="Recorded work"><p class="metadata-summary">Recorded work · ${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}${problems}<details data-key="work-metadata"><summary>Work details and source</summary>${details}<p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<details data-key="frontmatter-source"><summary>Original frontmatter</summary><pre>${escapeHtml(parsed.raw)}</pre></details>` : ""}</details></section>`;
+	const boardLink =
+		unique && fields.kind === "board" && fields.id
+			? `<p><a href="${escapeHtml(viewUrl(stateOf("/"), { board: fields.id }))}">View this board</a></p>`
+			: "";
+	return `<section class="work-meta" aria-label="Recorded work"><p class="metadata-summary">Recorded work · ${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}${boardLink}${problems}<details data-key="work-metadata"><summary>Work details and source</summary>${details}<p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<details data-key="frontmatter-source"><summary>Original frontmatter</summary><pre>${escapeHtml(parsed.raw)}</pre></details>` : ""}</details></section>`;
 }
 
 export const metadataStyles = `

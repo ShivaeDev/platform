@@ -105,6 +105,25 @@ Evidence records show their source, criterion, checked revision, observed time,
 method, and recorded outcome when provided. They are source claims, not
 independently verified acceptance; missing provenance stays **Not recorded**.
 
+## Work views
+
+Open **Work** to read identified items as a board. A `kind: board` file with a
+unique ID and an explicit `items` list defines a selectable view; the same item
+can appear in several boards. Board definitions are excluded from All work.
+Missing/ambiguous members and repeated membership are disclosed without choosing
+a duplicate source or counting repeated items twice. Legacy heading cards remain
+on their original pages and do not become inferred identified work.
+
+Columns use the exact recorded status, including a **Status not recorded** column.
+Filter by status, owner, or work text and sort by title, owner, or status. Missing
+values differ from literal text and sort last. Cards open a source detail pane;
+its Markdown links resolve relative to its file. The URL records the board,
+filters, sort, and selected ID, so reload and Back/Forward restore that context.
+A selected item outside the filters stays visible with a notice; deletion or
+ambiguous identity is explained. Live changes retain applied filters, including
+filters with no current matches. Compact density applies to these cards too.
+Native links and GET filters remain usable without JavaScript.
+
 ## Diagrams
 
 A ` ```mermaid ` block is drawn in the browser. Mermaid loads from the installed

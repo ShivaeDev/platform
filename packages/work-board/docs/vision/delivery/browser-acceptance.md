@@ -118,3 +118,23 @@ Add `identityFixture()` from `test/support/identityFixture.ts` to the large fixt
 5. Read a malformed/unknown field and an unresolved reference. Prose and original
    metadata remain readable. Repeat item/criterion navigation at 390 × 844, in
    dark mode, and with JavaScript disabled. Check narrow overflow and page errors.
+
+## Work board/detail acceptance — step 05 first checkpoint
+
+Add `viewsFixture()` from `test/support/viewsFixture.ts` to the large fixture.
+
+1. Confirm the legacy home still has 100 cards. Open Work and select Review work
+   then Shared investigation. The same work.search ID appears in both with the
+   source's recorded fields; counts exclude duplicates and undeclared members.
+2. Apply owner/status/text filters and sorting. Missing fields remain distinct
+   from literal text. Open a card, follow its source/evidence link, then use Back.
+   Reload its URL; board, filters, selected ID, and source pane must agree.
+3. Edit the selected item's status. Applied filters remain, even with no matching
+   status; the detail explains it is outside the projection. Keep unsent text
+   focused through that update. Delete its source; explain the missing selection.
+   Duplicate an ID or membership and inspect source diagnostics, without silently
+   selecting a winner or inflating counts. An unreadable index refuses counts.
+4. Repeat at 390 × 844, with dark theme and reduced motion. Real Mermaid in the
+   pane must render; check overflow and errors. Disable JavaScript and submit GET
+   filters/open detail through native links. Table/saved-view acceptance follows
+   in the next checkpoint; do not check step 05 complete yet.
