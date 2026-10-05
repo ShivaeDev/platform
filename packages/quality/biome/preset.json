@@ -649,6 +649,14 @@
 		},
 		{
 			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-fn-functions.grit"
+		},
+		{
+			"includes": ["**/*.test.*", "**/*.spec.*", "**/test-support/**", "!**/*.d.ts"],
+			"path": "./node_modules/@shivaedev/quality/biome/plugins/effect-test-bodies.grit"
+		},
+		{
+			"includes": ["**/*.ts", "**/*.tsx", "!**/*.d.ts"],
 			"path": "./node_modules/@shivaedev/quality/biome/plugins/constant-names.grit"
 		},
 		{
