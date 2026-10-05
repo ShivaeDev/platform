@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0 - 2026-10-05
+
+### Added
+
+- The preset turns on `noNonScalableViewport` at `error`: a `<meta name="viewport">` with `user-scalable=no` stops people from zooming. The rule has no fix. A repository that upgrades records its existing findings with `quality baseline write --rule biome`.
+
+### Changed
+
+- The preset sets `noUndeclaredClasses` and `noInlineStyles` off and declares why: the first cannot resolve a stylesheet imported through an alias and does not know Tailwind utilities, and an inline style is the right tool for a value computed at run time.
+
 ## 0.10.0 - 2026-10-05
 
 ### Added
