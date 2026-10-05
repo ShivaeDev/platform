@@ -46,6 +46,7 @@
 {"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-changes/src/observe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes/src/owners.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
+{"path":"packages/effect-changes/src/owners.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-changes/src/publish.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-changes/src/publish.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes/src/seams.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -55,9 +56,11 @@
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/bind.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
+{"path":"packages/effect-contract/src/bind.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/bind.typecheck.test.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
+{"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/style/useNamingConvention","count":20}
 {"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/suspicious/noShadow","count":2}
@@ -65,6 +68,7 @@
 {"path":"packages/effect-contract/src/keys.test.ts","rule":"biome/lint/suspicious/useArraySortCompare","count":2}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/style/useNamingConvention","count":6}
+{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/style/useNamingConvention","count":25}
 {"path":"packages/effect-contract/src/rejection.ts","rule":"biome/lint/style/useNamingConvention","count":21}
@@ -129,6 +133,7 @@
 {"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/bin/normalize-contract.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/bin/normalize-contract.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
+{"path":"packages/effect-prisma/src/bin/normalize-contract.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
@@ -187,10 +192,12 @@
 {"path":"packages/effect-prisma/src/internal/testing.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"biome/lint/suspicious/useAwait","count":4}
+{"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/internal/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/effect-prisma/src/internal/transaction.ts","rule":"biome/lint/style/useNamingConvention","count":11}
 {"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"biome/lint/suspicious/useAwait","count":2}
+{"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/relation.ts","rule":"biome/lint/style/useNamingConvention","count":42}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"biome/lint/style/useNamingConvention","count":31}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"files/named-after-export","count":1}
@@ -309,6 +316,7 @@
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
+{"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/plugin","count":2}
@@ -429,6 +437,7 @@
 {"path":"packages/heavy-lock/src/acquire.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/heavy-lock/src/acquire.ts","rule":"biome/plugin","count":1}
 {"path":"packages/heavy-lock/src/cli.test.ts","rule":"biome/plugin","count":3}
+{"path":"packages/heavy-lock/src/cli.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/heavy-lock/src/cli/args.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/heavy-lock/src/cli/program.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/heavy-lock/src/cli/run-command.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
@@ -437,6 +446,7 @@
 {"path":"packages/heavy-lock/src/cli/run-command.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/heavy-lock/src/cli/signals.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/heavy-lock/src/cli/signals.test.ts","rule":"biome/plugin","count":1}
+{"path":"packages/heavy-lock/src/cli/signals.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/heavy-lock/src/cli/signals.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/heavy-lock/src/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/heavy-lock/src/held-lock.ts","rule":"files/named-after-export","count":1}
@@ -489,6 +499,7 @@
 {"path":"packages/platform/src/nativeRpcAuth.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/platform/src/nativeRpcAuth.spec.ts","rule":"biome/plugin","count":2}
 {"path":"packages/platform/src/node-http/subscription-signal.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
+{"path":"packages/platform/src/node-http/subscription-signal.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"files/named-after-export","count":1}
@@ -537,14 +548,17 @@
 {"path":"packages/quality/src/baseline/compare.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/format.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"biome/plugin","count":1}
+{"path":"packages/quality/src/baseline/growth.spec.ts","rule":"tests/story-setup","count":4}
 {"path":"packages/quality/src/baseline/legacy.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/rewrite.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/quality/src/baseline/rewrite.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"biome/plugin","count":1}
+{"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"tests/story-setup","count":3}
 {"path":"packages/quality/src/baseline/update.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":7}
 {"path":"packages/quality/src/biome/report.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/cli.test.ts","rule":"biome/plugin","count":1}
+{"path":"packages/quality/src/cli.test.ts","rule":"tests/story-setup","count":4}
 {"path":"packages/quality/src/cli/args.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/cli/baseline.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/quality/src/cli/baseline.ts","rule":"biome/lint/style/useNamingConvention","count":1}
@@ -598,6 +612,7 @@
 {"path":"packages/quality/src/imports/fences/policy.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/imports/generated.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/imports/glob.ts","rule":"files/named-after-export","count":1}
+{"path":"packages/quality/src/imports/graph.test.ts","rule":"tests/story-setup","count":5}
 {"path":"packages/quality/src/imports/paths.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/imports/pnpm-workspace.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/imports/projects.ts","rule":"biome/lint/style/useNamingConvention","count":1}
@@ -614,6 +629,7 @@
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"biome/lint/suspicious/noShadow","count":2}
+{"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"tests/story-setup","count":4}
 {"path":"packages/quality/src/inventory/walk.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/inventory/walk.ts","rule":"biome/plugin","count":2}
 {"path":"packages/quality/src/manifests/sorted.ts","rule":"biome/plugin","count":1}
@@ -625,6 +641,7 @@
 {"path":"packages/quality/src/rule.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rule.ts","rule":"biome/lint/style/useNamingConvention","count":18}
 {"path":"packages/quality/src/rules/biome.test.ts","rule":"biome/plugin","count":1}
+{"path":"packages/quality/src/rules/biome.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/quality/src/rules/built-in.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/rules/comments/kinds.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/rules/comments/max-per-file.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -644,6 +661,7 @@
 {"path":"packages/quality/src/rules/comments/scan.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rules/comments/scan.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":8}
 {"path":"packages/quality/src/rules/imports/cli.spec.ts","rule":"biome/plugin","count":1}
+{"path":"packages/quality/src/rules/imports/cli.spec.ts","rule":"tests/story-setup","count":5}
 {"path":"packages/quality/src/rules/manifests-sorted.test.ts","rule":"biome/plugin","count":2}
 {"path":"packages/quality/src/rules/manifests-sorted.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/rules/max-lines.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -668,6 +686,7 @@
 {"path":"packages/quality/src/rules/suppressions/biomePresets.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/rules/suppressions/cli.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rules/suppressions/cli.spec.ts","rule":"biome/plugin","count":2}
+{"path":"packages/quality/src/rules/suppressions/cli.spec.ts","rule":"tests/story-setup","count":3}
 {"path":"packages/quality/src/rules/suppressions/directives.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/rules/suppressions/no-double-cast.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rules/suppressions/no-double-cast.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
@@ -689,6 +708,7 @@
 {"path":"packages/quality/src/test-support/inputs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/test-support/tree.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/quality/src/test-support/violations.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
+{"path":"packages/quality/src/vitest.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/quality/src/vitest.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/vitest.config.ts","rule":"imports/aliased","count":1}
 {"path":"packages/types/src/bivariant.ts","rule":"biome/lint/style/useNamingConvention","count":2}
@@ -710,7 +730,10 @@
 {"path":"packages/work-board/src/http/page.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/work-board/src/http/page.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/http/respond.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
+{"path":"packages/work-board/src/http/search.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/work-board/src/http/server.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
+{"path":"packages/work-board/src/http/server.spec.ts","rule":"tests/story-setup","count":9}
+{"path":"packages/work-board/src/http/symlinks.spec.ts","rule":"tests/story-setup","count":11}
 {"path":"packages/work-board/src/livePage.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/work-board/src/livePage.spec.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/work-board/src/liveUpdates.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
@@ -746,7 +769,9 @@
 {"path":"packages/work-board/src/test-support/faults.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/work-board/src/test-support/faults.ts","rule":"biome/lint/suspicious/noReturnAssign","count":1}
 {"path":"packages/work-board/src/test-support/live.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
+{"path":"script/ci/mainConsumerTimings.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/ci/mainConsumerTimings.ts","rule":"biome/plugin","count":1}
+{"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lib/postgres-test-environment.ts","rule":"biome/plugin","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"files/named-after-export","count":1}
@@ -784,6 +809,7 @@
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":3}
 {"path":"script/package-check/archive.ts","rule":"biome/plugin","count":3}
+{"path":"script/package-check/archives.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/package-check/archives.ts","rule":"biome/plugin","count":3}
 {"path":"script/package-check/bins.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"script/package-check/bins.ts","rule":"biome/plugin","count":3}
