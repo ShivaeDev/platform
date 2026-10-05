@@ -85,6 +85,7 @@ export default defineConfig({
 	rules: {
 		"imports/fences": { options: { fences } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/test/generated"] } },
+		"structure/max-lines": { options: { testFiles: ["*.test.*", "*.spec.*", "test/", "tests/", "__tests__/", "test-support/"] } },
 		"suppressions/biome-overrides": {
 			options: {
 				declared: [
