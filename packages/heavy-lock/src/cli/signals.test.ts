@@ -2,8 +2,8 @@ import { chmodSync, existsSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
-import { cliEnvironment, pollWhile, runCli, start, TEST_TIMEOUT_MS, waitFor } from "#test/support/cli.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, temporaryDirectory, temporaryLock, writeLock } from "#test/support/lock.ts";
+import { cliEnvironment, pollWhile, runCli, start, TEST_TIMEOUT_MS, waitFor } from "#test/cli.ts";
+import { holder, lockDirectory, readLock, removeTemporaryDirectories, temporaryDirectory, temporaryLock, writeLock } from "#test/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 

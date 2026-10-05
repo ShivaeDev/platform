@@ -7,8 +7,8 @@ import { afterEach } from "vitest";
 import { HeldLock } from "#held-lock.ts";
 import { encodeHolder, HOLDER_ID_ENV } from "#holder.ts";
 import { readHolder, tryAcquire } from "#lock-file.ts";
-import { scriptedClock } from "#test/support/clock.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "#test/support/lock.ts";
+import { scriptedClock } from "#test/clock.ts";
+import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "#test/lock.ts";
 import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);

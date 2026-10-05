@@ -4,7 +4,7 @@ import { expect, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach } from "vitest";
 import { readHolder, reclaim, release, tryAcquire } from "#lock-file.ts";
-import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/support/lock.ts";
+import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 

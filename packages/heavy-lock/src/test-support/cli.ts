@@ -5,7 +5,7 @@ import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
-export const HEAVY_LOCK_CLI = fileURLToPath(new URL("../../src/cli.ts", import.meta.url));
+export const HEAVY_LOCK_CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 
 export const cliEnvironment = (lock: string, extra: Record<string, string> = {}): Record<string, string> => ({
 	HEAVY_PROCESS_LOCK: lock,

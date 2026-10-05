@@ -5,12 +5,12 @@ import { Effect, Option } from "effect";
 import { afterEach } from "vitest";
 import { decodeHolder, encodeHolder, type Holder } from "#holder.ts";
 import { tryAcquire } from "#lock-file.ts";
-import { readLock, removeTemporaryDirectories, services, startTime, temporaryLock, writeLock } from "#test/support/lock.ts";
+import { readLock, removeTemporaryDirectories, services, startTime, temporaryLock, writeLock } from "#test/lock.ts";
 import { withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
-const REFERENCE = readFileSync(new URL("./fixtures/reference-holder.lock", import.meta.url), "utf8");
+const REFERENCE = readFileSync(new URL("./test-support/fixtures/reference-holder.lock", import.meta.url), "utf8");
 const PROTOCOL_KEYS = ["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs"];
 
 const referenceHolder: Holder = {

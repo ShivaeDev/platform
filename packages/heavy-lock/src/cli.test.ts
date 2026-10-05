@@ -3,17 +3,8 @@ import { join } from "node:path";
 import process from "node:process";
 import { afterEach, expect, it } from "vitest";
 import { HOLDER_ID_ENV } from "#holder.ts";
-import {
-	cliEnvironment,
-	HEAVY_LOCK_CLI,
-	holdUntilReleasedOrAbandoned,
-	runCli,
-	type Started,
-	start,
-	TEST_TIMEOUT_MS,
-	waitFor,
-} from "#test/support/cli.ts";
-import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "#test/support/lock.ts";
+import { cliEnvironment, HEAVY_LOCK_CLI, holdUntilReleasedOrAbandoned, runCli, type Started, start, TEST_TIMEOUT_MS, waitFor } from "#test/cli.ts";
+import { holder, readLock, removeTemporaryDirectories, startTime, temporaryDirectory, temporaryLock, writeLock } from "#test/lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
