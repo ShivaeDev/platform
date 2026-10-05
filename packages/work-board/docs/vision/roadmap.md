@@ -20,7 +20,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [03 Find work from anywhere](./delivery/wave1.md#03-find-work-from-anywhere)
 - [x] [04 Optional identity and a rebuildable index](./delivery/wave1.md#04-optional-identity-and-a-rebuildable-index)
 - [x] [05 One body of work, several views](./delivery/wave1.md#05-one-body-of-work-several-views)
-- [ ] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
+- [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [ ] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
@@ -211,7 +211,35 @@ or content writes. Legacy heading boards and personal compact density remain val
   gives the repeatable completion path. Evidence/backlink context follows in 06;
   overview/attention remains 07, and no source mutations are implemented.
 
-Steps 06–26 remain open; the rest of W1.2/W1.3 remains proposed.
+## Step 06 completion evidence
+
+Explicit relationships connect a sample result to its plan and decision rationale.
+Criteria collect recorded claims across readable workspace files, linking to each
+source record with origin and supplied provenance. Incoming source links remain
+readable on plain Markdown documents. Claims never establish current verification
+or human acceptance; missing sources and old revisions stay visible.
+
+- Work Board: 155 passing tests. Added HTTP/watch/restart and DOM regressions
+  cover two-step reasoning, criterion associations and exact record focus,
+  Markdown/reference links, encoded paths and nested root homes, source deletion,
+  ambiguous IDs, and incomplete-index disclosure.
+- Chromium 151: verified result → plan → decision options/rationale, criterion →
+  exact recorded claim, retained old revisions and missing sources, plain/encoded
+  backlinks, Back and live edits/deletion, real Mermaid, desktop/mobile,
+  dark/reduced motion, and no-JavaScript reasoning navigation. No page errors or
+  page overflow observed. This proves fixture behavior, not user adoption.
+- Repository gate: `pnpm ready` passed lint, orchestration, build, typecheck,
+  real PostgreSQL-backed tests, and all packed consumers. Package suites have
+  1,038 passing tests and three existing expected failures; nine orchestration
+  tests passed, with no skips or quality baseline growth.
+- [Browser acceptance](./delivery/browser-acceptance.md) includes the repeatable
+  reasoning/evidence scenario. Source schema, dependencies, public exports and
+  content mutation remain unchanged. Record anchors follow array position;
+  explicit item and criterion IDs remain the durable source identities.
+
+Steps 07–26 remain open. Step 07's explicit attention-request metadata needs
+examples and user discussion before implementation; arbitrary statuses and owners
+must not become inferred requests. The rest of W1.2/W1.3 remains proposed.
 
 ## Current foundation
 

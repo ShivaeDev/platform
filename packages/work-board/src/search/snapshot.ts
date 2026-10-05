@@ -38,18 +38,19 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 					}
 					const source = yield* fs.readFileString(real);
 					const parsed = metadataParse(source);
-					const rendered = yield* Effect.tryPromise(() => entriesOf(parsed.body, file.path, file.path === home, parsed.bodyLine));
-					return { parsed, rendered };
+					const links = new Set<string>();
+					const rendered = yield* Effect.tryPromise(() => entriesOf(parsed.body, file.path, file.path === home, parsed.bodyLine, links));
+					return { links: [...links], parsed, rendered };
 				}),
 			);
 			if (Option.isSome(found) && found.value) {
-				documents.push({ file: file.path, parsed: found.value.parsed });
+				documents.push({ file: file.path, links: found.value.links, parsed: found.value.parsed });
 				entries.push(...found.value.rendered);
 			} else {
 				unavailable.push(file.path);
 			}
 		}
-		const model = metadataModel(documents, unavailable);
+		const model = metadataModel(documents, unavailable, home ?? files[0]?.path);
 		const enriched = metadataEntries(entries, documents, model);
 		const snapshot = { documents, entries: enriched, model, revision, unavailable };
 		yield* Ref.set(cached, unavailable.length > 0 ? undefined : snapshot);

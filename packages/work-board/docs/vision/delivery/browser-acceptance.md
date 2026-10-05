@@ -158,3 +158,28 @@ Add `viewsFixture()` from `test/support/viewsFixture.ts` to the large fixture.
    Verify real Mermaid, compact density, 390 × 844/dark/reduced motion without page
    overflow, and readable no-JavaScript table/filter/detail navigation. Saved-view
    controls remain disabled without JavaScript.
+
+## Reasoning and evidence acceptance — step 06
+
+Add `reasoningFixture()` from `test/support/reasoningFixture.ts` to the large fixture.
+
+1. Open Search reasoning in Table with result.search selected. Follow its
+   Implements link to plan.search and that plan's link to decision.search. The
+   options comparison and rationale are readable in two navigation steps. Use
+   the rationale heading anchor and Back to restore the selected view context.
+2. Open work.search#keyboard. It lists claims from both its own source and the
+   result file; passage has no recorded evidence. Open the result's record link:
+   its source details expand and the exact evidence record receives focus.
+   Origin file/line, old revision/time, method and recorded outcome are visible;
+   no claim says independently verified or human accepted.
+3. Follow its evidence source to the plain evidence file and inspect Referenced
+   by. Metadata/Markdown backlinks reach their explicit sources, including the
+   encoded review filename. Follow that file's rationale link. The missing local
+   Markdown record remains visible and leads to an explanatory missing page.
+4. Edit the result's criterion reference, delete the evidence source, then remove
+   the result. Claim associations/backlinks reconcile; missing sources/claims
+   remain explicit. Duplicate IDs or unreadable files must prevent validated
+   criterion association and disclose partial references.
+5. Repeat record navigation at 390 × 844/dark/reduced motion and verify overflow,
+   errors, and real Mermaid. Disable JavaScript and follow result → plan →
+   decision natively. Existing legacy home cards remain unchanged.

@@ -40,18 +40,16 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 		}
 		const source = yield* fs.readFileString(real.value);
 		const parsed = metadataParse(source);
-		let metadata = "";
 		let identity: string | undefined;
-		if (parsed.raw !== undefined || parsed.diagnostics.length > 0) {
-			const snapshot = yield* index;
-			const model = metadataModel(
-				[...snapshot.documents.filter((document) => document.file !== file.path), { file: file.path, parsed }],
-				snapshot.unavailable,
-			);
-			metadata = metadataHtml(parsed, file.path, model);
-			if (snapshot.unavailable.length === 0 && parsed.fields.id && model.ids.get(parsed.fields.id)?.length === 1) {
-				identity = parsed.fields.id;
-			}
+		const snapshot = yield* index;
+		const model = metadataModel(
+			[...snapshot.documents.filter((document) => document.file !== file.path), { file: file.path, parsed }],
+			snapshot.unavailable,
+			options.home ?? (yield* changes.files)[0]?.path,
+		);
+		const metadata = metadataHtml(parsed, file.path, model);
+		if (snapshot.unavailable.length === 0 && parsed.fields.id && model.ids.get(parsed.fields.id)?.length === 1) {
+			identity = parsed.fields.id;
 		}
 		if (expectedIdentity && identity !== expectedIdentity) {
 			return Option.none();
