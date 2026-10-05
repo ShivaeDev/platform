@@ -346,7 +346,8 @@ link parents catch replacements that Node's recursive watcher can miss.
   restart once restored. Multiple aliases retain existing duplicate-ID rules.
   Step 07's representative-reader timing remains pending. Step 09 stays open:
   the approved direction establishes reusable Platform support before Work Board
-  adopts it; the proposed browser-build dependency remains under discussion.
+  adopts it. The user subsequently approved esbuild 0.28.1 for local browser
+  assets and the proposed native RPC/AtomRegistry Changed/Resync composition.
 
 
 ## Explicit observation follow-up and 0.4.1 release
@@ -381,6 +382,17 @@ clearing/storage changes cancel the pending action and remain authoritative.
 
 
 ## Current foundation
+
+The [Platform live consumer checkpoint](../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
+now demonstrates targeted invalidation, scoped reconciliation, bounded paused
+hints, retained failures and native stream/query teardown over real HTTP and
+Chromium. Work Board still uses its existing browser coordination until adoption;
+step 09 remains unchecked. The approved shared browser resume implementation
+now lives in effect-contract, with the existing effect-react import preserved
+by a compatibility delegate and automatic runtime dependency. Actual Chromium
+offline/online recovery and separate DOM visibility/listener tests establish
+this foundation; Work Board adoption and physical tab/Capacitor evidence remain
+separate.
 
 The existing package serves a local Markdown folder, renders a designated home
 file as sections and cards, and updates open pages in place. It provides GFM,

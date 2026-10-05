@@ -88,6 +88,64 @@ These are executable boundary examples, not an application deployment. See the
 
 Adoption in consuming applications remains separate work.
 
+### Work Board consumer slice — in progress
+
+The maintainer approved native RPC/AtomRegistry, Changed/Resync hints using
+existing read keys, and esbuild 0.28.1 for locally bundled browser assets. This
+bounded slice advances sections 5, 8 and 11 before Work Board step 09 adoption.
+The server's Markdown/indexing policy remains with Work Board; the shared client
+owns invalidation and native resource lifetime.
+
+- [x] Build an executable native streaming HTTP consumer with two document
+  queries, a derived list, ordinary contracts and a browser-owned AtomRegistry.
+- [x] Extend `bind` to accept the consumer's larger native RPC group; compiler
+  regressions reject incomplete clients while preserving contract types.
+- [x] Extract browser-safe `Key`/`LiveHint` Schemas and `live` only after the
+  HTTP example establishes the repeated coordination. Native Reactivity and
+  query atoms retain their cache, error and interruption ownership.
+- [x] Verify precise affected-query refresh, explicit full scoped reconciliation
+  after initial/reconnected delivery, retained data on failures, stale-response
+  rejection, paused observations bounded at 256 and stream teardown.
+- [x] Run the same bundled client over real HTTP in Chromium 151: targeted
+  item/list edits preserve the unrelated item; pause/resume, typed read and
+  stream outages, missed changes, stale responses and pagehide teardown pass.
+  Desktop/mobile/dark preference/reduced motion pass with no page errors or
+  horizontal overflow. This is a consumer fixture, not Work Board adoption.
+- [x] Complete repository handoff and installed consumer evidence: full
+  `pnpm ready` passes 1,115 package tests, four existing expected failures and
+  one existing intentional `effect-test` skip, plus nine orchestration tests,
+  lint, builds, typechecks, real PostgreSQL and every packed consumer. The new
+  installed live consumer checks Schema rejection, pause and full resync. The
+  final contract readiness and lint checks also pass after naming cleanup; the
+  touched binding and legacy resume quality baseline loses 27 findings and grows nowhere.
+- [x] Move browser-safe `resumeSignal` into effect-contract, preserving the
+  effect-react entry as a compatibility delegate and automatically installing
+  its shared runtime dependency. Release effect-contract 0.4.0 and effect-react
+  0.2.1; the maintainer approved this scope and subsequent package releases.
+- [x] Verify shared lifecycle composition: actual Chromium offline/online catches
+  up and emits one resume event; DOM regressions distinguish visible/hidden
+  events and prove listener disposal. A derived resume atom initializes its
+  dependencies even without a separate subscriber. Physical tab transitions
+  and Capacitor are not established by these checks.
+- [ ] Adopt native contracts, RPC and shared live primitives in Work Board,
+  replacing the existing automatic fetch/EventSource coordinators. Preserve
+  server-rendered HTML, native GET links, source focus, details, diagrams,
+  highlights and reading controls without React or cloud dependencies.
+- [ ] Close Work Board step 09 after its own real browser and repository
+  acceptance, including reference/backlink/evidence dependency discovery.
+
+Every fixture query reads `workspace.list` as well as its own item/list key.
+Targeted changes invalidate affected items and their list; unrelated item queries
+retain their result. Initial/reconnected delivery, pause resume and uncertainty
+reconcile the explicit common scope. `documents.list` is not an item-wide resync.
+Connection status does not establish completed query freshness or acceptance.
+
+See [live updates](./live-updates.md) for the native HTTP composition, retained
+errors, bounds, teardown and deployment limits. The minified browser fixture is
+about 522 kB before compression; Work Board's eventual bundle budget remains an
+adoption measurement. No replay cursor, journal, new package, multi-process
+delivery, authentication policy, offline write or Capacitor guarantee is added.
+
 ## 1. Services and runtime
 
 - [x] Implement the minimal service declaration helper with declared dependency

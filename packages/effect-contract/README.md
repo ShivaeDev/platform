@@ -43,8 +43,16 @@ export const Orders = contract("orders", { queries: [GetOrder, ListOrders], comm
 | `fieldRejection` | `fieldRejection(struct, keys?)` | fields `{ field: Literals<keys>, message: String }` |
 | `bind` | `bind(contract, atomRpcService)` | `{ [query]: { query, run }, [command]: { run } }` |
 | `readKeys` / `invalidationKeys` | `(keys: Key[]) => string[]` | native Reactivity keys |
+| `Key` / `LiveHint` | Schemas in `keys.ts` / `live.ts` | existing list/item keys and optional Changed/Resync hints |
+| `resumeSignal` | `resumeSignal({ window?, native? })` in `resume.ts` | scoped native atom for visible browser resume/online and injected native resume |
+| `live` | `live(atomRuntime, { stream, resyncKeys, resume?, retryDelay? })` | native connection atom, writable pause atom and typed status atom |
 
 Payload accepts struct fields or any schema, as in `Rpc.make`. Omitted payload and success are `Schema.Void`.
+
+Optional [live updates](../../docs/framework/live-updates.md) compose native
+Streams, RPC, Reactivity and AtomRegistry without React or a second cache. The
+guide distinguishes library behavior, real HTTP/browser fixture evidence and
+application adoption, and explains why streaming HTTP uses native NDJSON.
 
 ### Operations and rejections
 
