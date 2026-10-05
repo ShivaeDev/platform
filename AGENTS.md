@@ -16,7 +16,7 @@ Ask the maintainer before you change a public API, add a package or dependency, 
 
 Run `pnpm run setup` once per checkout: it installs dependencies and prepares the shared local PostgreSQL that the database tests need. While you work, run `pnpm lint`, apply Biome's fixes and formatting with `pnpm format`, and run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`; add `--project slow` for `*.slow.test.ts` files, which the default run skips. Run `pnpm ready` for the full local gate, the same steps CI runs against PostgreSQL.
 
-Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Every package change adds a `CHANGELOG.md` entry, and a release bumps the package version in the same pull request, so the publish workflow ships it to npm from `main`.
+Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Every `CLAUDE.md` is a symlink to the `AGENTS.md` beside it; edit the `AGENTS.md`. Every package change adds a `CHANGELOG.md` entry, and a release bumps the package version in the same pull request, so the publish workflow ships it to npm from `main`.
 
 ## When you need more
 
