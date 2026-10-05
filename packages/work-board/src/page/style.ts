@@ -1,3 +1,4 @@
+import { metadataStyles } from "./metadata.ts";
 import { readingStyles } from "./readingStyles.ts";
 import { searchStyles } from "./searchDialog.ts";
 import { layout, theme } from "./workspaceStyles.ts";
@@ -53,4 +54,4 @@ figure.diagram[data-state="failed"]::after { content: attr(data-error); color: v
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
-export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles;
+export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles;

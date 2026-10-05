@@ -45,7 +45,7 @@ Markdown headings have passage links and an **On this page** outline, including 
 anchors for duplicate headings. Use the heading's `#` link to copy a passage URL.
 Generated anchors use the heading text and duplicate order; changing either can
 change the anchor. Renaming a file changes its document URL. Authored HTML IDs
-and footnote links remain intact; stable work-item IDs are a later roadmap step.
+and footnote links remain intact. Richer files can declare stable work-item IDs.
 
 Markdown links resolve from their source file, including a nested `--home` file
 served at `/`. Links within the workspace open in place; modified clicks and
@@ -67,7 +67,7 @@ readable with JavaScript disabled.
 ## Workspace search
 
 Use **Search** or Ctrl/Cmd+K to find document titles/paths, Markdown headings, and
-passage text. Results identify their type and source file, include text snippets,
+passage text. Results identify their type and source file/line where known, include text snippets,
 and open the corresponding heading when available. Matching is case-insensitive
 with Unicode normalization; all query terms must occur in a block. Titles rank
 before headings, then passages, with stable source order within each group.
@@ -84,6 +84,26 @@ cannot replace a newer query. Hidden files, `node_modules`, and symlinks outside
 the workspace are excluded. Unreadable files produce an incomplete-results notice.
 All indexing and requests stay local. Search needs JavaScript; document reading
 does not. Source-in-editor links await an agreed local editor mechanism.
+
+## Optional work identity
+
+A Markdown file can begin with YAML frontmatter declaring an explicit `id`,
+`kind`, `status`, `owner`, `next_action`, relationships, criteria, board membership,
+and evidence. Every field is optional; ordinary Markdown and heading boards need
+no migration. [Source examples and shapes](./docs/vision/delivery/source-examples.md)
+describe the convention. No section name becomes a status or workflow rule.
+
+Work details show recorded fields, source locations, and the original header.
+Malformed/unknown fields, duplicate IDs, and unresolved references remain visible
+with diagnostics while prose stays readable. A unique ID has a shareable
+`/_board/item/<id>/` link that survives file/heading renames; criterion links open
+and focus their context. Search also finds explicit work fields and criteria.
+An incomplete index cannot assert unique identity. The index rebuilds from files
+without persistent storage; the UI never writes project content.
+
+Evidence records show their source, criterion, checked revision, observed time,
+method, and recorded outcome when provided. They are source claims, not
+independently verified acceptance; missing provenance stays **Not recorded**.
 
 ## Diagrams
 

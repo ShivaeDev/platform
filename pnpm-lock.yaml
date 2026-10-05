@@ -296,6 +296,9 @@ catalogs:
     vitest:
       specifier: 4.1.9
       version: 4.1.9
+    yaml:
+      specifier: 2.9.0
+      version: 2.9.0
 
 overrides:
   '@vercel/detect-agent': 1.2.3
@@ -887,6 +890,9 @@ importers:
       shiki:
         specifier: 'catalog:'
         version: 4.4.2
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -6574,8 +6580,7 @@ snapshots:
 
   xtend@4.0.2: {}
 
-  yaml@2.9.0:
-    optional: true
+  yaml@2.9.0: {}
 
   zeptomatch@2.1.0:
     dependencies:

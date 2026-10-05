@@ -20,7 +20,7 @@ const section = Effect.fn("WorkBoard.section")(function* ({ heading, items, note
 	return `<section>${title}${note}${rendered.join("")}</section>`;
 });
 
-export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (board: Board, fallbackTitle: string, modified: number) {
+export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (board: Board, fallbackTitle: string, modified: number, metadata = "") {
 	let fragments = 0;
 	const headings = documentHeadings();
 	const render: Render = (fragment) => {
@@ -37,6 +37,7 @@ export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (board: Boar
 	const footer = board.footer === "" ? "" : `<footer>${yield* render(board.footer)}</footer>`;
 	return [
 		readingTools(headings.entries),
+		metadata,
 		`<header class="board-head">${title}${intro}`,
 		`<p class="counts">${counts(board)}</p>`,
 		`<p class="meta">${updated(modified)}</p></header>`,

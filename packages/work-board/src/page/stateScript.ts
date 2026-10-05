@@ -17,7 +17,7 @@ export const applyPage = (page, preserve = false) => {
   if (!incoming || !page.getElementById("files")) return false;
   const reading = preserve ? captureReading() : null;
   const cachedScheme = incoming.dataset.scheme;
-  if (preserve && current.dataset.file === incoming.dataset.file) {
+  if (preserve && (current.dataset.file === incoming.dataset.file || (current.dataset.identity && current.dataset.identity === incoming.dataset.identity))) {
     swap(current, incoming);
   } else {
     current.replaceWith(document.importNode(incoming, true));
@@ -26,6 +26,7 @@ export const applyPage = (page, preserve = false) => {
   const doc = document.getElementById("doc");
   doc.className = incoming.className;
   doc.dataset.file = incoming.dataset.file;
+  if (incoming.dataset.identity) doc.dataset.identity = incoming.dataset.identity; else delete doc.dataset.identity;
   doc.dataset.url = incoming.dataset.url;
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));

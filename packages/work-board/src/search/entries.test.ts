@@ -3,6 +3,14 @@ import { entriesOf } from "./entries.ts";
 import { searchMatch } from "./match.ts";
 
 describe("search passages", () => {
+	it("omits synthetic source lines for board footnotes appended to a rendering fragment", async () => {
+		const source = "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n";
+		const entries = await entriesOf(source, "board.md", true);
+		const citations = entries.filter((entry) => entry.text.includes("Supporting citation"));
+		expect(citations.length).toBeGreaterThan(0);
+		expect(citations.every((entry) => entry.line === undefined)).toBe(true);
+		expect(entries.find((entry) => entry.text.startsWith("A claim"))?.line).toBe(9);
+	});
 	it.each([false, true])("links duplicate headings to the reader's generated anchors (home %s)", async (home) => {
 		const entries = await entriesOf("# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle.", "plans/c# & more?.md", home);
 		expect(entries.find((entry) => entry.text === "Second needle.")?.href).toBe("/plans/c%23%20%26%20more%3F.md#heading-evidence-2");
