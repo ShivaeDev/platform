@@ -90,7 +90,7 @@ export default defineConfig({
 			options: {
 				declared: [
 					{
-						includes: ["**", "!**/test/*/generated", "!**/test-support/generated", "!**/test-support/*/generated"],
+						includes: ["**", "!**/test-support/generated", "!**/test-support/*/generated"],
 						reason: "Generated test clients are not source.",
 						rule: "files/includes",
 					},
