@@ -8,14 +8,16 @@ import { afterEach, expect, it } from "vitest";
 
 const directories: string[] = [];
 const cli = fileURLToPath(new URL("./normalize-contract.ts", import.meta.url));
-const contract = (source: string) => {
+function contract(source: string) {
 	const directory = mkdtempSync(join(tmpdir(), "contract-normalization-"));
 	directories.push(directory);
 	const path = join(directory, "contract.d.ts");
 	writeFileSync(path, source);
 	return path;
-};
-const normalize = (path: string) => spawnSync(process.execPath, ["--conditions=source", cli, path], { encoding: "utf8" });
+}
+function normalize(path: string) {
+	return spawnSync(process.execPath, ["--conditions=source", cli, path], { encoding: "utf8" });
+}
 afterEach(() => {
 	for (const directory of directories.splice(0)) {
 		rmSync(directory, { force: true, recursive: true });

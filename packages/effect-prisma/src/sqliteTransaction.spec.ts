@@ -4,8 +4,8 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { Database, DatabaseLive, uniqueEmail, withDatabase } from "#test/sqlite/database.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 
-const createNested = (outer: unknown, email: string) =>
-	Effect.gen(function* () {
+function createNested(outer: unknown, email: string) {
+	return Effect.gen(function* () {
 		const inner = yield* Database;
 		expect(inner).toBe(outer);
 		yield* inner.User.create({
@@ -14,6 +14,7 @@ const createNested = (outer: unknown, email: string) =>
 			name: "Nested",
 		});
 	});
+}
 
 const yieldDatabase = Effect.gen(function* () {
 	yield* Database;

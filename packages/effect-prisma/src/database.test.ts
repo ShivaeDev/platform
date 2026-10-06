@@ -3,8 +3,8 @@ import { expect } from "vitest";
 import { Database, integrationEffect, uniqueEmail, withDatabase } from "#test/postgres-database.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 
-const createNested = (outer: unknown, email: string) =>
-	Effect.gen(function* () {
+function createNested(outer: unknown, email: string) {
+	return Effect.gen(function* () {
 		const inner = yield* Database;
 		expect(inner).toBe(outer);
 		yield* inner.User.create({
@@ -13,6 +13,7 @@ const createNested = (outer: unknown, email: string) =>
 			name: "Nested",
 		});
 	});
+}
 
 integrationEffect("owns the client and commits successful transactions", () =>
 	withDatabase(

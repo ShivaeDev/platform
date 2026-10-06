@@ -68,12 +68,12 @@ export const releaseTestTransaction = <Models extends object, Contract extends A
 	exit: Exit.Exit<A, E>,
 ): Effect.Effect<void, PrismaError> => settleTransaction(resource, exit, false);
 
-const settleTransaction = <Models extends object, Contract extends AnySqlContract, A, E>(
+function settleTransaction<Models extends object, Contract extends AnySqlContract, A, E>(
 	resource: TransactionResource<Models, Contract>,
 	exit: Exit.Exit<A, E>,
 	commitOnSuccess: boolean,
-): Effect.Effect<void, PrismaError> =>
-	Effect.uninterruptible(
+): Effect.Effect<void, PrismaError> {
+	return Effect.uninterruptible(
 		Effect.sync(() => {
 			resource.executor.liveness.open = false;
 		}).pipe(
@@ -82,3 +82,4 @@ const settleTransaction = <Models extends object, Contract extends AnySqlContrac
 			),
 		),
 	);
+}

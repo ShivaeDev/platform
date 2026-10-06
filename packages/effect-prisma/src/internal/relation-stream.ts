@@ -6,14 +6,15 @@ import { fromPrismaPromise } from "./promise.ts";
 import { executeQuery } from "./query-execution.ts";
 import { type RelationRecipe, replayRecipe } from "./recipe.ts";
 
-const collectRows = (iterable: AsyncIterable<unknown>): Effect.Effect<unknown[], PrismaError> =>
-	fromPrismaPromise(async () => {
+function collectRows(iterable: AsyncIterable<unknown>): Effect.Effect<unknown[], PrismaError> {
+	return fromPrismaPromise(async () => {
 		const rows: unknown[] = [];
 		for await (const row of iterable) {
 			rows.push(row);
 		}
 		return rows;
 	});
+}
 
 export const makeRelationStream = <Models extends object, Contract extends AnyPostgresContract>(
 	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>, PrismaError>,
