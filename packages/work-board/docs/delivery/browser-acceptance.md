@@ -95,8 +95,7 @@ or proof of the north star's usability targets.
    disabled, Search is disabled and documents remain readable.
 
 Search observations from a named machine may be recorded as a baseline; they are
-not an agreed performance budget or usability proof. Source-in-editor links
-remain deferred until a local editor mechanism is agreed.
+not an agreed performance budget or usability proof. A source-in-editor affordance needs an agreed local editor mechanism.
 
 ## Optional identity acceptance — step 04
 
@@ -119,7 +118,7 @@ Add `identityFixture()` from `src/test-support/identityFixture.ts` to the large 
    metadata remain readable. Repeat item/criterion navigation at 390 × 844, in
    dark mode, and with JavaScript disabled. Check narrow overflow and page errors.
 
-## Work board/detail acceptance — step 05 first checkpoint
+## Work board/detail acceptance — step 05
 
 Add `viewsFixture()` from `src/test-support/viewsFixture.ts` to the large fixture.
 
@@ -136,10 +135,10 @@ Add `viewsFixture()` from `src/test-support/viewsFixture.ts` to the large fixtur
    selecting a winner or inflating counts. An unreadable index refuses counts.
 4. Repeat at 390 × 844, with dark theme and reduced motion. Real Mermaid in the
    pane must render; check overflow and errors. Disable JavaScript and submit GET
-   filters/open detail through native links. Table/saved-view acceptance follows
-   in the next checkpoint; do not check step 05 complete yet.
+   filters/open detail through native links. Also run the
+   table and saved-view checks below before assessing the combined projection.
 
-## Table and saved-view acceptance — step 05 completion
+## Table and saved-view acceptance — step 05
 
 1. Use the same richer fixture. Switch Board/Table with an item selected and
    filters/sorting applied. IDs, counts, source fields, and selected detail agree.
@@ -242,7 +241,7 @@ Use the same 100-card legacy home plus attention/reasoning fixture.
 These checks establish comparison behavior, not the separate representative-user
 orientation target for step 07.
 
-## Linked reference directory acceptance — 0.4.0 follow-up
+## Linked reference directory acceptance
 
 1. Symlink the main checkout's `docs` directory into the workspace as `repo-docs`.
    Open `/repo-docs/framework/README.md`, follow its relative roadmap link and
@@ -263,10 +262,10 @@ orientation target for step 07.
 Links explicitly include trusted reference directories; the server never writes
 those sources. A target missing when the watch was built needs a server restart
 once restored. Multiple aliases remain separate paths and existing duplicate-ID
-rules apply. These checks do not establish step 09's selective invalidation,
-pause/resume or representative-reader orientation timing.
+rules apply. These checks establish reference reading; run the native live/orientation checks
+for invalidation and pause/resume.
 
-## Explicit observation overlap acceptance — 0.4.1 follow-up
+## Explicit observation overlap acceptance
 
 1. Start with two Markdown sources. Hold an actual HTTP `observe` response after
    it captures the first source revision, then edit that physical source and let
@@ -282,8 +281,7 @@ pause/resume or representative-reader orientation timing.
    storage event. Keep the existing expiry, size and blocked-storage checks.
 
 These checks preserve explicit observation semantics; they do not establish an
-atomic filesystem snapshot, source mutation or verified acceptance. Step 09's
-Platform-first lifecycle work remains separate.
+atomic filesystem snapshot, source mutation or verified acceptance. Run the native lifecycle checks separately.
 
 ## Native live/orientation acceptance — step 09
 
@@ -326,6 +324,5 @@ Inspect a large Mermaid diagram, choose Actual size and zoom, scroll on a narrow
 screen, enter desktop fullscreen and return to the source. Save the current SVG
 locally; also test an invalid diagram and an unavailable fullscreen environment.
 With JavaScript disabled, local images and diagram source remain readable.
-[Step 10 evidence](../roadmap.md#step-10-local-visual-evidence) records what the
-actual browser/regressions establish; physical mobile fullscreen and reader timing
-remain separate.
+Record actual results and limits in the [roadmap](../roadmap.md). Physical mobile
+fullscreen and representative-reader timing require their own evidence.

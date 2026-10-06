@@ -1,8 +1,8 @@
 # Wave 1 delivery — stay informed
 
 The [delivery plan](./README.md) explains gates and verification. These steps
-implement W1.1–W1.7 of the [roadmap](../roadmap.md), which tracks completion. The UI reads
-project content; only personal view preferences change. Agents keep writing files
+define the reading outcomes tracked in the [roadmap](../roadmap.md). This wave
+concerns reading and personal view state. Agents keep writing files
 through their existing tools. Follow numeric order unless the prerequisites below
 permit a useful independent change.
 
@@ -72,10 +72,6 @@ verified results. Begin with readable links; inline asset previews arrive in 10.
 **Depends on:** 04–05. **Accept:** the sample result reaches its source rationale
 in two navigation steps; broken links and evidence for an old revision stay visible.
 
-Step 06 is complete. HTTP/DOM regression tests and Chromium verify two-step
-reasoning navigation, exact cross-file claim links, backlinks, retained old
-revisions and broken sources. [Completion evidence](../roadmap.md#step-06-completion-evidence)
-records the repository handoff checks and their limits.
 
 ## 07 An attention-first overview
 
@@ -87,10 +83,6 @@ empty states. Do not treat file churn, heartbeat, or a finished agent run as pro
 **Depends on:** 05–06. **Accept:** representative users can find the intended next
 judgment within the proposed 30-second target; ambiguous items stay unclassified.
 
-The source contract and overview are implemented with HTTP/DOM regressions and
-real-browser evidence. [Checkpoint evidence](../roadmap.md#step-07-source-decision-and-implementation-evidence)
-records the checks. Step 07 stays unchecked while the representative-reader
-orientation exercise is pending; automated fixtures do not prove that target.
 
 ## 08 What changed since I last looked
 
@@ -103,14 +95,6 @@ snapshots. If history is unavailable, say so; modification time is not a diff.
 of edits correctly; a first visit, cleared storage, or renamed source never invents
 history or authorship. No durable event journal is required.
 
-Implemented with the approved [explicit baseline contract](./change-history-examples.md).
-[Acceptance evidence](../roadmap.md#step-08-baseline-decision-and-acceptance-evidence)
-records the known edit sequence, schema/HTTP/DOM limits, real-browser checks and
-full repository handoff. Step 07's representative-reader exercise remains separate.
-The [reference-directory follow-up](../roadmap.md#reference-directory-follow-up-and-040-release)
-closes the linked-document gap in the same 0.4.0 checkpoint.
-The [explicit-observation follow-up](../roadmap.md#explicit-observation-follow-up-and-041-release)
-keeps Mark seen reliable when source updates arrive during that action.
 
 ## 09 Live updates that preserve orientation
 
@@ -124,13 +108,6 @@ optimization when events may have been missed.
 rerenders; focused controls, open details, and diagrams survive relevant changes;
 paused and reconnecting states catch up without claiming stale data is current.
 
-The approved Platform-first foundation is released in effect-contract 0.4.0 and
-Work Board adopts its native RPC/AtomRegistry/live/resume primitives in 0.5.0,
-with approved esbuild 0.28.1 local assets. [Adoption evidence](../roadmap.md#step-09-native-adoption-and-orientation-evidence)
-records dependency discovery, native HTTP and DOM regressions, real Chromium
-orientation checks and the actual lifecycle limits. The compatible GET endpoints
-and server-rendered reading paths remain available. Step 07's representative-reader
-timing is still separate; fixtures do not establish that target.
 
 ## 10 Local visual evidence
 
@@ -143,9 +120,6 @@ and local image/diagram downloads, with useful load/parse errors and keyboard di
 **Accept:** local images render and update; traversal/symlink escapes are refused;
 large diagrams can be read on narrow screens without losing the source context.
 
-Step 10 is complete in Work Board 0.6.0. [Acceptance evidence](../roadmap.md#step-10-local-visual-evidence)
-records HTTP/DOM regressions, actual Chromium images/large-diagram inspection,
-local downloads, the full handoff and remaining platform/reader limits.
 
 ## 11 A small vocabulary for visual documents
 
@@ -159,15 +133,6 @@ values should not display a fabricated percentage.
 plan using these blocks, remains useful in a text editor, and degrades intelligibly
 when a component's input is incomplete. Complex composition waits for 23.
 
-Step 11 uses the user's approved Markdown directives with Antumbra's
-Markdown/GFM rendering stack. [Source conventions](./visual-document-examples.md)
-define fixed metric/progress/timeline components, ordinary Markdown labels/source
-links, unknown values, source-preserving diagnostics and authored chronology.
-The [real project brief](../README.md#delivery-at-a-glance) exercises these formats.
-Acceptance is complete: 236 Work Board regressions, the full repository handoff,
-and Chromium desktop/narrow/no-JavaScript/print checks of that brief passed.
-The [roadmap evidence](../roadmap.md#step-11-visual-document-acceptance) records
-malformed-input behavior and the remaining reader/device limits.
 
 ## 12 Start with useful project documents
 
@@ -178,7 +143,7 @@ Reports are ordinary source documents read through normal Work Board views, with
 links to plans, decisions and recorded criterion-level evidence. No report format
 creates verified acceptance or a new execution/handoff protocol.
 
-The user removed document export from product scope: external shareable artifacts,
+Document export is outside product scope: external shareable artifacts,
 portable snapshots and meeting packets have no demonstrated Work Board use case.
 Do not build HTML/PDF/ZIP packet generation, export previews, selection manifests,
 or a deferred export feature in another wave. Native browser printing remains a
@@ -190,9 +155,6 @@ project, investigation and result in ordinary Work Board views. Unknown outcomes
 and recorded evidence remain distinct from verified acceptance; the viewer does
 not create source files or mark history seen implicitly.
 
-Implemented in Work Board 0.7.1: empty `/` guidance and persistent `/_board/start`
-templates through SSR and the native page contract. Actual acceptance evidence
-is recorded in the roadmap; representative-reader timing remains separate.
 
 ## 13 Prove the complete reading workflow
 
@@ -202,11 +164,7 @@ tools. Exercise the full large/empty/malformed fixtures, reconnects, rename/dele
 keyboard focus, contrast, reduced motion, desktop/narrow layouts, and embedding.
 Measure agreed performance budgets and preserve all existing package guarantees.
 **Depends on:** 01–12. **Accept:** record the roadmap's wave 1 exit evidence and
-remaining limitations. Discuss D2 using examples from this use before authorizing
-wave 2 mutations; do not fix usability gaps by adding an agent execution engine.
+remaining limitations. Assess response/source ownership against the concrete examples; do not fix usability gaps by adding an agent execution engine.
 
-The [reading investigation](./reading-review.md) records actual combined browser
-checks, an embedded Effect HTTP application and first performance observations.
-Remaining reader/device acceptance and unagreed budgets are explicit; step 13
-and the wave remain open. [D2 examples](./response-write-examples.md) are prepared
-for discussion before any writer or new response schema is implemented.
+Use the [repeatable reading review](./reading-review.md) to gather technical,
+reader and device evidence. Record results and scope decisions in the roadmap.

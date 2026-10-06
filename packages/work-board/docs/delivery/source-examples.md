@@ -127,8 +127,8 @@ evidence:
 This example deliberately has no revision or observation time; they remain
 **Not recorded**. Supply real values when available. Relative source links resolve
 from the file containing the record. HTTP(S) sources are ordinary links;
-executable URL schemes stay plain text. Non-Markdown local assets are not served
-by this source structure.
+executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described
+in the README; other non-Markdown assets are not served.
 
 Records are labeled **Source claims — not independently verified**. A recorded
 outcome, test link, agent run completion, or proposed decision does not establish
@@ -172,7 +172,8 @@ Source backlinks also include explicit Markdown hyperlinks and evidence-source
 paths, resolved relative to each source file, with `/` mapped to the configured
 home or first file. Code examples, external URLs, and self references are excluded.
 Plain files can show incoming links without acquiring an ID or inferred work kind.
-Non-Markdown local asset previews remain outside this source-reading behavior.
+Evidence associations retain source links; image inspection follows the local
+attachment boundary described in the README.
 
 
 Questionnaire responses may additionally record `response.answers` entries with

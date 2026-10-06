@@ -68,8 +68,8 @@ source diagnostics. No request silently chooses a duplicate winner.
 
 A closed request remains readable and searchable but leaves the open queue.
 Closing it records an author's state claim; it does not verify evidence or prove
-human acceptance, a response, authorship or approval. Response recording,
-concurrent writes and review decisions remain behind the mutation discussions.
+human acceptance, a response, authorship or approval. A response records direction against its captured context; it does not change
+that authored request state. See the [response contract](./response-write-examples.md).
 
 The overview groups decisions, reviews and blockers with visible counts, then
 orders each group by source title, item ID and request ID. Each entry shows the
@@ -91,13 +91,3 @@ state. Files and requests remain local; the UI never writes their contents.
 - A complete workspace with only valid closed requests: quiet overview.
 - Malformed YAML: retain readable prose and disclose the source issue; do not
   present it as a confirmed quiet workspace.
-
-## Design reference
-
-The [Antumbra attention guide](https://github.com/ShivaeDev/antumbra/blob/1a5f6ec2444336f2f75339385324304b6bc3bb9a/docs/design/attention-and-memory.md)
-separates durable requests from interruption and execution. Its
-[rulings guide](https://github.com/ShivaeDev/antumbra/blob/1a5f6ec2444336f2f75339385324304b6bc3bb9a/docs/design/rulings.md)
-keeps the question, context and answer together. This read-only checkpoint keeps
-authored requests and their source context reachable. It does not implement
-Antumbra's authority ladder, urgency, scheduling, append-only journal or response
-lifecycle; several attention lanes are explicitly intended in that project too.

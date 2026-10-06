@@ -4,6 +4,12 @@
 
 ### Changed
 
+- Give the package a short agent north star, a usage-first README and canonical
+  north-star/roadmap docs. Move vision, experience, mockups and delivery references
+  into the standard docs shape, consolidate status and publish `docs/` alongside
+  the README while keeping agent instructions out of npm. Explain reviewed file
+  handoffs and their native client contract.
+
 - Record agent-owned project editing and human-owned response content, practical
   best-effort conflict handling, and deferred direct editing/undo in the delivery
   plan. Ordinary file editing remains sufficient for agents; the approved D3
@@ -125,13 +131,13 @@
 
 ### Changed
 
-- Adopt Antumbra's `react-markdown` and `remark-gfm` rendering stack on the
+- Adopt the `react-markdown` and `remark-gfm` rendering stack on the
   server, retaining no-JavaScript reading, local links/images, generated heading
   anchors, scoped footnotes, raw-HTML details and Shiki highlighting. Search uses
   the same Markdown/GFM processing and heading rules as the reader. Rendering
   and search plugins now use unified transformers rather than Satteri visitors;
   Satteri remains only for legacy heading-board source segmentation.
-- Match Antumbra's Mermaid error-rendering setting so parse failures show a local
+- Configure Mermaid error rendering so parse failures show a local
   diagnostic/source without inserting Mermaid's global error diagram. Existing
   local assets, strict rendering and visual inspection remain available.
 - Keep the custom step 11 metric/progress/timeline source-format proposal open;

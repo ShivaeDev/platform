@@ -1,19 +1,19 @@
 # Wave 2 delivery — inform back and coordinate
 
-Follow [wave 1](./wave1.md) and its real-use review. These proposed steps implement
-W2.1–W2.4 of the [roadmap](../roadmap.md). D2 and D3 in the [delivery plan](./README.md)
-are genuine product/contract discussions, not decisions already made by a mockup.
+These requirements define contextual response and coordination outcomes.
+The [roadmap](../roadmap.md) owns completion and discussion decisions; the
+[delivery plan](./README.md) identifies the material needed for each review.
 Prefer one dependable response loop over many editing controls.
 
 ## 14 Prove one safe source mutation
 
-**Outcome:** the board can change one intended part of a file without losing work.
-After D2, implement the smallest agreed single-file command with explicit source
-identity and expected revision. Preserve surrounding text, revalidate root access,
-publish a new record without replacement where supported, and expose typed rejection and save outcome.
-Define handling for outside writers: a revision comparison followed by replacing the reviewed document is
-not universally atomic against an unrelated editor. Prove the selected coordination
-or conflict/recovery strategy and document any remaining filesystem limitations.
+**Outcome:** publish one intended source record without losing reviewed work.
+Use explicit question identity and expected revision. Preserve the agent-authored
+project document, revalidate workspace access, publish the new record without
+replacement, and expose typed rejection or an uncertain save outcome. A reviewed
+source can change after preflight; the independent record retains that context
+without claiming a transaction with every outside editor. Prove reconciliation
+and ordinary failure recovery, and document the filesystem limits.
 **Depends on:** 13 and D2. **Accept:** stale and competing writes, write failures,
 renames, permission failures, and repeated submissions cannot silently discard
 user content or report success without a known persisted result. Add a minimal
@@ -46,12 +46,9 @@ qualification. Demonstrate recovery when the source moves or disappears.
 
 ## 17 Narrow editing and honest undo
 
-**Disposition:** deferred by the approved
-[ordinary-file editing and response ownership boundary](./source-editing-examples.md).
-Agents keep editing project Markdown with their usual tools; Work Board owns human
-responses. Do not implement direct editing or a universal concurrent-writer engine
-as a prerequisite for coordination. The original editing scope below remains
-unimplemented, rather than accepted through documentation.
+The [ownership boundary](./source-editing-examples.md) keeps project edits in
+ordinary agent tools. Consult the roadmap before adding direct editing controls;
+the requirements below define what such controls would need to preserve.
 
 **Outcome:** routine updates no longer require leaving the work context.
 Add create/title/checklist/status actions one at a time through the same command
@@ -67,15 +64,15 @@ partial-failure and recovery behavior has its own design and proof.
 ## 18 One local agent handoff
 
 **Outcome:** one existing agent tool can receive complete direction and acknowledge it.
-D3 approved existing-session polling and a copied file instruction. The local
-Markdown handoff carries goal,
-constraints, source references/revisions, acceptance criteria, owner, and next
-action. Record requested, acknowledged, rejected, and unavailable states. Use a
+Use D3's ordinary Markdown direction and copied instruction for an existing
+session. Carry goal, constraints, source path/revision, acceptance criteria,
+recipient, and next action. Record requested, acknowledged, rejected, and unavailable
+states. Use a
 handoff identity to recognize retries without creating duplicate work. An
 acknowledgment means receipt, not completed execution or accepted results.
-The [approved D3 walkthrough](./handoff-examples.md) defines ordinary receipt
-edits and copying a tiny prompt into an existing session. It does not launch agents.
-**Depends on:** 15–16, the ownership decision for deferred 17, and D3.
+The [D3 walkthrough](./handoff-examples.md) defines ordinary receipt edits and
+copying a tiny prompt into an existing session. Preparing it does not launch agents.
+**Depends on:** 15–16, the ownership boundary, and D3.
 The agent must be able to acknowledge by editing ordinary files; a special writer
 or acknowledgment command cannot be mandatory. **Accept:** send one real handoff, observe receipt,
 and exercise unavailable tool, duplicate request, and lost-acknowledgment cases.
@@ -101,7 +98,7 @@ revision request, second result, and acceptance. Include a restarted browser/ser
 an offline/unavailable agent tool, and an editor changing a relevant file. Verify
 that another agent can resume from the resulting files without reconstructing a
 chat history. Record remaining failure modes and revise the interaction design.
-**Depends on:** 14–19. **Accept:** the roadmap's wave 2 exit is demonstrated with
+**Depends on:** 14–16 and 18–19, with the source ownership decision guiding 17. **Accept:** the roadmap's wave 2 exit is demonstrated with
 real source/evidence and no silent overwrites. Only then plan multiple contributors
 and broader adapters. This does not imply production-grade concurrent co-editing.
 
@@ -113,23 +110,11 @@ local CLI/API, and tool adapter must share mutation semantics rather than invent
 parallel write paths. Use existing Effect and Platform conventions where needed;
 choose concrete API names and transports at their design gates.
 
-## Approved response checkpoint
+## Source contract references
 
-D2 authorizes 14–15's append-only question/response files, browser draft policy and
-per-question CLI wait. The original project document is preserved; this checkpoint
-uses no-replace publication instead of a source-replacing patch. The later
-[ownership decision](./source-editing-examples.md) defers step 17's general project
-editing and undo; it accepts best-effort ordinary editor races rather than requiring
-a universal replacement transaction.
-The passive wait is an existing-session consumer, not step 18's handoff/launch adapter.
-See [the source contract](./response-write-examples.md) and the roadmap for actual
-acceptance evidence and first-platform filesystem limits.
-
-## Approved rich decision checkpoint
-
-Step 16 uses agent-authored directive question packets over the approved response
-publisher. One packet submits together; optional typed answers accompany readable
-Markdown, with extra human text, exact context and explicit superseding identity.
-See [the contract and examples](./decision-write-examples.md). This does not settle
-an inline-response format or D3 agent handoff contracts. Project editing follows
-the approved ownership boundary; the original step 17 controls remain deferred.
+The [response contract](./response-write-examples.md) uses independently published
+question/response records, rather than replacing an agent’s project document.
+The [packet reference](./decision-write-examples.md) explains complete typed
+answers and explicit supersession. The [ownership boundary](./source-editing-examples.md)
+keeps ordinary agent file editing sufficient. Implementation status and acceptance
+evidence belong in the roadmap.

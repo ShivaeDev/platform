@@ -1,10 +1,9 @@
 # Rich question packets and recorded decisions
 
-The maintainer approved this direction on 2026-10-06: agent-authored Markdown
-context, directive response controls, Mermaid context, human selections and extra
-text, with one explicit submission for the whole packet. This extends the existing
-append-only question/response path; it adds no agent launcher or source-replacing
-writer. Ordinary Markdown questions and old response files remain valid.
+A packet combines agent-authored Markdown context, question directives, human
+selections and extra text in one response. It uses the same independent immutable
+question/response files as plain questions. Ordinary Markdown questions and
+responses without typed answers remain valid.
 
 ## Source example
 
@@ -27,7 +26,7 @@ attention:
 ---
 # Response reading experience
 
-Keep the proposal, reasoning and [affected work](../tasks/review-ui.md) together.
+Keep the proposal, reasoning and the affected work together.
 
 ```mermaid
 flowchart LR
@@ -100,7 +99,7 @@ recorded body remains bounded to 32768 characters and captured context to 256 Ki
 The existing CLI wait returns that one response, including typed answers, readable
 body, author and reviewed context. It does not emit independent partial replies or
 consume responses. Registration deadlines, repeatable reads and `--after` retain
-0.8.0 semantics; the lightweight waiter does not load the directive parser or renderer.
+the same semantics; the lightweight waiter does not load the directive parser or renderer.
 
 ## Changed context and superseding direction
 
@@ -130,8 +129,7 @@ with its source fallback when JavaScript is unavailable. The ordinary trusted-fo
 reader keeps its existing compatibility; browser recording still requires JavaScript
 and explicit server write opt-in.
 
-The Linux-only no-replace publisher, revision/path checks, typed rejected/uncertain
-outcomes, source preservation and local-only operation are unchanged. The approved
-[ownership boundary](./source-editing-examples.md) defers direct source patches
-and undo; a real tool handoff remains D3 before step 18. No export,
-cloud transport or additional dependency is introduced.
+The Linux-only no-replace publisher, revision/path checks and explicit rejected/
+uncertain outcomes preserve the independent source records. The
+[ownership boundary](./source-editing-examples.md) keeps normal project editing
+with agents. Handoff and direct-editing decisions belong in the roadmap.

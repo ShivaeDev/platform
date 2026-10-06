@@ -1,561 +1,637 @@
-# `@shivaedev/work-board`
+# @shivaedev/work-board
 
-A tiny local server that shows a folder of markdown files as a live page. Edit a
-file and every open page updates in place, with no reload, no rebuild and
-nothing to publish.
+A local workspace for reading your agents' plans, results and questions, then
+giving direction beside the source you reviewed. The work stays in Markdown files;
+Work Board adds live reading, connected views, attributable responses and
+reviewed direction for an existing agent session.
 
-```sh
-pnpm add --global @shivaedev/work-board
-work-board ./project-notes --port 4747 --home plan.md
-```
+## Keep the work and its context together
 
-For an empty folder, omit `--home` until its home file exists. It opens
-getting-started guidance at `/`. **Getting started** in the
-sidebar remains available at `/_board/start`, with copyable project, investigation
-and agent-result Markdown templates. Focus a template text area, select all and
-copy; save through your editor or agent tool. Replace example IDs and matching
-references, and record evidence only after an actual observation. Read-only mode does not create project files. Templates and links also work without JavaScript.
-Browser print focuses on the document; document export is outside product scope.
+An agent's finished run leaves you with another report to read and another question
+to answer. Work Board lets you read those files as one workspace, follow their
+reasoning and evidence, and find explicit requests for your judgment. Even a small
+Markdown plan can become a board:
 
-It listens on `127.0.0.1` only and answers only requests addressed to a loopback
-host. Every `.md` file under the folder appears in the collapsible sidebar with
-how long ago it changed. Below the folder, files and folders starting with a dot
-and `node_modules` are never entered. Only Markdown appears in the sidebar;
-supported local images are served when explicitly referenced below. The folder
-itself may be a dot folder such as `.notes`.
-
-Directory symlinks explicitly include reference folders, including ones outside
-the workspace. Their Markdown keeps the link's workspace-relative URLs. Broken
-links, ancestor links and directory cycles are skipped. File symlinks stay inside
-the workspace or the reference directory containing them. Unlisted paths and URL
-traversal are never served. One long-lived process picks up new files and edits
-without a restart.
-
-For example, include the main checkout's documentation without copying it:
-
-```sh
-ln -s /path/to/platform/docs ./project-notes/reference
-work-board ./project-notes --home plan.md
-```
-
-Read `/reference/framework/README.md` and follow its relative Markdown links.
-Only link directories you intend to expose locally. Multiple aliases remain
-separate source paths; if they repeat an explicit item ID, existing ambiguity
-rules apply rather than choosing an identity winner.
-
-Pages render GitHub Flavored Markdown on the server: tables, task lists,
-footnotes, raw HTML (including `<details>` with markdown inside) and fenced code,
-highlighted with Shiki's GitHub light and dark themes. Raw HTML is not
-sanitized, so serve only folders you trust. Pages send a content security
-policy that allows only the board's own scripts, and `Cache-Control: no-store`.
-The page uses system fonts. Theme can follow the system or stay light or dark.
-Theme, compact/comfortable density, and sidebar visibility are remembered in
-browser storage for this folder and server origin. When storage is unavailable,
-controls still work for the current page and show a notice.
-
-The file location appears above the content. Documents use a readable line
-length; boards use a wider grid that stacks on narrow screens. The sidebar has
-its own scroll area and starts collapsed on narrow screens unless a saved
-preference says otherwise. A keyboard skip link moves directly to the content.
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `<dir>` | required | The folder to serve. |
-| `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
-| `--responses` | `false` | Explicitly enable local question/response/handoff writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
-| `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
-
-## Hand a task to an existing agent session
-
-Open a uniquely identified project item and choose **Prepare an agent handoff**.
-Review the current Markdown/Mermaid context, enter a local recipient label, goal,
-constraints and next action, then preview and prepare. The existing `--responses`
-opt-in also enables this writer. Work Board creates `handoffs/<id>.md` with a stable
-ID, direction, original source path/revision and the exact reviewed source below
-its frontmatter, including declared criteria. Context is limited to 256 KiB.
-
-**Copy tiny prompt** gives you a short instruction containing the absolute file
-path. Paste it into the agent session you already use. Preparing a file records
-`requested`; it does not wake or launch an agent. Without clipboard permission,
-the prompt is selected for manual copying. Saved handoffs remain readable without
-JavaScript; preparing them requires JavaScript and the existing Linux writer.
-
-The agent reads the file and edits `handoff.state` to `acknowledged`, `rejected`
-or `unavailable`, with optional `handoff.by` and `handoff.note`. These are literal
-local labels and receipt, independent of task status, execution or human
-acceptance. Agents can keep using the existing question poll/wait commands for
-human answers. No acknowledgment command or special project editor is required.
-
-Retries using the same handoff ID preserve the agent's receipt and extra metadata;
-conflicting direction, moved/duplicate IDs and a changed source before initial
-preparation are rejected. A missing receipt remains unconfirmed, including after
-restart. Saved context remains inspectable if the source disappears or changes.
-Drafts share the existing browser-local workspace store and its 30-day/2-MiB
-bounds; clearing that store clears response and handoff drafts together.
-
-## Local responses and one logical wait per question
-
-Start one shared server with explicit write opt-in:
-
-```sh
-work-board ./project-notes --responses --port 4747
-```
-
-Use an existing explicit open attention request. In its **Work details and source**,
-choose **Respond to this request**, review the exact source and SHA-256, enter a
-local author label, and preview the Markdown before recording it. An answer may
-say no; **Ask back / clarify** and **Not now** are separate reply kinds. These
-labels are not authenticated identities. Recording a reply never changes source
-status, closes an attention request, executes an agent or establishes acceptance.
-
-The app creates immutable question/context and response Markdown files in
-`responses/`. Original documents remain untouched. Questions identify the item,
-request, source path and exact bytes reviewed; changing either the source bytes or
-path creates a different generation. A stale save retains the draft and requires
-review/preview again. The preview names both files and all authored fields; the
-server assigns registration and recorded timestamps when saving.
-
-Drafts use separate browser-local storage per workspace/origin: 2 MiB total and
-30 days since the last edit. **Clear workspace drafts** affects drafts, not saved
-source or Mark seen history. Expiry, corrupt/unavailable storage and quota failures
-are disclosed. Text remains in the current window after a storage/save failure.
-Navigation, reload and live source refresh preserve retained drafts; changed
-context must be previewed again. Another unsaved edit made during submission is
-retained. Saved feedback also remains readable without JavaScript.
-
-An agent uses these short command names against the shared server:
-
-```sh
-# Read the exact current question/context and its reviewedRevision (no write).
-work-board question investigation.model/review-model
-
-# Register that reviewed generation and wait for one attributable reply.
-work-board wait investigation.model/review-model --revision <reviewedRevision>
-
-# After registration, repeat this same wait after a killed shell or restart.
-work-board wait <question-id>
-
-# Retrieve the saved conversation without waiting or consuming any reply.
-work-board response <question-id>
-
-# After a clarification/deferral, wait for the next response explicitly.
-work-board wait <question-id> --after <response-id>
-```
-
-`--port` selects another local workspace/server; `--url` accepts only an HTTP
-loopback origin. There is no hidden workspace discovery or automatic server launch.
-Register-and-wait reports its stable question ID and deadline on stderr. Its stdout
-is one JSON result containing the attributable question/context and response;
-exit 0 means a recorded reply, including no/clarification/deferral, not approval.
-Exit 2 reports an unanswered 48-hour deadline; other failures exit nonzero with
-stderr diagnostics. `question` and `response` are explicit read commands.
-
-The human deadline starts at first durable registration and does not reset when
-rearming, revisiting a page or previewing. A deadline never deletes/cancels the
-question. Late replies remain readable and take precedence over an old timeout.
-A missing cursor fails explicitly. Replies can be read repeatedly; this provides
-recovery, not exactly-once agent action. The server's 30-second request leases and
-one-second reconciliation checks are distinct from the human's 48-hour deadline.
-During a transport/index outage, waits retry the same question; at the deadline,
-an unavailable service is reported as unavailable rather than falsely unanswered.
-Damaged frontmatter in the `responses/` record namespace also makes history
-unavailable; repair the record before treating its question as unanswered.
-
-The client uses bundled native Effect RPC over the existing local command path.
-Serving imports are loaded only for the server command. Each waiter has no
-renderer, Mermaid, filesystem watcher, AtomRegistry or daemon. A pending lease
-returns only its question and next reply, not the entire conversation history.
-Harnesses own model wakeup and shell lifetime: completion is not a universal
-promise of autonomous agent continuation. Re-read/reattach when your harness does
-not inject a completed shell result.
-
-Publication holds Linux directory descriptors, writes and synchronizes a private
-temporary file, publishes with a no-replace hard link, then synchronizes the
-response directory. Retries reconcile the same identity/content and never replace
-another contribution; a moved/duplicated/conflicting identity is rejected.
-Symlinked reference folders grant read access only. Changed/moved directories,
-permissions, unsupported filesystem capabilities and uncertain outcomes remain
-explicit. An unrelated editor can change the reviewed source after a preflight
-check; immutable replies still identify the exact reviewed bytes and never claim
-an atomic transaction with that editor. Directory moves after publication can
-produce an uncertain result; reconcile saved source before retrying.
-
-Source HTML cannot submit write forms: CSP disables form actions/frames, the
-native route requires same-origin/loopback and NDJSON when writes are enabled,
-and the official response surface renders reviewed context with raw HTML disabled,
-with an escaped exact-source disclosure. Embedded apps must
-explicitly opt in with `boardLayer({ root, responses: true })` and own the trusted
-host boundary. There is no write endpoint for arbitrary paths or source rewriting.
-
-## Local visual evidence
-
-Use ordinary Markdown such as `![Review screenshot](shots/review.png)` or
-`[Open screenshot](shots/review.png)`. PNG, JPEG (`.jpg`/`.jpeg`), GIF and WebP
-paths resolve relative to the source file, including a nested home served at `/`.
-The local image route serves at most 16 MiB per file, checks the resolved path on
-every request, and refuses hidden/dependency paths, traversal and links outside
-the workspace. Outside-workspace reference folders retain their Markdown support;
-their images must be copied inside the workspace to be served. SVG, HTML, PDF and
-arbitrary attachments are not served through this route.
-
-Open a local image link (including an evidence source), or click/focus an embedded
-image and press Enter, to inspect a gallery of the
-current document's images. Previous/Next and arrow keys select images. Zoom from
-25% to 800%, scroll, Fit, Actual size or Fullscreen to inspect details; Escape closes the viewer
-and restores source focus. **Save locally** uses the browser download mechanism.
-An unavailable image keeps its alt text and explains the local path/type/boundary
-and size checks. Images still render through ordinary GET requests without JavaScript.
-
-A rendered Mermaid diagram has **Inspect diagram**, with the same zoom, scrolling,
-fullscreen, Actual size and keyboard dismissal, plus a local SVG download of its current
-drawing. Failed diagrams expose their source and a readable error; source remains
-visible without JavaScript. When fullscreen is unavailable, scrolling still works.
-An open preview remains the earlier drawing/image after a source update, discloses
-that state and requires reopening before saving. Image edits trigger conservative
-native reconciliation and image reloads, respecting Pause/Resume. The explicit
-Mark seen baseline stays Markdown-only: image bytes are not captured or retained.
-Viewing and downloading do not write source files or imply verified acceptance.
-
-## Document navigation
-
-Markdown headings have passage links and an **On this page** outline, including separate
-anchors for duplicate headings. Use the heading's `#` link to copy a passage URL.
-Generated anchors use the heading text and duplicate order; changing either can
-change the anchor. Renaming a file changes its document URL. Authored HTML IDs
-and footnote links remain intact. Richer files can declare stable work-item IDs.
-
-Markdown links resolve from their source file, including a nested `--home` file
-served at `/`. Links within the workspace open in place; modified clicks and
-links targeting another window keep their normal browser behavior. The browser
-title and active file tooltip follow the document's main heading.
-
-Back and forward restore the previous scroll, selected text, and open details.
-The client keeps up to 30 page snapshots and tab-scoped reading records; it
-fetches the current file again on return so changes and deletions are visible.
-A missing document explains what happened, and a missing passage shows a notice.
-
-**Save favorite** pins a document to the sidebar. Recent documents are deduplicated
-and limited to the last ten. Favorites and recents use browser storage scoped to
-the folder and server origin. Deleted favorites remain visible with a missing
-label. If storage is unavailable, favorites and recents work on the current page;
-reading navigation still works in the open tab. Content and the outline remain
-readable with JavaScript disabled.
-
-## Workspace search
-
-Use **Search** or Ctrl/Cmd+K to find document titles/paths, Markdown headings, and
-passage text. Results identify their type and source file/line where known, include text snippets,
-and open the corresponding heading when available. Matching is case-insensitive
-with Unicode normalization; all query terms must occur in a block. Titles rank
-before headings, then passages, with stable source order within each group.
-Results are limited to 40 and report the full match count. This is deterministic
-text search, without fuzzy matching or semantic inference.
-
-Arrow keys choose a result while the search field is focused; Enter opens it.
-Escape closes the dialog and restores focus. With an empty query, commands open
-the workspace or change the existing sidebar, density, and theme controls.
-
-The server keeps a rebuildable index in memory and invalidates it when the file
-watcher changes. An open dialog refreshes on edits and reconnects; older requests
-cannot replace a newer query. Hidden entries, `node_modules`, and escaping standalone file
-symlinks are excluded; linked reference directories are included. Unreadable
-files produce an incomplete-results notice.
-All indexing and requests stay local. Search needs JavaScript; document reading
-does not. Source-in-editor links await an agreed local editor mechanism.
-
-## Optional work identity
-
-A Markdown file can begin with YAML frontmatter declaring an explicit `id`,
-`kind`, `status`, `owner`, `next_action`, relationships, criteria, board membership,
-and evidence. Every field is optional; ordinary Markdown and heading boards need
-no migration. [Source examples and shapes](./docs/vision/delivery/source-examples.md)
-describe the convention. No section name becomes a status or workflow rule.
-
-Work details show recorded fields, source locations, and the original header.
-Malformed/unknown fields, duplicate IDs, and unresolved references remain visible
-with diagnostics while prose stays readable. A unique ID has a shareable
-`/_board/item/<id>/` link that survives file/heading renames; criterion links open
-and focus their context. Search also finds explicit work fields and criteria.
-An incomplete index cannot assert unique identity. The index rebuilds from files
-without persistent storage; the UI never writes project content.
-
-Evidence records show their source, criterion, checked revision, observed time,
-method, and recorded outcome when provided. They are source claims, not
-independently verified acceptance; missing provenance stays **Not recorded**.
-
-## Work views
-
-Open **Work** to read identified items as a board or table. A `kind: board` file with a
-unique ID and an explicit `items` list defines a selectable view; the same item
-can appear in several boards. Board definitions are excluded from All work.
-Missing/ambiguous members and repeated membership are disclosed without choosing
-a duplicate source or counting repeated items twice. Legacy heading cards remain
-on their original pages and do not become inferred identified work.
-
-Columns use the exact recorded status, including a **Status not recorded** column.
-Filter by status, owner, or work text and sort by title, owner, or status. Missing
-values differ from literal text and sort last. Cards open a source detail pane;
-its Markdown links resolve relative to its file. The URL records the board,
-filters, sort, and selected ID, so reload and Back/Forward restore that context.
-A selected item outside the filters stays visible with a notice; deletion or
-ambiguous identity is explained. Live changes retain applied filters, including
-filters with no current matches. Compact density applies to these cards too.
-Board and table use the same projection and selection; switching layouts keeps
-that URL context. Table rows show kind, status, owner, and next action, with
-missing fields disclosed and the same source detail pane. Narrow tables scroll
-inside their own container; compact density reduces row/card spacing.
-Native links and GET filters remain usable without JavaScript.
-
-Save up to 10 named views in browser storage scoped to the workspace and server
-origin. A view retains the applied board, filters, sort, and layout; item selection
-stays in its shareable URL. Saving the same name updates it. At capacity, remove
-one or update a name; views are never silently evicted. Remove one or clear all
-from the view picker. Unsafe stored destinations are ignored. If storage is
-unavailable, named views work for the current page only; source files are unchanged.
-Saving requires JavaScript; board/table reading does not.
-
-## Attention overview
-
-Open **Overview** to read explicit decision, review and blocker requests grouped
-by kind and ordered by source title, item ID and request ID. Each entry shows the
-recorded reason, response labels, target links and origin file/line. Opening it
-focuses its source request, beside ordinary Markdown reasoning and evidence.
-Source edits refresh the queues; native links also work without JavaScript.
-
-Add optional [attention records](./docs/vision/delivery/attention-examples.md) to
-item frontmatter. Status, owner, next action, file activity and finished runs do
-not imply requests. Closed requests remain readable/searchable without implying
-an answer or acceptance. Duplicate IDs, invalid records and unresolved targets
-stay outside the queues with source diagnostics. An incomplete index withholds
-counts rather than presenting a quiet workspace. The viewer never writes source
-files or interrupts/starts agents; recipients are authored local labels.
-
-## Changes since seen
-
-Open **Changes**, then **Start remembering changes** to record one explicit
-browser-local workspace baseline. Live updates and opening the view never mark
-changes seen. After review, **Mark current workspace seen** replaces it;
-**Clear remembered history** removes it and stays off until you start again.
-
-Compare additions, removals, explicit field changes, decision Markdown and
-recorded evidence with current source links and escaped before/after source text.
-Unique explicit item IDs can match moved files; ordinary renames show removed
-and added paths. Duplicate IDs have no winner. Content comparison ignores mtime
-and does not establish authorship, decision acceptance or verified evidence.
-
-Each origin/workspace retains at most one 2 MiB serialized snapshot for 30 days.
-Old/deleted source may remain until replacement, clearing or expiry; expired data
-is removed on the next workspace visit or an open-page check. Invalid/unsupported
-history, incomplete reads and oversized workspaces are explained without invented
-removals or truncated history. Blocked storage allows a disclosed page-only
-baseline. The local server validates and compares observations without retaining
-history, modifying Markdown or contacting a cloud service. Without JavaScript,
-Changes explains the limitation while source reading, Overview and Work remain usable.
-
-## Reasoning and evidence context
-
-Follow explicit relationships from a result to its plan and decision. Decisions
-keep options, comparisons, and rationale in ordinary Markdown; no new decision
-fields are required. **Referenced by** lists incoming relationships, board
-membership, criterion claims, evidence-source links, and local Markdown hyperlinks,
-including plain files without frontmatter. Relative/encoded paths and root home
-links use the source file's location. Repeated prose links from one file count
-once; code examples do not become links. External URLs are not local backlinks.
-Incomplete workspaces disclose partial references and do not select ambiguous IDs.
-
-Each uniquely identified criterion lists claims recorded across the readable
-workspace, with links to their source records. Missing claims say that acceptance
-is not established. A record shows origin file/line, checked revision, observed
-time, method, and outcome; missing provenance stays **Not recorded**. Old recorded
-revisions remain visible, and Work Board does not compare them to a current Git
-revision or infer human acceptance. Missing local Markdown evidence sources remain
-linked with a notice. Generated `recorded-evidence-<index>` anchors follow source
-array order and may change after insertion/reordering; item and criterion IDs are
-the explicit stable references. Backlinks/claim associations rebuild on file
-changes and after restart, without writing an event history.
-
-## Diagrams
-
-A ` ```mermaid ` block is drawn in the browser. Mermaid loads from the installed
-package, and only on pages with a diagram.
-
-- A diagram is drawn into space reserved for it; its source is never shown
-  while it is drawn or redrawn.
-- A drawn diagram stays in place when the page around it updates. An edited
-  diagram keeps its old drawing until the new one is ready, as long as the page
-  keeps the same number of diagrams; otherwise it shows its reserved space.
-- Diagrams follow the light or dark colour scheme; switching schemes redraws
-  them in place.
-- A diagram that does not parse shows its source and the error, without the
-  drawing it had before.
-
-## Boards
-
-The home file is shown as a board: a title, an intro, then sections of cards
-with a count per section in the header. The counts are derived from the
-markdown, so they are never typed by hand.
-
-```md
-# Project notes
-
-What is open this week.
+```markdown
+# Documentation review
 
 ## In review
 
-### `docs #12` [Refresh the install guide](https://example.com/pull/12)
+### Check the install guide
 
-Checks are green.
+Read [the proposed guide](guide.md) before choosing the next step.
+```
 
-## To do
+As a home board, the section becomes a column and the heading a card, with its
+count derived from the file. Agents keep editing the files with their usual
+tools. An open page updates in place while keeping unchanged reading blocks and
+expanded details, so the reader can stay with the work as it changes.
 
-### `ops` Rotate the deploy key
+## Using it
 
-<details>
-<summary>Steps</summary>
+### How to think about it
 
-1. Create the key.
-2. Replace the old one.
+A **workspace** is a folder of Markdown files. Those files are authoritative:
+plans, reasoning, work fields and recorded evidence remain readable outside the
+board. The server builds its document, search and relationship index from them.
+Its views arrange the same source for different reading tasks.
 
-</details>
+A file can declare an optional **item ID**. That ID connects it to other files,
+criteria and boards without tying the connection to its filename. A **criterion**
+is an explicitly named requirement; an **evidence record** is an author's claim
+about an observation. The board displays that claim and its provenance; it does
+not run the check or establish acceptance.
 
-## Later
+An **attention request** explicitly asks for a decision, review or help with a
+blocker. It is separate from an item's status. A **question** captures that
+request's exact source text, source path and reviewed SHA-256. A **response** is
+an independent Markdown record of a person's answer, clarification or deferral.
+Responses retain their reviewed context; they do not close requests, change task
+status or start an agent.
 
-Nothing planned yet.
+A **handoff** captures direction and the exact source the person reviewed in
+another Markdown file. The person copies its short file instruction into an
+existing agent session; the agent records receipt through ordinary file edits.
+Receipt states describe acknowledgment, rejection or unavailability, rather than
+execution or acceptance.
 
+Browser preferences, drafts and the explicit **seen baseline** are personal state,
+scoped to the workspace and server origin. They do not change project meaning.
+Agents own normal project-file edits. Work Board owns the human response content
+it records. An agent's run completion, a recorded answer and an accepted result
+remain separate facts.
+
+The work has three parts: choose a workspace once, author useful files per feature,
+and read or respond as the work changes.
+
+### 1. Once per workspace: choose the reading surface
+
+```sh
+work-board ./project-notes --home plan.md
+```
+
+This serves the existing folder on `http://127.0.0.1:4747`. The optional home file
+is resolved from that folder and rendered as a heading board at `/`; other files
+are documents. Without a home, `/` shows the first listed document. An empty
+workspace opens getting-started guidance. **Getting started** remains available at
+`/_board/start`, with copyable project, investigation and agent-result templates.
+Save them through your editor or agent tool; the reader does not create files.
+
+A heading board uses `#` for its title, text before the first `##` for its intro,
+`##` for sections and `###` for cards. A section without cards shows its text.
+A `---` after the last heading starts the footer; a divider inside a card before
+another heading stays in that card. Code spans, reference links, footnotes and
+`<details>` can stay in the Markdown body. Leave a blank line after `<summary>`
+and before `</details>` when its content is Markdown.
+
+Directory links can include reference Markdown without copying it:
+
+```sh
+ln -s ../reference-docs ./project-notes/reference
+work-board ./project-notes --home plan.md
+```
+
+Explicitly linked directories may live outside the workspace. Their documents use
+the link's logical paths, so `/reference/guide.md` resolves its own relative links.
+The server watches reference edits and discovers added or retargeted links. Broken,
+ancestor and cyclic links are skipped. File links must stay inside their containing
+workspace or reference directory. Only link directories you intend to expose.
+
+### 2. Per feature: write the source once
+
+Plain Markdown needs no metadata. Add frontmatter when an item needs stable
+identity, connected criteria, work views or an explicit request. Save this as
+`search.md`:
+
+```markdown
 ---
+id: work.search
+kind: task
+status: in-review
+owner: agent-navigation
+next_action: Review the keyboard evidence
+criteria:
+  - id: keyboard
+    text: Escape returns focus to the search button
+attention:
+  - id: keyboard-review
+    kind: review
+    state: open
+    response_from: [maintainer]
+    reason: Review the keyboard result before continuing.
+    unblocks: [work.search#keyboard]
+---
+# Workspace search
 
-Finished work moves to the changelog.
+Read the proposed keyboard behavior and its recorded evidence before responding.
 ```
 
-- `#` is the title, and anything before the first `##` is the intro.
-- Each `##` is a section. Its `###` headings are its items, and its count is
-  the number of items. A section without `###` items, such as "Later", has no
-  count and shows its text as one card.
-- An item's heading may start with a code span, shown as a quiet tag before the
-  title, and the title may be a link. Everything up to the next heading is the
-  item's body.
-- Markdown inside `<details>` needs a blank line after `<summary>` and before
-  `</details>`.
-- A `---` after the last heading starts the footer; a `---` inside a card stays
-  in the card.
-- Reference links and footnotes work inside cards, wherever their definitions
-  are in the file, and each card's footnotes get their own ids.
+Every top-level work field is optional. IDs are case-sensitive: an ASCII letter or digit,
+then letters, digits, dots, underscores or hyphens. A unique ID opens at
+`/_board/item/work.search/`, and its criterion at
+`/_board/item/work.search/#criterion-keyboard`. These references survive file and
+heading renames while their explicit IDs remain unique.
 
-## Live updates
+`status`, `owner` and `next_action` are nonblank authored text. No section title
+becomes a status rule. Unknown fields stay in **Original frontmatter** with a
+diagnostic; valid independent fields still render. Invalid metadata, duplicate
+IDs and unresolved references remain visible without choosing a source winner.
+An incomplete index cannot establish unique identity.
 
-The server watches the workspace and linked reference directories recursively.
-Adding or retargeting a directory link rebuilds the watch and triggers catch-up.
-Broken links are ignored; after restoring a target that was missing when the
-watch was built, restart the server to include it. No reference file is written.
-Changes settle for 100 ms, then
-`/events` sends one server-sent event naming the markdown files that changed:
+A board file selects shared items explicitly. Save this as `review.md`:
 
-```text
-event: change
-data: {"paths":["plan.md"]}
+```markdown
+---
+id: board.review
+kind: board
+items: [work.search]
+---
+# Review work
+
+Inspect the selected work and its source before giving direction.
 ```
 
-Open pages use locally bundled native Effect RPC and AtomRegistry queries over
-`POST /_board/rpc`. The existing GET endpoints and `/events` stream remain
-available for compatibility. No browser assets or source data need a cloud service.
+Open **Work** to switch between boards and tables. The same item may belong to
+several boards; a board definition is excluded from All work. Columns use exact
+recorded status, with missing status disclosed separately. Filters use status,
+owner and work text; sorting uses title, owner or status, with missing values last.
+The URL carries board, filters, layout, sort and selected item. Board and table
+share the projection and source detail; native links and GET filters work without
+JavaScript. Missing, repeated and ambiguous members are disclosed.
 
-Changed hints invalidate affected documents and derived views through former and
-current references, board membership, criterion evidence and attention targets.
-Unrelated documents keep their mounted query and DOM blocks. Relevant updates
-preserve unchanged controls, expanded details and diagrams; changed reading blocks
-receive a brief outline without animation. Native GET links and server-rendered
-HTML remain usable with JavaScript disabled.
+Use `relationships` for `implements`, `informs`, `depends_on` or `relates_to`
+links to an item or `item#criterion`. A result can record evidence against the
+criterion. Save this as `result.md`:
 
-Use **Pause updates** to stop automatic invalidation while reading. The count
-reports observed hints, bounded at **256+**, rather than a count of edits or work
-completed. Resume and reconnect reconcile the full workspace. A missed server-local
-PubSub sequence, unknown path or incomplete index also requires reconciliation;
-there is no durable event journal or replay guarantee.
+```markdown
+---
+id: result.search
+kind: result
+relationships:
+  - kind: implements
+    target: work.search
+evidence:
+  - source: evidence.md
+    criterion: work.search#keyboard
+    method: DOM regression
+    outcome: passed
+---
+# Search result
 
-Connection, source-watcher availability, pending reads and read failures remain
-separate. The status reports **live** only when the connection and last observed
-watcher are available and active page/navigation reads have settled. A failed read
-keeps the visible source and reports **refresh failed**. A transport outage or
-unavailable watcher reports **reconnecting**. Mark seen remains an explicit action;
-pausing never disables clearing or the 30-day baseline expiry.
+The recorded check is a source claim. Review its evidence before accepting it.
+```
 
-Each page owns a native streaming HTTP subscription and disposes its registry on
-pagehide. Returning from the browser's page cache creates a fresh client. Browser
-HTTP connection limits still apply; simultaneous tab capacity is not established.
+Record an outcome only after an actual observation, and save its supporting
+`evidence.md`; omit evidence until that check exists.
 
-## Embedding
+`source` is required for an evidence record; `criterion`, `checked_revision`,
+`observed_at`, `method` and `outcome` are optional. This example has no checked
+revision or observation time, so both stay **Not recorded**. When known, record a
+full 40- or 64-digit hexadecimal revision and an ISO timestamp with a timezone.
+Source paths resolve from the file holding the claim.
 
-`boardLayer({ root, home })` is the router Layer the command serves. Serve it
-with `HttpRouter.serve` on any Effect HTTP server, or turn it into a fetch
-handler with `HttpRouter.toWebHandler`. It needs `FileSystem` and `Path`, for
-example from `NodeServices.layer`. It still judges every request by its `Host`
-header, so pass requests on with that header: a request without one, or whose
-`Host` is not a loopback host, is refused, and so is a request from a
-non-loopback address when the server knows the address.
+Criteria collect explicitly linked claims across files. **Referenced by** also
+shows incoming relationships, board membership, evidence sources and ordinary
+Markdown links. Decisions keep their options and rationale in body Markdown.
+Old recorded revisions remain visible; the viewer does not compare them with
+current Git state or infer human acceptance. See the
+[source field reference](docs/delivery/source-examples.md) and
+[attention field reference](docs/delivery/attention-examples.md) for complete shapes.
+
+#### Richer reading in ordinary documents
+
+Tables, task lists, footnotes, raw-HTML details and highlighted fenced code render
+on the server. Heading passage links and an **On this page** outline distinguish
+duplicate headings. Relative document links resolve from their source file,
+including a nested home served at `/`.
+
+`mermaid` fences draw locally in the browser. Diagrams follow the theme and keep
+unchanged drawings during refresh. A parse failure exposes its source and error;
+without JavaScript the source remains readable.
+
+Metrics and progress use fixed directives with a label and a source:
+
+```markdown
+:::progress{completed="3" total="8"}
+Browser checks recorded
+
+Source: [Reading checks](checks.md)
+:::
+```
+
+The component shows the authored tally. Unknown or zero-total counts do not
+fabricate a percentage; invalid components retain source with a diagnostic.
+`:::metric` records a value/unit, and `:::timeline` preserves authored entry order.
+GitHub alert blockquotes render as callouts; comparisons remain GFM tables. The
+[visual document reference](docs/delivery/visual-document-examples.md) gives full
+examples and bounds.
+
+Use ordinary image Markdown for source-relative PNG, JPEG, GIF or WebP files.
+The image route serves at most 16 MiB per file inside the real workspace; images
+in outside reference folders must be copied inside that boundary. The image gallery
+and **Inspect diagram** provide zoom and keyboard dismissal. Local
+image downloads and SVG downloads of a rendered diagram use the browser. A source
+update marks an already-open preview as older and requires reopening before saving.
+These actions do not write source or establish acceptance.
+
+### 3. Every day: read, compare and give direction
+
+**Search** or Ctrl/Cmd+K finds document titles/paths, headings, passages and recorded
+work fields. Matching uses the first 200 query characters and up to eight terms;
+each of those terms must occur in a block, ignoring case. Titles rank before
+headings, then passages. At most 40
+results are shown with the full match count. Arrow keys choose, Enter opens, and
+Escape closes. Incomplete reads are disclosed, and older requests cannot replace
+a newer query. Search requires JavaScript.
+
+Back restores selected text and expanded details. Favorites and recents
+belong to the workspace/origin; deleted favorites remain labeled missing. Save up
+to ten named Work views with the applied board, filters, sort and layout. Selection
+stays in the URL, and saving the same name updates it. At capacity, remove or update
+a view; none is silently evicted. Unavailable storage is disclosed, with controls
+usable for the current page.
+
+**Overview** groups explicit open decision, review and blocker requests. Status,
+owner, file edits and finished runs do not imply a request. Each entry links its
+reason, recipients, targets and source context. Closed requests remain readable
+without asserting a recorded answer or acceptance. Invalid or ambiguous requests
+stay outside the queue with diagnostics; incomplete indexes withhold counts.
+
+**Changes** starts remembering only through **Start remembering changes**. After
+review, **Mark current workspace seen** replaces the baseline; **Clear remembered
+history** turns it off. Opening a view and receiving live updates never mark it seen.
+Compare additions, removals, fields and source text against that one browser-local
+baseline. Unique IDs match moved items; plain-file renames are removed/added paths.
+The baseline is bounded to 2 MiB and 30 days, with expiry, corruption, incomplete
+reads and oversized workspaces disclosed. It holds Markdown, not image bytes.
+
+**Pause updates** holds the displayed reading state while counting observed hints,
+bounded at **256+**. Resume and reconnect reconcile the workspace. Unrelated
+source edits retain mounted document reads; relevant updates retain unchanged
+reading blocks. A failed read keeps visible source and says **refresh failed**.
+Connection or watcher loss says **reconnecting**. These are reconciliation hints,
+not a durable event journal or a count of completed work.
+
+#### Record a human response
+
+```sh
+work-board ./project-notes --responses
+```
+
+Explicit opt-in enables writes. Open the request in **Work details and source**,
+choose **Respond to this request**, inspect the exact source and reviewed SHA-256,
+enter a local author label, then preview and record the Markdown. **Answer** may
+say no; **Ask back / clarify** and **Not now** are separate reply kinds. Author
+labels provide local attribution, not authentication.
+
+Registration captures one question generation in `responses/`; submission creates
+an independent response file there. Original source bytes stay unchanged. Source
+edits or moves require a fresh review/preview; historical replies still identify
+the old context. Same-identity/content retries reconcile, conflicting contributions
+are rejected, and uncertain publication is reported explicitly.
+
+Browser drafts have their own 2 MiB workspace bound and expire 30 days after their
+last edit. Navigation, reload and source refresh retain them; text edited while an
+earlier save completes remains an unsaved draft with a fresh identity. Corruption,
+expiry and storage failures are disclosed. Clearing drafts does not clear saved
+records or the seen baseline.
+
+#### Wait for an attributable reply
+
+```sh
+work-board question work.search/keyboard-review
+```
+
+Read the exact source/context and its `reviewedRevision` without registering it.
+Use that returned hash to register and wait:
+
+```sh
+work-board wait work.search/keyboard-review --revision "$reviewedRevision"
+```
+
+Set `reviewedRevision` from the question output after reviewing its context.
+Registration reports a stable question ID and deadline on stderr. Successful
+stdout is one JSON result with `kind: "response"`, its question/context and its
+response. Exit 0 means receipt of a reply, including no, clarification or deferral.
+
+```sh
+work-board wait "$questionId"
+work-board response "$questionId"
+work-board wait "$questionId" --after "$responseId"
+```
+
+Set these variables to the returned record IDs. Repeating `wait` reattaches to the
+registered question after a stopped shell or server restart. `response` retrieves
+its conversation without waiting. `--after` explicitly waits for the next reply;
+reads are repeatable and do not consume replies. A missing cursor fails.
+
+The 48-hour deadline starts at first durable registration and does not reset on
+reattachment or preview. Exit 2 reports an unanswered deadline; the question stays
+available and a late response wins over the old timeout. Transport/index failures
+remain failures, rather than evidence that the human did not answer. Damaged or
+ambiguous response history is unavailable until repaired. Harnesses own shell
+lifetime and model wakeup; reading a reply does not promise agent continuation.
+
+#### Ask several related questions in one packet
+
+Add question/option directives to the body of the item with an explicit request:
+
+```markdown
+::::question{id="display" select="one"}
+### How should replies appear?
+
+:::option{id="latest"}
+Latest response, with a link to history.
+:::
+
+:::option{id="history"}
+Full history beside its reviewed context.
+:::
+::::
+```
+
+Options begin unselected. `select="one"` is the default, `select="many"` permits
+multiple choices, and `select="text"` uses human text without options. Every prompt
+accepts extra text, including a text-only rejection of the framing. An answer
+needs a choice or nonempty text per prompt. The server validates prompt/option IDs,
+selection mode and completeness against captured context; one submission returns
+one response with typed answers and readable Markdown through the existing wait.
+
+If several requests are open in one file, add `request="keyboard-review"` to each
+matching question directive. Optional explicit supersession links immutable new
+direction to an earlier response; it does not rewrite task status or accept work.
+Source edits preserve human text and clear selections for review. The
+[packet reference](docs/delivery/decision-write-examples.md) gives a complete item,
+all modes and validation limits.
+
+#### Hand a task to an existing agent session
+
+Open a uniquely identified project item and choose **Prepare an agent handoff**.
+Review the current source, enter a local recipient label, goal, constraints and
+next action, then preview and prepare. The existing `--responses` opt-in enables
+this writer too. It creates `handoffs/<id>.md` with a stable identity, direction,
+source path, reviewed SHA-256 and exact source snapshot, including original
+frontmatter and declared criteria. Context is limited to 256 KiB of UTF-8.
+
+**Copy tiny prompt** gives a short instruction containing the absolute saved path.
+Paste it into the intended existing session. If clipboard access is unavailable,
+the prompt is selected for manual copying. Preparing a handoff records `requested`;
+it does not notify, wake or launch an agent.
+
+The agent edits `handoff.state` to `acknowledged`, `rejected` or `unavailable` and
+can add `handoff.by` and `handoff.note`. These are explicit local receipt facts,
+independent of task status, execution and human acceptance. An absent receipt
+stays unconfirmed; damaged or ambiguous history stays unavailable.
+
+Same-ID retries preserve receipt and extra metadata, including after source
+deletion. Restarted servers read the recorded receipt. Different direction and
+moved or duplicate identities are conflicts; a changed source before initial
+preparation requires another review. Saved context remains inspectable when its
+source disappears. Native navigation and Back retain owned draft text; source
+changes require a fresh preview.
+Drafts share the existing workspace store and its 30-day/2-MiB bounds. Clearing
+that store clears response and handoff drafts together.
+
+The [handoff source reference](docs/delivery/handoff-examples.md) shows a complete
+record, ordinary receipt edits and the boundary with optional execution integrations.
+
+### API and integration
+
+Import the module that defines a name. The package has no root entry; its manifest
+maps `./*.ts` to defining source/declaration/runtime modules, including nested
+paths. The main integration surfaces are:
+
+| Module | Names and purpose |
+| --- | --- |
+| `board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
+| `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
+| `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
+| `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
+| `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
+| `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
+| `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
+| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
+| `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
+| `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
+
+Other defining modules are also exposed by the wildcard. Their
+[source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src)
+contains file/watch, HTTP, rendering, search, views and history helpers. Compose
+`boardLayer` to retain the package's source policy and request guards.
+
+#### Embed the workspace
 
 ```ts
-import { NodeServices } from "@effect/platform-node"
-import { Layer } from "effect"
-import { HttpRouter } from "effect/unstable/http"
-import { boardLayer } from "@shivaedev/work-board/board.ts"
+import { NodeServices } from "@effect/platform-node";
+import { boardLayer } from "@shivaedev/work-board/board.ts";
+import { Layer } from "effect";
+import { HttpRouter } from "effect/unstable/http";
 
 const board = HttpRouter.toWebHandler(
   Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),
-)
+);
+
+try {
+  const response = await board.handler(
+    new Request("http://localhost/", { headers: { host: "localhost" } }),
+  );
+  console.log(await response.text());
+} finally {
+  await board.dispose();
+}
 ```
 
-On pnpm 11, installing into a project needs a decision on `msgpackr-extract`,
-which `effect` pulls in: pnpm refuses its build script by default, and
-`pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`. Record the decision under
-`allowBuilds` in `pnpm-workspace.yaml`, or run `pnpm approve-builds`; `false`
-skips the build. `pnpm dlx` and `pnpm add --global` need no setting.
+`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices`
+provides the filesystem/path implementation here. `root` is required, `home` is
+optional, and `responses: true` explicitly opts into publication. `HttpRouter.serve`
+can compose it beside application routes in a scoped Effect HTTP server.
+Requests still require a loopback `Host`; a missing/non-loopback host is refused,
+as is a known non-loopback remote address. The embedding host owns its trust boundary.
 
-```yaml
-allowBuilds:
-  msgpackr-extract: false
+#### Read and wait from a Node agent
+
+```ts
+import { Effect } from "effect";
+import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
+
+const question = await Effect.runPromise(
+  agentRequest("question", {
+    request: "work.search/keyboard-review",
+    url: "http://127.0.0.1:4747",
+  }),
+);
+
+console.log(JSON.stringify(question, null, 2));
 ```
 
-## Product vision
+Read the returned context before registration. This second program takes the
+reviewed revision as its first command-line argument and registers that context:
 
-The [north star and visual direction](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/docs/vision#readme)
-describe the proposed local workspace for a person and their agents: stay
-informed, give direction and coordinate, then collaborate. The
-[roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/roadmap.md)
-sets the waves, acceptance criteria, and open design decisions.
-[Experience designs and mockups](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/experience.md)
-illustrate the target with fictional data. These are future plans; the sections
-above describe the package's current behavior.
+```ts
+import { Effect } from "effect";
+import { agentRequest } from "@shivaedev/work-board/responses/agent.ts";
 
-### Markdown rendering
+const [revision] = process.argv.slice(2);
+if (!revision) throw new Error("Pass the reviewed revision as the first argument.");
 
-Work Board uses Antumbra's `react-markdown` and `remark-gfm` libraries for
-server-rendered Markdown, with locally served Mermaid for ordinary `mermaid`
-fences. Existing local links, images, heading anchors, footnotes, raw-HTML details
-and Shiki code highlighting remain available without React client state. Mermaid
-rendering and inspection need JavaScript; its source remains readable without it.
+const answer = await Effect.runPromise(
+  agentRequest("wait", {
+    request: "work.search/keyboard-review",
+    revision,
+    url: "http://127.0.0.1:4747",
+  }, console.error),
+);
 
-### Visual document directives
+console.log(JSON.stringify(answer, null, 2));
+```
 
-Use `:::metric{value="50" unit="documents"}`, `:::progress{completed="3" total="8"}`
-and `:::timeline` containers with Markdown labels and linked sources. Components
-render on the server and remain readable without JavaScript. Unknown counts stay
-unknown, invalid components retain their source with a diagnostic, and timelines
-preserve authored order. Recorded values do not establish verified acceptance.
-See [the complete source conventions](./docs/vision/delivery/visual-document-examples.md).
-GitHub alert blockquotes render as callouts; comparisons remain ordinary GFM tables.
+`agentRequest` returns an Effect and manages its RPC scope. `question` uses
+`item/request`; registering `wait` needs that pair plus `revision`. To reattach,
+pass the returned question ID as `request` without `revision`. `response` also
+takes a question ID; `after` on `wait` selects a later reply.
 
-## Rich question packets
+#### Use the native browser client
 
-Agents can prepare Markdown context with `question`/`option` directives and local
-Mermaid diagrams. People select options, always add text, and submit the whole
-packet once. Use `select="one"`, `select="many"` or `select="text"`; choices start
-unselected and a text-only answer can reject the framing. Preview the complete
-record before saving. The existing wait returns typed prompt/option IDs and human
-text with the readable Markdown and exact reviewed context.
+```ts
+import { browserClient } from "@shivaedev/work-board/browser/client.ts";
 
-See [the full source example and contract](docs/vision/delivery/decision-write-examples.md).
-Ordinary Markdown and older response files still work. Decisions are authored
-feedback; superseding direction is explicit and does not establish acceptance or
-change tasks. Response-page raw HTML is disabled. Local strict Mermaid and
-no-JavaScript readable history/source fallback use the existing renderer; recording
-requires JavaScript and `--responses`. Linux-only write support is unchanged.
+export async function registerReviewedQuestion(url: string, revision: string) {
+  const client = browserClient(url);
+  try {
+    const page = await client.read(
+      client.api.page.query({ url: "/_board/item/work.search/" }),
+    );
+    const question = await client.mutate(
+      client.responses.registerQuestion.run({
+        item: "work.search",
+        request: "keyboard-review",
+        revision,
+      }),
+    );
+    const history = await client.run(
+      client.responses.responses.run({ question: question.id }),
+    );
+    return { page, question, history };
+  } finally {
+    client.registry.dispose();
+  }
+}
+```
+
+Call this function with a revision whose source/context you have reviewed and a
+server started with `--responses`. `api` binds reading operations; `responses`
+binds question and response operations. `read` resolves a query atom, `run`
+executes a query Effect, and `mutate` executes a command with its invalidation
+service. `handoffs` binds source/history queries and the preparation command. The
+client also exposes `registry` and `updates`; dispose the registry when its owner
+ends.
+
+For a handoff, first read the preview with
+`client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect
+its `context`. This complete program takes that reviewed path and revision as
+inputs:
+
+```ts
+import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+
+export async function prepareReviewedHandoff(
+  url: string,
+  source: string,
+  revision: string,
+) {
+  const client = browserClient(url);
+  try {
+    const saved = await client.mutate(
+      client.handoffs.prepareHandoff.run({
+        id: "handoff.search.keyboard.1",
+        item: "work.search",
+        source,
+        revision,
+        recipient: "agent-navigation",
+        goal: "Fix keyboard focus",
+        constraints: "Preserve no-JavaScript links.",
+        nextAction: "Inspect the current source and report browser evidence.",
+      }),
+    );
+    const history = await client.run(
+      client.handoffs.handoffs.run({ item: "work.search" }),
+    );
+    return { saved, history };
+  } finally {
+    client.registry.dispose();
+  }
+}
+```
+
+Pass `preview.source` and `preview.reviewedRevision` only after reviewing the
+preview's context. `saved.prompt` is the short instruction to copy into the agent
+session, and `history` contains records plus paths whose history is unknown. Keep
+the same ID for a retry of identical direction; choose a new ID for new direction.
+
+`ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`,
+`Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication
+may already have produced a file; inspect the saved identity/content before retrying.
+
+#### CLI reference
+
+| Server argument | Default | Meaning |
+| --- | --- | --- |
+| `<dir>` | Required | Existing folder to read |
+| `--home <file>` | None | Listed Markdown file rendered as a board at `/`; a missing file prevents startup |
+| `--port <number>` | `4747` | Loopback server port; `0` asks for a free port |
+| `--responses` | Off | Enable local question/response/handoff publication |
+
+| Agent argument | Meaning |
+| --- | --- |
+| `question <item>/<request>` | Read current context without registration |
+| `wait <item>/<request> --revision <hash>` | Register reviewed context and wait |
+| `wait <question-id> [--after <response-id>]` | Reattach or wait for the next response |
+| `response <question-id>` | Read the saved conversation |
+| `--port <number>` | Select the shared server's port; default `4747` |
+| `--url <origin>` | Select an HTTP loopback origin instead of `--port` |
+
+The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs,
+`/_board/start`, `/_board/work`, `/_board/overview`, `/_board/changes`,
+`/_board/respond`, `/_board/handoff`, identity
+links, the search/history endpoints and `/events` remain available alongside it.
+There is no automatic workspace discovery or server launch in agent commands.
+
+### Install and limits
+
+```sh
+pnpm add --global @shivaedev/work-board
+```
+
+Node 24 or newer is required. For embedding, install the package into the project
+with the matching Effect peers declared in its
+[manifest](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/package.json):
+`effect`, `@effect/platform-node` and `@effect/platform-node-shared`.
+
+Serve trusted folders: the ordinary reader retains raw HTML rather than sanitizing
+it. Response and handoff surfaces disable raw HTML, escape exact-source disclosure
+and block source form actions/frames. Writes require same-origin loopback NDJSON
+commands and explicit server opt-in; local author labels are not accounts.
+
+Files/folders below the root beginning with a dot, and `node_modules`, are skipped;
+the root itself may be a dot folder. Unlisted paths and traversal are refused.
+Directory references grant reading, not write permission. Restoring a target that
+was already broken when watches were built requires restarting the server.
+
+Publication requires Linux, a real workspace directory, `/proc/self/fd`, hard links
+and directory synchronization. Read mode remains separate. No-replace publication
+and retry reconciliation protect recorded contributions; agents edit handoff
+receipt through ordinary files. An unrelated editor can still change source after
+preflight. Records retain the exact reviewed context,
+rather than claiming an atomic transaction with that editor. Moved directories or
+synchronization failures can produce an uncertain outcome.
+
+JavaScript enables live updates, search, draft/response/handoff controls and diagram
+inspection. Server-rendered documents, source details, native Work/Overview links,
+copyable templates and saved feedback remain readable without it. Image routes
+exclude SVG, HTML, PDF and arbitrary attachments. The board does not launch agents,
+verify recorded evidence or generate exported document packets.
+
+The [north star](docs/north-star.md) explains design priorities. The
+[roadmap](docs/roadmap.md) owns implementation status and unresolved decisions.
+[Experience designs and mockups](docs/experience.md) illustrate the product direction
+with fictional data.

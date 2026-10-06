@@ -41,6 +41,7 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
+		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],

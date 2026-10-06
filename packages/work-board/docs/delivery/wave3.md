@@ -1,7 +1,7 @@
 # Wave 3 delivery — collaborate locally
 
-These proposed steps extend the real loop proven in [wave 2](./wave2.md). They
-implement the final wave of the [roadmap](../roadmap.md). Step 21 is the core
+These requirements extend [wave 2](./wave2.md) with successive contributions.
+The [roadmap](../roadmap.md) owns implementation status and admission decisions. Step 21 is the core
 collaboration outcome. The remaining steps are independently useful extensions;
 especially 24–26 should earn their place rather than block local collaboration.
 

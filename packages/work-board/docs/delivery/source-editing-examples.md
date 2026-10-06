@@ -1,7 +1,6 @@
 # Ordinary file editing and response ownership
 
-The maintainer approved this boundary on 6 October 2026. Agents use their normal
-file-editing tools. Work Board adapts to those edits and owns the human response
+Agents use their normal file-editing tools. Work Board adapts to those edits and owns the human response
 content it records. Product complexity should follow the coordination workflow,
 not rare concurrent-writer edge cases.
 
@@ -16,8 +15,9 @@ not rare concurrent-writer edge cases.
 - A ready-for-review question is normally answered while the agent is waiting,
   rather than deliberately editing that question at the same time.
 
-The current publisher creates independent question/context and response Markdown
-files. This ownership rule preserves that implementation; it does not introduce
+The current publisher creates independent question/context, response and handoff
+Markdown files. Agents edit handoff receipt through ordinary tools. This ownership
+rule preserves that implementation; it does not introduce
 an inline-response syntax or silently rewrite an agent's project document.
 If an inline response area is introduced later, the same ownership rule applies
 within the shared file.
@@ -49,18 +49,13 @@ prerequisites for progress. Rare racing saves and possible text loss are accepte
 limitations of ordinary file editing. Detect obvious conflicts when inexpensive;
 avoid making every response a concurrency-management interaction.
 
-These are approved design priorities, not a claim that inline editing or stronger
-filesystem guarantees have been implemented.
+These are ownership priorities. They do not define an inline-response serialization
+or universal filesystem guarantees. Implementation and direct-editing/handoff
+decisions belong in the [roadmap](../roadmap.md). A handoff must let the chosen
+agent read and edit ordinary files; a required command for every acknowledgment
+would contradict this boundary.
 
-## Delivery consequence
-
-Direct create/title/checklist/status/move controls and general source-file undo
-from step 17 are deferred. Agent-owned project editing remains outside the current
-Work Board writer. The roadmap keeps 17 unchecked and proceeds to step 18 under the approved D3
-file/copy handoff convention using the response loop already delivered in 14–16.
-
-D3 must let the chosen agent keep reading and editing ordinary files. A required
-vendor adapter or command for every acknowledgment would contradict this boundary.
-Automatic harness delivery and new execution-state contracts remain outside the
-approved handoff convention. D4 before
-step 24 and the outstanding representative-reader/device evidence remain open.
+The [file/copy handoff contract](handoff-examples.md) carries reviewed direction
+without replacing the project item. An optional harness delivery or execution
+integration must preserve ordinary receipt edits and separate execution facts;
+it cannot acquire authority to accept work from a receipt state.

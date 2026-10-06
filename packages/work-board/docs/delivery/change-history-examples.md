@@ -1,8 +1,8 @@
 # Local change history — step 08 contract
 
 This contract defines retained browser data and the meaning of “last looked”.
-The Changes view implements it. Markdown files remain authoritative and are never
-written by the viewer. The step 07 reader exercise remains separate evidence.
+Markdown files remain authoritative and are never written by the Changes view.
+Implementation and reader acceptance are tracked only in the roadmap.
 
 ## One explicit review baseline per workspace
 

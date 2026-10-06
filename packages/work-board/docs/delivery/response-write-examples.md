@@ -1,11 +1,9 @@
-# D2: approved local response boundary
+# Local response contract
 
-On 6 October 2026 the maintainer approved the draft-store and per-question wait
-research recommendation and authorized implementation. Work Board 0.8.0 uses
-separate immutable question/context and response Markdown files, explicit local
-write opt-in, reviewed source bytes/path and re-readable per-question results.
-Exact current commands, fields, source trust and filesystem limits are documented
-in the [package README](../../../README.md#local-responses-and-one-logical-wait-per-question).
+Questions capture exact reviewed source bytes and path. Independent response
+Markdown retains human direction, while explicit write opt-in and browser-local
+drafts keep reading and publication separate. The [README](../../README.md#record-a-human-response)
+teaches the commands and current source/filesystem limits.
 
 ## One real loop
 
@@ -60,14 +58,9 @@ starts at durable registration; rearming/page visits do not reset it. It returns
 a distinct nonzero unanswered result, leaves the request intact, and permits a
 late reply. Service outages never establish that a person left it unanswered.
 
-## Remaining gates
-
-D3 still covers an actual agent handoff/acknowledgment adapter before step 18.
-A CLI wait in an existing harness does not establish automatic model wakeup,
-launch an agent. Step 16's rich decision contract is delivered; the later
-[ownership decision](./source-editing-examples.md) keeps ordinary project editing
-with agents and defers direct editing/undo. No special agent writer is required.
-D4 before step 24 and the pending representative-reader/device evidence remain.
+Implementation, acceptance and handoff decisions belong in the [roadmap](../roadmap.md).
+The [ownership boundary](./source-editing-examples.md) keeps ordinary project
+editing with agents; a passive question wait is a reader for an existing harness.
 
 ## Repeatable acceptance path
 

@@ -1,7 +1,7 @@
 # Visual document conventions
 
-The user approved Markdown directives for step 11. Work Board 0.7.0 uses
-`remark-directive` with the Antumbra Markdown/GFM rendering stack. These are
+Work Board parses these directives with `remark-directive` and renders their
+body through its Markdown/GFM pipeline. These are
 Markdown extensions, not built-in CommonMark elements. Other readers can show
 literal directive markers and readable Markdown contents. No migration of ordinary
 Markdown or D1 frontmatter is required.
@@ -59,8 +59,8 @@ is required. A zero completed count is a recorded zero, not missing information.
 :::timeline
 Reading delivery
 
-1. **2026-10-06 · recorded:** [Native reads](../roadmap.md) published.
-2. **After reader review · planned:** [Mutation discussion](wave2.md) remains ahead.
+1. **First:** inspect [source conventions](source-examples.md).
+2. **Then:** review [response context](response-write-examples.md).
 :::
 ```
 
@@ -96,13 +96,9 @@ an approval.
   literal source; unsupported leaf forms show source and a diagnostic. Unclosed
   or malformed syntax follows the established directive parser's reading rules.
 - A component is limited to 64 KiB of source. Nested visual directives are
-  deferred to the later composition discussion; original source remains visible.
+  unsupported; original source remains visible.
 - Render fixed semantic elements on the server. No author-supplied JavaScript,
   JSX, executable MDX, templates, queries, plugin loading or remote data fetching.
 - Preserve headings, local links, search/backlinks, print text alternatives,
   native update ownership and the explicit Mark seen baseline. No source writes,
   new D1 fields, YAML visual fences or acceptance inference.
-
-Antumbra's inspected Markdown view uses `react-markdown`, `remark-gfm` and
-Mermaid; it does not define these custom visual components. The directive
-convention was chosen explicitly by the user after comparing source approaches.

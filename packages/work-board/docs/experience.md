@@ -1,6 +1,6 @@
 # Work Board experience design
 
-The [north star](./README.md) states the intent and the [roadmap](./roadmap.md)
+The [north star](./north-star.md) states the intent and the [roadmap](./roadmap.md)
 owns status. This document describes the proposed experience, not current behavior.
 
 ## Visual direction
@@ -16,16 +16,16 @@ Motion explains an update and respects reduced-motion preferences.
 
 ## Five connected scenes
 
-| Scene | Core question | Composition | First wave |
-| --- | --- | --- | --- |
-| Overview | What needs me, and what changed? | Short project brief, attention cards, active work, meaningful activity | 1 |
-| Work | Where is each item, and what happens next? | Board/table over the same items, filters, persistent detail pane | 1; mutation actions in 2 |
-| Decision room | Which choice should we make, and why? | Question, options, recommendation, consequences, anchored response | Read in 1; respond in 2 |
-| Evidence | What supports this result? | Criteria beside artifacts, source revision, verified/claimed/missing distinctions | Read in 1; acceptance in 2 |
-| Project brief | How does the whole plan fit together? | Narrative, metrics, roadmap, dependency sketch, related decisions | 1; richer composition in 3 |
+| Scene | Core question | Composition |
+| --- | --- | --- |
+| Overview | What needs me, and what changed? | Short project brief, attention cards, active work, meaningful activity |
+| Work | Where is each item, and what happens next? | Board/table over the same items, filters, persistent detail pane |
+| Decision room | Which choice should we make, and why? | Question, options, recommendation, consequences, anchored response |
+| Evidence | What supports this result? | Criteria beside artifacts, source revision, verified/claimed/missing distinctions |
+| Project brief | How does the whole plan fit together? | Narrative, metrics, roadmap, dependency sketch, related decisions |
 
-The prototype is intentionally an ideal end state combining waves. Its wave
-labels keep later interaction concepts from being mistaken for wave 1 scope.
+The prototype illustrates connected reading and coordination scenes. It is a
+design review artifact; use the roadmap and README to assess current behavior.
 All project names, counts, agent activity, timestamps, and evidence are fictional.
 
 ## Navigation and interaction
@@ -59,10 +59,10 @@ and acceptance criteria. The serialization format is a design decision, not fixe
 by these mockups. Ordinary Markdown remains readable. Legacy heading-based boards
 remain supported; missing fields are unknown rather than guessed.
 
-Content writes need source ranges/identity, expected revisions, preserved
-unrelated text, atomic replacement, and conflict recovery. Concurrent writers
-include editors, agents, and the board. Begin with narrow single-file actions;
-multi-file actions require an explicit partial-failure design.
+Human response writes need explicit reviewed identity/context, draft retention
+and clear save outcomes. Agents edit ordinary files and own the surrounding project
+Markdown. Follow the [ownership boundary](delivery/source-editing-examples.md);
+do not turn rare outside-editor races into a universal transaction requirement.
 
 ## Essential states beyond the happy path
 
@@ -88,7 +88,7 @@ dependencies, and no external network requests. It is designed for direct file
 opening; environments that restrict file URLs can use a loopback static server:
 
 ```sh
-python -m http.server 4782 --bind 127.0.0.1 --directory packages/work-board/docs/vision/mockups
+python -m http.server 4782 --bind 127.0.0.1 --directory packages/work-board/docs/mockups
 ```
 
 Then open `http://127.0.0.1:4782`. Navigation, board/table switch, filter chips, item detail,
@@ -103,8 +103,9 @@ a proposed framework/dependency choice.
 
 ## Screen gallery
 
-These captures show the same local prototype. The combined board summarizes the
-visual direction; individual images preserve the detail for review.
+These captures show the same fictional local prototype. The
+[combined board](mockups/images/vision-board.png) summarizes the visual direction;
+individual images preserve the detail for review.
 
 | Scene | Desktop | Mobile |
 | --- | --- | --- |
