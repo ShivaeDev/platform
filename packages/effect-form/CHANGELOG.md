@@ -47,7 +47,7 @@
 ### Added
 
 - Extract schema-derived form state, submission, field messages, draft
-  preservation, and optional React hooks from Antumbra.
+  preservation, and optional React hooks into a reusable package.
 - Merge received values per field: untouched fields adopt refreshed server
   values while edited fields keep local input.
 - Keep a refresh received during an in-flight save as the baseline instead of
