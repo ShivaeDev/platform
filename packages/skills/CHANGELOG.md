@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Give the package a human-first README, agent guidance, north star and roadmap, and publish `docs/` alongside the README.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.1.0 - 2026-10-06
