@@ -48,7 +48,12 @@ function syntheticNative() {
 function counted() {
 	let reads = 0;
 	return {
-		atom: Atom.make(Effect.sync(() => ++reads)),
+		atom: Atom.make(
+			Effect.sync(() => {
+				reads += 1;
+				return reads;
+			}),
+		),
 		reads: () => reads,
 	};
 }

@@ -43,7 +43,7 @@ it("normalizes generated timestamps, preserves other fields and can run twice", 
 		"readonly input: Date;",
 		"readonly email: string;",
 	].join("\n");
-	for (let run = 0; run < 2; run++) {
+	for (let run = 0; run < 2; run += 1) {
 		const result = normalize(path);
 		expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: "" });
 		expect(readFileSync(path, "utf8")).toBe(expected);

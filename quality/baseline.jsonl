@@ -27,7 +27,6 @@
 {"path":"packages/effect-changes-prisma/src/written.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes/src/batch.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/useNamingConvention","count":6}
 {"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/style/useNamingConvention","count":2}
@@ -67,7 +66,6 @@
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/zero-rejections.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-form/src/draft.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/draft.ts","rule":"biome/lint/style/useNamingConvention","count":3}
-{"path":"packages/effect-form/src/form.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-form/src/form.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-form/src/form.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/form.ts","rule":"biome/lint/style/useNamingConvention","count":4}
@@ -101,7 +99,6 @@
 {"path":"packages/effect-pg-boss/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"biome/lint/suspicious/useAwait","count":8}
 {"path":"packages/effect-pg-boss/src/test-support/fake-client.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/bin/normalize-contract.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-prisma/src/bin/normalize-contract.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -219,14 +216,13 @@
 {"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":5}
 {"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
-{"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":2}
+{"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-react/src/result-state.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-react/src/result-state.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-react/src/result-state.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/result-state.typecheck.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-react/src/resume-signal.dom.test.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/effect-react/src/resume-signal.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/save-state.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/save-state.ts","rule":"biome/lint/style/useNamingConvention","count":2}
@@ -386,7 +382,6 @@
 {"path":"packages/local-postgres/src/local-container.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/local-postgres/src/local-docker.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/nursery/useValidTestTitle","count":1}
-{"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/style/useErrorCause","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/plugin","count":1}
 {"path":"packages/platform/src/better-auth/adapter.ts","rule":"biome/lint/style/useNamingConvention","count":5}

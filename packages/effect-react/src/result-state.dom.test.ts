@@ -157,7 +157,12 @@ it("changing query identity does not retain data from the previous query", async
 
 it("consumers of the same query share the native execution", async () => {
 	let calls = 0;
-	const query = Atom.make(Effect.sync(() => ++calls));
+	const query = Atom.make(
+		Effect.sync(() => {
+			calls += 1;
+			return calls;
+		}),
+	);
 	function Child() {
 		return createElement("span", null, Option.getOrNull(useQuery(query).data));
 	}

@@ -53,7 +53,7 @@ export function localPostgres(environment: DockerEnvironment) {
 			version = sql(server, "SHOW server_version");
 		} catch {
 			startContainer(localDocker);
-			for (let attempt = 0; attempt < 30; attempt++) {
+			for (let attempt = 0; attempt < 30; attempt += 1) {
 				try {
 					version = sql(server, "SHOW server_version");
 					break;

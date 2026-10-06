@@ -27,7 +27,8 @@ let channels = 0;
 
 export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channel<A, R> => {
 	const { name } = options;
-	const prefix = `@shivaedev/effect-changes/${name}/${channels++}`;
+	const prefix = `@shivaedev/effect-changes/${name}/${channels}`;
+	channels += 1;
 	const Frames = Context.Reference<ReadonlyMap<unknown, Buffer<A>>>(`${prefix}/Frames`, { defaultValue: () => new Map() });
 	const CurrentSink = Context.Reference<Publish<A, R>>(`${prefix}/Sink`, { defaultValue: () => options.publish });
 	const CurrentObserver = Context.Reference<Observer<A>>(`${prefix}/Observer`, { defaultValue: () => unobserved });
