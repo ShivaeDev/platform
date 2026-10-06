@@ -4,6 +4,7 @@ import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
+import { responseContract } from "#rpc/responseContract.ts";
 import { index, navigation, watcher, workspace } from "./keys.ts";
 import { pageKeys } from "./pageKeys.ts";
 
@@ -18,7 +19,7 @@ const PageUrl = Schema.String.check(
 			const path = new URL(value, "http://127.0.0.1").pathname;
 			return (
 				path === "/"
-				|| ["/_board/work", "/_board/overview", "/_board/changes", "/_board/start"].includes(path)
+				|| ["/_board/work", "/_board/overview", "/_board/changes", "/_board/start", "/_board/respond"].includes(path)
 				|| /^\/_board\/item\/[^/]+\/$/u.exec(path) !== null
 				|| /\.md$/iu.exec(path) !== null
 				|| "Expected a local reading URL"
@@ -59,4 +60,4 @@ const ReadWatcher = query("watcher", {
 });
 export const workContract = contract("work-board", { queries: [ReadPage, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher] });
 export const Subscribe = Rpc.make("work-board.subscribe", { error: ReadFailed, stream: true, success: LiveHint });
-export const workRpcs = workContract.add(Subscribe);
+export const workRpcs = workContract.add(Subscribe).merge(responseContract);

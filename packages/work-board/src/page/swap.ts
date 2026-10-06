@@ -18,6 +18,9 @@ export const remember = (element) => {
 
 const normalized = (element) => {
   const copy = element.cloneNode(true);
+  for (const form of [copy, ...copy.querySelectorAll("#response-form")]) {
+    if (form.id === "response-form") { form.replaceChildren(); delete form.dataset.bound; }
+  }
   for (const tool of copy.querySelectorAll("[data-visual-tools], [data-image-error], [data-diagram-error]")) tool.remove();
   for (const node of [copy, ...copy.querySelectorAll("*")]) {
     node.removeAttribute("data-live-change");

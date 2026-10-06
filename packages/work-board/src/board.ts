@@ -17,11 +17,14 @@ import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
+import { responsePage } from "#responses/page.ts";
+import { responseService } from "#responses/service.ts";
 import { server } from "#rpc/server.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
 
 export interface BoardOptions {
 	readonly home?: string | undefined;
+	readonly responses?: boolean;
 	readonly root: string;
 }
 
@@ -59,6 +62,14 @@ const routes = (options: BoardOptions) =>
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
 			yield* serve(NATIVE_ROUTE, nativeAsset);
+			const responses = yield* responseService({
+				changes,
+				enabled: options.responses === true,
+				index: Effect.provideContext(index, context),
+				root: options.root,
+			});
+			const replyPage = responsePage(responses, changes, home, options.responses === true);
+			yield* serve("/_board/respond", replyPage);
 			const pages = page({ home, root: options.root }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
@@ -67,6 +78,9 @@ const routes = (options: BoardOptions) =>
 				const pathname = new URL(url, "http://127.0.0.1").pathname;
 				let selected: ReturnType<typeof pages>;
 				switch (pathname) {
+					case "/_board/respond":
+						selected = replyPage(request);
+						break;
 					case "/_board/start":
 						selected = startPage();
 						break;
@@ -84,11 +98,11 @@ const routes = (options: BoardOptions) =>
 				}
 				return Effect.provideContext(selected, context);
 			}
-			const rpc = yield* server({ changes, home, index: Effect.provideContext(index, context), page: readPage });
+			const rpc = yield* server({ changes, home, index: Effect.provideContext(index, context), page: readPage, responses });
 			yield* serve(
 				"/_board/rpc",
 				(request) =>
-					sameOrigin(request)
+					sameOrigin(request) && (options.responses !== true || request.headers["content-type"]?.split(";")[0] === "application/ndjson")
 						? rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request))
 						: Effect.succeed(respond("Local same-origin requests only", "text/plain", 403)),
 				"POST",

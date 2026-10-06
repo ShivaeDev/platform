@@ -6,6 +6,7 @@ import { MAX_BYTES } from "#history/limits.ts";
 import { historyResponse } from "#history/response.ts";
 import { HEADERS } from "#http/respond.ts";
 import { navHtml } from "#page/nav.ts";
+import type { responseService } from "#responses/service.ts";
 import { searchMatch } from "#search/match.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { ReadFailed, workRpcs } from "./contract.ts";
@@ -16,10 +17,12 @@ export interface ServerOptions {
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
 	readonly page: (url: string) => Effect.Effect<HttpServerResponse.HttpServerResponse, unknown>;
+	readonly responses: Effect.Success<ReturnType<typeof responseService>>;
 }
 
-export const server = Effect.fn("WorkBoard.server")(function* ({ changes, home, index, page }: ServerOptions) {
+export const server = Effect.fn("WorkBoard.server")(function* ({ changes, home, index, page, responses }: ServerOptions) {
 	const handlers = workRpcs.toLayer({
+		"work-board.awaitResponse": responses.awaitResponse,
 		"work-board.history": ({ action, baseline }) =>
 			Effect.gen(function* () {
 				const now = yield* Clock.currentTimeMillis;
@@ -40,6 +43,10 @@ export const server = Effect.fn("WorkBoard.server")(function* ({ changes, home, 
 				}),
 				Effect.catch((error) => Effect.fail(error instanceof ReadFailed ? error : new ReadFailed({ operation: "page", status: 500 }))),
 			),
+		"work-board.question": ({ item, request }) => responses.locate(item, request),
+		"work-board.recordResponse": responses.record,
+		"work-board.registerQuestion": responses.register,
+		"work-board.responses": ({ question }) => responses.read(question),
 		"work-board.search": ({ query }) =>
 			Effect.map(index, (snapshot) => ({ ...searchMatch(snapshot.entries, query), unavailable: snapshot.unavailable })).pipe(
 				Effect.catch(() => Effect.fail(new ReadFailed({ operation: "search", status: 500 }))),

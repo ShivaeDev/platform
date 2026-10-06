@@ -14,8 +14,7 @@ getting-started guidance at `/`. **Getting started** in the
 sidebar remains available at `/_board/start`, with copyable project, investigation
 and agent-result Markdown templates. Focus a template text area, select all and
 copy; save through your editor or agent tool. Replace example IDs and matching
-references, and record evidence only after an actual observation. The viewer
-does not create project files. Templates and links also work without JavaScript.
+references, and record evidence only after an actual observation. Read-only mode does not create project files. Templates and links also work without JavaScript.
 Browser print focuses on the document; document export is outside product scope.
 
 It listens on `127.0.0.1` only and answers only requests addressed to a loopback
@@ -63,7 +62,99 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | --- | --- | --- |
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
+| `--responses` | `false` | Explicitly enable local question/response writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
+
+## Local responses and one logical wait per question
+
+Start one shared server with explicit write opt-in:
+
+```sh
+work-board ./project-notes --responses --port 4747
+```
+
+Use an existing explicit open attention request. In its **Work details and source**,
+choose **Respond to this request**, review the exact source and SHA-256, enter a
+local author label, and preview the Markdown before recording it. An answer may
+say no; **Ask back / clarify** and **Not now** are separate reply kinds. These
+labels are not authenticated identities. Recording a reply never changes source
+status, closes an attention request, executes an agent or establishes acceptance.
+
+The app creates immutable question/context and response Markdown files in
+`responses/`. Original documents remain untouched. Questions identify the item,
+request, source path and exact bytes reviewed; changing either the source bytes or
+path creates a different generation. A stale save retains the draft and requires
+review/preview again. The preview names both files and all authored fields; the
+server assigns registration and recorded timestamps when saving.
+
+Drafts use separate browser-local storage per workspace/origin: 2 MiB total and
+30 days since the last edit. **Clear workspace drafts** affects drafts, not saved
+source or Mark seen history. Expiry, corrupt/unavailable storage and quota failures
+are disclosed. Text remains in the current window after a storage/save failure.
+Navigation, reload and live source refresh preserve retained drafts; changed
+context must be previewed again. Another unsaved edit made during submission is
+retained. Saved feedback also remains readable without JavaScript.
+
+An agent uses these short command names against the shared server:
+
+```sh
+# Read the exact current question/context and its reviewedRevision (no write).
+work-board question investigation.model/review-model
+
+# Register that reviewed generation and wait for one attributable reply.
+work-board wait investigation.model/review-model --revision <reviewedRevision>
+
+# After registration, repeat this same wait after a killed shell or restart.
+work-board wait <question-id>
+
+# Retrieve the saved conversation without waiting or consuming any reply.
+work-board response <question-id>
+
+# After a clarification/deferral, wait for the next response explicitly.
+work-board wait <question-id> --after <response-id>
+```
+
+`--port` selects another local workspace/server; `--url` accepts only an HTTP
+loopback origin. There is no hidden workspace discovery or automatic server launch.
+Register-and-wait reports its stable question ID and deadline on stderr. Its stdout
+is one JSON result containing the attributable question/context and response;
+exit 0 means a recorded reply, including no/clarification/deferral, not approval.
+Exit 2 reports an unanswered 48-hour deadline; other failures exit nonzero with
+stderr diagnostics. `question` and `response` are explicit read commands.
+
+The human deadline starts at first durable registration and does not reset when
+rearming, revisiting a page or previewing. A deadline never deletes/cancels the
+question. Late replies remain readable and take precedence over an old timeout.
+A missing cursor fails explicitly. Replies can be read repeatedly; this provides
+recovery, not exactly-once agent action. The server's 30-second request leases and
+one-second reconciliation checks are distinct from the human's 48-hour deadline.
+During a transport/index outage, waits retry the same question; at the deadline,
+an unavailable service is reported as unavailable rather than falsely unanswered.
+
+The client uses bundled native Effect RPC over the existing local command path.
+Serving imports are loaded only for the server command. Each waiter has no
+renderer, Mermaid, filesystem watcher, AtomRegistry or daemon. A pending lease
+returns only its question and next reply, not the entire conversation history.
+Harnesses own model wakeup and shell lifetime: completion is not a universal
+promise of autonomous agent continuation. Re-read/reattach when your harness does
+not inject a completed shell result.
+
+Publication holds Linux directory descriptors, writes and synchronizes a private
+temporary file, publishes with a no-replace hard link, then synchronizes the
+response directory. Retries reconcile the same identity/content and never replace
+another contribution; a moved/duplicated/conflicting identity is rejected.
+Symlinked reference folders grant read access only. Changed/moved directories,
+permissions, unsupported filesystem capabilities and uncertain outcomes remain
+explicit. An unrelated editor can change the reviewed source after a preflight
+check; immutable replies still identify the exact reviewed bytes and never claim
+an atomic transaction with that editor. Directory moves after publication can
+produce an uncertain result; reconcile saved source before retrying.
+
+Source HTML cannot submit write forms: CSP disables form actions/frames, the
+native route requires same-origin/loopback and NDJSON when writes are enabled,
+and the official response surface escapes the reviewed source. Embedded apps must
+explicitly opt in with `boardLayer({ root, responses: true })` and own the trusted
+host boundary. There is no write endpoint for arbitrary paths or source rewriting.
 
 ## Local visual evidence
 

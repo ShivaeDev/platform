@@ -8,6 +8,30 @@
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
 
+## 0.8.0 - 2026-10-06
+
+### Added
+
+- Explicit `--responses` / embedding opt-in for anchored local feedback with
+  separate immutable question/context and response Markdown records. Preserve
+  reviewed revisions and original source bytes; reject stale/conflicting writes
+  and distinguish pending, saved, rejected and uncertain outcomes.
+- Browser-local response drafts with a separate 2 MiB workspace bound, 30-day
+  retention since edit, explicit clearing and unavailable/expiry disclosure.
+- Native RPC `question`, `response` and per-question `wait` CLI commands, with
+  durable 48-hour registration deadlines, clarification/deferral, late replies,
+  nondestructive reattachment and an explicit next-response cursor. The waiter
+  bundle excludes server/rendering/watchers and transfers only the next reply.
+
+### Changed
+
+- Keep the default server read-only. The first safe publisher requires Linux
+  directory descriptors, hard-link publication and directory synchronization;
+  other platforms retain reading support. Reference symlinks do not grant writes.
+- Block source form actions/frames at the content-security boundary and require
+  native NDJSON for the opted-in command route. Existing readable Markdown,
+  static raw HTML, local visuals and no-JavaScript reading remain supported.
+
 ## 0.7.2 - 2026-10-06
 
 ### Changed
