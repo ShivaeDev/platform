@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The README's story-test section shows a kit built with `@shivaedev/test-story`: a test hands its traits to the kit's `it`, acts through the kit's verbs and lets the engine run with `story.runUntil`.
+
 ## 0.16.0 - 2026-10-06
 
 ### Added

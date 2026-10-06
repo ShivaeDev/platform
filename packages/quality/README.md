@@ -524,23 +524,21 @@ Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.sp
 
 ## Story tests
 
-A test reads as a short story over the domain: what exists, what someone does, and what is true afterwards. The words come from a story kit that the repository keeps in `test-support/`, so a test says what it needs in domain words and never builds state by hand.
+A test reads as a short story over the domain: what exists, what someone does, and what is true afterwards. The words come from a story kit that the repository keeps in `test-support/`, built with [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme), so a test says what it needs in domain words and never builds state by hand.
 
 ```ts
-it("ships a paid order from stock", () => {
-	const { customer, warehouse } = newShop(hasInStock(3, "lamp"), hasInCart(1, "lamp"));
-
+shop.it("ships a paid order from stock", [hasInStock(3, "lamp"), hasInCart(1, "lamp")], function* ({ customer, warehouse }) {
 	customer.checksOut();
-	warehouse.settles();
+	yield* warehouse.shipsEverything();
 
 	expect(warehouse.shipped()).toEqual(["lamp"]);
 	expect(warehouse.inStock("lamp")).toBe(2);
 });
 ```
 
-- **Setup is traits.** A trait is one sentence of setup in domain words and the change it makes, such as `hasInStock(3, "lamp")`. A test hands the traits it needs to the kit's entry point, such as `newShop(...traits)`, and a setup that recurs becomes one named trait made of others. A trait that asks for an impossible state refuses and fails the test, instead of seeding it quietly.
-- **Actions go through real entry points.** The test acts the way a user or caller does: through the command, service, route or UI path they reach, never by writing internal state.
-- **Failures print the story.** Every trait and action adds a line to the story log, and a failing test prints it, so the failure says what happened, not only which values differ.
+- **Setup is traits.** A trait is one sentence of setup in domain words and the change it makes, such as `hasInStock(3, "lamp")`. A test hands the traits it needs to the kit's `it`, which starts a fresh engine and seeds them, and a setup that recurs becomes one named trait made of others. A trait that asks for an impossible state refuses and fails the test, instead of seeding it quietly.
+- **Actions go through real entry points.** The test acts through the kit's verbs, which reach the command, service, route or UI path a user or caller reaches, never by writing internal state. A verb that lets the engine run, such as `warehouse.shipsEverything()`, steps it with `story.runUntil` until what it waits for holds.
+- **Failures print the story.** Every trait, verb and engine step tells a line of the story, and a failing test prints the story with where it stopped and the engine's state, so the failure says what happened, not only which values differ.
 
 `tests/story-setup` holds test files to this. In a test file, it reports:
 
