@@ -9,6 +9,9 @@ export type Command =
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
 	| { readonly _tag: "BaselineMigrate"; readonly config: string | undefined; readonly from: string | undefined }
+	| { readonly _tag: "HooksInstall"; readonly config: string | undefined; readonly force: boolean }
+	| { readonly _tag: "HooksUninstall" }
+	| { readonly _tag: "HooksPreCommit"; readonly config: string | undefined }
 	| { readonly _tag: "Help" };
 
 export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { readonly _tag: "Usage"; readonly problem: string };
@@ -20,6 +23,9 @@ export const USAGE = `Usage:
   quality baseline prune [--config <file>] [--against <ref>]
   quality baseline tighten [--config <file>] [--staged]
   quality baseline migrate [--config <file>] [--from <file>]
+  quality hooks install [--config <file>] [--force]
+  quality hooks uninstall
+  quality hooks pre-commit [--config <file>]
 
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for a rule that is off or unknown.
@@ -28,6 +34,10 @@ baseline write    Record current error-level violations. Creates the baseline, o
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
 baseline migrate  Move a baseline from the earlier JSON format (--from, quality/baseline.json by default) to the configured file.
+hooks install     Install the git pre-commit hook, shared by every worktree, that runs hooks pre-commit. Keeps a hook that is not quality's
+                  unless --force replaces it.
+hooks uninstall   Remove quality's pre-commit hook. Keeps a hook that is not quality's.
+hooks pre-commit  What the hook runs: baseline tighten for staged files when preCommit.tighten is set, lint, then each preCommit.run command.
 
 --config <file>  Config file; its directory is the repository root. Defaults to ./quality.config.ts.
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
@@ -36,6 +46,7 @@ Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 const OPTIONS = {
 	against: { type: "string" },
 	config: { type: "string" },
+	force: { type: "boolean" },
 	from: { type: "string" },
 	help: { short: "h", type: "boolean" },
 	rule: { multiple: true, type: "string" },
@@ -48,13 +59,18 @@ const usage = (problem: string): Parsed => ({ _tag: "Usage", problem });
 const ADOPT_REMOVED =
 	"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`; to apply the fixes Biome can make first, run `quality fix`.";
 
+const SUBCOMMANDS: Readonly<Record<string, string>> = {
+	baseline: "baseline takes write, prune, tighten or migrate.",
+	hooks: "hooks takes install, uninstall or pre-commit.",
+};
+
 const parsed = (command: Command): Parsed => ({ _tag: "Parsed", command });
 
 type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositionals: true }>>["values"];
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "from", "rule", "staged", "warnings"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "force", "from", "rule", "staged", "warnings"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline migrate": ["from"],
@@ -62,6 +78,9 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline tighten": ["staged"],
 	"baseline write": ["rule"],
 	fix: [],
+	"hooks install": ["force"],
+	"hooks pre-commit": [],
+	"hooks uninstall": [],
 	lint: ["warnings"],
 };
 
@@ -91,6 +110,12 @@ const commandFor = (name: string, values: Values): Parsed => {
 			return ref(values.against, { _tag: "BaselinePrune", against: values.against, config });
 		case "baseline tighten":
 			return parsed({ _tag: "BaselineTighten", config, staged: values.staged === true });
+		case "hooks install":
+			return parsed({ _tag: "HooksInstall", config, force: values.force === true });
+		case "hooks uninstall":
+			return parsed({ _tag: "HooksUninstall" });
+		case "hooks pre-commit":
+			return parsed({ _tag: "HooksPreCommit", config });
 		default:
 			return parsed({ _tag: "BaselineMigrate", config, from: values.from });
 	}
@@ -114,7 +139,8 @@ export const parseCommand = (args: readonly string[]): Parsed => {
 		return usage(ADOPT_REMOVED);
 	}
 	if (ACCEPTS[name] === undefined) {
-		return usage(command === "baseline" && rest.length < 2 ? "baseline takes write, prune, tighten or migrate." : `unknown command: ${name}`);
+		const subcommands = SUBCOMMANDS[command];
+		return usage(subcommands !== undefined && rest.length < 2 ? subcommands : `unknown command: ${name}`);
 	}
 	const problem = misplaced(name, values);
 	return problem === undefined ? commandFor(name, values) : usage(problem);

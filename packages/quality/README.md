@@ -45,6 +45,7 @@ export default defineConfig({
 | `baseline` | `quality/baseline.jsonl` | Existing violations that the gate lets through. |
 | `local` | `[]` | The repository's own rules, made with `defineRule`. |
 | `rules` | every rule at `error` | A level per rule id, or `{ level, options }`. |
+| `preCommit` | lint only | What the [pre-commit hook](#pre-commit-hook) runs besides `lint`: `run`, a list of commands, and `tighten`. |
 
 The config is typed: an unknown rule id, a misspelled option or an option of the wrong type fails to compile. It is also validated when loaded, so a JavaScript config gets the same checks.
 
@@ -330,14 +331,14 @@ Neither `tighten` nor `prune` ever adds or raises an entry. They lower an entry 
 
 ### Pre-commit
 
-Lowering entries in the commit that fixes them keeps the baseline current without a separate cleanup:
+Lowering entries in the commit that fixes them keeps the baseline current without a separate cleanup. With `preCommit: { tighten: true }`, the [pre-commit hook](#pre-commit-hook) does it. A hook of the repository's own runs:
 
 ```sh
 quality baseline tighten --staged && git add quality/baseline.jsonl
 quality lint
 ```
 
-`tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds.
+`tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds. Quality's hook leaves the entries of such a file for a later commit instead.
 
 ### Baseline growth
 
@@ -363,6 +364,38 @@ A count depends on the configured limit, so changing a limit shifts every count 
 
 An entry covers a rule's violations in one file, for good, and must say why. With a `subject`, it covers only the violations with that subject. The registry applies before the baseline. An entry that covers nothing, or names a rule that is off, unknown or takes no exceptions, fails the gate until it is removed.
 
+## Pre-commit hook
+
+```sh
+quality hooks install
+```
+
+`quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit. Installing dependencies never installs it: a repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
+
+By default the hook runs `quality lint`. `preCommit` in the config adds to it:
+
+```ts
+export default defineConfig({
+	preCommit: { run: ["pnpm typecheck"], tighten: true },
+});
+```
+
+- `run` lists shell commands that run after `lint`, one after another, from the config's folder.
+- `tighten` lowers the baseline entries of the staged files before `lint`, as `quality baseline tighten --staged` does, and stages the baseline, so the commit that fixes debt also removes it from the baseline. A file with unstaged changes is counted as it is on disk, not as the commit holds it, so its entries wait for a later commit. A baseline with unstaged changes is left as it is, with a note.
+
+Every check runs even when an earlier one fails, so one attempt shows every problem. `lint` and the commands check the files on disk, not only what is staged. When a check fails, the hook blocks the commit and ends with the checks that failed and what to do next:
+
+```text
+quality: pre-commit failed: quality lint, `pnpm typecheck` (exit code 2).
+help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.
+```
+
+The hook is a short script in the repository's common git directory, `.git/hooks/pre-commit`, which every worktree of the repository shares. It changes to the root of the worktree that commits, then to the config's folder in it, and runs that worktree's quality with that worktree's config, so a branch that changes the checks commits under its own rules. It runs quality the way `hooks install` ran: when that was a file inside the repository, such as a workspace's own source, it runs `node` with the same Node options on that file; otherwise it runs `node_modules/.bin/quality` in the config's folder. A config file not named `quality.config.ts` is passed with `--config`.
+
+`hooks install` never sets `core.hooksPath`, so a hooks path set for the whole machine, such as a check that calls each repository's own hook after its own, keeps working. When `core.hooksPath` is set, git runs the hook found there instead, and `hooks install` notes that the installed hook runs only when that one calls it.
+
+A pre-commit hook that quality did not write is kept: `hooks install` warns, says how to call quality from it, and exits 0. `--force` replaces it. `quality hooks uninstall` removes quality's hook and keeps any other.
+
 ## Command line
 
 ```text
@@ -372,6 +405,9 @@ quality baseline write [--config <file>] [--rule <id>]...
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
 quality baseline migrate [--config <file>] [--from <file>]
+quality hooks install [--config <file>] [--force]
+quality hooks uninstall
+quality hooks pre-commit [--config <file>]
 ```
 
 `quality` alone runs `lint`. `--against <ref>` names the branch the work merges into; `prune` follows the moves since its merge base. Without it, `prune` takes `origin/HEAD`, `origin/main` or `origin/master`, whichever exists first, and prunes without following moves when it finds no merge base. With `--against`, a missing merge base exits 2; in a shallow clone, run `git fetch --unshallow` first. The report groups violations by rule and states each rule's description once; warnings are summarized per rule with the files that have the most, and `--warnings all` lists each one.
@@ -626,4 +662,4 @@ A package that type-checks its tests with one config and builds `src` with anoth
 
 ## Validation
 
-`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, `tests/story-setup` against seeded test, source and `test-support/` files, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.
+`pnpm ready` checks formatting, TypeScript 7, the rules, the import graph against seeded repositories and the fence policy against its examples, config, discovery, registry, baseline and report behavior, the command line against seeded repositories and git histories, the pre-commit hook through real commits in seeded repositories and their linked worktrees, the Biome preset against every rule Biome recommends and against its declarations, its naming rules and plugins against seeded files that break and keep each one, the file, folder, other-file and test naming rules against seeded trees, `tests/story-setup` against seeded test, source and `test-support/` files, the `biome` and `manifests/sorted` rules and `quality fix` against seeded repositories, the Vitest projects against a seeded repository that Vitest runs, an installed tarball consumer that type-checks a config and runs the `quality` bin through a baseline that takes in the preset's lint and plugin findings, and installed consumers that extend each tsconfig preset, type-check a fixture with an expected error for each check the base turns on, and run the package preset's build output.

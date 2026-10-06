@@ -1,6 +1,7 @@
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Effect, FileSystem } from "effect";
+import type { PreCommit } from "#config.ts";
 import { validOrFail } from "#decoded.ts";
 import { SetupFailure } from "#failure.ts";
 import type { InventoryScope } from "#inventory/collect.ts";
@@ -13,6 +14,7 @@ const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs"
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly baseline: string;
 	readonly file: string;
+	readonly preCommit: Required<PreCommit>;
 	readonly registry: string;
 	readonly root: string;
 }
@@ -37,6 +39,7 @@ const resolved = (root: string, file: string, config: ConfigInput, rules: Resolv
 	exclude: config.exclude ?? [],
 	extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 	file,
+	preCommit: { run: config.preCommit?.run ?? [], tighten: config.preCommit?.tighten ?? false },
 	registry: config.registry ?? "quality/registry.json",
 	root,
 	sources: config.sources ?? ["."],

@@ -14,6 +14,10 @@ describe("command line", () => {
 		[["baseline", "tighten", "--staged"], { _tag: "BaselineTighten", config: undefined, staged: true }],
 		[["baseline", "tighten"], { _tag: "BaselineTighten", config: undefined, staged: false }],
 		[["baseline", "migrate", "--from", "debt.json"], { _tag: "BaselineMigrate", config: undefined, from: "debt.json" }],
+		[["hooks", "install"], { _tag: "HooksInstall", config: undefined, force: false }],
+		[["hooks", "install", "--force", "--config", "app/quality.config.ts"], { _tag: "HooksInstall", config: "app/quality.config.ts", force: true }],
+		[["hooks", "uninstall"], { _tag: "HooksUninstall" }],
+		[["hooks", "pre-commit"], { _tag: "HooksPreCommit", config: undefined }],
 		[["--help"], { _tag: "Help" }],
 		[["help"], { _tag: "Help" }],
 	])("parses %j", (args, command) => {
@@ -35,6 +39,9 @@ describe("command line", () => {
 		[["baseline", "check"], "baseline takes write, prune, tighten or migrate"],
 		[["baseline", "write", "now"], "unknown command"],
 		[["check"], "unknown command"],
+		[["hooks"], "hooks takes install, uninstall or pre-commit"],
+		[["hooks", "commit-msg"], "hooks takes install, uninstall or pre-commit"],
+		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
 		[
 			["adopt", "comments/no-todo"],
 			"`quality adopt` was removed in 0.7.0. To record a rule's existing findings in the baseline, run `quality baseline write --rule <id>`",

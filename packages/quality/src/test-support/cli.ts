@@ -18,18 +18,18 @@ export interface Run {
 }
 
 // The source condition resolves a seeded config's import of the package to its source, so tests need no build.
-function cliArgs(args: readonly string[]): string[] {
+export function qualityArgs(args: readonly string[]): string[] {
 	return ["--conditions=source", join(packageRoot, "src", "cli.ts"), ...args];
 }
 
 export function quality(root: string, ...args: readonly string[]): Run {
-	const result = spawnSync("node", cliArgs(args), { cwd: root, encoding: "utf8" });
+	const result = spawnSync("node", qualityArgs(args), { cwd: root, encoding: "utf8" });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 
 export function qualityWithin(timeout: number, root: string, ...args: readonly string[]): Promise<Run> {
 	return new Promise((resolve) => {
-		const child = spawn("node", cliArgs(args), { cwd: root, detached: true });
+		const child = spawn("node", qualityArgs(args), { cwd: root, detached: true });
 		const output = { stderr: "", stdout: "" };
 		child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
 			output.stdout += chunk;

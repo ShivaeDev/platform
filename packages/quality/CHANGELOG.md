@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.0 - 2026-10-06
+
+### Added
+
+- `quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit`, and `quality hooks uninstall` removes it. A repository opts in by running the command; installing dependencies never installs it. The hook lives in the common git directory, so every worktree shares it, and it runs the committing worktree's own quality with that worktree's config. Install never sets `core.hooksPath`, keeps a pre-commit hook it did not write unless `--force` replaces it, and says how to call quality from that hook.
+- `quality hooks pre-commit` runs `quality lint` and then each command in the config's new `preCommit.run`, from the config's folder. Every check runs even when one fails, and the output ends with the checks that failed and a `help:` line. With `preCommit.tighten`, it first lowers the baseline entries of the staged files and stages the baseline; a partly staged file keeps its entries until a later commit.
+
 ## 0.17.0 - 2026-10-06
 
 ### Added

@@ -68,6 +68,13 @@ export const optionsForNone = defineConfig({
 	rules: { "local/no-todo": { options: { strict: true } } },
 });
 
+export const preCommit = defineConfig({ preCommit: { run: ["pnpm typecheck"], tighten: true } });
+
+export const preCommitCommand = defineConfig({
+	// @ts-expect-error preCommit.run is a list of commands.
+	preCommit: { run: "pnpm typecheck" },
+});
+
 export const wrongLevel = defineConfig({
 	// @ts-expect-error Levels are error, warn and off.
 	rules: { "structure/max-lines": "warning" },
