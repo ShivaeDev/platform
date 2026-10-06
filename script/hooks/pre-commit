@@ -1,3 +1,0 @@
-#!/bin/sh
-# The shared hook of a checkout set up before `quality hooks install` calls this file; it runs the same checks as quality's hook.
-exec node --conditions=source packages/quality/src/cli.ts hooks pre-commit
