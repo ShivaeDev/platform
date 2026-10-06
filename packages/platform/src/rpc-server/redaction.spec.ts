@@ -6,14 +6,14 @@ import { expect, it } from "vitest";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
 import { redact } from "#rpc-server/redact.ts";
-import { redactingErrorReporter } from "#rpc-server/redact-cause.ts";
+import { redactDefect, redactingErrorReporter } from "#rpc-server/redact-cause.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
-const leaks = (value: unknown, secrets: readonly string[]) => {
+function leaks(value: unknown, secrets: readonly string[]) {
 	const rendered = inspect(value, { depth: 20 });
 	return secrets.filter((secret) => rendered.includes(secret));
-};
+}
 
 it("credential-shaped keys are redacted whatever their casing or separator", () => {
 	const keys = [
@@ -88,6 +88,30 @@ it("large collections and binary data are summarised instead of walked", () => {
 	expect(inspect(redacted, { depth: 5, maxArrayLength: null }).length).toBeLessThan(3000);
 	expect(redacted).toMatchObject({ items: expect.arrayContaining(["<450 more items>"]) });
 	expect(redacted).toMatchObject({ wide: expect.objectContaining({ "<truncated>": "450 more keys" }) });
+});
+
+it("cyclic payloads stop at the depth limit while nearby secrets are redacted", () => {
+	const payload: { child?: unknown; password: string } = { password: "cycle-secret" };
+	payload.child = payload;
+	let expected: unknown = "<truncated>";
+	for (let depth = 0; depth < 8; depth += 1) {
+		expected = { child: expected, password: "<redacted>" };
+	}
+	expect(redact(payload)).toEqual(expected);
+});
+
+it("stackless ignored external errors keep their reporting policy after redaction", async () => {
+	const original = new Error("password=ignored-secret");
+	Object.defineProperty(original, ErrorReporter.ignore, { value: true });
+	delete original.stack;
+	const copy = redactDefect(original);
+	expect(copy).toBeInstanceOf(Error);
+	expect(copy).toMatchObject({ message: "password=<redacted>", stack: undefined });
+	expect(ErrorReporter.isIgnored(copy)).toBe(true);
+	const reported: unknown[] = [];
+	const reporter = redactingErrorReporter(ErrorReporter.make((options) => reported.push(options)));
+	await Effect.runPromise(Effect.withFiber((fiber) => Effect.sync(() => reporter.report({ cause: Cause.die(original), fiber, timestamp: 0n }))));
+	expect(reported).toEqual([]);
 });
 
 class LeakyDefect extends Error {
