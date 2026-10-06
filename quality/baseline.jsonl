@@ -133,7 +133,7 @@
 {"path":"packages/effect-prisma/src/internal/relation-plan.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-result.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-result.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"biome/lint/nursery/noThisOutsideOfClass","count":2}
+{"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"biome/lint/nursery/noThisOutsideOfClass","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"biome/lint/style/useNamingConvention","count":8}
 {"path":"packages/effect-prisma/src/internal/relation-runtime.ts","rule":"files/named-after-export","count":1}

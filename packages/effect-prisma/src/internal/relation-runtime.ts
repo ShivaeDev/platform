@@ -54,7 +54,7 @@ function relationEffect(self: object): Effect.Effect<unknown, PrismaError> {
 
 const RelationPrototype = {
 	...Effectable.Prototype<RelationValue>({
-		evaluate() {
+		evaluate(this: RelationValue) {
 			return relationEffect(this);
 		},
 		label: "EffectPrismaRelation",
