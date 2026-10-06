@@ -65,6 +65,26 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | `--responses` | `false` | Explicitly enable local question/response/handoff writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
 
+### Reviewing a returned result
+
+A file with `kind: result` and a unique stable ID offers **Review returned result**.
+The review page keeps its supplied result status separate from explicitly linked
+work status, lists this report's criterion-level claims and missing provenance,
+and shows the report, limitations and recorded human feedback together. The same
+page is available through a normal GET link without JavaScript.
+
+The agent declares an open attention request of kind `review` and can provide a
+rich Markdown question packet with choices such as request revision or accept
+this exact report. The human uses the existing response surface, previews and
+submits together. Choices and rationale are durable authored feedback pinned to
+that report's exact source SHA-256/path. Changed or moved reports qualify earlier
+feedback; malformed or duplicate records leave history unknown. Feedback does
+not automatically change work status or make missing criterion evidence pass.
+
+`evidence.checked_revision` remains a reported Git revision. This local reader
+does not compare it with the current checkout, so evidence freshness is unknown.
+See the [ordinary-file walkthrough](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/delivery/result-review-examples.md).
+
 ## Hand a task to an existing agent session
 
 Open a uniquely identified project item and choose **Prepare an agent handoff**.
