@@ -37,7 +37,9 @@ Nothing planned yet.
 Finished work moves to the changelog.
 `;
 
-const html = (source: string) => Effect.runPromise(boardHtml(boardOf(source), "plan.md", 0).pipe(Effect.provide(Highlighter.layer)));
+function html(source: string) {
+	return Effect.runPromise(boardHtml(boardOf(source), "plan.md", 0).pipe(Effect.provide(Highlighter.layer)));
+}
 
 describe("the board", () => {
 	it("keeps each item's body, including a details block, with its heading", () => {

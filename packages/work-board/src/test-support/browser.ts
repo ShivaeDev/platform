@@ -49,39 +49,41 @@ export interface OpenPage {
 	readonly window: BrowserWindow;
 }
 
-const interceptor = (path: string, pageRequests: PageRequests, mermaidRequests: string[], streams: RpcStream[]): IFetchInterceptor => ({
-	afterAsyncResponse: async ({ request, response, window }) => {
-		const native = await rpcAfter(request, response, window, path, pageRequests, streams);
-		if (native !== undefined) {
-			return native;
-		}
-		if (new URL(request.url).pathname === path) {
-			pageRequests.answered += 1;
-		}
-		return undefined;
-	},
-	beforeAsyncRequest: async ({ request, window }) => {
-		const requested = new URL(request.url).pathname;
-		const native = await rpcBefore(request, window, path, pageRequests, streams);
-		if (native !== undefined) {
-			return native;
-		}
-		if (requested === path) {
-			return rpcBefore(request, window, path, pageRequests, streams, true);
-		}
-		if (!requested.startsWith("/_board/mermaid/")) {
+function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: string[], streams: RpcStream[]): IFetchInterceptor {
+	return {
+		afterAsyncResponse: async ({ request, response, window }) => {
+			const native = await rpcAfter(request, response, window, path, pageRequests, streams);
+			if (native !== undefined) {
+				return native;
+			}
+			if (new URL(request.url).pathname === path) {
+				pageRequests.answered += 1;
+			}
 			return undefined;
-		}
-		mermaidRequests.push(request.url);
-		return new window.Response(MERMAID_STUB, { headers: { "content-type": "text/javascript" } });
-	},
-});
+		},
+		beforeAsyncRequest: async ({ request, window }) => {
+			const requested = new URL(request.url).pathname;
+			const native = await rpcBefore(request, window, path, pageRequests, streams);
+			if (native !== undefined) {
+				return native;
+			}
+			if (requested === path) {
+				return rpcBefore(request, window, path, pageRequests, streams, true);
+			}
+			if (!requested.startsWith("/_board/mermaid/")) {
+				return undefined;
+			}
+			mermaidRequests.push(request.url);
+			return new window.Response(MERMAID_STUB, { headers: { "content-type": "text/javascript" } });
+		},
+	};
+}
 
-export const openPage = async (
+export async function openPage(
 	board: RunningBoard,
 	path = "/",
 	beforeScripts: (window: BrowserWindow) => void | Promise<void> = async () => {},
-): Promise<OpenPage> => {
+): Promise<OpenPage> {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
 	const streams: RpcStream[] = [];
@@ -100,21 +102,21 @@ export const openPage = async (
 	const html = (await rawGet(board, path)).body;
 	await beforeScripts(window);
 	page.content = html;
-	const close = async () => {
+	async function close() {
 		window.dispatchEvent(new window.Event("pagehide"));
 		for (const stream of streams) {
 			stream.close();
 		}
 		await browser.close();
-	};
-	const prefer = (scheme: "light" | "dark") => {
+	}
+	function prefer(scheme: "light" | "dark") {
 		browser.settings.device.prefersColorScheme = scheme;
 		window.dispatchEvent(new window.Event("resize"));
-	};
+	}
 	return { close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
-};
+}
 
-export const held = (): { readonly gate: Promise<void>; readonly release: () => void } => {
+export function held(): { readonly gate: Promise<void>; readonly release: () => void } {
 	const { promise, resolve } = Promise.withResolvers<void>();
 	return { gate: promise, release: () => resolve() };
-};
+}

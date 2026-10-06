@@ -4,7 +4,9 @@ import { documentHeadings } from "#render/documentHeadings.ts";
 import { Highlighter } from "#render/highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 
-const render = (source: string) => Effect.runPromise(renderMarkdown(source).pipe(Effect.provide(Highlighter.layer)));
+function render(source: string) {
+	return Effect.runPromise(renderMarkdown(source).pipe(Effect.provide(Highlighter.layer)));
+}
 
 describe("markdown rendering", () => {
 	it("renders GitHub tables and task lists", async () => {

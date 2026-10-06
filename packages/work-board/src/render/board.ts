@@ -27,16 +27,18 @@ interface Draft {
 	title: string;
 }
 
-const textOf = (node: RootContent): string => {
+function textOf(node: RootContent): string {
 	if ("value" in node) {
 		return node.value;
 	}
 	return "children" in node ? node.children.map((child) => textOf(child)).join("") : "";
-};
+}
 
-const isSection = (node: RootContent): boolean => node.type === "heading" && node.depth === 2;
+function isSection(node: RootContent): boolean {
+	return node.type === "heading" && node.depth === 2;
+}
 
-const place = (draft: Draft, node: RootContent, source: string, closing: boolean): void => {
+function place(draft: Draft, node: RootContent, source: string, closing: boolean): void {
 	const section = draft.sections.at(-1);
 	if (node.type === "definition" || node.type === "footnoteDefinition") {
 		draft.definitions.push(source);
@@ -55,9 +57,11 @@ const place = (draft: Draft, node: RootContent, source: string, closing: boolean
 	} else {
 		(section.items.at(-1) ?? section.notes).push(source);
 	}
-};
+}
 
-const joined = (blocks: readonly string[]): string => blocks.join("\n\n");
+function joined(blocks: readonly string[]): string {
+	return blocks.join("\n\n");
+}
 
 export const boardOf = (source: string): Board => {
 	const draft: Draft = { definitions: [], footer: undefined, intro: [], sections: [], title: "" };

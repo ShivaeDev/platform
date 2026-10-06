@@ -2,21 +2,25 @@ import type { MarkdownFile } from "#files/list.ts";
 import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "./escape.ts";
 
-const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
+function nameOf(path: string): string {
+	return path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
+}
 
-const folderOf = (path: string): string => path.slice(0, Math.max(0, path.lastIndexOf("/")));
+function folderOf(path: string): string {
+	return path.slice(0, Math.max(0, path.lastIndexOf("/")));
+}
 
-const link = (file: MarkdownFile, current: string): string => {
+function link(file: MarkdownFile, current: string): string {
 	const here = file.path === current ? ' aria-current="page"' : "";
 	const age = `<span class="age short" data-modified="${file.modified}"></span>`;
 	return `<a href="${fileUrl(file.path)}"${here}>${escapeHtml(nameOf(file.path))}</a>${age}`;
-};
+}
 
-const folder = (name: string, files: readonly MarkdownFile[], current: string): string => {
+function folder(name: string, files: readonly MarkdownFile[], current: string): string {
 	const links = files.map((file) => `<li>${link(file, current)}</li>`).join("");
 	const open = files.some((file) => file.path === current) ? " open" : "";
 	return `<details data-key="folder:${escapeHtml(name)}"${open}><summary>${escapeHtml(name)}/ (${files.length})</summary><ul>${links}</ul></details>`;
-};
+}
 
 export const navHtml = (files: readonly MarkdownFile[], current: string, home: string | undefined): string => {
 	const ordered = [...files.filter((file) => file.path === home), ...files.filter((file) => file.path !== home)];
