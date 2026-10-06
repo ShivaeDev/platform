@@ -13,6 +13,7 @@ import { page } from "#http/page.ts";
 import { respond } from "#http/respond.ts";
 import { sameOrigin } from "#http/sameOrigin.ts";
 import { search } from "#http/search.ts";
+import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
@@ -44,6 +45,8 @@ const routes = (options: BoardOptions) =>
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
 			yield* serve("/_board/search", search(index));
+			const startPage = start(changes, home);
+			yield* serve("/_board/start", startPage);
 			const workPage = work(index, changes, home);
 			const overviewPage = overview(index, changes, home);
 			const historyPage = changesPage(changes, home);
@@ -64,6 +67,9 @@ const routes = (options: BoardOptions) =>
 				const pathname = new URL(url, "http://127.0.0.1").pathname;
 				let selected: ReturnType<typeof pages>;
 				switch (pathname) {
+					case "/_board/start":
+						selected = startPage();
+						break;
 					case "/_board/work":
 						selected = workPage(request);
 						break;

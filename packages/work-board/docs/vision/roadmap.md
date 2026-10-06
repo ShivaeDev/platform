@@ -26,7 +26,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
 - [x] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
 - [x] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
-- [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
+- [x] [12 Start with useful project documents](./delivery/wave1.md#12-start-with-useful-project-documents)
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
 - [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
 - [ ] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
@@ -37,7 +37,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
 - [ ] [21 Successive contributions with clear ownership](./delivery/wave3.md#21-successive-contributions-with-clear-ownership)
 - [ ] [22 Several local projects, one attention view](./delivery/wave3.md#22-several-local-projects-one-attention-view)
-- [ ] [23 Richer plans and local review packets](./delivery/wave3.md#23-richer-plans-and-local-review-packets)
+- [ ] [23 Richer plans and linked reviews](./delivery/wave3.md#23-richer-plans-and-linked-reviews)
 - [ ] [24 One optional read-only GitHub adapter](./delivery/wave3.md#24-one-optional-read-only-github-adapter)
 - [ ] [25 Read existing local test and build artifacts](./delivery/wave3.md#25-read-existing-local-test-and-build-artifacts)
 - [ ] [26 Quiet rules and a real collaboration review](./delivery/wave3.md#26-quiet-rules-and-a-real-collaboration-review)
@@ -496,10 +496,10 @@ the UI does not mutate project content in this wave.
 | W1.1 Orientation | Overview, attention queue, explanatory priority, empty state, onboarding templates | A user can find an explicitly recorded decision, blocker, and result; empty folders explain how to start |
 | W1.2 Navigation | Collapsible sidebar, titles, folders, breadcrumbs, favorites, recents, search, command palette, anchors, source-in-editor links | Find a phrase and open its exact document/card in a 50-document fixture; keyboard navigation works |
 | W1.3 Views | Document, board, table, overview, detail pane, multiple boards, saved filters, compact/comfortable density | The same source item appears consistently in each view; selecting it preserves the surrounding context |
-| W1.4 Visual content | Safe local images/attachments, callouts, comparisons, metrics, progress, galleries; diagram zoom/fullscreen/export | Assets respect root boundaries; rich content has meaningful plain-text fallback; large diagrams remain usable |
+| W1.4 Visual content | Safe local images/attachments, callouts, comparisons, metrics, progress, galleries; diagram zoom/fullscreen/downloads | Assets respect root boundaries; rich content has meaningful plain-text fallback; large diagrams remain usable |
 | W1.5 Relationships | Read-side optional identity/metadata, backlinks, goals, decisions, dependencies, acceptance criteria, evidence links | A result can be traced to its plan and decision; broken/duplicate references are visible |
 | W1.6 Awareness | Changed since last visit, source/freshness labels, stale evidence, restrained update highlighting, pause/resume updates | New content is distinguishable from activity; resuming catches up while preserving position and expanded content |
-| W1.7 Finish | Themes, responsive layouts, accessible focus/status, print/local HTML export, targeted updates | Browser checks cover desktop and narrow layout, keyboard, reduced motion, reconnect, and offline core use |
+| W1.7 Finish | Themes, responsive layouts, accessible focus/status, basic browser print readability, targeted updates | Browser checks cover desktop and narrow layout, keyboard, reduced motion, reconnect, and offline core use |
 
 - [x] Agree the smallest optional read-side metadata convention; support legacy
   heading-based boards unchanged and treat missing metadata as unknown.
@@ -555,7 +555,7 @@ Build on the validated write and handoff model. Keep the product local.
 - [ ] Add a local cross-project overview only after the single-project loop works.
 - [ ] Add richer compositions and dependency/timeline views where real metadata
   supports them; distinguish dates, estimates, and unknowns.
-- [ ] Offer curated local review packets and export of decisions/evidence.
+- [ ] Support coherent in-app review of linked plans, decisions and evidence.
 - [ ] Trial one read-only GitHub evidence adapter: a linked PR, checks, review,
   merge state, checked revision, and last successful refresh.
 - [ ] Add local test/build artifact readers where they remove manual copying.
@@ -589,13 +589,14 @@ it does not determine the product's architecture.
 | Human–agent handoffs | Wave 2, discussion gate; iterative collaboration in wave 3 |
 | Changes and provenance | Wave 1; mutation provenance extends in wave 2 |
 | External evidence | Narrow optional wave 3 adapter |
-| Starting, finding, sharing | Wave 1 templates/search/local export; local review packets in wave 3 |
+| Starting, finding, reviewing | Wave 1 templates/search; linked in-app review in wave 3 |
 
 ## Always out of scope
 
 Cloud hosting, accounts, cloud sync, remote multiplayer, public publishing,
 arbitrary executable widgets, a plugin marketplace, a general rich-text editor,
-agent execution infrastructure, and an event-sourcing requirement.
+agent execution infrastructure, document export, shareable artifact/packet generation,
+and an event-sourcing requirement.
 
 ## Step 11 rendering foundation
 
@@ -647,7 +648,47 @@ comparisons; live pause/resume preserved the displayed tally until resumed.
 Malformed inputs retained diagnostics and later prose. No-JavaScript reading,
 source navigation and browser print/PDF retained the visual documents' text.
 No page errors were observed. Local artifacts are at
-`/workspace/artifacts/work-board-directives`. This print check does not establish
-step 12's static export; physical-device lifecycle and step 07's representative
-reader timing remain pending. Other Markdown readers show the directive markers
+`/workspace/artifacts/work-board-directives`. This checks browser print readability; document export is outside scope.
+Physical-device lifecycle and step 07's representative-reader timing remain pending. Other Markdown readers show the directive markers
 and ordinary body text; nested composition stays deferred to step 23.
+
+## Step 12 scope decision
+
+The user rejected document export because none of the proposed stories establishes
+a Work Board use case. Agent results belong in ordinary Markdown reports and
+in-app reading/review. External one-pagers, presentations and shareable artifacts
+belong outside this project. Static snapshots and offline packets do not justify
+their complexity. Export is removed from all waves, rather than deferred.
+
+Step 12 remains open for copyable project/investigation/result templates, useful
+empty-folder guidance and basic print readability. Step 23 focuses on linked review
+inside Work Board. The export API/dependency discussion is closed; no export
+implementation or dependency was added.
+
+## Step 12 onboarding acceptance
+
+Work Board 0.7.1 gives an empty workspace a useful 200 response at `/` without
+creating files; missing document URLs still return 404. `/_board/start` remains
+available from the sidebar after source files are added, through SSR links and
+the shared native page RPC. Three readonly, keyboard-copyable Markdown templates
+cover project goals/criteria, investigation options/recommendation, and agent
+results with actual checks, limitations and next action. IDs/references are explicit;
+placeholder evidence remains commented out and does not become a recorded claim.
+
+The final full `pnpm ready` passed: 1,193 package tests, four expected failures,
+one intentional skip, 239 Work Board tests, seven orchestration checks, real
+PostgreSQL and every packed consumer. The quality baseline remains 2,547. New
+regressions cover empty-root/no-write behavior, readonly exact source, missing-path
+and loopback handling, valid template references, unknown evidence, source creation
+through an external tool and persistent native template reading.
+
+Actual Chromium 151 checked 1440×1000 and 390×844 dark/reduced-motion with the
+copyable source: keyboard select-all, empty guidance, externally saved templates,
+linked project/investigation/result reading, native Getting started navigation and
+Back, no-JavaScript templates/links, unchanged source files, and document print/PDF.
+A separate browser check held the Mermaid import pending and verified print shows
+the diagram source while hiding live controls. No page errors or horizontal mobile
+overflow were observed. Artifacts: `/workspace/artifacts/work-board-onboarding`.
+This is implementation/browser evidence, not representative-reader timing or
+physical-device adoption. No export, init command, project writer, new frontmatter
+contract or dependency was introduced. Step 13 reading-workflow review remains next.

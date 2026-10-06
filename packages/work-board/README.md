@@ -9,6 +9,15 @@ pnpm add --global @shivaedev/work-board
 work-board ./project-notes --port 4747 --home plan.md
 ```
 
+For an empty folder, omit `--home` until its home file exists. It opens
+getting-started guidance at `/`. **Getting started** in the
+sidebar remains available at `/_board/start`, with copyable project, investigation
+and agent-result Markdown templates. Focus a template text area, select all and
+copy; save through your editor or agent tool. Replace example IDs and matching
+references, and record evidence only after an actual observation. The viewer
+does not create project files. Templates and links also work without JavaScript.
+Browser print focuses on the document; document export is outside product scope.
+
 It listens on `127.0.0.1` only and answers only requests addressed to a loopback
 host. Every `.md` file under the folder appears in the collapsible sidebar with
 how long ago it changed. Below the folder, files and folders starting with a dot

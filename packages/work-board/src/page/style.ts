@@ -59,6 +59,18 @@ figure.diagram[data-state="failed"] .diagram-source { display: block; }
 `;
 
 const documents = `
+.start-open { display: block; padding: 0 12px 18px; color: var(--sidebar-text); }
+.onboarding { max-width: 76ch; }
+.start-template textarea { display: block; box-sizing: border-box; width: 100%; margin: 12px 0; padding: 12px; font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+@media print {
+  .sidebar, .bar, .preferences, .reading-tools, .visual-tools { display: none !important; }
+  .workspace { display: block !important; }
+  .page { width: 100%; }
+  #doc { padding: 0; }
+  .doc pre, .doc table { white-space: pre-wrap; overflow: visible; }
+  figure.diagram[data-state="pending"] .diagram-source, figure.diagram[data-state="failed"] .diagram-source { display: block; }
+}
+
 .visual-document, .visual-callout { border: 1px solid var(--border); border-radius: 12px; padding: 1em 1.2em; margin: 1.2em 0; overflow-wrap: anywhere; }
 .visual-document > :last-child, .visual-callout > :last-child { margin-bottom: 0; }
 .visual-label { font-weight: 650; margin-top: 0; }
