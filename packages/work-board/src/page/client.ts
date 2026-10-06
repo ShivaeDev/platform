@@ -3,98 +3,98 @@ import "/_board/saved-views.js";
 import "/_board/history.js";
 import "/_board/preferences.js";
 import "/_board/search.js";
+import { tick } from "/_board/ages.js";
 import { renderDiagrams } from "/_board/diagrams.js";
 import { applyPage } from "/_board/page-state.js";
-import { pageVersion } from "/_board/navigation.js";
-import { remember } from "/_board/swap.js";
+import "/_board/navigation.js";
+import { remember, swap } from "/_board/swap.js";
+import { refreshLibrary } from "/_board/library.js";
+import { session } from "/_board/native.js";
 
-const since = (modified) => {
-  const seconds = Math.max(0, Math.round((Date.now() - modified) / 1000));
-  if (seconds < 60) return seconds + "s";
-  if (seconds < 3600) return Math.round(seconds / 60) + "m";
-  if (seconds < 172800) return Math.round(seconds / 3600) + "h";
-  return Math.round(seconds / 86400) + "d";
-};
 
-const tick = () => {
-  for (const age of document.querySelectorAll("[data-modified]")) {
-    const ago = since(Number(age.dataset.modified));
-    age.textContent = age.classList.contains("short") ? ago : "updated " + ago + " ago";
-  }
-};
-
+document.documentElement.dataset.js = "true";
 remember(document.getElementById("files"));
 remember(document.getElementById("doc"));
 
+let native = session(window);
 const live = document.getElementById("live");
-let connected = false;
-let dropped = true;
-let failure = "";
-
+const toggle = document.getElementById("updates-toggle");
+let pageFailure = "";
+let navFailure = "";
+let pageWaiting = true;
+let watching = false;
+let navWaiting = true;
+let active = "";
+let releasePage;
 const show = () => {
-  const state = failure !== "" ? "stale" : connected ? "live" : "down";
-  live.dataset.state = state;
-  live.textContent = failure !== "" ? failure : connected ? "live" : "reconnecting";
+  const state = native.registry.get(native.updates.status);
+  const paused = native.registry.get(native.updates.paused);
+  const failure = pageFailure || navFailure;
+  live.dataset.state = paused ? "paused" : failure ? "stale" : !watching || state.connection !== "live" ? "down" : pageWaiting || navWaiting ? "refreshing" : "live";
+  live.textContent = paused ? "updates paused · " + state.pending + (state.pending === 256 ? "+" : "") + " pending updates" : failure || (!watching || state.connection !== "live" ? "reconnecting" : pageWaiting || navWaiting ? "refreshing" : "live");
+  toggle.textContent = paused ? "Resume updates" : "Pause updates";
+  toggle.setAttribute("aria-pressed", String(paused));
+  live.title = "Connection: " + state.connection + "; last observed source watcher: " + (watching ? "watching" : "unavailable") + "; " + (paused ? "automatic reads paused" : pageWaiting || navWaiting ? "reads pending" : failure ? "showing retained source" : "reads settled");
 };
-
-const load = async () => {
-  const version = pageVersion();
+const watchPage = () => {
   const path = location.pathname + location.search;
-  try {
-    const response = await fetch(path, { cache: "no-store" });
-    const next = new DOMParser().parseFromString(await response.text(), "text/html");
-    const files = next.getElementById("files");
-    const doc = next.getElementById("doc");
-    if (version !== pageVersion()) return;
-    if (files === null || doc === null) {
-      failure = "refresh failed (" + response.status + ")";
-      return;
+  if (path === active) return;
+  active = path;
+  releasePage?.();
+  pageFailure = "";
+  const atom = native.api.page.query({ url: path });
+  releasePage = native.registry.subscribe(atom, (value) => {
+    pageWaiting = value.waiting || value._tag === "Initial";
+    if (value._tag === "Failure") pageFailure = "refresh failed";
+    if (value._tag === "Success" && !value.waiting && active === location.pathname + location.search) {
+      const next = new DOMParser().parseFromString(value.value.html, "text/html");
+      pageFailure = applyPage(next, true) ? "" : "refresh failed";
+      tick();
     }
-    failure = "";
-    applyPage(next, true);
+    show();
+  }, { immediate: true });
+};
+const observe = () => {
+native.registry.subscribe(native.api.navigation.query(), (value) => {
+  navWaiting = value.waiting || value._tag === "Initial";
+  if (value._tag === "Failure") navFailure = "navigation refresh failed";
+  if (value._tag === "Success" && !value.waiting) {
+    navFailure = "";
+    const files = document.getElementById("files");
+    const next = files.cloneNode(false);
+    next.innerHTML = value.value;
+    const current = document.getElementById("doc").dataset.file;
+    for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
+    swap(files, next);
+    refreshLibrary();
     tick();
-  } catch {
-    if (version !== pageVersion()) return;
-    failure = "refresh failed";
+    document.dispatchEvent(new Event("board-index-change"));
   }
-};
-
-let loading = false;
-let dirty = false;
-const refresh = async () => {
-  if (loading) {
-    dirty = true;
-    return;
-  }
-  loading = true;
-  do {
-    dirty = false;
-    await load();
-  } while (dirty);
-  loading = false;
   show();
-};
-
-const events = new EventSource("/events");
-events.addEventListener("ready", () => {
-  connected = true;
-  document.dispatchEvent(new Event("board-index-change"));
+}, { immediate: true });
+native.registry.subscribe(native.api.watcher.query(), (value) => {
+  watching = value._tag === "Success" && value.value.watching;
   show();
-  if (dropped) refresh();
-  dropped = false;
+}, { immediate: true });
+native.registry.subscribe(native.updates.status, show);
+native.registry.subscribe(native.updates.paused, (paused) => { show(); if (!paused) document.dispatchEvent(new Event("board-updates-resumed")); });
+};
+observe();
+toggle.disabled = false;
+toggle.addEventListener("click", () => native.registry.set(native.updates.paused, !native.registry.get(native.updates.paused)));
+document.addEventListener("board-page", watchPage);
+watchPage();
+window.addEventListener("pagehide", () => { releasePage?.(); active = ""; });
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  native = session(window);
+  pageWaiting = navWaiting = true;
+  watching = false;
+  pageFailure = navFailure = "";
+  observe();
+  watchPage();
 });
-const down = () => {
-  connected = false;
-  dropped = true;
-  show();
-};
-events.addEventListener("change", () => { refresh(); document.dispatchEvent(new Event("board-index-change")); });
-events.addEventListener("down", down);
-events.addEventListener("error", down);
 
-document.addEventListener("board-page", tick);
-tick();
-setInterval(tick, 5000);
 renderDiagrams(document);
 `;
 export const preferences = `

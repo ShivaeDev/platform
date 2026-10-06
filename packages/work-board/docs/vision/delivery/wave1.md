@@ -124,15 +124,13 @@ optimization when events may have been missed.
 rerenders; focused controls, open details, and diagrams survive relevant changes;
 paused and reconnecting states catch up without claiming stale data is current.
 
-Delivery direction: establish reusable native RPC/reactivity/client lifecycle
-support in Platform first, then have Work Board adopt it. The reference-directory
-fix extends existing filesystem watching; it does not complete this checkpoint.
-The user approved esbuild 0.28.1 and native RPC/AtomRegistry with Changed/Resync
-hints. The [Platform consumer checkpoint](../../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
-has real HTTP/Chromium and repository evidence, including the approved shared
-browser lifecycle extraction and compatible effect-react entry. Work Board
-adoption remains open. Its library fixture does not establish this
-step's DOM/orientation acceptance.
+The approved Platform-first foundation is released in effect-contract 0.4.0 and
+Work Board adopts its native RPC/AtomRegistry/live/resume primitives in 0.5.0,
+with approved esbuild 0.28.1 local assets. [Adoption evidence](../roadmap.md#step-09-native-adoption-and-orientation-evidence)
+records dependency discovery, native HTTP and DOM regressions, real Chromium
+orientation checks and the actual lifecycle limits. The compatible GET endpoints
+and server-rendered reading paths remain available. Step 07's representative-reader
+timing is still separate; fixtures do not establish that target.
 
 ## 10 Local visual evidence
 
@@ -145,6 +143,10 @@ and local export, with useful load/parse errors and keyboard dismissal.
 **Accept:** local images render and update; traversal/symlink escapes are refused;
 large diagrams can be read on narrow screens without losing the source context.
 
+Step 10 is complete in Work Board 0.6.0. [Acceptance evidence](../roadmap.md#step-10-local-visual-evidence)
+records HTTP/DOM regressions, actual Chromium images/large-diagram inspection,
+local downloads, the full handoff and remaining platform/reader limits.
+
 ## 11 A small vocabulary for visual documents
 
 **Outcome:** plans can communicate through comparisons, callouts, and progress.
@@ -156,6 +158,16 @@ values should not display a fabricated percentage.
 **Depends on:** 04, 06, and 10. **Accept:** the real project brief communicates its
 plan using these blocks, remains useful in a text editor, and degrades intelligibly
 when a component's input is incomplete. Complex composition waits for 23.
+
+Step 11 uses the user's approved Markdown directives with Antumbra's
+Markdown/GFM rendering stack. [Source conventions](./visual-document-examples.md)
+define fixed metric/progress/timeline components, ordinary Markdown labels/source
+links, unknown values, source-preserving diagnostics and authored chronology.
+The [real project brief](../README.md#delivery-at-a-glance) exercises these formats.
+Acceptance is complete: 236 Work Board regressions, the full repository handoff,
+and Chromium desktop/narrow/no-JavaScript/print checks of that brief passed.
+The [roadmap evidence](../roadmap.md#step-11-visual-document-acceptance) records
+malformed-input behavior and the remaining reader/device limits.
 
 ## 12 Start and take the work with you
 

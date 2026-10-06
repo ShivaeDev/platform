@@ -1,4 +1,6 @@
-import { defineHastPlugin } from "satteri";
+import type { Root } from "hast";
+import { visit as visitElements } from "unist-util-visit";
+import { textContent } from "#render/textContent.ts";
 
 export interface Heading {
 	readonly depth: number;
@@ -9,14 +11,16 @@ export interface Heading {
 export function documentHeadings() {
 	const entries: Heading[] = [];
 	const used = new Set<string>();
-	const plugin = defineHastPlugin({
-		element: {
-			filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
-			visit: (element, context) => {
+	function plugin() {
+		return function transform(tree: Root) {
+			visitElements(tree, "element", (element) => {
+				if (!["h1", "h2", "h3", "h4", "h5", "h6"].includes(element.tagName)) {
+					return;
+				}
 				if (element.properties.id !== undefined) {
 					return;
 				}
-				const title = context.textContent(element).trim();
+				const title = element.children.map(textContent).join("").trim();
 				const slug =
 					title
 						.normalize("NFKC")
@@ -31,22 +35,16 @@ export function documentHeadings() {
 				}
 				used.add(id);
 				entries.push({ depth: Number(element.tagName.slice(1)), id, title });
-				return {
-					...element,
-					children: [
-						...element.children,
-						{
-							children: [],
-							properties: { ariaLabel: `Link to ${title || "section"}`, className: ["heading-anchor"], href: `#${id}` },
-							tagName: "a",
-							type: "element" as const,
-						},
-					],
-					properties: { ...element.properties, id, tabIndex: -1 },
-				};
-			},
-		},
-		name: "work-board-headings",
-	});
+				element.children.push({
+					children: [],
+					properties: { ariaLabel: `Link to ${title || "section"}`, className: ["heading-anchor"], href: `#${id}` },
+					tagName: "a",
+					type: "element",
+				});
+				element.properties.id = id;
+				element.properties.tabIndex = -1;
+			});
+		};
+	}
 	return { entries, plugin };
 }

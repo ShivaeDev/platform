@@ -23,9 +23,9 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
-- [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
-- [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
-- [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
+- [x] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
+- [x] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
+- [x] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
 - [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
 - [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
@@ -269,7 +269,7 @@ quiet state and live updates are implemented.
 Representative-user evidence for
 the proposed 30-second orientation target remains pending; step 07 stays open
 until that acceptance exercise is recorded. Step 08's explicitly approved
-implementation is complete; steps 09–26 remain open. The rest of W1.2/W1.3
+implementation is complete; steps 10–26 remain open. The rest of W1.2/W1.3
 remains proposed.
 
 ## Step 08 baseline decision and acceptance evidence
@@ -381,18 +381,104 @@ clearing/storage changes cancel the pending action and remain authoritative.
   records the ordering and comparison limits.
 
 
+## Step 09 native adoption and orientation evidence
+
+Work Board now uses native Effect RPC, AtomRegistry and the shared effect-contract
+live/resume support. Locally bundled browser assets replace the automatic
+fetch/EventSource coordinators. DOM navigation and reading preferences keep their
+existing ownership; Mark seen uses an imperative native read so background
+invalidation cannot cancel the explicit observation.
+
+- Regression tests cover prior/current Markdown and metadata dependencies,
+  board membership, criterion evidence, attention targets, nested home aliases,
+  renamed/duplicate IDs and observations changed outside an announced path.
+  Unknown paths, incomplete indexes, watcher uncertainty and gaps in server-local
+  PubSub delivery require a full reconciliation. That sequence is not a wire
+  replay protocol or durable journal.
+- Native HTTP tests exercise pages, item URLs, search, navigation and history;
+  same-origin/loopback rejection and active-subscription shutdown pass. DOM
+  tests cover retained failures/stale responses, unrelated mounted documents,
+  pause/resume, the 256+ pending-hint label, highlight/orientation preservation,
+  pagehide/persisted-pageshow ownership and explicit clear/expiry while paused.
+- Actual Chromium 151.0.7922.173 checks the representative workspace at
+  1440 × 1000 and 390 × 844 with dark preference and reduced motion. Unrelated
+  edits keep the active page query/paragraph; paused root-home edits catch up;
+  offline reads retain source and recover; real Mermaid drawings and open details
+  survive updates; focused unsubmitted filters and selected item URLs remain.
+  Browser Back, explicit history retention/clearing, native no-JavaScript links
+  and narrow layout pass without page errors or horizontal overflow.
+- Chromium Back used a fresh document rather than bfcache: CDP reports the
+  main/subrequest no-store policy and browsing-instance eligibility. Persisted
+  pageshow recovery is established by the DOM regression, not a claim of actual
+  bfcache restoration. Physical background-tab transitions, Capacitor, capacity
+  across many tabs and representative-reader timing remain unestablished.
+- The local minified native asset is about 524 kB before compression. The packed
+  CLI checks its native asset and ordinary page assets; no performance budget
+  or source mutation is inferred from these results.
+
+- Fresh CI shards originally lacked the ignored native browser bundle, causing
+  DOM initialization timeouts. Removing the local bundle reproduced all three
+  native-update regressions failing; the shared `test:prepare`/production bundle
+  command now prepares standalone tests and workspace shards before execution.
+  An HTTP regression checks that a source checkout serves the native module.
+  With the bundle removed again, the workspace shard/coverage path passes all
+  204 Work Board tests after preparation. The regenerated asset is byte-identical
+  to the bundle verified in Chromium.
+- Full repository handoff passes `pnpm ready`: 1,158 package tests, four existing
+  expected failures, one intentional skip, seven orchestration tests, real
+  PostgreSQL, lint/typechecks/builds and every packed consumer. Work Board's
+  204 regressions pass; the touched quality baseline loses ten findings and
+  grows nowhere. The 0.5.0 package/CLI versions match the release changelog.
+  Browser actions leave every fixture source unchanged except explicit test edits.
+
+## Step 10 local visual evidence
+
+Work Board 0.6.0 serves explicitly referenced PNG, JPEG, GIF and WebP images
+through guarded local GET routes. Paths resolve from the source file, including
+nested home aliases and recorded evidence links. Each read checks the resolved
+workspace boundary, regular-file type and 16 MiB bound; escaping file/directory
+links, traversal, hidden/dependency paths and active attachment formats are refused.
+The existing external-reference Markdown behavior remains unchanged; its images
+must reside inside the workspace. Image edits use conservative native resync,
+respecting Pause/Resume; the Mark seen baseline stays Markdown-only.
+
+- HTTP regressions check exact PNG bytes/media/no-store/nosniff headers, nested
+  source/recorded-evidence links, loopback rejection, malformed/unsupported paths,
+  file/directory escapes, size bounds and actual image watcher delivery.
+- DOM regressions check keyboard gallery/link inspection, bounded zoom, focus
+  restoration (including diagram inspection after cached Back navigation),
+  malformed image-name fallback, local load errors, image update
+  reconciliation and stale-preview disclosure with saving disabled. Mermaid
+  inspection checks local SVG download ownership/release and unavailable
+  fullscreen fallback. Existing reading/drawing/history regressions still pass.
+- Actual Chromium 151.0.7922.173 checks a representative workspace at 1440 × 1000
+  and 390 × 844, dark/reduced-motion. Real PNG rendering/replacement, keyboard
+  gallery/link inspection, missing-image errors, paused image catch-up, retained
+  details, older-preview disclosure and local PNG/SVG downloads pass. Real
+  Mermaid zoom/fullscreen, parse failure/source disclosure and keyboard dismissal
+  pass. Actual size plus zoom keeps an 18-edge horizontal diagram's label height
+  at least 14 CSS pixels on the narrow screen, scrolling inside the viewport
+  without page overflow. No-JavaScript images and Mermaid source remain readable.
+  Source files stay unchanged except deliberate fixture edits; no page errors occur.
+- Full `pnpm ready` passes with 1,165 passing package tests, four expected
+  failures, one intentional skip and seven orchestration tests, real PostgreSQL, all packed
+  consumers, lint/types/builds and the packed visual assets. Work Board has 211
+  passing regressions. The quality baseline grows nowhere.
+
+The viewport preserves an earlier preview until reopened; it does not assert
+source revision verification or acceptance. Browser checks establish desktop
+fullscreen and narrow scrolling, not native mobile fullscreen, Capacitor or
+representative-reader timing. SVG is exported only from the strict Mermaid
+renderer; arbitrary SVG/HTML/PDF attachments are not served.
+
 ## Current foundation
 
 The [Platform live consumer checkpoint](../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
-now demonstrates targeted invalidation, scoped reconciliation, bounded paused
-hints, retained failures and native stream/query teardown over real HTTP and
-Chromium. Work Board still uses its existing browser coordination until adoption;
-step 09 remains unchecked. The approved shared browser resume implementation
-now lives in effect-contract, with the existing effect-react import preserved
-by a compatibility delegate and automatic runtime dependency. Actual Chromium
-offline/online recovery and separate DOM visibility/listener tests establish
-this foundation; Work Board adoption and physical tab/Capacitor evidence remain
-separate.
+and this Work Board adoption establish native invalidation, scoped reconciliation,
+bounded pause and resource ownership. The shared browser-safe resume implementation
+lives in effect-contract, while effect-react preserves its prior import through a
+compatibility delegate and automatic runtime dependency. The remaining physical
+lifecycle and representative-reader evidence stays separate.
 
 The existing package serves a local Markdown folder, renders a designated home
 file as sections and cards, and updates open pages in place. It provides GFM,
@@ -510,3 +596,58 @@ it does not determine the product's architecture.
 Cloud hosting, accounts, cloud sync, remote multiplayer, public publishing,
 arbitrary executable widgets, a plugin marketplace, a general rich-text editor,
 agent execution infrastructure, and an event-sourcing requirement.
+
+## Step 11 rendering foundation
+
+Work Board 0.6.1 adopts Antumbra's `react-markdown` 10.1.0 and `remark-gfm`
+4.0.1 libraries for server-rendered documents and search. Ordinary Mermaid fences
+continue through the local Mermaid renderer, now matching Antumbra's suppression
+of global error diagrams. Raw-HTML details, local images/links, Shiki highlighting,
+heading anchors and scoped footnotes remain supported. React adds no client state.
+
+Chromium 151 checked desktop 1440×1000 and narrow 390×844 dark/reduced-motion:
+actual Mermaid diagrams, malformed-source fallback without a global error diagram,
+zoom/fullscreen/SVG export, images/gallery/downloads, live pause/resume, retained
+reading details, cached Back and no-JavaScript image/source reading. No page errors
+were observed. Artifacts are local at `/workspace/artifacts/work-board-antumbra`.
+Physical device lifecycle and step 07 representative-reader timing remain unproved.
+
+The full `pnpm ready` handoff passed: 1,166 package tests, four expected failures,
+one intentional skip, 212 Work Board tests, seven orchestration checks, real
+PostgreSQL and every packed consumer. The quality baseline stayed at 2,547.
+The new renderer regression covers GFM, local image/link resolution, duplicate
+heading anchors and lazy images without duplicate preload requests. Existing
+search/navigation/history/footnote regressions passed. A recovery test now awaits
+both document replacement and completion of the independently settling live reads.
+
+## Step 11 visual-document acceptance
+
+Work Board 0.7.0 implements the user's approved `remark-directive` convention:
+fixed metric, progress and timeline containers with ordinary Markdown labels,
+source links and body content. GFM tables provide comparisons and GitHub-style
+alerts provide callouts. The [real project brief](./README.md#delivery-at-a-glance)
+uses each format. Its progress tally is authored implementation evidence;
+representative-reader acceptance remains explicitly unknown.
+
+Missing or unknown counts never fabricate a percentage. Invalid, blank, oversized
+or nested inputs retain their source with a diagnostic and leave subsequent prose
+readable. The shared unified parser replaces the remaining Satteri board parser;
+legacy heading boards, search, backlinks and local links remain covered.
+
+The final full `pnpm ready` passed: 1,190 package tests, four expected failures,
+one intentional skip, 236 Work Board tests, seven orchestration checks, real
+PostgreSQL and every packed consumer. The quality baseline stayed at 2,547.
+Regressions include malformed/blank attributes, provenance, zero versus unknown,
+authored timeline order, bounded input, callouts, legacy boards and source fallback.
+
+Chromium 151 read the actual brief on desktop 1440×1000 and narrow 390×844
+in dark/reduced-motion mode, with external network requests blocked. It checked
+source links, native progress, unknown metrics, authored chronology, callouts and
+comparisons; live pause/resume preserved the displayed tally until resumed.
+Malformed inputs retained diagnostics and later prose. No-JavaScript reading,
+source navigation and browser print/PDF retained the visual documents' text.
+No page errors were observed. Local artifacts are at
+`/workspace/artifacts/work-board-directives`. This print check does not establish
+step 12's static export; physical-device lifecycle and step 07's representative
+reader timing remain pending. Other Markdown readers show the directive markers
+and ordinary body text; nested composition stays deferred to step 23.

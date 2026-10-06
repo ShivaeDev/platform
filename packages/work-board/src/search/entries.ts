@@ -1,7 +1,12 @@
-import { markdownToHtml } from "satteri";
+import { MarkdownAsync } from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkDirective from "remark-directive";
+import remarkGfm from "remark-gfm";
 import { fileUrl } from "#files/url.ts";
 import { boardOf } from "#render/board.ts";
+import { callouts } from "#render/callouts.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
+import { visualDocuments } from "#render/visualDocuments.ts";
 import { searchCollector } from "./collector.ts";
 import { linkCollector } from "./linkCollector.ts";
 
@@ -41,8 +46,10 @@ export async function entriesOf(source: string, file: string, home: boolean, bod
 		if (fragment) {
 			fragmentLength = fragment.split("\n").length;
 			fragmentLine = board ? fragmentLocation(source, fragment, bodyLine, seenFragments) : bodyLine;
-			await markdownToHtml(board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment, {
-				hastPlugins: [headings.plugin, plugin, linkCollector(links)],
+			await MarkdownAsync({
+				children: board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment,
+				rehypePlugins: [rehypeRaw, headings.plugin, plugin, linkCollector(links)],
+				remarkPlugins: [remarkGfm, remarkDirective, visualDocuments, callouts],
 			});
 		}
 	}

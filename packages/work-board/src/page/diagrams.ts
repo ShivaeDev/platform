@@ -1,4 +1,5 @@
 export const diagrams = `
+import { diagramTools } from "/_board/visuals.js";
 const rendered = new Map();
 const dark = matchMedia("(prefers-color-scheme: dark)");
 let mermaid;
@@ -10,6 +11,7 @@ const load = async () => {
   mermaid ??= (await import("/_board/mermaid/mermaid.esm.min.mjs")).default;
   mermaid.initialize({
     startOnLoad: false,
+    suppressErrorRendering: true,
     securityLevel: "strict",
     theme: "base",
     themeVariables: {
@@ -43,14 +45,20 @@ const draw = async (figure) => {
       return;
     }
     figure.querySelector(".diagram-svg")?.remove();
+    figure.querySelector("[data-diagram-error]")?.remove();
     figure.insertAdjacentHTML("afterbegin", '<div class="diagram-svg">' + svg + "</div>");
     figure.dataset.state = "drawn";
+    diagramTools(figure);
   } catch (error) {
     rendered.delete(key);
     if (scheme !== schemeNow()) return;
     figure.querySelector(".diagram-svg")?.remove();
     figure.dataset.state = "failed";
     figure.dataset.error = String(error?.message ?? error);
+    figure.querySelector("[data-diagram-error]")?.remove();
+    const message = document.createElement("p"); message.setAttribute("data-diagram-error", ""); message.setAttribute("role", "status");
+    message.textContent = "Diagram could not be drawn: " + figure.dataset.error; figure.append(message);
+    diagramTools(figure);
   }
 };
 

@@ -61,9 +61,13 @@
 		},
 		"pages": {
 			"/": "<span><b>1</b> to do</span>",
+			"/_board/ages.js": "tick",
 			"/_board/client.js": "",
 			"/_board/mermaid/mermaid.esm.min.mjs": "",
-			"/_board/style.css": ""
+			"/_board/native.js": "work-board.subscribe",
+			"/_board/style.css": "",
+			"/_board/visual-viewport.js": "inspectDiagram",
+			"/_board/visuals.js": "inspectImage"
 		}
 	}
 }

@@ -3,6 +3,7 @@ import { workStyle } from "#views/workStyle.ts";
 import { metadataStyles } from "./metadata.ts";
 import { readingStyles } from "./readingStyles.ts";
 import { searchStyles } from "./searchDialog.ts";
+import { visualStyles } from "./visualDialog.ts";
 import { layout, theme } from "./workspaceStyles.ts";
 
 const prose = `
@@ -48,12 +49,39 @@ footer { margin-top: 2.5em; padding-top: 1em; border-top: 1px solid var(--border
 `;
 
 const diagrams = `
+[data-live-change] { outline: 2px solid var(--border); outline-offset: 3px; border-radius: 3px; }
 figure.diagram { margin-left: 0; margin-right: 0; }
 figure.diagram[data-state="pending"] { min-height: 12rem; background: var(--surface); border-radius: 6px; }
 figure.diagram .diagram-source { display: none; }
 figure.diagram[data-state="failed"] .diagram-source { display: block; }
-figure.diagram[data-state="failed"]::after { content: attr(data-error); color: var(--danger); font-size: 0.875em; }
+[data-diagram-error] { color: var(--danger); font-size: 0.875em; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
-export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle() + attentionStyle();
+const documents = `
+.visual-document, .visual-callout { border: 1px solid var(--border); border-radius: 12px; padding: 1em 1.2em; margin: 1.2em 0; overflow-wrap: anywhere; }
+.visual-document > :last-child, .visual-callout > :last-child { margin-bottom: 0; }
+.visual-label { font-weight: 650; margin-top: 0; }
+.visual-value { font-size: 1.35em; font-variant-numeric: tabular-nums; }
+.visual-document progress { display: block; width: 100%; height: 1em; accent-color: var(--link); }
+.visual-timeline-entries { border-left: 2px solid var(--border); padding-left: 1.6em; }
+.visual-timeline-entries > li { padding: .3em 0 .7em .2em; }
+.visual-callout { border-left: 4px solid var(--link); background: var(--surface); }
+.visual-warning, .visual-caution { border-left-color: #b97720; }
+.visual-diagnostic { font-weight: 600; color: var(--muted); }
+@media print { .visual-document, .visual-callout { break-inside: avoid; } }
+`;
+
+export const style =
+	theme
+	+ layout
+	+ prose
+	+ board
+	+ diagrams
+	+ readingStyles()
+	+ searchStyles
+	+ metadataStyles
+	+ workStyle()
+	+ attentionStyle()
+	+ visualStyles
+	+ documents;

@@ -12,8 +12,9 @@ work-board ./project-notes --port 4747 --home plan.md
 It listens on `127.0.0.1` only and answers only requests addressed to a loopback
 host. Every `.md` file under the folder appears in the collapsible sidebar with
 how long ago it changed. Below the folder, files and folders starting with a dot
-and `node_modules` are never entered, and anything that is not Markdown is
-skipped; the folder itself may be a dot folder such as `.notes`.
+and `node_modules` are never entered. Only Markdown appears in the sidebar;
+supported local images are served when explicitly referenced below. The folder
+itself may be a dot folder such as `.notes`.
 
 Directory symlinks explicitly include reference folders, including ones outside
 the workspace. Their Markdown keeps the link's workspace-relative URLs. Broken
@@ -54,6 +55,35 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
+
+## Local visual evidence
+
+Use ordinary Markdown such as `![Review screenshot](shots/review.png)` or
+`[Open screenshot](shots/review.png)`. PNG, JPEG (`.jpg`/`.jpeg`), GIF and WebP
+paths resolve relative to the source file, including a nested home served at `/`.
+The local image route serves at most 16 MiB per file, checks the resolved path on
+every request, and refuses hidden/dependency paths, traversal and links outside
+the workspace. Outside-workspace reference folders retain their Markdown support;
+their images must be copied inside the workspace to be served. SVG, HTML, PDF and
+arbitrary attachments are not served through this route.
+
+Open a local image link (including an evidence source), or click/focus an embedded
+image and press Enter, to inspect a gallery of the
+current document's images. Previous/Next and arrow keys select images. Zoom from
+25% to 800%, scroll, Fit, Actual size or Fullscreen to inspect details; Escape closes the viewer
+and restores source focus. **Save locally** uses the browser download mechanism.
+An unavailable image keeps its alt text and explains the local path/type/boundary
+and size checks. Images still render through ordinary GET requests without JavaScript.
+
+A rendered Mermaid diagram has **Inspect diagram**, with the same zoom, scrolling,
+fullscreen, Actual size and keyboard dismissal, plus a local SVG download of its current
+drawing. Failed diagrams expose their source and a readable error; source remains
+visible without JavaScript. When fullscreen is unavailable, scrolling still works.
+An open preview remains the earlier drawing/image after a source update, discloses
+that state and requires reopening before saving. Image edits trigger conservative
+native reconciliation and image reloads, respecting Pause/Resume. The explicit
+Mark seen baseline stays Markdown-only: image bytes are not captured or retained.
+Viewing and downloading do not write source files or imply verified acceptance.
 
 ## Document navigation
 
@@ -294,22 +324,33 @@ event: change
 data: {"paths":["plan.md"]}
 ```
 
-Open pages fetch their file again and replace only the blocks that changed,
-also when blocks were added or removed around them; the rest of the page,
-including which `<details>` are open and every drawn diagram, stays as it is,
-and the page never reloads. A page that loses the connection shows
-"reconnecting" and catches up once it is back. When the open file is deleted
-or renamed, the page shows that it is gone. A refresh that gets no page back
-keeps the page as it is and shows "refresh failed" until the next one
-succeeds.
+Open pages use locally bundled native Effect RPC and AtomRegistry queries over
+`POST /_board/rpc`. The existing GET endpoints and `/events` stream remain
+available for compatibility. No browser assets or source data need a cloud service.
 
-If watching the folder fails, the server restarts the watch, waiting longer
-after each failure. Meanwhile `/events` sends `event: down`, open pages show
-"reconnecting", and once watching resumes `event: ready` makes them catch up on
-anything they missed.
+Changed hints invalidate affected documents and derived views through former and
+current references, board membership, criterion evidence and attention targets.
+Unrelated documents keep their mounted query and DOM blocks. Relevant updates
+preserve unchanged controls, expanded details and diagrams; changed reading blocks
+receive a brief outline without animation. Native GET links and server-rendered
+HTML remain usable with JavaScript disabled.
 
-Each open page keeps one connection to `/events`, and browsers allow only a few
-per host, so the intended use is one board per browser.
+Use **Pause updates** to stop automatic invalidation while reading. The count
+reports observed hints, bounded at **256+**, rather than a count of edits or work
+completed. Resume and reconnect reconcile the full workspace. A missed server-local
+PubSub sequence, unknown path or incomplete index also requires reconciliation;
+there is no durable event journal or replay guarantee.
+
+Connection, source-watcher availability, pending reads and read failures remain
+separate. The status reports **live** only when the connection and last observed
+watcher are available and active page/navigation reads have settled. A failed read
+keeps the visible source and reports **refresh failed**. A transport outage or
+unavailable watcher reports **reconnecting**. Mark seen remains an explicit action;
+pausing never disables clearing or the 30-day baseline expiry.
+
+Each page owns a native streaming HTTP subscription and disposes its registry on
+pagehide. Returning from the browser's page cache creates a fresh client. Browser
+HTTP connection limits still apply; simultaneous tab capacity is not established.
 
 ## Embedding
 
@@ -353,3 +394,21 @@ sets the waves, acceptance criteria, and open design decisions.
 [Experience designs and mockups](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/experience.md)
 illustrate the target with fictional data. These are future plans; the sections
 above describe the package's current behavior.
+
+### Markdown rendering
+
+Work Board uses Antumbra's `react-markdown` and `remark-gfm` libraries for
+server-rendered Markdown, with locally served Mermaid for ordinary `mermaid`
+fences. Existing local links, images, heading anchors, footnotes, raw-HTML details
+and Shiki code highlighting remain available without React client state. Mermaid
+rendering and inspection need JavaScript; its source remains readable without it.
+
+### Visual document directives
+
+Use `:::metric{value="50" unit="documents"}`, `:::progress{completed="3" total="8"}`
+and `:::timeline` containers with Markdown labels and linked sources. Components
+render on the server and remain readable without JavaScript. Unknown counts stay
+unknown, invalid components retain their source with a diagnostic, and timelines
+preserve authored order. Recorded values do not establish verified acceptance.
+See [the complete source conventions](./docs/vision/delivery/visual-document-examples.md).
+GitHub alert blockquotes render as callouts; comparisons remain ordinary GFM tables.

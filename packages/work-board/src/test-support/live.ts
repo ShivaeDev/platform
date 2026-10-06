@@ -33,7 +33,7 @@ export const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
 export const openLive = async (board: RunningBoard, path: string, beforeScripts?: () => Promise<void>): Promise<OpenPage> => {
 	const page = await openPage(board, path, beforeScripts);
 	await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
-	await waitFor(() => expect(page.pageRequests.answered).toBe(1));
+	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1));
 	await new Promise((resolve) => setTimeout(resolve, 20));
 	return page;
 };

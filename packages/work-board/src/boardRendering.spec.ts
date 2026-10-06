@@ -57,7 +57,7 @@ describe("the board", () => {
 			'<article class="item"><h3 id="heading-docs-12-refresh-the-install-guide" tabindex="-1"><code>docs #12</code> <a href="https://example.com/pull/12">Refresh the install guide</a><a aria-label="Link to docs #12 Refresh the install guide" class="heading-anchor" href="#heading-docs-12-refresh-the-install-guide"></a></h3>',
 		);
 		expect(rendered).toContain(
-			'<h2 id="heading-later" tabindex="-1">Later<a aria-label="Link to Later" class="heading-anchor" href="#heading-later"></a></h2>\n<div class="notes"><p>Nothing planned yet.</p>',
+			'<h2 id="heading-later" tabindex="-1">Later<a aria-label="Link to Later" class="heading-anchor" href="#heading-later"></a></h2><div class="notes"><p>Nothing planned yet.</p>',
 		);
 		expect(rendered).toContain("<footer><p>Finished work moves to the changelog.</p>");
 	});

@@ -127,11 +127,13 @@ owns invalidation and native resource lifetime.
   events and prove listener disposal. A derived resume atom initializes its
   dependencies even without a separate subscriber. Physical tab transitions
   and Capacitor are not established by these checks.
-- [ ] Adopt native contracts, RPC and shared live primitives in Work Board,
+- [x] Adopt native contracts, RPC and shared live primitives in Work Board,
   replacing the existing automatic fetch/EventSource coordinators. Preserve
   server-rendered HTML, native GET links, source focus, details, diagrams,
   highlights and reading controls without React or cloud dependencies.
-- [ ] Close Work Board step 09 after its own real browser and repository
+  [Work Board acceptance](../../packages/work-board/docs/vision/roadmap.md#step-09-native-adoption-and-orientation-evidence)
+  records its native HTTP, DOM, real Chromium and packed-asset evidence separately.
+- [x] Close Work Board step 09 after its own real browser and repository
   acceptance, including reference/backlink/evidence dependency discovery.
 
 Every fixture query reads `workspace.list` as well as its own item/list key.

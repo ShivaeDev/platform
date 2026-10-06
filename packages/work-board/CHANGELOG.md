@@ -4,7 +4,92 @@
 
 ### Changed
 
-- Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adoption and step 09 orientation acceptance remain open.
+- Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.7.0 - 2026-10-06
+
+### Added
+
+- Read-only metric, progress and authored timeline Markdown directives parsed by
+  `remark-directive` and validated with Effect Schema. Keep Markdown labels/source
+  links, explicit unknown values and native labeled progress with text alternatives.
+  Retain invalid/unsupported source with diagnostics and bound each component to
+  64 KiB and each timeline to 100 entries. Nested composition remains deferred.
+- GitHub NOTE/TIP/IMPORTANT/WARNING/CAUTION callouts, with comparisons remaining
+  ordinary GFM tables. The project brief uses the agreed source conventions.
+
+### Changed
+
+- Use the same remark parser/directive grammar for legacy board segmentation,
+  rendering and search; remove Satteri. Headings inside directive containers do
+  not become board columns. Keep native live/history ownership and local-only
+  reading without source writes or acceptance inference.
+
+## 0.6.1 - 2026-10-06
+
+### Changed
+
+- Adopt Antumbra's `react-markdown` and `remark-gfm` rendering stack on the
+  server, retaining no-JavaScript reading, local links/images, generated heading
+  anchors, scoped footnotes, raw-HTML details and Shiki highlighting. Search uses
+  the same Markdown/GFM processing and heading rules as the reader. Rendering
+  and search plugins now use unified transformers rather than Satteri visitors;
+  Satteri remains only for legacy heading-board source segmentation.
+- Match Antumbra's Mermaid error-rendering setting so parse failures show a local
+  diagnostic/source without inserting Mermaid's global error diagram. Existing
+  local assets, strict rendering and visual inspection remain available.
+- Keep the custom step 11 metric/progress/timeline source-format proposal open;
+  the renderer adoption does not settle that authoring contract.
+
+## 0.6.0 - 2026-10-06
+
+### Added
+
+- Serve source-relative PNG, JPEG, GIF and WebP images inside the workspace with
+  loopback guards, resolved-path containment, correct media headers, no caching
+  and a 16 MiB limit. Refuse traversal, escaping file/directory links and active
+  attachment formats. Watch image edits through native reconciliation.
+- Add a keyboard image gallery and Mermaid inspection with bounded zoom, a
+  scrollable/fullscreen viewport, local downloads and focus restoration. Explain
+  missing images and failed diagrams; retain Mermaid source without JavaScript.
+- Disclose an open preview after source updates and require reopening before
+  saving it. Downloads copy files locally and never write workspace sources.
+
+### Fixed
+
+- Normalize visual controls and refreshed image URLs during reading-state swaps
+  so unchanged images and drawings keep their source context. Existing history
+  baselines remain Markdown-only; image bytes are not added to Mark seen snapshots.
+
+## 0.5.0 - 2026-10-06
+
+### Added
+
+- Add Pause/Resume updates with a bounded pending-hint count and transient,
+  motion-free outlines on changed reading blocks. Resume, reconnect and watcher
+  uncertainty reconcile the workspace without reporting retained reads as fresh.
+
+### Changed
+
+- Use native Effect RPC, AtomRegistry and effect-contract live/resume support
+  for browser reads and update ownership, bundled locally with esbuild. Preserve
+  server-rendered HTML and ordinary GET links; the compatibility `/events`,
+  search and history endpoints remain available.
+- Invalidate affected source documents, stable identities and derived views
+  through both former and current backlinks, board membership, criterion evidence
+  and attention targets. Leave unrelated documents mounted; reconcile fully when
+  paths, delivery or the rebuilt index are uncertain. Sequence numbers detect
+  server-local PubSub loss; they are not a durable replay protocol.
+
+### Fixed
+
+- Prepare the local native browser bundle before standalone and sharded workspace
+  tests, sharing the production build command so fresh CI checkouts can run the
+  browser regressions without a prior package build.
+- Refresh missing favorites after navigation-only changes, recreate native client
+  ownership after a persisted pageshow, and retain explicit Mark seen cancellation,
+  clearing and expiry disclosure while automatic updates are paused. Keep one
+  local baseline per workspace, 30-day/2 MiB limits and source files read only.
 
 ## 0.4.1 - 2026-10-05
 

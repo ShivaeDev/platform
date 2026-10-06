@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.4.1",
+	"version": "0.7.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -37,6 +37,7 @@
 	"files": [
 		"dist",
 		"src",
+		"assets",
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
@@ -44,15 +45,27 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json && pnpm build:browser",
+		"build:browser": "esbuild src/browser/session.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
-		"test": "vitest run",
+		"test": "pnpm test:prepare && vitest run",
+		"test:prepare": "pnpm build:browser",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/effect-contract": "workspace:*",
+		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",
-		"satteri": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-markdown": "catalog:",
+		"rehype-raw": "catalog:",
+		"remark-directive": "catalog:",
+		"remark-gfm": "catalog:",
+		"remark-parse": "catalog:",
 		"shiki": "catalog:",
+		"unified": "catalog:",
+		"unist-util-visit": "catalog:",
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
@@ -62,8 +75,11 @@
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
 		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
+		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

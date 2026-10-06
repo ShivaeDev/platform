@@ -1,13 +1,14 @@
 import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
+import { isMarkdown as markdown } from "#path/isMarkdown.ts";
 
 export interface MarkdownFile {
 	readonly modified: number;
 	readonly path: string;
 }
 
-const skipped = (segment: string): boolean => segment.startsWith(".") || segment === "node_modules";
-
-export const isMarkdown = (path: string): boolean => path.endsWith(".md") && !path.split("/").some(skipped);
+export function isMarkdown(path: string): boolean {
+	return markdown(path);
+}
 
 export const within = (realRoot: string, separator: string, real: string): boolean => real === realRoot || real.startsWith(`${realRoot}${separator}`);
 
@@ -52,7 +53,7 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root:
 			const branch = new Set([...ancestors, real]);
 			const names = yield* fs.readDirectory(real);
 			const found = yield* Effect.forEach(
-				names.filter((name) => !skipped(name)),
+				names.filter((name) => !name.startsWith(".") && name !== "node_modules"),
 				(name) => entry(relative === "" ? name : `${relative}/${name}`, boundary, branch, real),
 			);
 			return found.flat();

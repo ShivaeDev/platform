@@ -37,6 +37,42 @@ status.
 Each stage must be independently useful. A good reading experience is the first
 product, not a temporary screen waiting for an orchestration engine.
 
+## Delivery at a glance
+
+> [!IMPORTANT]
+> Implementation evidence and representative-reader acceptance are separate.
+> Reader timing and physical device lifecycle still need their own evidence.
+
+:::metric{value="unknown" unit="seconds"}
+Representative-reader orientation time
+
+Source: [Reader acceptance](./roadmap.md#step-07-source-decision-and-implementation-evidence)
+:::
+
+:::progress{completed="11" total="13"}
+Wave 1 implementation checkpoints recorded
+
+This authored tally records implementation checkpoints through visual documents.
+It does not verify all acceptance targets or derive completion from item statuses.
+
+Source: [Delivery checklist and acceptance evidence](./roadmap.md)
+:::
+
+| Reading surface | Purpose | Source |
+| --- | --- | --- |
+| Overview and work views | Orient and find the work that needs attention | [Experience](./experience.md) |
+| Documents and visual evidence | Inspect reasoning, source claims and recorded results | [Reading delivery](./delivery/wave1.md) |
+| Mutations and collaboration | Later capabilities with explicit discussion gates | [Roadmap](./roadmap.md) |
+
+:::timeline
+Reading delivery
+
+1. **Recorded:** [Native reads](./roadmap.md#step-09-native-adoption-and-orientation-evidence) shipped in 0.5.0.
+2. **Recorded:** [Local visual evidence](./roadmap.md#step-10-local-visual-evidence) shipped in 0.6.0.
+3. **This checkpoint:** [Visual document conventions](./delivery/visual-document-examples.md) use fixed Markdown directives.
+4. **Planned:** [Local handoffs](./delivery/wave1.md#12-start-and-take-the-work-with-you) follow before the complete reading workflow review.
+:::
+
 ## Who and what it serves
 
 The primary user is a developer coordinating their own work and several agents

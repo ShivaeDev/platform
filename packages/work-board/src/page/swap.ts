@@ -4,15 +4,23 @@ const containers = new Set(["DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "MA
 const structural = (element) => [...element.childNodes].every((node) => node.nodeType === 1 || node.textContent.trim() === "");
 
 const pristine = new WeakMap();
+const flash = (element) => {
+  if (element.matches("[data-modified]")) return;
+  if (!element.matches("p, li, pre, blockquote, h1, h2, h3, h4, h5, h6, .item, .notes, .metadata-panel")) return;
+  element.setAttribute("data-live-change", "");
+  setTimeout(() => element.removeAttribute("data-live-change"), 2500);
+};
 
 export const remember = (element) => {
-  pristine.set(element, element.outerHTML);
+  pristine.set(element, normalized(element));
   if (containers.has(element.tagName)) for (const child of element.children) remember(child);
 };
 
 const normalized = (element) => {
   const copy = element.cloneNode(true);
+  for (const tool of copy.querySelectorAll("[data-visual-tools], [data-image-error], [data-diagram-error]")) tool.remove();
   for (const node of [copy, ...copy.querySelectorAll("*")]) {
+    node.removeAttribute("data-live-change");
     if (node.tagName === "DETAILS") node.removeAttribute("open");
     if (node.matches("figure.diagram")) {
       node.querySelector(".diagram-svg")?.remove();
@@ -20,6 +28,10 @@ const normalized = (element) => {
       delete node.dataset.error;
     }
     if (node.matches("[data-modified]")) node.textContent = "";
+    if (node.matches("img[data-local-image]")) {
+      node.setAttribute("src", node.dataset.localImage);
+      for (const attribute of ["tabindex", "role", "aria-label"]) node.removeAttribute(attribute);
+    }
   }
   return copy.outerHTML;
 };
@@ -29,8 +41,10 @@ const signature = (element) => {
   return pristine.get(element);
 };
 
+const normalizedShell = (element) => { const copy = element.cloneNode(false); copy.removeAttribute("data-live-change"); return copy.outerHTML; };
+
 const sameShell = (old, next) =>
-  old.tagName === next.tagName && containers.has(old.tagName) && old.cloneNode(false).outerHTML === next.cloneNode(false).outerHTML;
+  old.tagName === next.tagName && containers.has(old.tagName) && normalizedShell(old) === normalizedShell(next);
 
 const matches = (a, b) => {
   let start = 0;
@@ -55,19 +69,21 @@ const matches = (a, b) => {
   return [...pairs, [a.length, b.length]];
 };
 
-const patch = (current, incoming) => {
+const patch = (current, incoming, highlight) => {
   const selected = current.tagName === "SELECT" ? current.value : null;
   const fallback = incoming.tagName === "SELECT" ? incoming.value : null;
   if (!structural(current) || !structural(incoming)) {
     current.replaceChildren(...incoming.childNodes);
     for (const child of current.children) remember(child);
+    if (highlight) flash(current);
     return;
   }
   const olds = [...current.children];
   const news = [...incoming.children];
-  const signatures = news.map((next) => next.outerHTML);
+  const signatures = news.map(normalized);
   const arrive = (index) => {
     remember(news[index]);
+    if (highlight) flash(news[index]);
     return news[index];
   };
   let i = 0;
@@ -76,7 +92,7 @@ const patch = (current, incoming) => {
     const anchor = olds[kept] ?? null;
     for (; i < kept && j < arrived; i++, j++) {
       if (sameShell(olds[i], news[j])) {
-        patch(olds[i], news[j]);
+        patch(olds[i], news[j], highlight);
         pristine.set(olds[i], signatures[j]);
       } else olds[i].replaceWith(arrive(j));
     }
@@ -110,12 +126,12 @@ const carryDrawings = (drawings, figures) => {
   });
 };
 
-export const swap = (current, incoming) => {
+export const swap = (current, incoming, highlight = false) => {
   const before = keysOf(current);
   const open = new Map(before.map(([key, details]) => [key, details.open]));
   const existing = new Set(before.map(([, details]) => details));
   const drawings = [...current.querySelectorAll("figure.diagram")].map((figure) => figure.querySelector(".diagram-svg"));
-  patch(current, incoming);
+  patch(current, incoming, highlight);
   carryDrawings(drawings, [...current.querySelectorAll("figure.diagram")]);
   for (const [key, details] of keysOf(current)) {
     const was = open.get(key);

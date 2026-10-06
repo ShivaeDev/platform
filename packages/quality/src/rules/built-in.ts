@@ -12,6 +12,7 @@ import { importsAliased } from "#rules/imports/aliased.ts";
 import { importCycles } from "#rules/imports/cycles.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
+import { storySetup } from "#rules/stories/setup.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/no-double-cast.ts";
@@ -48,4 +49,5 @@ export const builtInRules = [
 	otherNames,
 	testsFollow,
 	testsColocated,
+	storySetup,
 ] as const;
