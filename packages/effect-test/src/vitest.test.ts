@@ -198,3 +198,10 @@ acquisitionIt.effectApp("acquires the worker Layer with live time and the harnes
 	expect(harnessTime).toBe(0);
 	expect(yield* Clock.currentTimeMillis).toBe(0);
 });
+
+const emptyIt = makeEffectIt({ layer: Layer.empty, makeHarness: () => Effect.succeed("no services") });
+
+emptyIt.effectApp("runs a test whose Layer provides nothing", function* (harness) {
+	expect(harness).toBe("no services");
+	expect(yield* Clock.currentTimeMillis).toBe(0);
+});

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 - 2026-10-06
+
+### Fixed
+
+- `makeEffectIt` takes a Layer that provides nothing, such as `Layer.empty`, so a suite whose tests need no services passes no placeholder service. A test body that yields a service such a Layer does not provide still does not type-check.
+- `@shivaedev/effect-test/any-test-layer.ts` exports `buildTestLayer(layer, scope)`, which builds any test Layer, `Layer.empty` included, into the services it provides.
+
 ## 0.3.0 - 2026-10-05
 
 ### Added
