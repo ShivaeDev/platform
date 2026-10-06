@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.6.0 - 2026-10-04
 
 ### Changed

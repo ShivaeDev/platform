@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { Console, Effect, FileSystem } from "effect";
-import { consumerDurationEstimates, decodeConsumerTimingSnapshot } from "#ci/consumerTimings.ts";
 import { balancedShards, type Shard } from "#ci/shard.ts";
+import { decodeTimingSnapshot, durationEstimates } from "#ci/timings.ts";
 import { checkBins } from "#package-check/bins.ts";
 import { checkConsumer } from "#package-check/consumer.ts";
 import { command, writeJson } from "#package-check/io.ts";
@@ -21,9 +21,7 @@ export function checkConsumers(
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const estimates =
-			timingSnapshot === undefined
-				? {}
-				: consumerDurationEstimates(decodeConsumerTimingSnapshot(JSON.parse(yield* fs.readFileString(timingSnapshot))));
+			timingSnapshot === undefined ? {} : durationEstimates(decodeTimingSnapshot(JSON.parse(yield* fs.readFileString(timingSnapshot))));
 		const catalog = decodeVersions(yield* command(root, "pnpm", ["config", "get", "catalog", "--json"]));
 		const store = (yield* command(root, "pnpm", ["store", "path", "--silent"])).trim();
 		const selected =

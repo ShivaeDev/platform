@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Build package JavaScript, declarations and source maps with TypeScript 7.
 - Remove document export and shareable artifact/packet generation from the vision
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.

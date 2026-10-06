@@ -46,7 +46,7 @@ runs:
         path: |
           node_modules
           packages/*/node_modules
-        key: workspace-deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node26.10.0-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'packages/*/package.json', 'patches/**', '**/.npmrc', '.pnpmfile.cjs', '.github/actions/setup/action.yml') }}
+        key: workspace-deps-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.image }}-node26.10.0-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', '**/.npmrc', '.pnpmfile.cjs') }}
     - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
       if: inputs.consumer-cache != 'true' && steps.workspace-cache.outputs.cache-hit != 'true'
       with:
@@ -69,6 +69,11 @@ runs:
     - shell: bash
       if: steps.workspace-cache.outputs.cache-hit != 'true' || steps.store.outputs.install-hooks == 'true'
       run: pnpm install --frozen-lockfile
+    - name: Validate manifests against cached dependencies
+      shell: bash
+      if: steps.workspace-cache.outputs.cache-hit == 'true' && steps.store.outputs.install-hooks != 'true'
+      # These exact dependencies already passed policy checks when the cache was saved.
+      run: pnpm install --frozen-lockfile --lockfile-only --ignore-scripts --trust-lockfile
     - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       if: inputs.save-workspace-cache == 'true' && steps.workspace-cache.outputs.cache-hit != 'true'
       with:
