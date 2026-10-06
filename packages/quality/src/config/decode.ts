@@ -28,6 +28,7 @@ const ConfigInput = Schema.Struct({
 	exclude: Schema.optionalKey(Schema.Array(Schema.String)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
+	preCommit: Schema.optionalKey(Schema.Struct({ run: Schema.optionalKey(Schema.Array(Schema.String)), tighten: Schema.optionalKey(Schema.Boolean) })),
 	registry: Schema.optionalKey(Schema.String),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
 	sources: Schema.optionalKey(Schema.Array(Schema.String)),

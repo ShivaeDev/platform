@@ -8,6 +8,9 @@ import { lint } from "#cli/lint.ts";
 import { migrateBaseline } from "#cli/migrate.ts";
 import { runMain } from "#cli/run-main.ts";
 import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
+import { installHook } from "#hooks/install.ts";
+import { preCommitHook } from "#hooks/preCommit.ts";
+import { uninstallHook } from "#hooks/uninstall.ts";
 import { SetupFailure } from "./failure.ts";
 
 const parsed = parseCommand(process.argv.slice(2));
@@ -32,6 +35,17 @@ const program = Effect.gen(function* () {
 			return yield* tightenBaseline(process.cwd(), command.config, command.staged);
 		case "BaselineMigrate":
 			return yield* migrateBaseline(process.cwd(), command.config, command.from);
+		case "HooksInstall":
+			return yield* installHook({
+				config: command.config,
+				cwd: process.cwd(),
+				force: command.force,
+				launch: { options: process.execArgv, script: process.argv[1] ?? "" },
+			});
+		case "HooksUninstall":
+			return yield* uninstallHook(process.cwd());
+		case "HooksPreCommit":
+			return yield* preCommitHook(process.cwd(), command.config);
 	}
 });
 

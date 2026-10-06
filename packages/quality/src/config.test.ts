@@ -44,6 +44,10 @@ describe("config", () => {
 		expect(await issues({ source: ["src"] })).toEqual([expect.stringContaining("source")]);
 	});
 
+	it("rejects pre-commit commands that are not a list of strings", async () => {
+		expect(await issues({ preCommit: { run: "pnpm typecheck" } })).toEqual([expect.stringContaining("preCommit")]);
+	});
+
 	it("rejects an unknown rule id", async () => {
 		expect(await issues({ rules: { "structure/max-line": "error" } })).toEqual(["rules.structure/max-line: no built-in or local rule has this id"]);
 	});
