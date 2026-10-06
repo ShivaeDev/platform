@@ -3,7 +3,9 @@ import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
 import { decodeHolder, encodeHolder, type Holder } from "./holder.ts";
 import { isHolderAlive } from "./process-start.ts";
 
-const hasReason = (tag: string) => (error: PlatformError.PlatformError) => error.reason._tag === tag;
+function hasReason(tag: string) {
+	return (error: PlatformError.PlatformError) => error.reason._tag === tag;
+}
 
 export const readHolder = Effect.fn("HeavyLock.readHolder")(function* (lock: string) {
 	const fs = yield* FileSystem.FileSystem;

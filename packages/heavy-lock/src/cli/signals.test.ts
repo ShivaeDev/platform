@@ -7,8 +7,9 @@ import { holder, lockDirectory, readLock, removeTemporaryDirectories, temporaryD
 
 afterEach(removeTemporaryDirectories);
 
-const trapping = (ready: string) =>
-	`trap "exit 10" INT; trap "exit 11" TERM; trap "exit 12" HUP; touch "${ready}"; ${pollWhile(`[ -d "${dirname(ready)}" ]`)}; exit 1`;
+function trapping(ready: string) {
+	return `trap "exit 10" INT; trap "exit 11" TERM; trap "exit 12" HUP; touch "${ready}"; ${pollWhile(`[ -d "${dirname(ready)}" ]`)}; exit 1`;
+}
 
 it.each([
 	["SIGINT", 10],

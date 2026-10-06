@@ -13,11 +13,12 @@ import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
-const holding = (lock: string) =>
-	Effect.gen(function* () {
+function holding(lock: string) {
+	return Effect.gen(function* () {
 		const held = yield* HeldLock;
 		return { env: held.env, holder: yield* readHolder(lock) };
 	});
+}
 
 it.effect("a waiter names the holder, reminds every minute, and takes the lock once it is released", () =>
 	Effect.gen(function* () {
