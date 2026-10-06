@@ -1,28 +1,27 @@
 import { rmSync } from "node:fs";
 import process from "node:process";
 import { expect, it } from "@effect/vitest";
-import { Effect, Fiber, Layer, Option } from "effect";
+import { Clock, Effect, Fiber, Layer, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { afterEach } from "vitest";
 import { HeldLock } from "#held-lock.ts";
 import { encodeHolder, HOLDER_ID_ENV } from "#holder.ts";
 import { readHolder, tryAcquire } from "#lock-file.ts";
 import { scriptedClock } from "#test/clock.ts";
-import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock } from "#test/lock.ts";
+import { holder, lockDirectory, readLock, removeTemporaryDirectories, services, temporaryLock, writeLock } from "#test/lock.ts";
 import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
-const holding = (lock: string) =>
-	Effect.gen(function* () {
-		const held = yield* HeldLock;
-		return { env: held.env, holder: yield* readHolder(lock) };
-	});
+const holding = Effect.fn("HeavyLockTest.holding")(function* (lock: string) {
+	const held = yield* HeldLock;
+	return { env: held.env, holder: yield* readHolder(lock) };
+});
 
 it.effect("a waiter names the holder, reminds every minute, and takes the lock once it is released", () =>
 	Effect.gen(function* () {
 		const lock = temporaryLock();
-		const startedAtMs = Date.UTC(2026, 8, 26, 12, 0, 0);
+		const startedAtMs = yield* Clock.currentTimeMillis;
 		yield* tryAcquire(lock, holder("e2e", process.pid, startedAtMs));
 		const scripted = yield* scriptedClock(startedAtMs + 30_000, (_line, lines) => {
 			if (lines.length === 2) {
@@ -33,7 +32,7 @@ it.effect("a waiter names the holder, reminds every minute, and takes the lock o
 
 		const held = yield* scripted.provide(withHeavyLock(holding(lock), { command: "pnpm ready", lockPath: lock, pollInterval: "1 millis" }));
 
-		expect(Option.map(held.holder, ({ command, startedAtMs }) => ({ command, startedAtMs }))).toEqual(
+		expect(Option.map(held.holder, ({ command, startedAtMs: acquiredAtMs }) => ({ command, startedAtMs: acquiredAtMs }))).toEqual(
 			Option.some({ command: "pnpm ready", startedAtMs: startedAtMs + 150_000 }),
 		);
 		expect(held.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(held.holder).id });
@@ -51,12 +50,51 @@ it.effect("CI skips the lock, even while another run holds it; an empty CI does 
 		const typecheck = holder("typecheck");
 		yield* tryAcquire(lock, typecheck);
 
-		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "true" })));
+		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "true" })));
 		expect(skipped).toEqual({ env: {}, holder: Option.some(typecheck) });
 
 		rmSync(lock);
-		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "" })));
+		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "" })));
 		expect(taken.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(taken.holder).id });
+	}).pipe(Effect.provide(services())),
+);
+
+it.effect("a waiter stays quiet between reminders but immediately names a replacement holder", () =>
+	Effect.gen(function* () {
+		const lock = temporaryLock();
+		const startedAtMs = yield* Clock.currentTimeMillis;
+		const first = holder("build", process.pid, startedAtMs);
+		const replacement = holder("typecheck", process.pid, startedAtMs + 20_000);
+		yield* tryAcquire(lock, first);
+		let polls = 0;
+		const scripted = yield* scriptedClock(
+			startedAtMs,
+			(_line, lines) => {
+				if (lines.length === 2) {
+					rmSync(lock);
+				}
+				return 0;
+			},
+			() => {
+				polls += 1;
+				if (polls === 2) {
+					writeLock(lock, JSON.stringify(replacement));
+				}
+				if (polls > 3) {
+					throw new Error("Waiter did not announce the replacement holder.");
+				}
+				return 10_000;
+			},
+		);
+
+		yield* scripted.provide(withHeavyLock(Effect.void, { lockPath: lock, pollInterval: "10 seconds" }));
+
+		expect(scripted.lines).toHaveLength(3);
+		expect(scripted.lines[0]).toContain("running `pnpm build`");
+		expect(scripted.lines[1]).toContain("running `pnpm typecheck`");
+		expect(scripted.lines[2]).toBe("heavy-process lock: acquired after 30s");
+		expect(polls).toBe(3);
+		expect(readLock(lock)).toBeUndefined();
 	}).pipe(Effect.provide(services())),
 );
 

@@ -8,12 +8,11 @@ import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, t
 
 afterEach(removeTemporaryDirectories);
 
-const reclaimedBy = (lock: string, id: string) =>
-	Effect.gen(function* () {
-		expect(yield* tryAcquire(lock, holder(id))).toEqual(Option.none());
-		expect(Option.map(yield* readHolder(lock), ({ id }) => id)).toEqual(Option.some(id));
-		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
-	});
+const reclaimedBy = Effect.fn("HeavyLockTest.reclaimedBy")(function* (lock: string, expectedId: string) {
+	expect(yield* tryAcquire(lock, holder(expectedId))).toEqual(Option.none());
+	expect(Option.map(yield* readHolder(lock), ({ id }) => id)).toEqual(Option.some(expectedId));
+	expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
+});
 
 it.effect("a free lock is taken, names its holder, and only that holder releases it", () =>
 	Effect.gen(function* () {
@@ -91,6 +90,20 @@ it.effect("reclaiming a dead holder puts back a live holder that raced in first,
 		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
 
 		yield* reclaim(lock, Option.some(raced));
+		expect(existsSync(lock)).toBe(false);
+		expect(lockDirectory(lock)).toEqual([]);
+	}).pipe(Effect.provide(services())),
+);
+
+it.effect("reclaiming a lock already removed by another waiter leaves no stale file", () =>
+	Effect.gen(function* () {
+		const lock = temporaryLock();
+		const dead = holder("crashed", deadPid());
+		yield* tryAcquire(lock, dead);
+		yield* reclaim(lock, Option.some(dead));
+
+		yield* reclaim(lock, Option.some(dead));
+
 		expect(existsSync(lock)).toBe(false);
 		expect(lockDirectory(lock)).toEqual([]);
 	}).pipe(Effect.provide(services())),
