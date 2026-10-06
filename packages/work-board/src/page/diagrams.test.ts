@@ -38,6 +38,7 @@ describe("diagrams", () => {
 		await open("/flow.md");
 		await waitFor(() => expect(figure()?.getAttribute("data-state")).toBe("drawn"));
 		expect(page.mermaidRequests).toEqual([`${board.url}/_board/mermaid/mermaid.esm.min.mjs`]);
+		expect(page.mermaid.configs.at(-1)).toMatchObject({ securityLevel: "strict", suppressErrorRendering: true });
 	});
 
 	it("reserves space and hides a diagram's source until it is drawn", async () => {

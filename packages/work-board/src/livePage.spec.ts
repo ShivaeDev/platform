@@ -105,7 +105,7 @@ describe("live page", () => {
 		page.pageRequests.failWith = undefined;
 		notes.write("plan.md", PLAN.replace("Intro.", "Back again."));
 		await waitFor(() => expect(paragraph("Back again.")).toBeDefined());
-		expect(status()).toBe("live");
+		await waitFor(() => expect(status()).toBe("live"));
 	});
 
 	it("shows the not-found page and a top bar without the file when the open file is deleted", async () => {

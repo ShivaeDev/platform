@@ -596,3 +596,31 @@ it does not determine the product's architecture.
 Cloud hosting, accounts, cloud sync, remote multiplayer, public publishing,
 arbitrary executable widgets, a plugin marketplace, a general rich-text editor,
 agent execution infrastructure, and an event-sourcing requirement.
+
+## Step 11 rendering foundation
+
+Work Board 0.6.1 adopts Antumbra's `react-markdown` 10.1.0 and `remark-gfm`
+4.0.1 libraries for server-rendered documents and search. Ordinary Mermaid fences
+continue through the local Mermaid renderer, now matching Antumbra's suppression
+of global error diagrams. Raw-HTML details, local images/links, Shiki highlighting,
+heading anchors and scoped footnotes remain supported. React adds no client state.
+
+Chromium 151 checked desktop 1440×1000 and narrow 390×844 dark/reduced-motion:
+actual Mermaid diagrams, malformed-source fallback without a global error diagram,
+zoom/fullscreen/SVG export, images/gallery/downloads, live pause/resume, retained
+reading details, cached Back and no-JavaScript image/source reading. No page errors
+were observed. Artifacts are local at `/workspace/artifacts/work-board-antumbra`.
+Physical device lifecycle and step 07 representative-reader timing remain unproved.
+
+The full `pnpm ready` handoff passed: 1,166 package tests, four expected failures,
+one intentional skip, 212 Work Board tests, seven orchestration checks, real
+PostgreSQL and every packed consumer. The quality baseline stayed at 2,547.
+The new renderer regression covers GFM, local image/link resolution, duplicate
+heading anchors and lazy images without duplicate preload requests. Existing
+search/navigation/history/footnote regressions passed. A recovery test now awaits
+both document replacement and completion of the independently settling live reads.
+
+The custom metric/progress/timeline shapes in
+[the concrete proposal](./delivery/visual-document-examples.md) remain open;
+Antumbra does not define those blocks. Step 11 stays unchecked until that source
+choice and the complete visual-document acceptance are established.

@@ -11,6 +11,7 @@ const load = async () => {
   mermaid ??= (await import("/_board/mermaid/mermaid.esm.min.mjs")).default;
   mermaid.initialize({
     startOnLoad: false,
+    suppressErrorRendering: true,
     securityLevel: "strict",
     theme: "base",
     themeVariables: {

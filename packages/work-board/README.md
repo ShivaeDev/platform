@@ -394,3 +394,11 @@ sets the waves, acceptance criteria, and open design decisions.
 [Experience designs and mockups](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/docs/vision/experience.md)
 illustrate the target with fictional data. These are future plans; the sections
 above describe the package's current behavior.
+
+### Markdown rendering
+
+Work Board uses Antumbra's `react-markdown` and `remark-gfm` libraries for
+server-rendered Markdown, with locally served Mermaid for ordinary `mermaid`
+fences. Existing local links, images, heading anchors, footnotes, raw-HTML details
+and Shiki code highlighting remain available without React client state. Mermaid
+rendering and inspection need JavaScript; its source remains readable without it.
