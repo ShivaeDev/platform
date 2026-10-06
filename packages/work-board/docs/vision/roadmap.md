@@ -24,7 +24,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [x] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
-- [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
+- [x] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
 - [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
 - [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
@@ -430,6 +430,46 @@ invalidation cannot cancel the explicit observation.
   204 regressions pass; the touched quality baseline loses ten findings and
   grows nowhere. The 0.5.0 package/CLI versions match the release changelog.
   Browser actions leave every fixture source unchanged except explicit test edits.
+
+## Step 10 local visual evidence
+
+Work Board 0.6.0 serves explicitly referenced PNG, JPEG, GIF and WebP images
+through guarded local GET routes. Paths resolve from the source file, including
+nested home aliases and recorded evidence links. Each read checks the resolved
+workspace boundary, regular-file type and 16 MiB bound; escaping file/directory
+links, traversal, hidden/dependency paths and active attachment formats are refused.
+The existing external-reference Markdown behavior remains unchanged; its images
+must reside inside the workspace. Image edits use conservative native resync,
+respecting Pause/Resume; the Mark seen baseline stays Markdown-only.
+
+- HTTP regressions check exact PNG bytes/media/no-store/nosniff headers, nested
+  source/recorded-evidence links, loopback rejection, malformed/unsupported paths,
+  file/directory escapes, size bounds and actual image watcher delivery.
+- DOM regressions check keyboard gallery/link inspection, bounded zoom, focus
+  restoration (including diagram inspection after cached Back navigation),
+  malformed image-name fallback, local load errors, image update
+  reconciliation and stale-preview disclosure with saving disabled. Mermaid
+  inspection checks local SVG download ownership/release and unavailable
+  fullscreen fallback. Existing reading/drawing/history regressions still pass.
+- Actual Chromium 151.0.7922.173 checks a representative workspace at 1440 × 1000
+  and 390 × 844, dark/reduced-motion. Real PNG rendering/replacement, keyboard
+  gallery/link inspection, missing-image errors, paused image catch-up, retained
+  details, older-preview disclosure and local PNG/SVG downloads pass. Real
+  Mermaid zoom/fullscreen, parse failure/source disclosure and keyboard dismissal
+  pass. Actual size plus zoom keeps an 18-edge horizontal diagram's label height
+  at least 14 CSS pixels on the narrow screen, scrolling inside the viewport
+  without page overflow. No-JavaScript images and Mermaid source remain readable.
+  Source files stay unchanged except deliberate fixture edits; no page errors occur.
+- Full `pnpm ready` passes with 1,165 passing package tests, four expected
+  failures, one intentional skip and seven orchestration tests, real PostgreSQL, all packed
+  consumers, lint/types/builds and the packed visual assets. Work Board has 211
+  passing regressions. The quality baseline grows nowhere.
+
+The viewport preserves an earlier preview until reopened; it does not assert
+source revision verification or acceptance. Browser checks establish desktop
+fullscreen and narrow scrolling, not native mobile fullscreen, Capacitor or
+representative-reader timing. SVG is exported only from the strict Mermaid
+renderer; arbitrary SVG/HTML/PDF attachments are not served.
 
 ## Current foundation
 

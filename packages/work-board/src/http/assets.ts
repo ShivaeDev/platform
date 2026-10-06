@@ -13,11 +13,15 @@ import { searchScript } from "#page/searchScript.ts";
 import { pageStateScript } from "#page/stateScript.ts";
 import { style } from "#page/style.ts";
 import { swap } from "#page/swap.ts";
+import { visualScript } from "#page/visualScript.ts";
+import { visualViewport } from "#page/visualViewport.ts";
 import { savedScript } from "#views/savedScript.ts";
 import { respond } from "./respond.ts";
 
 export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [
 	["/_board/style.css", style, "text/css"],
+	["/_board/visuals.js", visualScript(), "text/javascript"],
+	["/_board/visual-viewport.js", visualViewport(), "text/javascript"],
 	["/_board/saved-views.js", savedScript(), "text/javascript"],
 	["/_board/client.js", client, "text/javascript"],
 	["/_board/ages.js", ageScript(), "text/javascript"],

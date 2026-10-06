@@ -3,6 +3,7 @@ import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/u
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
+import { attachment } from "#http/attachment.ts";
 import { events } from "#http/events.ts";
 import { changesPage, history } from "#http/history.ts";
 import { identity } from "#http/identity.ts";
@@ -40,6 +41,7 @@ const routes = (options: BoardOptions) =>
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
 			yield* serve("/events", events(changes));
+			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
 			yield* serve("/_board/search", search(index));
 			const workPage = work(index, changes, home);

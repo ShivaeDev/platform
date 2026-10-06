@@ -1,6 +1,7 @@
 import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "./escape.ts";
 import { searchDialog } from "./searchDialog.ts";
+import { visualDialog } from "./visualDialog.ts";
 
 function location(file: string): string {
 	return file
@@ -23,7 +24,7 @@ export const shell = (
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
 		`<title>${escapeHtml(title)}</title>`,
 		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
-		'</head><body><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
+		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar"><a class="brand" href="/">work board<span>Local workspace</span></a>',
 		'<div id="reading-library" class="reading-library" hidden></div><h2 class="nav-heading">Project files</h2>',
 		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
@@ -35,5 +36,5 @@ export const shell = (
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
 		'<button id="updates-toggle" type="button" aria-pressed="false" disabled>Pause updates</button><span id="preference-status" role="status"></span></div>',
 		`<main${view ? ` data-view="${typeof view === "string" ? view : "work"}"` : ""}${identity ? ` data-identity="${escapeHtml(identity)}"` : ""} id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
-		`</div></div>${searchDialog}</body></html>`,
+		`</div></div>${searchDialog}${visualDialog}</body></html>`,
 	].join("");

@@ -1,4 +1,5 @@
 import { Data, Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
+import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown, scanMarkdown } from "./list.ts";
 
 class WatchEnded extends Data.TaggedError("WatchEnded") {}
@@ -45,7 +46,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 						}
 					}),
 				),
-				Stream.filter(isMarkdown),
+				Stream.filter((relative) => isMarkdown(relative) || attachmentType(relative) !== undefined),
 				Stream.interruptWhen(Deferred.await(topology)),
 				Stream.groupedWithin(BATCH, SETTLE),
 				Stream.runForEach((paths) => publish([...new Set(paths)])),

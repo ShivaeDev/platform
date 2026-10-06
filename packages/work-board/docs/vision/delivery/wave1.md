@@ -143,6 +143,10 @@ and local export, with useful load/parse errors and keyboard dismissal.
 **Accept:** local images render and update; traversal/symlink escapes are refused;
 large diagrams can be read on narrow screens without losing the source context.
 
+Step 10 is complete in Work Board 0.6.0. [Acceptance evidence](../roadmap.md#step-10-local-visual-evidence)
+records HTTP/DOM regressions, actual Chromium images/large-diagram inspection,
+local downloads, the full handoff and remaining platform/reader limits.
+
 ## 11 A small vocabulary for visual documents
 
 **Outcome:** plans can communicate through comparisons, callouts, and progress.

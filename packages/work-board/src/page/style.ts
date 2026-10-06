@@ -3,6 +3,7 @@ import { workStyle } from "#views/workStyle.ts";
 import { metadataStyles } from "./metadata.ts";
 import { readingStyles } from "./readingStyles.ts";
 import { searchStyles } from "./searchDialog.ts";
+import { visualStyles } from "./visualDialog.ts";
 import { layout, theme } from "./workspaceStyles.ts";
 
 const prose = `
@@ -53,8 +54,9 @@ figure.diagram { margin-left: 0; margin-right: 0; }
 figure.diagram[data-state="pending"] { min-height: 12rem; background: var(--surface); border-radius: 6px; }
 figure.diagram .diagram-source { display: none; }
 figure.diagram[data-state="failed"] .diagram-source { display: block; }
-figure.diagram[data-state="failed"]::after { content: attr(data-error); color: var(--danger); font-size: 0.875em; }
+[data-diagram-error] { color: var(--danger); font-size: 0.875em; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
-export const style = theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle() + attentionStyle();
+export const style =
+	theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle() + attentionStyle() + visualStyles;
