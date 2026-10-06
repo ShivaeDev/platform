@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { Data, Effect, FileSystem, Path } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
 import { historyScript } from "#history/script.ts";
+import { ageScript } from "#page/ageScript.ts";
 import { client, preferences } from "#page/client.ts";
 import { diagrams } from "#page/diagrams.ts";
 import { libraryScript } from "#page/libraryScript.ts";
@@ -19,6 +20,7 @@ export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, strin
 	["/_board/style.css", style, "text/css"],
 	["/_board/saved-views.js", savedScript(), "text/javascript"],
 	["/_board/client.js", client, "text/javascript"],
+	["/_board/ages.js", ageScript(), "text/javascript"],
 	["/_board/history.js", historyScript(), "text/javascript"],
 	["/_board/preferences.js", preferences, "text/javascript"],
 	["/_board/search.js", searchScript(), "text/javascript"],
@@ -53,3 +55,12 @@ export const mermaidFile = (mermaidRoot: string) =>
 	});
 
 export const MERMAID_ROUTE: HttpRouter.PathInput = `${MERMAID}*`;
+
+export const NATIVE_ROUTE: HttpRouter.PathInput = "/_board/native.js";
+export const nativeAsset = Effect.fn("WorkBoard.nativeAsset")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
+	const asset = path.resolve(path.dirname(module), "../../assets/native.js");
+	return respond(yield* fs.readFile(asset), "text/javascript");
+});

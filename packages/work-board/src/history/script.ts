@@ -2,6 +2,7 @@ export function historyScript(): string {
 	return `
 import { swap, remember } from "/_board/swap.js";
 import { captureReading, restoreReading } from "/_board/reading-state.js";
+import { session } from "/_board/native.js";
 const key = "work-board:changes:" + document.documentElement.dataset.workspace;
 let memory;
 let storageNotice = "";
@@ -53,23 +54,23 @@ const query = async (action) => {
  controller?.abort();
  controller = new AbortController();
  const raw = baseline();
- const response = await fetch("/_board/history", {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ action, baseline: raw }), signal: controller.signal, cache: "no-store",
- });
- if (!response.ok) throw new Error("History query failed");
- const result = await response.json();
+ const native = session(window);
+ const payload = { action, baseline: raw };
+ const atom = native.api.history.query(payload);
+ if (action !== "observe") native.registry.refresh(atom);
+ const result = action === "observe" ? await native.run(native.api.history.run(payload), controller.signal) : await native.read(atom, controller.signal);
  if (mine !== generation) return null;
  if (result.discardBaseline && baseline() === raw) { forget(); unavailableHtml = result.html; }
  return result;
 };
-const refresh = async () => {
+const refresh = async (manual = false) => {
  if (observing !== null) return;
- const visible = document.getElementById("doc")?.dataset.view === "changes";
+ const paused = session(window).registry.get(session(window).updates.paused) && manual !== true;
+ const visible = document.getElementById("doc")?.dataset.view === "changes" && !paused;
  try {
   const result = await query(visible ? "compare" : "check");
   if (!result) return;
-  if (visible && document.getElementById("doc")?.dataset.view === "changes") {
+  if ((visible || result.discardBaseline) && document.getElementById("doc")?.dataset.view === "changes") {
    render(baseline() === null && unavailableHtml ? unavailableHtml : result.html);
    controls(result.snapshot !== null);
   }
@@ -88,7 +89,7 @@ document.addEventListener("click", async (event) => {
   controller?.abort();
   forget();
   unavailableHtml = "";
-  await refresh();
+  await refresh(true);
  }
  if (event.target.closest?.("#history-mark")) {
   if (observing !== null) return;
@@ -105,17 +106,19 @@ document.addEventListener("click", async (event) => {
    if (error.name !== "AbortError") { render("<p>Could not remember the current observation. Your previous baseline is preserved.</p>"); controls(false); }
    return;
   } finally { if (observing === mine) observing = null; }
-  await refresh();
+  await refresh(true);
  }
 });
+window.addEventListener("pagehide", () => { ++generation; observing = null; controller?.abort(); });
 document.addEventListener("board-page", refresh);
+document.addEventListener("board-updates-resumed", refresh);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 window.addEventListener("storage", (event) => {
  if (event.key === key || event.key === null) {
   observing = null;
   ++generation;
   controller?.abort();
-  memory = undefined; storageNotice = ""; unavailableHtml = ""; refresh();
+  memory = undefined; storageNotice = ""; unavailableHtml = ""; refresh(true);
  }
 });
 setInterval(() => { if (baseline() !== null) refresh(); }, 60000);

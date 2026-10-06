@@ -957,6 +957,9 @@ importers:
 
   packages/work-board:
     dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
       mermaid:
         specifier: 'catalog:'
         version: 11.16.1
@@ -994,6 +997,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-rc.112
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.1
       happy-dom:
         specifier: 'catalog:'
         version: 20.11.2

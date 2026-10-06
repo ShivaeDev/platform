@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { isMarkdown } from "#files/list.ts";
+import { isMarkdown } from "#path/isMarkdown.ts";
 
 const File = Schema.String.check(
 	Schema.makeFilter(

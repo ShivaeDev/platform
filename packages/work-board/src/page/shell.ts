@@ -33,7 +33,7 @@ export const shell = (
 		'<div class="preferences" role="group" aria-label="Reading preferences">',
 		'<div class="preference"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>',
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
-		'<span id="preference-status" role="status"></span></div>',
+		'<button id="updates-toggle" type="button" aria-pressed="false" disabled>Pause updates</button><span id="preference-status" role="status"></span></div>',
 		`<main${view ? ` data-view="${typeof view === "string" ? view : "work"}"` : ""}${identity ? ` data-identity="${escapeHtml(identity)}"` : ""} id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
 		`</div></div>${searchDialog}</body></html>`,
 	].join("");

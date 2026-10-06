@@ -4,7 +4,34 @@
 
 ### Changed
 
-- Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adoption and step 09 orientation acceptance remain open.
+- Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.5.0 - 2026-10-06
+
+### Added
+
+- Add Pause/Resume updates with a bounded pending-hint count and transient,
+  motion-free outlines on changed reading blocks. Resume, reconnect and watcher
+  uncertainty reconcile the workspace without reporting retained reads as fresh.
+
+### Changed
+
+- Use native Effect RPC, AtomRegistry and effect-contract live/resume support
+  for browser reads and update ownership, bundled locally with esbuild. Preserve
+  server-rendered HTML and ordinary GET links; the compatibility `/events`,
+  search and history endpoints remain available.
+- Invalidate affected source documents, stable identities and derived views
+  through both former and current backlinks, board membership, criterion evidence
+  and attention targets. Leave unrelated documents mounted; reconcile fully when
+  paths, delivery or the rebuilt index are uncertain. Sequence numbers detect
+  server-local PubSub loss; they are not a durable replay protocol.
+
+### Fixed
+
+- Refresh missing favorites after navigation-only changes, recreate native client
+  ownership after a persisted pageshow, and retain explicit Mark seen cancellation,
+  clearing and expiry disclosure while automatic updates are paused. Keep one
+  local baseline per workspace, 30-day/2 MiB limits and source files read only.
 
 ## 0.4.1 - 2026-10-05
 

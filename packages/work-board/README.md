@@ -294,22 +294,33 @@ event: change
 data: {"paths":["plan.md"]}
 ```
 
-Open pages fetch their file again and replace only the blocks that changed,
-also when blocks were added or removed around them; the rest of the page,
-including which `<details>` are open and every drawn diagram, stays as it is,
-and the page never reloads. A page that loses the connection shows
-"reconnecting" and catches up once it is back. When the open file is deleted
-or renamed, the page shows that it is gone. A refresh that gets no page back
-keeps the page as it is and shows "refresh failed" until the next one
-succeeds.
+Open pages use locally bundled native Effect RPC and AtomRegistry queries over
+`POST /_board/rpc`. The existing GET endpoints and `/events` stream remain
+available for compatibility. No browser assets or source data need a cloud service.
 
-If watching the folder fails, the server restarts the watch, waiting longer
-after each failure. Meanwhile `/events` sends `event: down`, open pages show
-"reconnecting", and once watching resumes `event: ready` makes them catch up on
-anything they missed.
+Changed hints invalidate affected documents and derived views through former and
+current references, board membership, criterion evidence and attention targets.
+Unrelated documents keep their mounted query and DOM blocks. Relevant updates
+preserve unchanged controls, expanded details and diagrams; changed reading blocks
+receive a brief outline without animation. Native GET links and server-rendered
+HTML remain usable with JavaScript disabled.
 
-Each open page keeps one connection to `/events`, and browsers allow only a few
-per host, so the intended use is one board per browser.
+Use **Pause updates** to stop automatic invalidation while reading. The count
+reports observed hints, bounded at **256+**, rather than a count of edits or work
+completed. Resume and reconnect reconcile the full workspace. A missed server-local
+PubSub sequence, unknown path or incomplete index also requires reconciliation;
+there is no durable event journal or replay guarantee.
+
+Connection, source-watcher availability, pending reads and read failures remain
+separate. The status reports **live** only when the connection and last observed
+watcher are available and active page/navigation reads have settled. A failed read
+keeps the visible source and reports **refresh failed**. A transport outage or
+unavailable watcher reports **reconnecting**. Mark seen remains an explicit action;
+pausing never disables clearing or the 30-day baseline expiry.
+
+Each page owns a native streaming HTTP subscription and disposes its registry on
+pagehide. Returning from the browser's page cache creates a fresh client. Browser
+HTTP connection limits still apply; simultaneous tab capacity is not established.
 
 ## Embedding
 

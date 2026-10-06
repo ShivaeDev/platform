@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
+import { rpcCall, rpcResponse } from "#test/rpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -31,17 +32,20 @@ it("ignores a delayed older search even when its transport ignores cancellation"
 	page = await openPage(board, "/", (window) => {
 		const original = window.fetch.bind(window);
 		window.fetch = async (url, options) => {
-			if (!String(url).startsWith("/_board/search?")) {
+			const call = await rpcCall(window, url, options);
+			if (call?.tag !== "work-board.search") {
 				return original(url, options);
 			}
-			const old = String(url).includes("old");
+			const old = JSON.stringify(call.payload).includes("old");
 			if (old) {
 				requested = true;
 				await delayed.gate;
 			}
-			return new window.Response(
-				JSON.stringify({ results: [{ file: "note.md", href: "/note.md", kind: "document", title: old ? "Old" : "New" }], total: 1, unavailable: [] }),
-			);
+			return rpcResponse(window, call, {
+				results: [{ file: "note.md", href: "/note.md", kind: "document", snippet: "note", text: "note", title: old ? "Old" : "New" }],
+				total: 1,
+				unavailable: [],
+			});
 		};
 	});
 	await waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false));
@@ -61,22 +65,19 @@ it("reports search failures, allows retry, and renders snippets as text", async 
 	let failed = true;
 	page = await openPage(board, "/", (window) => {
 		const original = window.fetch.bind(window);
-		window.fetch = (url, options) => {
-			if (!String(url).startsWith("/_board/search?")) {
+		window.fetch = async (url, options) => {
+			const call = await rpcCall(window, url, options);
+			if (call?.tag !== "work-board.search") {
 				return original(url, options);
 			}
 			if (failed) {
 				return Promise.resolve(new window.Response("failure", { status: 503 }));
 			}
-			return Promise.resolve(
-				new window.Response(
-					JSON.stringify({
-						results: [{ file: "note.md", href: "/note.md", kind: "passage", snippet: "<script>bad()</script>", title: "<img src=x>" }],
-						total: 1,
-						unavailable: ["unreadable.md"],
-					}),
-				),
-			);
+			return rpcResponse(window, call, {
+				results: [{ file: "note.md", href: "/note.md", kind: "passage", snippet: "<script>bad()</script>", text: "note", title: "<img src=x>" }],
+				total: 1,
+				unavailable: ["unreadable.md"],
+			});
 		};
 	});
 	await waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false));
