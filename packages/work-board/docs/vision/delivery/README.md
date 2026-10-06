@@ -33,7 +33,7 @@ ship without content editing, agent APIs, or external integrations.
 | Gate | Before | Concrete material to discuss | Working recommendation, not a settled API |
 | --- | --- | --- | --- |
 | D1 Source structure | 04 | [Plain-text examples](./source-examples.md): existing heading board, richer item, linked decision/evidence; invalid/duplicate cases | Optional metadata, stable explicit IDs for durable references, readable fallback; no mandatory migration |
-| D2 Responses and writes | 14 | Exact before/after file diffs, source revision contract, concurrent editor scenario, undo and trust behavior | Begin with one structured response on one file, then add narrow field edits |
+| D2 Responses and writes | 14 | [Before/after response examples](./response-write-examples.md), source revision contract, concurrent editor scenario, undo and trust behavior | One new durable response file is the proposed first boundary; no writer/schema is settled |
 | D3 Handoff contract | 18 | One real producer/consumer walkthrough, acknowledged/rejected/lost response cases, payload examples | One local tool adapter; no scheduler, terminal manager, or generic agent protocol |
 | D4 Integration admission | 24 | A repeated manual evidence step, source of truth, refresh/offline rules, credentials and maintenance ownership | Read explicitly linked GitHub objects only; no two-way sync |
 

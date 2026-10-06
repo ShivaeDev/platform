@@ -204,3 +204,9 @@ Measure agreed performance budgets and preserve all existing package guarantees.
 **Depends on:** 01–12. **Accept:** record the roadmap's wave 1 exit evidence and
 remaining limitations. Discuss D2 using examples from this use before authorizing
 wave 2 mutations; do not fix usability gaps by adding an agent execution engine.
+
+The [reading investigation](./reading-review.md) records actual combined browser
+checks, an embedded Effect HTTP application and first performance observations.
+Remaining reader/device acceptance and unagreed budgets are explicit; step 13
+and the wave remain open. [D2 examples](./response-write-examples.md) are prepared
+for discussion before any writer or new response schema is implemented.
