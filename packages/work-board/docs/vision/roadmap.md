@@ -948,7 +948,7 @@ Full `pnpm ready` passed: 1,314 package passes (289 Work Board), 12 expected
 failures, four intentional skips, 15 orchestration checks, real PostgreSQL and
 all packed consumers. Quality baseline remains 2,539. Vision prose-link targets
 exist; the check excludes fenced source examples and does not validate anchors.
-Evidence: `/tmp/work-board-result-review-final-ready.log` and
+Evidence: `/tmp/work-board-result-review-ci-fix-ready.log` and
 `/workspace/artifacts/work-board-result-review`.
 
 `evidence.checked_revision` retains its approved Git meaning; evidence freshness
@@ -958,3 +958,15 @@ physical-device and actual-bfcache evidence remains pending; 17 editing/undo is
 deferred and D4 before 24 remains a discussion gate. PR 118 merged and publish
 workflow 37538277362 succeeded; the actual npm 0.10.0 tarball's version and both
 browser/wait bundles were verified before this checkpoint.
+
+
+CI found a timing issue in the existing handoff size regression: an unnecessarily
+large ASCII paragraph exceeded the default five-second test budget under
+coverage/load. Its replacement is exactly one UTF-8 byte over 256 KiB while below
+the UTF-16 length threshold, strengthening the byte-boundary assertion and
+reducing Markdown parser work. The timeout remains unchanged. All eight handoff
+HTTP tests passed with workspace V8 coverage; the local fallback shard 10/11 also
+passed coverage (its file allocation is not the downloaded CI timing plan).
+Production code and Chromium-verified browser/wait assets are unchanged by this
+follow-up. Final full repository handoff passed after this fixture correction with the
+counts above.
