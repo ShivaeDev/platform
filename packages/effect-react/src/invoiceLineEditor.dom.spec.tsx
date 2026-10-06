@@ -18,7 +18,7 @@ afterEach(async () => {
 const stapler = new InvoiceLine({ id: 1, name: "Stapler", quantity: 150 });
 const notebook = new InvoiceLine({ id: 2, name: "Notebook", quantity: 180 });
 
-const mount = () => {
+function mount() {
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
@@ -26,7 +26,9 @@ const mount = () => {
 		await act(async () => root.unmount());
 		container.remove();
 	});
-	const input = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+	function input(name: string) {
+		return container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+	}
 	return {
 		alerts: () => [...container.querySelectorAll('[role="alert"]')].map((alert) => alert.textContent),
 		click: (label: string) => act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === label)?.click()),
@@ -46,26 +48,27 @@ const mount = () => {
 			}),
 		value: (name: string) => input(name)?.value,
 	};
-};
+}
 
-const settle = (assert: () => void) =>
-	vi.waitFor(async () => {
+function settle(assert: () => void) {
+	return vi.waitFor(async () => {
 		await act(async () => {});
 		assert();
 	});
+}
 
-const editing = async (id = 1) => {
+async function editing(id = 1) {
 	const server = makeInvoiceLineServer([stapler, notebook]);
 	const { InvoiceLineEditor } = makeInvoiceLineViews(server);
 	const view = mount();
 	const release = server.hold();
 	let registry: AtomRegistry.AtomRegistry | undefined;
-	const Probe = () => {
+	function Probe() {
 		registry = useContext(RegistryContext);
 		return null;
-	};
-	const show = (current: number) =>
-		view.render(
+	}
+	function show(current: number) {
+		return view.render(
 			createElement(SessionBoundary<string, undefined>, {
 				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: current, key: "editor" })],
 				connect: () => undefined,
@@ -74,13 +77,14 @@ const editing = async (id = 1) => {
 				session: "s1",
 			}),
 		);
+	}
 	await show(id);
 	expect(view.text()).toContain("Loading");
 	expect(view.value("name")).toBeUndefined();
 	release();
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
 	return { registry: () => registry, server, show, view };
-};
+}
 
 it("loading, then a refresh failure keeps the data and dirty edits; retry recovers", async () => {
 	const { server, view } = await editing();
@@ -186,15 +190,15 @@ it("switching session tears down the editor, its draft and its registry; Unautho
 	const rechecks: string[] = [];
 	const registries: AtomRegistry.AtomRegistry[] = [];
 	const view = mount();
-	const Probe = () => {
+	function Probe() {
 		const registry = useContext(RegistryContext);
 		if (!registries.includes(registry)) {
 			registries.push(registry);
 		}
 		return null;
-	};
-	const show = (session: "alice" | "bob" | undefined) =>
-		view.render(
+	}
+	function show(session: "alice" | "bob" | undefined) {
+		return view.render(
 			createElement(SessionBoundary<"alice" | "bob", ReturnType<typeof makeInvoiceLineViews>>, {
 				children: ({ InvoiceLineEditor }) => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: 1, key: "editor" })],
 				connect: (user) => makeInvoiceLineViews(servers[user]),
@@ -204,6 +208,7 @@ it("switching session tears down the editor, its draft and its registry; Unautho
 				signedOut: "Signed out",
 			}),
 		);
+	}
 	await show("alice");
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
 	await view.type("name", "Alice draft");

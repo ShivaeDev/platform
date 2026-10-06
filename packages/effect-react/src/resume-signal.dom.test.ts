@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { expect, it } from "vitest";
 import { type ResumeWindow, resumeSignal } from "#resume-signal.ts";
 
-const syntheticWindow = () => {
+function syntheticWindow() {
 	const target = new EventTarget();
 	const listeners = new Set<() => void>();
 	const document: { visibilityState: string } = { visibilityState: "visible" };
@@ -27,9 +27,9 @@ const syntheticWindow = () => {
 		listeners,
 		window,
 	};
-};
+}
 
-const syntheticNative = () => {
+function syntheticNative() {
 	const listeners = new Set<() => void>();
 	return {
 		listeners,
@@ -43,15 +43,15 @@ const syntheticNative = () => {
 			return () => listeners.delete(resume);
 		},
 	};
-};
+}
 
-const counted = () => {
+function counted() {
 	let reads = 0;
 	return {
 		atom: Atom.make(Effect.sync(() => ++reads)),
 		reads: () => reads,
 	};
-};
+}
 
 it("visible browser resume, visible reconnect and native resume each refresh a query; hidden events do not", () => {
 	const browser = syntheticWindow();

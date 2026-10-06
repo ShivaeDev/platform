@@ -21,10 +21,12 @@ interface Owned<Client> {
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 
-const owning = <Client>(client: Client): Owned<Client> => ({ client, mounted: 0, registry: AtomRegistry.make() });
+function owning<Client>(client: Client): Owned<Client> {
+	return { client, mounted: 0, registry: AtomRegistry.make() };
+}
 
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
-const hidden = <Client>(client: Client): Owned<Client> => {
+function hidden<Client>(client: Client): Owned<Client> {
 	const owned = owning(client);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
@@ -40,7 +42,7 @@ const hidden = <Client>(client: Client): Owned<Client> => {
 		}, 0);
 	};
 	return owned;
-};
+}
 
 interface GenerationProps<S, Client> {
 	readonly children: (client: Client) => ReactNode;

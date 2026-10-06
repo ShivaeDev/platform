@@ -46,14 +46,14 @@ interface Control {
 	saves: number;
 }
 
-export const makeInvoiceLineServer = (initial: readonly InvoiceLine[]) => {
+export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	const store = new Map(initial.map((line) => [line.id, line]));
 	const control: Control = { gets: 0, held: undefined, mode: "ok", saves: 0 };
-	const hold = () => {
+	function hold() {
 		const gate = Effect.runSync(Deferred.make<void>());
 		control.held = gate;
 		return () => Effect.runSync(Deferred.succeed(gate, undefined));
-	};
+	}
 	const admitted = Effect.suspend((): Effect.Effect<void, Unavailable> => {
 		const gate = control.held;
 		control.held = undefined;
@@ -62,9 +62,9 @@ export const makeInvoiceLineServer = (initial: readonly InvoiceLine[]) => {
 		}
 		return gate === undefined ? Effect.void : Deferred.await(gate);
 	});
-	const normalized = (
+	function normalized(
 		draft: typeof InvoiceLineDraft.Type,
-	): Effect.Effect<typeof InvoiceLineDraft.Type, { readonly field: "name" | "quantity"; readonly message: string }> => {
+	): Effect.Effect<typeof InvoiceLineDraft.Type, { readonly field: "name" | "quantity"; readonly message: string }> {
 		const name = draft.name.trim();
 		if (name.length > 20) {
 			return Effect.fail({ field: "name", message: "Name is too long" });
@@ -73,8 +73,10 @@ export const makeInvoiceLineServer = (initial: readonly InvoiceLine[]) => {
 			return Effect.fail({ field: "quantity", message: "Quantity is too large" });
 		}
 		return Effect.succeed({ name: name.charAt(0).toUpperCase() + name.slice(1), quantity: draft.quantity });
-	};
-	const stored = (line: InvoiceLine) => Effect.sync(() => store.set(line.id, line)).pipe(Effect.as(line));
+	}
+	function stored(line: InvoiceLine) {
+		return Effect.sync(() => store.set(line.id, line)).pipe(Effect.as(line));
+	}
 	const counted = Effect.sync(() => {
 		control.saves += 1;
 	}).pipe(Effect.andThen(admitted));
@@ -109,6 +111,8 @@ export const makeInvoiceLineServer = (initial: readonly InvoiceLine[]) => {
 		protocol: Layer.merge(handlers, guard),
 	}) {}
 	const api = bind(InvoiceLines, Client);
-	const edit = (line: InvoiceLine) => store.set(line.id, line);
+	function edit(line: InvoiceLine) {
+		return store.set(line.id, line);
+	}
 	return { api, control, edit, hold, runtime: Client.runtime, stored: (id: number) => store.get(id) };
-};
+}

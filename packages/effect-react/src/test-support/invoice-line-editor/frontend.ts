@@ -8,9 +8,11 @@ import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
 const fields = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
 type InvoiceLineFields = typeof fields.fields;
-const values = (line: InvoiceLine) => ({ name: line.name, quantity: String(line.quantity) });
+function values(line: InvoiceLine) {
+	return { name: line.name, quantity: String(line.quantity) };
+}
 
-const Input = <E, ER>({ form, name }: { readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>; readonly name: "name" | "quantity" }) => {
+function Input<E, ER>({ form, name }: { readonly form: Form<InvoiceLineFields, InvoiceLine, E, ER>; readonly name: "name" | "quantity" }) {
 	const field = useField(form, name);
 	return createElement(
 		"label",
@@ -24,7 +26,7 @@ const Input = <E, ER>({ form, name }: { readonly form: Form<InvoiceLineFields, I
 		}),
 		field.error && createElement("em", { "data-error": name }, field.error),
 	);
-};
+}
 
 interface Saving<E, ER> {
 	readonly dirty: boolean;
@@ -34,15 +36,15 @@ interface Saving<E, ER> {
 	readonly saving: boolean;
 }
 
-const saveStatus = ({ saving, dirty }: { readonly saving: boolean; readonly dirty: boolean }): string => {
+function saveStatus({ saving, dirty }: { readonly saving: boolean; readonly dirty: boolean }): string {
 	if (saving) {
 		return "Saving";
 	}
 	return dirty ? "Unsaved" : "Saved";
-};
+}
 
-const InvoiceLineForm = <E, ER>({ editor, children }: { readonly editor: Saving<E, ER>; readonly children?: ReactNode }) =>
-	createElement(
+function InvoiceLineForm<E, ER>({ editor, children }: { readonly editor: Saving<E, ER>; readonly children?: ReactNode }) {
+	return createElement(
 		"form",
 		{
 			onSubmit: (event: { preventDefault: () => void }) => {
@@ -57,11 +59,12 @@ const InvoiceLineForm = <E, ER>({ editor, children }: { readonly editor: Saving<
 		createElement("p", { role: "status" }, saveStatus(editor)),
 		children,
 	);
+}
 
 type Server = ReturnType<typeof makeInvoiceLineServer>;
 
-export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
-	const InvoiceLineEditor = ({ id }: { readonly id: number }) => {
+export function makeInvoiceLineViews({ api, runtime }: Server) {
+	function InvoiceLineEditor({ id }: { readonly id: number }) {
 		const editor = useEditor({
 			fields,
 			query: api.get.query({ id }),
@@ -81,8 +84,8 @@ export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
 			}),
 			form && createElement(InvoiceLineForm, { editor: { ...editor, form } }),
 		);
-	};
-	const InvoiceLineCreate = () => {
+	}
+	function InvoiceLineCreate() {
 		const create = useCreate({
 			create: api.create.run,
 			fields,
@@ -91,6 +94,6 @@ export const makeInvoiceLineViews = ({ api, runtime }: Server) => {
 		});
 		const created = Option.map(create.created, (line) => createElement("output", null, `Created ${line.id}: ${line.name}`));
 		return createElement(InvoiceLineForm, { editor: create }, Option.getOrNull(created));
-	};
+	}
 	return { InvoiceLineCreate, InvoiceLineEditor };
-};
+}

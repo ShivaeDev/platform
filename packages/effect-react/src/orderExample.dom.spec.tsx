@@ -9,7 +9,7 @@ import { startOrderServer } from "#test/order-example/http-test.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-const mountEditor = async (url: string, token?: string, id = 1) => {
+async function mountEditor(url: string, token?: string, id = 1) {
 	window.location.href = url;
 	const { Client, api, Editor } = makeOrderEditor({ token, url });
 	const registry = AtomRegistry.make();
@@ -19,14 +19,14 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 	await act(async () => {
 		root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Editor, { id })));
 	});
-	const input = (name: string) => {
+	function input(name: string) {
 		const label = [...container.querySelectorAll("label")].find((label) => label.textContent?.startsWith(name));
 		const element = label?.htmlFor ? container.querySelector<HTMLInputElement>(`#${label.htmlFor}`) : label?.querySelector("input");
 		if (!element) {
 			throw new Error(`Missing input ${name}`);
 		}
 		return element;
-	};
+	}
 	return {
 		click: async (name: string) => {
 			const button = [...container.querySelectorAll("button")].find((button) => button.textContent === name);
@@ -61,20 +61,22 @@ const mountEditor = async (url: string, token?: string, id = 1) => {
 			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
 		},
 	};
-};
+}
 
-const eventually = (assert: () => void) =>
-	vi.waitFor(async () => {
+function eventually(assert: () => void) {
+	return vi.waitFor(async () => {
 		await act(async () => {});
 		assert();
 	});
+}
 
-const sessions = () =>
-	new Map([
+function sessions() {
+	return new Map([
 		["alice-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
 		["bob-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 		["expired-session", { expiresAt: 0, userId: "alice" }],
 	]);
+}
 
 it("real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits", async () => {
 	const server = await startOrderServer({ sessions: sessions() });
@@ -123,7 +125,9 @@ it("real HTTP saves refetch the view, field rejection preserves storage, and ref
 it("edits made while a save is in flight survive its response and query refresh", async () => {
 	const entered = await Effect.runPromise(Deferred.make<void>());
 	const resumed = await Effect.runPromise(Deferred.make<void>());
-	const release = () => Effect.runPromise(Deferred.succeed(resumed, undefined));
+	function release() {
+		return Effect.runPromise(Deferred.succeed(resumed, undefined));
+	}
 	const server = await startOrderServer({
 		beforeSave: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(resumed))),
 		sessions: sessions(),
@@ -219,14 +223,16 @@ it("saving one order refreshes it and the list without refetching another mounte
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
-	const editor = (index: number) => {
+	function editor(index: number) {
 		const section = container.querySelectorAll("section")[index];
 		if (!section) {
 			throw new Error(`Missing editor ${index}`);
 		}
 		return section;
-	};
-	const list = () => [...container.querySelectorAll('[data-testid="order-list"] li')].map((item) => item.textContent);
+	}
+	function list() {
+		return [...container.querySelectorAll('[data-testid="order-list"] li')].map((item) => item.textContent);
+	}
 	try {
 		await act(async () => {
 			root.render(

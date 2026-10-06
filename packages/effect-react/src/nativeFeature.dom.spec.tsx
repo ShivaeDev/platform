@@ -64,7 +64,7 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 		reactivityKeys: ["notes"],
 	});
 	const create = NotesClient.mutation("CreateNote");
-	const Component = () => {
+	function Component() {
 		const query = useQuery(list);
 		const action = useAction(create);
 		return createElement(
@@ -105,8 +105,10 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 				"Save empty",
 			),
 		);
-	};
-	const snapshot = () => JSON.parse(container.querySelector("output")?.textContent ?? "null");
+	}
+	function snapshot() {
+		return JSON.parse(container.querySelector("output")?.textContent ?? "null");
+	}
 	const settled = async (titles: string[], error = false) =>
 		vi.waitFor(async () => {
 			await act(async () => {});
