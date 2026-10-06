@@ -80,6 +80,12 @@ across project files. The board is the shared place to inspect and discuss that
 work. Agent tools remain responsible for running agents; editors and Git remain
 useful independent of the board.
 
+Agents keep using ordinary file edits. Work Board owns the human response content
+it records; agent changes own the surrounding project Markdown. Practical draft
+and revision checks support that workflow without requiring agents to use a
+special writer or making universal concurrent-editor safety a product prerequisite.
+See the [approved ownership boundary](./delivery/source-editing-examples.md).
+
 The core objects are work items, documents, decisions, evidence, and handoffs.
 Views arrange these objects for different questions; they do not create competing
 copies. A source document can remain narrative while its work items appear in a
@@ -143,6 +149,7 @@ watcher, rendering, and embedding path. Package/API changes and the write-back
 contract need their own design review before implementation.
 
 Immediate product priorities are orientation, navigation, visual clarity,
-relationships, evidence, and freshness. Editing and agent coordination are wave 2
-discussion topics. Narrow external integrations enter wave 3 only when they remove
+relationships, evidence, freshness, and contextual direction. Agents own project
+editing; the next coordination contract belongs to the wave 2 handoff discussion.
+Narrow external integrations enter wave 3 only when they remove
 a demonstrated manual step.

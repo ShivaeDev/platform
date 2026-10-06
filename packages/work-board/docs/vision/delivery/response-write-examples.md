@@ -64,7 +64,9 @@ late reply. Service outages never establish that a person left it unanswered.
 
 D3 still covers an actual agent handoff/acknowledgment adapter before step 18.
 A CLI wait in an existing harness does not establish automatic model wakeup,
-launch an agent or settle future structured decision/narrow-editing contracts.
+launch an agent. Step 16's rich decision contract is delivered; the later
+[ownership decision](./source-editing-examples.md) keeps ordinary project editing
+with agents and defers direct editing/undo. No special agent writer is required.
 D4 before step 24 and the pending representative-reader/device evidence remain.
 
 ## Repeatable acceptance path

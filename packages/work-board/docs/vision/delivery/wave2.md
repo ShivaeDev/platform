@@ -46,6 +46,13 @@ qualification. Demonstrate recovery when the source moves or disappears.
 
 ## 17 Narrow editing and honest undo
 
+**Disposition:** deferred by the approved
+[ordinary-file editing and response ownership boundary](./source-editing-examples.md).
+Agents keep editing project Markdown with their usual tools; Work Board owns human
+responses. Do not implement direct editing or a universal concurrent-writer engine
+as a prerequisite for coordination. The original editing scope below remains
+unimplemented, rather than accepted through documentation.
+
 **Outcome:** routine updates no longer require leaving the work context.
 Add create/title/checklist/status actions one at a time through the same command
 path. Add explicit move controls, then optional drag-and-drop with the same
@@ -65,7 +72,11 @@ constraints, source references/revisions, acceptance criteria, owner, and next
 action. Record requested, acknowledged, rejected, and unavailable states. Use a
 handoff identity to recognize retries without creating duplicate work. An
 acknowledgment means receipt, not completed execution or accepted results.
-**Depends on:** 15–17 and D3. **Accept:** send one real handoff, observe receipt,
+The [D3 walkthrough and delivery alternatives](./handoff-examples.md) are proposed
+discussion material, not an approved format or launcher.
+**Depends on:** 15–16, the ownership decision for deferred 17, and D3.
+The agent must be able to acknowledge by editing ordinary files; a special writer
+or acknowledgment command cannot be mandatory. **Accept:** send one real handoff, observe receipt,
 and exercise unavailable tool, duplicate request, and lost-acknowledgment cases.
 Never silently switch agent/tool or assume a timed-out request was not received.
 
@@ -105,8 +116,10 @@ choose concrete API names and transports at their design gates.
 
 D2 authorizes 14–15's append-only question/response files, browser draft policy and
 per-question CLI wait. The original project document is preserved; this checkpoint
-uses no-replace publication instead of a source-replacing patch. Atomic replacement,
-undo and general editor coordination remain step 17 work, with their own contract.
+uses no-replace publication instead of a source-replacing patch. The later
+[ownership decision](./source-editing-examples.md) defers step 17's general project
+editing and undo; it accepts best-effort ordinary editor races rather than requiring
+a universal replacement transaction.
 The passive wait is an existing-session consumer, not step 18's handoff/launch adapter.
 See [the source contract](./response-write-examples.md) and the roadmap for actual
 acceptance evidence and first-platform filesystem limits.
@@ -117,4 +130,5 @@ Step 16 uses agent-authored directive question packets over the approved respons
 publisher. One packet submits together; optional typed answers accompany readable
 Markdown, with extra human text, exact context and explicit superseding identity.
 See [the contract and examples](./decision-write-examples.md). This does not settle
-step 17 source replacement/undo or D3 agent handoff contracts.
+an inline-response format or D3 agent handoff contracts. Project editing follows
+the approved ownership boundary; the original step 17 controls remain deferred.
