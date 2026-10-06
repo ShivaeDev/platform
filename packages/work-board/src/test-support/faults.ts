@@ -33,7 +33,15 @@ export function faultyWatch(): FaultyWatch {
 		broken = true;
 		Effect.runSync(Deferred.succeed(failure, undefined));
 	}
-	return { attempts, fail, heal: () => (broken = false), wrap };
+	return {
+		attempts,
+		fail,
+		heal: () => {
+			broken = false;
+			return broken;
+		},
+		wrap,
+	};
 }
 
 export const silentWatch: FileSystemWrapper = (fs) => ({ ...fs, watch: () => Stream.never });

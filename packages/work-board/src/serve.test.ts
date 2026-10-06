@@ -62,8 +62,14 @@ describe("the server", () => {
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let output = "";
-		child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
-		child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
+		child.stdout.on("data", (chunk: Buffer) => {
+			output += chunk.toString("utf8");
+			return output;
+		});
+		child.stderr.on("data", (chunk: Buffer) => {
+			output += chunk.toString("utf8");
+			return output;
+		});
 		const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
 		expect(code).not.toBe(0);
 		expect(output).toContain("The home file missing.md is not a markdown file in");
