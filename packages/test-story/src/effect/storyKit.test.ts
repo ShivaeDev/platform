@@ -6,6 +6,7 @@ import {
 	hasBowls,
 	hasDough,
 	hasFlourDelivered,
+	hasFlourFromTheMill,
 	hasNoBowls,
 	NoBowls,
 	newBakery,
@@ -36,6 +37,12 @@ effectApp("refuses a trait whose effect fails, as a defect", function* () {
 		new Error('trait "the supplier has delivered 9 sacks of flour" refused: the supplier delivers at most 5 sacks'),
 	);
 	expect(Exit.isFailure(exit) && Cause.hasFails(exit.cause)).toBe(false);
+});
+
+effectApp("names the refusal of a trait that fails with a plain value", function* () {
+	const exit = yield* Effect.exit(newBakery(hasFlourFromTheMill()));
+
+	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toEqual(new Error('trait "the mill has sent flour" refused: the mill is closed'));
 });
 
 effectApp("refuses a trait whose effect dies", function* () {

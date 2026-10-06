@@ -64,6 +64,10 @@ export function hasFlourDelivered(sacks: number) {
 	);
 }
 
+export function hasFlourFromTheMill() {
+	return kit.trait("pantry", "the mill has sent flour", () => Effect.fail("the mill is closed"));
+}
+
 export function hasDough(count: number) {
 	return kit.trait("pantry", `the baker has ${count} balls of dough`, (bakery) =>
 		count > bakery.capacity
