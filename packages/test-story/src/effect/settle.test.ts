@@ -18,6 +18,7 @@ effectApp("dies with the failure the domain names", function* () {
 	const exit = yield* Effect.exit(oven.bakesEverything());
 
 	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toEqual(new Error("the oven is cold with 2 balls of dough waiting"));
+	expect(Exit.isFailure(exit) && Cause.hasFails(exit.cause)).toBe(false);
 });
 
 effectApp("keeps a step's typed failure in the error channel", function* () {
@@ -45,4 +46,5 @@ effectApp("dies at the cap with the diagnosis and the last lines of the story", 
 			].join("\n"),
 		),
 	);
+	expect(Exit.isFailure(exit) && Cause.hasFails(exit.cause)).toBe(false);
 });

@@ -15,7 +15,7 @@ const kit: StoryKit<Garden, "dug" | "planted"> = storyKit<Garden>()("dug", "plan
 const dug = kit.trait("dug", "the garden has 2 beds", (garden) => {
   garden.beds = 2
 })
-const log: StoryLog = kit.seed({ beds: 0 }, [kit.traits(dug)], { after: { dug: () => undefined }, log: storyLog({ printOnFailure: false }) })
+const log: StoryLog = kit.seed({ beds: 0 }, [kit.traits(dug)], { after: { dug: () => undefined }, log: storyLog({ storyOnFailure: false }) })
 const beds: number = settle(log, {
   cap: 1,
   diagnose: () => "never",

@@ -1,17 +1,56 @@
 import { Effect } from "effect";
-import { unsettled } from "#settle.ts";
+import { unsettled } from "#internal/unsettled.ts";
 import type { StoryLog } from "#storyLog.ts";
 
-export interface EffectSettleSpec<TReport, E, R> {
+export interface EffectSettleSpec<
+	TReport,
+	TFailedError,
+	TFailedServices,
+	TSettledError,
+	TSettledServices,
+	TStepError,
+	TStepServices,
+	TDiagnoseError,
+	TDiagnoseServices,
+	TReportError,
+	TReportServices,
+> {
 	readonly cap: number;
-	readonly diagnose: Effect.Effect<string, E, R>;
-	readonly failed: Effect.Effect<Error | undefined, E, R>;
-	readonly report: Effect.Effect<TReport, E, R>;
-	readonly settled: Effect.Effect<boolean, E, R>;
-	readonly step: Effect.Effect<void, E, R>;
+	readonly diagnose: Effect.Effect<string, TDiagnoseError, TDiagnoseServices>;
+	readonly failed: Effect.Effect<Error | undefined, TFailedError, TFailedServices>;
+	readonly report: Effect.Effect<TReport, TReportError, TReportServices>;
+	readonly settled: Effect.Effect<boolean, TSettledError, TSettledServices>;
+	readonly step: Effect.Effect<void, TStepError, TStepServices>;
 }
 
-export const settleEffect = Effect.fnUntraced(function* <TReport, E, R>(log: StoryLog, spec: EffectSettleSpec<TReport, E, R>) {
+export const settleEffect = Effect.fnUntraced(function* <
+	TReport,
+	TFailedError,
+	TFailedServices,
+	TSettledError,
+	TSettledServices,
+	TStepError,
+	TStepServices,
+	TDiagnoseError,
+	TDiagnoseServices,
+	TReportError,
+	TReportServices,
+>(
+	log: StoryLog,
+	spec: EffectSettleSpec<
+		TReport,
+		TFailedError,
+		TFailedServices,
+		TSettledError,
+		TSettledServices,
+		TStepError,
+		TStepServices,
+		TDiagnoseError,
+		TDiagnoseServices,
+		TReportError,
+		TReportServices
+	>,
+) {
 	for (let steps = 0; ; steps += 1) {
 		const failure = yield* spec.failed;
 		if (failure !== undefined) {

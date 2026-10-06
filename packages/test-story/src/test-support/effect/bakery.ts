@@ -1,9 +1,11 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { settleEffect } from "#effect/settle.ts";
 import { effectStoryKit, type TargetTrait } from "#effect/storyKit.ts";
-import { type BakeReport, type Bakery, coldOven, emptyBakery, fitBowls, stillWaiting } from "#test/bakery.ts";
+import { type BakeReport, type Bakery, emptyBakery, fitBowls, ovenTrouble, stillWaiting } from "#test/bakery.ts";
 
 export class SupplierShort extends Data.TaggedError("SupplierShort")<{ readonly message: string }> {}
+
+export class NoBowls extends Data.TaggedError("NoBowls") {}
 
 export class OutOfFlour extends Data.TaggedError("OutOfFlour")<{ readonly minute: number }> {}
 
@@ -44,6 +46,14 @@ export function bakerIsCalledAway() {
 	return kit.trait("kitchen", "the baker is called away", () => Effect.interrupt);
 }
 
+export function hasNoBowls() {
+	return kit.trait("kitchen", "the bakery has no bowls", (bakery) =>
+		Effect.sync(() => {
+			bakery.bowls = 0;
+		}),
+	);
+}
+
 export function hasFlourDelivered(sacks: number) {
 	return kit.trait("pantry", `the supplier has delivered ${sacks} sacks of flour`, (bakery) =>
 		Effect.gen(function* () {
@@ -80,7 +90,9 @@ function bakeOneLoaf(bakery: Bakery, tell: (line: string) => void): Effect.Effec
 
 export const newBakery = Effect.fnUntraced(function* (...given: readonly BakeryTrait[]) {
 	const bakery = emptyBakery();
-	const log = yield* kit.seed(bakery, given, { after: { kitchen: (target) => Effect.sync(() => fitBowls(target)) } });
+	const log = yield* kit.seed(bakery, given, {
+		after: { kitchen: (target) => (target.bowls === 0 ? Effect.fail(new NoBowls()) : Effect.sync(() => fitBowls(target))) },
+	});
 	return {
 		bakery,
 		log,
@@ -89,7 +101,7 @@ export const newBakery = Effect.fnUntraced(function* (...given: readonly BakeryT
 				settleEffect(log, {
 					cap: within,
 					diagnose: Effect.sync(() => stillWaiting(bakery)),
-					failed: Effect.sync(() => coldOven(bakery)),
+					failed: Effect.sync(() => ovenTrouble(bakery)),
 					report: Effect.sync(() => ({ loaves: bakery.loaves, minutes: bakery.minute })),
 					settled: Effect.sync(() => bakery.dough === 0),
 					step: bakeOneLoaf(bakery, log.tell),

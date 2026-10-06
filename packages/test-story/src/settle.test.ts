@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasBowls, hasDough, keepsSourdough, newBakery, ovenIsLit } from "#test/bakery.ts";
+import { hasBowls, hasDough, keepsSourdough, newBakery, ovenIsLit, ovenSmokes } from "#test/bakery.ts";
 
 describe("a story settles or says why it cannot", () => {
 	it("steps until the bakery settles and returns the report", () => {
@@ -33,6 +33,12 @@ describe("a story settles or says why it cannot", () => {
 
 		expect(() => oven.bakesEverything()).toThrow("the oven is cold with 2 balls of dough waiting");
 		expect(bakery.minute).toBe(0);
+	});
+
+	it("throws the failure even when the bakery has also settled", () => {
+		const { oven } = newBakery(ovenIsLit(), ovenSmokes());
+
+		expect(() => oven.bakesEverything()).toThrow("the oven fills the bakery with smoke");
 	});
 
 	it("stops at the cap with the diagnosis and the last ten lines of the story", () => {

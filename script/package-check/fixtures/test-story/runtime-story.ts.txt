@@ -23,7 +23,7 @@ const log = kit.seed(
       state.beds = 1
     }),
   ],
-  { log: storyLog({ printOnFailure: false }) },
+  { log: storyLog({ storyOnFailure: false }) },
 )
 const sprouts = settle(log, {
   cap: 10,
@@ -42,7 +42,7 @@ let refusal = ""
 try {
   kit.seed(garden, [kit.trait("dug", "the garden is paved", () => {
     throw new Error("nothing grows on stone")
-  })], { log: storyLog({ printOnFailure: false }) })
+  })], { log: storyLog({ storyOnFailure: false }) })
 } catch (error) {
   refusal = error instanceof Error ? error.message : ""
 }
@@ -50,7 +50,7 @@ try {
 const effectKit = effectStoryKit<Garden>()("dug")
 const exit = await Effect.runPromiseExit(
   Effect.flatMap(
-    effectKit.seed(garden, [effectKit.trait("dug", "a bed is dug", () => Effect.fail("too dry"))], { log: storyLog({ printOnFailure: false }) }),
+    effectKit.seed(garden, [effectKit.trait("dug", "a bed is dug", () => Effect.fail("too dry"))], { log: storyLog({ storyOnFailure: false }) }),
     (story) => settleEffect(story, { cap: 0, diagnose: Effect.succeed(""), failed: Effect.succeed(undefined), report: Effect.void, settled: Effect.succeed(true), step: Effect.void }),
   ),
 )

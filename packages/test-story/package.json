@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/test-story",
 	"version": "0.1.0",
-	"description": "Story DSL core for tests: staged traits, a story log printed on failure and a settle loop",
+	"description": "Story DSL core for tests: staged traits, a story log added to a failing test's error and a settle loop",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
@@ -29,6 +29,7 @@
 			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
+		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [

@@ -1,25 +1,33 @@
 import { Cause, Effect } from "effect";
+import { refused } from "#internal/refused.ts";
+import { tellTraits, trait, traits } from "#internal/traits.ts";
 import { type StoryLog, storyLog } from "#storyLog.ts";
-import { refused, type Trait, type TraitPart, tellTraits, trait, traits } from "#trait.ts";
+import type { Trait, TraitPart } from "#trait.ts";
 
 export type TargetApply<TTarget, R> = (target: TTarget) => Effect.Effect<void, unknown, R>;
 
 export type TargetTrait<TTarget, R, TStage extends string> = Trait<TStage, TargetApply<TTarget, R>>;
 
-export interface EffectSeedOptions<TTarget, E, R, TStage extends string> {
-	readonly after?: Partial<Record<TStage, (target: TTarget) => Effect.Effect<void, E, R>>>;
+export type AfterHooks<TTarget, R, TErrors> = { readonly [TKey in keyof TErrors]: (target: TTarget) => Effect.Effect<void, TErrors[TKey], R> };
+
+export type StageErrors<TStage extends string> = { readonly [TKey in TStage]?: unknown };
+
+export interface EffectSeedOptions<TAfter> {
+	readonly after?: TAfter;
 	readonly log?: StoryLog;
 }
 
 export interface EffectStoryKit<TTarget, R, TStage extends string> {
-	readonly seed: <E = never>(
+	readonly seed: <TErrors extends StageErrors<TStage> = Record<never, never>>(
 		target: TTarget,
 		given: readonly TargetTrait<TTarget, R, TStage>[],
-		options?: EffectSeedOptions<TTarget, E, R, TStage>,
-	) => Effect.Effect<StoryLog, E, R>;
+		options?: EffectSeedOptions<AfterHooks<TTarget, R, TErrors>>,
+	) => Effect.Effect<StoryLog, TErrors[keyof TErrors], R>;
 	readonly trait: (stage: TStage, line: string, apply: TargetApply<TTarget, R>) => TargetTrait<TTarget, R, TStage>;
 	readonly traits: (...given: readonly TargetTrait<TTarget, R, TStage>[]) => TargetTrait<TTarget, R, TStage>;
 }
+
+type StageHooks<TTarget, R, TStage extends string> = { readonly [TKey in TStage]?: (target: TTarget) => Effect.Effect<void, unknown, R> };
 
 function applyOrRefuse<TTarget, R, TStage extends string>(
 	part: TraitPart<TStage, TargetApply<TTarget, R>>,
@@ -30,30 +38,44 @@ function applyOrRefuse<TTarget, R, TStage extends string>(
 	);
 }
 
-function applyStage<TTarget, E, R, TStage extends string>(
-	parts: readonly TraitPart<TStage, TargetApply<TTarget, R>>[],
-	stage: TStage,
+const runStages = Effect.fnUntraced(function* <TTarget, R, TStage extends string>(
+	stages: readonly TStage[],
 	target: TTarget,
-	after: ((target: TTarget) => Effect.Effect<void, E, R>) | undefined,
-): Effect.Effect<void, E, R> {
-	return Effect.forEach(
-		parts.filter((each) => each.stage === stage),
-		(part) => applyOrRefuse(part, target),
-		{ discard: true },
-	).pipe(Effect.andThen(after === undefined ? Effect.void : after(target)));
+	given: readonly TargetTrait<TTarget, R, TStage>[],
+	options: EffectSeedOptions<StageHooks<TTarget, R, TStage>> | undefined,
+) {
+	const log = options?.log ?? storyLog();
+	const parts = tellTraits(log, given);
+	for (const stage of stages) {
+		for (const part of parts.filter((each) => each.stage === stage)) {
+			yield* applyOrRefuse(part, target);
+		}
+		const after = options?.after?.[stage];
+		if (after !== undefined) {
+			yield* after(target);
+		}
+	}
+	return log;
+});
+
+function seedStages<TTarget, R, TStage extends string, TErrors extends StageErrors<TStage>>(
+	stages: readonly TStage[],
+	target: TTarget,
+	given: readonly TargetTrait<TTarget, R, TStage>[],
+	options: EffectSeedOptions<AfterHooks<TTarget, R, TErrors>> | undefined,
+): Effect.Effect<StoryLog, TErrors[keyof TErrors], R>;
+function seedStages<TTarget, R, TStage extends string>(
+	stages: readonly TStage[],
+	target: TTarget,
+	given: readonly TargetTrait<TTarget, R, TStage>[],
+	options: EffectSeedOptions<StageHooks<TTarget, R, TStage>> | undefined,
+): Effect.Effect<StoryLog, unknown, R> {
+	return runStages(stages, target, given, options);
 }
 
 export function effectStoryKit<TTarget, R = never>() {
 	return <const TStage extends string>(...stages: readonly [TStage, ...TStage[]]): EffectStoryKit<TTarget, R, TStage> => ({
-		seed: (target, given, options) =>
-			Effect.gen(function* () {
-				const log = options?.log ?? storyLog();
-				const parts = tellTraits(log, given);
-				for (const stage of stages) {
-					yield* applyStage(parts, stage, target, options?.after?.[stage]);
-				}
-				return log;
-			}),
+		seed: (target, given, options) => seedStages(stages, target, given, options),
 		trait,
 		traits,
 	});

@@ -10,6 +10,7 @@ export interface Bakery {
 	loaves: number;
 	minute: number;
 	ovenLit: boolean;
+	smoking: boolean;
 	starter: boolean;
 }
 
@@ -21,7 +22,7 @@ export interface BakeReport {
 const DOUGH_PER_BOWL = 3;
 
 export function emptyBakery(): Bakery {
-	return { bowls: 1, capacity: 0, dough: 0, flour: 0, loaves: 0, minute: 0, ovenLit: false, starter: false };
+	return { bowls: 1, capacity: 0, dough: 0, flour: 0, loaves: 0, minute: 0, ovenLit: false, smoking: false, starter: false };
 }
 
 export function fitBowls(bakery: Bakery): void {
@@ -43,6 +44,12 @@ export function hasBowls(count: number) {
 export function ovenIsLit() {
 	return kit.trait("kitchen", "the oven is lit", (bakery) => {
 		bakery.ovenLit = true;
+	});
+}
+
+export function ovenSmokes() {
+	return kit.trait("kitchen", "the oven smokes", (bakery) => {
+		bakery.smoking = true;
 	});
 }
 
@@ -71,7 +78,10 @@ function bakeOneLoaf(bakery: Bakery, log: StoryLog): void {
 	log.tell(`${bakery.minute}m a loaf comes out of the oven`);
 }
 
-export function coldOven(bakery: Bakery): Error | undefined {
+export function ovenTrouble(bakery: Bakery): Error | undefined {
+	if (bakery.smoking) {
+		return new Error("the oven fills the bakery with smoke");
+	}
 	return !bakery.ovenLit && bakery.dough > 0 ? new Error(`the oven is cold with ${bakery.dough} balls of dough waiting`) : undefined;
 }
 
@@ -96,7 +106,7 @@ export function newBakery(...given: readonly BakeryTrait[]) {
 				settle(log, {
 					cap: within,
 					diagnose: () => stillWaiting(bakery),
-					failed: () => coldOven(bakery),
+					failed: () => ovenTrouble(bakery),
 					report: () => ({ loaves: bakery.loaves, minutes: bakery.minute }),
 					settled: () => bakery.dough === 0,
 					step: () => bakeOneLoaf(bakery, log),

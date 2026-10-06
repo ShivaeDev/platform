@@ -1,5 +1,7 @@
+import { refused } from "#internal/refused.ts";
+import { tellTraits, trait, traits } from "#internal/traits.ts";
 import { type StoryLog, storyLog } from "#storyLog.ts";
-import { refused, type Trait, type TraitPart, tellTraits, trait, traits } from "#trait.ts";
+import type { Trait, TraitPart } from "#trait.ts";
 
 export type StateApply<TState> = (state: TState) => void;
 

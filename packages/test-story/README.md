@@ -68,7 +68,7 @@ The story so far:
   1m a loaf comes out of the oven
 ```
 
-`storyLog()` registers this with Vitest's `onTestFailed`, so it runs inside a test, which is where `seed` creates its log. `storyLog({ printOnFailure: false })` makes a log that adds nothing; pass it to `seed` as `log` to seed outside a test.
+`storyLog()` registers this with Vitest's `onTestFailed`, so it runs inside a test, which is where `seed` creates its log. `storyLog({ storyOnFailure: false })` makes a log that adds nothing; pass it to `seed` as `log` to seed outside a test.
 
 ## Settling
 
@@ -129,6 +129,6 @@ export const newBakery = Effect.fnUntraced(function* (...given: readonly BakeryT
 })
 ```
 
-`seed` is an Effect. A trait that fails or dies is a broken test, not an expected error: `seed` dies with the same refusal as the sync kit, so its error channel holds only the failures of its `after` hooks. An interrupted trait stays interrupted.
+`seed` is an Effect. A trait that fails or dies is a broken test, not an expected error: `seed` dies with the same refusal as the sync kit, so its error channel holds only the failures of its `after` hooks, each hook with its own error type. An interrupted trait stays interrupted.
 
-`settleEffect(log, spec)` from `@shivaedev/test-story/effect/settle.ts` runs the same loop over a spec of Effects. It dies with the error `failed` returns and when the cap is reached; a step's typed failure stays in the error channel.
+`settleEffect(log, spec)` from `@shivaedev/test-story/effect/settle.ts` runs the same loop over a spec of Effects. It dies with the error `failed` returns and when the cap is reached. Each member of the spec may fail and need services of its own: their typed failures stay in the error channel, and the result needs the services of all of them.

@@ -27,7 +27,7 @@ describe("a failed test reports the story so far", () => {
 
 	it.fails("adds nothing for a log told to stay quiet", () => {
 		reportFailures();
-		const log = storyLog({ printOnFailure: false });
+		const log = storyLog({ storyOnFailure: false });
 		log.tell("the baker sleeps in");
 
 		expect(log.lines, "quiet").toEqual([]);

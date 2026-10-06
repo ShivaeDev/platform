@@ -1,5 +1,5 @@
 import { onTestFailed } from "vitest";
-import { indentStory } from "#indentStory.ts";
+import { indentStory } from "#internal/indentStory.ts";
 
 export interface StoryLog {
 	readonly lines: readonly string[];
@@ -7,12 +7,12 @@ export interface StoryLog {
 }
 
 export interface StoryLogOptions {
-	readonly printOnFailure?: boolean;
+	readonly storyOnFailure?: boolean;
 }
 
 export function storyLog(options?: StoryLogOptions): StoryLog {
 	const lines: string[] = [];
-	if (options?.printOnFailure !== false) {
+	if (options?.storyOnFailure !== false) {
 		onTestFailed(({ task }) => {
 			const failure = task.result?.errors?.[0];
 			if (failure !== undefined) {

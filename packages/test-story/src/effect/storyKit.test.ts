@@ -1,7 +1,18 @@
 import { expect } from "@effect/vitest";
 import { Cause, Effect, Exit } from "effect";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { bakerIsCalledAway, hasBowls, hasDough, hasFlourDelivered, newBakery, ovenIsLit, Supplier, traits } from "#test/effect/bakery.ts";
+import {
+	bakerIsCalledAway,
+	hasBowls,
+	hasDough,
+	hasFlourDelivered,
+	hasNoBowls,
+	NoBowls,
+	newBakery,
+	ovenIsLit,
+	Supplier,
+	traits,
+} from "#test/effect/bakery.ts";
 
 const { effectApp } = makeEffectIt({ layer: Supplier.layer, makeHarness: () => Effect.succeed({}) });
 
@@ -39,4 +50,8 @@ effectApp("lets an interrupted trait stay interrupted", function* () {
 	const exit = yield* Effect.exit(newBakery(bakerIsCalledAway(), hasDough(1)));
 
 	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+});
+
+effectApp("keeps a failing after hook's error in the error channel", function* () {
+	expect(yield* Effect.flip(newBakery(hasNoBowls(), hasDough(0)))).toEqual(new NoBowls());
 });
