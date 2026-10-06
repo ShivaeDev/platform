@@ -41,7 +41,7 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json",
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "prisma generate --config src/test-support/prisma.config.ts --no-hints",

@@ -130,6 +130,8 @@ recovery, not exactly-once agent action. The server's 30-second request leases a
 one-second reconciliation checks are distinct from the human's 48-hour deadline.
 During a transport/index outage, waits retry the same question; at the deadline,
 an unavailable service is reported as unavailable rather than falsely unanswered.
+Damaged frontmatter in the `responses/` record namespace also makes history
+unavailable; repair the record before treating its question as unanswered.
 
 The client uses bundled native Effect RPC over the existing local command path.
 Serving imports are loaded only for the server command. Each waiter has no

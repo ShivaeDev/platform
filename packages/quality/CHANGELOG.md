@@ -7,6 +7,10 @@
 - `quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit`, and `quality hooks uninstall` removes it. A repository opts in by running the command; installing dependencies never installs it. The hook lives in the common git directory, so every worktree shares it, and it runs the committing worktree's own quality with that worktree's config, or blocks the commit and says to install the worktree's dependencies when that quality is missing. Install never sets `core.hooksPath`, keeps a pre-commit hook it did not write unless `--force` replaces it, and says how to call quality from that hook.
 - `quality hooks pre-commit` runs `quality lint` and then each command in the config's new `preCommit.run`, from the config's folder. Every check runs even when one fails, and the output ends with the checks that failed and a `help:` line. With `preCommit.tighten`, it first lowers the baseline entries of the staged files and stages the baseline; a partly staged file keeps its entries until a later commit.
 
+### Changed
+
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.17.0 - 2026-10-06
 
 ### Added

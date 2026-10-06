@@ -117,6 +117,9 @@ attention, claims criterion acceptance or launches an agent. Missing/moved sourc
 requires reviewing and registering the available context; historical records remain
 readable through their registered question identity. Ambiguous or malformed history
 is unknown, not an empty answer list.
+This includes syntactically damaged or unterminated frontmatter in `responses/`,
+even when the parser cannot recover its record kind. Ordinary malformed Markdown
+outside that record namespace does not establish a response or block feedback reads.
 
 ## Content and filesystem boundaries
 
