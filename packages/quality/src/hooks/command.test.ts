@@ -4,19 +4,22 @@ import { hookCommand, shellWords } from "#hooks/command.ts";
 describe("hookCommand", () => {
 	it.each([
 		{
-			launch: ["node", "--conditions=source", "tools/quality.ts"],
 			ran: "a file in the repository, with its Node options",
+			runs: { launcher: "tools/quality.ts", runner: ["node", "--conditions=source"] },
 			script: "/repo/tools/quality.ts",
 		},
-		{ launch: ["node_modules/.bin/quality"], ran: "an installed package", script: "/repo/node_modules/@shivaedev/quality/dist/cli.js" },
-		{ launch: ["node_modules/.bin/quality"], ran: "a file outside the repository", script: "/cache/dlx/quality/dist/cli.js" },
-	])("runs quality the way it ran from $ran", ({ launch, script }) => {
-		expect(hookCommand("/repo", { options: ["--conditions=source"], script }, undefined)).toEqual([...launch, "hooks", "pre-commit"]);
+		{
+			ran: "an installed package",
+			runs: { launcher: "node_modules/.bin/quality", runner: [] },
+			script: "/repo/node_modules/@shivaedev/quality/dist/cli.js",
+		},
+		{ ran: "a file outside the repository", runs: { launcher: "node_modules/.bin/quality", runner: [] }, script: "/cache/dlx/quality/dist/cli.js" },
+	])("runs quality the way it ran from $ran", ({ runs, script }) => {
+		expect(hookCommand("/repo", { options: ["--conditions=source"], script }, undefined)).toEqual({ ...runs, args: ["hooks", "pre-commit"] });
 	});
 
 	it("passes a config file that is not quality.config.ts", () => {
-		expect(hookCommand("/repo", { options: [], script: "/elsewhere/cli.js" }, "checks.config.ts")).toEqual([
-			"node_modules/.bin/quality",
+		expect(hookCommand("/repo", { options: [], script: "/elsewhere/cli.js" }, "checks.config.ts").args).toEqual([
 			"hooks",
 			"pre-commit",
 			"--config",

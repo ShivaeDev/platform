@@ -1,6 +1,19 @@
+import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { trees } from "#test/cli.ts";
-import { commits, gitIn, hookRepository, quality, stages, withPreCommit, withWorktree, writes } from "#test/hookRepository.ts";
+import {
+	commits,
+	gitIn,
+	type HookRepository,
+	hookRepository,
+	quality,
+	stages,
+	withBareWorktree,
+	withPreCommit,
+	withWorktree,
+	writes,
+} from "#test/hookRepository.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
@@ -14,12 +27,14 @@ function installedIn(root: string): string {
 	return root;
 }
 
-function withDebt(): string {
-	const root = hookRepository({ files: trees.dirty.slice(1), preCommit: "{ tighten: true }" }).root;
-	quality(root, "baseline", "write");
-	stages(root, "quality/baseline.jsonl");
-	commits(root, "Record the debt");
-	return installedIn(root);
+function withDebt(folder = ""): HookRepository {
+	const repository = hookRepository({ files: trees.dirty.slice(1), folder, preCommit: "{ tighten: true }" });
+	const config = join(repository.root, folder);
+	quality(config, "baseline", "write");
+	stages(config, "quality/baseline.jsonl");
+	commits(repository.root, "Record the debt");
+	installedIn(config);
+	return repository;
 }
 
 describe("the pre-commit hook", { timeout: CLI_TIMEOUT }, () => {
@@ -65,11 +80,24 @@ describe("the pre-commit hook", { timeout: CLI_TIMEOUT }, () => {
 		expect(commits(worktree, "Stricter").stderr).toContain("quality: pre-commit failed: `exit 4` (exit code 4).");
 		expect(commits(repository.root, "Unchanged").status).toBe(0);
 	});
+
+	it("rejects a commit from a worktree without its dependencies and says how to go on", () => {
+		const repository = hookRepository();
+		installedIn(repository.root);
+		const worktree = withBareWorktree(repository, "fresh");
+
+		const result = commits(worktree, "Unchecked");
+
+		expect(result.status).toBe(1);
+		expect(result.stderr).toBe(
+			`quality: cannot check this commit: ${realpathSync(worktree)}/node_modules/.bin/quality does not exist.\nhelp: install the dependencies of this worktree, then commit again.\n`,
+		);
+	});
 });
 
 describe("the pre-commit hook with preCommit.tighten", { timeout: CLI_TIMEOUT }, () => {
 	it("lowers the baseline entries of committed files and commits the baseline with them", () => {
-		const root = withDebt();
+		const { root } = withDebt();
 		writes(root, "src/long.ts", "1\n");
 		stages(root, "src/long.ts");
 
@@ -79,7 +107,7 @@ describe("the pre-commit hook with preCommit.tighten", { timeout: CLI_TIMEOUT },
 	});
 
 	it("leaves the entries of a partly staged file for a later commit", () => {
-		const root = withDebt();
+		const { root } = withDebt();
 		writes(root, "src/longer.ts", "1\n2\n3\n4\n5\n");
 		stages(root, "src/longer.ts");
 		writes(root, "src/longer.ts", "1\n");
@@ -89,7 +117,7 @@ describe("the pre-commit hook with preCommit.tighten", { timeout: CLI_TIMEOUT },
 	});
 
 	it("leaves a baseline with unstaged changes as it is", () => {
-		const root = withDebt();
+		const { root } = withDebt();
 		writes(root, "src/long.ts", "1\n");
 		stages(root, "src/long.ts");
 		writes(root, "quality/baseline.jsonl", `${gitIn(root, "show", "HEAD:quality/baseline.jsonl")}\n`);
@@ -101,5 +129,15 @@ describe("the pre-commit hook with preCommit.tighten", { timeout: CLI_TIMEOUT },
 			"quality: left quality/baseline.jsonl as it is, because it has unstaged changes.\nhelp: stage or discard them to tighten it.",
 		);
 		expect(gitIn(root, "show", "HEAD:quality/baseline.jsonl")).toContain('"path":"src/long.ts"');
+	});
+
+	it("lowers the baseline of a config in a folder from a linked worktree", () => {
+		const worktree = withWorktree(withDebt("app"), "fix");
+		writes(worktree, "app/src/long.ts", "1\n");
+		stages(worktree, "app/src/long.ts");
+
+		expect(commits(worktree, "Fix long").status).toBe(0);
+		expect(gitIn(worktree, "show", "--name-only", "--format=", "HEAD")).toBe("app/quality/baseline.jsonl\napp/src/long.ts\n");
+		expect(gitIn(worktree, "show", "HEAD:app/quality/baseline.jsonl")).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n');
 	});
 });

@@ -4,7 +4,7 @@ import { CONFIG_FILE } from "#config/file.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
-import { hookCommand, type Launch, shellWords } from "./command.ts";
+import { commandWords, hookCommand, type Launch, shellWords } from "./command.ts";
 import { type HookLocation, hookLocation } from "./location.ts";
 import { hookShim, isHookShim } from "./shim.ts";
 
@@ -50,10 +50,11 @@ export const installHook = Effect.fn("Hooks.installHook")(function* (install: Ho
 	const command = hookCommand(root, { options: install.launch.options, script }, name === CONFIG_FILE ? undefined : name);
 	const directory = relative(location.toplevel, root);
 	const shim = hookShim(directory, command);
+	const words = shellWords(commandWords(command));
 	const existing = yield* Effect.mapError(readOptionalText(location.file), failed);
 	const foreign = existing !== undefined && !isHookShim(existing);
 	if (foreign && !install.force) {
-		const call = `${directory === "" ? "" : `cd ${shellWords([directory])} && `}${shellWords(command)}`;
+		const call = `${directory === "" ? "" : `cd ${shellWords([directory])} && `}${words}`;
 		yield* Console.error(
 			`quality: kept ${location.file}: it is not quality's pre-commit hook, so quality does not check commits.\nhelp: call \`${call}\` from that hook, or replace it with \`quality hooks install --force\`.`,
 		);
@@ -62,7 +63,7 @@ export const installHook = Effect.fn("Hooks.installHook")(function* (install: Ho
 	} else {
 		yield* write(location.file, shim);
 		const done = foreign ? `replaced ${location.file}, which was not quality's hook` : `installed the pre-commit hook at ${location.file}`;
-		yield* Console.log(`quality: ${done}; each commit runs \`${shellWords(command)}\`.`);
+		yield* Console.log(`quality: ${done}; each commit runs \`${words}\`.`);
 	}
 	yield* elsewhere(location);
 });

@@ -18,7 +18,7 @@ export const hookLocation = Effect.fn("Hooks.hookLocation")(function* (cwd: stri
 			message: `${cwd} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.`,
 		});
 	}
-	const hooksPath = yield* git(cwd, ["config", "--get", "core.hooksPath"]);
+	const hooksPath = yield* git(cwd, ["config", "--type=path", "--get", "core.hooksPath"]);
 	const location: HookLocation = {
 		file: join(common, "hooks", "pre-commit"),
 		hooksPath: hooksPath.code === 0 ? hooksPath.stdout.trim() : undefined,

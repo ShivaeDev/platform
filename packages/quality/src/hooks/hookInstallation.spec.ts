@@ -34,7 +34,20 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 			stdout: `quality: installed the pre-commit hook at ${hookAt(repository.root)}; each commit runs \`node_modules/.bin/quality hooks pre-commit\`.\n`,
 		});
 		expect(hookText(repository)).toBe(
-			["#!/bin/sh", OWNER, 'cd "$(git rev-parse --show-toplevel)" || exit 2', "exec node_modules/.bin/quality hooks pre-commit", ""].join("\n"),
+			[
+				"#!/bin/sh",
+				OWNER,
+				'top="$(git rev-parse --show-toplevel)" || exit 2',
+				'if [ -n "$GIT_DIR" ] && [ -z "$GIT_WORK_TREE" ]; then export GIT_WORK_TREE="$top"; fi',
+				'cd "$top" || exit 2',
+				"quality=node_modules/.bin/quality",
+				'if [ ! -e "$quality" ]; then',
+				'\tprintf \'quality: cannot check this commit: %s/%s does not exist.\\nhelp: install the dependencies of this worktree, then commit again.\\n\' "$PWD" "$quality" >&2',
+				"\texit 2",
+				"fi",
+				'exec "$quality" hooks pre-commit',
+				"",
+			].join("\n"),
 		);
 		expect(hookMode(repository)).toBe(0o755);
 		expect(gitIn(repository.root, "config", "--local", "--list")).not.toContain("hookspath");
@@ -92,7 +105,8 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 
 		qualityFrom(local, repository.root, "hooks", "install");
 
-		expect(hookText(repository)).toContain("exec node --conditions=source tools/quality.ts hooks pre-commit\n");
+		expect(hookText(repository)).toContain("quality=tools/quality.ts\n");
+		expect(hookText(repository)).toContain('exec node --conditions=source "$quality" hooks pre-commit\n');
 		expect(commits(repository.root, "Checked by the repository's own quality").status).toBe(0);
 	});
 
@@ -101,7 +115,7 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 
 		quality(join(repository.root, "app"), "hooks", "install");
 
-		expect(hookText(repository)).toContain('cd "$(git rev-parse --show-toplevel)"/app || exit 2\n');
+		expect(hookText(repository)).toContain('cd "$top"/app || exit 2\n');
 		expect(commits(repository.root, "Checked from app").status).toBe(0);
 	});
 });

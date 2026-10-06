@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Config, Effect } from "effect";
 import { qualityArgs, type Run } from "./cli.ts";
-import { commitAll, git } from "./git.ts";
+import { commitAll, git, ISOLATED_ENV } from "./git.ts";
 import { packageRoot, type SeedFile, seedTree } from "./tree.ts";
 
 export interface HookRepository {
+	readonly folder: string;
 	readonly hook: string;
 	readonly root: string;
 }
@@ -17,23 +17,12 @@ export interface HookSetup {
 	readonly preCommit?: string;
 }
 
-// Git reads no user or system config, so a machine-wide hooks path neither runs nor hides the hook under test.
-const ISOLATED = {
-	"GIT_AUTHOR_EMAIL": "quality@example.invalid",
-	"GIT_AUTHOR_NAME": "Quality",
-	"GIT_COMMITTER_EMAIL": "quality@example.invalid",
-	"GIT_COMMITTER_NAME": "Quality",
-	"GIT_CONFIG_GLOBAL": "/dev/null",
-	"GIT_CONFIG_NOSYSTEM": "1",
-	"PATH": Effect.runSync(Config.string("PATH")),
-};
-
 const CLEAN: SeedFile = { content: "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", path: "src/full.ts" };
 
 const BIN = `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`;
 
 function run(command: string, args: readonly string[], cwd: string): Run {
-	const result = spawnSync(command, [...args], { cwd, encoding: "utf8", env: ISOLATED });
+	const result = spawnSync(command, [...args], { cwd, encoding: "utf8", env: ISOLATED_ENV });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 
@@ -49,10 +38,9 @@ export function writes(root: string, path: string, content: string): void {
 	writeFileSync(join(root, path), content);
 }
 
-function withBin(root: string): string {
+function withBin(root: string): void {
 	writes(root, "node_modules/.bin/quality", BIN);
 	chmodSync(join(root, "node_modules/.bin/quality"), 0o755);
-	return root;
 }
 
 // A committed repository whose installed quality is this package's source, behind the bin a package manager links.
@@ -64,7 +52,7 @@ export function hookRepository({ files = [CLEAN], folder = "", preCommit = "{}" 
 	withBin(join(root, folder));
 	git(root, "init", "--quiet");
 	commitAll(root, "Base");
-	return { hook: join(root, ".git", "hooks", "pre-commit"), root };
+	return { folder, hook: join(root, ".git", "hooks", "pre-commit"), root };
 }
 
 export function withPreCommit(root: string, preCommit: string): string {
@@ -84,10 +72,16 @@ export function withQualityAt(repository: HookRepository, path: string): string 
 	return join(repository.root, path);
 }
 
-export function withWorktree(repository: HookRepository, name: string): string {
+export function withBareWorktree(repository: HookRepository, name: string): string {
 	const root = seedTree([]);
 	git(repository.root, "worktree", "add", "--quiet", "-b", name, root);
-	return withBin(root);
+	return root;
+}
+
+export function withWorktree(repository: HookRepository, name: string): string {
+	const root = withBareWorktree(repository, name);
+	withBin(join(root, repository.folder));
+	return root;
 }
 
 export function quality(cwd: string, ...args: readonly string[]): Run {
