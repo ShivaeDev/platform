@@ -1,6 +1,6 @@
 import { Context, Data, type Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { type Story, type StoryKit, storyKit, type Trait } from "#storyKit.ts";
+import { type Story, type StoryKit, type StoryTest, storyKit, type Trait } from "#storyKit.ts";
 
 class Library extends Context.Service<Library, { readonly lend: Effect.Effect<void, Overdue> }>()("@types/Library") {}
 
@@ -78,6 +78,16 @@ it("hands the test body the verbs and the story", () => {
 		expectTypeOf(clerk.waits()).toEqualTypeOf<Waits>();
 		yield* clerk.waits();
 	});
+});
+
+it("offers Vitest's test modifiers with the same story signature", () => {
+	type Test = StoryTest<Shelf, "built" | "stocked", { clerk: { counts: () => number; waits: () => Waits } }, Run, Clerk | Ledger>;
+
+	expectTypeOf(shelf.it.fails).toEqualTypeOf<Test>();
+	expectTypeOf(shelf.it.only).toEqualTypeOf<Test>();
+	expectTypeOf(shelf.it.skip).toEqualTypeOf<Test>();
+	expectTypeOf(shelf.it.runIf(true)).toEqualTypeOf<Test>();
+	expectTypeOf(shelf.it.skipIf(true)).toEqualTypeOf<Test>();
 });
 
 it("takes traits and body effects whose services the layer provides", () => {
