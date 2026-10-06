@@ -19,8 +19,9 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 }
 
 export function localPostgres(environment: DockerEnvironment) {
-	const localDocker = (args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) =>
-		docker(environment, args, options);
+	function localDocker(args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) {
+		return docker(environment, args, options);
+	}
 	function sql(value: string | URL, query: string) {
 		const url = new URL(value);
 		assertLocalDatabase(url.toString(), [url.pathname.slice(1)]);

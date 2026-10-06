@@ -402,7 +402,6 @@
 {"path":"packages/local-postgres/src/local-docker.ts","rule":"biome/plugin","count":2}
 {"path":"packages/local-postgres/src/local-docker.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/local-postgres/src/localPostgres.test.ts","rule":"biome/plugin","count":1}
-{"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/nursery/useValidTestTitle","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
 {"path":"packages/local-postgres/src/localPostgres.ts","rule":"biome/lint/style/useErrorCause","count":1}
