@@ -263,15 +263,12 @@
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/correctness/noChildrenProp","count":1}
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":1}
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/suspicious/useAwait","count":2}
-{"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-service/src/define-service.test.ts","rule":"biome/plugin","count":2}
 {"path":"packages/effect-service/src/define-service.ts","rule":"biome/lint/style/useNamingConvention","count":26}
 {"path":"packages/effect-service/src/define-service.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-service/src/generic-method.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-service/src/generic-method.test.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-service/src/generic-method.ts","rule":"biome/lint/style/useNamingConvention","count":12}
 {"path":"packages/effect-service/src/generic-method.ts","rule":"files/named-after-export","count":1}
