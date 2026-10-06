@@ -1,5 +1,10 @@
 import { Effect } from "effect";
-import { type HastPluginInput, markdownToHtml } from "satteri";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MarkdownAsync } from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+import type { PluggableList } from "unified";
 import { codeBlocks } from "./code.ts";
 import type { documentHeadings } from "./documentHeadings.ts";
 import { documentLinks } from "./documentLinks.ts";
@@ -15,7 +20,7 @@ export interface RenderOptions {
 
 export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, options: RenderOptions = {}) {
 	const highlighter = yield* Highlighter;
-	const plugins: HastPluginInput[] = [codeBlocks(highlighter)];
+	const plugins: PluggableList = [rehypeRaw, codeBlocks(highlighter)];
 	if (options.idPrefix !== undefined) {
 		plugins.push(footnoteIds(options.idPrefix));
 	}
@@ -25,9 +30,17 @@ export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (s
 	if (options.headings !== undefined) {
 		plugins.push(options.headings.plugin);
 	}
-	const { html } = yield* Effect.tryPromise({
+	const html = yield* Effect.tryPromise({
 		catch: (cause) => new RenderFailed({ cause }),
-		try: async () => markdownToHtml(source, { hastPlugins: plugins }),
+		try: async () =>
+			renderToStaticMarkup(
+				await MarkdownAsync({
+					children: source,
+					components: { img: ({ node: _node, ...props }) => createElement("img", { ...props, loading: "lazy" }) },
+					rehypePlugins: plugins,
+					remarkPlugins: [remarkGfm],
+				}),
+			),
 	});
 	return html;
 });

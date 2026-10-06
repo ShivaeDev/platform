@@ -159,6 +159,12 @@ values should not display a fabricated percentage.
 plan using these blocks, remains useful in a text editor, and degrades intelligibly
 when a component's input is incomplete. Complex composition waits for 23.
 
+Step 11 is adopting Antumbra's `react-markdown`, `remark-gfm` and Mermaid
+rendering conventions at the user's request. Custom body-block source conventions
+remain awaiting discussion. [Concrete examples](./visual-document-examples.md)
+compare ordinary Markdown with three explicit read-only body blocks; no format
+is implemented or settled by those proposals.
+
 ## 12 Start and take the work with you
 
 **Outcome:** a new user can begin locally and produce a readable local handoff.

@@ -1,6 +1,6 @@
-import type { Element, ElementContent } from "hast";
-import { defineHastPlugin } from "satteri";
+import type { Element, ElementContent, Root } from "hast";
 import { type BundledLanguage, bundledLanguages, type Highlighter as Shiki } from "shiki";
+import { visit as visitElements } from "unist-util-visit";
 import { THEMES } from "./highlighter.ts";
 
 const languageOf = (code: Element): string | undefined => {
@@ -33,22 +33,32 @@ const highlighted = async (highlighter: Shiki, source: string, language: string)
 	return highlighter.codeToHast(source, { defaultColor: false, lang: language, themes: THEMES }).children.at(0);
 };
 
-export const codeBlocks = (highlighter: Shiki) =>
-	defineHastPlugin({
-		element: {
-			filter: ["pre"],
-			visit: async (pre) => {
-				const [code] = pre.children;
-				if (code?.type !== "element" || code.tagName !== "code") {
-					return undefined;
+async function renderedCode(highlighter: Shiki, pre: Element) {
+	const [code] = pre.children;
+	if (code?.type !== "element" || code.tagName !== "code") {
+		return undefined;
+	}
+	const language = languageOf(code);
+	const source = textOf(code);
+	if (language === "mermaid") {
+		return diagram(source);
+	}
+	return language === undefined ? undefined : await highlighted(highlighter, source, language);
+}
+
+export const codeBlocks = (highlighter: Shiki) => () => async (tree: Root) => {
+	const work: Promise<void>[] = [];
+	visitElements(tree, "element", (pre, index, parent) => {
+		if (pre.tagName !== "pre" || index === undefined || parent === undefined) {
+			return;
+		}
+		work.push(
+			renderedCode(highlighter, pre).then((result) => {
+				if (result?.type === "element") {
+					parent.children[index] = result;
 				}
-				const language = languageOf(code);
-				const source = textOf(code);
-				if (language === "mermaid") {
-					return diagram(source);
-				}
-				return language === undefined ? undefined : await highlighted(highlighter, source, language);
-			},
-		},
-		name: "work-board-code",
+			}),
+		);
 	});
+	await Promise.all(work);
+};

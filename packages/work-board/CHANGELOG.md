@@ -4,7 +4,25 @@
 
 ### Changed
 
+- Prepare concrete step 11 visual-document source examples for discussion; the
+  proposed block conventions are not implemented or approved yet.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.6.1 - 2026-10-06
+
+### Changed
+
+- Adopt Antumbra's `react-markdown` and `remark-gfm` rendering stack on the
+  server, retaining no-JavaScript reading, local links/images, generated heading
+  anchors, scoped footnotes, raw-HTML details and Shiki highlighting. Search uses
+  the same Markdown/GFM processing and heading rules as the reader. Rendering
+  and search plugins now use unified transformers rather than Satteri visitors;
+  Satteri remains only for legacy heading-board source segmentation.
+- Match Antumbra's Mermaid error-rendering setting so parse failures show a local
+  diagnostic/source without inserting Mermaid's global error diagram. Existing
+  local assets, strict rendering and visual inspection remain available.
+- Keep the custom step 11 metric/progress/timeline source-format proposal open;
+  the renderer adoption does not settle that authoring contract.
 
 ## 0.6.0 - 2026-10-06
 

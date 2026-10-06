@@ -1,5 +1,5 @@
-import type { Element } from "hast";
-import { defineHastPlugin } from "satteri";
+import type { Element, Root } from "hast";
+import { visit as visitElements } from "unist-util-visit";
 
 const FOOTNOTE_IDS = /^(?:user-content-fn|footnote-label)/u;
 
@@ -17,16 +17,13 @@ const scoped = (prefix: string, value: Value): Value => {
 	return Array.isArray(value) ? value.map((each) => (typeof each === "string" ? String(scoped(prefix, each)) : each)) : value;
 };
 
-export const footnoteIds = (prefix: string) =>
-	defineHastPlugin({
-		element: {
-			filter: ["a", "h2", "li"],
-			visit: (element) => ({
-				...element,
-				properties: Object.fromEntries(
-					Object.entries(element.properties).map(([name, value]) => [name, SCOPED.has(name) ? scoped(prefix, value) : value]),
-				),
-			}),
-		},
-		name: "work-board-footnote-ids",
+export const footnoteIds = (prefix: string) => () => (tree: Root) => {
+	visitElements(tree, "element", (element) => {
+		if (!["a", "h2", "li"].includes(element.tagName)) {
+			return;
+		}
+		element.properties = Object.fromEntries(
+			Object.entries(element.properties).map(([name, value]) => [name, SCOPED.has(name) ? scoped(prefix, value) : value]),
+		);
 	});
+};
