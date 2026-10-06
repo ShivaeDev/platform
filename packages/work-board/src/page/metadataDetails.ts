@@ -10,6 +10,9 @@ import { recordedEvidence } from "./recordedEvidence.ts";
 export function metadataDetails(parsed: ParsedMetadata, file: string, model: MetadataModel): string {
 	const fields = parsed.fields;
 	const details = [
+		fields.handoff
+			? `<h3>Agent handoff</h3><p>${referenceHtml(fields.handoff.item, fields.handoff.item, model)} · ${escapeHtml(fields.handoff.recipient)} · ${escapeHtml(fields.handoff.state)}</p><p>Receipt is separate from execution and acceptance.</p><p>${escapeHtml(fields.handoff.by ?? "Attribution not recorded")}${fields.handoff.note ? ` · ${escapeHtml(fields.handoff.note)}` : ""}</p><p>Reviewed SHA-256: <code>${fields.handoff.reviewedRevision}</code></p><p><a href="/_board/handoff?item=${encodeURIComponent(fields.handoff.item)}">Read handoff history and copy its prompt</a></p>`
+			: "",
 		`<dl><dt>Kind</dt><dd>${valueHtml(fields.kind)}</dd><dt>Status</dt><dd>${valueHtml(fields.status)}</dd><dt>Owner</dt><dd>${valueHtml(fields.owner)}</dd><dt>Next action</dt><dd>${valueHtml(fields.nextAction)}</dd></dl>`,
 		fields.relationships?.length
 			? `<h3>Relationships</h3><ul>${fields.relationships.map((link) => `<li>${escapeHtml(relationshipLabel(link.kind))}: ${referenceHtml(link.target, link.target, model)}</li>`).join("")}</ul>`

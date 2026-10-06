@@ -4,7 +4,7 @@ import { type FileHandle, link, open, readFile, realpath, unlink } from "node:fs
 import { ResponseFailed } from "#browser/responses/schema.ts";
 
 function uncertain(cause: unknown) {
-	return new ResponseFailed({ cause, code: "Uncertain", message: "Publication may have completed. Re-read the response identity before retrying." });
+	return new ResponseFailed({ cause, code: "Uncertain", message: "Publication may have completed. Re-read the record identity before retrying." });
 }
 function exists(cause: unknown) {
 	return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
@@ -28,9 +28,16 @@ async function linkOrReconcile(temporary: string, name: string, content: string)
 	}
 	return false;
 }
-export async function publishIn(target: FileHandle, root: string, realRoot: string, id: string, content: string) {
+export async function publishIn(
+	target: FileHandle,
+	root: string,
+	realRoot: string,
+	id: string,
+	content: string,
+	namespace: "responses" | "handoffs" = "responses",
+) {
 	const folder = `/proc/self/fd/${target.fd}`;
-	const expected = `${realRoot}/responses`;
+	const expected = `${realRoot}/${namespace}`;
 	async function validate() {
 		if ((await realpath(folder)) !== expected || (await realpath(root)) !== realRoot) {
 			throw new ResponseFailed({ code: "Conflict", message: "The write boundary changed." });

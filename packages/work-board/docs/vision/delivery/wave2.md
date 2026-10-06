@@ -67,13 +67,14 @@ partial-failure and recovery behavior has its own design and proof.
 ## 18 One local agent handoff
 
 **Outcome:** one existing agent tool can receive complete direction and acknowledge it.
-Prepare D3 with a real tool. Implement the smallest local adapter carrying goal,
+D3 approved existing-session polling and a copied file instruction. The local
+Markdown handoff carries goal,
 constraints, source references/revisions, acceptance criteria, owner, and next
 action. Record requested, acknowledged, rejected, and unavailable states. Use a
 handoff identity to recognize retries without creating duplicate work. An
 acknowledgment means receipt, not completed execution or accepted results.
-The [D3 walkthrough and delivery alternatives](./handoff-examples.md) are proposed
-discussion material, not an approved format or launcher.
+The [approved D3 walkthrough](./handoff-examples.md) defines ordinary receipt
+edits and copying a tiny prompt into an existing session. It does not launch agents.
 **Depends on:** 15–16, the ownership decision for deferred 17, and D3.
 The agent must be able to acknowledge by editing ordinary files; a special writer
 or acknowledgment command cannot be mandatory. **Accept:** send one real handoff, observe receipt,

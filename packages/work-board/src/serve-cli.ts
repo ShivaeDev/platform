@@ -4,7 +4,7 @@ import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
 import { HOST, serveBoard } from "./serve.ts";
 
-const VERSION = "0.9.1";
+const VERSION = "0.10.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;
@@ -26,7 +26,7 @@ const workBoard = Command.make(
 		port: Flag.integer("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
 		responses: Flag.boolean("responses").pipe(
 			Flag.withDefault(false),
-			Flag.withDescription("Explicitly enable local durable question and response writes (Linux)"),
+			Flag.withDescription("Explicitly enable local durable question, response and handoff writes (Linux)"),
 		),
 	},
 	serve,

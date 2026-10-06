@@ -34,6 +34,7 @@ const BROWSER_FOLDERS = [
 const BROWSER_FILES = [
 	"packages/work-board/src/rpc/contract.ts",
 	"packages/work-board/src/rpc/responseContract.ts",
+	"packages/work-board/src/rpc/handoffContract.ts",
 	"packages/work-board/src/rpc/keys.ts",
 	"packages/work-board/src/rpc/pageKeys.ts",
 	"packages/work-board/src/history/schema.ts",

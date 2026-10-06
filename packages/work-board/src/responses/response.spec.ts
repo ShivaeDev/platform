@@ -164,7 +164,9 @@ it("treats syntactically damaged record files as unknown history while ordinary 
 	notes.write("unrelated.md", broken);
 	expect((await client.run(client.responses.responses.run({ question: question.id }))).responses).toEqual([]);
 	notes.write("responses/response.broken.md", broken);
-	await expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("malformed");
+	await expect
+		.poll(() => client.run(client.responses.responses.run({ question: question.id })).then(() => "Readable", String))
+		.toContain("malformed");
 	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");
 	notes.write("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
 	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");

@@ -10,6 +10,7 @@ export interface Backlink {
 function references(document: MetadataDocument, model: MetadataModel) {
 	const { fields, lines } = document.parsed;
 	return [
+		...(fields.handoff ? [{ kind: "agent handoff", line: lines.handoff, target: referenceFile(fields.handoff.item, model) }] : []),
 		...(fields.question ? [{ kind: "reviewed question", line: lines.question, target: referenceFile(fields.question.item, model) }] : []),
 		...(fields.response ? [{ kind: "recorded response", line: lines.response, target: referenceFile(fields.response.question, model) }] : []),
 		...(fields.response?.supersedes
