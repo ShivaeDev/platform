@@ -6,6 +6,12 @@ import { backlinksHtml } from "./backlinksHtml.ts";
 import { escapeHtml } from "./escape.ts";
 import { metadataDetails } from "./metadataDetails.ts";
 
+function handoffLink(id: string | undefined, kind: string | undefined, unique: boolean) {
+	return unique && id && !["question", "response", "handoff"].includes(kind ?? "")
+		? `<p><a href="/_board/handoff?item=${encodeURIComponent(id)}">Prepare an agent handoff</a></p>`
+		: "";
+}
+
 export function metadataHtml(parsed: ParsedMetadata, file: string, model: MetadataModel): string {
 	const backlinks = backlinksHtml(file, model);
 	const diagnostics = model.diagnostics.get(file) ?? parsed.diagnostics;
@@ -27,7 +33,7 @@ export function metadataHtml(parsed: ParsedMetadata, file: string, model: Metada
 		unique && fields.kind === "board" && fields.id
 			? `<p><a href="${escapeHtml(viewUrl(stateOf("/"), { board: fields.id }))}">View this board</a></p>`
 			: "";
-	return `<section class="work-meta" aria-label="Recorded work"><p class="metadata-summary">Recorded work · ${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}${boardLink}${problems}<details data-key="work-metadata"><summary>Work details and source</summary>${details}<p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<details data-key="frontmatter-source"><summary>Original frontmatter</summary><pre>${escapeHtml(parsed.raw)}</pre></details>` : ""}</details></section>${backlinks}`;
+	return `<section class="work-meta" aria-label="Recorded work"><p class="metadata-summary">Recorded work · ${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}${boardLink}${handoffLink(fields.id, fields.kind, unique)}${problems}<details data-key="work-metadata"><summary>Work details and source</summary>${details}<p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<details data-key="frontmatter-source"><summary>Original frontmatter</summary><pre>${escapeHtml(parsed.raw)}</pre></details>` : ""}</details></section>${backlinks}`;
 }
 
 export const metadataStyles = `

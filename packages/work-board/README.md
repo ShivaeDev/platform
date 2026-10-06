@@ -62,8 +62,36 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | --- | --- | --- |
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
-| `--responses` | `false` | Explicitly enable local question/response writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
+| `--responses` | `false` | Explicitly enable local question/response/handoff writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
+
+## Hand a task to an existing agent session
+
+Open a uniquely identified project item and choose **Prepare an agent handoff**.
+Review the current Markdown/Mermaid context, enter a local recipient label, goal,
+constraints and next action, then preview and prepare. The existing `--responses`
+opt-in also enables this writer. Work Board creates `handoffs/<id>.md` with a stable
+ID, direction, original source path/revision and the exact reviewed source below
+its frontmatter, including declared criteria. Context is limited to 256 KiB.
+
+**Copy tiny prompt** gives you a short instruction containing the absolute file
+path. Paste it into the agent session you already use. Preparing a file records
+`requested`; it does not wake or launch an agent. Without clipboard permission,
+the prompt is selected for manual copying. Saved handoffs remain readable without
+JavaScript; preparing them requires JavaScript and the existing Linux writer.
+
+The agent reads the file and edits `handoff.state` to `acknowledged`, `rejected`
+or `unavailable`, with optional `handoff.by` and `handoff.note`. These are literal
+local labels and receipt, independent of task status, execution or human
+acceptance. Agents can keep using the existing question poll/wait commands for
+human answers. No acknowledgment command or special project editor is required.
+
+Retries using the same handoff ID preserve the agent's receipt and extra metadata;
+conflicting direction, moved/duplicate IDs and a changed source before initial
+preparation are rejected. A missing receipt remains unconfirmed, including after
+restart. Saved context remains inspectable if the source disappears or changes.
+Drafts share the existing browser-local workspace store and its 30-day/2-MiB
+bounds; clearing that store clears response and handoff drafts together.
 
 ## Local responses and one logical wait per question
 

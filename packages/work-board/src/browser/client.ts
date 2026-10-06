@@ -12,6 +12,7 @@ import type { Contract } from "@shivaedev/effect-contract/contract.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { type ResumeOptions, resumeSignal } from "@shivaedev/effect-contract/resume.ts";
 import { type ReadFailed, workContract, workRpcs } from "#rpc/contract.ts";
+import { handoffContract } from "#rpc/handoffContract.ts";
 import { workspace } from "#rpc/keys.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
@@ -23,6 +24,7 @@ type BoundContract<TContract> =
 	TContract extends Contract<infer TName, infer TQueries, infer TCommands, infer TRpcs> ? Bound<TName, TQueries, TCommands, TRpcs, Reader> : never;
 export interface BrowserClient {
 	readonly api: BoundContract<typeof workContract>;
+	readonly handoffs: BoundContract<typeof handoffContract>;
 	readonly mutate: <A, E>(effect: Effect.Effect<A, E, Reader | Reactivity.Reactivity>, signal?: AbortSignal) => Promise<A>;
 	readonly read: <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, signal?: AbortSignal) => Promise<A>;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -81,5 +83,5 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		return result.success;
 	}
 	const responses = bind(responseContract, Client);
-	return { api, mutate, read, registry, responses, run, updates };
+	return { api, handoffs: bind(handoffContract, Client), mutate, read, registry, responses, run, updates };
 }

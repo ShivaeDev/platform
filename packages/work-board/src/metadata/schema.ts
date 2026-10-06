@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { HandoffRecord } from "#browser/handoffs/schema.ts";
 import { QuestionRecord, ResponseRecord } from "#browser/responses/schema.ts";
 import { Identity as SourceIdentity } from "#path/Identity.ts";
 
@@ -36,9 +37,10 @@ export const Metadata = Schema.Struct({
 	attention: Schema.optional(Schema.Array(Attention)),
 	criteria: Schema.optional(Schema.Array(Criterion)),
 	evidence: Schema.optional(Schema.Array(Evidence)),
+	handoff: Schema.optional(HandoffRecord),
 	id: Schema.optional(Identity),
 	items: Schema.optional(Schema.Array(Identity)),
-	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response"])),
+	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response", "handoff"])),
 	nextAction: Schema.optional(Text),
 	owner: Schema.optional(Text),
 	question: Schema.optional(QuestionRecord),

@@ -6,12 +6,23 @@
 
 - Record agent-owned project editing and human-owned response content, practical
   best-effort conflict handling, and deferred direct editing/undo in the delivery
-  plan. Ordinary file editing remains sufficient for agents; D3 handoff is still
-  a separate discussion gate. Runtime and source schemas are unchanged.
+  plan. Ordinary file editing remains sufficient for agents; the approved D3
+  handoff convention is delivered in 0.10.0 below.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 - Remove document export and shareable artifact/packet generation from the vision
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.10.0 - 2026-10-06
+
+### Added
+
+- Local Markdown handoffs with reviewed source snapshots, explicit receipt states
+  and a copyable prompt for an existing agent session. Agents acknowledge using
+  ordinary file edits; preparing a handoff does not launch or wake an agent.
+- Native RPC preparation/history, draft persistence, safe rich context rendering,
+  no-JavaScript reading and native navigation. Reuse the opt-in Linux file
+  publisher; retries retain receipt rather than creating duplicate direction.
 
 ## 0.9.1 - 2026-10-06
 

@@ -56,11 +56,11 @@ filesystem guarantees have been implemented.
 
 Direct create/title/checklist/status/move controls and general source-file undo
 from step 17 are deferred. Agent-owned project editing remains outside the current
-Work Board writer. The roadmap keeps 17 unchecked and proceeds to step 18's D3
-handoff discussion using the response loop already delivered in 14–16.
+Work Board writer. The roadmap keeps 17 unchecked and proceeds to step 18 under the approved D3
+file/copy handoff convention using the response loop already delivered in 14–16.
 
 D3 must let the chosen agent keep reading and editing ordinary files. A required
 vendor adapter or command for every acknowledgment would contradict this boundary.
-Automatic delivery, execution-state records and the exact handoff convention
-still require concrete examples and discussion before implementation. D4 before
+Automatic harness delivery and new execution-state contracts remain outside the
+approved handoff convention. D4 before
 step 24 and the outstanding representative-reader/device evidence remain open.

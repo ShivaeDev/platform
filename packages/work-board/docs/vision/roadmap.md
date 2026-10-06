@@ -34,7 +34,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
   — deferred by the approved ordinary-file ownership boundary; the controls are
   unimplemented and do not block D3/18.
-- [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
+- [x] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
 - [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
 - [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
 - [ ] [21 Successive contributions with clear ownership](./delivery/wave3.md#21-successive-contributions-with-clear-ownership)
@@ -522,8 +522,8 @@ asking an agent to reconstruct the context. No external account is required.
 D2 approves anchored responses, and step 16 delivers rich question/decision
 packets. The approved [ownership boundary](./delivery/source-editing-examples.md)
 keeps project edits with agents, human response content with Work Board, and
-defers direct project editing/undo. A real handoff still requires D3; mockups do
-not settle that contract.
+defers direct project editing/undo. D3 approves ordinary Markdown handoffs and
+a copied instruction to an existing session; step 18 records acceptance evidence.
 
 ### Design gate before content mutations
 
@@ -797,7 +797,7 @@ reject publication. Moved/duplicated records and changing write boundaries remai
 explicit failures. Outside-editor changes after preflight cannot be made a universal
 transaction; saved records retain reviewed context instead of replacing that editor's
 source. Direct source replacement/undo (17) is now deferred by the ownership
-decision below; D3 before 18 and D4 before 24 remain open. No export or cloud service was introduced.
+decision below; D3 is approved and D4 before 24 remains open. No export or cloud service was introduced.
 
 
 ## Step 16 rich question and decision acceptance
@@ -851,7 +851,7 @@ budget or long-duration soak is claimed. Linux-only publication, local-only oper
 48-hour wait semantics and browser draft bounds remain unchanged. Representative-
 reader timing, physical devices and actual bfcache adoption evidence remain pending;
 these fixtures do not accept steps 07/13. Direct project editing/undo is deferred;
-D3/D4 remain open contracts.
+D3 is approved; D4 remains an open contract.
 
 ## Step 17 ownership decision
 
@@ -867,17 +867,13 @@ The current writer still publishes separate question/response records and leaves
 project source unchanged. This decision does not invent an inline-response format,
 remove existing validation, or prove new editing behavior. The
 [examples and delivery consequence](./delivery/source-editing-examples.md) defer
-direct item editing/undo, leave 17 unchecked, and permit the next D3 discussion
-for step 18. Step 07/13 representative-reader and physical-device evidence remains
+direct item editing/undo, leave 17 unchecked, and permit step 18 under the approved D3 file/copy convention. Step 07/13 representative-reader and physical-device evidence remains
 outstanding. This checkpoint changes documentation only.
 
-The next [D3 discussion](./delivery/handoff-examples.md) proposes an ordinary
-Markdown handoff and file-edited acknowledgment, with a copied pointer to an
-existing session first. Optional harness notification or explicit CLI launch are
-alternatives, not implemented or approved behaviors. The proposal includes goal,
-constraints, reviewed sources, criteria, recipient, next action and receipt states;
-it does not equate receipt, execution, result or acceptance. No new agent process
-or handoff was started while preparing these examples.
+The [approved D3 convention](./delivery/handoff-examples.md) uses ordinary
+Markdown direction and file-edited receipt, with a copied pointer into an existing
+session. Optional harness notification and explicit CLI launch remain outside
+this checkpoint. Receipt, execution, result and acceptance remain distinct.
 
 Documentation handoff verification passed on updated main: full `pnpm ready`
 with 1,295 package passes (270 Work Board), 12 expected failures, four intentional
@@ -885,3 +881,41 @@ skips, 15 orchestration checks, real PostgreSQL and every packed consumer. Quali
 baseline is 2,539 with no new exceptions. The 107 local prose-link targets exist.
 Log: `/tmp/work-board-ownership-ready.log`. Runtime, schemas and version are
 unchanged; no new browser or handoff acceptance is claimed.
+
+
+### 18 Local handoff checkpoint
+
+D3 approved ordinary Markdown direction plus a copied instruction for an existing
+agent session. Work Board prepares a stable handoff with exact reviewed source,
+goal, constraints and next action; receipt is explicitly separate from execution
+and acceptance. Native RPC/browser navigation and the existing publisher/draft
+store are reused. No new dependency, harness launcher or cloud service.
+
+Actual Chromium 151 at 1440x1000 and 390x844 dark/reduced-motion checked local
+Mermaid context, navigation without reload, persistent drafts, keyboard clipboard
+copy, external source edits, unchanged original source, SSR/no-JavaScript reading
+and server/browser restart. The current Codex session read the exact copied file
+through ordinary tools and edited its acknowledgment; the page displayed it.
+This is an automated human browser plus the implementation agent, not an
+independent model task run or representative-reader timing.
+
+Regression coverage checks same-ID retries preserving acknowledgment/extra fields
+even after source deletion/restart, changed source/direction, moved/duplicate IDs,
+read-only mode, explicit rejection/unavailability, malformed history and symlinked
+publication directories. DOM coverage checks draft ownership during live reads,
+re-preview on changed context and the manual-copy clipboard fallback.
+
+Full `pnpm ready` passed: 1,306 package passes (281 Work Board), 12 expected
+failures, four intentional skips, 15 orchestration checks, real PostgreSQL and
+all packed consumers. Quality baseline remains 2,539. Browser recovery checks
+forwarded real local HTTP publication before dropping its response: the UI
+reported uncertainty and a same-ID retry retained one file. A held real HTTP
+completion preserved newer draft text across reload. Local Claude CLI absence
+was explicitly recorded by this Codex session, without launching another tool;
+this is local availability evidence, not a test of every agent harness.
+The existing passive-wait bundle is byte-identical to published 0.9.1; no new
+memory or 48-hour soak claim. The 151 vision prose-link destinations exist.
+Evidence: `/tmp/work-board-handoffs-confirmed-ready.log` and
+`/workspace/artifacts/work-board-handoffs`.
+Step 07/13 reader timing, physical-device/actual-bfcache evidence remain pending;
+17 direct editing/undo stays deferred and D4 before 24 remains a discussion gate.

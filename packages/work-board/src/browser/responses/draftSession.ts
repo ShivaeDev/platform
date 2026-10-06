@@ -2,7 +2,14 @@ import { Clock, Effect } from "effect";
 import { DRAFT_AGE, type Draft, encodeDrafts, readDrafts } from "./drafts.ts";
 
 const states = new Map<string, Draft>();
-export function draftSession(key: string, revision: string, storage: Storage | undefined, storageKey: string, report: (message: string) => void) {
+export function draftSession(
+	key: string,
+	revision: string,
+	storage: Storage | undefined,
+	storageKey: string,
+	report: (message: string) => void,
+	prefix = "response",
+) {
 	const stateKey = `${JSON.stringify(storageKey)}:${key}`;
 	function local() {
 		if (!storage) {
@@ -32,7 +39,7 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		?? drafts[key] ?? {
 			author: "",
 			body: "",
-			id: `response.${crypto.randomUUID()}`,
+			id: `${prefix}.${crypto.randomUUID()}`,
 			revision,
 			type: "answer",
 			updatedAt: Effect.runSync(Clock.currentTimeMillis),
@@ -72,7 +79,7 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		if (states.get(stateKey) !== pending) {
 			const live = states.get(stateKey);
 			if (live?.id === pending.id) {
-				update({ id: `response.${crypto.randomUUID()}` });
+				update({ id: `${prefix}.${crypto.randomUUID()}` });
 			}
 			return false;
 		}
@@ -90,7 +97,7 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 			...current,
 			answers: undefined,
 			body: "",
-			id: `response.${crypto.randomUUID()}`,
+			id: `${prefix}.${crypto.randomUUID()}`,
 			recovery: undefined,
 			supersedes: undefined,
 			updatedAt: Effect.runSync(Clock.currentTimeMillis),
