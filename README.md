@@ -2,14 +2,19 @@
 
 Reusable TypeScript packages for Effect-based applications.
 
-This repository is under construction. Published packages may change quickly
-before 1.0.
+The packages share native Effect data, service and lifecycle conventions.
+Published packages may change quickly before 1.0.
 
 ## Native Effect framework
 
-The [framework design](./docs/framework/README.md) records the target architecture
-and existing foundations. The [roadmap](./docs/framework/roadmap.md) tracks the
-implementation and acceptance criteria.
+The [framework design](./docs/framework/README.md) explains the application path
+and its boundaries. The [framework roadmap](./docs/framework/roadmap.md) owns
+composed features, application adoption, version alignment and deployment validation. Each package's
+`docs/roadmap.md` owns its implementation and open questions.
+
+Every package has a README for people and agents using it, a short `AGENTS.md`
+for agents changing it, and `docs/north-star.md` for its design priorities. The
+README and `docs/` ship on npm; agent instructions stay in the repository.
 
 ## Packages
 
@@ -28,8 +33,10 @@ implementation and acceptance criteria.
   editable drafts, with optional React bindings.
 - [`@shivaedev/effect-react`](./packages/effect-react): Query state and action
   dispatch hooks for native Effect atoms.
-- [`@shivaedev/effect-prisma`](./packages/effect-prisma): Effect-native
-  PostgreSQL queries and transactions for Prisma Next.
+- [`@shivaedev/effect-prisma`](./packages/effect-prisma): Generated Prisma Next
+  queries and transactions that compose with Effect.
+- [`@shivaedev/effect-pg-boss`](./packages/effect-pg-boss): Schema-defined jobs
+  and scoped pg-boss workers in Effect applications.
 - [`@shivaedev/effect-test`](./packages/effect-test): Generic Effect Vitest
   runner with worker-scoped Layers and TestClock.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
@@ -38,21 +45,23 @@ implementation and acceptance criteria.
   stories over the real engine: one Effect story kit per engine with its own
   `it` that names every test after the engine's genre, traits per feature, and a
   failure that prints the story, where it stopped and the engine's state.
-- [`@shivaedev/platform`](./packages/platform): Opinionated application test
-  setup combining the shared Prisma and tRPC integrations.
+- [`@shivaedev/platform`](./packages/platform): Shared errors, request identity,
+  Node HTTP cancellation and runtime ownership, plus optional auth and composed
+  Prisma/tRPC test integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
   rules, a baseline of existing debt, a registry of reasoned exceptions and shared
   tsconfig presets.
 - [`@shivaedev/types`](./packages/types): Type-only helpers shared by the
   packages, such as `Bivariant`.
-- [`@shivaedev/heavy-lock`](./packages/heavy-lock): Machine-wide lock that runs
-  heavy commands one at a time across repositories.
+- [`@shivaedev/heavy-lock`](./packages/heavy-lock): Shared advisory lock that runs
+  cooperating heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
   service preparation that preserves existing databases and data.
 - [`@shivaedev/skills`](./packages/skills): Shared agent skills that a repository
   selects in `package.json`, syncs into `.agents/skills` and checks in CI.
-- [`@shivaedev/work-board`](./packages/work-board): A local server that shows a
-  folder of markdown files as a live page, updated in place when a file changes.
+- [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading
+  Markdown work, following its evidence, recording human responses and preparing
+  file handoffs for an existing agent session.
 
 No package has a root entry or a module that re-exports another. Each package exports its source modules through one `"./*.ts"` pattern, with `"./internal/*": null` keeping a package's `internal/` folder private, so you import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
 
