@@ -10,7 +10,7 @@ const runtime = Atom.runtime(Layer.empty);
 const gated = Effect.gen(function* () {
 	const started = new Map<string, Deferred.Deferred<void>>();
 	const released = new Map<string, Deferred.Deferred<string | undefined>>();
-	const entry = <V>(map: Map<string, Deferred.Deferred<V>>, value: string): Deferred.Deferred<V> => {
+	function entry<V>(map: Map<string, Deferred.Deferred<V>>, value: string): Deferred.Deferred<V> {
 		const known = map.get(value);
 		if (known !== undefined) {
 			return known;
@@ -18,7 +18,7 @@ const gated = Effect.gen(function* () {
 		const made = Deferred.makeUnsafe<V>();
 		map.set(value, made);
 		return made;
-	};
+	}
 	return {
 		answer: (value: string, message: string | undefined) => Deferred.succeed(entry(released, value), message),
 		check: (value: string) => Deferred.succeed(entry(started, value), undefined).pipe(Effect.andThen(Deferred.await(entry(released, value)))),
@@ -26,16 +26,19 @@ const gated = Effect.gen(function* () {
 	};
 });
 
-const formWith = (check: (value: string) => Effect.Effect<string | undefined>) =>
-	make(Schema.Struct({ name: Schema.String }), {
+function formWith(check: (value: string) => Effect.Effect<string | undefined>) {
+	return make(Schema.Struct({ name: Schema.String }), {
 		checks: { name: check },
 		debounce: "5 millis",
 		initialValues: { name: "" },
 		onSubmit: Effect.succeed,
 		runtime,
 	});
+}
 
-const eventually = (assert: () => void) => Effect.promise(() => vi.waitFor(assert));
+function eventually(assert: () => void) {
+	return Effect.promise(() => vi.waitFor(assert));
+}
 
 it.live("a check result disappears as soon as the field no longer holds the checked value", () =>
 	Effect.gen(function* () {
@@ -117,11 +120,13 @@ it.live("a check reads services from the form runtime", () =>
 	}).pipe(Effect.provide(AtomRegistry.layer)),
 );
 
-const recorded = (checked: string[]) => (value: string) =>
-	Effect.sync(() => {
-		checked.push(value);
-		return undefined;
-	});
+function recorded(checked: string[]) {
+	return (value: string) =>
+		Effect.sync(() => {
+			checked.push(value);
+			return undefined;
+		});
+}
 
 it.live("a value failing its schema is never sent to the check", () =>
 	Effect.gen(function* () {

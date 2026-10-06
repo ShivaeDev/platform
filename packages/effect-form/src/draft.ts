@@ -12,10 +12,13 @@ interface Draft<Values> {
 
 const none: Entries = {};
 
-const untouched = ({ baseline, current, settled }: Draft<Entries>, name: string): boolean =>
-	Equal.equals(current[name], baseline[name]) || (Object.hasOwn(settled, name) && Equal.equals(current[name], settled[name]));
+function untouched({ baseline, current, settled }: Draft<Entries>, name: string): boolean {
+	return Equal.equals(current[name], baseline[name]) || (Object.hasOwn(settled, name) && Equal.equals(current[name], settled[name]));
+}
 
-const changed = (held: Draft<Entries>): boolean => Object.keys({ ...held.baseline, ...held.current }).some((name) => !untouched(held, name));
+function changed(held: Draft<Entries>): boolean {
+	return Object.keys({ ...held.baseline, ...held.current }).some((name) => !untouched(held, name));
+}
 
 function merged<Values>(held: Draft<Values>, incoming: Values): Values;
 function merged(held: Draft<Entries>, incoming: Entries): unknown {
@@ -29,12 +32,13 @@ function merged(held: Draft<Entries>, incoming: Entries): unknown {
 	return result;
 }
 
-const matching = (current: Entries, submitted: Entries): Entries =>
-	Object.fromEntries(
+function matching(current: Entries, submitted: Entries): Entries {
+	return Object.fromEntries(
 		Object.keys({ ...current, ...submitted })
 			.filter((name) => Equal.equals(current[name], submitted[name]))
 			.map((name) => [name, submitted[name]]),
 	);
+}
 
 export const draft = <Values extends Entries>(initial: Values) => {
 	const state = AtomRef.make<Draft<Values>>({
