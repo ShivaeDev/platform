@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import { Context, Effect, Layer, ManagedRuntime, Stream } from "effect";
 import { afterAll, expect, it } from "vitest";
 import { makeContextBridge } from "#internal/context-bridge.ts";
 import { makeRuntimeBridge } from "#internal/runtime.ts";
@@ -59,4 +59,48 @@ it("redacts defects thrown by the consumer error mapper", async () => {
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",
 	});
+});
+
+class SubscriptionValue extends Context.Service<SubscriptionValue, string>()("@test/SubscriptionValue") {}
+
+it("ends a subscription whose transport aborted before iteration begins", async () => {
+	const controller = new AbortController();
+	controller.abort();
+	const stream = await bridge.runStream(Stream.never, { procedure, signal: controller.signal });
+
+	await expect(stream[Symbol.asyncIterator]().next()).resolves.toEqual({ done: true, value: undefined });
+});
+
+it("maps a subscription failure to the specific consumer error", async () => {
+	const streamBridge = makeRuntimeBridge(runtime, makeContextBridge(), {
+		mapError: (error, info) => {
+			expect(error).toBe("subscription unavailable");
+			expect(info).toMatchObject({ origin: "failure", path: "cancelled" });
+			return new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
+		},
+	});
+	const stream = await streamBridge.runStream(Stream.fail("subscription unavailable"), { procedure });
+
+	await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
+		code: "SERVICE_UNAVAILABLE",
+		message: "Updates temporarily unavailable",
+	});
+});
+
+it("uses ambient subscription services after the caller context has returned", async () => {
+	const streamRuntime = ManagedRuntime.make(Layer.succeed(SubscriptionValue, "application"));
+	const contextBridge = makeContextBridge();
+	const streamBridge = makeRuntimeBridge(streamRuntime, contextBridge, {});
+	try {
+		const stream = await contextBridge.run(Context.make(SubscriptionValue, "test override"), () =>
+			streamBridge.runStream(Stream.fromEffect(SubscriptionValue), { procedure }),
+		);
+		const values: string[] = [];
+		for await (const value of stream) {
+			values.push(value);
+		}
+		expect(values).toEqual(["test override"]);
+	} finally {
+		await streamRuntime.dispose();
+	}
 });
