@@ -28,8 +28,8 @@ class MissingField {
 	}
 }
 
-const guarded = (row: object): object =>
-	new Proxy(row, {
+function guarded(row: object): object {
+	return new Proxy(row, {
 		get: (target, key, receiver) => {
 			if (typeof key === "string" && !(key in target)) {
 				throw new MissingField(key);
@@ -37,11 +37,15 @@ const guarded = (row: object): object =>
 			return Reflect.get(target, key, receiver);
 		},
 	});
+}
 
-const isRowOperation = (operation: string): operation is RowOperation => rowOperations.has(operation);
+function isRowOperation(operation: string): operation is RowOperation {
+	return rowOperations.has(operation);
+}
 
-const rowsOf = (result: unknown): readonly object[] =>
-	(Array.isArray(result) ? result : [result]).filter((row): row is object => typeof row === "object" && row !== null);
+function rowsOf(result: unknown): readonly object[] {
+	return (Array.isArray(result) ? result : [result]).filter((row): row is object => typeof row === "object" && row !== null);
+}
 
 const nothing: Interpreted<never> = { changes: [], unnamed: undefined };
 

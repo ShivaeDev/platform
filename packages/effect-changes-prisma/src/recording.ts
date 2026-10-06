@@ -10,10 +10,12 @@ export const delegatesOf = <A>(models: LooseMap<A>): ReadonlyMap<string, string>
 		),
 	);
 
-const bound = (value: unknown, target: object): unknown => (typeof value === "function" ? value.bind(target) : value);
+function bound(value: unknown, target: object): unknown {
+	return typeof value === "function" ? value.bind(target) : value;
+}
 
-const recordingDelegate = (delegate: object, model: string, collect: (write: Write) => void): object =>
-	new Proxy(delegate, {
+function recordingDelegate(delegate: object, model: string, collect: (write: Write) => void): object {
+	return new Proxy(delegate, {
 		get: (target, key) => {
 			const value: unknown = Reflect.get(target, key);
 			if (typeof key !== "string" || typeof value !== "function" || !isWriteOperation(key)) {
@@ -26,6 +28,7 @@ const recordingDelegate = (delegate: object, model: string, collect: (write: Wri
 				});
 		},
 	});
+}
 
 export const recordingClient = <Client extends object>(
 	client: Client,
