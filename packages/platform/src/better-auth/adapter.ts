@@ -82,9 +82,9 @@ export function effectPrismaAdapter(
 				supportsArrays: true,
 				supportsBooleans: true,
 				supportsDates: true,
-				supportsJSON: true,
+				"supportsJSON": true,
 				supportsNumericIds: true,
-				supportsUUIDs: true,
+				"supportsUUIDs": true,
 				transaction: (callback) => run((database) => database.transaction(inTransaction(() => callback(factory(authOptions))))),
 			},
 		});

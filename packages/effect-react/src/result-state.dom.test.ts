@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { useAction, useQuery } from "#result-state.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {

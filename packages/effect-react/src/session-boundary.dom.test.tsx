@@ -9,7 +9,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
 import { sessions, shell } from "#test/session.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 function eventually(assert: () => void) {
 	return vi.waitFor(async () => {

@@ -94,7 +94,7 @@ integration(
 				]);
 				expect(yield* Fiber.join(second)).toEqual([]);
 				expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-				expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
+				expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 			}),
 		);
 	},

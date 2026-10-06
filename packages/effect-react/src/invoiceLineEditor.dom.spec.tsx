@@ -7,7 +7,7 @@ import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {

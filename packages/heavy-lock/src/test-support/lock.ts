@@ -26,7 +26,10 @@ export function removeTemporaryDirectories(): void {
 }
 
 export function startTime(pid: number): string {
-	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8", env: { LC_ALL: "C", PATH: "/usr/bin:/bin" } });
+	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], {
+		encoding: "utf8",
+		env: { "LC_ALL": "C", "PATH": "/usr/bin:/bin" },
+	});
 	return status === 0 ? stdout.trim() : "never";
 }
 

@@ -75,7 +75,7 @@ it(
 		const lock = temporaryLock();
 		const release = join(temporaryDirectory(), "release");
 		const holding = holdUntilReleasedOrAbandoned(release);
-		const run = start(["--", ...holding], cliEnvironment(lock, { LANG: "de_DE.UTF-8", LC_ALL: "de_DE.UTF-8" }), "/");
+		const run = start(["--", ...holding], cliEnvironment(lock, { "LANG": "de_DE.UTF-8", "LC_ALL": "de_DE.UTF-8" }), "/");
 		try {
 			await waitFor(() => readLock(lock) !== undefined);
 
@@ -102,7 +102,7 @@ it(
 		const typecheck = JSON.stringify(holder("typecheck"));
 		writeLock(lock, typecheck);
 
-		const result = await runCli(["--", "/bin/sh", "-c", `test -z "$${HOLDER_ID_ENV}"`], cliEnvironment(lock, { CI: "true" }));
+		const result = await runCli(["--", "/bin/sh", "-c", `test -z "$${HOLDER_ID_ENV}"`], cliEnvironment(lock, { "CI": "true" }));
 
 		expect(result).toEqual({ status: 0, stderr: "" });
 		expect(readLock(lock)).toBe(typecheck);

@@ -12,7 +12,7 @@ import { expect, it, vi } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { useAction, useQuery } from "#result-state.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({

@@ -9,8 +9,8 @@ export const HEAVY_LOCK_CLI = fileURLToPath(new URL("../cli.ts", import.meta.url
 
 export function cliEnvironment(lock: string, extra: Record<string, string> = {}): Record<string, string> {
 	return {
-		HEAVY_PROCESS_LOCK: lock,
-		PATH: "/usr/bin:/bin",
+		"HEAVY_PROCESS_LOCK": lock,
+		"PATH": "/usr/bin:/bin",
 		...extra,
 	};
 }

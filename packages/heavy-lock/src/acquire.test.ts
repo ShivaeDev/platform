@@ -52,11 +52,11 @@ it.effect("CI skips the lock, even while another run holds it; an empty CI does 
 		const typecheck = holder("typecheck");
 		yield* tryAcquire(lock, typecheck);
 
-		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "true" })));
+		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "true" })));
 		expect(skipped).toEqual({ env: {}, holder: Option.some(typecheck) });
 
 		rmSync(lock);
-		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "" })));
+		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "" })));
 		expect(taken.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(taken.holder).id });
 	}).pipe(Effect.provide(services())),
 );

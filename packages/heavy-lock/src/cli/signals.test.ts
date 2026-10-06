@@ -105,7 +105,7 @@ it.each([
 		}
 		const marker = join(bin, "ran");
 
-		const result = await runCli(["--", "/usr/bin/touch", marker], cliEnvironment(lock, { PATH: bin }));
+		const result = await runCli(["--", "/usr/bin/touch", marker], cliEnvironment(lock, { "PATH": bin }));
 
 		expect(result).toEqual({ status: 1, stderr: `heavy-lock: ${message}\n` });
 		expect(existsSync(marker)).toBe(false);

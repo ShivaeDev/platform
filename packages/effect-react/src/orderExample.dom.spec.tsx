@@ -7,7 +7,7 @@ import { expect, it, vi } from "vitest";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 import { startOrderServer } from "#test/order-example/http-test.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 async function mountEditor(url: string, token?: string, id = 1) {
 	window.location.href = url;

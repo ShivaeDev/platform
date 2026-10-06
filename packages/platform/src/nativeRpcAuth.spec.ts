@@ -25,7 +25,7 @@ const Account = RpcGroup.make(
 async function createProvider() {
 	const database = new DatabaseSync(":memory:");
 	const options = {
-		baseURL: origin,
+		"baseURL": origin,
 		database,
 		emailAndPassword: { enabled: true },
 		secret: "integration-only-secret-with-at-least-32-characters",

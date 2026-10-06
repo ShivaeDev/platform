@@ -5,7 +5,7 @@ import type { Holder } from "./holder.ts";
 // `ps` prints the start time in the locale's format, so every implementation reads it in the C locale to compare it byte for byte.
 function psStartTime(pid: number) {
 	return ChildProcess.make("ps", ["-o", "lstart=", "-p", String(pid)], {
-		env: { LC_ALL: "C" },
+		env: { "LC_ALL": "C" },
 		extendEnv: true,
 		stderr: "ignore",
 		stdin: "ignore",

@@ -78,8 +78,8 @@ integration("migratePostgres initializes, upgrades and reruns without repeating 
 			expect(yield* migrate({ loader, table: ledger })).toEqual([]);
 			expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* sql`select migration_id, name from ${sql(ledger)} order by migration_id`).toEqual([
-				{ migration_id: 1, name: "create_orders" },
-				{ migration_id: 2, name: "seed_orders" },
+				{ "migration_id": 1, name: "create_orders" },
+				{ "migration_id": 2, name: "seed_orders" },
 			]);
 		}),
 	);
@@ -113,8 +113,8 @@ integration("migratePostgres rolls back pending DDL, data and ledger as one batc
 				});
 			}
 			expect(yield* sql`select name from ${sql(orders)}`).toEqual([]);
-			expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ table_name: null }]);
-			expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ migration_id: 1 }]);
+			expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ "table_name": null }]);
+			expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ "migration_id": 1 }]);
 		}),
 	);
 });
@@ -152,7 +152,7 @@ integration(
 					expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
 					expect(yield* Fiber.join(second)).toEqual([]);
 					expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-					expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
+					expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 				}),
 			),
 		);

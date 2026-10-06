@@ -9,7 +9,7 @@ import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
 import { type Create, useCreate } from "#create.ts";
 import { type Editor, useEditor } from "#editor.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
