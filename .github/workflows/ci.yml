@@ -174,14 +174,14 @@ jobs:
   codecov-notify:
     name: Codecov notifications
     if: ${{ !cancelled() }}
-    needs: tests
+    needs: verify
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Send Codecov notifications for every shard that uploaded
+      - name: Send Codecov notifications after CI verification completes
         continue-on-error: true
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
