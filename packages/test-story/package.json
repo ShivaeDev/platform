@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/test-story",
 	"version": "0.1.0",
-	"description": "Tests that read like stories over the real engine: a story kit per engine with its own genre-tagged it, traits per feature, and a failure that prints the story, where it stopped and the engine's state",
+	"description": "Tests that read like stories over the real engine: a story kit per engine with its own it, traits per feature, and a failure that prints the story, where it stopped and the engine's state",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"

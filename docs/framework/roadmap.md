@@ -332,7 +332,7 @@ and generic offline writes remain deferred until required by a consumer.
 - [x] Verify package declarations and installed consumers; run `pnpm ready`.
 - [x] Add `@shivaedev/test-story`, story tests over the real engine: one Effect
   story kit per engine with staged traits that refuse an impossible setup, its
-  own `it` on `@shivaedev/effect-test` that tags every test with the engine's
+  own `it` on `@shivaedev/effect-test` that names every test after the engine's
   genre, a run loop that names why the engine never finished, and a failure that
   prints the story, where it stopped and the engine's state.
 - [x] Run a real PostgreSQL repository test for selection, nulls, encoded text,

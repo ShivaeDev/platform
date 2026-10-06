@@ -59,7 +59,7 @@ it(
 it(
 	"runs only one genre's stories when a run filters by the name",
 	async () => {
-		expect(await storiesRunWith({ tags: [], testNamePattern: "^Mill Story: " })).toEqual([
+		expect(await storiesRunWith({ tags: [], testNamePattern: "Mill Story: " })).toEqual([
 			"Bakery Story: a lit oven stays lit []: skipped",
 			"Mill Story: turning sails keep turning []: passed",
 		]);

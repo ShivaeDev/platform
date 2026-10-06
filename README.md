@@ -36,8 +36,8 @@ implementation and acceptance criteria.
   procedures and testing.
 - [`@shivaedev/test-story`](./packages/test-story): Tests that read like
   stories over the real engine: one Effect story kit per engine with its own
-  genre-tagged `it`, traits per feature, and a failure that prints the story,
-  where it stopped and the engine's state.
+  `it` that names every test after the engine's genre, traits per feature, and a
+  failure that prints the story, where it stopped and the engine's state.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed

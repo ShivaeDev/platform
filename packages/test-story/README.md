@@ -19,18 +19,25 @@ When a story fails, it prints itself. This package's own failure spec expects 2 
 ```text
 loaves: expected 1 to be 2 // Object.is equality
 
-test-story: this test tells a story over a real bakery. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.
-  given  the oven is lit                  src/failureStory.spec.ts:32:64
-  given  the baker has 1 balls of dough   src/failureStory.spec.ts:32:77
-         1m a loaf comes out of the oven  src/failureStory.spec.ts:33:22
+╭─ test-story: how to read the story below
+│ "given" lines are the test's traits, the other lines were told by verbs and engine steps as they ran, and ✗ marks
+│ where the test stopped. The traits, verbs and steps live in the bakery story kit that this test imports.
+╰─
+
+  given  the oven is lit
+  given  the baker has 1 balls of dough
+         1m a loaf comes out of the oven
 ✗        the test failed after the line above
+         at src/failureStory.spec.ts:40:59
 
-The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}
+The bakery when the test failed:
+{"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,
+"smoking":false,"starter":false}
 
-The traits, verbs and engine steps live in the bakery story kit this test imports. Rerun: vitest run src/failureStory.spec.ts -t "marks where an assertion stopped the story"
+Rerun: vitest run src/failureStory.spec.ts -t "Bakery Story: marks where an assertion stopped the story"
 ```
 
-The first line is the assertion's own message. Below it is the story: the two traits the test named and the line the bakery told as it baked, each beside the spec line that caused it, and a `✗` where the test stopped. Then come the bakery's whole state at that moment and the command that reruns the test, so the failure alone is enough to find the cause.
+The first line is the assertion's own message. The box under it tells a reader who has never seen the package how to read what follows. Then comes the story: the two traits the test named, the line the bakery told as it baked, and a `✗` where the test stopped, with the spec line it stopped at. Last come the bakery's whole state at that moment and the command that reruns the test, so the failure alone is enough to find the cause.
 
 ## Using it
 
@@ -38,13 +45,13 @@ The first line is the assertion's own message. Below it is the story: the two tr
 
 An application has an **engine**: the real thing a test drives, such as a bakery simulation, a game store or a service with its database. A **story** is one test's run of a fresh engine. It starts from **traits**, sentences of setup in domain words that each change the engine, and goes on through **verbs**, the entry points a user or caller reaches, such as `baker.kneads(2)` or `oven.bakesEverything()`. The engine may also run on its own, one **step** at a time, until something the test waits for holds. Every trait tells a line, and verbs and steps tell what they do, so the story is both the plan the test gave and the trace of what happened, in order.
 
-Every story belongs to a **genre**, the kind of engine it runs. The kit tags each of its tests with its genre, so one run can pick the bakery's stories and leave the others.
+Every story belongs to a **genre**, the kind of engine it runs. The kit names each of its tests after its genre, such as `Bakery Story: steps until the condition holds`, so a report shows which engine a test runs and one run can pick the bakery's stories and leave the others.
 
 The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. A hook that needs a service or fails with a typed error is a generator function that yields Effects, and the kit runs it, so no definition writes `Effect.gen`.
 
 The work splits into three layers, and each is written by a different hand at a different time:
 
-1. **Once per engine**, a story kit in `test-support/` says how to create the engine, which services it needs, and how to seed, step and show it. The Vitest config declares its genre.
+1. **Once per engine**, a story kit in `test-support/` says how to create the engine, which services it needs, and how to seed, step and show it.
 2. **Once per feature**, traits and verbs in the kit name that feature in domain words.
 3. **In every test**, a spec tells a story with the kit's `it` and checks what a user would see.
 
@@ -99,7 +106,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 
 | Hook | Says |
 | --- | --- |
-| `name` | What the engine is called in failures, "the bakery", and the kit's genre. |
+| `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
 | `create()` | A fresh engine. Every story starts from a new one. |
 | `layer` | Optional. The Effect layer that provides every service the hooks, traits and test bodies use. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
 | `stages` | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile. |
@@ -108,25 +115,18 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | `inspect` | Optional. The part of the engine a failure prints. Without it, the failure prints the whole engine. |
 | `verbs(engine, story)` | The entry points a test acts through. A verb that runs the engine returns the Effect from `story.runUntil`. |
 
-The kit's genre needs one line in the Vitest config:
+Every test of the kit is named `Bakery Story: <its name>`, so `vitest run -t "Bakery Story: "` runs only the bakery's stories with no setup. A project that splits runs by Vitest tags can also tag them:
 
 ```ts
-import { genreTag } from "@shivaedev/test-story/genreTag.ts";
+import { genreTags } from "@shivaedev/test-story/genreTags.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: { tags: [genreTag("bakery"), genreTag("mill")] },
+  test: { tags: genreTags("bakery", "mill") },
 });
 ```
 
-`genreTag(name)` declares the tag that the kit named `name` puts on every test: `bakery-story` here, and `game-store-story` for a kit named "game store". Vitest refuses a test whose tag the config does not declare, so a missing declaration fails the spec file with:
-
-```text
-the bakery story kit tags every test "bakery-story", but the Vitest config does not declare that tag
-help: add genreTag("bakery") from @shivaedev/test-story/genreTag.ts to test.tags in the Vitest config. The tag lets a run pick stories by genre with --tags-filter=bakery-story.
-```
-
-With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's. `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`.
+`genreTags(...kitNames)` declares one tag per kit, named after it: `bakery-story` and `mill-story` here, and `game-store-story` for a kit named "game store". A kit tags its tests only with a genre the config declares, because Vitest refuses a test whose tag the config leaves out, so a config without the line runs every story untagged and prints nothing about it. With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's, and `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`.
 
 ### 2. Once per feature: traits and verbs
 
@@ -161,19 +161,27 @@ A trait that throws, fails or dies refuses the setup instead of seeding a state 
 
 ```text
 the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3
-help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait in the bakery story kit if this bakery should be possible.
+help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait
+      in the bakery story kit if this bakery should be possible.
 
-test-story: this test tells a story over a real bakery. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.
-  given  the oven is lit                 src/failureStory.spec.ts:36:50
-✗ given  the baker has 4 balls of dough  src/failureStory.spec.ts:36:63  refused
-  given  the bakery has 1 bowls          src/failureStory.spec.ts:36:76
+╭─ test-story: how to read the story below
+│ "given" lines are the test's traits, the other lines were told by verbs and engine steps as they ran, and ✗ marks
+│ where the test stopped. The traits, verbs and steps live in the bakery story kit that this test imports.
+╰─
 
-The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}
+  given  the oven is lit
+✗ given  the baker has 4 balls of dough
+         refused at src/failureStory.spec.ts:43:63
+  given  the bakery has 1 bowls
 
-The traits, verbs and engine steps live in the bakery story kit this test imports. Rerun: vitest run src/failureStory.spec.ts -t "marks the trait that refused"
+The bakery when the test failed:
+{"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,
+"smoking":false,"starter":false}
+
+Rerun: vitest run src/failureStory.spec.ts -t "Bakery Story: marks the trait that refused"
 ```
 
-The first line names the trait and what it threw, which the error also keeps as its `cause`. The `✗` and the trailing `refused` mark the trait that refused. A trait that fails with a string, a plain object or a tagged error prints by its content, never as `[object Object]`, and an interrupted trait stays interrupted.
+The first line names the trait and what it threw, which the error also keeps as its `cause`, and the `help:` line says what to change. The `✗` marks the trait that refused, and the line under it points at the spec line that named it. A trait that fails with a string, a plain object or a tagged error prints by its content, never as `[object Object]`, and an interrupted trait stays interrupted.
 
 A verb that a feature adds goes into the kit's `verbs`. It acts through the engine's real entry point and tells a line, so the story shows it.
 
@@ -193,7 +201,7 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 });
 ```
 
-`kit.it(name, traits, body, options)` declares one Vitest test. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
+`kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
@@ -206,8 +214,10 @@ A spec starts a story, acts through verbs and checks what a user would see. When
 3. `maxSteps` steps have run, or the kit's `run.maxSteps` when the call names none: it dies with `run.diagnose`.
 
 ```text
-the bakery ran 12 steps and never reached what runUntil waits for: 1 balls of dough still wait after 12 minutes: the sourdough starter never runs out
-help: either the bakery never gets there, so check the setup and the engine, or it needs more steps, so pass a larger maxSteps to runUntil.
+the bakery ran 12 steps and never reached what runUntil waits for: 1 balls of dough still wait after 12 minutes: the
+  sourdough starter never runs out
+help: either the bakery never gets there, so check the setup and the engine, or it needs more steps, so pass a larger
+      maxSteps to runUntil.
 ```
 
 That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdough starter, so the dough never runs out. The typed failures of `step`, `failed`, `diagnose` and the condition stay in the Effect's error channel: a step that fails with `BurntLoaf` gives the test a `BurntLoaf` to assert on. A kit without `run` hooks dies with a message that says to add them.
@@ -216,12 +226,13 @@ That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdou
 
 When a story's test fails, for any reason, the story is added to its first error, as in the examples above:
 
-- every line in order, traits marked `given`, each beside the spec line that caused it when the spec was on the call stack;
-- `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line;
-- the engine's state from `inspect`, as one line of JSON. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file;
-- the command that reruns the test.
+- a short guide to reading the story, in a box;
+- every line in order, traits marked `given`;
+- `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line, and under it the spec line where the test stopped or that named the refusing trait;
+- the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file;
+- the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
-A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
+The package breaks what it prints at 120 columns, between words or JSON fields, and prints the story's own lines whole. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
 
 ### Install and limits
 
@@ -234,5 +245,5 @@ pnpm add --save-dev @shivaedev/test-story @effect/vitest effect vitest
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
 - `inspect` runs after the test has failed, so it reads the engine synchronously.
-- A spec line is found by matching the spec's path in a call site's stack. Traits, synchronous verbs and the steps a `runUntil` runs have one. A line told inside an Effect that the spec does not call directly has none.
+- The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.
 - The package is built for ShivaeDev applications and may change without a deprecation period.

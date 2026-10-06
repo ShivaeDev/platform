@@ -18,15 +18,15 @@ This changes the cost and benefit of a good test for both readers. For an agent,
 
 - A spec is a few lines of domain words. If a spec needs a helper, a loop or hand-built state, a trait or verb is missing from the kit.
 - An impossible setup refuses loudly instead of seeding a state the application could never reach.
-- A failure is a console version of stopping in a debugger: the whole story, the spec line behind each line, where it stopped, and the engine's state at that moment, written so an agent with no knowledge of this package can fix the test, and complete enough that a CI log alone is enough to reproduce it.
+- A failure is a console version of stopping in a debugger: the whole story, where it stopped and the spec line there, and the engine's state at that moment, written so an agent with no knowledge of this package can fix the test, and complete enough that a CI log alone is enough to reproduce it.
 - The kit author writes hooks and the package infers every type from them. There is one kit, built on Effect: a hook is a plain function, or a generator function when it needs a service or fails with a typed error, so no definition writes `Effect.gen` and a plain engine needs no Effect at all.
-- A spec writes only its story. The kit hands it an `it` that already knows the engine's services, so a spec never builds a test harness, and tags every test with its genre, so a run can pick one engine's stories.
+- A spec writes only its story. The kit hands it an `it` that already knows the engine's services, so a spec never builds a test harness, and names every test after its genre, so a report shows which engine it ran and a run can pick one engine's stories.
 
 ## Trade-offs
 
 - **Real engine over speed.** A story is slower than a unit test with a mock. We accept that, and keep engines fast enough to step in a test instead of faking them.
 - **Hooks over freedom.** The kit fixes the shape of an engine: create, stages, after-stage hooks, a step, a state to inspect, verbs. An engine that does not fit should change its kit's hooks, not bypass the kit.
-- **Cheap locations over complete ones.** A story line shows its spec line when the spec is on the call stack, which holds for synchronous code and for traits and `runUntil` in Effect code. Lines told deep inside an Effect verb have no location; finding one would take machinery we do not want.
+- **Cheap locations over complete ones.** The failure shows one spec line, where the story stopped, found by matching the spec's path in the failure's stack or in the call site of the story's last line. A failure raised deep inside an Effect verb may have none; finding one would take machinery we do not want.
 
 ## What it will not do
 
