@@ -309,10 +309,10 @@
 {"path":"packages/effect-sql/src/transact.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-sql/src/transact.ts","rule":"biome/plugin","count":2}
 {"path":"packages/effect-test/src/any-test-layer.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-test/src/eventually.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
+{"path":"packages/effect-test/src/eventually.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-test/src/eventually.ts","rule":"biome/plugin","count":3}
 {"path":"packages/effect-test/src/types.ts","rule":"biome/lint/style/useNamingConvention","count":11}
-{"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":8}
+{"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/style/useNamingConvention","count":7}
 {"path":"packages/effect-test/src/vitest.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-test/src/vitest.ts","rule":"files/named-after-export","count":1}
