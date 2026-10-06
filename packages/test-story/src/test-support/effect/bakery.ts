@@ -79,6 +79,12 @@ export function bakerIsCalledAway() {
 	});
 }
 
+export function hasSpoiledYeast() {
+	return bakery.trait("pantry", "the yeast has spoiled", function* () {
+		yield* Effect.die(new Error("the dough will not rise"));
+	});
+}
+
 export function hasNoBowls() {
 	return bakery.trait("kitchen", "the bakery has no bowls", (state) => {
 		state.bowls = 0;

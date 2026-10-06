@@ -16,6 +16,14 @@ class Flooded extends Data.TaggedError("Flooded") {}
 
 class Lost extends Data.TaggedError("Lost") {}
 
+class Unlisted extends Data.TaggedError("Unlisted") {}
+
+class Overflowing extends Data.TaggedError("Overflowing") {}
+
+class Muddled extends Data.TaggedError("Muddled") {}
+
+class Stuck extends Data.TaggedError("Stuck") {}
+
 interface Shelf {
 	books: number;
 }
@@ -31,11 +39,24 @@ const shelf = effectStoryKit({
 	},
 	*create() {
 		const books = yield* Ledger;
+		if (books < 0) {
+			return yield* new Unlisted();
+		}
 		const shelfOf: Shelf = { books };
 		return shelfOf;
 	},
 	name: "shelf",
 	run: {
+		*diagnose() {
+			yield* new Muddled();
+			return "the clerk lost count";
+		},
+		*failed(state) {
+			if (state.books > 9) {
+				return yield* new Overflowing();
+			}
+			return undefined;
+		},
 		maxSteps: 1,
 		*step() {
 			yield* new Lost();
@@ -47,6 +68,9 @@ const shelf = effectStoryKit({
 			waits: () =>
 				story.runUntil(function* (state) {
 					yield* Clerk;
+					if (state.books < 0) {
+						return yield* new Stuck();
+					}
 					return state.books > 0;
 				}),
 		},
@@ -56,7 +80,7 @@ const shelf = effectStoryKit({
 it("keeps the failures and services of create and every after hook", () => {
 	const started = shelf.start();
 
-	expectTypeOf<Effect.Error<typeof started>>().toEqualTypeOf<Closed | Flooded>();
+	expectTypeOf<Effect.Error<typeof started>>().toEqualTypeOf<Closed | Flooded | Unlisted>();
 	expectTypeOf<Effect.Services<typeof started>>().toEqualTypeOf<Ledger>();
 });
 
@@ -71,14 +95,14 @@ it("needs the services of the traits a story starts with, and never their failur
 
 	const started = shelf.start(lent, shelf.traits(counted));
 
-	expectTypeOf<Effect.Error<typeof started>>().toEqualTypeOf<Closed | Flooded>();
+	expectTypeOf<Effect.Error<typeof started>>().toEqualTypeOf<Closed | Flooded | Unlisted>();
 	expectTypeOf<Effect.Services<typeof started>>().toEqualTypeOf<Ledger | Library>();
 });
 
-it("runs until a condition with the failures and services of the step and the condition", () => {
+it("runs until a condition with the failures and services of every run hook and the condition", () => {
 	type Waits = ReturnType<Effect.Success<ReturnType<typeof shelf.start>>["clerk"]["waits"]>;
 
-	expectTypeOf<Effect.Error<Waits>>().toEqualTypeOf<Lost>();
+	expectTypeOf<Effect.Error<Waits>>().toEqualTypeOf<Lost | Muddled | Overflowing | Stuck>();
 	expectTypeOf<Effect.Services<Waits>>().toEqualTypeOf<Clerk>();
 });
 

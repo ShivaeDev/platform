@@ -10,6 +10,7 @@ import {
 	hasNoBowls,
 	hasOatsFromTheMill,
 	hasRyeFromTheMill,
+	hasSpoiledYeast,
 	NoBowls,
 	newBakery,
 	ovenIsLit,
@@ -63,6 +64,12 @@ effectApp("refuses a trait that throws", function* () {
 	const exit = yield* Effect.exit(newBakery(hasDough(4)));
 
 	expect(defectHeadline(exit)).toBe('the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3');
+});
+
+effectApp("refuses a trait whose effect dies", function* () {
+	const exit = yield* Effect.exit(newBakery(hasSpoiledYeast()));
+
+	expect(defectHeadline(exit)).toBe('the trait "the yeast has spoiled" refused to set up the bakery: the dough will not rise');
 });
 
 effectApp("lets an interrupted trait stay interrupted", function* () {
