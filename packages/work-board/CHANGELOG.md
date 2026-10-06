@@ -8,6 +8,15 @@
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
 
+## 0.9.1 - 2026-10-06
+
+### Fixed
+
+- Treat syntactically damaged frontmatter in the published responses/ record
+  namespace as unknown history, including unterminated headers. Do not mistake
+  unreadable feedback for an empty response list or an unanswered deadline.
+  Ordinary Markdown outside that namespace retains its reading compatibility.
+
 ## 0.9.0 - 2026-10-06
 
 ### Added

@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { outsideResponseDirectory } from "#test/responseFiles.ts";
 import { agentRequest } from "./agent.ts";
-import { questionFrom } from "./records.ts";
+import { questionFrom, questionMarkdown } from "./records.ts";
 
 const source = `---
 id: investigation.model
@@ -147,4 +147,28 @@ it("does not interpret malformed recorded feedback as an unanswered human reques
 		"---\nid: response.broken\nkind: response\nresponse: { type: answer }\n---\nActual feedback with incomplete provenance\n",
 	);
 	await expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established");
+});
+it("treats syntactically damaged record files as unknown history while ordinary malformed Markdown still reads", async () => {
+	await open();
+	const question = await register();
+	const expired = {
+		...question,
+		question: {
+			...question.question,
+			deadline: Effect.runSync(Clock.currentTimeMillis) - 1,
+			registeredAt: Effect.runSync(Clock.currentTimeMillis) - 48 * 60 * 60 * 1000 - 1,
+		},
+	};
+	notes.write(`responses/${question.id}.md`, questionMarkdown(expired));
+	const broken = "---\nid: response.broken\nkind: response\nresponse: [broken\n---\nActual human feedback\n";
+	notes.write("unrelated.md", broken);
+	expect((await client.run(client.responses.responses.run({ question: question.id }))).responses).toEqual([]);
+	notes.write("responses/response.broken.md", broken);
+	await expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("malformed");
+	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");
+	notes.write("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
+	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");
+	const page = await fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`);
+	expect(page.status).toBe(409);
+	expect(await page.text()).not.toContain("No response is recorded");
 });
