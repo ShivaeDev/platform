@@ -64,7 +64,6 @@
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/undeclared-rejection.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/unknown-reject.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/wrong-payload.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-contract/src/test-support/fixtures/invalid/zero-rejections.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/zero-rejections.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-form/src/draft.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/draft.ts","rule":"biome/lint/style/useNamingConvention","count":3}
@@ -107,12 +106,10 @@
 {"path":"packages/effect-prisma/src/database.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/style/useNamingConvention","count":7}
-{"path":"packages/effect-prisma/src/database.typecheck.test.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":2}
 {"path":"packages/effect-prisma/src/database.typecheck.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/databaseTesting.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-prisma/src/databaseTypes.ts","rule":"biome/lint/style/useNamingConvention","count":21}
 {"path":"packages/effect-prisma/src/databaseTypes.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-prisma/src/databaseTypes.typecheck.test.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":1}
 {"path":"packages/effect-prisma/src/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/adapters/transaction-settlement.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/adapters/transaction-settlement.ts","rule":"biome/lint/style/useConsistentMemberAccessibility","count":1}
@@ -311,7 +308,6 @@
 {"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/style/useNamingConvention","count":7}
 {"path":"packages/effect-test/src/vitest.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-test/src/vitest.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-test/src/vitest.typecheck.test.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":1}
 {"path":"packages/effect-trpc/src/adapter.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-trpc/src/adapter.ts","rule":"biome/lint/style/useNamingConvention","count":37}
 {"path":"packages/effect-trpc/src/client/rejection.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
@@ -356,7 +352,6 @@
 {"path":"packages/effect-trpc/src/testing/vitest.ts","rule":"biome/lint/style/useNamingConvention","count":10}
 {"path":"packages/effect-trpc/src/testing/vitest.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-trpc/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/style/noDoneCallback","count":1}
-{"path":"packages/effect-trpc/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":1}
 {"path":"packages/effect-trpc/src/types.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/heavy-lock/src/acquire.test.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/heavy-lock/src/acquire.test.ts","rule":"biome/plugin","count":1}
@@ -441,7 +436,6 @@
 {"path":"packages/platform/src/testing/vitest.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/platform/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/style/noDoneCallback","count":1}
 {"path":"packages/platform/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/style/useNamingConvention","count":1}
-{"path":"packages/platform/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/suspicious/noUnusedExpressions","count":2}
 {"path":"packages/quality/src/baseline/compare.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/format.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"biome/plugin","count":1}

@@ -1,3 +1,3 @@
 import { List } from "#test/notes.ts";
 
-List.error.members;
+void List.error.members;
