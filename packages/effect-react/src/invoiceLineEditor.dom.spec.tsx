@@ -52,7 +52,7 @@ function mount() {
 
 function settle(assert: () => void) {
 	return vi.waitFor(async () => {
-		await act(async () => {});
+		await act(async (): Promise<void> => undefined);
 		assert();
 	});
 }
@@ -73,7 +73,7 @@ async function editing(id = 1) {
 				children: () => [createElement(Probe, { key: "probe" }), createElement(InvoiceLineEditor, { id: current, key: "editor" })],
 				connect: () => undefined,
 				identify: (session) => session,
-				recheck: () => {},
+				recheck: (): void => undefined,
 				session: "s1",
 			}),
 		);
@@ -160,7 +160,7 @@ it("create resets to its initial values after success, keeping fields edited dur
 			children: () => createElement(InvoiceLineCreate),
 			connect: () => undefined,
 			identify: (session) => session,
-			recheck: () => {},
+			recheck: (): void => undefined,
 			session: "s1",
 		}),
 	);

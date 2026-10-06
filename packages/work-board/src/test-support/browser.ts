@@ -82,7 +82,7 @@ function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: 
 export async function openPage(
 	board: RunningBoard,
 	path = "/",
-	beforeScripts: (window: BrowserWindow) => void | Promise<void> = async () => {},
+	beforeScripts: (window: BrowserWindow) => void | Promise<void> = async (): Promise<void> => undefined,
 ): Promise<OpenPage> {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };

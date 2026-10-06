@@ -65,7 +65,7 @@ async function mountEditor(url: string, token?: string, id = 1) {
 
 function eventually(assert: () => void) {
 	return vi.waitFor(async () => {
-		await act(async () => {});
+		await act(async (): Promise<void> => undefined);
 		assert();
 	});
 }

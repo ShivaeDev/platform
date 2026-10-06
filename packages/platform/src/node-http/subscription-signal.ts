@@ -39,7 +39,7 @@ export const nodeSubscriptionSignal = (options: NodeSubscriptionSignalOptions): 
 
 	const nodeRequest = options.nodeRequest ?? nodeRequestFrom(options.request);
 	if (nodeRequest === undefined) {
-		return { dispose: () => {}, signal: AbortSignal.any(signals) };
+		return { dispose: (): void => undefined, signal: AbortSignal.any(signals) };
 	}
 
 	const socket = nodeRequest.socket;

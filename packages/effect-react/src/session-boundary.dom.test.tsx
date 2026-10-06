@@ -13,7 +13,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 function eventually(assert: () => void) {
 	return vi.waitFor(async () => {
-		await act(async () => {});
+		await act(async (): Promise<void> => undefined);
 		assert();
 	});
 }
@@ -116,7 +116,7 @@ it("StrictMode's effect replay keeps the generation's registry alive until the r
 						children: () => createElement(Probe),
 						connect: () => undefined,
 						identify: (id) => id,
-						recheck: () => {},
+						recheck: (): void => undefined,
 						session,
 					}),
 				),
@@ -150,7 +150,7 @@ async function activity(hoisted: boolean) {
 			children: () => createElement(Probe),
 			connect: () => undefined,
 			identify: (id) => id,
-			recheck: () => {},
+			recheck: (): void => undefined,
 			session: "s1",
 		});
 	}
@@ -162,7 +162,7 @@ async function activity(hoisted: boolean) {
 		return act(async () => {
 			root.render(createElement(Activity, { children: hoisted ? kept : boundary(), mode }));
 		}).then(
-			() => {},
+			(): void => undefined,
 			(error: unknown) => {
 				errors.push(error);
 			},
@@ -208,7 +208,7 @@ it("a generation re-rendered while hidden by <Activity> and then unmounted dispo
 						children: () => createElement(Probe, { round }),
 						connect: () => undefined,
 						identify: (id) => id,
-						recheck: () => {},
+						recheck: (): void => undefined,
 						session: "s1",
 					}),
 					mode,
@@ -244,7 +244,7 @@ it("connect runs once per identity: a rotated credential reaches the client only
 						return current.token;
 					},
 					identify,
-					recheck: () => {},
+					recheck: (): void => undefined,
 					session,
 				}),
 			);

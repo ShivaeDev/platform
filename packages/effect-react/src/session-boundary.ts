@@ -11,7 +11,7 @@ export interface SessionBoundaryProps<S, Client> {
 	readonly signedOut?: ReactNode;
 }
 
-const Recheck = createContext<() => void>(() => {});
+const Recheck = createContext<() => void>((): void => undefined);
 
 export const useSessionRecheck = (): (() => void) => useContext(Recheck);
 

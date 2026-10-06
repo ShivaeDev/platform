@@ -206,13 +206,10 @@
 {"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/correctness/noChildrenProp","count":3}
 {"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/correctness/useUniqueElementIds","count":1}
 {"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":3}
 {"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":1}
 {"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":3}
 {"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-react/src/nativeFeature.dom.spec.tsx","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/correctness/useUniqueElementIds","count":2}
-{"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/effect-react/src/orderExample.dom.spec.tsx","rule":"biome/lint/suspicious/useAwait","count":5}
 {"path":"packages/effect-react/src/result-state.dom.test.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
@@ -229,12 +226,10 @@
 {"path":"packages/effect-react/src/save-state.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/session-boundary.dom.test.tsx","rule":"biome/lint/correctness/noChildrenProp","count":6}
 {"path":"packages/effect-react/src/session-boundary.dom.test.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":3}
-{"path":"packages/effect-react/src/session-boundary.dom.test.tsx","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":6}
 {"path":"packages/effect-react/src/session-boundary.dom.test.tsx","rule":"biome/lint/suspicious/useAwait","count":4}
 {"path":"packages/effect-react/src/session-boundary.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-react/src/session-boundary.ts","rule":"biome/lint/nursery/useReactNamingConvention","count":1}
 {"path":"packages/effect-react/src/session-boundary.ts","rule":"biome/lint/style/useNamingConvention","count":11}
-{"path":"packages/effect-react/src/session-boundary.ts","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/effect-react/src/session-boundary.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-react/src/submission.ts","rule":"biome/lint/style/useNamingConvention","count":6}
@@ -397,7 +392,6 @@
 {"path":"packages/platform/src/nativeRpcAuth.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/platform/src/node-http/subscription-signal.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/platform/src/node-http/subscription-signal.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/platform/src/rpc-server/adapters/better-auth-sessions.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/platform/src/rpc-server/adapters/better-auth-sessions.ts","rule":"biome/lint/style/useNamingConvention","count":2}
@@ -622,7 +616,6 @@
 {"path":"packages/work-board/src/serve.test.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
 {"path":"packages/work-board/src/serve.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/work-board/src/test-support/board.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
-{"path":"packages/work-board/src/test-support/browser.ts","rule":"biome/lint/suspicious/noEmptyBlockStatements","count":1}
 {"path":"packages/work-board/src/test-support/live.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"files/named-after-export","count":1}

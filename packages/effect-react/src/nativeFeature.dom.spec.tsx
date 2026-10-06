@@ -111,7 +111,7 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 	}
 	const settled = async (titles: string[], error = false) =>
 		vi.waitFor(async () => {
-			await act(async () => {});
+			await act(async (): Promise<void> => undefined);
 			expect(snapshot()).toEqual({
 				error,
 				loading: false,
