@@ -16,7 +16,9 @@ describe("reactivity keys", () => {
 		Effect.gen(function* () {
 			const reactivity = yield* Reactivity.Reactivity;
 			const refreshed: string[] = [];
-			const watch = (label: string, keys: readonly string[]) => reactivity.registerUnsafe(keys, () => refreshed.push(label));
+			function watch(label: string, keys: readonly string[]) {
+				return reactivity.registerUnsafe(keys, () => refreshed.push(label));
+			}
 			const release = [
 				watch("order 1", readKeys([orders.item(1)])),
 				watch("order 2", readKeys([orders.item(2)])),
