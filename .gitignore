@@ -9,5 +9,6 @@ coverage/
 .pnpm-debug.log*
 .pnpm-store/
 .worktrees/
-.claude/
+.claude/*
+!.claude/skills/
 .ci/

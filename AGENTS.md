@@ -24,3 +24,4 @@ Make each change on its own branch in `.worktrees/<name>`, created with `git wor
 - For what is built and what is still open, read `docs/framework/roadmap.md`.
 - For how PostgreSQL, auth, interruption and client behavior are validated, read `docs/framework/boundary-validation.md`.
 - For the quality rules and how the baseline moves, read `packages/quality/README.md`.
+- Before you write or reshape a package's `AGENTS.md`, README or `docs/`, use the `package-docs` skill in `.agents/skills/`.
