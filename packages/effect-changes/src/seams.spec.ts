@@ -3,7 +3,9 @@ import { expect, it } from "vitest";
 import type { Observation } from "#observe.ts";
 import { type Change, change, harness, makeDatabase, on } from "#test/fake-database.ts";
 
-const label = (event: Change) => `${event.subject}:${event.domain}`;
+function label(event: Change) {
+	return `${event.subject}:${event.domain}`;
+}
 
 it("a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards", () =>
 	Effect.runPromise(

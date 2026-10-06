@@ -34,13 +34,18 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 	const keyOf = options.key ?? ((change: A): unknown => change);
 	const publish = publisher<A, R>(name, options.onPublishFailure ?? "log");
 	const guard = options.unowned ?? Effect.void;
-	const unguarded = (frame: Buffer<A> | undefined) => frame === undefined || frame.kind === "batch";
-	const observe = (observation: Observation<A>) => Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation));
-	const deliver = (changes: readonly A[]) =>
-		Effect.andThen(
+	function unguarded(frame: Buffer<A> | undefined) {
+		return frame === undefined || frame.kind === "batch";
+	}
+	function observe(observation: Observation<A>) {
+		return Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation));
+	}
+	function deliver(changes: readonly A[]) {
+		return Effect.andThen(
 			observe({ _tag: "Published", changes }),
 			Effect.flatMap(Effect.service(CurrentSink), (sink) => publish(sink, changes)),
 		);
+	}
 
 	const locate = Effect.gen(function* () {
 		const owner = yield* options.owner;
@@ -67,8 +72,8 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 		}
 	});
 
-	const openAs = (kind: Buffer<A>["kind"]) =>
-		Effect.gen(function* () {
+	function openAs(kind: Buffer<A>["kind"]) {
+		return Effect.gen(function* () {
 			const { owner, frames, frame: parent } = yield* locate;
 			if (parent !== undefined && !parent.open) {
 				return yield* settled(name);
@@ -87,6 +92,7 @@ export const makeChannel = <A, R = never>(options: ChannelOptions<A, R>): Channe
 				publish: (changes) => Effect.provideContext(deliver(changes), context),
 			});
 		});
+	}
 
 	const open = openAs("transaction");
 
