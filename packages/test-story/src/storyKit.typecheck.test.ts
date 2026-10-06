@@ -137,7 +137,7 @@ it("needs no layer for hooks that are plain functions", () => {
 		verbs: () => ({}),
 	});
 
-	expectTypeOf(plain).toEqualTypeOf<StoryKit<Shelf, "built", {}, never, never>>();
+	expectTypeOf(plain).toEqualTypeOf<StoryKit<Shelf, "built", Record<never, never>, never, never>>();
 });
 
 it("takes only the stages the kit declares", () => {
