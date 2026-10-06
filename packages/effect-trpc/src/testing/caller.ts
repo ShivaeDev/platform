@@ -16,15 +16,16 @@ export type EffectCallerFactory<Options, Caller> = EffectCaller<Caller> & ((opti
 
 type Adapter = Pick<EffectTRPCAdapter<never>, "runWithServices">;
 
-const member = (node: unknown, segment: string): unknown =>
-	(typeof node === "object" && node !== null) || typeof node === "function" ? Reflect.get(node, segment) : undefined;
+function member(node: unknown, segment: string): unknown {
+	return (typeof node === "object" && node !== null) || typeof node === "function" ? Reflect.get(node, segment) : undefined;
+}
 
-const invoke = (promiseCaller: object, path: readonly string[], argumentsList: readonly unknown[]): Promise<unknown> => {
+function invoke(promiseCaller: object, path: readonly string[], argumentsList: readonly unknown[]): Promise<unknown> {
 	const leaf = path.reduce<unknown>(member, promiseCaller);
 	return typeof leaf === "function"
 		? Promise.resolve(Reflect.apply(leaf, undefined, argumentsList))
 		: Promise.reject(new TypeError(`${path.join(".")} is not a procedure`));
-};
+}
 
 export function makeEffectCaller<Caller extends object, Services>(
 	adapter: Adapter,
@@ -32,8 +33,8 @@ export function makeEffectCaller<Caller extends object, Services>(
 	services: Context.Context<Services>,
 ): EffectCaller<Caller>;
 export function makeEffectCaller(adapter: Adapter, promiseCaller: object, services: Context.Context<never>): unknown {
-	const build = (path: readonly string[]): unknown =>
-		new Proxy(
+	function build(path: readonly string[]): unknown {
+		return new Proxy(
 			Object.assign(() => undefined, { path }),
 			{
 				apply(_target, _this, argumentsList) {
@@ -50,6 +51,7 @@ export function makeEffectCaller(adapter: Adapter, promiseCaller: object, servic
 				},
 			},
 		);
+	}
 
 	return build([]);
 }
