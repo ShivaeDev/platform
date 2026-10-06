@@ -6,6 +6,16 @@
 
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
+## 0.17.0 - 2026-10-06
+
+### Added
+
+- `inheritTags(projects, root)` in `@shivaedev/quality/vitest.ts` gives each inline Vitest project the tags declared by the config file it `extends`, which Vitest drops. A root config that gathers the projects of several packages, or whose projects extend a shared base config, passes them through it, so a tagged test runs from the root and `--tags-filter` works across the workspace. A project's own tag wins over an inherited one of the same name; projects that extend `true`, globs and file paths come back unchanged.
+
+### Changed
+
+- The README's story-test section shows a kit built with `@shivaedev/test-story`: a test hands its traits to the kit's `it`, acts through the kit's verbs and lets the engine run with `story.runUntil`.
+
 ## 0.16.0 - 2026-10-06
 
 ### Added

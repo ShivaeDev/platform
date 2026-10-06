@@ -17,6 +17,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	"local-postgres": { allowed: [], module: "localPostgres" },
 	quality: { allowed: ["types"], module: "config" },
 	skills: { allowed: [], module: "syncSkills" },
+	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
 	"work-board": { allowed: ["effect-contract"], module: "board" },
 };
@@ -111,7 +112,7 @@ export default defineConfig({
 					{
 						includes: ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
 						reason:
-							"The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer.",
+							"The bound every test Layer must satisfy. Layer's output slot is contravariant, so the only non-any bound is never, and a never bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any is the only bound that neither rejects nor rewrites the caller's Layer. effect-test's bound adds a never-output member so it also takes a Layer that provides nothing, such as Layer.empty.",
 						rule: "lint/suspicious/noExplicitAny",
 					},
 					{

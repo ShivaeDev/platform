@@ -2,7 +2,7 @@ import { it as effectIt, type TestContext, type TestOptions } from "@effect/vite
 import { Cause, type Context, Effect, Exit, Layer, Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import * as TestConsole from "effect/testing/TestConsole";
-import type { AnyTestLayer } from "./any-test-layer.ts";
+import { type AnyTestLayer, buildTestLayer } from "./any-test-layer.ts";
 import type { EffectClock, EffectTest, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
 
 const fixtureName = "__effectTestContext";
@@ -56,13 +56,13 @@ const splitOptions = (
 	return { clock, vitest };
 };
 
-const makeFixtureIt = <Provided, LayerError>(layer: Layer.Layer<Provided, LayerError>) =>
+const makeFixtureIt = <TLayer extends AnyTestLayer>(layer: TLayer) =>
 	effectIt.extend(fixtureName, { scope: "worker" }, async ({}, { onCleanup }) => {
 		const scope = Effect.runSync(Scope.make());
 		onCleanup(() => Effect.runPromise(Scope.close(scope, Exit.void)));
 
 		try {
-			return await Effect.runPromise(Layer.buildWithScope(layer, scope));
+			return await Effect.runPromise(buildTestLayer(layer, scope));
 		} catch (error) {
 			await Effect.runPromise(Scope.close(scope, Exit.void));
 			throw error;

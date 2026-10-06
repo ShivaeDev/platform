@@ -9,7 +9,9 @@ coverage/
 .pnpm-debug.log*
 .pnpm-store/
 .worktrees/
-.claude/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
 .ci/
 
 packages/work-board/assets/

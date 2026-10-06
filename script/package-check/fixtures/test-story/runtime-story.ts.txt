@@ -1,0 +1,34 @@
+import { PassThrough } from "node:stream"
+import { genreTags } from "@shivaedev/test-story/genreTags.ts"
+import { createVitest } from "vitest/node"
+
+const vitest = await createVitest(
+  "test",
+  { config: false, include: ["garden.spec.ts"], root: process.cwd(), tags: genreTags("garden", "pond"), tagsFilter: ["garden-story"], watch: false },
+  {},
+  { stderr: new PassThrough(), stdout: new PassThrough() },
+)
+const { testModules } = await vitest.start()
+await vitest.close()
+
+const outcomes = testModules.flatMap((module) => [
+  ...module.errors().map((error) => error.message),
+  ...[...module.children.allTests()].map((test) => {
+    const result = test.result()
+    const headline = result.state === "failed" ? `: ${result.errors[0]?.message.split("\n")[0] ?? ""}` : ""
+    return `${test.name} ${result.state}${headline}`
+  }),
+])
+const refusal = [...(testModules[0]?.children.allTests() ?? [])].find((test) => test.name === "Garden Story: grows nothing on stone")?.result()
+
+if (
+  outcomes.join("|") !==
+    'Garden Story: sprouts every seed passed|Garden Story: grows nothing on stone failed: the trait "the garden is paved" refused to set up the garden: nothing grows on stone|Pond Story: has no fish yet skipped' ||
+  refusal?.state !== "failed" ||
+  !refusal.errors[0]?.message.includes("✗ given  the garden is paved\n         refused at garden.spec.ts:")
+) {
+  throw new Error(`The packed story kit misbehaved: ${outcomes.join(" | ")}`)
+}
+
+// Vitest marks the process failed for the story that fails on purpose.
+process.exitCode = 0

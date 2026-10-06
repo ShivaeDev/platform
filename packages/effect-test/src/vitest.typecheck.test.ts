@@ -39,3 +39,15 @@ effectApp.each([{ id: 1 as const }])("retains table case types", function* (item
 	expectTypeOf(harness.token).toEqualTypeOf<string>();
 	return yield* Effect.void;
 });
+
+const empty = makeEffectIt({ layer: Layer.empty, makeHarness: () => Effect.succeed({ shelf: 0 }) });
+
+empty.effectApp("takes a Layer that provides nothing", function* (harness) {
+	expectTypeOf(harness.shelf).toEqualTypeOf<number>();
+	return yield* Effect.void;
+});
+
+// @ts-expect-error A Layer that provides nothing provides no Token.
+empty.effectApp("refuses a service the empty Layer does not provide", function* () {
+	return yield* Token;
+});

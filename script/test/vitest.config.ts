@@ -1,25 +1,20 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { testProjects } from "@shivaedev/quality/vitest.ts";
+import type { TestProjectConfiguration } from "vitest/config";
+import { inheritTags, type testProjects } from "@shivaedev/quality/vitest.ts";
 import { TestSequencer } from "#ci/TestSequencer.ts";
 import { testPackages } from "#ci/testPackages.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
 export default async function workspace() {
-	type Project = Extract<NonNullable<ReturnType<typeof testProjects>["projects"]>[number], { test?: unknown }>;
-	const projects: Project[] = [];
+	const projects: TestProjectConfiguration[] = [];
 	for (const { configFile, directory, name } of testPackages(root)) {
 		const { default: config }: { default: { test?: ReturnType<typeof testProjects> } } = await import(pathToFileURL(configFile).href);
 		for (const project of config.test?.projects ?? []) {
 			if (typeof project !== "object" || project === null || !("test" in project) || typeof project.test?.name !== "string") {
 				throw new Error(`${configFile}: expected named inline test projects`);
 			}
-			projects.push({
-				...project,
-				extends: configFile,
-				root: directory,
-				test: { ...project.test, name: `${name}:${project.test.name}` },
-			});
+			projects.push({ ...project, extends: configFile, root: directory, test: { ...project.test, name: `${name}:${project.test.name}` } });
 		}
 	}
 	return {
@@ -37,7 +32,7 @@ export default async function workspace() {
 				reportsDirectory: `${root}.ci/coverage`,
 			},
 			project: ["*:unit", "*:dom"],
-			projects,
+			projects: await inheritTags(projects, root),
 			sequence: { sequencer: TestSequencer },
 		},
 	};

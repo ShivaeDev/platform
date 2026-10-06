@@ -14,7 +14,7 @@ Ask the maintainer before you change a public API, add a package or dependency, 
 
 ## Daily commands
 
-Run `./script/update` once per checkout: it calls `pnpm run setup` to install frozen dependencies and prepare the shared local PostgreSQL that the database tests need. While you work, run `pnpm lint`, apply Biome's fixes and formatting with `pnpm format`, and run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`; add `--project slow` for `*.slow.test.ts` files, which the default run skips. Run `pnpm ready` for the full local gate, the same steps CI runs against PostgreSQL.
+Run `./script/update` once per checkout: it calls `pnpm run setup` to install frozen dependencies, install the pre-commit hook that runs `pnpm lint` and `pnpm typecheck` on every commit, and prepare the shared local PostgreSQL that the database tests need. Never skip the hook. While you work, run `pnpm lint`, apply Biome's fixes and formatting with `pnpm format`, and run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`; add `--project slow` for `*.slow.test.ts` files, which the default run skips. Run `pnpm ready` for the full local gate, the same steps CI runs against PostgreSQL.
 
 Make each change on its own branch in `.worktrees/<name>`, created with `git worktree add`. Every `CLAUDE.md` is a symlink to the `AGENTS.md` beside it; edit the `AGENTS.md`. Every package change adds a `CHANGELOG.md` entry, and a release bumps the package version in the same pull request, so the publish workflow ships it to npm from `main`.
 
@@ -24,3 +24,4 @@ Make each change on its own branch in `.worktrees/<name>`, created with `git wor
 - For what is built and what is still open, read `docs/framework/roadmap.md`.
 - For how PostgreSQL, auth, interruption and client behavior are validated, read `docs/framework/boundary-validation.md`.
 - For the quality rules and how the baseline moves, read `packages/quality/README.md`.
+- Before you write or reshape a package's `AGENTS.md`, README or `docs/`, use the `package-docs` skill in `.agents/skills/`.
