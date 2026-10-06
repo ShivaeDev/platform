@@ -131,6 +131,7 @@ reader keeps its existing compatibility; browser recording still requires JavaSc
 and explicit server write opt-in.
 
 The Linux-only no-replace publisher, revision/path checks, typed rejected/uncertain
-outcomes, source preservation and local-only operation are unchanged. Source patches
-and undo remain step 17; a real tool handoff remains D3 before step 18. No export,
+outcomes, source preservation and local-only operation are unchanged. The approved
+[ownership boundary](./source-editing-examples.md) defers direct source patches
+and undo; a real tool handoff remains D3 before step 18. No export,
 cloud transport or additional dependency is introduced.

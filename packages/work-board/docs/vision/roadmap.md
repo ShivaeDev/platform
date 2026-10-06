@@ -32,6 +32,8 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
 - [x] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
 - [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
+  — deferred by the approved ordinary-file ownership boundary; the controls are
+  unimplemented and do not block D3/18.
 - [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
 - [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
 - [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
@@ -517,19 +519,23 @@ asking an agent to reconstruct the context. No external account is required.
 
 ## Wave 2 — Inform back and coordinate
 
-D2 approves the first anchored response boundary below. Structured decision
-actions, source-replacing edits and a real agent handoff still need their own
-contract discussion; mockups do not settle them.
+D2 approves anchored responses, and step 16 delivers rich question/decision
+packets. The approved [ownership boundary](./delivery/source-editing-examples.md)
+keeps project edits with agents, human response content with Work Board, and
+defers direct project editing/undo. A real handoff still requires D3; mockups do
+not settle that contract.
 
 ### Design gate before content mutations
 
 - [x] Agree the first response surface: anchored answers, clarification and
-  deferral, with a browser-local draft store and per-question waits. Structured
-  decisions and checklist/status editing remain later contracts.
+  deferral, with a browser-local draft store and per-question waits. Step 16's
+  rich packet/decision contract is delivered; direct project editing is deferred.
 - [x] Preserve D1 legacy boards and richer per-item files; D2 adds independently
   identified question/context and response Markdown records without migration.
-- [ ] Specify source-preserving patches, revision checks, atomic replacement,
-  undo, failure recovery, and treatment of concurrently edited files.
+- [x] Agree ownership and practical writer expectations: agents edit ordinary
+  files, Work Board owns human response content, surrounding agent changes win,
+  and rare outside-editor races are accepted best-effort limitations. Direct
+  source replacement/undo is deferred rather than required for coordination.
 - [x] Specify the response route trust boundary: explicit writer opt-in, native
   same-origin/loopback NDJSON commands, escaped reviewed source and blocked source
   form actions/frames. Local labels provide attribution, not authentication.
@@ -541,13 +547,14 @@ contract discussion; mockups do not settle them.
 | Slice | Proposed scope | Acceptance evidence |
 | --- | --- | --- |
 | W2.1 Respond | Anchored feedback, revision requests, decision comparison and recording | The response retains its source revision and evidence context; a later edit cannot silently change what was approved |
-| W2.2 Edit | Create/edit items, toggle checklist, change status, explicit move controls, optional drag-and-drop, undo | A narrow edit changes only the intended source; stale writes are surfaced; keyboard actions match pointer actions |
+| W2.2 Edit (deferred) | Agents keep ordinary project-file editing; direct create/title/checklist/status/move controls and undo remain unimplemented | Ownership is agreed; the original editing acceptance is not claimed |
 | W2.3 Coordinate | Goal/constraints/acceptance handoff, owner and next action, waiting/running/review states, acknowledgment | One real tool receives a handoff and returns a result; failures, duplicate submissions, and missing acknowledgment are visible |
 | W2.4 Review | Criterion-level evidence, source diffs, requested revisions, acceptance distinct from run completion | A real item goes from proposal through a revision to accepted result with readable source records |
 
 **Exit:** complete one local feature workflow with a person and an agent. The
 person can give direction in context, understand whether it was received, and
-review the result. Concurrent edits cannot silently discard work.
+review the result. Work Board preserves the human response and makes ordinary
+detected save failures clear; outside-editor concurrency remains best effort.
 
 ## Wave 3 — Collaborate, with bounded integrations
 
@@ -789,7 +796,8 @@ and synchronize again. Other supported Node platforms retain reading and explici
 reject publication. Moved/duplicated records and changing write boundaries remain
 explicit failures. Outside-editor changes after preflight cannot be made a universal
 transaction; saved records retain reviewed context instead of replacing that editor's
-source. Source replacement/undo (17), D3 before 18 and D4 before 24 remain open. No export or cloud service was introduced.
+source. Direct source replacement/undo (17) is now deferred by the ownership
+decision below; D3 before 18 and D4 before 24 remain open. No export or cloud service was introduced.
 
 
 ## Step 16 rich question and decision acceptance
@@ -842,5 +850,38 @@ consumer, including the 0.9.0 CLI banner. Quality baseline remains 2,547. Final 
 budget or long-duration soak is claimed. Linux-only publication, local-only operation,
 48-hour wait semantics and browser draft bounds remain unchanged. Representative-
 reader timing, physical devices and actual bfcache adoption evidence remain pending;
-these fixtures do not accept steps 07/13. Step 17 source replacement/undo and D3/D4
-remain separate open contracts.
+these fixtures do not accept steps 07/13. Direct project editing/undo is deferred;
+D3/D4 remain open contracts.
+
+## Step 17 ownership decision
+
+The maintainer approved ordinary agent file editing and human-owned response
+content on 6 October 2026. Agent changes win outside the response area; Work Board
+owns the human response inside it. Agents must not need a special mutation or
+acknowledgment protocol. Keep practical drafts, revision checks and ordinary save
+failure handling; rare concurrent-editor races and possible text loss are accepted
+best-effort limitations rather than a reason to build a universal filesystem
+transaction or recovery engine.
+
+The current writer still publishes separate question/response records and leaves
+project source unchanged. This decision does not invent an inline-response format,
+remove existing validation, or prove new editing behavior. The
+[examples and delivery consequence](./delivery/source-editing-examples.md) defer
+direct item editing/undo, leave 17 unchecked, and permit the next D3 discussion
+for step 18. Step 07/13 representative-reader and physical-device evidence remains
+outstanding. This checkpoint changes documentation only.
+
+The next [D3 discussion](./delivery/handoff-examples.md) proposes an ordinary
+Markdown handoff and file-edited acknowledgment, with a copied pointer to an
+existing session first. Optional harness notification or explicit CLI launch are
+alternatives, not implemented or approved behaviors. The proposal includes goal,
+constraints, reviewed sources, criteria, recipient, next action and receipt states;
+it does not equate receipt, execution, result or acceptance. No new agent process
+or handoff was started while preparing these examples.
+
+Documentation handoff verification passed on updated main: full `pnpm ready`
+with 1,295 package passes (270 Work Board), 12 expected failures, four intentional
+skips, 15 orchestration checks, real PostgreSQL and every packed consumer. Quality
+baseline is 2,539 with no new exceptions. The 107 local prose-link targets exist.
+Log: `/tmp/work-board-ownership-ready.log`. Runtime, schemas and version are
+unchanged; no new browser or handoff acceptance is claimed.

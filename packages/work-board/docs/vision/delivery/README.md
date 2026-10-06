@@ -34,7 +34,7 @@ ship without content editing, agent APIs, or external integrations.
 | --- | --- | --- | --- |
 | D1 Source structure | 04 | [Plain-text examples](./source-examples.md): existing heading board, richer item, linked decision/evidence; invalid/duplicate cases | Optional metadata, stable explicit IDs for durable references, readable fallback; no mandatory migration |
 | D2 Responses and writes | 14 | [Before/after response examples](./response-write-examples.md), source revision contract, concurrent editor scenario, undo and trust behavior | Approved 6 October: separate immutable question/context and response files, local draft bounds and re-readable per-question waits; exact shipped contract and Linux limits are documented |
-| D3 Handoff contract | 18 | One real producer/consumer walkthrough, acknowledged/rejected/lost response cases, payload examples | One local tool adapter; no scheduler, terminal manager, or generic agent protocol |
+| D3 Handoff contract | 18 | [A bounded walkthrough and delivery choices](./handoff-examples.md), acknowledged/rejected/lost response cases, illustrative payload | Ordinary Markdown request/receipt with a copied pointer first; optional local harness notification later; no mandatory agent writer or scheduler |
 | D4 Integration admission | 24 | A repeated manual evidence step, source of truth, refresh/offline rules, credentials and maintenance ownership | Read explicitly linked GitHub objects only; no two-way sync |
 
 The maintainer decides public API shape, file format, new dependencies, and
@@ -43,6 +43,10 @@ release boundaries. Prepare reviewable examples before asking. D1 does not block
 and frontend technology are intentionally not decided by the mockups or this plan.
 If durable browser automation needs a new dependency, bring that narrow choice
 with the first browser acceptance slice rather than silently installing it.
+
+The [approved ordinary-file ownership boundary](./source-editing-examples.md)
+defers step 17's direct project editing and undo. Step 18 may follow 14–16 once
+D3 is discussed; acknowledgment must remain possible through normal file edits.
 
 ## Build from the existing implementation
 

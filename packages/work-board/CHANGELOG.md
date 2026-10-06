@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Record agent-owned project editing and human-owned response content, practical
+  best-effort conflict handling, and deferred direct editing/undo in the delivery
+  plan. Ordinary file editing remains sufficient for agents; D3 handoff is still
+  a separate discussion gate. Runtime and source schemas are unchanged.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 - Remove document export and shareable artifact/packet generation from the vision
   and delivery scope. Keep onboarding/report templates and linked in-app review.
