@@ -66,3 +66,12 @@ it("interrupts an active native subscription when the HTTP server scope ends", a
 	await board.stop();
 	await waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("reconnecting"));
 });
+
+it("reads getting-started templates through the shared native page contract", async () => {
+	await open();
+	const page = await client.read(client.api.page.query({ url: "/_board/start" }));
+	expect(page.status).toBe(200);
+	expect(page.html).toContain("Project and report templates");
+	expect(page.html).toContain('data-view="start"');
+	expect(page.html).toContain("example.result");
+});

@@ -18,7 +18,7 @@ earlier PR look complete.
 | 1 | [01–03: navigate](./wave1.md#01-a-real-workspace-shell) | A large folder is comfortable to browse and search | Use the actual project notes, including keyboard and narrow layout |
 | 2 | [04–06: understand the work](./wave1.md#04-optional-identity-and-a-rebuildable-index) | Several views expose the same items, with evidence and relationships | Confirm the source model is understandable outside the board |
 | 3 | [07–09: stay oriented](./wave1.md#07-an-attention-first-overview) | Overview explains what needs attention and what changed | Return after an agent has worked and find the next judgment unaided |
-| 4 | [10–13: finish wave 1](./wave1.md#10-local-visual-evidence) | Rich documents, onboarding, local export, and a dependable reading workspace | Wave 1 exit in the roadmap; only then activate wave 2 |
+| 4 | [10–13: finish wave 1](./wave1.md#10-local-visual-evidence) | Rich documents, onboarding, report templates, and a dependable reading workspace | Wave 1 exit in the roadmap; only then activate wave 2 |
 | 5 | [14–17: inform back](./wave2.md#14-prove-one-safe-source-mutation) | Contextual responses and narrow edits survive competing writers | Review the write model and use it on real project files |
 | 6 | [18–20: coordinate](./wave2.md#18-one-local-agent-handoff) | One agent receives direction, returns evidence, and participates in review | Complete one feature through a real revision and acceptance |
 | 7 | [21–23: collaborate locally](./wave3.md#21-successive-contributions-with-clear-ownership) | Several contributions remain coherent; context spans local projects | Prove ownership and conflict behavior before broadening scope |
