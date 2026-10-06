@@ -52,13 +52,13 @@ const client = createTRPCClient<typeof router>({
 	],
 });
 
-const rename = async (name: string): Promise<unknown> => {
+async function rename(name: string): Promise<unknown> {
 	try {
 		return await client.rename.mutate({ name });
 	} catch (error) {
 		return error;
 	}
-};
+}
 
 afterAll(() => runtime.dispose());
 

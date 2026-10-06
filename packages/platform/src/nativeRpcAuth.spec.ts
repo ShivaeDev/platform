@@ -22,7 +22,7 @@ const Account = RpcGroup.make(
 	}),
 ).middleware(Authentication);
 
-const createProvider = async () => {
+async function createProvider() {
 	const database = new DatabaseSync(":memory:");
 	const options = {
 		baseURL: origin,
@@ -34,9 +34,9 @@ const createProvider = async () => {
 	await (await getMigrations(options)).runMigrations();
 	const auth = betterAuth(options);
 	return { auth, database };
-};
+}
 
-const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => {
+function createRpc(auth: Awaited<ReturnType<typeof createProvider>>["auth"]) {
 	const authentication = Layer.succeed(Authentication, (effect) =>
 		Effect.gen(function* () {
 			const request = yield* Effect.serviceOption(HttpServerRequest.HttpServerRequest);
@@ -77,12 +77,12 @@ const createRpc = (auth: Awaited<ReturnType<typeof createProvider>>["auth"]) => 
 		}).pipe(Layer.provide(handlers), Layer.provide(authentication), Layer.provide(RpcSerialization.layerJson)),
 		{ disableLogger: true },
 	);
-};
+}
 
 it("BetterAuth issued cookies authenticate isolated native RPC requests and honor expiry and revocation", async () => {
 	const { database, auth } = await createProvider();
 	const app = createRpc(auth);
-	const signup = async (name: string) => {
+	async function signup(name: string) {
 		const response = await auth.handler(
 			new Request(`${origin}/api/auth/sign-up/email`, {
 				body: JSON.stringify({
@@ -107,9 +107,9 @@ it("BetterAuth issued cookies authenticate isolated native RPC requests and hono
 			throw new Error("Sign-up did not create a session");
 		}
 		return { cookie, token: session.session.token, userId: session.user.id };
-	};
-	const read = (cookie: string, userId: string, requestOrigin = origin) =>
-		Effect.runPromise(
+	}
+	function read(cookie: string, userId: string, requestOrigin = origin) {
+		return Effect.runPromise(
 			Effect.gen(function* () {
 				const client = yield* RpcClient.make(Account);
 				return yield* Effect.result(client.ReadOwnAccount({ userId }));
@@ -124,6 +124,7 @@ it("BetterAuth issued cookies authenticate isolated native RPC requests and hono
 				Effect.scoped,
 			),
 		);
+	}
 	try {
 		const alice = await signup("alice");
 		const bob = await signup("bob");

@@ -3,20 +3,20 @@ import { Socket } from "node:net";
 import { describe, expect, it } from "vitest";
 import { nodeSubscriptionSignal } from "#node-http/subscription-signal.ts";
 
-const makeNodeRequest = (complete = false) => {
+function makeNodeRequest(complete = false) {
 	const socket = new Socket();
 	const request = new IncomingMessage(socket);
 	request.complete = complete;
 	return { request, socket };
-};
+}
 
-const webRequestCarrying = (nodeRequest: IncomingMessage): Request => {
+function webRequestCarrying(nodeRequest: IncomingMessage): Request {
 	const request = new Request("http://localhost/api/trpc/live");
 	Object.defineProperty(request, "runtime", {
 		value: { node: { req: nodeRequest } },
 	});
 	return request;
-};
+}
 
 describe("nodeSubscriptionSignal", () => {
 	it("aborts on socket close from an explicit node request", () => {

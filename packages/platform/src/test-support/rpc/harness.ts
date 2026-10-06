@@ -14,7 +14,7 @@ export interface LogRecord {
 	readonly message: unknown;
 }
 
-export const recorder = () => {
+export function recorder() {
 	const logs: LogRecord[] = [];
 	const spans: Tracer.NativeSpan[] = [];
 	const logger = Logger.make((options) => {
@@ -33,9 +33,9 @@ export const recorder = () => {
 	});
 	const layer = Layer.mergeAll(Logger.layer([logger]), Layer.succeed(Tracer.Tracer, tracer), Layer.succeed(References.MinimumLogLevel, "All"));
 	return { layer, logs, spans };
-};
+}
 
-export const createProvider = async () => {
+export async function createProvider() {
 	const database = new DatabaseSync(":memory:");
 	const options = {
 		baseURL: origin,
@@ -47,16 +47,16 @@ export const createProvider = async () => {
 	await (await getMigrations(options)).runMigrations();
 	const auth = betterAuth(options);
 	let lookups = 0;
-	const getSession = (headers: Headers) => {
+	function getSession(headers: Headers) {
 		lookups += 1;
 		return auth.api.getSession({ headers });
-	};
+	}
 	return { auth, database, getSession, lookups: () => lookups };
-};
+}
 
 export type Provider = Awaited<ReturnType<typeof createProvider>>;
 
-export const signup = async (provider: Provider, name: string) => {
+export async function signup(provider: Provider, name: string) {
 	const response = await provider.auth.handler(
 		new Request(`${origin}/api/auth/sign-up/email`, {
 			body: JSON.stringify({ email: `${name}@example.test`, name, password: "example-password-123" }),
@@ -72,21 +72,26 @@ export const signup = async (provider: Provider, name: string) => {
 	const session = await provider.auth.api.getSession({ headers: new Headers({ cookie }) });
 	expect(session).not.toBeNull();
 	return { cookie, userId: session?.user.id ?? "" };
-};
+}
 
-export const rpcHttp = <Rpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<Rpcs>) => RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" });
+export function rpcHttp<Rpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<Rpcs>) {
+	return RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" });
+}
 
-export const serve = (layer: Layer.Layer<never, never, HttpRouter.HttpRouter | RpcSerialization.RpcSerialization>) =>
-	HttpRouter.toWebHandler(layer.pipe(Layer.provide(RpcSerialization.layerJson)), { disableLogger: true });
+export function serve(layer: Layer.Layer<never, never, HttpRouter.HttpRouter | RpcSerialization.RpcSerialization>) {
+	return HttpRouter.toWebHandler(layer.pipe(Layer.provide(RpcSerialization.layerJson)), { disableLogger: true });
+}
 
-export const httpClient = (app: { readonly handler: (request: Request) => Promise<Response> }, headers: Readonly<Record<string, string>>) =>
-	RpcClient.layerProtocolHttp({
+export function httpClient(app: { readonly handler: (request: Request) => Promise<Response> }, headers: Readonly<Record<string, string>>) {
+	return RpcClient.layerProtocolHttp({
 		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders(headers)),
 		url: `${origin}/rpc`,
 	}).pipe(
 		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
 	);
+}
 
-export const annotationsOf = (logs: readonly LogRecord[], message: string) =>
-	logs.filter((log) => (Array.isArray(log.message) ? log.message.includes(message) : log.message === message)).map((log) => log.annotations);
+export function annotationsOf(logs: readonly LogRecord[], message: string) {
+	return logs.filter((log) => (Array.isArray(log.message) ? log.message.includes(message) : log.message === message)).map((log) => log.annotations);
+}

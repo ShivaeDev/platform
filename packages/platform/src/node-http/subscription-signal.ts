@@ -11,15 +11,18 @@ export interface NodeSubscriptionSignal {
 	readonly signal: AbortSignal;
 }
 
-const property = (value: unknown, key: string): unknown => (typeof value === "object" && value !== null ? Reflect.get(value, key) : undefined);
+function property(value: unknown, key: string): unknown {
+	return typeof value === "object" && value !== null ? Reflect.get(value, key) : undefined;
+}
 
-const isIncomingMessage = (value: unknown): value is IncomingMessage =>
-	typeof property(value, "socket") === "object" && typeof property(value, "once") === "function";
+function isIncomingMessage(value: unknown): value is IncomingMessage {
+	return typeof property(value, "socket") === "object" && typeof property(value, "once") === "function";
+}
 
-const nodeRequestFrom = (request: Request | undefined): IncomingMessage | undefined => {
+function nodeRequestFrom(request: Request | undefined): IncomingMessage | undefined {
 	const req = property(property(property(request, "runtime"), "node"), "req");
 	return isIncomingMessage(req) ? req : undefined;
-};
+}
 
 // Under Bun's node:http compatibility layer a Web request signal may miss an abandoned socket, so node close events cover long-lived responses.
 export const nodeSubscriptionSignal = (options: NodeSubscriptionSignalOptions): NodeSubscriptionSignal => {
