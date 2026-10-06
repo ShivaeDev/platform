@@ -58,5 +58,30 @@ figure.diagram[data-state="failed"] .diagram-source { display: block; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
+const documents = `
+.visual-document, .visual-callout { border: 1px solid var(--border); border-radius: 12px; padding: 1em 1.2em; margin: 1.2em 0; overflow-wrap: anywhere; }
+.visual-document > :last-child, .visual-callout > :last-child { margin-bottom: 0; }
+.visual-label { font-weight: 650; margin-top: 0; }
+.visual-value { font-size: 1.35em; font-variant-numeric: tabular-nums; }
+.visual-document progress { display: block; width: 100%; height: 1em; accent-color: var(--link); }
+.visual-timeline-entries { border-left: 2px solid var(--border); padding-left: 1.6em; }
+.visual-timeline-entries > li { padding: .3em 0 .7em .2em; }
+.visual-callout { border-left: 4px solid var(--link); background: var(--surface); }
+.visual-warning, .visual-caution { border-left-color: #b97720; }
+.visual-diagnostic { font-weight: 600; color: var(--muted); }
+@media print { .visual-document, .visual-callout { break-inside: avoid; } }
+`;
+
 export const style =
-	theme + layout + prose + board + diagrams + readingStyles() + searchStyles + metadataStyles + workStyle() + attentionStyle() + visualStyles;
+	theme
+	+ layout
+	+ prose
+	+ board
+	+ diagrams
+	+ readingStyles()
+	+ searchStyles
+	+ metadataStyles
+	+ workStyle()
+	+ attentionStyle()
+	+ visualStyles
+	+ documents;

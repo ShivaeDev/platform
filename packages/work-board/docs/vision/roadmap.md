@@ -25,7 +25,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
 - [x] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
 - [x] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
-- [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
+- [x] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
 - [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
 - [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
@@ -620,7 +620,34 @@ heading anchors and lazy images without duplicate preload requests. Existing
 search/navigation/history/footnote regressions passed. A recovery test now awaits
 both document replacement and completion of the independently settling live reads.
 
-The custom metric/progress/timeline shapes in
-[the concrete proposal](./delivery/visual-document-examples.md) remain open;
-Antumbra does not define those blocks. Step 11 stays unchecked until that source
-choice and the complete visual-document acceptance are established.
+## Step 11 visual-document acceptance
+
+Work Board 0.7.0 implements the user's approved `remark-directive` convention:
+fixed metric, progress and timeline containers with ordinary Markdown labels,
+source links and body content. GFM tables provide comparisons and GitHub-style
+alerts provide callouts. The [real project brief](./README.md#delivery-at-a-glance)
+uses each format. Its progress tally is authored implementation evidence;
+representative-reader acceptance remains explicitly unknown.
+
+Missing or unknown counts never fabricate a percentage. Invalid, blank, oversized
+or nested inputs retain their source with a diagnostic and leave subsequent prose
+readable. The shared unified parser replaces the remaining Satteri board parser;
+legacy heading boards, search, backlinks and local links remain covered.
+
+The final full `pnpm ready` passed: 1,190 package tests, four expected failures,
+one intentional skip, 236 Work Board tests, seven orchestration checks, real
+PostgreSQL and every packed consumer. The quality baseline stayed at 2,547.
+Regressions include malformed/blank attributes, provenance, zero versus unknown,
+authored timeline order, bounded input, callouts, legacy boards and source fallback.
+
+Chromium 151 read the actual brief on desktop 1440×1000 and narrow 390×844
+in dark/reduced-motion mode, with external network requests blocked. It checked
+source links, native progress, unknown metrics, authored chronology, callouts and
+comparisons; live pause/resume preserved the displayed tally until resumed.
+Malformed inputs retained diagnostics and later prose. No-JavaScript reading,
+source navigation and browser print/PDF retained the visual documents' text.
+No page errors were observed. Local artifacts are at
+`/workspace/artifacts/work-board-directives`. This print check does not establish
+step 12's static export; physical-device lifecycle and step 07's representative
+reader timing remain pending. Other Markdown readers show the directive markers
+and ordinary body text; nested composition stays deferred to step 23.

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.6.1",
+	"version": "0.7.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -54,13 +54,15 @@
 	},
 	"dependencies": {
 		"@shivaedev/effect-contract": "workspace:*",
+		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"react-markdown": "catalog:",
 		"rehype-raw": "catalog:",
+		"remark-directive": "catalog:",
 		"remark-gfm": "catalog:",
-		"satteri": "catalog:",
+		"remark-parse": "catalog:",
 		"shiki": "catalog:",
 		"unified": "catalog:",
 		"unist-util-visit": "catalog:",

@@ -1,5 +1,8 @@
 import type { RootContent } from "mdast";
-import { markdownToMdast } from "satteri";
+import remarkDirective from "remark-directive";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 
 export interface Section {
 	readonly heading: string;
@@ -58,7 +61,7 @@ const joined = (blocks: readonly string[]): string => blocks.join("\n\n");
 
 export const boardOf = (source: string): Board => {
 	const draft: Draft = { definitions: [], footer: undefined, intro: [], sections: [], title: "" };
-	const root = markdownToMdast(source);
+	const root = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(source);
 	const nodes = root.type === "root" ? root.children : [];
 	const lastHeading = nodes.findLastIndex((node) => node.type === "heading");
 	nodes.forEach((node, index) => {
