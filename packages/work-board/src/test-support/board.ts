@@ -68,6 +68,21 @@ export const rawGet = (board: RunningBoard, path: string, host?: string): Promis
 		outgoing.end();
 	});
 
+export function rawPost(board: RunningBoard, path: string, headers: Readonly<Record<string, string>>, body = ""): Promise<RawResponse> {
+	return new Promise((resolve, reject) => {
+		const outgoing = request({ headers, host: board.hostname, method: "POST", path, port: board.port }, (response) => {
+			let text = "";
+			response.setEncoding("utf8");
+			response.on("data", (chunk: string) => {
+				text += chunk;
+			});
+			response.on("end", () => resolve({ body: text, status: response.statusCode ?? 0 }));
+		});
+		outgoing.on("error", reject);
+		outgoing.end(body);
+	});
+}
+
 export interface EventStream {
 	readonly close: () => void;
 	readonly next: () => Promise<string>;

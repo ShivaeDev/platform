@@ -58,14 +58,14 @@ describe("live page", () => {
 		await open("/plan.md");
 		const [stream] = page.streams;
 		stream?.drop();
-		expect(page.document.getElementById("live")?.textContent).toBe("reconnecting");
+		await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("reconnecting"));
 		const events = await subscribe(board);
 		notes.write("plan.md", PLAN.replace("Intro.", "Written while offline."));
 		await changesUntil(events, "plan.md");
 		events.close();
 		stream?.connect();
 		await waitFor(() => expect(paragraph("Written while offline.")).toBeDefined());
-		expect(page.document.getElementById("live")?.textContent).toBe("live");
+		await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
 	});
 
 	it("shows that it is reconnecting while the folder is not watched and catches up after", async () => {
@@ -78,7 +78,7 @@ describe("live page", () => {
 		notes.write("plan.md", PLAN.replace("Intro.", "Written while unwatched."));
 		faults.heal();
 		await waitFor(() => expect(paragraph("Written while unwatched.")).toBeDefined());
-		expect(page.document.getElementById("live")?.textContent).toBe("live");
+		await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
 	});
 
 	it("catches up on a change made between loading the page and connecting", async () => {
@@ -95,7 +95,7 @@ describe("live page", () => {
 		await open("/plan.md");
 		page.pageRequests.failWith = 500;
 		page.streams[0]?.emit("change");
-		await waitFor(() => expect(status()).toBe("refresh failed (500)"));
+		await waitFor(() => expect(status()).toBe("refresh failed"));
 		expect(paragraph("Intro.")).toBeDefined();
 		expect(page.document.body.textContent).not.toContain("An error page from a proxy");
 		page.pageRequests.failWith = "network";
@@ -116,20 +116,20 @@ describe("live page", () => {
 		expect(status()).toBe("live");
 	});
 
-	it("fetches at most once more however many changes arrive during a refresh", async () => {
+	it("newer invalidation replaces a held read and the late result cannot overwrite it", async () => {
 		await open("/plan.md");
-		const before = page.pageRequests.count;
-		const refresh = held();
-		page.pageRequests.gate = refresh.gate;
-		for (let change = 0; change < 5; change++) {
-			page.streams[0]?.emit("change");
-		}
-		await waitFor(() => expect(page.pageRequests.count).toBe(before + 1));
-		page.pageRequests.gate = Promise.resolve();
-		refresh.release();
-		await waitFor(() => expect(page.pageRequests.count).toBe(before + 2));
+		const before = page.pageRequests.answered;
+		const older = held();
+		page.pageRequests.responseGate = older.gate;
+		notes.write("plan.md", PLAN.replace("Intro.", "Older source."));
+		await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThan(before));
+		page.pageRequests.responseGate = undefined;
+		notes.write("plan.md", PLAN.replace("Intro.", "Newest source."));
+		await waitFor(() => expect(paragraph("Newest source.")).toBeDefined());
+		older.release();
 		await settle();
-		expect(page.pageRequests.count).toBe(before + 2);
+		expect(paragraph("Newest source.")).toBeDefined();
+		expect(paragraph("Older source.")).toBeUndefined();
 	});
 
 	it("keeps each of two same-named details blocks open or closed as it was", async () => {

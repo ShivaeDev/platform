@@ -201,6 +201,13 @@ describe("local-only safety", () => {
 });
 
 describe("assets", () => {
+	it("serves the locally bundled native client from a source checkout", async () => {
+		const response = await get("/_board/native.js");
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe("text/javascript");
+		expect(await response.text()).toContain("work-board.subscribe");
+	});
+
 	it("serves Mermaid's modules from the installed package and nothing else", async () => {
 		const mermaid = await get("/_board/mermaid/mermaid.esm.min.mjs");
 		expect(mermaid.status).toBe(200);

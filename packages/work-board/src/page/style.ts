@@ -48,6 +48,7 @@ footer { margin-top: 2.5em; padding-top: 1em; border-top: 1px solid var(--border
 `;
 
 const diagrams = `
+[data-live-change] { outline: 2px solid var(--border); outline-offset: 3px; border-radius: 3px; }
 figure.diagram { margin-left: 0; margin-right: 0; }
 figure.diagram[data-state="pending"] { min-height: 12rem; background: var(--surface); border-radius: 6px; }
 figure.diagram .diagram-source { display: none; }

@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "happy-dom";
 import { held } from "./browser.ts";
+import { rpcCall } from "./rpc.ts";
 
 export function historyObservation() {
 	const gate = held();
@@ -7,8 +8,9 @@ export function historyObservation() {
 	function install(window: BrowserWindow) {
 		const fetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
-			if (input === "/_board/history" && typeof init?.body === "string" && init.body.includes('"action":"observe"')) {
-				started.resolve(() => init.signal?.aborted ?? false);
+			const call = await rpcCall(window, input, init);
+			if (call?.tag === "work-board.history" && JSON.stringify(call.payload).includes('"action":"observe"')) {
+				started.resolve(() => init?.signal?.aborted ?? false);
 				await gate.gate;
 			}
 			return fetch(input, init);

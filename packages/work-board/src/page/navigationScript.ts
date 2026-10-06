@@ -3,6 +3,7 @@ export function navigationScript(): string {
 import { applyPage, capturePage } from "/_board/page-state.js";
 import { reportMissingPassage, restoreReading, scrollToPassage } from "/_board/reading-state.js";
 import { refreshLibrary } from "/_board/library.js";
+import { session } from "/_board/native.js";
 
 const cache = new Map();
 const readingKey = "work-board:reading:" + document.documentElement.dataset.workspace;
@@ -65,20 +66,21 @@ const navigate = async (target, entry) => {
     restoreReading(cached.reading);
   } else status.textContent = "Opening document…";
   try {
-    const response = await fetch(target.pathname + target.search, { cache: "no-store", signal: controller.signal });
-    const page = new DOMParser().parseFromString(await response.text(), "text/html");
+    const native = session(window);
+    const response = await native.read(native.api.page.query({ url: target.pathname + target.search }), controller.signal);
+    const page = new DOMParser().parseFromString(response.html, "text/html");
     if (mine !== version) return;
     if (!applyPage(page, Boolean(cached))) throw new Error("Invalid page");
     displayedId = id;
-    status.textContent = response.ok ? "" : response.status === 404 ? "This document is missing or was renamed." : "This document could not be opened.";
-    if (response.ok) reportMissingPassage();
+    status.textContent = response.status < 400 ? "" : response.status === 404 ? "This document is missing or was renamed." : "This document could not be opened.";
+    if (response.status < 400) reportMissingPassage();
     if (!cached) {
       document.getElementById("doc").focus({ preventScroll: true });
       if (savedReading[id] ?? entry?.reading) restoreReading(savedReading[id] ?? entry.reading);
       else scrollToPassage(target.hash);
     }
   } catch (error) {
-    if (mine !== version || error.name === "AbortError") return;
+    if (mine !== version || controller.signal.aborted) return;
     status.textContent = "Could not open this document. Retry the link or reload the page.";
   }
 };

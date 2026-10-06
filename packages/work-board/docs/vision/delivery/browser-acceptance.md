@@ -284,3 +284,31 @@ pause/resume or representative-reader orientation timing.
 These checks preserve explicit observation semantics; they do not establish an
 atomic filesystem snapshot, source mutation or verified acceptance. Step 09's
 Platform-first lifecycle work remains separate.
+
+## Native live/orientation acceptance — step 09
+
+Use the large workspace plus `viewsFixture()` and a nested home at `/`.
+
+1. Edit an unrelated known file: navigation changes while the mounted active
+   document query and reading paragraph remain. Edit an explicitly linked item,
+   criterion/evidence source or board member: both reference contexts update.
+2. Open details and a real Mermaid drawing. Edit another passage: unchanged
+   details, drawing, selected work URL and focused/unsubmitted filters remain.
+   Changed reading blocks receive a brief outline without animation or scrolling.
+3. Pause, edit the nested home and wait for a pending count. The displayed source
+   stays retained; resume catches up. The 256+ bound counts hints, not source edits.
+4. Go offline and edit, then reconnect. Retain visible source with a failure/down
+   disclosure until required reads settle; connection availability alone is not
+   freshness. Separately stop the native HTTP server with a subscription active.
+5. Mark seen, update source, and verify the original baseline stays unchanged.
+   Clear while paused; expired history must also disclose unknown history while
+   paused. Never cancel explicit observation through background invalidation.
+6. Navigate away and use browser Back. Record whether pageshow is persisted and
+   any CDP bfcache refusal reasons; no-store can require a fresh document. Verify
+   persisted-pageshow registry recreation separately with the DOM regression.
+7. Repeat at 390 × 844 with dark/reduced-motion settings and JavaScript disabled.
+   Links still perform GET navigation; Pause is disabled without JavaScript.
+   Verify browser actions have changed no source files.
+
+Physical tab transitions and Capacitor remain separate evidence. Fixtures do not
+establish the step 07 representative-reader timing or a multi-tab capacity budget.

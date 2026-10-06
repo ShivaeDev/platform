@@ -69,6 +69,7 @@ it("remembers only on explicit action and preserves old-source disclosures throu
 	expect(page.document.querySelector('article[data-key="before:item.md"] details[data-history-source="remembered"]')?.hasAttribute("open")).toBe(
 		true,
 	);
+	await waitFor(() => expect(page.document.getElementById("history-clear")?.hasAttribute("disabled")).toBe(false));
 	click("#history-clear");
 	await waitFor(() => expect(text()).toContain("No previous snapshot"));
 	expect(page.window.localStorage.getItem(key())).toBeNull();
@@ -150,7 +151,27 @@ it("discloses page-only retention when browser storage is blocked", async () => 
 	expect(page.document.getElementById("history-storage")?.textContent).toContain("page only");
 	notes.write("item.md", "# New");
 	await waitFor(() => expect(text()).toContain("1 changed"));
+	await waitFor(() => expect(page.document.getElementById("history-clear")?.hasAttribute("disabled")).toBe(false));
 	click("#history-clear");
 	await waitFor(() => expect(text()).toContain("No previous snapshot"));
 	expect(page.document.getElementById("history-storage")?.textContent).toContain("could not be cleared");
+});
+
+it("keeps explicit clearing and expiry disclosure authoritative while automatic source updates are paused", async () => {
+	page = await openPage(board, "/_board/changes");
+	await ready();
+	click("#history-mark");
+	await waitFor(() => expect(text()).toContain("No source changes"));
+	click("#updates-toggle");
+	notes.write("item.md", "# Paused edit");
+	await waitFor(() => expect(page.document.getElementById("live")?.textContent).toMatch(/paused · [1-9]/u));
+	expect(text()).toContain("No source changes");
+	click("#history-clear");
+	await waitFor(() => expect(text()).toContain("No previous snapshot"));
+	expect(page.window.localStorage.getItem(key())).toBeNull();
+	page.window.localStorage.setItem(key(), baselineJson({ "item.md": "Expired" }, Effect.runSync(Clock.currentTimeMillis) - MAX_AGE));
+	page.document.dispatchEvent(new page.window.Event("board-page"));
+	await waitFor(() => expect(text()).toContain("expired after 30 days"));
+	expect(page.window.localStorage.getItem(key())).toBeNull();
+	expect(text()).not.toContain("1 added");
 });

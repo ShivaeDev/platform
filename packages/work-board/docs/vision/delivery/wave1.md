@@ -124,15 +124,13 @@ optimization when events may have been missed.
 rerenders; focused controls, open details, and diagrams survive relevant changes;
 paused and reconnecting states catch up without claiming stale data is current.
 
-Delivery direction: establish reusable native RPC/reactivity/client lifecycle
-support in Platform first, then have Work Board adopt it. The reference-directory
-fix extends existing filesystem watching; it does not complete this checkpoint.
-The user approved esbuild 0.28.1 and native RPC/AtomRegistry with Changed/Resync
-hints. The [Platform consumer checkpoint](../../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
-has real HTTP/Chromium and repository evidence, including the approved shared
-browser lifecycle extraction and compatible effect-react entry. Work Board
-adoption remains open. Its library fixture does not establish this
-step's DOM/orientation acceptance.
+The approved Platform-first foundation is released in effect-contract 0.4.0 and
+Work Board adopts its native RPC/AtomRegistry/live/resume primitives in 0.5.0,
+with approved esbuild 0.28.1 local assets. [Adoption evidence](../roadmap.md#step-09-native-adoption-and-orientation-evidence)
+records dependency discovery, native HTTP and DOM regressions, real Chromium
+orientation checks and the actual lifecycle limits. The compatible GET endpoints
+and server-rendered reading paths remain available. Step 07's representative-reader
+timing is still separate; fixtures do not establish that target.
 
 ## 10 Local visual evidence
 

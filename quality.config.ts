@@ -2,7 +2,7 @@ import platformManifest from "./packages/platform/package.json" with { type: "js
 import { defineConfig } from "./packages/quality/src/config.ts";
 import { fence } from "./packages/quality/src/imports/fences/dsl.ts";
 import type { Fence } from "./packages/quality/src/imports/fences/model.ts";
-import { anyOf, anything, external, folders, modules, packages, scopes, workspace } from "./packages/quality/src/imports/fences/selectors.ts";
+import { anyOf, anything, external, files, folders, modules, packages, scopes, workspace } from "./packages/quality/src/imports/fences/selectors.ts";
 
 const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; readonly module: string }>> = {
 	"effect-changes": { allowed: [], module: "channel" },
@@ -18,12 +18,25 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	quality: { allowed: ["types"], module: "config" },
 	skills: { allowed: [], module: "syncSkills" },
 	types: { allowed: [], module: "bivariant" },
-	"work-board": { allowed: [], module: "board" },
+	"work-board": { allowed: ["effect-contract"], module: "board" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
 const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
-const BROWSER_FOLDERS = ["packages/effect-trpc/src/client", "packages/platform/src/errors", "packages/platform/src/rpc"];
+const BROWSER_FOLDERS = [
+	"packages/effect-trpc/src/client",
+	"packages/platform/src/errors",
+	"packages/platform/src/rpc",
+	"packages/work-board/src/browser",
+	"packages/work-board/src/path",
+];
+const BROWSER_FILES = [
+	"packages/work-board/src/rpc/contract.ts",
+	"packages/work-board/src/rpc/keys.ts",
+	"packages/work-board/src/rpc/pageKeys.ts",
+	"packages/work-board/src/history/schema.ts",
+];
+const BROWSER_CODE = anyOf(folders(...BROWSER_FOLDERS), files(...BROWSER_FILES));
 const PLATFORM_CORE_FOLDERS = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((folder) => `packages/platform/src/${folder}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
@@ -56,10 +69,10 @@ const fences: readonly Fence[] = [
 		}),
 	fence("browser-folder-stays-browser-safe")
 		.because(
-			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect, never @trpc/server, Node or other server code.",
+			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract, never @trpc/server, Node or other server code.",
 		)
-		.from(folders(...BROWSER_FOLDERS))
-		.mayNotReach(anything.except(folders(...BROWSER_FOLDERS), modules("effect")))
+		.from(BROWSER_CODE)
+		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "types"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
 			legal: ["packages/effect-trpc/src/client/rejection.ts", external("effect")],

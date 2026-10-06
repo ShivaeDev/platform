@@ -22,7 +22,7 @@ export const applyPage = (page, preserve = false) => {
       const content = current.querySelector("#changes-content");
       if (content) incoming.querySelector("#changes-content")?.replaceWith(content.cloneNode(true));
     }
-    swap(current, incoming);
+    swap(current, incoming, true);
   } else {
     current.replaceWith(document.importNode(incoming, true));
     remember(document.getElementById("doc"));

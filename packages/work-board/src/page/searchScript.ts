@@ -1,6 +1,7 @@
 export function searchScript(): string {
 	return `
 import { activate, matchingCommands, move, showResults } from "/_board/search-results.js";
+import { session } from "/_board/native.js";
 const dialog = document.getElementById("search-dialog");
 const input = document.getElementById("search-query");
 const status = document.getElementById("search-status");
@@ -25,14 +26,15 @@ const search = async () => {
  status.textContent = "Searching…";
  controller = new AbortController();
  try {
-  const response = await fetch("/_board/search?q=" + encodeURIComponent(query), { cache: "no-store", signal: controller.signal });
-  if (!response.ok) throw new Error("Search unavailable");
-  const body = await response.json();
+  const native = session(window);
+  const atom = native.api.search.query({ query });
+  native.registry.refresh(atom);
+  const body = await native.read(atom, controller.signal);
   if (mine !== version || !dialog.open) return;
   showResults([...commands, ...body.results]);
   status.textContent = (body.total ? (body.total > body.results.length ? "Showing " + body.results.length + " of " : "") + body.total + " matches." : "No document matches.") + (body.unavailable.length ? " Could not read " + body.unavailable.length + " files; results are incomplete." : "");
  } catch (error) {
-  if (mine !== version || error.name === "AbortError") return;
+  if (mine !== version || controller.signal.aborted) return;
   status.textContent = "Search could not be completed. Press Search to retry.";
  }
 };

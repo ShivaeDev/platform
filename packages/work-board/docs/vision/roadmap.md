@@ -23,7 +23,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [06 Follow the reasoning and the evidence](./delivery/wave1.md#06-follow-the-reasoning-and-the-evidence)
 - [ ] [07 An attention-first overview](./delivery/wave1.md#07-an-attention-first-overview)
 - [x] [08 What changed since I last looked](./delivery/wave1.md#08-what-changed-since-i-last-looked)
-- [ ] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
+- [x] [09 Live updates that preserve orientation](./delivery/wave1.md#09-live-updates-that-preserve-orientation)
 - [ ] [10 Local visual evidence](./delivery/wave1.md#10-local-visual-evidence)
 - [ ] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
 - [ ] [12 Start and take the work with you](./delivery/wave1.md#12-start-and-take-the-work-with-you)
@@ -269,7 +269,7 @@ quiet state and live updates are implemented.
 Representative-user evidence for
 the proposed 30-second orientation target remains pending; step 07 stays open
 until that acceptance exercise is recorded. Step 08's explicitly approved
-implementation is complete; steps 09–26 remain open. The rest of W1.2/W1.3
+implementation is complete; steps 10–26 remain open. The rest of W1.2/W1.3
 remains proposed.
 
 ## Step 08 baseline decision and acceptance evidence
@@ -381,18 +381,64 @@ clearing/storage changes cancel the pending action and remain authoritative.
   records the ordering and comparison limits.
 
 
+## Step 09 native adoption and orientation evidence
+
+Work Board now uses native Effect RPC, AtomRegistry and the shared effect-contract
+live/resume support. Locally bundled browser assets replace the automatic
+fetch/EventSource coordinators. DOM navigation and reading preferences keep their
+existing ownership; Mark seen uses an imperative native read so background
+invalidation cannot cancel the explicit observation.
+
+- Regression tests cover prior/current Markdown and metadata dependencies,
+  board membership, criterion evidence, attention targets, nested home aliases,
+  renamed/duplicate IDs and observations changed outside an announced path.
+  Unknown paths, incomplete indexes, watcher uncertainty and gaps in server-local
+  PubSub delivery require a full reconciliation. That sequence is not a wire
+  replay protocol or durable journal.
+- Native HTTP tests exercise pages, item URLs, search, navigation and history;
+  same-origin/loopback rejection and active-subscription shutdown pass. DOM
+  tests cover retained failures/stale responses, unrelated mounted documents,
+  pause/resume, the 256+ pending-hint label, highlight/orientation preservation,
+  pagehide/persisted-pageshow ownership and explicit clear/expiry while paused.
+- Actual Chromium 151.0.7922.173 checks the representative workspace at
+  1440 × 1000 and 390 × 844 with dark preference and reduced motion. Unrelated
+  edits keep the active page query/paragraph; paused root-home edits catch up;
+  offline reads retain source and recover; real Mermaid drawings and open details
+  survive updates; focused unsubmitted filters and selected item URLs remain.
+  Browser Back, explicit history retention/clearing, native no-JavaScript links
+  and narrow layout pass without page errors or horizontal overflow.
+- Chromium Back used a fresh document rather than bfcache: CDP reports the
+  main/subrequest no-store policy and browsing-instance eligibility. Persisted
+  pageshow recovery is established by the DOM regression, not a claim of actual
+  bfcache restoration. Physical background-tab transitions, Capacitor, capacity
+  across many tabs and representative-reader timing remain unestablished.
+- The local minified native asset is about 524 kB before compression. The packed
+  CLI checks its native asset and ordinary page assets; no performance budget
+  or source mutation is inferred from these results.
+
+- Fresh CI shards originally lacked the ignored native browser bundle, causing
+  DOM initialization timeouts. Removing the local bundle reproduced all three
+  native-update regressions failing; the shared `test:prepare`/production bundle
+  command now prepares standalone tests and workspace shards before execution.
+  An HTTP regression checks that a source checkout serves the native module.
+  With the bundle removed again, the workspace shard/coverage path passes all
+  204 Work Board tests after preparation. The regenerated asset is byte-identical
+  to the bundle verified in Chromium.
+- Full repository handoff passes `pnpm ready`: 1,158 package tests, four existing
+  expected failures, one intentional skip, seven orchestration tests, real
+  PostgreSQL, lint/typechecks/builds and every packed consumer. Work Board's
+  204 regressions pass; the touched quality baseline loses ten findings and
+  grows nowhere. The 0.5.0 package/CLI versions match the release changelog.
+  Browser actions leave every fixture source unchanged except explicit test edits.
+
 ## Current foundation
 
 The [Platform live consumer checkpoint](../../../../docs/framework/roadmap.md#work-board-consumer-slice--in-progress)
-now demonstrates targeted invalidation, scoped reconciliation, bounded paused
-hints, retained failures and native stream/query teardown over real HTTP and
-Chromium. Work Board still uses its existing browser coordination until adoption;
-step 09 remains unchecked. The approved shared browser resume implementation
-now lives in effect-contract, with the existing effect-react import preserved
-by a compatibility delegate and automatic runtime dependency. Actual Chromium
-offline/online recovery and separate DOM visibility/listener tests establish
-this foundation; Work Board adoption and physical tab/Capacitor evidence remain
-separate.
+and this Work Board adoption establish native invalidation, scoped reconciliation,
+bounded pause and resource ownership. The shared browser-safe resume implementation
+lives in effect-contract, while effect-react preserves its prior import through a
+compatibility delegate and automatic runtime dependency. The remaining physical
+lifecycle and representative-reader evidence stays separate.
 
 The existing package serves a local Markdown folder, renders a designated home
 file as sections and cards, and updates open pages in place. It provides GFM,

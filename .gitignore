@@ -11,3 +11,5 @@ coverage/
 .worktrees/
 .claude/
 .ci/
+
+packages/work-board/assets/
