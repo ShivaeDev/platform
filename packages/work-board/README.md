@@ -402,3 +402,13 @@ server-rendered Markdown, with locally served Mermaid for ordinary `mermaid`
 fences. Existing local links, images, heading anchors, footnotes, raw-HTML details
 and Shiki code highlighting remain available without React client state. Mermaid
 rendering and inspection need JavaScript; its source remains readable without it.
+
+### Visual document directives
+
+Use `:::metric{value="50" unit="documents"}`, `:::progress{completed="3" total="8"}`
+and `:::timeline` containers with Markdown labels and linked sources. Components
+render on the server and remain readable without JavaScript. Unknown counts stay
+unknown, invalid components retain their source with a diagnostic, and timelines
+preserve authored order. Recorded values do not establish verified acceptance.
+See [the complete source conventions](./docs/vision/delivery/visual-document-examples.md).
+GitHub alert blockquotes render as callouts; comparisons remain ordinary GFM tables.

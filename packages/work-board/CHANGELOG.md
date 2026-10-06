@@ -4,9 +4,26 @@
 
 ### Changed
 
-- Prepare concrete step 11 visual-document source examples for discussion; the
-  proposed block conventions are not implemented or approved yet.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.7.0 - 2026-10-06
+
+### Added
+
+- Read-only metric, progress and authored timeline Markdown directives parsed by
+  `remark-directive` and validated with Effect Schema. Keep Markdown labels/source
+  links, explicit unknown values and native labeled progress with text alternatives.
+  Retain invalid/unsupported source with diagnostics and bound each component to
+  64 KiB and each timeline to 100 entries. Nested composition remains deferred.
+- GitHub NOTE/TIP/IMPORTANT/WARNING/CAUTION callouts, with comparisons remaining
+  ordinary GFM tables. The project brief uses the agreed source conventions.
+
+### Changed
+
+- Use the same remark parser/directive grammar for legacy board segmentation,
+  rendering and search; remove Satteri. Headings inside directive containers do
+  not become board columns. Keep native live/history ownership and local-only
+  reading without source writes or acceptance inference.
 
 ## 0.6.1 - 2026-10-06
 

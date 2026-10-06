@@ -159,11 +159,15 @@ values should not display a fabricated percentage.
 plan using these blocks, remains useful in a text editor, and degrades intelligibly
 when a component's input is incomplete. Complex composition waits for 23.
 
-Step 11 is adopting Antumbra's `react-markdown`, `remark-gfm` and Mermaid
-rendering conventions at the user's request. Custom body-block source conventions
-remain awaiting discussion. [Concrete examples](./visual-document-examples.md)
-compare ordinary Markdown with three explicit read-only body blocks; no format
-is implemented or settled by those proposals.
+Step 11 uses the user's approved Markdown directives with Antumbra's
+Markdown/GFM rendering stack. [Source conventions](./visual-document-examples.md)
+define fixed metric/progress/timeline components, ordinary Markdown labels/source
+links, unknown values, source-preserving diagnostics and authored chronology.
+The [real project brief](../README.md#delivery-at-a-glance) exercises these formats.
+Acceptance is complete: 236 Work Board regressions, the full repository handoff,
+and Chromium desktop/narrow/no-JavaScript/print checks of that brief passed.
+The [roadmap evidence](../roadmap.md#step-11-visual-document-acceptance) records
+malformed-input behavior and the remaining reader/device limits.
 
 ## 12 Start and take the work with you
 
