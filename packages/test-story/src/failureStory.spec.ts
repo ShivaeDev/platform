@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
+import { relative } from "node:path";
 import { describe, expect, it, onTestFailed } from "vitest";
 import { hasBowls, hasDough, hasOrders, newBakery, ovenIsLit } from "#test/bakery.ts";
+
+const SPEC = relative(process.cwd(), import.meta.filename);
 
 const reported: string[] = [];
 
@@ -14,7 +17,7 @@ const INTRO =
 	'test-story: this test tells a story over a real bakery. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.';
 
 function footer(test: string): string {
-	return `The traits, verbs and engine steps live in the bakery story kit this test imports. Rerun: vitest run src/failureStory.spec.ts -t "${test}"`;
+	return `The traits, verbs and engine steps live in the bakery story kit this test imports. Rerun: vitest run ${SPEC} -t "${test}"`;
 }
 
 describe("a failed story test prints its story", () => {
@@ -50,9 +53,9 @@ describe("a failed story test prints its story", () => {
 				"loaves: expected 1 to be 2 // Object.is equality",
 				"",
 				INTRO,
-				"  given  the oven is lit                  src/failureStory.spec.ts:30:30",
-				"  given  the baker has 1 balls of dough   src/failureStory.spec.ts:30:43",
-				"         1m a loaf comes out of the oven  src/failureStory.spec.ts:32:15",
+				`  given  the oven is lit                  ${SPEC}:33:30`,
+				`  given  the baker has 1 balls of dough   ${SPEC}:33:43`,
+				`         1m a loaf comes out of the oven  ${SPEC}:35:15`,
 				"✗        the test failed after the line above",
 				"",
 				'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"smoking":false,"starter":false}',
@@ -64,9 +67,9 @@ describe("a failed story test prints its story", () => {
 				"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait in the bakery story kit if this bakery should be possible.",
 				"",
 				INTRO,
-				"  given  the oven is lit                 src/failureStory.spec.ts:37:13",
-				"✗ given  the baker has 4 balls of dough  src/failureStory.spec.ts:37:26  refused",
-				"  given  the bakery has 1 bowls          src/failureStory.spec.ts:37:39",
+				`  given  the oven is lit                 ${SPEC}:40:13`,
+				`✗ given  the baker has 4 balls of dough  ${SPEC}:40:26  refused`,
+				`  given  the bakery has 1 bowls          ${SPEC}:40:39`,
 				"",
 				'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"smoking":false,"starter":false}',
 				"",
@@ -76,7 +79,7 @@ describe("a failed story test prints its story", () => {
 				"orders: expected [ …(60) ] to have a length of +0 but got 60",
 				"",
 				INTRO,
-				"  given  the bakery has 60 orders  src/failureStory.spec.ts:42:31",
+				`  given  the bakery has 60 orders  ${SPEC}:45:31`,
 				"✗        the test failed after the line above",
 				"",
 				"The bakery when the test failed is 2936 characters of JSON, too long to print here. Read it in node_modules/.cache/test-story/failurestory.spec.ts--writes-a-bakery-too-large-to-print-to-a-file--bakery.json",
