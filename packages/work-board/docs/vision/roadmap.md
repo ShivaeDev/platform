@@ -35,7 +35,7 @@ Check a step only after its acceptance is demonstrated in the package.
   — deferred by the approved ordinary-file ownership boundary; the controls are
   unimplemented and do not block D3/18.
 - [x] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
-- [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
+- [x] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
 - [ ] [20 Complete the first coordination loop](./delivery/wave2.md#20-complete-the-first-coordination-loop)
 - [ ] [21 Successive contributions with clear ownership](./delivery/wave3.md#21-successive-contributions-with-clear-ownership)
 - [ ] [22 Several local projects, one attention view](./delivery/wave3.md#22-several-local-projects-one-attention-view)
@@ -541,7 +541,7 @@ a copied instruction to an existing session; step 18 records acceptance evidence
   form actions/frames. Local labels provide attribution, not authentication.
 - [ ] Decide who owns priority, assignment, acceptance, and handoff acknowledgment.
   An agent's completed run must not silently accept its own result.
-- [ ] Agree a minimal local handoff contract with one existing agent tool;
+- [x] Agree a minimal local handoff contract with one existing agent tool;
   avoid inventing a scheduler or binding the core to one vendor.
 
 | Slice | Proposed scope | Acceptance evidence |
@@ -919,3 +919,42 @@ Evidence: `/tmp/work-board-handoffs-confirmed-ready.log` and
 `/workspace/artifacts/work-board-handoffs`.
 Step 07/13 reader timing, physical-device/actual-bfcache evidence remain pending;
 17 direct editing/undo stays deferred and D4 before 24 remains a discussion gate.
+
+
+### 19 Returned-result review checkpoint
+
+The [ordinary-file review surface](./delivery/result-review-examples.md) composes
+existing result metadata, explicit relationships/criteria, attention reviews,
+question directives and immutable responses. A supplied finished result is shown
+separately from in-review work. No result claim, handoff receipt or option ID
+creates verified criterion acceptance, changes a task or authorizes delivery.
+Existing starter result templates include a rich review packet; no new metadata
+schema, writer, dependency or Fleet execution ledger.
+
+Eight real HTTP/native regressions cover separate statuses, missing evidence and
+provenance, version-pinned revision/acceptance with explicit superseding history,
+changed/moved reports and moved feedback links, unknown/duplicate histories,
+ambiguous results/criteria, safe rich context and exact CRLF source hashing.
+Actual Chromium 151 exercised native navigation without reload, locally rendered
+Mermaid, keyboard preview/submission of a revision request, ordinary report edits,
+second exact-version acceptance, Back/live feedback, narrow dark reduced-motion
+reading, no-JavaScript history/source fallback and server/browser restart. Task
+source bytes remained unchanged and absent criterion evidence stayed absent.
+Earlier acceptance was qualified after another report edit. These are automated
+human controls and ordinary file edits, not an independent model task or reader
+orientation study.
+
+Full `pnpm ready` passed: 1,314 package passes (289 Work Board), 12 expected
+failures, four intentional skips, 15 orchestration checks, real PostgreSQL and
+all packed consumers. Quality baseline remains 2,539. Vision prose-link targets
+exist; the check excludes fenced source examples and does not validate anchors.
+Evidence: `/tmp/work-board-result-review-final-ready.log` and
+`/workspace/artifacts/work-board-result-review`.
+
+`evidence.checked_revision` retains its approved Git meaning; evidence freshness
+is unknown without Git comparison. Exact report feedback does not verify linked
+artifacts or silently apply to edited criteria. Step 07/13 representative-reader,
+physical-device and actual-bfcache evidence remains pending; 17 editing/undo is
+deferred and D4 before 24 remains a discussion gate. PR 118 merged and publish
+workflow 37538277362 succeeded; the actual npm 0.10.0 tarball's version and both
+browser/wait bundles were verified before this checkpoint.
