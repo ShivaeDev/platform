@@ -126,7 +126,7 @@ export default defineConfig({
 });
 ```
 
-`genreTags(...kitNames)` declares one tag per kit, named after it: `bakery-story` and `mill-story` here, and `game-store-story` for a kit named "game store". A kit tags its tests only with a genre the config declares, because Vitest refuses a test whose tag the config leaves out, so a config without the line runs every story untagged and prints nothing about it. With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's, and `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`.
+`genreTags(...kitNames)` declares one tag per kit, named after it: `bakery-story` and `mill-story` here, and `game-store-story` for a kit named "game store". A kit tags its tests only with a genre the config declares, because Vitest refuses a test whose tag the config leaves out, so a config without the line runs every story untagged and prints nothing about it. With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's, and `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`. A root config that runs the package's projects by extending its config gets these tags through [`inheritTags`](https://github.com/ShivaeDev/platform/tree/main/packages/quality#inherited-tags) from `@shivaedev/quality`, because Vitest does not pass an extended config's tags on.
 
 ### 2. Once per feature: traits and verbs
 

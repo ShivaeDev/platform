@@ -549,10 +549,9 @@ Each finding names its line and has the helper or the function it calls as its s
 
 ## Vitest projects
 
-`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
+`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests. A package's `vitest.config.ts` reads:
 
 ```ts
-// vitest.config.ts
 import { testProjects } from "@shivaedev/quality/vitest.ts";
 import { defineConfig } from "vitest/config";
 
@@ -568,6 +567,21 @@ export default defineConfig({ test: testProjects() });
 Type tests (`*.typecheck.test.ts`, `*.typecheck.spec.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
 
 A folder that another runner owns, such as a Playwright suite of `.spec.ts` files, is left out with `testProjects({ exclude: ["e2e/**"] })`; the globs are added to every project's `exclude`.
+
+### Inherited tags
+
+Vitest gives an inline project only the [tags](https://vitest.dev/guide/test-tags) it declares itself, never those of a config file it `extends`. A test tagged in that file then fails with `cannot apply "<tag>" tag for this test` as soon as a root config runs it. A root config that gathers the projects of several packages, or whose projects extend a shared base config, passes them through `inheritTags`:
+
+```ts
+import { inheritTags } from "@shivaedev/quality/vitest.ts";
+import { defineConfig } from "vitest/config";
+
+const bakery = { extends: "./packages/bakery/vitest.config.ts", root: "./packages/bakery", test: { name: "bakery" } };
+
+export default defineConfig(async () => ({ test: { projects: await inheritTags([bakery], import.meta.dirname) } }));
+```
+
+`inheritTags(projects, root)` loads the config file of each inline project whose `extends` is a path, resolved against `root`, and adds the tags that file declares to the project's own, so `vitest run --tags-filter=<tag>` works across the workspace. A tag the project declares itself wins over an inherited one of the same name. The config may export an object, a promise or a function. A project that extends `true`, and a glob or file path, comes back unchanged, because Vitest already gives those the root's tags. The extended files load with Node's own `import`, as `vitest --configLoader native` loads configs, so each must be a module Node runs without a bundler.
 
 ## tsconfig presets
 
