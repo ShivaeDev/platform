@@ -10,8 +10,9 @@ History and release-by-release verification live in Git and the changelog.
 
 ## Built
 
-The reading, response and handoff implementation has these capabilities. Each row
-links the delivery requirement and the regressions that establish its behavior.
+The reading, response, handoff and result-review implementation has these
+capabilities. Each row links the delivery requirement and the regressions that
+establish its behavior.
 
 | Steps | Capability | Evidence |
 | --- | --- | --- |
@@ -30,6 +31,7 @@ links the delivery requirement and the regressions that establish its behavior.
 | [14–15](delivery/wave2.md#14-prove-one-safe-source-mutation) | Opted-in immutable question/response publication, drafts and durable waits | `src/responses/response.spec.ts`, `src/responses/publicationFlow.spec.ts`, `src/responses/agentWait.spec.ts`, `src/browser/responses/draftOwnership.dom.spec.ts` |
 | [16](delivery/wave2.md#16-record-a-decision-and-its-consequence) | Rich question packets and explicit superseding direction | `src/responses/template.test.ts`, `src/responses/questionnaire.spec.ts`, `src/responses/questionnaireForm.dom.spec.ts` |
 | [18](delivery/wave2.md#18-one-local-agent-handoff) | Reviewed Markdown handoffs, copied prompts and ordinary file-edited receipt | `src/handoffs/handoff.spec.ts`, `src/handoffs/handoffForm.dom.spec.ts` |
+| [19](delivery/wave2.md#19-review-a-returned-result-against-its-criteria) | Returned-result reading and version-pinned feedback without inferred criterion acceptance | `src/results/result.spec.ts` |
 
 Directory reference reading and watcher recovery are covered by
 `src/http/symlinks.spec.ts` and `src/liveUpdates.spec.ts`. Fetch-handler and real
@@ -46,9 +48,10 @@ The packed-consumer gate checks the CLI and embedding declarations.
   budgets, and gather representative-reader, physical-device and actual browser
   page-cache lifecycle evidence. Technical reading and embedding checks do not
   silently accept this step.
-- [ ] Deliver [19's returned-result review](delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
-  and [20's complete coordination loop](delivery/wave2.md#20-complete-the-first-coordination-loop),
-  with explicit human review rather than treating agent completion as acceptance.
+- [ ] Prove [20's complete coordination loop](delivery/wave2.md#20-complete-the-first-coordination-loop).
+  Use one bounded real feature for decision, manual handoff, receipt, result,
+  revision and specific-report acceptance. Include restarts, unavailable delivery
+  and ordinary external edits. Result fixtures do not establish that adoption loop.
 
 [17's direct item editing and undo](delivery/wave2.md#17-narrow-editing-and-honest-undo)
 are deferred. Agents use ordinary file tools and Work Board owns human response
@@ -88,6 +91,13 @@ After that coordination loop, the following work stays in dependency order:
   Who owns priority, assignment and execution authority in that integration?
   Keep manual copying useful and attach execution facts to the same work ID;
   the handoff receipt must not become a completion or acceptance state.
+- **Result-review meaning.** Human feedback is pinned to exact report bytes and
+  source path. Authored acceptance options do not establish missing criterion
+  evidence or change linked work status. Ordinary edits create another report
+  revision; the existing response records retain prior reviewed context.
+- **Coordination acceptance.** Which bounded feature and real participants should
+  establish step 20's complete loop? Decide the adoption evidence without treating
+  an automated result fixture or supplied run status as independent agent execution.
 - **External evidence (D4, open).** Which repeated manual step justifies an
   adapter? Specify authoritative fields, opt-in, refresh/offline behavior and a
   maintenance owner before choosing dependencies or transport. Keep local authored

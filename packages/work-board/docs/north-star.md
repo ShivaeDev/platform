@@ -44,6 +44,13 @@ lets an existing agent session read it; ordinary edits record receipt. That rece
 does not establish execution or acceptance. An execution integration can refer to
 the same work identity without becoming a prerequisite or another source of truth.
 
+Returned work needs the same discipline. An authored result and its evidence are
+claims to inspect. Human direction belongs to the exact report bytes and source
+path that prompted it; a later edit must not inherit an earlier acceptance. A
+report iteration can receive human acceptance while a criterion still lacks
+evidence. The board must keep those facts visible rather than compute a convenient
+overall success state.
+
 ## What good looks like
 
 - **Readable source.** A folder and one command are enough to begin. Plain

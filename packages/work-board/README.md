@@ -55,6 +55,12 @@ existing agent session; the agent records receipt through ordinary file edits.
 Receipt states describe acknowledgment, rejection or unavailability, rather than
 execution or acceptance.
 
+A **result** is an author's report linked explicitly to work and criteria. Its
+recorded status does not change the linked task's status. A result review presents
+the report, its claims and limitations with human feedback pinned to the reviewed
+source bytes and path. Choosing an authored acceptance option does not supply
+missing criterion evidence.
+
 Browser preferences, drafts and the explicit **seen baseline** are personal state,
 scoped to the workspace and server origin. They do not change project meaning.
 Agents own normal project-file edits. Work Board owns the human response content
@@ -395,6 +401,33 @@ that store clears response and handoff drafts together.
 The [handoff source reference](docs/delivery/handoff-examples.md) shows a complete
 record, ordinary receipt edits and the boundary with optional execution integrations.
 
+#### Review the returned result
+
+A file with `kind: result` and a unique ID offers **Review returned result** at
+`/_board/result?item=<id>`. The page separates the report's authored status from
+linked work status, lists its criterion-level claims and missing provenance, and
+keeps the report, limitations and human feedback together. Reading through normal
+GET or the native page query leaves project files unchanged.
+
+The agent declares an explicit open `attention` request of kind `review` on the
+report. That request links into the existing response surface. A Markdown question
+packet can offer request revision or accept this exact report, with room for human
+rationale. These options are authored text, rather than reserved acceptance states.
+Preview and submit the response against the exact source you reviewed.
+
+Feedback matching both the current report SHA-256 and source path is labeled
+**Feedback on this exact result revision**. An edit or move labels the old feedback
+as earlier context; its saved snapshot remains inspectable. A new response can
+explicitly supersede the revision request. Malformed or duplicate history stays
+unknown. None of those actions changes linked task status or supplies missing
+criterion evidence.
+
+Reported `evidence.checked_revision` is a Git revision, distinct from the report's
+source SHA-256. Work Board does not compare evidence with the current checkout;
+evidence freshness remains unknown. The
+[returned-result source reference](docs/delivery/result-review-examples.md) gives
+complete task/report files and the reviewed-revision wait workflow.
+
 ### API and integration
 
 Import the module that defines a name. The package has no root entry; its manifest
@@ -416,8 +449,9 @@ paths. The main integration surfaces are:
 
 Other defining modules are also exposed by the wildcard. Their
 [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src)
-contains file/watch, HTTP, rendering, search, views and history helpers. Compose
-`boardLayer` to retain the package's source policy and request guards.
+contains file/watch, HTTP, rendering, search, views, history and result-review
+helpers. Compose `boardLayer` to retain the package's source policy and request
+guards.
 
 #### Embed the workspace
 
@@ -568,6 +602,29 @@ preview's context. `saved.prompt` is the short instruction to copy into the agen
 session, and `history` contains records plus paths whose history is unknown. Keep
 the same ID for a retry of identical direction; choose a new ID for new direction.
 
+Result reading uses the same page query as other workspace views:
+
+```ts
+import { browserClient } from "@shivaedev/work-board/browser/client.ts";
+
+export async function readReturnedResult(url: string, item: string) {
+  const client = browserClient(url);
+  try {
+    return await client.read(
+      client.api.page.query({
+        url: `/_board/result?item=${encodeURIComponent(item)}`,
+      }),
+    );
+  } finally {
+    client.registry.dispose();
+  }
+}
+```
+
+Pass a uniquely identified result, such as `result.keyboard`. Its declared review
+request still uses `responses.question`, `registerQuestion` and `recordResponse`,
+or the normal browser response controls; there is no separate acceptance writer.
+
 `ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`,
 `Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication
 may already have produced a file; inspect the saved identity/content before retrying.
@@ -592,7 +649,7 @@ may already have produced a file; inspect the saved identity/content before retr
 
 The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs,
 `/_board/start`, `/_board/work`, `/_board/overview`, `/_board/changes`,
-`/_board/respond`, `/_board/handoff`, identity
+`/_board/respond`, `/_board/handoff`, `/_board/result`, identity
 links, the search/history endpoints and `/events` remain available alongside it.
 There is no automatic workspace discovery or server launch in agent commands.
 
@@ -608,9 +665,10 @@ with the matching Effect peers declared in its
 `effect`, `@effect/platform-node` and `@effect/platform-node-shared`.
 
 Serve trusted folders: the ordinary reader retains raw HTML rather than sanitizing
-it. Response and handoff surfaces disable raw HTML, escape exact-source disclosure
-and block source form actions/frames. Writes require same-origin loopback NDJSON
-commands and explicit server opt-in; local author labels are not accounts.
+it. Response, handoff and result-review surfaces disable raw HTML, escape
+exact-source disclosure and block source form actions/frames. Writes require
+same-origin loopback NDJSON commands and explicit server opt-in; local author
+labels are not accounts.
 
 Files/folders below the root beginning with a dot, and `node_modules`, are skipped;
 the root itself may be a dot folder. Unlisted paths and traversal are refused.

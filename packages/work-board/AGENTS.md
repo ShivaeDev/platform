@@ -19,8 +19,9 @@ When goals conflict, they win in this order:
    special agent writer or build universal concurrent-editor transactions.
 2. **The reader can trust what is shown.** A recorded claim, completed run,
    response, handoff receipt, closed request and accepted result are different
-   facts. Show missing, ambiguous, stale and unavailable information; never infer
-   a convenient answer.
+   facts. Pin feedback to reviewed report bytes and path; authored acceptance does
+   not establish criterion evidence. Show missing, ambiguous, stale and unavailable
+   information; never infer a convenient answer.
 3. **Reading stays calm and local.** Make the next judgment easy to find, keep
    its evidence close, and preserve orientation as files change. Quiet work
    remains quiet. Keep the loopback and explicit write-opt-in boundaries.

@@ -27,7 +27,7 @@ its shared foundation.
 | Decision | Material | Boundary to preserve |
 | --- | --- | --- |
 | D1 Source structure | [Source examples](source-examples.md), plain Markdown, duplicates and invalid fields | Optional metadata and explicit identities without mandatory migration |
-| D2 Responses and ownership | [Response contract](response-write-examples.md), [packet source](decision-write-examples.md), [ordinary editing](source-editing-examples.md) | Human-owned response content, agent-owned project edits and practical recovery |
+| D2 Responses and ownership | [Response contract](response-write-examples.md), [packet source](decision-write-examples.md), [result review](result-review-examples.md), [ordinary editing](source-editing-examples.md) | Human-owned response content, agent-owned project edits and practical recovery; authored report acceptance stays distinct from criterion evidence |
 | D3 Handoff | [Copied-file handoff contract](handoff-examples.md) | Ordinary direction and file-edited receipt for an existing session; receipt is separate from execution and acceptance |
 | D4 Evidence integration | Repeated manual step, authoritative fields, refresh/offline rules and maintenance owner | Explicit linked objects and usable local work without the adapter |
 

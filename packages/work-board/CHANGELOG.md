@@ -2,13 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- Keep same-origin assets and unrecognized routes in browser navigation instead
+  of intercepting them as reader pages. Preserve native returned-result navigation.
+
 ### Changed
 
 - Give the package a short agent north star, a usage-first README and canonical
   north-star/roadmap docs. Move vision, experience, mockups and delivery references
   into the standard docs shape, consolidate status and publish `docs/` alongside
   the README while keeping agent instructions out of npm. Explain reviewed file
-  handoffs and their native client contract.
+  handoffs, returned-result feedback and their native client integration.
 
 - Record agent-owned project editing and human-owned response content, practical
   best-effort conflict handling, and deferred direct editing/undo in the delivery
