@@ -1,99 +1,136 @@
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
-import { describe, expect, it, onTestFailed } from "vitest";
-import { hasBowls, hasDough, hasOrders, newBakery, ovenIsLit } from "#test/bakery.ts";
+import { expect } from "@effect/vitest";
+import { beforeEach } from "vitest";
+import { bakery, hasBowls, hasDough, hasOrders, ovenIsLit } from "#test/bakery.ts";
+import { mill, sailsAreTurning } from "#test/mill.ts";
 
 const SPEC = relative(process.cwd(), import.meta.filename);
 
 const reported: string[] = [];
 
-function collectFailures(): void {
+const LARGE_BAKERY = "node_modules/.cache/test-story/failurestory.spec.ts--writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
+
+function intro(name: string): string {
+	return `test-story: this test tells a story over a real ${name}. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.`;
+}
+
+function footer(name: string, test: string): string {
+	return `The traits, verbs and engine steps live in the ${name} story kit this test imports. Rerun: vitest run ${SPEC} -t "${test}"`;
+}
+
+beforeEach(({ onTestFailed }) => {
 	onTestFailed(({ task }) => {
 		reported.push(...(task.result?.errors ?? []).map((error) => error.message));
 	});
-}
+});
 
-const INTRO =
-	'test-story: this test tells a story over a real bakery. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.';
+bakery.it("adds nothing when the story passes", [ovenIsLit(), hasDough(1)], function* ({ oven }) {
+	expect((yield* oven.bakesEverything()).loaves).toBe(1);
+});
 
-function footer(test: string): string {
-	return `The traits, verbs and engine steps live in the bakery story kit this test imports. Rerun: vitest run ${SPEC} -t "${test}"`;
-}
+bakery.it.fails("marks where an assertion stopped the story", [ovenIsLit(), hasDough(1)], function* ({ oven }) {
+	expect((yield* oven.bakesEverything()).loaves, "loaves").toBe(2);
+});
 
-describe("a failed story test prints its story", () => {
-	it("adds nothing when the story passes", () => {
-		collectFailures();
-		const { oven } = newBakery(ovenIsLit(), hasDough(1));
+bakery.it.fails("marks the trait that refused", [ovenIsLit(), hasDough(4), hasBowls(1)]);
 
-		expect(oven.bakesEverything().loaves).toBe(1);
-	});
+bakery.it.fails("prints the story when the bakery breaks", [hasDough(1)], function* ({ oven }) {
+	yield* oven.bakesEverything();
+});
 
-	it.fails("marks where an assertion stopped the story", () => {
-		collectFailures();
-		const { oven } = newBakery(ovenIsLit(), hasDough(1));
+mill.it.fails("prints what the kit's inspect shows", [sailsAreTurning()], ({ miller, story }) => {
+	miller.grinds(2);
 
-		expect(oven.bakesEverything().loaves, "loaves").toBe(2);
-	});
+	expect(story.engine.wind, "wind").toBe(1);
+});
 
-	it.fails("marks the trait that refused", () => {
-		collectFailures();
-		newBakery(ovenIsLit(), hasDough(4), hasBowls(1));
-	});
+mill.it.fails("marks a failure before the story told a line", [], ({ story }) => {
+	expect(story.engine.sacks, "sacks").toBe(1);
+});
 
-	it.fails("writes a bakery too large to print to a file", () => {
-		collectFailures();
-		const { story } = newBakery(hasOrders(60));
+bakery.it.fails("writes a bakery too large to print to a file", [hasOrders(60)], ({ story }) => {
+	expect(story.engine.orders, "orders").toHaveLength(0);
+});
 
-		expect(story.engine.orders, "orders").toHaveLength(0);
-	});
+bakery.it("printed each story with its own failure only", [], () => {
+	expect(reported).toEqual([
+		[
+			"loaves: expected 1 to be 2 // Object.is equality",
+			"",
+			intro("bakery"),
+			`  given  the oven is lit                  ${SPEC}:32:64`,
+			`  given  the baker has 1 balls of dough   ${SPEC}:32:77`,
+			`         1m a loaf comes out of the oven  ${SPEC}:33:22`,
+			"✗        the test failed after the line above",
+			"",
+			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}',
+			"",
+			footer("bakery", "marks where an assertion stopped the story"),
+		].join("\n"),
+		[
+			'the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3',
+			"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait in the bakery story kit if this bakery should be possible.",
+			"",
+			intro("bakery"),
+			`  given  the oven is lit                 ${SPEC}:36:50`,
+			`✗ given  the baker has 4 balls of dough  ${SPEC}:36:63  refused`,
+			`  given  the bakery has 1 bowls          ${SPEC}:36:76`,
+			"",
+			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}',
+			"",
+			footer("bakery", "marks the trait that refused"),
+		].join("\n"),
+		[
+			"the bakery broke after 0 steps: the oven is cold with 1 balls of dough waiting",
+			"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this failure shows the setup and steps that led here.",
+			"",
+			intro("bakery"),
+			`  given  the baker has 1 balls of dough  ${SPEC}:38:61`,
+			"✗        the test failed after the line above",
+			"",
+			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":1,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":false,"overfired":false,"smoking":false,"starter":false}',
+			"",
+			footer("bakery", "prints the story when the bakery breaks"),
+		].join("\n"),
+		[
+			"wind: expected +0 to be 1 // Object.is equality",
+			"",
+			intro("mill"),
+			`  given  the sails are turning      ${SPEC}:42:55`,
+			`         the miller grinds 2 sacks  ${SPEC}:43:9`,
+			"✗        the test failed after the line above",
+			"",
+			'The mill when the test failed: {"sacks":2,"sails":"turning"}',
+			"",
+			footer("mill", "prints what the kit's inspect shows"),
+		].join("\n"),
+		[
+			"sacks: expected +0 to be 1 // Object.is equality",
+			"",
+			intro("mill"),
+			"✗        the test failed before the story told a line",
+			"",
+			'The mill when the test failed: {"sacks":0,"sails":"furled"}',
+			"",
+			footer("mill", "marks a failure before the story told a line"),
+		].join("\n"),
+		[
+			"orders: expected [ …(60) ] to have a length of +0 but got 60",
+			"",
+			intro("bakery"),
+			`  given  the bakery has 60 orders  ${SPEC}:52:66`,
+			"✗        the test failed after the line above",
+			"",
+			`The bakery when the test failed is 2954 characters of JSON, too long to print here. Read it in ${LARGE_BAKERY}`,
+			"",
+			footer("bakery", "writes a bakery too large to print to a file"),
+		].join("\n"),
+	]);
+});
 
-	it("printed each story with its own failure only", () => {
-		expect(reported).toEqual([
-			[
-				"loaves: expected 1 to be 2 // Object.is equality",
-				"",
-				INTRO,
-				`  given  the oven is lit                  ${SPEC}:33:30`,
-				`  given  the baker has 1 balls of dough   ${SPEC}:33:43`,
-				`         1m a loaf comes out of the oven  ${SPEC}:35:15`,
-				"✗        the test failed after the line above",
-				"",
-				'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"smoking":false,"starter":false}',
-				"",
-				footer("marks where an assertion stopped the story"),
-			].join("\n"),
-			[
-				'the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3',
-				"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait in the bakery story kit if this bakery should be possible.",
-				"",
-				INTRO,
-				`  given  the oven is lit                 ${SPEC}:40:13`,
-				`✗ given  the baker has 4 balls of dough  ${SPEC}:40:26  refused`,
-				`  given  the bakery has 1 bowls          ${SPEC}:40:39`,
-				"",
-				'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"smoking":false,"starter":false}',
-				"",
-				footer("marks the trait that refused"),
-			].join("\n"),
-			[
-				"orders: expected [ …(60) ] to have a length of +0 but got 60",
-				"",
-				INTRO,
-				`  given  the bakery has 60 orders  ${SPEC}:45:31`,
-				"✗        the test failed after the line above",
-				"",
-				"The bakery when the test failed is 2936 characters of JSON, too long to print here. Read it in node_modules/.cache/test-story/failurestory.spec.ts--writes-a-bakery-too-large-to-print-to-a-file--bakery.json",
-				"",
-				footer("writes a bakery too large to print to a file"),
-			].join("\n"),
-		]);
-	});
+bakery.it("wrote the bakery that was too large to print as JSON", [], () => {
+	const written: unknown = JSON.parse(readFileSync(LARGE_BAKERY, "utf8"));
 
-	it("wrote the bakery that was too large to print as JSON", () => {
-		const written: unknown = JSON.parse(
-			readFileSync("node_modules/.cache/test-story/failurestory.spec.ts--writes-a-bakery-too-large-to-print-to-a-file--bakery.json", "utf8"),
-		);
-
-		expect(written).toEqual(expect.objectContaining({ orders: expect.arrayContaining(["order 60: a loaf of rye for the market stall"]) }));
-	});
+	expect(written).toEqual(expect.objectContaining({ orders: expect.arrayContaining(["order 60: a loaf of rye for the market stall"]) }));
 });

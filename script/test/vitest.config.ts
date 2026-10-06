@@ -17,7 +17,8 @@ export default async function workspace() {
 				...project,
 				extends: configFile,
 				root: directory,
-				test: { ...project.test, name: `${name}:${project.test.name}` },
+				// Vitest reads an inline project's tags only from the project itself, never from the config it extends.
+				test: { ...project.test, name: `${name}:${project.test.name}`, tags: [...(config.test?.tags ?? []), ...(project.test.tags ?? [])] },
 			});
 		}
 	}

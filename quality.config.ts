@@ -17,7 +17,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	"local-postgres": { allowed: [], module: "localPostgres" },
 	quality: { allowed: ["types"], module: "config" },
 	skills: { allowed: [], module: "syncSkills" },
-	"test-story": { allowed: [], module: "effect/storyKit" },
+	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
 	"work-board": { allowed: ["effect-contract"], module: "board" },
 };
@@ -60,16 +60,6 @@ function leaf([name, { allowed, module }]: readonly [string, { readonly allowed:
 
 const fences: readonly Fence[] = [
 	...Object.entries(LEAVES).map(leaf),
-	fence("test-story-sync-needs-no-effect")
-		.because(
-			"effect is an optional peer of @shivaedev/test-story: everything outside its effect folder works with only vitest installed, so nothing it reaches, as a value or a type, is effect.",
-		)
-		.from(folders("packages/test-story/src").except(folders("packages/test-story/src/effect")))
-		.mayNotReach(modules("effect"))
-		.demonstratedBy({
-			illegal: ["packages/test-story/src/storyKit.ts", external("effect")],
-			legal: ["packages/test-story/src/storyKit.ts", external("vitest")],
-		}),
 	fence("browser-never-imports-server")
 		.because("Browser packages ship to browsers and never import a server package.")
 		.from(folders(...BROWSER.map((name) => `packages/${name}/src`)))

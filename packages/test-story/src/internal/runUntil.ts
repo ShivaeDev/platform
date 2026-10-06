@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { type AnyEffect, type Hook, hooked } from "#effect/internal/hooked.ts";
 import { broken, cannotRun, unfinished } from "#internal/errors.ts";
+import { type AnyEffect, type Hook, hooked } from "#internal/hooked.ts";
 import type { RunUntilOptions } from "#storyKit.ts";
 
 export interface LooseRunHooks<TEngine> {

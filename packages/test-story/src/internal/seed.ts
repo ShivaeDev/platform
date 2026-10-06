@@ -1,8 +1,9 @@
 import { Cause, Effect } from "effect";
-import { type AnyEffect, type Hook, hooked } from "#effect/internal/hooked.ts";
-import type { LooseRunHooks } from "#effect/internal/runUntil.ts";
+import type { AnyTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
 import { refusal } from "#internal/errors.ts";
+import { type AnyEffect, type Hook, hooked } from "#internal/hooked.ts";
 import { type Narration, tellGiven } from "#internal/narration.ts";
+import type { LooseRunHooks } from "#internal/runUntil.ts";
 import type { Parts } from "#internal/traits.ts";
 import type { RunUntilOptions } from "#storyKit.ts";
 
@@ -19,6 +20,7 @@ export interface LooseDefinition {
 	readonly after?: Readonly<Partial<Record<string, Hook<[engine: unknown], AnyEffect, void>>>>;
 	readonly create: Hook<[], AnyEffect, unknown>;
 	readonly inspect?: (engine: unknown) => unknown;
+	readonly layer?: AnyTestLayer;
 	readonly name: string;
 	readonly run?: LooseRunHooks<unknown>;
 	readonly stages: readonly string[];

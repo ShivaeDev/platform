@@ -36,3 +36,13 @@ export function cannotRun(name: string): Error {
 		].join("\n"),
 	);
 }
+
+export function undeclaredGenre(name: string, tag: string, cause: unknown): Error {
+	return new Error(
+		[
+			`the ${name} story kit tags every test "${tag}", but the Vitest config does not declare that tag`,
+			`help: add genreTag("${name}") from @shivaedev/test-story/genreTag.ts to test.tags in the Vitest config. The tag lets a run pick stories by genre with --tags-filter=${tag}.`,
+		].join("\n"),
+		{ cause },
+	);
+}

@@ -1,63 +1,34 @@
-import { Effect, Exit } from "effect"
-import { effectStoryKit } from "@shivaedev/test-story/effect/storyKit.ts"
-import { storyKit } from "@shivaedev/test-story/storyKit.ts"
+import { PassThrough } from "node:stream"
+import { genreTag } from "@shivaedev/test-story/genreTag.ts"
+import { createVitest } from "vitest/node"
 
-interface Garden {
-  beds: number
-  seeds: number
-  sprouts: number
-}
-
-const garden = storyKit({
-  create: (): Garden => ({ beds: 0, seeds: 0, sprouts: 0 }),
-  name: "garden",
-  run: {
-    maxSteps: 10,
-    step: (state, tell) => {
-      state.seeds -= 1
-      state.sprouts += 1
-      tell("a seed sprouts")
-    },
-  },
-  stages: ["dug", "planted"],
-  verbs: (state, story) => ({ gardener: { waits: () => story.runUntil(() => state.seeds === 0) } }),
-})
-
-const sown = garden.trait("planted", "3 seeds are sown", (state) => {
-  state.seeds = 3
-})
-const dug = garden.trait("dug", "the garden has 1 bed", (state) => {
-  state.beds = 1
-})
-const { gardener, story } = garden.start(sown, dug)
-gardener.waits()
-
-let refusal = ""
-try {
-  garden.start(garden.trait("dug", "the garden is paved", () => {
-    throw new Error("nothing grows on stone")
-  }))
-} catch (error) {
-  refusal = error instanceof Error ? (error.message.split("\n")[0] ?? "") : ""
-}
-
-const plot = effectStoryKit({
-  create: (): Garden => ({ beds: 0, seeds: 0, sprouts: 0 }),
-  name: "plot",
-  stages: ["dug"],
-  verbs: () => ({}),
-})
-const exit = await Effect.runPromiseExit(
-  plot.start(plot.trait("dug", "a bed is dug", function* () {
-    yield* Effect.fail("too dry")
-  })),
+const vitest = await createVitest(
+  "test",
+  { config: false, include: ["garden.spec.ts"], root: process.cwd(), tags: [genreTag("garden"), genreTag("pond")], tagsFilter: ["garden-story"], watch: false },
+  {},
+  { stderr: new PassThrough(), stdout: new PassThrough() },
 )
+const { testModules } = await vitest.start()
+await vitest.close()
+
+const outcomes = testModules.flatMap((module) => [
+  ...module.errors().map((error) => error.message),
+  ...[...module.children.allTests()].map((test) => {
+    const result = test.result()
+    const headline = result.state === "failed" ? `: ${result.errors[0]?.message.split("\n")[0] ?? ""}` : ""
+    return `${test.name} ${result.state}${headline}`
+  }),
+])
+const refusal = [...(testModules[0]?.children.allTests() ?? [])].find((test) => test.name === "grows nothing on stone")?.result()
 
 if (
-  story.engine.sprouts !== 3 ||
-  story.lines.join("|") !== "3 seeds are sown|the garden has 1 bed|a seed sprouts|a seed sprouts|a seed sprouts" ||
-  refusal !== 'the trait "the garden is paved" refused to set up the garden: nothing grows on stone' ||
-  !Exit.isFailure(exit)
+  outcomes.join("|") !==
+    'sprouts every seed passed|grows nothing on stone failed: the trait "the garden is paved" refused to set up the garden: nothing grows on stone|has no fish yet skipped' ||
+  refusal?.state !== "failed" ||
+  !refusal.errors[0]?.message.includes("✗ given  the garden is paved")
 ) {
-  throw new Error("The packed story kit misbehaved")
+  throw new Error(`The packed story kit misbehaved: ${outcomes.join(" | ")}`)
 }
+
+// Vitest marks the process failed for the story that fails on purpose.
+process.exitCode = 0

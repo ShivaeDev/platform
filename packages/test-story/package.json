@@ -30,7 +30,6 @@
 			"default": "./dist/*.js"
 		},
 		"./internal/*": null,
-		"./effect/internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -39,6 +38,7 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
+		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
@@ -48,9 +48,11 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/effect-test": "workspace:*"
+	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
-		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
@@ -59,13 +61,9 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/vitest": "catalog:",
 		"effect": "catalog:",
 		"vitest": "catalog:"
-	},
-	"peerDependenciesMeta": {
-		"effect": {
-			"optional": true
-		}
 	},
 	"engines": {
 		"node": ">=24"

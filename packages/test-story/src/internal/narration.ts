@@ -1,6 +1,7 @@
-import { onTestFailed, TestRunner } from "vitest";
+import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { failureReport } from "#internal/failureReport.ts";
+import { describeFailure } from "#internal/render.ts";
 
 export interface Refusal {
 	readonly cause: unknown;
@@ -22,7 +23,7 @@ export interface Subject<TEngine> {
 	readonly name: string;
 }
 
-export function narrate<TEngine>(subject: Subject<TEngine>): Narration {
+export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed }: Pick<TestContext, "onTestFailed">): Narration {
 	const narration: Narration = {
 		given: 0,
 		lines: [],
@@ -36,13 +37,10 @@ export function narrate<TEngine>(subject: Subject<TEngine>): Narration {
 			narration.sites.push(site);
 		},
 	};
-	if (TestRunner.getCurrentTest() === undefined) {
-		return narration;
-	}
 	onTestFailed(({ task }) => {
 		const failure = task.result?.errors?.[0];
 		if (failure !== undefined) {
-			failure.message = `${failure.message}\n\n${failureReport(narration, subject, { file: task.file.filepath, name: task.name })}`;
+			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${failureReport(narration, subject, { file: task.file.filepath, name: task.name })}`;
 		}
 	});
 	return narration;
