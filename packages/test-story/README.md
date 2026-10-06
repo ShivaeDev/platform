@@ -14,7 +14,7 @@ bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], functio
 
 That is a whole test. `bakery.it` comes from the bakery's story kit. The list holds its traits, `ovenIsLit()` and `hasDough(3)`, which are written once and shared by every spec. `oven.bakesEverything()` is a verb that runs the bakery's real code until the dough is gone. Every story runs the whole engine, so each test also checks the parts its author never thought to mock, and because a spec reads as English, a sloppy test stands out in review.
 
-When a story fails, it prints itself. This package's own failure spec expects 2 loaves from one ball of dough, and the test fails with this message:
+When a story fails, it prints itself. One of this package's own failing stories expects 2 loaves from one ball of dough, and the test fails with this message:
 
 ```text
 loaves: expected 1 to be 2 // Object.is equality
@@ -28,13 +28,13 @@ loaves: expected 1 to be 2 // Object.is equality
   given  the baker has 1 balls of dough
          1m a loaf comes out of the oven
 ✗        the test failed after the line above
-         at src/failureStory.spec.ts:40:59
+         at src/test-support/failingStories.ts:10:59
 
 The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/failureStory.spec.ts -t "Bakery Story: marks where an assertion stopped the story"
+Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks where an assertion stopped the story"
 ```
 
 The first line is the assertion's own message. The box under it tells a reader who has never seen the package how to read what follows. Then comes the story: the two traits the test named, the line the bakery told as it baked, and a `✗` where the test stopped, with the spec line it stopped at. Last come the bakery's whole state at that moment and the command that reruns the test, so the failure alone is enough to find the cause.
@@ -157,7 +157,7 @@ export function morningShift() {
 
 `hasDough` is a plain function. `hasFlourDelivered` is a generator because it reaches the `Supplier` service, which the kit's layer provides. `traits(...)` bundles traits into one, so a setup that recurs gets one name. A test may name traits in any order: `[hasDough(6), hasBowls(2)]` fills the bowls only after the kitchen has them.
 
-A trait that throws, fails or dies refuses the setup instead of seeding a state the application could never reach. This package's spec `bakery.it.fails("marks the trait that refused", [ovenIsLit(), hasDough(4), hasBowls(1)])` asks for more dough than one bowl holds and fails with:
+A trait that throws, fails or dies refuses the setup instead of seeding a state the application could never reach. This package's failing story `bakery.it("marks the trait that refused", [ovenIsLit(), hasDough(4), hasBowls(1)])` asks for more dough than one bowl holds and fails with:
 
 ```text
 the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3
@@ -171,14 +171,14 @@ help: a trait throws when the bakery it asks for cannot exist. Give the test tra
 
   given  the oven is lit
 ✗ given  the baker has 4 balls of dough
-         refused at src/failureStory.spec.ts:43:63
+         refused at src/test-support/failingStories.ts:13:57
   given  the bakery has 1 bowls
 
 The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/failureStory.spec.ts -t "Bakery Story: marks the trait that refused"
+Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks the trait that refused"
 ```
 
 The first line names the trait and what it threw, which the error also keeps as its `cause`, and the `help:` line says what to change. The `✗` marks the trait that refused, and the line under it points at the spec line that named it. A trait that fails with a string, a plain object or a tagged error prints by its content, never as `[object Object]`, and an interrupted trait stays interrupted.

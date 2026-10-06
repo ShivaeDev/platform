@@ -1,46 +1,14 @@
-import { PassThrough } from "node:stream";
-import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { createVitest } from "vitest/node";
 import { type GenreTag, genreTags } from "#genreTags.ts";
+import { runStories } from "#test/runStories.ts";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
-
-interface Run {
-	readonly tags: readonly GenreTag[];
-	readonly tagsFilter?: string[];
-	readonly testNamePattern?: string;
-}
-
-async function storiesRunWith({ tags, tagsFilter = [], testNamePattern }: Run) {
-	const stderr = new PassThrough();
-	const warnings: string[] = [];
-	stderr.on("data", (chunk: Buffer) => warnings.push(chunk.toString()));
-	const vitest = await createVitest(
-		"test",
-		{
-			config: false,
-			include: ["src/test-support/genreStories.ts"],
-			reporters: [],
-			root,
-			tags: [...tags],
-			tagsFilter,
-			watch: false,
-			...(testNamePattern === undefined ? {} : { testNamePattern }),
-		},
-		{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
-		{ stderr, stdout: new PassThrough() },
-	);
-	try {
-		const { testModules } = await vitest.start();
-		return testModules.flatMap((module) => [
-			...module.errors().map((error) => error.message),
-			...[...module.children.allTests()].map((test) => `${test.name} [${test.tags.join(", ")}]: ${test.result().state}`),
-			...warnings.map((warning) => `stderr: ${warning}`),
-		]);
-	} finally {
-		await vitest.close();
-	}
+async function storiesRunWith(run: { readonly tags: readonly GenreTag[]; readonly tagsFilter?: string[]; readonly testNamePattern?: string }) {
+	const { moduleErrors, stories, warnings } = await runStories({ include: "src/test-support/genreStories.ts", ...run });
+	return [
+		...moduleErrors,
+		...stories.map((story) => `${story.name} [${story.tags.join(", ")}]: ${story.state}`),
+		...warnings.map((warning) => `stderr: ${warning}`),
+	];
 }
 
 const SLOW = 30_000;
