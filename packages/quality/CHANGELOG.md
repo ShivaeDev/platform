@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Explain the repository gate through a human introduction, an agent mental model and complete config, local-rule and boundary examples. Add package guidance, a north star and a roadmap, and move the detailed rule, naming, debt and shared-tooling references under `docs/`.
+- Publish `docs/` alongside the README; keep agent instructions outside the package tarball.
+
 ## 0.18.0 - 2026-10-06
 
 ### Added

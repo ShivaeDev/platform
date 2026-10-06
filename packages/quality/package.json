@@ -45,6 +45,7 @@
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
 		"tsconfig",
+		"docs",
 		"CHANGELOG.md",
 		"README.md"
 	],
