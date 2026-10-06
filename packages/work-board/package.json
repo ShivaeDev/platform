@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.7.2",
+	"version": "0.8.0",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -46,7 +46,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc6 --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/browser/session.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js",
+		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",

@@ -27,6 +27,8 @@ function criterionProblems(document: MetadataDocument): readonly Diagnostic[] {
 function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>): readonly Diagnostic[] {
 	const { fields, lines } = document.parsed;
 	const references = [
+		...(fields.question ? [{ field: "question", key: "question.item", target: fields.question.item }] : []),
+		...(fields.response ? [{ field: "response", key: "response.question", target: fields.response.question }] : []),
 		...(fields.attention?.flatMap((request, index) =>
 			request.unblocks.map((target, targetIndex) => ({ field: "attention", key: `attention.${index}.unblocks.${targetIndex}`, target })),
 		) ?? []),

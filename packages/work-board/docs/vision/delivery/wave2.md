@@ -10,8 +10,8 @@ Prefer one dependable response loop over many editing controls.
 **Outcome:** the board can change one intended part of a file without losing work.
 After D2, implement the smallest agreed single-file command with explicit source
 identity and expected revision. Preserve surrounding text, revalidate root access,
-replace atomically where supported, and expose typed rejection and save outcome.
-Define handling for outside writers: a revision comparison followed by rename is
+publish a new record without replacement where supported, and expose typed rejection and save outcome.
+Define handling for outside writers: a revision comparison followed by replacing the reviewed document is
 not universally atomic against an unrelated editor. Prove the selected coordination
 or conflict/recovery strategy and document any remaining filesystem limitations.
 **Depends on:** 13 and D2. **Accept:** stale and competing writes, write failures,
@@ -100,3 +100,13 @@ agent scheduler, full terminal UI, or external two-way synchronization. The brow
 local CLI/API, and tool adapter must share mutation semantics rather than invent
 parallel write paths. Use existing Effect and Platform conventions where needed;
 choose concrete API names and transports at their design gates.
+
+## Approved response checkpoint
+
+D2 authorizes 14–15's append-only question/response files, browser draft policy and
+per-question CLI wait. The original project document is preserved; this checkpoint
+uses no-replace publication instead of a source-replacing patch. Atomic replacement,
+undo and general editor coordination remain step 17 work, with their own contract.
+The passive wait is an existing-session consumer, not step 18's handoff/launch adapter.
+See [the source contract](./response-write-examples.md) and the roadmap for actual
+acceptance evidence and first-platform filesystem limits.

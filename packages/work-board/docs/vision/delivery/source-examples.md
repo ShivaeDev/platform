@@ -60,13 +60,14 @@ transition rules are inferred.
 | Field | Source shape |
 | --- | --- |
 | `id` | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-` |
-| `kind` | `task`, `investigation`, `decision`, `result`, `project`, or `board` |
+| `kind` | `task`, `investigation`, `decision`, `result`, `project`, `board`, `question`, or `response` |
 | `status`, `owner`, `next_action` | Nonblank strings |
 | `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
 | `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, or `relates_to`; target is an item ID or `item.id#criterion-id` |
 | `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
 | `evidence` | List of records described below |
 | `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
+| `question`, `response` | Optional dedicated record provenance; [anchored response contract](./response-write-examples.md) |
 
 A unique ID resolves at `/_board/item/work.search/`. This URL survives file and
 heading renames while the ID remains unchanged and unique. A criterion resolves
