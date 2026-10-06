@@ -27,6 +27,7 @@ function criterionProblems(document: MetadataDocument): readonly Diagnostic[] {
 function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>): readonly Diagnostic[] {
 	const { fields, lines } = document.parsed;
 	const references = [
+		...(fields.handoff ? [{ field: "handoff", key: "handoff.item", target: fields.handoff.item }] : []),
 		...(fields.question ? [{ field: "question", key: "question.item", target: fields.question.item }] : []),
 		...(fields.response ? [{ field: "response", key: "response.question", target: fields.response.question }] : []),
 		...(fields.response?.supersedes ? [{ field: "response", key: "response.supersedes", target: fields.response.supersedes }] : []),

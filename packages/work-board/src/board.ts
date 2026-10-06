@@ -2,6 +2,8 @@ import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scop
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
+import { handoffPage } from "#handoffs/page.ts";
+import { handoffService } from "#handoffs/service.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
 import { events } from "#http/events.ts";
@@ -70,6 +72,14 @@ const routes = (options: BoardOptions) =>
 			});
 			const replyPage = responsePage(responses, changes, home, options.responses === true);
 			yield* serve("/_board/respond", replyPage);
+			const handoffs = yield* handoffService({
+				changes,
+				enabled: options.responses === true,
+				index: Effect.provideContext(index, context),
+				root: options.root,
+			});
+			const handoff = handoffPage(handoffs, changes, home, options.responses === true);
+			yield* serve("/_board/handoff", handoff);
 			const pages = page({ home, root: options.root }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
@@ -78,6 +88,9 @@ const routes = (options: BoardOptions) =>
 				const pathname = new URL(url, "http://127.0.0.1").pathname;
 				let selected: ReturnType<typeof pages>;
 				switch (pathname) {
+					case "/_board/handoff":
+						selected = handoff(request);
+						break;
 					case "/_board/respond":
 						selected = replyPage(request);
 						break;
@@ -98,7 +111,7 @@ const routes = (options: BoardOptions) =>
 				}
 				return Effect.provideContext(selected, context);
 			}
-			const rpc = yield* server({ changes, home, index: Effect.provideContext(index, context), page: readPage, responses });
+			const rpc = yield* server({ changes, handoffs, home, index: Effect.provideContext(index, context), page: readPage, responses });
 			yield* serve(
 				"/_board/rpc",
 				(request) =>
