@@ -1,6 +1,8 @@
 import { Schema } from "effect";
+import { QuestionRecord, ResponseRecord } from "#browser/responses/schema.ts";
+import { Identity as SourceIdentity } from "#path/Identity.ts";
 
-export const Identity = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*$/u));
+export const Identity = SourceIdentity;
 export const Reference = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*(?:#[a-zA-Z\d][a-zA-Z\d._-]*)?$/u));
 const Text = Schema.String.check(Schema.isPattern(/\S/u));
 const Attention = Schema.Struct({
@@ -36,10 +38,12 @@ export const Metadata = Schema.Struct({
 	evidence: Schema.optional(Schema.Array(Evidence)),
 	id: Schema.optional(Identity),
 	items: Schema.optional(Schema.Array(Identity)),
-	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board"])),
+	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response"])),
 	nextAction: Schema.optional(Text),
 	owner: Schema.optional(Text),
+	question: Schema.optional(QuestionRecord),
 	relationships: Schema.optional(Schema.Array(Relationship)),
+	response: Schema.optional(ResponseRecord),
 	status: Schema.optional(Text),
 }).pipe(Schema.encodeKeys({ nextAction: "next_action" }));
 export type Metadata = typeof Metadata.Type;

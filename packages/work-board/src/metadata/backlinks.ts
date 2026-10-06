@@ -10,6 +10,8 @@ export interface Backlink {
 function references(document: MetadataDocument, model: MetadataModel) {
 	const { fields, lines } = document.parsed;
 	return [
+		...(fields.question ? [{ kind: "reviewed question", line: lines.question, target: referenceFile(fields.question.item, model) }] : []),
+		...(fields.response ? [{ kind: "recorded response", line: lines.response, target: referenceFile(fields.response.question, model) }] : []),
 		...(fields.attention?.flatMap((request, index) =>
 			request.unblocks.map((target, targetIndex) => ({
 				kind: "attention target",

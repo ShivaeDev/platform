@@ -96,4 +96,5 @@ export const style =
 	+ workStyle()
 	+ attentionStyle()
 	+ visualStyles
-	+ documents;
+	+ documents
+	+ ".response-panel { max-width: 850px; margin: auto; padding: 1.5rem; } .response-panel form { display: grid; gap: 1rem; } .response-panel label { display: grid; gap: .5rem; } .response-panel input, .response-panel textarea, .response-panel select { width: 100%; box-sizing: border-box; font: inherit; background: var(--surface); color: inherit; padding: .75rem; border: 1px solid var(--border); } .response-panel pre, .response-panel code { white-space: pre-wrap; overflow-wrap: anywhere; }";

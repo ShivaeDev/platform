@@ -6,6 +6,8 @@ const POLICY = [
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data: https:",
 	"object-src 'none'",
+	"form-action 'none'",
+	"frame-src 'none'",
 	"base-uri 'none'",
 	"frame-ancestors 'none'",
 ].join("; ");

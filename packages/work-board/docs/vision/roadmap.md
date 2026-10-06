@@ -28,8 +28,8 @@ Check a step only after its acceptance is demonstrated in the package.
 - [x] [11 A small vocabulary for visual documents](./delivery/wave1.md#11-a-small-vocabulary-for-visual-documents)
 - [x] [12 Start with useful project documents](./delivery/wave1.md#12-start-with-useful-project-documents)
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
-- [ ] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
-- [ ] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
+- [x] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
+- [x] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
 - [ ] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
 - [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
 - [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
@@ -517,19 +517,22 @@ asking an agent to reconstruct the context. No external account is required.
 
 ## Wave 2 — Inform back and coordinate
 
-This wave is agreed in direction, with the interaction and write model still
-open for discussion. The mockups show possibilities, not settled public APIs.
+D2 approves the first anchored response boundary below. Structured decision
+actions, source-replacing edits and a real agent handoff still need their own
+contract discussion; mockups do not settle them.
 
 ### Design gate before content mutations
 
-- [ ] Decide the first response surface: anchored note, structured decision,
-  revision request, checklist/status edit, or a deliberately small combination.
-- [ ] Decide canonical storage and stable identity: how a single-document board
-  evolves toward one file per item without maintaining two authored truths.
+- [x] Agree the first response surface: anchored answers, clarification and
+  deferral, with a browser-local draft store and per-question waits. Structured
+  decisions and checklist/status editing remain later contracts.
+- [x] Preserve D1 legacy boards and richer per-item files; D2 adds independently
+  identified question/context and response Markdown records without migration.
 - [ ] Specify source-preserving patches, revision checks, atomic replacement,
   undo, failure recovery, and treatment of concurrently edited files.
-- [ ] Specify source trust and request authorization for new write routes.
-  Loopback binding and CSP alone do not constitute a write authorization design.
+- [x] Specify the response route trust boundary: explicit writer opt-in, native
+  same-origin/loopback NDJSON commands, escaped reviewed source and blocked source
+  form actions/frames. Local labels provide attribution, not authentication.
 - [ ] Decide who owns priority, assignment, acceptance, and handoff acknowledgment.
   An agent's completed run must not silently accept its own result.
 - [ ] Agree a minimal local handoff contract with one existing agent tool;
@@ -725,3 +728,66 @@ and every packed consumer; quality baseline remains 2,547. Work Board 0.7.2
 packages this regression/documentation checkpoint without changing runtime APIs.
 The actual reading investigation rendered with its two explicit requests in
 Overview; automated checks do not fulfill either requested human judgment.
+
+
+## Steps 14–15 response and wait acceptance
+
+The user approved D2 and authorized the response implementation while the
+representative-reader judgments in 07/13 remain pending. Those boxes stay open;
+this checkpoint does not retroactively accept wave 1's human or device evidence.
+Work Board 0.8.0 provides the [approved response contract](./delivery/response-write-examples.md):
+explicit `--responses` / embedding opt-in, browser-local drafts, and separate
+immutable question/context and reply Markdown. The original document is preserved.
+A response identifies exactly the item, request, source path and reviewed UTF-8
+text; it cannot silently approve a changed source. Answers (including no),
+clarification and deferral remain feedback, not request closure or acceptance.
+
+The native `question`, `response` and per-question `wait` CLI commands share the
+same Effect contract and local RPC command path. First durable registration starts
+a 48-hour deadline; reattachment/page visits do not reset it. Waits are repeatable
+and nondestructive, with an explicit next-response cursor. An unanswered deadline
+has exit 2 and leaves late replies available. Transport/index failures remain
+unavailable, including when an outage prevents deadline verification. Malformed
+or ambiguous history never establishes that a human left the question unanswered.
+The server leases each request for 30 seconds and reconciles once a second; pending
+leases return only the question and next reply, not the full conversation history.
+
+Full `pnpm ready` passed: 1,212 package passes, four expected failures, one
+intentional skip, 258 Work Board tests, seven orchestration checks, real PostgreSQL
+and all packed consumers. Quality baseline stays 2,547. Regressions cover explicit
+opt-in/source-form rejection, exact revision and unchanged original bytes,
+restart/read-before-wait/repeated writes, renamed/deleted sources and escaping
+symlinks, conflicting destinations, actual permission failure, and injected
+post-publication/reconciliation synchronization failures over real persisted files.
+They also cover clarification/next-reply delivery, edited deadline exit/late reply,
+draft expiry/quota/corruption, owned-form refresh, revision difference, native
+saved feedback and edits made while an earlier submission completes. Packed
+consumers prove import-safe browser/server entries and NodeNext declaration paths.
+
+Actual Chromium 151 checked desktop 1440×1000 and narrow 390×844 dark/reduced-motion:
+native navigation without reload, draft reload, external source changes, 20
+concurrent CLI waits, an abruptly stopped/restarted production server, killed-waiter
+reattachment, matching attributable outputs, repeat reads, unchanged original
+source bytes, and no-JavaScript saved feedback. Holding a successful acknowledgment
+in the browser's real fetch path proved newer input remains unsaved, gets a fresh
+response identity and survives reload. No page errors or narrow overflow occurred.
+Artifacts: `/workspace/artifacts/work-board-responses`.
+
+The final agent bundle is 368,867 bytes (360.2 KiB), without the renderer, Mermaid,
+watcher, AtomRegistry or a per-waiter daemon. On Linux/Node 24.19.0, AMD EPYC 9V74,
+20 registered idle waiters used 585.32 MiB summed PSS (about 29.3 MiB each), versus
+1,014.22 MiB summed RSS including repeated shared pages. Each held 19 descriptors;
+CPU counters advanced zero ticks over a five-second idle sample with no concurrent
+handoff. These are observations on the shared managed machine, not budgets,
+zero-resource claims, or a 48-hour/90-minute soak. Harnesses own model wakeup and
+shell lifetime; the passive wait is not D3's agent launch/handoff adapter.
+
+The first safe publisher requires Linux directory descriptors, `/proc/self/fd`,
+hard links and directory synchronization. It synchronizes the workspace and new
+record before confirming no-replace publication; equal-content retries reconcile
+and synchronize again. Other supported Node platforms retain reading and explicitly
+reject publication. Moved/duplicated records and changing write boundaries remain
+explicit failures. Outside-editor changes after preflight cannot be made a universal
+transaction; saved records retain reviewed context instead of replacing that editor's
+source. Source replacement/undo (17), structured decision recording (16), D3 before
+18 and D4 before 24 remain open. No export or cloud service was introduced.

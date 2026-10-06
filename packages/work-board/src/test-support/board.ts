@@ -38,8 +38,8 @@ export type FileSystemWrapper = (fs: FileSystem.FileSystem) => FileSystem.FileSy
 const wrapped = (wrap: FileSystemWrapper) =>
 	Layer.effect(FileSystem.FileSystem, Effect.map(Effect.service(FileSystem.FileSystem), wrap)).pipe(Layer.provide(NodeServices.layer));
 
-export const startBoard = async (root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs): Promise<RunningBoard> => {
-	const board = Layer.provide(boardLayer({ home, root }), wrapped(wrap));
+export const startBoard = async (root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs, responses = false): Promise<RunningBoard> => {
+	const board = Layer.provide(boardLayer({ home, responses, root }), wrapped(wrap));
 	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
 	if (server.address._tag !== "TcpAddress") {
