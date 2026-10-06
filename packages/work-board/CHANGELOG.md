@@ -19,6 +19,19 @@
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
 
+## 0.11.0 - 2026-10-06
+
+### Added
+
+- Returned-result review combines explicitly linked work/criteria, reported status,
+  evidence and limitations with version-pinned human feedback. Request revision or
+  accept an exact report using existing attention/question directives and immutable
+  responses; no new source schema or writer.
+- Native navigation/live review, safe Markdown/Mermaid context and no-JavaScript
+  reading. Changed or moved reports qualify earlier feedback; missing evidence and
+  ambiguous history remain explicit. Recorded Git revisions are not compared with
+  the checkout and authored choices do not establish verified criteria.
+
 ## 0.10.0 - 2026-10-06
 
 ### Added

@@ -90,6 +90,13 @@ silently carrying acceptance to a new result.
 its item remains in review; missing evidence stays missing; a human requests a
 revision, receives a new result, and accepts the specific reviewed version.
 
+The [ordinary-file result review walkthrough](./result-review-examples.md) composes
+existing result, attention, directive question and immutable response formats.
+Report status, work status and authored acceptance remain separate. Changed report
+contexts qualify earlier feedback; checked Git evidence revisions remain reported
+and are not compared with the current checkout. The roadmap records actual
+acceptance evidence and limits.
+
 ## 20 Complete the first coordination loop
 
 **Outcome:** one real feature moves from proposal to accepted result locally.
