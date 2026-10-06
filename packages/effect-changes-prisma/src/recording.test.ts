@@ -1,7 +1,56 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
+import { makePrismaChanges } from "#changes.ts";
+import { PrismaError } from "#error.ts";
 import { makeChanges } from "#test/changes.ts";
 import { integration, makeDatabase, orderIds } from "#test/database.ts";
+import { nonnegativeOrderChanges } from "#test/nonnegativeOrderChanges.ts";
+
+integration("a missing-row update fails with P2025 without expiring a transaction that can still commit", () =>
+	Effect.runPromise(
+		Effect.scoped(
+			Effect.gen(function* () {
+				const { client, observer } = yield* makeDatabase;
+				const { changes, published } = makeChanges(client);
+				const failure = yield* changes.transaction(
+					Effect.gen(function* () {
+						const rejected = yield* Effect.flip(changes.use((db) => db.order.update({ data: { total: 2 }, where: { id: "missing" } })));
+						yield* changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: 1 } }));
+						return rejected;
+					}),
+				);
+				expect(failure).toBeInstanceOf(PrismaError);
+				expect(failure.cause).toMatchObject({ code: "P2025" });
+				expect(yield* orderIds(observer)).toEqual(["o1"]);
+				expect(published).toEqual([["ada:orders"]]);
+			}),
+		),
+	),
+);
+
+integration("a consumer mapping error remains the exact defect after the write autocommits and publishes nothing", () =>
+	Effect.runPromise(
+		Effect.scoped(
+			Effect.gen(function* () {
+				const { client, observer } = yield* makeDatabase;
+				const mappingError = new Error("Negative order totals cannot name a change");
+				const published: (readonly string[])[] = [];
+				const changes = makePrismaChanges({
+					client,
+					models: {
+						Order: nonnegativeOrderChanges(mappingError),
+					},
+					name: "MappingFailure",
+					publish: (batch: readonly string[]) => Effect.sync(() => published.push(batch)),
+				});
+				const exit = yield* Effect.exit(changes.use((db) => db.order.create({ data: { id: "o1", ownerId: "ada", total: -1 } })));
+				expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBe(mappingError);
+				expect(yield* orderIds(observer)).toEqual(["o1"]);
+				expect(published).toEqual([]);
+			}),
+		),
+	),
+);
 
 integration("one write records a change for every subject its mapping names", () =>
 	Effect.runPromise(
@@ -91,10 +140,12 @@ integration("a write outside any transaction publishes as soon as it autocommits
 	),
 );
 
-const slowInsert = (schema: string) => [
-	`create function "${schema}".slow_insert() returns trigger language plpgsql as $$ begin perform pg_sleep(0.3); return new; end $$`,
-	`create trigger slow_insert before insert on "${schema}".changes_prisma_order for each row execute function "${schema}".slow_insert()`,
-];
+function slowInsert(schema: string) {
+	return [
+		`create function "${schema}".slow_insert() returns trigger language plpgsql as $$ begin perform pg_sleep(0.3); return new; end $$`,
+		`create trigger slow_insert before insert on "${schema}".changes_prisma_order for each row execute function "${schema}".slow_insert()`,
+	];
+}
 
 integration("an interrupted use still records a write that ran", () =>
 	Effect.runPromise(
