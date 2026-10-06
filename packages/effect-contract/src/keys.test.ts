@@ -25,10 +25,30 @@ describe("reactivity keys", () => {
 				watch("list", readKeys([orders.list])),
 			];
 			yield* reactivity.invalidate(invalidationKeys([orders.item(1)]));
-			expect(refreshed.sort()).toEqual(["list", "order 1"]);
+			expect(
+				refreshed.sort((left, right) => {
+					if (left < right) {
+						return -1;
+					}
+					if (left > right) {
+						return 1;
+					}
+					return 0;
+				}),
+			).toEqual(["list", "order 1"]);
 			refreshed.length = 0;
 			yield* reactivity.invalidate({ orders: [1] });
-			expect(refreshed.sort()).toEqual(["list", "order 1"]);
+			expect(
+				refreshed.sort((left, right) => {
+					if (left < right) {
+						return -1;
+					}
+					if (left > right) {
+						return 1;
+					}
+					return 0;
+				}),
+			).toEqual(["list", "order 1"]);
 			refreshed.length = 0;
 			yield* reactivity.invalidate(invalidationKeys([orders.list]));
 			expect(refreshed).toEqual(["list"]);

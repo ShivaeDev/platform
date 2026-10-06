@@ -42,7 +42,6 @@
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/style/useNamingConvention","count":20}
 {"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/suspicious/noShadow","count":2}
-{"path":"packages/effect-contract/src/keys.test.ts","rule":"biome/lint/suspicious/useArraySortCompare","count":2}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/style/useNamingConvention","count":6}
 {"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
