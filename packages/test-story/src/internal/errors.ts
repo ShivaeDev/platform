@@ -1,48 +1,39 @@
 import { describeValue } from "#internal/render.ts";
+import { explained } from "#internal/wrap.ts";
 
 export function refusal(name: string, line: string, cause: unknown): Error {
 	return new Error(
-		[
+		explained(
 			`the trait "${line}" refused to set up the ${name}: ${describeValue(cause)}`,
-			`help: a trait throws when the ${name} it asks for cannot exist. Give the test traits that fit together, or fix the trait in the ${name} story kit if this ${name} should be possible.`,
-		].join("\n"),
+			`a trait throws when the ${name} it asks for cannot exist. Give the test traits that fit together, or fix the trait in the ${name} story kit if this ${name} should be possible.`,
+		),
 		{ cause },
 	);
 }
 
 export function broken(name: string, steps: number, reason: string): Error {
 	return new Error(
-		[
+		explained(
 			`the ${name} broke after ${steps} steps: ${reason}`,
-			`help: run.failed in the ${name} story kit reports a state the ${name} cannot recover from. The story printed with this failure shows the setup and steps that led here.`,
-		].join("\n"),
+			`run.failed in the ${name} story kit reports a state the ${name} cannot recover from. The story printed with this failure shows the setup and steps that led here.`,
+		),
 	);
 }
 
 export function unfinished(name: string, steps: number, diagnosis: string | undefined): Error {
 	return new Error(
-		[
+		explained(
 			`the ${name} ran ${steps} steps and never reached what runUntil waits for${diagnosis === undefined ? "" : `: ${diagnosis}`}`,
-			`help: either the ${name} never gets there, so check the setup and the engine, or it needs more steps, so pass a larger maxSteps to runUntil.`,
-		].join("\n"),
+			`either the ${name} never gets there, so check the setup and the engine, or it needs more steps, so pass a larger maxSteps to runUntil.`,
+		),
 	);
 }
 
 export function cannotRun(name: string): Error {
 	return new Error(
-		[
+		explained(
 			`the ${name} story kit has no run hooks, so runUntil cannot step the ${name}`,
-			`help: give the ${name} story kit run: { maxSteps, step }, where step advances the ${name} by one step.`,
-		].join("\n"),
-	);
-}
-
-export function undeclaredGenre(name: string, tag: string, cause: unknown): Error {
-	return new Error(
-		[
-			`the ${name} story kit tags every test "${tag}", but the Vitest config does not declare that tag`,
-			`help: add genreTag("${name}") from @shivaedev/test-story/genreTag.ts to test.tags in the Vitest config. The tag lets a run pick stories by genre with --tags-filter=${tag}.`,
-		].join("\n"),
-		{ cause },
+			`give the ${name} story kit run: { maxSteps, step }, where step advances the ${name} by one step.`,
+		),
 	);
 }

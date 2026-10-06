@@ -2,22 +2,41 @@ import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { createVitest } from "vitest/node";
-import { type GenreTag, genreTag } from "#genreTag.ts";
+import { type GenreTag, genreTags } from "#genreTags.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
-async function storiesRunWith(tags: readonly GenreTag[], tagsFilter: string[]) {
+interface Run {
+	readonly tags: readonly GenreTag[];
+	readonly tagsFilter?: string[];
+	readonly testNamePattern?: string;
+}
+
+async function storiesRunWith({ tags, tagsFilter = [], testNamePattern }: Run) {
+	const stderr = new PassThrough();
+	const warnings: string[] = [];
+	stderr.on("data", (chunk: Buffer) => warnings.push(chunk.toString()));
 	const vitest = await createVitest(
 		"test",
-		{ config: false, include: ["src/test-support/genreStories.ts"], reporters: [], root, tags: [...tags], tagsFilter, watch: false },
+		{
+			config: false,
+			include: ["src/test-support/genreStories.ts"],
+			reporters: [],
+			root,
+			tags: [...tags],
+			tagsFilter,
+			watch: false,
+			...(testNamePattern === undefined ? {} : { testNamePattern }),
+		},
 		{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
-		{ stderr: new PassThrough(), stdout: new PassThrough() },
+		{ stderr, stdout: new PassThrough() },
 	);
 	try {
 		const { testModules } = await vitest.start();
 		return testModules.flatMap((module) => [
 			...module.errors().map((error) => error.message),
-			...[...module.children.allTests()].map((test) => `${test.name}: ${test.result().state}`),
+			...[...module.children.allTests()].map((test) => `${test.name} [${test.tags.join(", ")}]: ${test.result().state}`),
+			...warnings.map((warning) => `stderr: ${warning}`),
 		]);
 	} finally {
 		await vitest.close();
@@ -27,29 +46,52 @@ async function storiesRunWith(tags: readonly GenreTag[], tagsFilter: string[]) {
 const SLOW = 30_000;
 
 it(
-	"runs only the stories of the genre a run filters by",
+	"names every story after its kit's genre, and silently tags none when the config declares no genre",
 	async () => {
-		expect(await storiesRunWith([genreTag("bakery"), genreTag("mill")], ["mill-story"])).toEqual([
-			"a lit oven stays lit: skipped",
-			"turning sails keep turning: passed",
+		expect(await storiesRunWith({ tags: [] })).toEqual([
+			"Bakery Story: a lit oven stays lit []: passed",
+			"Mill Story: turning sails keep turning []: passed",
 		]);
 	},
 	SLOW,
 );
 
 it(
-	"tells a config that does not declare a kit's genre how to declare it",
+	"runs only one genre's stories when a run filters by the name",
 	async () => {
-		expect(await storiesRunWith([genreTag("mill")], [])).toEqual([
-			[
-				'the bakery story kit tags every test "bakery-story", but the Vitest config does not declare that tag',
-				'help: add genreTag("bakery") from @shivaedev/test-story/genreTag.ts to test.tags in the Vitest config. The tag lets a run pick stories by genre with --tags-filter=bakery-story.',
-			].join("\n"),
+		expect(await storiesRunWith({ tags: [], testNamePattern: "^Mill Story: " })).toEqual([
+			"Bakery Story: a lit oven stays lit []: skipped",
+			"Mill Story: turning sails keep turning []: passed",
 		]);
 	},
 	SLOW,
 );
 
-it("names the genre tag after the kit, with words joined so a filter can name it", () => {
-	expect(genreTag(" game  store ")).toEqual({ description: "stories over a real game store", name: "game-store-story" });
+it(
+	"tags the stories of each genre the config declares, so a run can filter by the tag",
+	async () => {
+		expect(await storiesRunWith({ tags: genreTags("bakery", "mill"), tagsFilter: ["mill-story"] })).toEqual([
+			"Bakery Story: a lit oven stays lit [bakery-story]: skipped",
+			"Mill Story: turning sails keep turning [mill-story]: passed",
+		]);
+	},
+	SLOW,
+);
+
+it(
+	"tags only the genres the config declares",
+	async () => {
+		expect(await storiesRunWith({ tags: genreTags("mill") })).toEqual([
+			"Bakery Story: a lit oven stays lit []: passed",
+			"Mill Story: turning sails keep turning [mill-story]: passed",
+		]);
+	},
+	SLOW,
+);
+
+it("names the genre tag after the kit, with its words joined so a filter can name it", () => {
+	expect(genreTags(" Game  Store ", "mill")).toEqual([
+		{ description: "stories over a real Game Store", name: "game-store-story" },
+		{ description: "stories over a real mill", name: "mill-story" },
+	]);
 });

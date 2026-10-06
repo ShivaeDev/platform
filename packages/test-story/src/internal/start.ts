@@ -15,6 +15,7 @@ export const start = Effect.fnUntraced(function* (definition: LooseDefinition, g
 		lines: narration.lines,
 		runUntil: (until, options) => {
 			const site = callSite();
+			narration.at = site;
 			return runUntil({ engine, name: definition.name, run: definition.run, tell: (line) => narration.tellAt(line, site) }, until, options);
 		},
 		tell: narration.tell,

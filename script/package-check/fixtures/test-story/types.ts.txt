@@ -1,5 +1,5 @@
 import { Context, Data, Effect, Layer } from "effect"
-import { type GenreTag, genreTag } from "@shivaedev/test-story/genreTag.ts"
+import { type GenreTag, genreTags } from "@shivaedev/test-story/genreTags.ts"
 import { type Story, storyKit, type Trait } from "@shivaedev/test-story/storyKit.ts"
 
 interface Garden {
@@ -51,5 +51,5 @@ garden.it.fails("never sees the sun", [], function* () {
 // @ts-expect-error A trait names one of the kit's stages.
 garden.trait("harvested", "the garden is harvested", () => undefined)
 
-const tag: GenreTag = genreTag("garden")
-void tag
+const tags: GenreTag[] = genreTags("garden", "pond")
+void tags

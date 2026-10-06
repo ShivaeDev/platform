@@ -3,6 +3,7 @@ import { basename, dirname, join, relative } from "node:path";
 import type { FailedTest } from "#internal/failureReport.ts";
 import type { Subject } from "#internal/narration.ts";
 import { describeValue, toJson } from "#internal/render.ts";
+import { WIDTH, wrap, wrapJson } from "#internal/wrap.ts";
 
 const INLINE_CHARACTERS = 2000;
 
@@ -27,11 +28,11 @@ export function engineSnapshot<TEngine>(subject: Subject<TEngine>, test: FailedT
 	const heading = `The ${subject.name} when the test failed`;
 	const taken = snapshot(subject);
 	if ("threw" in taken) {
-		return [`${heading} is unknown: its inspect hook threw ${describeValue(taken.threw)}`];
+		return wrap(`${heading} is unknown: its inspect hook threw ${describeValue(taken.threw)}`);
 	}
 	const json = toJson(taken.value);
 	if (json.length <= INLINE_CHARACTERS) {
-		return [`${heading}: ${json}`];
+		return heading.length + 2 + json.length > WIDTH ? [`${heading}:`, ...wrapJson(json)] : [`${heading}: ${json}`];
 	}
 	const file = join(
 		process.cwd(),
@@ -42,5 +43,5 @@ export function engineSnapshot<TEngine>(subject: Subject<TEngine>, test: FailedT
 	);
 	mkdirSync(dirname(file), { recursive: true });
 	writeFileSync(file, toJson(taken.value, 2));
-	return [`${heading} is ${json.length} characters of JSON, too long to print here. Read it in ${relative(process.cwd(), file)}`];
+	return wrap(`${heading} is ${json.length} characters of JSON, too long to print here. Read it in ${relative(process.cwd(), file)}`);
 }

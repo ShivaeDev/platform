@@ -28,7 +28,8 @@ bakery.it("dies with what the failed hook reports instead of stepping on", [hasD
 	expect(defectMessage(yield* Effect.exit(oven.bakesEverything()))).toBe(
 		[
 			"the bakery broke after 0 steps: the oven is cold with 2 balls of dough waiting",
-			"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this failure shows the setup and steps that led here.",
+			"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this",
+			"      failure shows the setup and steps that led here.",
 		].join("\n"),
 	);
 	expect(story.engine.minute).toBe(0);
@@ -43,8 +44,10 @@ bakery.it("dies with the failure even when the condition also holds", [ovenIsLit
 bakery.it("dies after the step budget with the diagnosis and what to do", [ovenIsLit(), keepsSourdough(), hasDough(1)], function* ({ oven }) {
 	expect(defectMessage(yield* Effect.exit(oven.bakesEverything(12)))).toBe(
 		[
-			"the bakery ran 12 steps and never reached what runUntil waits for: 1 balls of dough still wait after 12 minutes: the sourdough starter never runs out",
-			"help: either the bakery never gets there, so check the setup and the engine, or it needs more steps, so pass a larger maxSteps to runUntil.",
+			"the bakery ran 12 steps and never reached what runUntil waits for: 1 balls of dough still wait after 12 minutes: the",
+			"  sourdough starter never runs out",
+			"help: either the bakery never gets there, so check the setup and the engine, or it needs more steps, so pass a larger",
+			"      maxSteps to runUntil.",
 		].join("\n"),
 	);
 });

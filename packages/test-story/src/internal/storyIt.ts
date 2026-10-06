@@ -1,10 +1,8 @@
 import type { TestContext } from "@effect/vitest";
-import { Context, Effect, Layer } from "effect";
-import type { AnyTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
+import { Effect, Layer } from "effect";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
-import { genreTag } from "#genreTag.ts";
-import { undeclaredGenre } from "#internal/errors.ts";
+import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
 import { start } from "#internal/start.ts";
@@ -21,43 +19,45 @@ export interface LooseIt extends LooseTest {
 	readonly skipIf: (condition: unknown) => LooseTest;
 }
 
-// makeEffectIt takes only a layer that provides a service, so a kit without a layer provides its genre.
-class Genre extends Context.Service<Genre, string>()("@shivaedev/test-story/Genre") {}
-
-function tagged(options: number | EffectTestOptions | undefined, tag: string): EffectTestOptions {
+function withTags(options: number | EffectTestOptions | undefined, tags: readonly string[]): EffectTestOptions {
 	if (typeof options === "number") {
-		return { tags: [tag], timeout: options };
+		return { tags: [...tags], timeout: options };
 	}
 	const own = options?.tags ?? [];
-	return { ...options, tags: [tag, ...(typeof own === "string" ? [own] : own)] };
+	return { ...options, tags: [...tags, ...(typeof own === "string" ? [own] : own)] };
 }
 
 function storyOf(definition: LooseDefinition, given: readonly LooseTrait[], body: LooseBody | undefined) {
-	return function* story(_harness: object, context: TestContext) {
+	return function* story(_harness: unknown, context: TestContext) {
 		const told = yield* start(definition, given, context);
 		return yield* hooked(() => body?.(told, context));
 	};
 }
 
-function declaring(definition: LooseDefinition, tag: string, declare: EffectTest<object, unknown>): LooseTest {
+// Vitest refuses a tag its config does not declare, so a genre the config leaves out names the test without tagging it.
+function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTest<unknown, unknown>): LooseTest {
 	return (name, given, body, options) => {
+		const title = `${genre.title}: ${name}`;
+		const story = storyOf(definition, given, body);
 		try {
-			declare(name, storyOf(definition, given, body), tagged(options, tag));
+			declare(title, story, withTags(options, [genre.tag.name]));
 		} catch (error) {
-			throw error instanceof Error && error.message.includes(`"${tag}"`) ? undeclaredGenre(definition.name, tag, error) : error;
+			if (!(error instanceof Error && error.message.includes(`"${genre.tag.name}"`))) {
+				throw error;
+			}
+			declare(title, story, withTags(options, []));
 		}
 	};
 }
 
 export function storyIt(definition: LooseDefinition): LooseIt {
-	const tag = genreTag(definition.name).name;
-	const layer: AnyTestLayer = definition.layer ?? Layer.succeed(Genre, tag);
-	const { effectApp } = makeEffectIt({ layer, makeHarness: () => Effect.succeed({}) });
-	return Object.assign(declaring(definition, tag, effectApp), {
-		fails: declaring(definition, tag, effectApp.fails),
-		only: declaring(definition, tag, effectApp.only),
-		runIf: (condition: unknown) => declaring(definition, tag, effectApp.runIf(condition)),
-		skip: declaring(definition, tag, effectApp.skip),
-		skipIf: (condition: unknown) => declaring(definition, tag, effectApp.skipIf(condition)),
+	const genre = genreOf(definition.name);
+	const { effectApp } = makeEffectIt({ layer: definition.layer ?? Layer.empty, makeHarness: () => Effect.void });
+	return Object.assign(declaring(definition, genre, effectApp), {
+		fails: declaring(definition, genre, effectApp.fails),
+		only: declaring(definition, genre, effectApp.only),
+		runIf: (condition: unknown) => declaring(definition, genre, effectApp.runIf(condition)),
+		skip: declaring(definition, genre, effectApp.skip),
+		skipIf: (condition: unknown) => declaring(definition, genre, effectApp.skipIf(condition)),
 	});
 }

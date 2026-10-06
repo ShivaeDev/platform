@@ -9,14 +9,21 @@ const SPEC = relative(process.cwd(), import.meta.filename);
 
 const reported: string[] = [];
 
-const LARGE_BAKERY = "node_modules/.cache/test-story/failurestory.spec.ts--writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
+const LARGE_BAKERY = "node_modules/.cache/test-story/failurestory.spec.ts--bakery-story-writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
 
-function intro(name: string): string {
-	return `test-story: this test tells a story over a real ${name}. "given" lines are its traits; the other lines were told by verbs and engine steps as they ran, each beside the spec line that caused it when known. ✗ marks where it stopped.`;
+function guide(name: string): string[] {
+	return [
+		"╭─ test-story: how to read the story below",
+		'│ "given" lines are the test\'s traits, the other lines were told by verbs and engine steps as they ran, and ✗ marks',
+		`│ where the test stopped. The traits, verbs and steps live in the ${name} story kit that this test imports.`,
+		"╰─",
+		"",
+	];
 }
 
-function footer(name: string, test: string): string {
-	return `The traits, verbs and engine steps live in the ${name} story kit this test imports. Rerun: vitest run ${SPEC} -t "${test}"`;
+function rerun(test: string): string {
+	const command = `Rerun: vitest run ${SPEC} -t "${test}"`;
+	return command.length > 120 ? `Rerun: vitest run ${SPEC} \\\n  -t "${test}"` : command;
 }
 
 beforeEach(({ onTestFailed }) => {
@@ -53,78 +60,108 @@ bakery.it.fails("writes a bakery too large to print to a file", [hasOrders(60)],
 	expect(story.engine.orders, "orders").toHaveLength(0);
 });
 
+mill.it.fails("splits the rerun command when a long test name would carry it past the width of a terminal", [], ({ story }) => {
+	expect(story.engine.sacks, "sacks").toBe(1);
+});
+
 bakery.it("printed each story with its own failure only", [], () => {
 	expect(reported).toEqual([
 		[
 			"loaves: expected 1 to be 2 // Object.is equality",
 			"",
-			intro("bakery"),
-			`  given  the oven is lit                  ${SPEC}:32:64`,
-			`  given  the baker has 1 balls of dough   ${SPEC}:32:77`,
-			`         1m a loaf comes out of the oven  ${SPEC}:33:22`,
+			...guide("bakery"),
+			"  given  the oven is lit",
+			"  given  the baker has 1 balls of dough",
+			"         1m a loaf comes out of the oven",
 			"✗        the test failed after the line above",
+			`         at ${SPEC}:40:59`,
 			"",
-			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}',
+			"The bakery when the test failed:",
+			'{"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,',
+			'"smoking":false,"starter":false}',
 			"",
-			footer("bakery", "marks where an assertion stopped the story"),
+			rerun("Bakery Story: marks where an assertion stopped the story"),
 		].join("\n"),
 		[
 			'the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3',
-			"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait in the bakery story kit if this bakery should be possible.",
+			"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait",
+			"      in the bakery story kit if this bakery should be possible.",
 			"",
-			intro("bakery"),
-			`  given  the oven is lit                 ${SPEC}:36:50`,
-			`✗ given  the baker has 4 balls of dough  ${SPEC}:36:63  refused`,
-			`  given  the bakery has 1 bowls          ${SPEC}:36:76`,
+			...guide("bakery"),
+			"  given  the oven is lit",
+			"✗ given  the baker has 4 balls of dough",
+			`         refused at ${SPEC}:43:63`,
+			"  given  the bakery has 1 bowls",
 			"",
-			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,"smoking":false,"starter":false}',
+			"The bakery when the test failed:",
+			'{"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,',
+			'"smoking":false,"starter":false}',
 			"",
-			footer("bakery", "marks the trait that refused"),
+			rerun("Bakery Story: marks the trait that refused"),
 		].join("\n"),
 		[
 			"the bakery broke after 0 steps: the oven is cold with 1 balls of dough waiting",
-			"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this failure shows the setup and steps that led here.",
+			"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this",
+			"      failure shows the setup and steps that led here.",
 			"",
-			intro("bakery"),
-			`  given  the baker has 1 balls of dough  ${SPEC}:38:61`,
+			...guide("bakery"),
+			"  given  the baker has 1 balls of dough",
 			"✗        the test failed after the line above",
+			`         at ${SPEC}:46:14`,
 			"",
-			'The bakery when the test failed: {"bowls":1,"capacity":3,"dough":1,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":false,"overfired":false,"smoking":false,"starter":false}',
+			"The bakery when the test failed:",
+			'{"bowls":1,"capacity":3,"dough":1,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":false,"overfired":false,',
+			'"smoking":false,"starter":false}',
 			"",
-			footer("bakery", "prints the story when the bakery breaks"),
+			rerun("Bakery Story: prints the story when the bakery breaks"),
 		].join("\n"),
 		[
 			"wind: expected +0 to be 1 // Object.is equality",
 			"",
-			intro("mill"),
-			`  given  the sails are turning      ${SPEC}:42:55`,
-			`         the miller grinds 2 sacks  ${SPEC}:43:9`,
+			...guide("mill"),
+			"  given  the sails are turning",
+			"         the miller grinds 2 sacks",
 			"✗        the test failed after the line above",
+			`         at ${SPEC}:52:36`,
 			"",
 			'The mill when the test failed: {"sacks":2,"sails":"turning"}',
 			"",
-			footer("mill", "prints what the kit's inspect shows"),
+			rerun("Mill Story: prints what the kit's inspect shows"),
 		].join("\n"),
 		[
 			"sacks: expected +0 to be 1 // Object.is equality",
 			"",
-			intro("mill"),
+			...guide("mill"),
 			"✗        the test failed before the story told a line",
+			`         at ${SPEC}:56:38`,
 			"",
 			'The mill when the test failed: {"sacks":0,"sails":"furled"}',
 			"",
-			footer("mill", "marks a failure before the story told a line"),
+			rerun("Mill Story: marks a failure before the story told a line"),
 		].join("\n"),
 		[
 			"orders: expected [ …(60) ] to have a length of +0 but got 60",
 			"",
-			intro("bakery"),
-			`  given  the bakery has 60 orders  ${SPEC}:52:66`,
+			...guide("bakery"),
+			"  given  the bakery has 60 orders",
 			"✗        the test failed after the line above",
+			`         at ${SPEC}:60:40`,
 			"",
-			`The bakery when the test failed is 2954 characters of JSON, too long to print here. Read it in ${LARGE_BAKERY}`,
+			"The bakery when the test failed is 2954 characters of JSON, too long to print here. Read it in",
+			LARGE_BAKERY,
 			"",
-			footer("bakery", "writes a bakery too large to print to a file"),
+			rerun("Bakery Story: writes a bakery too large to print to a file"),
+		].join("\n"),
+		[
+			"sacks: expected +0 to be 1 // Object.is equality",
+			"",
+			...guide("mill"),
+			"✗        the test failed before the story told a line",
+			`         at ${SPEC}:64:38`,
+			"",
+			'The mill when the test failed: {"sacks":0,"sails":"furled"}',
+			"",
+			rerun("Mill Story: splits the rerun command when a long test name would carry it past the width of a terminal"),
 		].join("\n"),
 	]);
 });

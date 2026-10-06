@@ -9,6 +9,7 @@ export interface Refusal {
 }
 
 export interface Narration {
+	at: Error | undefined;
 	given: number;
 	readonly lines: string[];
 	refused: Refusal | undefined;
@@ -25,6 +26,7 @@ export interface Subject<TEngine> {
 
 export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed }: Pick<TestContext, "onTestFailed">): Narration {
 	const narration: Narration = {
+		at: undefined,
 		given: 0,
 		lines: [],
 		refused: undefined,
@@ -35,12 +37,13 @@ export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed }: Pi
 		tellAt: (line, site) => {
 			narration.lines.push(line);
 			narration.sites.push(site);
+			narration.at = site;
 		},
 	};
 	onTestFailed(({ task }) => {
 		const failure = task.result?.errors?.[0];
 		if (failure !== undefined) {
-			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${failureReport(narration, subject, { file: task.file.filepath, name: task.name })}`;
+			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack: failure.stack })}`;
 		}
 	});
 	return narration;

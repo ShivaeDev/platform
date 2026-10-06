@@ -11,8 +11,8 @@ export function callSite(): Error {
 	return site;
 }
 
-export function locate(site: Error | undefined, testFile: string): string | undefined {
-	const frame = site?.stack?.split("\n").find((line) => line.includes(testFile));
+export function locate(stack: string | undefined, testFile: string): string | undefined {
+	const frame = stack?.split("\n").find((line) => line.includes(testFile));
 	const position = frame?.slice(frame.indexOf(testFile) + testFile.length).match(/^:(?<line>\d+):(?<column>\d+)/u)?.groups;
 	return position === undefined ? undefined : `${relative(process.cwd(), testFile)}:${position.line}:${position.column}`;
 }
