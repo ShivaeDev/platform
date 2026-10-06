@@ -28,6 +28,9 @@
 
 ### Fixed
 
+- Prepare the local native browser bundle before standalone and sharded workspace
+  tests, sharing the production build command so fresh CI checkouts can run the
+  browser regressions without a prior package build.
 - Refresh missing favorites after navigation-only changes, recreate native client
   ownership after a persisted pageshow, and retain explicit Mark seen cancellation,
   clearing and expiry disclosure while automatic updates are paused. Keep one

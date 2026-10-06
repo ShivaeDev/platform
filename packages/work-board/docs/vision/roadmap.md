@@ -416,10 +416,18 @@ invalidation cannot cancel the explicit observation.
   CLI checks its native asset and ordinary page assets; no performance budget
   or source mutation is inferred from these results.
 
-- Full repository handoff passes `pnpm ready`: 1,157 package tests, four existing
+- Fresh CI shards originally lacked the ignored native browser bundle, causing
+  DOM initialization timeouts. Removing the local bundle reproduced all three
+  native-update regressions failing; the shared `test:prepare`/production bundle
+  command now prepares standalone tests and workspace shards before execution.
+  An HTTP regression checks that a source checkout serves the native module.
+  With the bundle removed again, the workspace shard/coverage path passes all
+  204 Work Board tests after preparation. The regenerated asset is byte-identical
+  to the bundle verified in Chromium.
+- Full repository handoff passes `pnpm ready`: 1,158 package tests, four existing
   expected failures, one intentional skip, seven orchestration tests, real
   PostgreSQL, lint/typechecks/builds and every packed consumer. Work Board's
-  203 regressions pass; the touched quality baseline loses ten findings and
+  204 regressions pass; the touched quality baseline loses ten findings and
   grows nowhere. The 0.5.0 package/CLI versions match the release changelog.
   Browser actions leave every fixture source unchanged except explicit test edits.
 
