@@ -25,8 +25,8 @@ class Payment extends Model.Class<Payment>("PostgresPayment")({
 	settled_at: Schema.Date,
 }) {}
 
-const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
-	Effect.runPromise(
+function run<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) {
+	return Effect.runPromise(
 		effect.pipe(
 			Effect.provide(
 				PgClient.layer({
@@ -35,6 +35,7 @@ const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
 			),
 		),
 	);
+}
 
 const setup = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
