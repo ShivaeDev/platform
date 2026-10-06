@@ -9,8 +9,8 @@ import { environmentVariable } from "#test/environment.ts";
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
 const integration = databaseUrl === "" ? describe.skip : describe;
 
-const until = <A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_000): Promise<A> =>
-	vi.waitFor(
+function until<A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_000): Promise<A> {
+	return vi.waitFor(
 		async () => {
 			const value = await read();
 			if (value === undefined) {
@@ -20,6 +20,7 @@ const until = <A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_0
 		},
 		{ interval: 50, timeout: timeoutMilliseconds },
 	);
+}
 
 integration("PostgreSQL integration", () => {
 	it("round-trips transformed payloads and rejects malformed durable data", async () => {

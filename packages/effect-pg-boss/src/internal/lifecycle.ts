@@ -13,16 +13,19 @@ const sharedCache: unknown = Reflect.get(globalThis, CacheKey);
 const clientCache: Map<string | symbol, unknown> = sharedCache instanceof Map ? sharedCache : new Map<string | symbol, unknown>();
 Reflect.set(globalThis, CacheKey, clientCache);
 
-const isCachedClient = (value: unknown): value is CachedClient =>
-	typeof value === "object"
-	&& value !== null
-	&& Reflect.get(value, "client") instanceof Promise
-	&& typeof Reflect.get(value, "references") === "number";
+function isCachedClient(value: unknown): value is CachedClient {
+	return (
+		typeof value === "object"
+		&& value !== null
+		&& Reflect.get(value, "client") instanceof Promise
+		&& typeof Reflect.get(value, "references") === "number"
+	);
+}
 
-const cachedClient = (key: string | symbol): CachedClient | undefined => {
+function cachedClient(key: string | symbol): CachedClient | undefined {
 	const entry = clientCache.get(key);
 	return isCachedClient(entry) ? entry : undefined;
-};
+}
 
 export interface AcquireClientOptions {
 	readonly clientCacheKey?: string | symbol | undefined;
@@ -36,7 +39,7 @@ export interface AcquiredClient {
 	readonly reused: boolean;
 }
 
-const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
+function startClient(options: AcquireClientOptions): Promise<PgBossClient> {
 	const client = (options.clientFactory ?? defaultClientFactory)(options.constructor);
 	return client.start().then(
 		() => client,
@@ -49,7 +52,7 @@ const startClient = (options: AcquireClientOptions): Promise<PgBossClient> => {
 			throw error;
 		},
 	);
-};
+}
 
 export const acquireClient = (options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("#error.ts").PgBossError> =>
 	Effect.tryPromise({

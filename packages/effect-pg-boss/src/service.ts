@@ -36,7 +36,9 @@ export interface PgBossDefinition extends Context.Service<PgBossIdentifier, PgBo
 	) => Layer.Layer<PgBossIdentifier, PgBossError, RegistrationRequirements<Registrations> | ErrorRequirements>;
 }
 
-const logClientError = (error: Error): Effect.Effect<void> => Effect.logError({ event: "pg_boss_error", message: error.message });
+function logClientError(error: Error): Effect.Effect<void> {
+	return Effect.logError({ event: "pg_boss_error", message: error.message });
+}
 
 export const makePgBoss = (identifier: string): PgBossDefinition => {
 	const Service = Context.Service<PgBossIdentifier, PgBossService>(identifier);

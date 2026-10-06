@@ -80,29 +80,33 @@ export class FakeClient implements PgBossClient {
 	}
 }
 
-export const job = (name: string, data: unknown): Job<unknown> => ({
-	data,
-	expireInSeconds: 900,
-	heartbeatSeconds: null,
-	id: `job-${name}`,
-	name,
-	signal: new AbortController().signal,
-});
+export function job(name: string, data: unknown): Job<unknown> {
+	return {
+		data,
+		expireInSeconds: 900,
+		heartbeatSeconds: null,
+		id: `job-${name}`,
+		name,
+		signal: new AbortController().signal,
+	};
+}
 
-export const queueResult = (name: string, counts: Partial<QueueResult>): QueueResult => ({
-	activeCount: 0,
-	createdOn: new Date(0),
-	deferredCount: 0,
-	failedCount: 0,
-	name,
-	queuedCount: 0,
-	readyCount: 0,
-	singletonsActive: null,
-	table: name,
-	totalCount: 0,
-	updatedOn: new Date(0),
-	...counts,
-});
+export function queueResult(name: string, counts: Partial<QueueResult>): QueueResult {
+	return {
+		activeCount: 0,
+		createdOn: new Date(0),
+		deferredCount: 0,
+		failedCount: 0,
+		name,
+		queuedCount: 0,
+		readyCount: 0,
+		singletonsActive: null,
+		table: name,
+		totalCount: 0,
+		updatedOn: new Date(0),
+		...counts,
+	};
+}
 
 export const constructorOptions: ConstructorOptions = {
 	connectionString: "postgresql://compile-only",
