@@ -73,33 +73,63 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
+  test-plan:
+    name: Select test timing baseline
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    permissions:
+      actions: read
+    timeout-minutes: 1
+    outputs:
+      run-id: ${{ steps.timings.outputs.run-id }}
+      shards: ${{ steps.timings.outputs.shards }}
+      shard-count: ${{ steps.timings.outputs.shard-count }}
+    steps:
+      - name: Select one successful main snapshot for every shard
+        id: timings
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARD_COUNT: ${{ vars.PLATFORM_CI_TEST_SHARDS || 8 }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs';
+          const count = Number(process.env.SHARD_COUNT);
+          if (!Number.isSafeInteger(count) || count < 1) throw new Error('PLATFORM_CI_TEST_SHARDS must be a positive integer');
+          appendFileSync(process.env.GITHUB_OUTPUT, `shard-count=${count}\nshards=${JSON.stringify(Array.from({ length: count }, (_, index) => index + 1))}\n`);
+          JS
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" \
+            --jq '.workflow_runs[0].id // empty' 2>/dev/null || true)
+          if [[ -n "$run_id" ]]; then
+            artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?name=test-balancing" \
+              --jq '.artifacts[] | select(.expired == false) | .id' 2>/dev/null || true)
+            if [[ -z "$artifact_id" ]]; then run_id=''; fi
+          fi
+          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Main test timing run: ${run_id:-none; using equal weights}"
+
   tests:
+    needs: test-plan
+    permissions:
+      contents: read
+      actions: read
     name: tests (${{ matrix.shard }})
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-    services:
-      postgres:
-        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 10
+        shard: ${{ fromJSON(needs.test-plan.outputs.shards) }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: needs.test-plan.outputs.run-id != ''
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.test-plan.outputs.run-id }}
+          name: test-balancing
+          path: .ci/test-balancing
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
@@ -115,7 +145,9 @@ jobs:
         with:
           overwrite: true
           name: test-timings-${{ matrix.shard }}
-          path: .ci/tests.json
+          path: |
+            .ci/tests.json
+            .ci/vite/vitest/**/results.json
           include-hidden-files: true
           retention-days: 14
       - name: Upload coverage to Codecov
@@ -203,7 +235,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [lint, build, typecheck, tests, consumers]
+    needs: [test-plan, lint, build, typecheck, tests, consumers]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
@@ -230,7 +262,7 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          pattern: consumer-timings-*
+          pattern: '*-timings-*'
           path: .ci/main-timings
       - name: Merge successful main consumer timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -243,6 +275,21 @@ jobs:
           overwrite: true
           name: consumer-balancing
           path: .ci/consumer-durations.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Merge successful main test timings
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: >-
+          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
+          --output .ci/test-durations.json --count ${{ needs.test-plan.outputs.shard-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          overwrite: true
+          name: test-balancing
+          path: .ci/test-durations.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

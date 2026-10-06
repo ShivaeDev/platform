@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test as it } from "node:test";
-import { decodeConsumerTimingSnapshot } from "./consumerTimings.ts";
+import { decodeTimingSnapshot } from "./timings.ts";
 
 it("loads a successful main snapshot once, rejects wrong provenance, and falls back without timing access", () => {
 	const root = mkdtempSync(join(tmpdir(), "platform-timing-fetch-"));
@@ -40,7 +40,7 @@ it("loads a successful main snapshot once, rejects wrong provenance, and falls b
 			timeout: 20_000,
 		});
 		assert.equal(result.status, 0, result.stderr);
-		return decodeConsumerTimingSnapshot(JSON.parse(readFileSync(output, "utf8")));
+		return decodeTimingSnapshot(JSON.parse(readFileSync(output, "utf8")));
 	}
 	const snapshot = { runId: "42", sha: "main-sha", timings: [{ durationMs: 12_000, name: "sample" }] };
 	const runs = [

@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Config, Console, Effect, FileSystem, Schema } from "effect";
-import { type ConsumerTimingSnapshot, decodeConsumerTimingSnapshot } from "#ci/consumerTimings.ts";
+import { decodeTimingSnapshot, type TimingSnapshot } from "#ci/timings.ts";
 import { command, writeJson } from "#package-check/io.ts";
 
 const Runs = Schema.Struct({
@@ -36,7 +36,7 @@ function mainSnapshot() {
 			}
 			const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "platform-main-timings-" });
 			yield* command(root, "gh", ["run", "download", String(run.id), "--repo", repository, "--name", "consumer-balancing", "--dir", temporary]);
-			const snapshot = decodeConsumerTimingSnapshot(JSON.parse(yield* fs.readFileString(resolve(temporary, "consumer-durations.json"))));
+			const snapshot = decodeTimingSnapshot(JSON.parse(yield* fs.readFileString(resolve(temporary, "consumer-durations.json"))));
 			if (snapshot.runId !== String(run.id) || snapshot.sha !== run.headSha || snapshot.timings.length === 0) {
 				throw new Error("Consumer timing snapshot does not match its successful main run");
 			}
@@ -56,7 +56,7 @@ const program = Effect.gen(function* () {
 		Effect.timeout("10 seconds"),
 		Effect.catchCause(() => Effect.as(Console.log("Main consumer timings unavailable; using equal weights"), undefined)),
 	);
-	const fallback: ConsumerTimingSnapshot = { runId: "", sha: "", timings: [] };
+	const fallback: TimingSnapshot = { runId: "", sha: "", timings: [] };
 	if (snapshot === undefined) {
 		yield* Console.log("No successful main timing snapshot available; using equal weights");
 	}

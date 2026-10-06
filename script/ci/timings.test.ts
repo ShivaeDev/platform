@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test as it } from "node:test";
-import { consumerDurationEstimates, decodeConsumerTimingSnapshot, mergeConsumerTimingReports } from "./consumerTimings.ts";
 import { balancedShards } from "./shard.ts";
+import { decodeTimingSnapshot, durationEstimates, mergeConsumerTimingReports } from "./timings.ts";
 
 it("merges complete main reports, balances measured work, and includes new packages", () => {
 	const reports = [
@@ -11,7 +11,7 @@ it("merges complete main reports, balances measured work, and includes new packa
 	const snapshot = mergeConsumerTimingReports(reports, "42", "main-sha");
 	assert.equal(snapshot.runId, "42");
 	assert.equal(snapshot.sha, "main-sha");
-	const estimates = consumerDurationEstimates(snapshot);
+	const estimates = durationEstimates(snapshot);
 	const shards = balancedShards(
 		["small", "new", "large"],
 		2,
@@ -28,7 +28,7 @@ it("rejects incomplete shards, duplicate packages, and invalid durations", () =>
 	assert.throws(() => mergeConsumerTimingReports([report, report], "42", "sha"), /every shard/u);
 	assert.throws(() => mergeConsumerTimingReports([report, { ...report, shard: { count: 2, index: 2 } }], "42", "sha"), /Duplicate/u);
 	for (const durationMs of [-1, 0, Number.NaN, Number.POSITIVE_INFINITY, "1000"]) {
-		assert.throws(() => decodeConsumerTimingSnapshot({ runId: "42", sha: "sha", timings: [{ durationMs, name: "sample" }] }), /Invalid/u);
+		assert.throws(() => decodeTimingSnapshot({ runId: "42", sha: "sha", timings: [{ durationMs, name: "sample" }] }), /Invalid/u);
 	}
-	assert.deepEqual(consumerDurationEstimates(decodeConsumerTimingSnapshot({ runId: "", sha: "", timings: [] })), {});
+	assert.deepEqual(durationEstimates(decodeTimingSnapshot({ runId: "", sha: "", timings: [] })), {});
 });

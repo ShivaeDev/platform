@@ -1,5 +1,6 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { testProjects } from "@shivaedev/quality/vitest.ts";
+import { TestSequencer } from "#ci/TestSequencer.ts";
 import { testPackages } from "#ci/testPackages.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -22,6 +23,7 @@ export default async function workspace() {
 		}
 	}
 	return {
+		cacheDir: `${root}.ci/vite`,
 		root,
 		test: {
 			coverage: {
@@ -36,6 +38,7 @@ export default async function workspace() {
 			},
 			project: ["*:unit", "*:dom"],
 			projects,
+			sequence: { sequencer: TestSequencer },
 		},
 	};
 }

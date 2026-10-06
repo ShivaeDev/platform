@@ -1,7 +1,7 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { mergeConsumerTimingReports } from "./consumerTimings.ts";
+import { mergeConsumerTimingReports } from "./timings.ts";
 
 const { values } = parseArgs({
 	options: { directory: { type: "string" }, output: { type: "string" }, "run-id": { type: "string" }, sha: { type: "string" } },
