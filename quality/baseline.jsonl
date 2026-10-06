@@ -651,7 +651,6 @@
 {"path":"packages/work-board/src/test-support/faults.ts","rule":"biome/lint/suspicious/noReturnAssign","count":1}
 {"path":"packages/work-board/src/test-support/live.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
-{"path":"script/lib/postgres-test-environment.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lib/postgres-test-environment.ts","rule":"biome/plugin","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/adapters/fs.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":7}
@@ -722,6 +721,5 @@
 {"path":"script/package-check/workspace.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"script/package-check/workspace.ts","rule":"biome/plugin","count":1}
 {"path":"script/package-check/workspace.ts","rule":"files/named-after-export","count":1}
-{"path":"script/packed-workspace.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/packed-workspace.ts","rule":"files/named-after-export","count":1}
 {"path":"script/setup-database.ts","rule":"biome/plugin","count":2}
