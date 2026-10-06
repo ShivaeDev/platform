@@ -765,8 +765,6 @@
 {"path":"packages/work-board/src/test-support/faults.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/work-board/src/test-support/faults.ts","rule":"biome/lint/suspicious/noReturnAssign","count":1}
 {"path":"packages/work-board/src/test-support/live.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
-{"path":"script/ci/mainConsumerTimings.test.ts","rule":"tests/story-setup","count":4}
-{"path":"script/ci/mainConsumerTimings.ts","rule":"biome/plugin","count":1}
 {"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lib/postgres-test-environment.ts","rule":"biome/plugin","count":4}

@@ -32,3 +32,12 @@ it("rejects incomplete shards, duplicate packages, and invalid durations", () =>
 	}
 	assert.deepEqual(durationEstimates(decodeTimingSnapshot({ runId: "", sha: "", timings: [] })), {});
 });
+
+it("accepts legacy timing artifacts but rejects unsafe shard counts", () => {
+	const snapshot = { runId: "42", sha: "main-sha", timings: [{ durationMs: 10_000, name: "file" }] };
+	assert.equal(decodeTimingSnapshot(snapshot).shardCount, undefined);
+	assert.equal(decodeTimingSnapshot({ ...snapshot, shardCount: 3 }).shardCount, 3);
+	for (const shardCount of [0, -1, 1.5, 33, "8"]) {
+		assert.throws(() => decodeTimingSnapshot({ ...snapshot, shardCount }), /Invalid shard count/u);
+	}
+});

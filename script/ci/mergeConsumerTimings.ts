@@ -1,6 +1,7 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+import { sizeSnapshot } from "./shardCount.ts";
 import { mergeConsumerTimingReports } from "./timings.ts";
 
 const { values } = parseArgs({
@@ -12,4 +13,4 @@ if (values.directory === undefined || values.output === undefined || values["run
 const reports: unknown[] = globSync("**/consumers.json", { cwd: values.directory }).map((path) =>
 	JSON.parse(readFileSync(join(values.directory ?? "", path), "utf8")),
 );
-writeFileSync(values.output, `${JSON.stringify(mergeConsumerTimingReports(reports, values["run-id"], values.sha), null, 2)}\n`);
+writeFileSync(values.output, `${JSON.stringify(sizeSnapshot(mergeConsumerTimingReports(reports, values["run-id"], values.sha)), null, 2)}\n`);

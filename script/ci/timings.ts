@@ -6,6 +6,7 @@ export interface Timing {
 export interface TimingSnapshot {
 	readonly runId: string;
 	readonly sha: string;
+	readonly shardCount?: number;
 	readonly timings: readonly Timing[];
 }
 
@@ -41,7 +42,18 @@ export function decodeTimingSnapshot(value: unknown): TimingSnapshot {
 	if (!record(value) || typeof value.runId !== "string" || typeof value.sha !== "string") {
 		throw new Error("Invalid work timing snapshot");
 	}
-	return { runId: value.runId, sha: value.sha, timings: timings(value.timings) };
+	if (
+		value.shardCount !== undefined
+		&& (typeof value.shardCount !== "number" || !Number.isSafeInteger(value.shardCount) || value.shardCount < 1 || value.shardCount > 32)
+	) {
+		throw new Error("Invalid shard count");
+	}
+	return {
+		runId: value.runId,
+		sha: value.sha,
+		timings: timings(value.timings),
+		...(value.shardCount === undefined ? {} : { shardCount: value.shardCount }),
+	};
 }
 
 export function mergeConsumerTimingReports(reports: readonly unknown[], runId: string, sha: string): TimingSnapshot {

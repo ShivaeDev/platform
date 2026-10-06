@@ -50,10 +50,6 @@ jobs:
           CI_WORKSPACE_SORT: 'false'
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
-      - name: Load measured consumer timings from main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node --conditions=source script/ci/mainConsumerTimings.ts .ci/packages/consumer-durations.json
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: packages-${{ github.sha }}-${{ github.run_attempt }}
@@ -73,41 +69,54 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
-  test-plan:
-    name: Select test timing baseline
+  shard-plan:
+    name: Select measured shard counts
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     permissions:
+      contents: read
       actions: read
-    timeout-minutes: 1
+    timeout-minutes: 2
     outputs:
-      run-id: ${{ steps.timings.outputs.run-id }}
-      shards: ${{ steps.timings.outputs.shards }}
-      shard-count: ${{ steps.timings.outputs.shard-count }}
+      tests-run-id: ${{ steps.timings.outputs.tests-run-id }}
+      tests-artifact-id: ${{ steps.timings.outputs.tests-artifact-id }}
+      tests-shards: ${{ steps.timings.outputs.tests-shards }}
+      tests-count: ${{ steps.timings.outputs.tests-count }}
+      consumers-run-id: ${{ steps.timings.outputs.consumers-run-id }}
+      consumers-artifact-id: ${{ steps.timings.outputs.consumers-artifact-id }}
+      consumers-shards: ${{ steps.timings.outputs.consumers-shards }}
     steps:
-      - name: Select one successful main snapshot for every shard
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 26.10.0
+          package-manager-cache: false
+      - name: Pin main snapshots and independent shard counts
         id: timings
         env:
           GH_TOKEN: ${{ github.token }}
-          SHARD_COUNT: ${{ vars.PLATFORM_CI_TEST_SHARDS || 8 }}
         run: |
           node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
           import { appendFileSync } from 'node:fs';
-          const count = Number(process.env.SHARD_COUNT);
-          if (!Number.isSafeInteger(count) || count < 1) throw new Error('PLATFORM_CI_TEST_SHARDS must be a positive integer');
-          appendFileSync(process.env.GITHUB_OUTPUT, `shard-count=${count}\nshards=${JSON.stringify(Array.from({ length: count }, (_, index) => index + 1))}\n`);
+          import { mainShardPlan } from './script/ci/mainShardPlan.ts';
+          const deadline = performance.now() + 15000;
+          const main = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
+          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, main, args => {
+            const remaining = deadline - performance.now();
+            if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
+            return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
+          });
+          for (const [kind, value] of Object.entries(plan)) {
+            console.log(`${kind}: ${value.count} shards; main timing run ${value.runId || 'none'}`);
+            const shards = Array.from({ length: value.count }, (_, index) => index + 1);
+            appendFileSync(process.env.GITHUB_OUTPUT, `${kind}-run-id=${value.runId}\n${kind}-artifact-id=${value.artifactId}\n${kind}-count=${value.count}\n${kind}-shards=${JSON.stringify(shards)}\n`);
+          }
           JS
-          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" \
-            --jq '.workflow_runs[0].id // empty' 2>/dev/null || true)
-          if [[ -n "$run_id" ]]; then
-            artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?name=test-balancing" \
-              --jq '.artifacts[] | select(.expired == false) | .id' 2>/dev/null || true)
-            if [[ -z "$artifact_id" ]]; then run_id=''; fi
-          fi
-          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "Main test timing run: ${run_id:-none; using equal weights}"
 
   tests:
-    needs: test-plan
+    needs: shard-plan
     permissions:
       contents: read
       actions: read
@@ -117,18 +126,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.test-plan.outputs.shards) }}
+        shard: ${{ fromJSON(needs.shard-plan.outputs.tests-shards) }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        if: needs.test-plan.outputs.run-id != ''
+        if: needs.shard-plan.outputs.tests-run-id != ''
         with:
           github-token: ${{ github.token }}
-          run-id: ${{ needs.test-plan.outputs.run-id }}
-          name: test-balancing
+          run-id: ${{ needs.shard-plan.outputs.tests-run-id }}
+          artifact-ids: ${{ needs.shard-plan.outputs.tests-artifact-id }}
           path: .ci/test-balancing
       - run: pnpm db:setup
       - name: Test workspace shard
@@ -189,6 +198,7 @@ jobs:
           fail_ci_if_error: false
 
   consumers:
+    needs: shard-plan
     name: packed consumers (${{ matrix.shard }})
     permissions:
       contents: read
@@ -198,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'push' && '[1]' || '[1,2,3,4,5,6,7,8]') }}
+        shard: ${{ fromJSON(needs.shard-plan.outputs.consumers-shards) }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -210,11 +220,23 @@ jobs:
       - uses: ./.github/actions/await-packages
         with:
           token: ${{ github.token }}
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: needs.shard-plan.outputs.consumers-run-id != ''
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.shard-plan.outputs.consumers-run-id }}
+          artifact-ids: ${{ needs.shard-plan.outputs.consumers-artifact-id }}
+          path: .ci/consumer-balancing
+      - name: Prepare consumer timing fallback
+        if: needs.shard-plan.outputs.consumers-run-id == ''
+        run: |
+          mkdir -p .ci/consumer-balancing
+          echo '{"runId":"","sha":"","timings":[]}' > .ci/consumer-balancing/consumer-durations.json
       - name: Check packed consumer shard
         run: >-
           pnpm test:package --archives .ci/packages
           --shard=${{ matrix.shard }}/${{ strategy.job-total }} --report .ci/consumers.json
-          --timings .ci/packages/consumer-durations.json
+          --timings .ci/consumer-balancing/consumer-durations.json
       - name: Record consumer timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/consumers.json
@@ -235,7 +257,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [test-plan, lint, build, typecheck, tests, consumers]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
@@ -283,7 +305,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-
           node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
-          --output .ci/test-durations.json --count ${{ needs.test-plan.outputs.shard-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
+          --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:

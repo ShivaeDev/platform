@@ -1,6 +1,7 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+import { sizeSnapshot } from "./shardCount.ts";
 import { decodeTimingSnapshot, decodeVitestTimingReport } from "./timings.ts";
 
 export function mergeTestTimings(reports: readonly string[], count: number, runId: string, sha: string) {
@@ -11,7 +12,7 @@ export function mergeTestTimings(reports: readonly string[], count: number, runI
 	if (timings.length === 0) {
 		throw new Error("Test timing reports are empty");
 	}
-	return decodeTimingSnapshot({ runId, sha, timings: timings.sort((a, b) => a.name.localeCompare(b.name, "en")) });
+	return sizeSnapshot(decodeTimingSnapshot({ runId, sha, timings: timings.sort((a, b) => a.name.localeCompare(b.name, "en")) }));
 }
 
 if (import.meta.main) {
