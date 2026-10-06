@@ -1,0 +1,55 @@
+import { Context, Data, Effect, Layer } from "effect"
+import { type GenreTag, genreTags } from "@shivaedev/test-story/genreTags.ts"
+import { type Story, storyKit, type Trait } from "@shivaedev/test-story/storyKit.ts"
+
+interface Garden {
+  beds: number
+}
+
+class Dry extends Data.TaggedError("Dry") {}
+
+class Rain extends Context.Service<Rain, number>()("@consumer/Rain") {}
+
+class Sun extends Context.Service<Sun, number>()("@consumer/Sun") {}
+
+const garden = storyKit({
+  after: { dug: () => undefined },
+  create: (): Garden => ({ beds: 0 }),
+  layer: Layer.succeed(Rain, 3),
+  name: "garden",
+  run: {
+    maxSteps: 1,
+    *step() {
+      yield* new Dry()
+    },
+  },
+  stages: ["dug", "planted"],
+  verbs: (state, story) => ({ gardener: { counts: (): number => state.beds, waits: () => story.runUntil(() => false) } }),
+})
+
+const dug: Trait<Garden, "dug" | "planted"> = garden.trait("dug", "the garden has 2 beds", (state) => {
+  state.beds = 2
+})
+const watered: Trait<Garden, "dug" | "planted", Rain> = garden.trait("planted", "the beds are watered", function* (state) {
+  state.beds += yield* Rain
+})
+
+garden.it("counts the beds", [garden.traits(dug, watered)], function* ({ gardener, story }) {
+  const counted: number = gardener.counts()
+  const told: Story<Garden, Effect.Effect<never, Dry>> = story
+  const waited: Effect.Effect<void, Dry> = gardener.waits()
+  void counted
+  void told
+  yield* Effect.ignore(waited)
+})
+
+// @ts-expect-error The kit's layer provides only Rain.
+garden.it.fails("never sees the sun", [], function* () {
+  yield* Sun
+})
+
+// @ts-expect-error A trait names one of the kit's stages.
+garden.trait("harvested", "the garden is harvested", () => undefined)
+
+const tags: GenreTag[] = genreTags("garden", "pond")
+void tags

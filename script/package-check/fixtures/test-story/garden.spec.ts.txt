@@ -1,0 +1,52 @@
+import { expect } from "@effect/vitest"
+import { storyKit } from "@shivaedev/test-story/storyKit.ts"
+
+interface Garden {
+  beds: number
+  seeds: number
+  sprouts: number
+}
+
+const garden = storyKit({
+  create: (): Garden => ({ beds: 0, seeds: 0, sprouts: 0 }),
+  name: "garden",
+  run: {
+    maxSteps: 10,
+    step: (state, tell) => {
+      state.seeds -= 1
+      state.sprouts += 1
+      tell("a seed sprouts")
+    },
+  },
+  stages: ["dug", "planted"],
+  verbs: (state, story) => ({ gardener: { waits: () => story.runUntil(() => state.seeds === 0) } }),
+})
+
+const pond = storyKit({
+  create: () => ({ fish: 0 }),
+  name: "pond",
+  stages: ["dug"],
+  verbs: () => ({}),
+})
+
+const sown = garden.trait("planted", "3 seeds are sown", (state) => {
+  state.seeds = 3
+})
+const dug = garden.trait("dug", "the garden has 1 bed", (state) => {
+  state.beds = 1
+})
+const paved = garden.trait("dug", "the garden is paved", () => {
+  throw new Error("nothing grows on stone")
+})
+
+garden.it("sprouts every seed", [sown, dug], function* ({ gardener, story }) {
+  yield* gardener.waits()
+
+  expect(story.lines).toEqual(["3 seeds are sown", "the garden has 1 bed", "a seed sprouts", "a seed sprouts", "a seed sprouts"])
+})
+
+garden.it("grows nothing on stone", [paved])
+
+pond.it("has no fish yet", [], ({ story }) => {
+  expect(story.engine.fish).toBe(0)
+})

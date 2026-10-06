@@ -524,23 +524,21 @@ Test code is a test file, as `tests/follow` reads the name (`*.test.ts` or `*.sp
 
 ## Story tests
 
-A test reads as a short story over the domain: what exists, what someone does, and what is true afterwards. The words come from a story kit that the repository keeps in `test-support/`, so a test says what it needs in domain words and never builds state by hand.
+A test reads as a short story over the domain: what exists, what someone does, and what is true afterwards. The words come from a story kit that the repository keeps in `test-support/`, built with [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme), so a test says what it needs in domain words and never builds state by hand.
 
 ```ts
-it("ships a paid order from stock", () => {
-	const { customer, warehouse } = newShop(hasInStock(3, "lamp"), hasInCart(1, "lamp"));
-
+shop.it("ships a paid order from stock", [hasInStock(3, "lamp"), hasInCart(1, "lamp")], function* ({ customer, warehouse }) {
 	customer.checksOut();
-	warehouse.settles();
+	yield* warehouse.shipsEverything();
 
 	expect(warehouse.shipped()).toEqual(["lamp"]);
 	expect(warehouse.inStock("lamp")).toBe(2);
 });
 ```
 
-- **Setup is traits.** A trait is one sentence of setup in domain words and the change it makes, such as `hasInStock(3, "lamp")`. A test hands the traits it needs to the kit's entry point, such as `newShop(...traits)`, and a setup that recurs becomes one named trait made of others. A trait that asks for an impossible state refuses and fails the test, instead of seeding it quietly.
-- **Actions go through real entry points.** The test acts the way a user or caller does: through the command, service, route or UI path they reach, never by writing internal state.
-- **Failures print the story.** Every trait and action adds a line to the story log, and a failing test prints it, so the failure says what happened, not only which values differ.
+- **Setup is traits.** A trait is one sentence of setup in domain words and the change it makes, such as `hasInStock(3, "lamp")`. A test hands the traits it needs to the kit's `it`, which starts a fresh engine and seeds them, and a setup that recurs becomes one named trait made of others. A trait that asks for an impossible state refuses and fails the test, instead of seeding it quietly.
+- **Actions go through real entry points.** The test acts through the kit's verbs, which reach the command, service, route or UI path a user or caller reaches, never by writing internal state. A verb that lets the engine run, such as `warehouse.shipsEverything()`, steps it with `story.runUntil` until what it waits for holds.
+- **Failures print the story.** Every trait, verb and engine step tells a line of the story, and a failing test prints the story with where it stopped and the engine's state, so the failure says what happened, not only which values differ.
 
 `tests/story-setup` holds test files to this. In a test file, it reports:
 
@@ -551,10 +549,9 @@ Each finding names its line and has the helper or the function it calls as its s
 
 ## Vitest projects
 
-`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests.
+`@shivaedev/quality/vitest.ts` sets up the tests of a package by file name, so no test file sets its environment with a pragma. It needs `vitest`, and `happy-dom` for DOM tests. A package's `vitest.config.ts` reads:
 
 ```ts
-// vitest.config.ts
 import { testProjects } from "@shivaedev/quality/vitest.ts";
 import { defineConfig } from "vitest/config";
 
@@ -570,6 +567,21 @@ export default defineConfig({ test: testProjects() });
 Type tests (`*.typecheck.test.ts`, `*.typecheck.spec.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
 
 A folder that another runner owns, such as a Playwright suite of `.spec.ts` files, is left out with `testProjects({ exclude: ["e2e/**"] })`; the globs are added to every project's `exclude`.
+
+### Inherited tags
+
+Vitest gives an inline project only the [tags](https://vitest.dev/guide/test-tags) it declares itself, never those of a config file it `extends`. A test tagged in that file then fails with `cannot apply "<tag>" tag for this test` as soon as a root config runs it. A root config that gathers the projects of several packages, or whose projects extend a shared base config, passes them through `inheritTags`:
+
+```ts
+import { inheritTags } from "@shivaedev/quality/vitest.ts";
+import { defineConfig } from "vitest/config";
+
+const bakery = { extends: "./packages/bakery/vitest.config.ts", root: "./packages/bakery", test: { name: "bakery" } };
+
+export default defineConfig(async () => ({ test: { projects: await inheritTags([bakery], import.meta.dirname) } }));
+```
+
+`inheritTags(projects, root)` loads the config file of each inline project whose `extends` is a path, resolved against `root`, and adds the tags that file declares to the project's own, so `vitest run --tags-filter=<tag>` works across the workspace. A tag the project declares itself wins over an inherited one of the same name. The config may export an object, a promise or a function. A project that extends `true`, and a glob or file path, comes back unchanged, because Vitest already gives those the root's tags. The extended files load with Node's own `import`, as `vitest --configLoader native` loads configs, so each must be a module Node runs without a bundler.
 
 ## tsconfig presets
 

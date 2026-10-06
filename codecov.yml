@@ -98,6 +98,10 @@ component_management:
       name: "@shivaedev/skills"
       paths:
         - "packages/skills/src/**"
+    - component_id: test-story
+      name: "@shivaedev/test-story"
+      paths:
+        - "packages/test-story/src/**"
     - component_id: types
       name: "@shivaedev/types"
       paths:
