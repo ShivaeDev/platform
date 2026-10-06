@@ -13,11 +13,11 @@ import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const roots: string[] = [];
 
-const makeRoot = (): string => {
+function makeRoot(): string {
 	const root = mkdtempSync(join(tmpdir(), "quality-fs-"));
 	roots.push(root);
 	return root;
-};
+}
 
 afterEach(() => {
 	removeSeededTrees();
@@ -26,21 +26,25 @@ afterEach(() => {
 	}
 });
 
-const failureText = <Value, Error, Requirements>(effect: Effect.Effect<Value, Error, Requirements>): Effect.Effect<string, never, Requirements> =>
-	Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
+function failureText<Value, Error, Requirements>(effect: Effect.Effect<Value, Error, Requirements>): Effect.Effect<string, never, Requirements> {
+	return Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
+}
 
 const asRoot = process.getuid?.() === 0;
 
-const scope = (overrides: Partial<InventoryScope>): InventoryScope => ({ exclude: [], extensions: [".ts", ".tsx"], sources: ["."], ...overrides });
+function scope(overrides: Partial<InventoryScope>): InventoryScope {
+	return { exclude: [], extensions: [".ts", ".tsx"], sources: ["."], ...overrides };
+}
 
-const repository = () =>
-	seedTree([
+function repository() {
+	return seedTree([
 		{ content: "a\nb\n", path: "src/app.ts" },
 		{ content: "<p/>\n", path: "src/view.tsx" },
 		{ content: "# Notes\n", path: "docs/notes.md" },
 		{ content: "export const route = 1;\n", path: "src/routes/tree.gen.ts" },
 		{ content: "export {};\n", path: "scripts/tool.ts" },
 	]);
+}
 
 it.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	it.effect("treats a missing optional file as absent", function* () {

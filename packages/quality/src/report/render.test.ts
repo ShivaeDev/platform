@@ -5,18 +5,23 @@ import { levels, violation } from "#test/violations.ts";
 
 const known = levels({ "local/todo": "warn", "structure/max-lines": "error" });
 
-const context = (overrides: Partial<ReportContext> = {}): ReportContext => ({
-	baseline: "quality/baseline.jsonl",
-	checked: 12,
-	descriptions: new Map([["structure/max-lines", "Keep each module to one job."]]),
-	registry: "quality/registry.json",
-	warnings: "summary",
-	...overrides,
-});
+function context(overrides: Partial<ReportContext> = {}): ReportContext {
+	return {
+		baseline: "quality/baseline.jsonl",
+		checked: 12,
+		descriptions: new Map([["structure/max-lines", "Keep each module to one job."]]),
+		registry: "quality/registry.json",
+		warnings: "summary",
+		...overrides,
+	};
+}
 
-const long = (file: string, lines: number) =>
-	violation({ count: lines - 150, file, message: `${lines} lines exceeds the 150-line limit.`, rule: "structure/max-lines", threshold: 150 });
-const todo = (file: string, line: number) => violation({ file, level: "warn", line, message: "Resolve this TODO.", rule: "local/todo" });
+function long(file: string, lines: number) {
+	return violation({ count: lines - 150, file, message: `${lines} lines exceeds the 150-line limit.`, rule: "structure/max-lines", threshold: 150 });
+}
+function todo(file: string, line: number) {
+	return violation({ file, level: "warn", line, message: "Resolve this TODO.", rule: "local/todo" });
+}
 const todos = ["a", "b", "c", "d", "e", "f", "g"].flatMap((name, index) =>
 	Array.from({ length: 7 - index }, (_, line) => todo(`src/${name}.ts`, line + 1)),
 );
