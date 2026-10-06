@@ -3,6 +3,7 @@ import { DRAFT_AGE, type Draft, encodeDrafts, readDrafts } from "./drafts.ts";
 
 const states = new Map<string, Draft>();
 export function draftSession(key: string, revision: string, storage: Storage | undefined, storageKey: string, report: (message: string) => void) {
+	const stateKey = `${JSON.stringify(storageKey)}:${key}`;
 	function local() {
 		if (!storage) {
 			throw new Error("Draft storage unavailable");
@@ -22,12 +23,12 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		blocked = true;
 		report("Draft history is unavailable or malformed. Keep a copy; edits remain in this window.");
 	}
-	const memory = states.get(key);
+	const memory = states.get(stateKey);
 	if (memory && Effect.runSync(Clock.currentTimeMillis) - memory.updatedAt >= DRAFT_AGE) {
-		states.delete(key);
+		states.delete(stateKey);
 		report("A window draft expired after 30 days. Saved responses are unaffected.");
 	}
-	let current = states.get(key)
+	let current = states.get(stateKey)
 		?? drafts[key] ?? {
 			author: "",
 			body: "",
@@ -40,8 +41,8 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		report("Source changed since this draft. Your text is retained; review the new source and preview to bind it to this revision.");
 	}
 	function update(patch: Partial<Draft>) {
-		current = { ...(states.get(key) ?? current), ...patch, updatedAt: Effect.runSync(Clock.currentTimeMillis) };
-		states.set(key, current);
+		current = { ...(states.get(stateKey) ?? current), ...patch, updatedAt: Effect.runSync(Clock.currentTimeMillis) };
+		states.set(stateKey, current);
 		try {
 			if (blocked) {
 				throw new Error("Unknown draft history");
@@ -57,21 +58,25 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		try {
 			local().removeItem(storageKey);
 			blocked = false;
-			states.clear();
+			for (const storedKey of states.keys()) {
+				if (storedKey.startsWith(`${JSON.stringify(storageKey)}:`)) {
+					states.delete(storedKey);
+				}
+			}
 			report("Workspace drafts cleared. Saved responses are unchanged; this visible text remains until you navigate away.");
 		} catch {
 			report("Draft storage could not be cleared.");
 		}
 	}
 	function saved(pending: Draft) {
-		if (states.get(key) !== pending) {
-			const live = states.get(key);
+		if (states.get(stateKey) !== pending) {
+			const live = states.get(stateKey);
 			if (live?.id === pending.id) {
 				update({ id: `response.${crypto.randomUUID()}` });
 			}
 			return false;
 		}
-		states.delete(key);
+		states.delete(stateKey);
 		try {
 			const latest = readDrafts(local().getItem(storageKey), Effect.runSync(Clock.currentTimeMillis)).drafts;
 			if (latest[key]?.id === pending.id) {
@@ -81,7 +86,15 @@ export function draftSession(key: string, revision: string, storage: Storage | u
 		} catch {
 			report("Saved response confirmed, but its browser draft could not be cleared.");
 		}
-		current = { ...current, body: "", id: `response.${crypto.randomUUID()}`, updatedAt: Effect.runSync(Clock.currentTimeMillis) };
+		current = {
+			...current,
+			answers: undefined,
+			body: "",
+			id: `response.${crypto.randomUUID()}`,
+			recovery: undefined,
+			supersedes: undefined,
+			updatedAt: Effect.runSync(Clock.currentTimeMillis),
+		};
 		return true;
 	}
 	return { clear, current: () => current, saved, update };

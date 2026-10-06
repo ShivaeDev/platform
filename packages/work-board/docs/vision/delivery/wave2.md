@@ -110,3 +110,11 @@ undo and general editor coordination remain step 17 work, with their own contrac
 The passive wait is an existing-session consumer, not step 18's handoff/launch adapter.
 See [the source contract](./response-write-examples.md) and the roadmap for actual
 acceptance evidence and first-platform filesystem limits.
+
+## Approved rich decision checkpoint
+
+Step 16 uses agent-authored directive question packets over the approved response
+publisher. One packet submits together; optional typed answers accompany readable
+Markdown, with extra human text, exact context and explicit superseding identity.
+See [the contract and examples](./decision-write-examples.md). This does not settle
+step 17 source replacement/undo or D3 agent handoff contracts.

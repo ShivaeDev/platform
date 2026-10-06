@@ -41,6 +41,8 @@ export function responsesFor(documents: readonly MetadataDocument[], question: Q
 export function matchesResponse(record: RecordedResponse, input: DraftInput) {
 	return (
 		record.body === input.body
+		&& JSON.stringify(record.response.answers) === JSON.stringify(input.answers)
+		&& record.response.supersedes === input.supersedes
 		&& record.response.author === input.author
 		&& record.response.type === input.type
 		&& record.response.question === input.question

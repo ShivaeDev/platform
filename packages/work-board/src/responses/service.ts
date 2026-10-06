@@ -1,13 +1,17 @@
 import { Clock, Effect, FileSystem, Semaphore } from "effect";
-import { type DraftInput, type Question, type RecordedResponse, ResponseFailed } from "#browser/responses/schema.ts";
+import { type DraftInput, type Question, ResponseFailed } from "#browser/responses/schema.ts";
 import type { Changes } from "#files/changes.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { awaitResponse } from "./await.ts";
+import { responseHistory } from "./history.ts";
 import { locate as locateQuestion } from "./locate.ts";
+import { makeResponse } from "./make.ts";
 import { publish } from "./publish.ts";
 import { readResponses } from "./read.ts";
 import { questionMarkdown, responseMarkdown } from "./records.ts";
 import { retryResponse } from "./retry.ts";
+import { validatedInput } from "./validatedInput.ts";
+import { validateSupersedes } from "./validateSupersedes.ts";
 
 export interface ResponseOptions {
 	readonly changes: Changes;
@@ -65,11 +69,15 @@ export const responseService = Effect.fn("WorkBoard.responseService")(function* 
 			}),
 		);
 	}
-	function record(input: DraftInput) {
+	function record(draft: DraftInput) {
 		return lock.withPermit(
 			Effect.gen(function* () {
 				yield* enabled;
-				const result = yield* read(input.question);
+				const result = yield* read(draft.question);
+				const input = yield* Effect.try({
+					catch: (cause) => new ResponseFailed({ code: "Conflict", message: String(cause) }),
+					try: () => validatedInput(draft, result.question.context, result.question.question.request, result.question.question.source),
+				});
 				const existing = result.responses.find((candidate) => candidate.id === input.id);
 				if (existing) {
 					yield* retryResponse(existing, input, snapshot, options);
@@ -81,20 +89,15 @@ export const responseService = Effect.fn("WorkBoard.responseService")(function* 
 					return yield* reject("Stale", "Source changed or moved. Keep the draft and review the new revision before responding.");
 				}
 				const data = yield* snapshot;
+				yield* validateSupersedes(input, question, data);
 				if (data.model.ids.has(input.id)) {
 					return yield* reject("Conflict", "This response identity is already used.");
 				}
-				const response: RecordedResponse = {
-					body: input.body,
-					id: input.id,
-					response: {
-						author: input.author,
-						question: input.question,
-						recordedAt: result.responses.reduce((time, saved) => Math.max(time, saved.response.recordedAt + 1), yield* Clock.currentTimeMillis),
-						reviewedRevision: question.question.reviewedRevision,
-						type: input.type,
-					},
-				};
+				const response = makeResponse(
+					input,
+					question,
+					result.responses.reduce((time, saved) => Math.max(time, saved.response.recordedAt + 1), yield* Clock.currentTimeMillis),
+				);
 				yield* publish(options.root, options.changes.realRoot, response.id, responseMarkdown(response)).pipe(
 					Effect.ensuring(options.changes.refresh ?? Effect.void),
 				);
@@ -102,5 +105,13 @@ export const responseService = Effect.fn("WorkBoard.responseService")(function* 
 			}),
 		);
 	}
-	return { awaitResponse: awaitResponse(read), locate, read, record, register };
+	function history(preview: Parameters<typeof responseHistory>[1]) {
+		return Effect.flatMap(snapshot, (data) =>
+			Effect.try({
+				catch: (cause) => new ResponseFailed({ code: "Unavailable", message: String(cause) }),
+				try: () => responseHistory(data, preview),
+			}),
+		);
+	}
+	return { awaitResponse: awaitResponse(read), history, locate, read, record, register };
 });

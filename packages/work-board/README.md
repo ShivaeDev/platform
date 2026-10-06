@@ -152,7 +152,8 @@ produce an uncertain result; reconcile saved source before retrying.
 
 Source HTML cannot submit write forms: CSP disables form actions/frames, the
 native route requires same-origin/loopback and NDJSON when writes are enabled,
-and the official response surface escapes the reviewed source. Embedded apps must
+and the official response surface renders reviewed context with raw HTML disabled,
+with an escaped exact-source disclosure. Embedded apps must
 explicitly opt in with `boardLayer({ root, responses: true })` and own the trusted
 host boundary. There is no write endpoint for arbitrary paths or source rewriting.
 
@@ -512,3 +513,19 @@ unknown, invalid components retain their source with a diagnostic, and timelines
 preserve authored order. Recorded values do not establish verified acceptance.
 See [the complete source conventions](./docs/vision/delivery/visual-document-examples.md).
 GitHub alert blockquotes render as callouts; comparisons remain ordinary GFM tables.
+
+## Rich question packets
+
+Agents can prepare Markdown context with `question`/`option` directives and local
+Mermaid diagrams. People select options, always add text, and submit the whole
+packet once. Use `select="one"`, `select="many"` or `select="text"`; choices start
+unselected and a text-only answer can reject the framing. Preview the complete
+record before saving. The existing wait returns typed prompt/option IDs and human
+text with the readable Markdown and exact reviewed context.
+
+See [the full source example and contract](docs/vision/delivery/decision-write-examples.md).
+Ordinary Markdown and older response files still work. Decisions are authored
+feedback; superseding direction is explicit and does not establish acceptance or
+change tasks. Response-page raw HTML is disabled. Local strict Mermaid and
+no-JavaScript readable history/source fallback use the existing renderer; recording
+requires JavaScript and `--responses`. Linux-only write support is unchanged.

@@ -29,6 +29,7 @@ function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, 
 	const references = [
 		...(fields.question ? [{ field: "question", key: "question.item", target: fields.question.item }] : []),
 		...(fields.response ? [{ field: "response", key: "response.question", target: fields.response.question }] : []),
+		...(fields.response?.supersedes ? [{ field: "response", key: "response.supersedes", target: fields.response.supersedes }] : []),
 		...(fields.attention?.flatMap((request, index) =>
 			request.unblocks.map((target, targetIndex) => ({ field: "attention", key: `attention.${index}.unblocks.${targetIndex}`, target })),
 		) ?? []),

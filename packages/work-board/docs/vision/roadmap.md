@@ -30,7 +30,7 @@ Check a step only after its acceptance is demonstrated in the package.
 - [ ] [13 Prove the complete reading workflow](./delivery/wave1.md#13-prove-the-complete-reading-workflow)
 - [x] [14 Prove one safe source mutation](./delivery/wave2.md#14-prove-one-safe-source-mutation)
 - [x] [15 Respond to the exact thing you reviewed](./delivery/wave2.md#15-respond-to-the-exact-thing-you-reviewed)
-- [ ] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
+- [x] [16 Record a decision and its consequence](./delivery/wave2.md#16-record-a-decision-and-its-consequence)
 - [ ] [17 Narrow editing and honest undo](./delivery/wave2.md#17-narrow-editing-and-honest-undo)
 - [ ] [18 One local agent handoff](./delivery/wave2.md#18-one-local-agent-handoff)
 - [ ] [19 Review a returned result against its criteria](./delivery/wave2.md#19-review-a-returned-result-against-its-criteria)
@@ -789,5 +789,41 @@ and synchronize again. Other supported Node platforms retain reading and explici
 reject publication. Moved/duplicated records and changing write boundaries remain
 explicit failures. Outside-editor changes after preflight cannot be made a universal
 transaction; saved records retain reviewed context instead of replacing that editor's
-source. Source replacement/undo (17), structured decision recording (16), D3 before
-18 and D4 before 24 remain open. No export or cloud service was introduced.
+source. Source replacement/undo (17), D3 before 18 and D4 before 24 remain open. No export or cloud service was introduced.
+
+
+## Step 16 rich question and decision acceptance
+
+Work Board 0.9.0 implements the [approved packet contract](./delivery/decision-write-examples.md):
+agent-authored Markdown/directive templates with rich context, local Mermaid,
+single/multiple selections, text prompts and additional human text. One submission
+returns optional typed answers and a readable response through the existing logical
+wait. The server checks prompt/option identities and completeness against captured
+context; original source files remain unchanged. Explicit superseding identity links
+immutable direction without rewriting tasks or claiming acceptance.
+
+Meaningful regressions cover partial/forged/duplicate/overselected packets, text-only
+rejection of framing, ambiguous/nested controls, request scoping, CRLF derived text,
+relative/reference links and images, native wait/replay/idempotence, stale saves,
+source moves, explicit supersession, safe rich HTML handling, draft recovery and
+workspace memory isolation (including shared namespace prefixes).
+
+Actual Chromium 151 checked desktop 1440×1000 and narrow 390×844 dark/reduced-motion,
+local Mermaid, keyboard selection, blocked partial submission, packet draft reload,
+a real bundled CLI wait receiving the entire packet, exact preview/body agreement
+from CRLF source and unchanged original bytes. Text-only superseding direction,
+changed-template selection clearing with persisted recovery, unchanged-byte source
+moves, deletion/restoration recovery and no-JavaScript saved history/source fallback
+passed. No page errors or narrow overflow occurred. Artifacts:
+`/workspace/artifacts/work-board-decisions`.
+
+Full `pnpm ready` passed: 1,223 package tests (269 Work Board), four expected failures,
+one intentional skip, seven orchestration checks, real PostgreSQL and every packed
+consumer, including the 0.9.0 CLI banner. Quality baseline remains 2,547. Final log:
+`/tmp/work-board-decisions-release-ready.log`. The agent bundle is 369,150 bytes
+(360.5 KiB), without the new parser/renderer or a per-waiter daemon; no new memory
+budget or long-duration soak is claimed. Linux-only publication, local-only operation,
+48-hour wait semantics and browser draft bounds remain unchanged. Representative-
+reader timing, physical devices and actual bfcache adoption evidence remain pending;
+these fixtures do not accept steps 07/13. Step 17 source replacement/undo and D3/D4
+remain separate open contracts.

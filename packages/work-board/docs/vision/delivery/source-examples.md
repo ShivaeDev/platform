@@ -172,3 +172,10 @@ paths, resolved relative to each source file, with `/` mapped to the configured
 home or first file. Code examples, external URLs, and self references are excluded.
 Plain files can show incoming links without acquiring an ID or inferred work kind.
 Non-Markdown local asset previews remain outside this source-reading behavior.
+
+
+Questionnaire responses may additionally record `response.answers` entries with
+`prompt`, `selected` option IDs and human `text`, plus an optional `response.supersedes`
+identity. These fields are optional; older plain responses remain valid. See the
+[packet contract and complete source example](./decision-write-examples.md) for
+validation, reviewed-context binding and human selection semantics.

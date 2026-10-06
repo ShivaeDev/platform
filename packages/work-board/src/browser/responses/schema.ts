@@ -3,6 +3,13 @@ import { Identity } from "#path/Identity.ts";
 
 export const Revision = Schema.String.check(Schema.isPattern(/^[a-f\d]{64}$/u));
 export const ResponseKind = Schema.Literals(["answer", "clarify", "not_now"]);
+export const PromptAnswer = Schema.Struct({
+	prompt: Identity.check(Schema.isMaxLength(128)),
+	selected: Schema.Array(Identity.check(Schema.isMaxLength(128))).check(Schema.isMaxLength(32)),
+	text: Schema.String.check(Schema.isMaxLength(8192)),
+});
+export const Answers = Schema.Array(PromptAnswer).check(Schema.isMaxLength(32));
+export type PromptAnswer = typeof PromptAnswer.Type;
 export const QuestionRecord = Schema.Struct({
 	deadline: Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000_000)),
 	item: Identity,
@@ -13,10 +20,12 @@ export const QuestionRecord = Schema.Struct({
 	source: Schema.String,
 });
 export const ResponseRecord = Schema.Struct({
+	answers: Schema.optional(Answers),
 	author: Schema.String.check(Schema.isPattern(/\S/u), Schema.isMaxLength(200)),
 	question: Identity,
 	recordedAt: Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000_000)),
 	reviewedRevision: Revision,
+	supersedes: Schema.optional(Identity),
 	type: ResponseKind,
 });
 export const QuestionPreview = Schema.Struct({
@@ -40,10 +49,12 @@ export class ResponseFailed extends Schema.TaggedError<ResponseFailed>()("Respon
 	message: Schema.String,
 }) {}
 export const DraftInput = Schema.Struct({
+	answers: Schema.optional(Answers),
 	author: ResponseRecord.fields.author,
-	body: Schema.String.check(Schema.isPattern(/\S/u), Schema.isMaxLength(32_768)),
+	body: Schema.String.check(Schema.isMaxLength(32_768)),
 	id: Identity,
 	question: Identity,
+	supersedes: Schema.optional(Identity),
 	type: ResponseKind,
 });
 export type Question = typeof Question.Type;
