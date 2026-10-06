@@ -693,3 +693,35 @@ overflow were observed. Artifacts: `/workspace/artifacts/work-board-onboarding`.
 This is implementation/browser evidence, not representative-reader timing or
 physical-device adoption. No export, init command, project writer, new frontmatter
 contract or dependency was introduced. Step 13 reading-workflow review remains next.
+
+## Step 13 reading-workflow review
+
+The [actual reading investigation](./delivery/reading-review.md) records the
+combined technical review and open human judgments. Chromium 151 read the real
+project brief and delivery plan through a linked reference folder, at 1440×1000
+and 390×844 dark/reduced-motion; keyboard skip navigation and no-JavaScript
+reading passed. A separate 50-document/100-item fixture passed search,
+favorite/duplicate-heading passages, paused external edits/resume, offline
+reconnect/open-details preservation, rename/delete and malformed-source reading.
+Artifacts are local at `/workspace/artifacts/work-board-reading-review`.
+
+New real HTTP embedding regression composes Work Board and application health
+routes in one Effect server, preserves Work Board's loopback guard and closes the
+server on scope disposal. Five sequential fresh-server performance observations
+are recorded with the reference machine and warm-process/polling limits in the
+investigation. They establish no performance budget or representative-reader
+timing claim.
+
+Step 13 remains unchecked until the remaining acceptance is reviewed. Step 07's
+representative-reader target, physical-device adoption and actual bfcache evidence
+remain pending; the wave is not silently accepted by automated checks. D2's
+[before/after examples and alternatives](./delivery/response-write-examples.md)
+are prepared for discussion, not an approved writer/schema. No source mutation
+or export capability is introduced by this checkpoint.
+
+Full `pnpm ready` passed: 1,195 package passes, four expected failures, one
+intentional skip, 241 Work Board tests, seven orchestration checks, real PostgreSQL
+and every packed consumer; quality baseline remains 2,547. Work Board 0.7.2
+packages this regression/documentation checkpoint without changing runtime APIs.
+The actual reading investigation rendered with its two explicit requests in
+Overview; automated checks do not fulfill either requested human judgment.

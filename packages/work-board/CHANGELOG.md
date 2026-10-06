@@ -8,6 +8,17 @@
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
 
+## 0.7.2 - 2026-10-06
+
+### Changed
+
+- Record the combined reading-workflow review and first named-machine performance
+  observations, keeping representative-reader acceptance and performance budgets
+  explicitly open. Prepare response/write examples for the D2 discussion; no
+  writer or response schema is implemented.
+- Add real HTTP regression coverage for embedding beside application routes,
+  preserving Work Board's loopback boundary and scoped server shutdown.
+
 ## 0.7.1 - 2026-10-06
 
 ### Added

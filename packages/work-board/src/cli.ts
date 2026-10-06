@@ -4,7 +4,7 @@ import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
 import { HOST, serveBoard } from "./serve.ts";
 
-const VERSION = "0.7.1";
+const VERSION = "0.7.2";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: { readonly dir: string; readonly port: number; readonly home: Option.Option<string> }) {
 	const path = yield* Path.Path;
