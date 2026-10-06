@@ -51,5 +51,8 @@ export function matchesResponse(record: RecordedResponse, input: DraftInput) {
 
 export function malformedResponse(document: MetadataDocument) {
 	const fields = document.parsed.fields;
-	return fields.kind === "response" && !(fields.id && fields.response);
+	return (
+		(fields.kind === "response" && !(fields.id && fields.response))
+		|| (document.file.startsWith("responses/") && document.parsed.diagnostics.some((problem) => problem.field === undefined))
+	);
 }

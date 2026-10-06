@@ -794,6 +794,23 @@ source. Source replacement/undo (17), D3 before 18 and D4 before 24 remain open.
 
 ## Step 16 rich question and decision acceptance
 
+The 0.9.1 integrity follow-up rejects syntactically damaged or unterminated
+frontmatter in the published `responses/` namespace as unknown history. The native
+read/wait and actual HTTP regression failed before the fix and passes after it;
+ordinary malformed Markdown outside that namespace remains readable. Actual
+Chromium 151 and the bundled CLI prove a damaged record produces unavailable
+history rather than an empty list, the waiter emits no false unanswered result,
+the draft survives, and repairing the record delivers late feedback through the
+original wait without rearming. Desktop and narrow dark/reduced-motion recovery
+had no page errors or overflow; original source bytes stayed unchanged. The
+deadline boundary was exercised by moving registered timestamps past 48 hours,
+not a real 48-hour soak. Artifacts:
+`/workspace/artifacts/work-board-response-integrity`.
+Full `pnpm ready` passed: 1,263 package passes (270 Work Board), 12 expected
+failures, four intentional skips, ten orchestration checks, real PostgreSQL and
+every packed consumer. Quality baseline is 2,544 on this updated main; the fix
+adds no baseline exceptions. Log: `/tmp/work-board-integrity-ready.log`.
+
 Work Board 0.9.0 implements the [approved packet contract](./delivery/decision-write-examples.md):
 agent-authored Markdown/directive templates with rich context, local Mermaid,
 single/multiple selections, text prompts and additional human text. One submission
