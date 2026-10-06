@@ -12,6 +12,7 @@ import { refreshLibrary } from "/_board/library.js";
 import { session } from "/_board/native.js";
 
 
+document.documentElement.dataset.js = "true";
 remember(document.getElementById("files"));
 remember(document.getElementById("doc"));
 

@@ -1,4 +1,5 @@
 import { fileUrl } from "#files/url.ts";
+import { attachmentHref } from "#path/attachment.ts";
 import { referenceTarget } from "./links.ts";
 import type { MetadataModel } from "./model.ts";
 
@@ -11,7 +12,8 @@ export function sourceHref(source: string, file: string): string | undefined {
 		if (!["http:", "https:"].includes(url.protocol)) {
 			return undefined;
 		}
-		return absolute.exec(source) === null ? url.pathname + url.search + url.hash : url.href;
+		const local = url.pathname + url.search + url.hash;
+		return absolute.exec(source) === null ? (attachmentHref(local) ?? local) : url.href;
 	} catch {
 		return undefined;
 	}

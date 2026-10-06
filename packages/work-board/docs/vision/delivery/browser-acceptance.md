@@ -312,3 +312,20 @@ Use the large workspace plus `viewsFixture()` and a nested home at `/`.
 
 Physical tab transitions and Capacitor remain separate evidence. Fixtures do not
 establish the step 07 representative-reader timing or a multi-tab capacity budget.
+
+### Local visual evidence
+
+Reference a source-relative PNG/JPEG/GIF/WebP in a nested home and an evidence
+record. Inspect embedded images and local image links by keyboard; choose gallery
+images and return focus with Escape. Replace an image while paused, then resume;
+check the image reloads and open reading details survive. An earlier preview must
+disclose source updates and require reopening before saving. Try a missing image,
+malformed path, escaping link and oversized attachment.
+
+Inspect a large Mermaid diagram, choose Actual size and zoom, scroll on a narrow
+screen, enter desktop fullscreen and return to the source. Save the current SVG
+locally; also test an invalid diagram and an unavailable fullscreen environment.
+With JavaScript disabled, local images and diagram source remain readable.
+[Step 10 evidence](../roadmap.md#step-10-local-visual-evidence) records what the
+actual browser/regressions establish; physical mobile fullscreen and reader timing
+remain separate.

@@ -12,12 +12,13 @@ const flash = (element) => {
 };
 
 export const remember = (element) => {
-  pristine.set(element, element.outerHTML);
+  pristine.set(element, normalized(element));
   if (containers.has(element.tagName)) for (const child of element.children) remember(child);
 };
 
 const normalized = (element) => {
   const copy = element.cloneNode(true);
+  for (const tool of copy.querySelectorAll("[data-visual-tools], [data-image-error], [data-diagram-error]")) tool.remove();
   for (const node of [copy, ...copy.querySelectorAll("*")]) {
     node.removeAttribute("data-live-change");
     if (node.tagName === "DETAILS") node.removeAttribute("open");
@@ -27,6 +28,10 @@ const normalized = (element) => {
       delete node.dataset.error;
     }
     if (node.matches("[data-modified]")) node.textContent = "";
+    if (node.matches("img[data-local-image]")) {
+      node.setAttribute("src", node.dataset.localImage);
+      for (const attribute of ["tabindex", "role", "aria-label"]) node.removeAttribute(attribute);
+    }
   }
   return copy.outerHTML;
 };
@@ -75,7 +80,7 @@ const patch = (current, incoming, highlight) => {
   }
   const olds = [...current.children];
   const news = [...incoming.children];
-  const signatures = news.map((next) => next.outerHTML);
+  const signatures = news.map(normalized);
   const arrive = (index) => {
     remember(news[index]);
     if (highlight) flash(news[index]);

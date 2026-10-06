@@ -12,8 +12,9 @@ work-board ./project-notes --port 4747 --home plan.md
 It listens on `127.0.0.1` only and answers only requests addressed to a loopback
 host. Every `.md` file under the folder appears in the collapsible sidebar with
 how long ago it changed. Below the folder, files and folders starting with a dot
-and `node_modules` are never entered, and anything that is not Markdown is
-skipped; the folder itself may be a dot folder such as `.notes`.
+and `node_modules` are never entered. Only Markdown appears in the sidebar;
+supported local images are served when explicitly referenced below. The folder
+itself may be a dot folder such as `.notes`.
 
 Directory symlinks explicitly include reference folders, including ones outside
 the workspace. Their Markdown keeps the link's workspace-relative URLs. Broken
@@ -54,6 +55,35 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
+
+## Local visual evidence
+
+Use ordinary Markdown such as `![Review screenshot](shots/review.png)` or
+`[Open screenshot](shots/review.png)`. PNG, JPEG (`.jpg`/`.jpeg`), GIF and WebP
+paths resolve relative to the source file, including a nested home served at `/`.
+The local image route serves at most 16 MiB per file, checks the resolved path on
+every request, and refuses hidden/dependency paths, traversal and links outside
+the workspace. Outside-workspace reference folders retain their Markdown support;
+their images must be copied inside the workspace to be served. SVG, HTML, PDF and
+arbitrary attachments are not served through this route.
+
+Open a local image link (including an evidence source), or click/focus an embedded
+image and press Enter, to inspect a gallery of the
+current document's images. Previous/Next and arrow keys select images. Zoom from
+25% to 800%, scroll, Fit, Actual size or Fullscreen to inspect details; Escape closes the viewer
+and restores source focus. **Save locally** uses the browser download mechanism.
+An unavailable image keeps its alt text and explains the local path/type/boundary
+and size checks. Images still render through ordinary GET requests without JavaScript.
+
+A rendered Mermaid diagram has **Inspect diagram**, with the same zoom, scrolling,
+fullscreen, Actual size and keyboard dismissal, plus a local SVG download of its current
+drawing. Failed diagrams expose their source and a readable error; source remains
+visible without JavaScript. When fullscreen is unavailable, scrolling still works.
+An open preview remains the earlier drawing/image after a source update, discloses
+that state and requires reopening before saving. Image edits trigger conservative
+native reconciliation and image reloads, respecting Pause/Resume. The explicit
+Mark seen baseline stays Markdown-only: image bytes are not captured or retained.
+Viewing and downloading do not write source files or imply verified acceptance.
 
 ## Document navigation
 
