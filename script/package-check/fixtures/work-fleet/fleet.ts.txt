@@ -1,0 +1,28 @@
+import { Effect, Schema } from "effect";
+import { Fleet } from "@shivaedev/work-fleet/fleet.ts";
+import { FleetRecord } from "@shivaedev/work-fleet/model.ts";
+import { assessPreparation } from "@shivaedev/work-fleet/preparation/compatibility.ts";
+import { Preparation } from "@shivaedev/work-fleet/preparation/schema.ts";
+import { SessionService } from "@shivaedev/work-fleet/session/service.ts";
+
+const preparation = Schema.decodeUnknownSync(Preparation)({
+  baseRevision: "revision-a", ownedPaths: ["src/one"], sourcePaths: ["src/one"],
+  setupPaths: ["script/setup"], dependencyPaths: ["pnpm-lock.yaml"], qualityPaths: ["quality.config.ts"],
+  baselinePaths: ["quality/baseline.json"], configuration: [], contextComplete: true,
+  validation: [{ revision: "revision-a", command: "pnpm test" }], observedAt: 1,
+});
+const assessment = await Effect.runPromise(assessPreparation(preparation, {
+  fromRevision: "revision-a", revision: "revision-b", ancestor: true, complete: true,
+  changedPaths: ["src/two"], configurationChanges: [], observedAt: 2,
+}));
+if (assessment._tag !== "Compatible" || assessment.preparation.validation[0]?.revision !== "revision-a") {
+  throw new Error("Preparation did not preserve its exact validation evidence");
+}
+Schema.decodeUnknownSync(FleetRecord)({
+  workId: "board.one", boardRevision: "board-revision", prompt: "Inspect source", cwd: ".",
+  stage: "prepared", preparation, attempts: [],
+});
+const views = Effect.flatMap(Fleet, (fleet) => fleet.list());
+const start = Effect.flatMap(SessionService, (sessions) => sessions.start({ operationId: "one", cwd: ".", prompt: "Inspect" }));
+void views;
+void start;
