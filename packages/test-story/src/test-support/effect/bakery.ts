@@ -1,13 +1,14 @@
 import { Context, Data, Effect, Layer } from "effect";
-import { settleEffect } from "#effect/settle.ts";
-import { effectStoryKit, type TargetTrait } from "#effect/storyKit.ts";
-import { type BakeReport, type Bakery, emptyBakery, fitBowls, ovenTrouble, stillWaiting } from "#test/bakery.ts";
+import { effectStoryKit } from "#effect/storyKit.ts";
+import { type BakeReport, emptyBakery, fitBowls, ovenTrouble, stillWaiting } from "#test/bakery.ts";
 
 export class SupplierShort extends Data.TaggedError("SupplierShort")<{ readonly message: string }> {}
 
 export class NoBowls extends Data.TaggedError("NoBowls") {}
 
 export class OutOfFlour extends Data.TaggedError("OutOfFlour")<{ readonly minute: number }> {}
+
+export class MillClosed extends Data.TaggedError("MillClosed")<{ readonly until: string }> {}
 
 const MOST_SACKS = 5;
 
@@ -20,96 +21,101 @@ export class Supplier extends Context.Service<Supplier, { readonly deliver: (sac
 	});
 }
 
-export type BakeryTrait = TargetTrait<Bakery, Supplier, "kitchen" | "pantry">;
+const bakery = effectStoryKit({
+	after: {
+		*kitchen(state) {
+			if (state.bowls === 0) {
+				return yield* new NoBowls();
+			}
+			fitBowls(state);
+		},
+	},
+	create: emptyBakery,
+	inspect: ({ dough, flour, loaves, minute, ovenLit }) => ({ dough, flour, loaves, minute, ovenLit }),
+	name: "bakery",
+	run: {
+		diagnose: stillWaiting,
+		failed: ovenTrouble,
+		maxSteps: 60,
+		*step(state, tell) {
+			state.minute += 1;
+			if (state.flour === 0) {
+				return yield* new OutOfFlour({ minute: state.minute });
+			}
+			state.flour -= 1;
+			state.dough -= 1;
+			state.loaves += 1;
+			tell(`${state.minute}m a loaf comes out of the oven`);
+		},
+	},
+	stages: ["kitchen", "pantry"],
+	verbs: (state, story) => ({
+		oven: {
+			bakesEverything: (maxSteps?: number): Effect.Effect<BakeReport, OutOfFlour> =>
+				story.runUntil((current) => current.dough === 0, { maxSteps }).pipe(Effect.map(() => ({ loaves: state.loaves, minutes: state.minute }))),
+		},
+	}),
+});
 
-const kit = effectStoryKit<Bakery, Supplier>()("kitchen", "pantry");
+export const newBakery = bakery.start;
 
-export const { traits } = kit;
+export const { traits } = bakery;
 
 export function hasBowls(count: number) {
-	return kit.trait("kitchen", `the bakery has ${count} bowls`, (bakery) =>
-		Effect.sync(() => {
-			bakery.bowls = count;
-		}),
-	);
+	return bakery.trait("kitchen", `the bakery has ${count} bowls`, (state) => {
+		state.bowls = count;
+	});
 }
 
 export function ovenIsLit() {
-	return kit.trait("kitchen", "the oven is lit", (bakery) =>
-		Effect.sync(() => {
-			bakery.ovenLit = true;
-		}),
-	);
+	return bakery.trait("kitchen", "the oven is lit", (state) => {
+		state.ovenLit = true;
+	});
 }
 
 export function bakerIsCalledAway() {
-	return kit.trait("kitchen", "the baker is called away", () => Effect.interrupt);
+	return bakery.trait("kitchen", "the baker is called away", function* () {
+		yield* Effect.interrupt;
+	});
 }
 
 export function hasNoBowls() {
-	return kit.trait("kitchen", "the bakery has no bowls", (bakery) =>
-		Effect.sync(() => {
-			bakery.bowls = 0;
-		}),
-	);
+	return bakery.trait("kitchen", "the bakery has no bowls", (state) => {
+		state.bowls = 0;
+	});
 }
 
 export function hasFlourDelivered(sacks: number) {
-	return kit.trait("pantry", `the supplier has delivered ${sacks} sacks of flour`, (bakery) =>
-		Effect.gen(function* () {
-			const supplier = yield* Supplier;
-			yield* supplier.deliver(sacks);
-			bakery.flour = sacks;
-		}),
-	);
+	return bakery.trait("pantry", `the supplier has delivered ${sacks} sacks of flour`, function* (state) {
+		const supplier = yield* Supplier;
+		yield* supplier.deliver(sacks);
+		state.flour = sacks;
+	});
 }
 
 export function hasFlourFromTheMill() {
-	return kit.trait("pantry", "the mill has sent flour", () => Effect.fail("the mill is closed"));
+	return bakery.trait("pantry", "the mill has sent flour", function* () {
+		yield* Effect.fail("the mill is closed");
+	});
+}
+
+export function hasOatsFromTheMill() {
+	return bakery.trait("pantry", "the mill has sent oats", function* () {
+		yield* Effect.fail({ mill: "closed", sacks: 0 });
+	});
+}
+
+export function hasRyeFromTheMill() {
+	return bakery.trait("pantry", "the mill has sent rye", function* () {
+		yield* new MillClosed({ until: "Monday" });
+	});
 }
 
 export function hasDough(count: number) {
-	return kit.trait("pantry", `the baker has ${count} balls of dough`, (bakery) =>
-		count > bakery.capacity
-			? Effect.die(new Error(`the bowls hold only ${bakery.capacity}`))
-			: Effect.sync(() => {
-					bakery.dough = count;
-				}),
-	);
-}
-
-function bakeOneLoaf(bakery: Bakery, tell: (line: string) => void): Effect.Effect<void, OutOfFlour> {
-	return Effect.suspend(() => {
-		bakery.minute += 1;
-		if (bakery.flour === 0) {
-			return Effect.fail(new OutOfFlour({ minute: bakery.minute }));
+	return bakery.trait("pantry", `the baker has ${count} balls of dough`, (state) => {
+		if (count > state.capacity) {
+			throw new Error(`the bowls hold only ${state.capacity}`);
 		}
-		bakery.flour -= 1;
-		bakery.dough -= 1;
-		bakery.loaves += 1;
-		tell(`${bakery.minute}m a loaf comes out of the oven`);
-		return Effect.void;
+		state.dough = count;
 	});
 }
-
-export const newBakery = Effect.fnUntraced(function* (...given: readonly BakeryTrait[]) {
-	const bakery = emptyBakery();
-	const log = yield* kit.seed(bakery, given, {
-		after: { kitchen: (target) => (target.bowls === 0 ? Effect.fail(new NoBowls()) : Effect.sync(() => fitBowls(target))) },
-	});
-	return {
-		bakery,
-		log,
-		oven: {
-			bakesEverything: (within = 60): Effect.Effect<BakeReport, OutOfFlour> =>
-				settleEffect(log, {
-					cap: within,
-					diagnose: Effect.sync(() => stillWaiting(bakery)),
-					failed: Effect.sync(() => ovenTrouble(bakery)),
-					report: Effect.sync(() => ({ loaves: bakery.loaves, minutes: bakery.minute })),
-					settled: Effect.sync(() => bakery.dough === 0),
-					step: bakeOneLoaf(bakery, log.tell),
-				}),
-		},
-	};
-});

@@ -8,21 +8,24 @@ import {
 	hasFlourDelivered,
 	hasFlourFromTheMill,
 	hasNoBowls,
+	hasOatsFromTheMill,
+	hasRyeFromTheMill,
 	NoBowls,
 	newBakery,
 	ovenIsLit,
 	Supplier,
 	traits,
 } from "#test/effect/bakery.ts";
+import { defectHeadline } from "#test/effect/defectHeadline.ts";
 
 const { effectApp } = makeEffectIt({ layer: Supplier.layer, makeHarness: () => Effect.succeed({}) });
 
 effectApp("fills the pantry after the kitchen, whatever order the test names them in", function* () {
-	const { bakery, log } = yield* newBakery(hasDough(6), traits(ovenIsLit(), hasBowls(2)), hasFlourDelivered(2));
+	const { story } = yield* newBakery(hasDough(6), traits(ovenIsLit(), hasBowls(2)), hasFlourDelivered(2));
 
-	expect(bakery.dough).toBe(6);
-	expect(bakery.flour).toBe(2);
-	expect(log.lines).toEqual([
+	expect(story.engine.dough).toBe(6);
+	expect(story.engine.flour).toBe(2);
+	expect(story.lines).toEqual([
 		"the baker has 6 balls of dough",
 		"the oven is lit",
 		"the bakery has 2 bowls",
@@ -30,27 +33,36 @@ effectApp("fills the pantry after the kitchen, whatever order the test names the
 	]);
 });
 
-effectApp("refuses a trait whose effect fails, as a defect", function* () {
+effectApp("refuses a trait whose effect fails, as a defect that names the error", function* () {
 	const exit = yield* Effect.exit(newBakery(hasFlourDelivered(9)));
 
-	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toEqual(
-		new Error('trait "the supplier has delivered 9 sacks of flour" refused: the supplier delivers at most 5 sacks'),
+	expect(defectHeadline(exit)).toBe(
+		'the trait "the supplier has delivered 9 sacks of flour" refused to set up the bakery: SupplierShort: the supplier delivers at most 5 sacks',
 	);
-	expect(Exit.isFailure(exit) && Cause.hasFails(exit.cause)).toBe(false);
 });
 
 effectApp("names the refusal of a trait that fails with a plain value", function* () {
 	const exit = yield* Effect.exit(newBakery(hasFlourFromTheMill()));
 
-	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toEqual(new Error('trait "the mill has sent flour" refused: the mill is closed'));
+	expect(defectHeadline(exit)).toBe('the trait "the mill has sent flour" refused to set up the bakery: the mill is closed');
 });
 
-effectApp("refuses a trait whose effect dies", function* () {
+effectApp("names the refusal of a trait that fails with a plain object by its fields", function* () {
+	const exit = yield* Effect.exit(newBakery(hasOatsFromTheMill()));
+
+	expect(defectHeadline(exit)).toBe('the trait "the mill has sent oats" refused to set up the bakery: {"mill":"closed","sacks":0}');
+});
+
+effectApp("names the refusal of a trait that fails with a tagged error by its tag and fields", function* () {
+	const exit = yield* Effect.exit(newBakery(hasRyeFromTheMill()));
+
+	expect(defectHeadline(exit)).toBe('the trait "the mill has sent rye" refused to set up the bakery: MillClosed {"until":"Monday"}');
+});
+
+effectApp("refuses a trait that throws", function* () {
 	const exit = yield* Effect.exit(newBakery(hasDough(4)));
 
-	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toEqual(
-		new Error('trait "the baker has 4 balls of dough" refused: the bowls hold only 3'),
-	);
+	expect(defectHeadline(exit)).toBe('the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3');
 });
 
 effectApp("lets an interrupted trait stay interrupted", function* () {

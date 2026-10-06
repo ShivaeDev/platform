@@ -1,82 +1,105 @@
-import { Cause, Effect } from "effect";
-import { refused } from "#internal/refused.ts";
-import { tellTraits, trait, traits } from "#internal/traits.ts";
-import { type StoryLog, storyLog } from "#storyLog.ts";
-import type { Trait, TraitPart } from "#trait.ts";
+import { Effect } from "effect";
+import { type AnyEffect, type ErrorOf, type Hook, hooked, type ServicesOf } from "#effect/internal/hooked.ts";
+import { runUntil } from "#effect/internal/runUntil.ts";
+import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#effect/internal/seed.ts";
+import { callSite } from "#internal/callSite.ts";
+import { narrate } from "#internal/narration.ts";
+import { type Parts, trait, traits } from "#internal/traits.ts";
+import type { RunUntilOptions } from "#storyKit.ts";
 
-export type TargetApply<TTarget, R> = (target: TTarget) => Effect.Effect<void, unknown, R>;
+export type EffectTrait<TEngine, TStage extends string, R> = Parts<TStage, (engine: TEngine) => Effect.Effect<void, unknown, R>>;
 
-export type TargetTrait<TTarget, R, TStage extends string> = Trait<TStage, TargetApply<TTarget, R>>;
+type TraitServices<TTrait> = TTrait extends Parts<string, (engine: never) => Effect.Effect<void, unknown, infer R>> ? R : never;
 
-export type AfterHooks<TTarget, R, TErrors> = { readonly [TKey in keyof TErrors]: (target: TTarget) => Effect.Effect<void, TErrors[TKey], R> };
-
-export type StageErrors<TStage extends string> = { readonly [TKey in TStage]?: unknown };
-
-export interface EffectSeedOptions<TAfter> {
-	readonly after?: TAfter;
-	readonly log?: StoryLog;
+export interface EffectStory<TEngine, TRun extends AnyEffect> {
+	readonly engine: TEngine;
+	readonly lines: readonly string[];
+	readonly runUntil: <TUntil extends AnyEffect = never>(
+		until: Hook<[engine: TEngine], TUntil, boolean>,
+		options?: RunUntilOptions,
+	) => Effect.Effect<void, ErrorOf<TRun | TUntil>, ServicesOf<TRun | TUntil>>;
+	readonly tell: (line: string) => void;
 }
 
-export interface EffectStoryKit<TTarget, R, TStage extends string> {
-	readonly seed: <TErrors extends StageErrors<TStage> = Record<never, never>>(
-		target: TTarget,
-		given: readonly TargetTrait<TTarget, R, TStage>[],
-		options?: EffectSeedOptions<AfterHooks<TTarget, R, TErrors>>,
-	) => Effect.Effect<StoryLog, TErrors[keyof TErrors], R>;
-	readonly trait: (stage: TStage, line: string, apply: TargetApply<TTarget, R>) => TargetTrait<TTarget, R, TStage>;
-	readonly traits: (...given: readonly TargetTrait<TTarget, R, TStage>[]) => TargetTrait<TTarget, R, TStage>;
+export interface EffectRunHooks<TEngine, TStep extends AnyEffect, TFailed extends AnyEffect, TDiagnose extends AnyEffect> {
+	readonly diagnose?: Hook<[engine: TEngine], TDiagnose, string>;
+	readonly failed?: Hook<[engine: TEngine], TFailed, string | undefined>;
+	readonly maxSteps: number;
+	readonly step: Hook<[engine: TEngine, tell: (line: string) => void], TStep, void>;
 }
 
-type StageHooks<TTarget, R, TStage extends string> = { readonly [TKey in TStage]?: (target: TTarget) => Effect.Effect<void, unknown, R> };
-
-function applyOrRefuse<TTarget, R, TStage extends string>(
-	part: TraitPart<TStage, TargetApply<TTarget, R>>,
-	target: TTarget,
-): Effect.Effect<void, never, R> {
-	return Effect.suspend(() => part.apply(target)).pipe(
-		Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.interrupt : Effect.die(refused(part.line, Cause.squash(cause))))),
-	);
+export interface EffectStoryKitDefinition<
+	TEngine,
+	TStage extends string,
+	TVerbs,
+	TCreate extends AnyEffect,
+	TAfter extends { readonly [TKey in TStage]?: AnyEffect },
+	TStep extends AnyEffect,
+	TFailed extends AnyEffect,
+	TDiagnose extends AnyEffect,
+> {
+	readonly after?: { readonly [TKey in keyof TAfter]: Hook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
+	readonly create: Hook<[], TCreate, TEngine>;
+	readonly inspect?: (engine: TEngine) => unknown;
+	readonly name: string;
+	readonly run?: EffectRunHooks<TEngine, TStep, TFailed, TDiagnose>;
+	readonly stages: readonly [TStage, ...TStage[]];
+	readonly verbs: (engine: TEngine, story: EffectStory<TEngine, TStep | TFailed | TDiagnose>) => TVerbs;
 }
 
-const runStages = Effect.fnUntraced(function* <TTarget, R, TStage extends string>(
-	stages: readonly TStage[],
-	target: TTarget,
-	given: readonly TargetTrait<TTarget, R, TStage>[],
-	options: EffectSeedOptions<StageHooks<TTarget, R, TStage>> | undefined,
-) {
-	const log = options?.log ?? storyLog();
-	const parts = tellTraits(log, given);
-	for (const stage of stages) {
-		for (const part of parts.filter((each) => each.stage === stage)) {
-			yield* applyOrRefuse(part, target);
-		}
-		const after = options?.after?.[stage];
-		if (after !== undefined) {
-			yield* after(target);
-		}
-	}
-	return log;
+export interface EffectStoryKit<TEngine, TStage extends string, TVerbs, TStart extends AnyEffect, TRun extends AnyEffect> {
+	readonly start: <const TGiven extends readonly EffectTrait<TEngine, TStage, unknown>[]>(
+		...given: TGiven
+	) => Effect.Effect<TVerbs & { readonly story: EffectStory<TEngine, TRun> }, ErrorOf<TStart>, ServicesOf<TStart> | TraitServices<TGiven[number]>>;
+	readonly trait: <TEffect extends AnyEffect = never>(
+		stage: TStage,
+		line: string,
+		apply: Hook<[engine: TEngine], TEffect, void>,
+	) => EffectTrait<TEngine, TStage, ServicesOf<TEffect>>;
+	readonly traits: <const TGiven extends readonly EffectTrait<TEngine, TStage, unknown>[]>(
+		...given: TGiven
+	) => EffectTrait<TEngine, TStage, TraitServices<TGiven[number]>>;
+}
+
+interface LooseKit {
+	readonly start: (...given: readonly LooseTrait[]) => Effect.Effect<object, unknown, unknown>;
+	readonly trait: (stage: string, line: string, apply: Hook<[engine: unknown], AnyEffect, void>) => LooseTrait;
+	readonly traits: (...given: readonly LooseTrait[]) => LooseTrait;
+}
+
+const start = Effect.fnUntraced(function* (definition: LooseDefinition, given: readonly LooseTrait[]) {
+	const engine = yield* hooked(definition.create);
+	const narration = narrate({ engine, inspect: definition.inspect, name: definition.name });
+	yield* seed(definition, engine, narration, given);
+	const story: LooseStory = {
+		engine,
+		lines: narration.lines,
+		runUntil: (until, options) => {
+			const site = callSite();
+			return runUntil({ engine, name: definition.name, run: definition.run, tell: (line) => narration.tellAt(line, site) }, until, options);
+		},
+		tell: narration.tell,
+	};
+	return { ...definition.verbs(engine, story), story };
 });
 
-function seedStages<TTarget, R, TStage extends string, TErrors extends StageErrors<TStage>>(
-	stages: readonly TStage[],
-	target: TTarget,
-	given: readonly TargetTrait<TTarget, R, TStage>[],
-	options: EffectSeedOptions<AfterHooks<TTarget, R, TErrors>> | undefined,
-): Effect.Effect<StoryLog, TErrors[keyof TErrors], R>;
-function seedStages<TTarget, R, TStage extends string>(
-	stages: readonly TStage[],
-	target: TTarget,
-	given: readonly TargetTrait<TTarget, R, TStage>[],
-	options: EffectSeedOptions<StageHooks<TTarget, R, TStage>> | undefined,
-): Effect.Effect<StoryLog, unknown, R> {
-	return runStages(stages, target, given, options);
-}
-
-export function effectStoryKit<TTarget, R = never>() {
-	return <const TStage extends string>(...stages: readonly [TStage, ...TStage[]]): EffectStoryKit<TTarget, R, TStage> => ({
-		seed: (target, given, options) => seedStages(stages, target, given, options),
-		trait,
+// The implementation works on loose types; the overload states what the definition infers.
+export function effectStoryKit<
+	TEngine,
+	const TStage extends string,
+	TVerbs extends object,
+	TCreate extends AnyEffect = never,
+	TAfter extends { readonly [TKey in TStage]?: AnyEffect } = Record<never, never>,
+	TStep extends AnyEffect = never,
+	TFailed extends AnyEffect = never,
+	TDiagnose extends AnyEffect = never,
+>(
+	definition: EffectStoryKitDefinition<TEngine, TStage, TVerbs, TCreate, TAfter, TStep, TFailed, TDiagnose>,
+): EffectStoryKit<TEngine, TStage, TVerbs, TCreate | Exclude<TAfter[keyof TAfter], undefined>, TStep | TFailed | TDiagnose>;
+export function effectStoryKit(definition: LooseDefinition): LooseKit {
+	return {
+		start: (...given) => start(definition, given),
+		trait: (stage, line, apply) => trait(stage, line, (engine) => hooked(() => apply(engine))),
 		traits,
-	});
+	};
 }

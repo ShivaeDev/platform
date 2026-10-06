@@ -1,21 +1,20 @@
-import type { StoryLog } from "#storyLog.ts";
-import type { Trait, TraitPart } from "#trait.ts";
+import { callSite } from "#internal/callSite.ts";
 
-export function trait<TStage extends string, TApply>(stage: TStage, line: string, apply: TApply): Trait<TStage, TApply> {
-	return { parts: [{ apply, line, stage }] };
+export interface TraitPart<TStage extends string, TApply> {
+	readonly apply: TApply;
+	readonly line: string;
+	readonly site: Error;
+	readonly stage: TStage;
 }
 
-export function traits<TStage extends string, TApply>(...given: readonly Trait<TStage, TApply>[]): Trait<TStage, TApply> {
+export interface Parts<TStage extends string, TApply> {
+	readonly parts: readonly TraitPart<TStage, TApply>[];
+}
+
+export function trait<TStage extends string, TApply>(stage: TStage, line: string, apply: TApply): Parts<TStage, TApply> {
+	return { parts: [{ apply, line, site: callSite(), stage }] };
+}
+
+export function traits<TStage extends string, TApply>(...given: readonly Parts<TStage, TApply>[]): Parts<TStage, TApply> {
 	return { parts: given.flatMap((each) => each.parts) };
-}
-
-export function tellTraits<TStage extends string, TApply>(
-	log: StoryLog,
-	given: readonly Trait<TStage, TApply>[],
-): readonly TraitPart<TStage, TApply>[] {
-	const parts = given.flatMap((each) => each.parts);
-	for (const part of parts) {
-		log.tell(part.line);
-	}
-	return parts;
 }

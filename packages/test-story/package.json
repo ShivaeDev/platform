@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/test-story",
 	"version": "0.1.0",
-	"description": "Story DSL core for tests: staged traits, a story log added to a failing test's error and a settle loop",
+	"description": "Tests that read like stories over the real engine: a story kit per engine, traits per feature, and a failure that prints the story, where it stopped and the engine's state",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
@@ -30,6 +30,7 @@
 			"default": "./dist/*.js"
 		},
 		"./internal/*": null,
+		"./effect/internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [
