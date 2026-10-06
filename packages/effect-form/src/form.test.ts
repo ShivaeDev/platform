@@ -1,7 +1,8 @@
 import { expect, it } from "@effect/vitest";
-import { Context, Data, Effect, Layer, Schema, SchemaGetter } from "effect";
+import { Context, Data, Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { vi } from "vitest";
 import { make } from "#form.ts";
 import { Invalid } from "#shape.ts";
 
@@ -15,7 +16,7 @@ it.live("invalid submission reveals field errors and never calls the handler", (
 			initialValues: { name: "" },
 			onSubmit: () =>
 				Effect.sync(() => {
-					calls++;
+					calls += 1;
 				}),
 			runtime,
 		});
@@ -58,13 +59,13 @@ it("derives literal choices from the field schema", () => {
 });
 
 it("offers encoded literals when the field transforms them", () => {
-	const choice = Schema.Literals(["yes", "no"]).pipe(
+	const Choice = Schema.Literals(["yes", "no"]).pipe(
 		Schema.decodeTo(Schema.Boolean, {
 			decode: SchemaGetter.transform((value) => value === "yes"),
 			encode: SchemaGetter.transform((value) => (value ? "yes" : "no")),
 		}),
 	);
-	const form = make(Schema.Struct({ choice }), {
+	const form = make(Schema.Struct({ choice: Choice }), {
 		initialValues: { choice: "yes" },
 		onSubmit: Effect.succeed,
 		runtime,
@@ -133,3 +134,61 @@ it.live("dirty clears when an edit is undone", () =>
 		expect(registry.get(form.dirty)).toBe(false);
 	}).pipe(Effect.provide(AtomRegistry.layer)),
 );
+
+it.live("a touched field has no schema message while its first async decode is pending", () =>
+	Effect.gen(function* () {
+		const registry = yield* AtomRegistry.AtomRegistry;
+		const started = yield* Deferred.make<void>();
+		const release = yield* Deferred.make<void>();
+		const name = Schema.String.pipe(
+			Schema.decodeTo(Schema.NonEmptyString, {
+				decode: SchemaGetter.transformOrFail((value) =>
+					Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value)),
+				),
+				encode: SchemaGetter.passthrough(),
+			}),
+		);
+		const form = make(Schema.Struct({ name }), { initialValues: { name: "" }, onSubmit: Effect.succeed, runtime });
+		form.blur("name");
+		yield* AtomRegistry.mount(registry, form.error("name"));
+		yield* Deferred.await(started);
+		expect(registry.get(form.error("name"))).toBeUndefined();
+		yield* Deferred.succeed(release, undefined);
+		yield* Effect.promise(() => vi.waitFor(() => expect(registry.get(form.error("name"))).toBe("Required")));
+	}).pipe(Effect.provide(AtomRegistry.layer)),
+);
+
+it.live("field maps and updates follow the latest received values", () =>
+	Effect.gen(function* () {
+		const registry = yield* AtomRegistry.AtomRegistry;
+		const form = make(Schema.Struct({ profile: Schema.Struct({ count: Schema.Number, label: Schema.String }) }), {
+			initialValues: { profile: { count: 1, label: "First" } },
+			onSubmit: Effect.succeed,
+			runtime,
+		});
+		yield* AtomRegistry.mount(registry, form.dirty);
+		const profile = form.field("profile");
+		const label = profile.map((value) => value.label);
+		form.receive({ profile: { count: 5, label: "Received" } });
+		expect(label.value).toBe("Received");
+		profile.update((value) => ({ ...value, count: value.count + 1 }));
+		expect(form.values.value).toEqual({ profile: { count: 6, label: "Received" } });
+		expect(label.value).toBe("Received");
+		expect(registry.get(form.dirty)).toBe(true);
+		form.revert();
+		expect(label.value).toBe("Received");
+		expect(registry.get(form.dirty)).toBe(false);
+	}).pipe(Effect.provide(AtomRegistry.layer)),
+);
+
+it.fails("BUG: a nested field prop should update the draft without recursive ref creation", () => {
+	const form = make(Schema.Struct({ profile: Schema.Struct({ count: Schema.Number }) }), {
+		initialValues: { profile: { count: 1 } },
+		onSubmit: Effect.succeed,
+		runtime,
+	});
+	const count = form.field("profile").prop("count");
+	expect(count.value).toBe(1);
+	count.set(2);
+	expect(form.values.value).toEqual({ profile: { count: 2 } });
+});
