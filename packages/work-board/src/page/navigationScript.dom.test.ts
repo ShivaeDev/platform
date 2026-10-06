@@ -37,6 +37,18 @@ function title() {
 }
 
 describe("document navigation", () => {
+	it("opens templates through native navigation without losing the current reading page", async () => {
+		await open();
+		page.document.body.dataset.visit = "kept";
+		click("#start-open");
+		await waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("start"));
+		expect(title()).toBe("Project and report templates");
+		expect(page.document.body.dataset.visit).toBe("kept");
+		expect(page.window.location.pathname).toBe("/_board/start");
+		page.window.history.back();
+		await waitFor(() => expect(title()).toBe("Plan"));
+	});
+
 	it("navigates without reloading and restores selection and open details through back and forward", async () => {
 		await open();
 		page.window.document.body.dataset.visit = "kept";

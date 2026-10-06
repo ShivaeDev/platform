@@ -18,7 +18,7 @@ earlier PR look complete.
 | 1 | [01–03: navigate](./wave1.md#01-a-real-workspace-shell) | A large folder is comfortable to browse and search | Use the actual project notes, including keyboard and narrow layout |
 | 2 | [04–06: understand the work](./wave1.md#04-optional-identity-and-a-rebuildable-index) | Several views expose the same items, with evidence and relationships | Confirm the source model is understandable outside the board |
 | 3 | [07–09: stay oriented](./wave1.md#07-an-attention-first-overview) | Overview explains what needs attention and what changed | Return after an agent has worked and find the next judgment unaided |
-| 4 | [10–13: finish wave 1](./wave1.md#10-local-visual-evidence) | Rich documents, onboarding, local export, and a dependable reading workspace | Wave 1 exit in the roadmap; only then activate wave 2 |
+| 4 | [10–13: finish wave 1](./wave1.md#10-local-visual-evidence) | Rich documents, onboarding, report templates, and a dependable reading workspace | Wave 1 exit in the roadmap; only then activate wave 2 |
 | 5 | [14–17: inform back](./wave2.md#14-prove-one-safe-source-mutation) | Contextual responses and narrow edits survive competing writers | Review the write model and use it on real project files |
 | 6 | [18–20: coordinate](./wave2.md#18-one-local-agent-handoff) | One agent receives direction, returns evidence, and participates in review | Complete one feature through a real revision and acceptance |
 | 7 | [21–23: collaborate locally](./wave3.md#21-successive-contributions-with-clear-ownership) | Several contributions remain coherent; context spans local projects | Prove ownership and conflict behavior before broadening scope |
@@ -33,7 +33,7 @@ ship without content editing, agent APIs, or external integrations.
 | Gate | Before | Concrete material to discuss | Working recommendation, not a settled API |
 | --- | --- | --- | --- |
 | D1 Source structure | 04 | [Plain-text examples](./source-examples.md): existing heading board, richer item, linked decision/evidence; invalid/duplicate cases | Optional metadata, stable explicit IDs for durable references, readable fallback; no mandatory migration |
-| D2 Responses and writes | 14 | Exact before/after file diffs, source revision contract, concurrent editor scenario, undo and trust behavior | Begin with one structured response on one file, then add narrow field edits |
+| D2 Responses and writes | 14 | [Before/after response examples](./response-write-examples.md), source revision contract, concurrent editor scenario, undo and trust behavior | One new durable response file is the proposed first boundary; no writer/schema is settled |
 | D3 Handoff contract | 18 | One real producer/consumer walkthrough, acknowledged/rejected/lost response cases, payload examples | One local tool adapter; no scheduler, terminal manager, or generic agent protocol |
 | D4 Integration admission | 24 | A repeated manual evidence step, source of truth, refresh/offline rules, credentials and maintenance ownership | Read explicitly linked GitHub objects only; no two-way sync |
 

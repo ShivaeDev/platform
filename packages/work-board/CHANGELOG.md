@@ -4,7 +4,34 @@
 
 ### Changed
 
+- Remove document export and shareable artifact/packet generation from the vision
+  and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.7.2 - 2026-10-06
+
+### Changed
+
+- Record the combined reading-workflow review and first named-machine performance
+  observations, keeping representative-reader acceptance and performance budgets
+  explicitly open. Prepare response/write examples for the D2 discussion; no
+  writer or response schema is implemented.
+- Add real HTTP regression coverage for embedding beside application routes,
+  preserving Work Board's loopback boundary and scoped server shutdown.
+
+## 0.7.1 - 2026-10-06
+
+### Added
+
+- Useful empty-workspace guidance and persistent getting-started access to copyable
+  project, investigation and agent-result Markdown templates. Read the same page
+  through server-rendered links and native page navigation with Back preservation. Keep source
+  creation in existing editors/agent tools and evidence unrecorded until observed.
+
+### Changed
+
+- Keep document printing focused on readable content and diagram-source fallback.
+  No document export or portable packet generation is part of this project.
 
 ## 0.7.0 - 2026-10-06
 

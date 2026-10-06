@@ -49,7 +49,7 @@ Representative-reader orientation time
 Source: [Reader acceptance](./roadmap.md#step-07-source-decision-and-implementation-evidence)
 :::
 
-:::progress{completed="11" total="13"}
+:::progress{completed="12" total="13"}
 Wave 1 implementation checkpoints recorded
 
 This authored tally records implementation checkpoints through visual documents.
@@ -70,7 +70,7 @@ Reading delivery
 1. **Recorded:** [Native reads](./roadmap.md#step-09-native-adoption-and-orientation-evidence) shipped in 0.5.0.
 2. **Recorded:** [Local visual evidence](./roadmap.md#step-10-local-visual-evidence) shipped in 0.6.0.
 3. **This checkpoint:** [Visual document conventions](./delivery/visual-document-examples.md) use fixed Markdown directives.
-4. **Planned:** [Local handoffs](./delivery/wave1.md#12-start-and-take-the-work-with-you) follow before the complete reading workflow review.
+4. **Recorded:** [Onboarding and report templates](./delivery/wave1.md#12-start-with-useful-project-documents) are implemented; the complete reading workflow review remains ahead.
 :::
 
 ## Who and what it serves
@@ -89,7 +89,7 @@ acceptance criteria, and result.
 ## Product commitments
 
 - **Local only.** No hosted service, accounts, cloud sync, publishing, or remote
-  multiplayer. Local HTML/PDF exports are portable files. Optional external
+  multiplayer. Shareable artifacts and document export are outside this project. Optional external
   evidence retrieval is a separate, explicit integration, never a dependency of
   the core experience.
 - **Readable source.** Plain Markdown remains a useful entry point. Rich metadata

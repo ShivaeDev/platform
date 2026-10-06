@@ -29,16 +29,16 @@ explicitly; do not scan the user's machine or widen serving to every filesystem.
 collide; one unavailable folder does not hide the others or route an action into
 the wrong project. Keep writes owned by the originating workspace.
 
-## 23 Richer plans and local review packets
+## 23 Richer plans and linked reviews
 
 **Outcome:** larger work can be understood and reviewed as a coherent whole.
 Extend the fixed component vocabulary with bounded split layouts, dependency
 maps, and timelines where explicit relationships/dates support them. Distinguish
-unknown dates from estimates and commitments. Add a curated local review packet
-containing selected plan, decisions, criteria, evidence, revisions, and limitations.
-**Depends on:** 11–12 and 19. **Accept:** a reviewer follows a packet with the
-server stopped, identifies its snapshot date/revisions, and sees missing or
-excluded evidence clearly. Cycles and unresolved dependencies are shown. Do not
+unknown dates from estimates and commitments. Help a reviewer follow linked plans,
+decisions, criteria, evidence, revisions and limitations inside the normal workspace.
+**Depends on:** 11–12 and 19. **Accept:** a reviewer follows those source links and
+sees missing or stale evidence clearly. Cycles and unresolved dependencies are shown.
+Shareable/exported packets are outside scope. Do not
 grow a freeform executable dashboard or plugin system to implement these views.
 
 ## 24 One optional read-only GitHub adapter

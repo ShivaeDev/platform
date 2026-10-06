@@ -138,7 +138,7 @@ timing is still separate; fixtures do not establish that target.
 Serve an explicitly allowed set of local attachments with root containment and
 correct media handling; watch their changes as well as Markdown. Resolve paths
 relative to source files. Add image preview/gallery and Mermaid zoom, fullscreen,
-and local export, with useful load/parse errors and keyboard dismissal.
+and local image/diagram downloads, with useful load/parse errors and keyboard dismissal.
 **Depends on:** 02 and 06; can precede 07–09 if needed by actual evidence.
 **Accept:** local images render and update; traversal/symlink escapes are refused;
 large diagrams can be read on narrow screens without losing the source context.
@@ -169,16 +169,30 @@ and Chromium desktop/narrow/no-JavaScript/print checks of that brief passed.
 The [roadmap evidence](../roadmap.md#step-11-visual-document-acceptance) records
 malformed-input behavior and the remaining reader/device limits.
 
-## 12 Start and take the work with you
+## 12 Start with useful project documents
 
-**Outcome:** a new user can begin locally and produce a readable local handoff.
-Provide copyable templates for a project, investigation, and agent result; useful
-empty-state instructions; good print output; and a bounded static HTML export of
-selected documents and local assets. Browser print may produce PDF; do not add a
-PDF service. Preview export scope, report missing assets, and make relative links
-work in the exported bundle. An `init` CLI command needs a separate API decision.
-**Depends on:** 07 and 10–11. **Accept:** start from an empty folder and inspect an
-export with the server stopped and external networking unavailable.
+**Outcome:** a new user can begin locally and read useful project and agent reports.
+Provide copyable Markdown templates for a project, investigation, and agent result;
+useful empty-state instructions; and preserve basic browser print readability.
+Reports are ordinary source documents read through normal Work Board views, with
+links to plans, decisions and recorded criterion-level evidence. No report format
+creates verified acceptance or a new execution/handoff protocol.
+
+The user removed document export from product scope: external shareable artifacts,
+portable snapshots and meeting packets have no demonstrated Work Board use case.
+Do not build HTML/PDF/ZIP packet generation, export previews, selection manifests,
+or a deferred export feature in another wave. Native browser printing remains a
+reading affordance, not a PDF service or artifact builder. An `init` CLI command
+still needs a separate API decision; copyable templates do not write source files.
+**Depends on:** 07 and 10–11. **Accept:** start from an empty folder, use the
+copyable templates through an existing editor/agent tool, and inspect the resulting
+project, investigation and result in ordinary Work Board views. Unknown outcomes
+and recorded evidence remain distinct from verified acceptance; the viewer does
+not create source files or mark history seen implicitly.
+
+Implemented in Work Board 0.7.1: empty `/` guidance and persistent `/_board/start`
+templates through SSR and the native page contract. Actual acceptance evidence
+is recorded in the roadmap; representative-reader timing remains separate.
 
 ## 13 Prove the complete reading workflow
 
@@ -190,3 +204,9 @@ Measure agreed performance budgets and preserve all existing package guarantees.
 **Depends on:** 01–12. **Accept:** record the roadmap's wave 1 exit evidence and
 remaining limitations. Discuss D2 using examples from this use before authorizing
 wave 2 mutations; do not fix usability gaps by adding an agent execution engine.
+
+The [reading investigation](./reading-review.md) records actual combined browser
+checks, an embedded Effect HTTP application and first performance observations.
+Remaining reader/device acceptance and unagreed budgets are explicit; step 13
+and the wave remain open. [D2 examples](./response-write-examples.md) are prepared
+for discussion before any writer or new response schema is implemented.

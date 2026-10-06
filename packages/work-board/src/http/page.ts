@@ -11,6 +11,7 @@ import { escapeHtml } from "#page/escape.ts";
 import { metadataHtml } from "#page/metadata.ts";
 import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
+import { startHtml } from "#page/startHtml.ts";
 import { boardOf } from "#render/board.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
@@ -80,6 +81,9 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 				"text/html",
 				404,
 			);
+		if (files.length === 0 && requestedPath(request.url) === "" && resolved === undefined && expectedIdentity === undefined) {
+			return respond(layout(startHtml(true)), "text/html");
+		}
 		if (file === undefined) {
 			return missing();
 		}
