@@ -22,7 +22,7 @@ export function metadataDetails(parsed: ParsedMetadata, file: string, model: Met
 			? `<h3>Reviewed question</h3><p>${referenceHtml(fields.question.item, fields.question.item, model)} / ${escapeHtml(fields.question.request)} · ${escapeHtml(fields.question.reason)}</p><p>Reviewed SHA-256: <code>${fields.question.reviewedRevision}</code>. Registered: ${new Date(fields.question.registeredAt).toISOString()}. Unanswered deadline: ${new Date(fields.question.deadline).toISOString()}.</p>`
 			: "",
 		fields.response
-			? `<h3>Recorded response</h3><p>${referenceHtml(fields.response.question, fields.response.question, model)} · ${escapeHtml(fields.response.author)} · ${escapeHtml(fields.response.type)}</p><p>Reviewed SHA-256: <code>${fields.response.reviewedRevision}</code>. This is authored feedback, not verified acceptance.</p>`
+			? `<h3>Recorded response</h3><p>${referenceHtml(fields.response.question, fields.response.question, model)} · ${escapeHtml(fields.response.author)} · ${escapeHtml(fields.response.type)}</p><p>Reviewed SHA-256: <code>${fields.response.reviewedRevision}</code>. This is authored feedback, not verified acceptance.</p>${fields.response.supersedes ? `<p>Explicitly supersedes ${referenceHtml(fields.response.supersedes, fields.response.supersedes, model)}.</p>` : ""}`
 			: "",
 		criteriaEvidence(parsed, model),
 		attentionDetails(parsed, file, model),

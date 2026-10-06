@@ -1,8 +1,8 @@
-import { Schema } from "effect";
 import { session } from "#browser/session.ts";
 import type { draftSession } from "./draftSession.ts";
 import type { Draft } from "./drafts.ts";
-import { ResponseFailed, ResponseKind } from "./schema.ts";
+import { ResponseFailed } from "./schema.ts";
+import { submissionFields } from "./submissionFields.ts";
 
 export async function submitResponse(form: HTMLFormElement, status: HTMLParagraphElement, drafts: ReturnType<typeof draftSession>, pending: Draft) {
 	status.dataset.outcome = "pending";
@@ -12,15 +12,7 @@ export async function submitResponse(form: HTMLFormElement, status: HTMLParagrap
 		const question = await native.mutate(
 			native.responses.registerQuestion.run({ item: form.dataset.item ?? "", request: form.dataset.request ?? "", revision: pending.revision }),
 		);
-		await native.mutate(
-			native.responses.recordResponse.run({
-				author: pending.author,
-				body: pending.body,
-				id: pending.id,
-				question: question.id,
-				type: Schema.decodeUnknownSync(ResponseKind)(pending.type),
-			}),
-		);
+		await native.mutate(native.responses.recordResponse.run(submissionFields(pending, question.id)));
 		if (form.isConnected) {
 			status.dataset.outcome = "saved";
 			status.textContent = `Saved: responses/${pending.id}.md. This records feedback, not acceptance.`;

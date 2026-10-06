@@ -14,16 +14,18 @@ import { documentLinks } from "./documentLinks.ts";
 import { RenderFailed } from "./failed.ts";
 import { footnoteIds } from "./footnotes.ts";
 import { Highlighter } from "./highlighter.ts";
+import { questionnaireDocuments } from "./questionnaireDocuments.ts";
 
 export interface RenderOptions {
 	readonly file?: string;
 	readonly headings?: ReturnType<typeof documentHeadings>;
 	readonly idPrefix?: string;
+	readonly safe?: boolean;
 }
 
 export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, options: RenderOptions = {}) {
 	const highlighter = yield* Highlighter;
-	const plugins: PluggableList = [rehypeRaw, codeBlocks(highlighter)];
+	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), codeBlocks(highlighter)];
 	if (options.idPrefix !== undefined) {
 		plugins.push(footnoteIds(options.idPrefix));
 	}
@@ -41,7 +43,8 @@ export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (s
 					children: source,
 					components: { img: ({ node: _node, ...props }) => createElement("img", { ...props, loading: "lazy" }) },
 					rehypePlugins: plugins,
-					remarkPlugins: [remarkGfm, remarkDirective, visualDocuments, callouts],
+					remarkPlugins: [remarkGfm, remarkDirective, questionnaireDocuments, visualDocuments, callouts],
+					skipHtml: options.safe,
 				}),
 			),
 	});

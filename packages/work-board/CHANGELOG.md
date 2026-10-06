@@ -8,6 +8,26 @@
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
 
+## 0.9.0 - 2026-10-06
+
+### Added
+
+- Agent-authored question directives with rich Markdown/Mermaid context, single-
+  and multiple-choice controls, open-text prompts and additional human text.
+  Submit one validated packet through the existing native response/wait path;
+  record optional typed answers alongside a readable Markdown account.
+- Explicit superseding responses with linked immutable history. Qualify earlier
+  reviewed contexts and preserve draft text/recovery while clearing selections
+  after a source edit or move. Keep legacy question/response files valid.
+
+### Changed
+
+- Render response context and history through the existing Markdown pipeline with
+  raw HTML disabled, retaining local strict Mermaid and no-JavaScript source
+  fallback. Resolve template links against the source before recording answers.
+- Scope in-memory drafts and their clearing to the workspace as well as persisted
+  storage. Keep existing retention, write opt-in, Linux publisher and wait limits.
+
 ## 0.8.0 - 2026-10-06
 
 ### Added

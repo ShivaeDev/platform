@@ -19,3 +19,14 @@ it("preserves and persists edits made while an earlier submission completes unde
 	expect(notices).toEqual([]);
 	await window.happyDOM.abort();
 });
+it("isolates in-memory questionnaire drafts and clearing by workspace", async () => {
+	const window = new Window({ url: "http://127.0.0.1" });
+	const first = draftSession("same/request", "a", window.localStorage, "workspace:first", () => undefined);
+	const second = draftSession("same/request", "a", window.localStorage, "workspace:first:second", () => undefined);
+	first.update({ answers: [{ prompt: "choice", selected: ["a"], text: "Reason" }], body: "First workspace" });
+	second.update({ body: "Second workspace" });
+	first.clear();
+	expect(draftSession("same/request", "a", window.localStorage, "workspace:first:second", () => undefined).current().body).toBe("Second workspace");
+	expect(draftSession("same/request", "a", window.localStorage, "workspace:first", () => undefined).current().body).toBe("");
+	await window.happyDOM.abort();
+});

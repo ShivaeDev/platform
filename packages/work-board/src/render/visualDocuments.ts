@@ -43,6 +43,9 @@ export function visualDocuments() {
 			if (!isDirective(directive) || index === undefined || parent === undefined) {
 				return;
 			}
+			if (directive.type === "containerDirective" && ["question", "option"].includes(directive.name)) {
+				return;
+			}
 			const failure = failureOf(directive, source);
 			if (failure === undefined) {
 				return;

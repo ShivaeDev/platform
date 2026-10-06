@@ -6,6 +6,7 @@ import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { questionId, revisionOf } from "./records.ts";
+import { questionTemplate } from "./template.ts";
 
 function reject(code: ResponseFailed["code"], message: string) {
 	return Effect.fail(new ResponseFailed({ code, message }));
@@ -41,6 +42,10 @@ export function locate(root: string, realRoot: string, snapshot: Effect.Effect<S
 			return yield* reject("Stale", "The current request or its references are invalid. Review the source diagnostics before registering it.");
 		}
 		const revision = revisionOf(source);
+		yield* Effect.try({
+			catch: (cause) => new ResponseFailed({ code: "Unsupported", message: `Invalid response template: ${String(cause)}` }),
+			try: () => questionTemplate(source, request),
+		});
 		const question: QuestionPreview = {
 			context: source,
 			id: questionId(item, request, revision, entry.document.file),
