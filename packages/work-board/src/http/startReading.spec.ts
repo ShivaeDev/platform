@@ -34,12 +34,12 @@ it("serves copyable source on an empty root without creating files or hiding mis
 
 it("keeps templates available after source creation and resolves their relationships without fabricated evidence", async () => {
 	const documents = startTemplates.map((template) => ({ file: template.file, parsed: metadataParse(template.source) }));
-	for (const document of documents) {
-		expect(document.parsed.diagnostics).toEqual([]);
+	for (const entry of documents) {
+		expect(entry.parsed.diagnostics).toEqual([]);
 	}
 	const model = metadataModel(documents, []);
 	expect([...model.diagnostics.values()].flat()).toEqual([]);
-	expect(documents.find((document) => document.file === "result.md")?.parsed.fields.evidence).toBeUndefined();
+	expect(documents.find((entry) => entry.file === "result.md")?.parsed.fields.evidence).toBeUndefined();
 	for (const template of startTemplates) {
 		notes.write(template.file, template.source);
 	}

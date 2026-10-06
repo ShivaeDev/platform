@@ -675,12 +675,13 @@ cover project goals/criteria, investigation options/recommendation, and agent
 results with actual checks, limitations and next action. IDs/references are explicit;
 placeholder evidence remains commented out and does not become a recorded claim.
 
-The final full `pnpm ready` passed: 1,193 package tests, four expected failures,
-one intentional skip, 239 Work Board tests, seven orchestration checks, real
+The final full `pnpm ready` passed: 1,194 package tests, four expected failures,
+one intentional skip, 240 Work Board tests, seven orchestration checks, real
 PostgreSQL and every packed consumer. The quality baseline remains 2,547. New
 regressions cover empty-root/no-write behavior, readonly exact source, missing-path
 and loopback handling, valid template references, unknown evidence, source creation
-through an external tool and persistent native template reading.
+through an external tool, persistent native template reading, and no-reload
+Getting started navigation/Back.
 
 Actual Chromium 151 checked 1440×1000 and 390×844 dark/reduced-motion with the
 copyable source: keyboard select-all, empty guidance, externally saved templates,

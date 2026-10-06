@@ -14,7 +14,7 @@
 
 - Useful empty-workspace guidance and persistent getting-started access to copyable
   project, investigation and agent-result Markdown templates. Read the same page
-  through server-rendered links and the existing native page RPC. Keep source
+  through server-rendered links and native page navigation with Back preservation. Keep source
   creation in existing editors/agent tools and evidence unrecorded until observed.
 
 ### Changed
