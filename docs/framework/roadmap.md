@@ -330,11 +330,11 @@ and generic offline writes remain deferred until required by a consumer.
   signals follow connection lifetimes.
 - [ ] Validate deployment host/proxy cancellation and in-transaction interruption.
 - [x] Verify package declarations and installed consumers; run `pnpm ready`.
-- [x] Add `@shivaedev/test-story`, story tests over the real engine: one story
-  kit per engine with staged traits that refuse an impossible setup, a run loop
-  that names why the engine never finished, and a failure that prints the story,
-  where it stopped and the engine's state, with an Effect variant behind the
-  optional `effect` peer.
+- [x] Add `@shivaedev/test-story`, story tests over the real engine: one Effect
+  story kit per engine with staged traits that refuse an impossible setup, its
+  own `it` on `@shivaedev/effect-test` that tags every test with the engine's
+  genre, a run loop that names why the engine never finished, and a failure that
+  prints the story, where it stopped and the engine's state.
 - [x] Run a real PostgreSQL repository test for selection, nulls, encoded text,
   generated identity and transaction rollback.
 - [ ] Add broader PostgreSQL codec coverage and actual browser/native checks.

@@ -19,7 +19,8 @@ This changes the cost and benefit of a good test for both readers. For an agent,
 - A spec is a few lines of domain words. If a spec needs a helper, a loop or hand-built state, a trait or verb is missing from the kit.
 - An impossible setup refuses loudly instead of seeding a state the application could never reach.
 - A failure is a console version of stopping in a debugger: the whole story, the spec line behind each line, where it stopped, and the engine's state at that moment, written so an agent with no knowledge of this package can fix the test, and complete enough that a CI log alone is enough to reproduce it.
-- The kit author writes hooks and the package infers every type from them, in the plain and the Effect flavour alike. Effect hooks are generator functions, so no definition writes `Effect.gen`.
+- The kit author writes hooks and the package infers every type from them. There is one kit, built on Effect: a hook is a plain function, or a generator function when it needs a service or fails with a typed error, so no definition writes `Effect.gen` and a plain engine needs no Effect at all.
+- A spec writes only its story. The kit hands it an `it` that already knows the engine's services, so a spec never builds a test harness, and tags every test with its genre, so a run can pick one engine's stories.
 
 ## Trade-offs
 

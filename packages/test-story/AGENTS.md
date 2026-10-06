@@ -8,7 +8,7 @@ When goals conflict, they win in this order:
 
 1. **The spec reads as a story.** A spec names traits and verbs in domain words and holds nothing else. Any API that makes a spec longer or adds plumbing to it loses, even if it saves the kit author work.
 2. **The real engine runs.** The package never encourages a fake engine, a mocked step or state written by hand in a spec.
-3. **One definition per engine.** The kit owns the plumbing every engine shares; the engine's author fills in hooks and every type is inferred from them. Add a hook only when two real engines need it.
+3. **One definition per engine.** The kit owns the plumbing every engine shares, down to the test's `it` and its genre tag; the engine's author fills in hooks and every type is inferred from them. There is one implementation, built on Effect, and an engine that needs no Effect plugs in with plain functions. Add a hook only when two real engines need it.
 4. **The failure fixes itself.** A failure carries everything an agent needs to find and fix the cause without rerunning anything.
 5. **Small and native.** Vitest and Effect stay visible; the package wraps them thinly.
 

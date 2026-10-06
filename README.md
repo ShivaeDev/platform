@@ -35,8 +35,9 @@ implementation and acceptance criteria.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
 - [`@shivaedev/test-story`](./packages/test-story): Tests that read like
-  stories over the real engine: one story kit per engine, traits per feature,
-  and a failure that prints the story, where it stopped and the engine's state.
+  stories over the real engine: one Effect story kit per engine with its own
+  genre-tagged `it`, traits per feature, and a failure that prints the story,
+  where it stopped and the engine's state.
 - [`@shivaedev/platform`](./packages/platform): Opinionated application test
   setup combining the shared Prisma and tRPC integrations.
 - [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
