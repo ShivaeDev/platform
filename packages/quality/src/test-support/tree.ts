@@ -12,7 +12,7 @@ export const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url
 
 const seeded: string[] = [];
 
-export const seedTree = (...groups: ReadonlyArray<readonly SeedFile[]>): string => {
+export function seedTree(...groups: ReadonlyArray<readonly SeedFile[]>): string {
 	const root = mkdtempSync(join(tmpdir(), "quality-tree-"));
 	seeded.push(root);
 	for (const file of groups.flat()) {
@@ -21,19 +21,23 @@ export const seedTree = (...groups: ReadonlyArray<readonly SeedFile[]>): string 
 		writeFileSync(full, file.content);
 	}
 	return root;
-};
+}
 
-export const linkPackage = (root: string): void => {
+export function linkPackage(root: string): void {
 	mkdirSync(join(root, "node_modules", "@shivaedev"), { recursive: true });
 	symlinkSync(packageRoot, join(root, "node_modules", "@shivaedev", "quality"), "dir");
-};
+}
 
-export const removeSeededTrees = (): void => {
+export function removeSeededTrees(): void {
 	for (const root of seeded.splice(0)) {
 		rmSync(root, { force: true, recursive: true });
 	}
-};
+}
 
-export const lines = (count: number): string => "export const n = 1;\n".repeat(count);
+export function lines(count: number): string {
+	return "export const n = 1;\n".repeat(count);
+}
 
-export const config = (body: string): SeedFile => ({ content: `export default ${body};\n`, path: "quality.config.ts" });
+export function config(body: string): SeedFile {
+	return { content: `export default ${body};\n`, path: "quality.config.ts" };
+}

@@ -1,10 +1,10 @@
 import { attentionStyle } from "#attention/style.ts";
+import { metadataStyles } from "#page/metadata.ts";
+import { readingStyles } from "#page/readingStyles.ts";
+import { searchStyles } from "#page/searchDialog.ts";
+import { visualStyles } from "#page/visualDialog.ts";
+import { layout, theme } from "#page/workspaceStyles.ts";
 import { workStyle } from "#views/workStyle.ts";
-import { metadataStyles } from "./metadata.ts";
-import { readingStyles } from "./readingStyles.ts";
-import { searchStyles } from "./searchDialog.ts";
-import { visualStyles } from "./visualDialog.ts";
-import { layout, theme } from "./workspaceStyles.ts";
 
 const prose = `
 h1, h2, h3, h4 { font-weight: 600; line-height: 1.25; margin: 1.6em 0 0.5em; }
@@ -98,4 +98,5 @@ export const style =
 	+ visualStyles
 	+ documents
 	+ ".response-panel fieldset, .questionnaire-reading { min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin: 1rem 0; } .response-panel legend { font-weight: 650; } .response-panel .question-option { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .75rem; padding: 1rem; margin: .5rem 0; border: 1px solid var(--border); border-radius: 8px; } .response-panel .question-option:has(input:checked) { border-color: var(--link); background: var(--surface); } .response-panel .question-option input { width: 1.2rem; height: 1.2rem; margin-top: .2rem; accent-color: var(--link); } .response-panel .question-option label { font-weight: 650; cursor: pointer; } .response-panel .question-option p { margin-top: .5rem; } .response-panel #response-history article { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1rem; } .response-context, .question-option, .response-panel fieldset { overflow-wrap: anywhere; }"
+	+ "[data-view=result] .response-panel { overflow-wrap: anywhere; } #result-criteria ul { padding-inline-start: 1.25rem; } #result-criteria dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; margin: .75rem 0; } #result-criteria dt { color: var(--muted); } #result-criteria dd { margin: 0 0 .5rem; min-width: 0; } #result-feedback article { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1rem; }"
 	+ ".response-panel { max-width: 850px; margin: auto; padding: 1.5rem; } .response-panel form { display: grid; gap: 1rem; } .response-panel label { display: grid; gap: .5rem; } .response-panel input, .response-panel textarea, .response-panel select { width: 100%; box-sizing: border-box; font: inherit; background: var(--surface); color: inherit; padding: .75rem; border: 1px solid var(--border); } .response-panel pre, .response-panel code { white-space: pre-wrap; overflow-wrap: anywhere; }";

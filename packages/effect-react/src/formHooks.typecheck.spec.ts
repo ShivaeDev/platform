@@ -6,8 +6,9 @@ import { useEditor } from "#editor.ts";
 const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const fields = Schema.Struct({ title: Schema.String });
 const runtime = Atom.runtime(Layer.empty);
-const saveTitle = (values: { readonly title: string }) =>
-	values.title.length > 0 ? Effect.succeed({ id: 1, title: values.title }) : Effect.fail("Rejected" as const);
+function saveTitle(values: { readonly title: string }) {
+	return values.title.length > 0 ? Effect.succeed({ id: 1, title: values.title }) : Effect.fail("Rejected" as const);
+}
 
 export const useEditorExample = () => {
 	const editor = useEditor({
@@ -34,8 +35,12 @@ export const useEditorExample = () => {
 
 class NameRejected extends Data.TaggedError("NameRejected")<{ readonly field: "title"; readonly message: string }> {}
 class StaleRejected extends Data.TaggedError("StaleRejected")<{ readonly field: "subtitle"; readonly message: string }> {}
-const saveNamed = (values: { readonly title: string }) => Effect.fail(new NameRejected({ field: "title", message: values.title }));
-const saveStale = (values: { readonly title: string }) => Effect.fail(new StaleRejected({ field: "subtitle", message: values.title }));
+function saveNamed(values: { readonly title: string }) {
+	return Effect.fail(new NameRejected({ field: "title", message: values.title }));
+}
+function saveStale(values: { readonly title: string }) {
+	return Effect.fail(new StaleRejected({ field: "subtitle", message: values.title }));
+}
 
 export const useRejectionExample = () => {
 	const named = useCreate({ create: saveNamed, fields, initialValues: { title: "" }, runtime });
@@ -67,7 +72,9 @@ class TitleConflict extends Schema.TaggedError<TitleConflict>()("TitleConflict",
 	message: Schema.String,
 }) {}
 class Described extends Schema.TaggedError<Described>()("Described", { message: Schema.String }) {}
-const saveConflict = (values: { readonly title: string }) => Effect.fail(new Conflict({ message: values.title }));
+function saveConflict(values: { readonly title: string }) {
+	return Effect.fail(new Conflict({ message: values.title }));
+}
 
 export const useOptionalFieldExample = () => {
 	// @ts-expect-error An optional field typed wider than the form's field names needs an explicit rejectField.

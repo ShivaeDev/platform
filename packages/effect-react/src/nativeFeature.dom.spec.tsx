@@ -12,7 +12,7 @@ import { expect, it, vi } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { useAction, useQuery } from "#result-state.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({
@@ -64,7 +64,7 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 		reactivityKeys: ["notes"],
 	});
 	const create = NotesClient.mutation("CreateNote");
-	const Component = () => {
+	function Component() {
 		const query = useQuery(list);
 		const action = useAction(create);
 		return createElement(
@@ -105,11 +105,13 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 				"Save empty",
 			),
 		);
-	};
-	const snapshot = () => JSON.parse(container.querySelector("output")?.textContent ?? "null");
+	}
+	function snapshot() {
+		return JSON.parse(container.querySelector("output")?.textContent ?? "null");
+	}
 	const settled = async (titles: string[], error = false) =>
 		vi.waitFor(async () => {
-			await act(async () => {});
+			await act(async (): Promise<void> => undefined);
 			expect(snapshot()).toEqual({
 				error,
 				loading: false,

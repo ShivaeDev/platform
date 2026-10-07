@@ -16,18 +16,22 @@ interface Models {
 	readonly User: ControlledCollection<User>;
 }
 
-const makeExecutor = (execute: () => Promise<User[]>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> => ({
-	client: unusedClient(),
-	identity: {},
-	liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
-	mode: querySemaphore === undefined ? "root" : "transaction",
-	models: { User: new ControlledCollection(execute) },
-	querySemaphore,
-	transactionIdentity: querySemaphore === undefined ? undefined : {},
-	transactionSemaphore: undefined,
-});
+function makeExecutor(execute: () => Promise<User[]>, querySemaphore?: Semaphore.Semaphore): DatabaseExecutor<Models> {
+	return {
+		client: unusedClient(),
+		identity: {},
+		liveness: { closedCode: "RUNTIME.TRANSACTION_CLOSED", open: true },
+		mode: querySemaphore === undefined ? "root" : "transaction",
+		models: { User: new ControlledCollection(execute) },
+		querySemaphore,
+		transactionIdentity: querySemaphore === undefined ? undefined : {},
+		transactionSemaphore: undefined,
+	};
+}
 
-const relation = (executor: DatabaseExecutor<Models>) => makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
+function relation(executor: DatabaseExecutor<Models>) {
+	return makeModelRelation<ControlledCollection<User>, Models>(executor, "User");
+}
 
 it.effect("does not serialize queries outside a transaction", () => {
 	let active = 0;
@@ -41,7 +45,7 @@ it.effect("does not serialize queries outside a transaction", () => {
 	const startedTwice = new Promise<void>((resolve) => {
 		bothStarted = resolve;
 	});
-	const execute = async () => {
+	async function execute() {
 		active += 1;
 		started += 1;
 		maximumActive = Math.max(maximumActive, active);
@@ -54,7 +58,7 @@ it.effect("does not serialize queries outside a transaction", () => {
 		} finally {
 			active -= 1;
 		}
-	};
+	}
 
 	const executor = makeExecutor(execute);
 	return Effect.gen(function* () {
@@ -80,7 +84,7 @@ it.effect("serializes queries that share a transaction executor", () => {
 	const startedOnce = new Promise<void>((resolve) => {
 		firstStarted = resolve;
 	});
-	const execute = async () => {
+	async function execute() {
 		active += 1;
 		started += 1;
 		maximumActive = Math.max(maximumActive, active);
@@ -90,7 +94,7 @@ it.effect("serializes queries that share a transaction executor", () => {
 		}
 		active -= 1;
 		return [...rows];
-	};
+	}
 
 	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {
@@ -108,13 +112,13 @@ it.effect("serializes queries that share a transaction executor", () => {
 
 it.effect("releases a transaction query permit after failure", () => {
 	let attempt = 0;
-	const execute = async () => {
+	async function execute() {
 		attempt += 1;
 		if (attempt === 1) {
 			throw new Error("expected query failure");
 		}
 		return [...rows];
-	};
+	}
 
 	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {
@@ -134,14 +138,14 @@ it.effect("holds a transaction query permit until interrupted work settles", () 
 	const released = new Promise<void>((resolve) => {
 		releaseFirst = resolve;
 	});
-	const execute = async () => {
+	async function execute() {
 		attempt += 1;
 		if (attempt === 1) {
 			firstStarted();
 			await released;
 		}
 		return [...rows];
-	};
+	}
 
 	const executor = makeExecutor(execute, Semaphore.makeUnsafe(1));
 	return Effect.gen(function* () {

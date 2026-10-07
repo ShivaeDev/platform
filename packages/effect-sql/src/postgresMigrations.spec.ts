@@ -7,8 +7,9 @@ import { environmentVariable } from "#test/environment.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
-const migrate = (options: { readonly table: string; readonly loader: Migrator.Loader<SqlClient.SqlClient> }) =>
-	migratePostgres({ ...options, lockTimeout: "5 seconds" });
+function migrate(options: { readonly table: string; readonly loader: Migrator.Loader<SqlClient.SqlClient> }) {
+	return migratePostgres({ ...options, lockTimeout: "5 seconds" });
+}
 
 function blockedBy(holder: number) {
 	return Effect.gen(function* () {
@@ -25,8 +26,8 @@ function blockedBy(holder: number) {
 	});
 }
 
-const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) =>
-	Effect.runPromise(
+function withDatabase<A, E>(use: (names: { ledger: string; orders: string; audit: string }) => Effect.Effect<A, E, SqlClient.SqlClient>) {
+	return Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
@@ -54,6 +55,7 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string; audit
 			),
 		),
 	);
+}
 
 integration("migratePostgres initializes, upgrades and reruns without repeating writes", async () => {
 	await withDatabase(({ ledger, orders }) =>
@@ -76,8 +78,8 @@ integration("migratePostgres initializes, upgrades and reruns without repeating 
 			expect(yield* migrate({ loader, table: ledger })).toEqual([]);
 			expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 			expect(yield* sql`select migration_id, name from ${sql(ledger)} order by migration_id`).toEqual([
-				{ migration_id: 1, name: "create_orders" },
-				{ migration_id: 2, name: "seed_orders" },
+				{ "migration_id": 1, name: "create_orders" },
+				{ "migration_id": 2, name: "seed_orders" },
 			]);
 		}),
 	);
@@ -111,8 +113,8 @@ integration("migratePostgres rolls back pending DDL, data and ledger as one batc
 				});
 			}
 			expect(yield* sql`select name from ${sql(orders)}`).toEqual([]);
-			expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ table_name: null }]);
-			expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ migration_id: 1 }]);
+			expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ "table_name": null }]);
+			expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ "migration_id": 1 }]);
 		}),
 	);
 });
@@ -150,7 +152,7 @@ integration(
 					expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
 					expect(yield* Fiber.join(second)).toEqual([]);
 					expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-					expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
+					expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 				}),
 			),
 		);

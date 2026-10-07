@@ -9,7 +9,7 @@ import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
 import { type Create, useCreate } from "#create.ts";
 import { type Editor, useEditor } from "#editor.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
@@ -25,7 +25,7 @@ interface Order {
 }
 const runtime = Atom.runtime(Layer.empty);
 
-const mount = async (Component: () => null) => {
+async function mount(Component: () => null) {
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	const registry = AtomRegistry.make();
@@ -35,11 +35,13 @@ const mount = async (Component: () => null) => {
 	});
 	await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component))));
 	return registry;
-};
+}
 
-const creating = async () => {
+async function creating() {
 	const names: string[] = [];
-	const create = (values: { readonly name: string }) => Effect.sync((): Order => ({ id: names.push(values.name), name: values.name.trim() }));
+	function create(values: { readonly name: string }) {
+		return Effect.sync((): Order => ({ id: names.push(values.name), name: values.name.trim() }));
+	}
 	const held: { create?: Create<NameFields, Order, never, never>; submit?: Submit<Order, unknown> } = {};
 	const registry = await mount(() => {
 		const current = useCreate({ create, fields, initialValues: { name: "" }, runtime });
@@ -54,7 +56,7 @@ const creating = async () => {
 		return { create: held.create, submit: held.submit };
 	};
 	return { current, names, registry };
-};
+}
 
 it("a create submitted through the form's own API records the result and resets the form", async () => {
 	const { names, current } = await creating();
@@ -78,11 +80,12 @@ it("a form-API create after an earlier save() compares against its own submissio
 
 it("an edit typed while an async schema decodes the submission survives the create reset", async () => {
 	const decoding = Promise.withResolvers<void>();
-	const decoded = (value: string) =>
-		Effect.as(
+	function decoded(value: string) {
+		return Effect.as(
 			Effect.promise(() => decoding.promise),
 			value,
 		);
+	}
 	const slow = Schema.Struct({
 		name: Schema.String.pipe(
 			Schema.decodeTo(Schema.String, {
@@ -96,12 +99,12 @@ it("an edit typed while an async schema decodes the submission survives the crea
 		held.create = useCreate({ create: (values) => Effect.succeed({ id: 1, name: values.name }), fields: slow, initialValues: { name: "" }, runtime });
 		return null;
 	});
-	const current = () => {
+	function current() {
 		if (held.create === undefined) {
 			throw new Error("Create hook did not render");
 		}
 		return held.create;
-	};
+	}
 	await act(async () => current().form.change("name", "Desk lamps"));
 	await act(async () => current().save());
 	await act(async () => current().form.change("name", "Desk lamps and chairs"));
@@ -112,7 +115,9 @@ it("an edit typed while an async schema decodes the submission survives the crea
 
 it("an edit submitted through the form's own API receives the normalized saved row", async () => {
 	const query = Atom.make(Effect.succeed<Order>({ id: 1, name: "desk lamps" }));
-	const save = (values: { readonly name: string }) => Effect.succeed<Order>({ id: 1, name: values.name.toUpperCase() });
+	function save(values: { readonly name: string }) {
+		return Effect.succeed<Order>({ id: 1, name: values.name.toUpperCase() });
+	}
 	const held: { editor?: Editor<NameFields, Order, never, never, never> } = {};
 	const registry = await mount(() => {
 		held.editor = useEditor({ fields, query, runtime, save, values: (row) => ({ name: row.name }) });

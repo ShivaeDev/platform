@@ -13,7 +13,7 @@ export interface ResultState<A, E> {
 	readonly result: AsyncResult.AsyncResult<A, E>;
 }
 
-const state = <A, E>(result: AsyncResult.AsyncResult<A, E>): ResultState<A, E> => {
+function state<A, E>(result: AsyncResult.AsyncResult<A, E>): ResultState<A, E> {
 	const data = AsyncResult.value(result);
 	return {
 		cause: AsyncResult.cause(result),
@@ -22,19 +22,19 @@ const state = <A, E>(result: AsyncResult.AsyncResult<A, E>): ResultState<A, E> =
 		refreshing: result.waiting && Option.isSome(data),
 		result,
 	};
-};
+}
 
 export const isUnauthorized = <E>(cause: Cause.Cause<E>): boolean =>
 	Option.match(Cause.findErrorOption(cause), { onNone: () => false, onSome: (error) => Predicate.isTagged(error, "Unauthorized") });
 
-const useRecheckOnUnauthorized = <A, E>(result: AsyncResult.AsyncResult<A, E>): void => {
+function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>): void {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
 		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
 			recheck();
 		}
 	}, [recheck, result]);
-};
+}
 
 export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly refresh: () => void;

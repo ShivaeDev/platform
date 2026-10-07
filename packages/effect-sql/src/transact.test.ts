@@ -8,7 +8,9 @@ import { invalidateOnCommit, transact } from "#transact.ts";
 class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
 class Rejected extends Data.TaggedError("Rejected") {}
 
-const onSqlError = (error: { readonly message: string }) => new Unavailable({ reason: error.message });
+function onSqlError(error: { readonly message: string }) {
+	return new Unavailable({ reason: error.message });
+}
 
 const setup = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -20,13 +22,16 @@ const setup = Effect.gen(function* () {
 	for (const key of ["orders", "orders:1", "orders:2"]) {
 		reactivity.registerUnsafe([key], () => events.push(key));
 	}
-	const insert = (id: number) => sql`insert into orders (id, name) values (${id}, ${`order ${id}`})`;
+	function insert(id: number) {
+		return sql`insert into orders (id, name) values (${id}, ${`order ${id}`})`;
+	}
 	const count = Effect.map(sql<{ readonly total: number }>`select count(*) as total from orders`, ([row]) => row?.total);
 	return { count, events, insert, sql };
 });
 
-const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) =>
-	Effect.runPromise(effect.pipe(Effect.provide(Layer.merge(SqliteClient.layer({ filename: ":memory:" }), Reactivity.layer))));
+function run<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) {
+	return Effect.runPromise(effect.pipe(Effect.provide(Layer.merge(SqliteClient.layer({ filename: ":memory:" }), Reactivity.layer))));
+}
 
 it("a committed transaction invalidates its marked keys once, after the body finishes", () =>
 	run(
@@ -131,7 +136,9 @@ it("a transaction on another database inside a transaction announces its own com
 			Effect.gen(function* () {
 				const { events, insert, count } = yield* setup;
 				const other = yield* Layer.build(SqliteClient.layer({ filename: ":memory:" }));
-				const onOther = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) => Effect.provide(effect, other);
+				function onOther<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity>) {
+					return Effect.provide(effect, other);
+				}
 				yield* onOther(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`create table orders (id integer primary key)`));
 				const failed = yield* Effect.gen(function* () {
 					yield* insert(1);

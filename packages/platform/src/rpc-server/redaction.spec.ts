@@ -10,10 +10,10 @@ import { redactingErrorReporter } from "#rpc-server/redact-cause.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
-const leaks = (value: unknown, secrets: readonly string[]) => {
+function leaks(value: unknown, secrets: readonly string[]) {
 	const rendered = inspect(value, { depth: 20 });
 	return secrets.filter((secret) => rendered.includes(secret));
-};
+}
 
 it("credential-shaped keys are redacted whatever their casing or separator", () => {
 	const keys = [

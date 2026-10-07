@@ -7,11 +7,15 @@ export type Changes = ReturnType<typeof makeChanges>["changes"];
 
 export type HarnessTx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
-export const createOrder = (changes: Changes, id: string) => changes.use((db) => db.order.create({ data: { id, ownerId: "ada", total: 1 } }));
+export function createOrder(changes: Changes, id: string) {
+	return changes.use((db) => db.order.create({ data: { id, ownerId: "ada", total: 1 } }));
+}
 
-export const warm = (client: PrismaClient) => Effect.promise(() => client.$queryRawUnsafe("select 1"));
+export function warm(client: PrismaClient) {
+	return Effect.promise(() => client.$queryRawUnsafe("select 1"));
+}
 
-export const probe = (duration: Duration.Input) => {
+export function probe(duration: Duration.Input) {
 	const state = { interrupted: false, sideEffects: 0 };
 	return {
 		body: <A, E, R>(write: Effect.Effect<A, E, R>) =>
@@ -28,26 +32,28 @@ export const probe = (duration: Duration.Input) => {
 			),
 		state,
 	};
-};
+}
 
-export const timed = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-	Effect.gen(function* () {
+export function timed<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	return Effect.gen(function* () {
 		const started = yield* Clock.currentTimeMillis;
 		const result = yield* effect;
 		return { elapsed: (yield* Clock.currentTimeMillis) - started, result };
 	});
+}
 
-export const harnessed = <X, E>(changes: Changes, body: Effect.Effect<X, E>) =>
-	Effect.gen(function* () {
+export function harnessed<X, E>(changes: Changes, body: Effect.Effect<X, E>) {
+	return Effect.gen(function* () {
 		const context = yield* Effect.context<never>();
 		const exits: Exit.Exit<X, E | TransactionExpired | PrismaError>[] = [];
-		const run = async (tx: HarnessTx) => {
+		async function run(tx: HarnessTx) {
 			exits.push(await Effect.runPromiseExitWith(context)(changes.transaction(body).pipe(Effect.provideService(changes.Client, tx))));
-		};
+		}
 		return { exits, run };
 	});
+}
 
-export const expiredIn = (exits: readonly Exit.Exit<unknown, unknown>[]) => {
+export function expiredIn(exits: readonly Exit.Exit<unknown, unknown>[]) {
 	const [exit] = exits;
 	return exit !== undefined && Exit.isFailure(exit) && Cause.squash(exit.cause) instanceof TransactionExpired;
-};
+}

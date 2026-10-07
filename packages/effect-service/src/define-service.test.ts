@@ -12,8 +12,8 @@ type NoRequirements<Success, Failure = never, CallerRequirements extends Scope.S
 	CallerRequirements
 >;
 
-const declaredRequirementProof = () =>
-	Effect.gen(function* () {
+function declaredRequirementProof() {
+	return Effect.gen(function* () {
 		class Declared extends Context.Service<Declared, { readonly identity: object }>()("test/Declared") {}
 		const requirements = [Declared] as const;
 		type Requirements<Success> = ServiceRequirements<typeof requirements, Success>;
@@ -39,9 +39,10 @@ const declaredRequirementProof = () =>
 			),
 		).toBe(true);
 	});
+}
 
-const processLifetimeProof = () =>
-	Effect.gen(function* () {
+function processLifetimeProof() {
+	return Effect.gen(function* () {
 		const initializations = yield* Ref.make(0);
 		const finalizations = yield* Ref.make(0);
 		const factoryCalls = { value: 0 };
@@ -72,6 +73,7 @@ const processLifetimeProof = () =>
 		expect(factoryCalls.value).toBe(1);
 		expect(yield* Ref.get(finalizations)).toBe(1);
 	});
+}
 
 describe("defineService", () => {
 	it.effect("provides the one declared requirement to initialization and methods", declaredRequirementProof);

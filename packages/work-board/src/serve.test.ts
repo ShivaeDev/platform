@@ -11,26 +11,28 @@ let notes: Folder | undefined;
 
 afterEach(() => notes?.remove());
 
-const exited = (child: ReturnType<typeof spawn>): Promise<number> =>
-	new Promise((resolve) => {
+function exited(child: ReturnType<typeof spawn>): Promise<number> {
+	return new Promise((resolve) => {
 		const started = performance.now();
 		child.on("exit", () => resolve(performance.now() - started));
 	});
+}
 
-const listening = (child: ReturnType<typeof spawn>): Promise<string> =>
-	new Promise((resolve, reject) => {
+function listening(child: ReturnType<typeof spawn>): Promise<string> {
+	return new Promise((resolve, reject) => {
 		let output = "";
-		const collect = (chunk: Buffer) => {
+		function collect(chunk: Buffer) {
 			output += chunk.toString("utf8");
 			const address = /Listening on (http:\/\/\S+)/u.exec(output)?.[1];
 			if (address !== undefined) {
 				resolve(address);
 			}
-		};
+		}
 		child.stdout?.on("data", collect);
 		child.stderr?.on("data", collect);
 		child.on("exit", (code) => reject(new Error(`work-board exited ${code}:\n${output}`)));
 	});
+}
 
 describe("the server", () => {
 	it("listens on 127.0.0.1 only", async () => {
@@ -60,8 +62,14 @@ describe("the server", () => {
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let output = "";
-		child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
-		child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString("utf8")));
+		child.stdout.on("data", (chunk: Buffer) => {
+			output += chunk.toString("utf8");
+			return output;
+		});
+		child.stderr.on("data", (chunk: Buffer) => {
+			output += chunk.toString("utf8");
+			return output;
+		});
 		const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
 		expect(code).not.toBe(0);
 		expect(output).toContain("The home file missing.md is not a markdown file in");

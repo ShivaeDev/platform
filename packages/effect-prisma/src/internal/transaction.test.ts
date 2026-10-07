@@ -12,7 +12,7 @@ interface ResourceOptions {
 	readonly rollbackFailure?: unknown;
 }
 
-const makeResource = (options: ResourceOptions = {}) => {
+function makeResource(options: ResourceOptions = {}) {
 	const calls: string[] = [];
 	const resource: TransactionResource<Record<string, never>, AnySqlContract> = {
 		connection: {
@@ -56,7 +56,7 @@ const makeResource = (options: ResourceOptions = {}) => {
 	};
 
 	return { calls, resource };
-};
+}
 
 it.effect("commits and releases a successful transaction", function* () {
 	const { calls, resource } = makeResource();

@@ -67,9 +67,9 @@ it.effectApp("preserves database, caller, and extension types", function* (app) 
 	// @ts-expect-error Caller options retain their application type.
 	yield* app.trpc({ actor: 1 }).userCount();
 	// @ts-expect-error Unknown models remain rejected.
-	app.db.Movie;
+	void app.db.Movie;
 	// @ts-expect-error Database filters retain generated field types.
 	app.db.AuthUser.where({ email: 123 });
 	// @ts-expect-error Harness extensions do not widen unknown properties.
-	app.missing;
+	void app.missing;
 });

@@ -7,8 +7,8 @@ export interface Scripted {
 }
 
 // Time moves only when the waiter prints, so the reminder schedule is exercised without real waiting.
-export const scriptedClock = (startMs: number, onLine: (line: string, lines: readonly string[]) => number): Effect.Effect<Scripted> =>
-	Effect.gen(function* () {
+export function scriptedClock(startMs: number, onLine: (line: string, lines: readonly string[]) => number): Effect.Effect<Scripted> {
+	return Effect.gen(function* () {
 		const base = yield* TestConsole.make;
 		let nowMs = startMs;
 		const lines: string[] = [];
@@ -33,3 +33,4 @@ export const scriptedClock = (startMs: number, onLine: (line: string, lines: rea
 			provide: (effect) => effect.pipe(Effect.provideService(Clock.Clock, clock), Effect.provideService(Console.Console, output)),
 		};
 	});
+}

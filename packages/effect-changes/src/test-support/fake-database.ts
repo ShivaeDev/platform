@@ -12,7 +12,7 @@ export class Current extends Context.Service<Current, FakeDatabase>()("test/Curr
 
 const Staging = Context.Reference<ReadonlyMap<FakeDatabase, string[]>>("test/Staging", { defaultValue: () => new Map() });
 
-export const makeDatabase = (name: string, commit: Effect.Effect<void> = Effect.void): FakeDatabase => {
+export function makeDatabase(name: string, commit: Effect.Effect<void> = Effect.void): FakeDatabase {
 	const committed: string[] = [];
 	const database: FakeDatabase = {
 		committed,
@@ -39,16 +39,18 @@ export const makeDatabase = (name: string, commit: Effect.Effect<void> = Effect.
 			}),
 	};
 	return database;
-};
+}
 
 export interface Change {
 	readonly domain: string;
 	readonly subject: string;
 }
 
-export const change = (subject: string, domain = "orders"): Change => ({ domain, subject });
+export function change(subject: string, domain = "orders"): Change {
+	return { domain, subject };
+}
 
-export const makeTestChannel = (options: Partial<ChannelOptions<Change, Current>> = {}) => {
+export function makeTestChannel(options: Partial<ChannelOptions<Change, Current>> = {}) {
 	const published: Array<readonly string[]> = [];
 	const channel = makeChannel<Change, Current>({
 		key: (event) => `${event.subject}:${event.domain}`,
@@ -58,7 +60,7 @@ export const makeTestChannel = (options: Partial<ChannelOptions<Change, Current>
 		...options,
 	});
 	return { channel, published };
-};
+}
 
 export interface LogEntry {
 	readonly annotations: Readonly<Record<string, unknown>>;
@@ -67,7 +69,7 @@ export interface LogEntry {
 	readonly message: unknown;
 }
 
-export const captureLogs = () => {
+export function captureLogs() {
 	const entries: LogEntry[] = [];
 	const logger = Logger.make((options) => {
 		entries.push({
@@ -78,20 +80,19 @@ export const captureLogs = () => {
 		});
 	});
 	return { entries, layer: Logger.layer([logger]) };
-};
+}
 
-export const on =
-	(database: FakeDatabase) =>
-	<X, E, R>(effect: Effect.Effect<X, E, R>): Effect.Effect<X, E, Exclude<R, Current>> =>
-		Effect.provideService(effect, Current, database);
+export function on(database: FakeDatabase) {
+	return <X, E, R>(effect: Effect.Effect<X, E, R>): Effect.Effect<X, E, Exclude<R, Current>> => Effect.provideService(effect, Current, database);
+}
 
-export const harness = (options: Partial<ChannelOptions<Change, Current>> = {}) => {
+export function harness(options: Partial<ChannelOptions<Change, Current>> = {}) {
 	const { channel, published } = makeTestChannel(options);
-	const inTransaction =
-		(database: FakeDatabase) =>
-		<X, E, R>(body: Effect.Effect<X, E, R>) =>
-			on(database)(channel.within(database.transaction)(body));
-	const write = (database: FakeDatabase, row: string, ...changes: readonly Change[]) =>
-		on(database)(Effect.andThen(database.write(row), channel.record(changes)));
+	function inTransaction(database: FakeDatabase) {
+		return <X, E, R>(body: Effect.Effect<X, E, R>) => on(database)(channel.within(database.transaction)(body));
+	}
+	function write(database: FakeDatabase, row: string, ...changes: readonly Change[]) {
+		return on(database)(Effect.andThen(database.write(row), channel.record(changes)));
+	}
 	return { channel, inTransaction, published, write };
-};
+}

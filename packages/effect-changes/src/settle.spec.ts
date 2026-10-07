@@ -29,8 +29,9 @@ it("work that outlives its frame dies instead of dropping changes", () =>
 			const { channel, published, inTransaction, write } = harness();
 			const database = makeDatabase("main");
 			const release = yield* Deferred.make<void>();
-			const late = (effect: Effect.Effect<void, never, Current>) =>
-				Effect.andThen(write(database, "row", change("ada")), Effect.forkChild(Effect.andThen(Deferred.await(release), on(database)(effect))));
+			function late(effect: Effect.Effect<void, never, Current>) {
+				return Effect.andThen(write(database, "row", change("ada")), Effect.forkChild(Effect.andThen(Deferred.await(release), on(database)(effect))));
+			}
 			const recording = yield* late(channel.record([change("bob")])).pipe(inTransaction(database));
 			const opening = yield* late(write(database, "late row", change("cyd")).pipe(inTransaction(database))).pipe(inTransaction(database));
 			yield* Deferred.succeed(release, undefined);
@@ -56,8 +57,8 @@ it("a Promise-committing driver runs the body outside the fiber and settles from
 		Effect.gen(function* () {
 			const { channel, published } = harness();
 			const database = makeDatabase("main");
-			const driver = <X, E>(body: Effect.Effect<X, E, Current>, commits: boolean) =>
-				Effect.gen(function* () {
+			function driver<X, E>(body: Effect.Effect<X, E, Current>, commits: boolean) {
+				return Effect.gen(function* () {
 					const frame = yield* channel.open;
 					const context = yield* Effect.context<Current>();
 					const outcome = yield* Effect.promise(
@@ -67,6 +68,7 @@ it("a Promise-committing driver runs the body outside the fiber and settles from
 					yield* frame.settle(outcome);
 					return outcome;
 				});
+			}
 			const committed = yield* on(database)(
 				driver(
 					Effect.gen(function* () {

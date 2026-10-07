@@ -3,11 +3,13 @@ import { expect, it } from "vitest";
 import type { ChannelOptions } from "#channel.ts";
 import { type Change, Current, change, harness, makeDatabase } from "#test/fake-database.ts";
 
-const setup = (options: Partial<ChannelOptions<Change, Current>> = {}) => ({
-	...harness(options),
-	main: makeDatabase("main"),
-	other: makeDatabase("other"),
-});
+function setup(options: Partial<ChannelOptions<Change, Current>> = {}) {
+	return {
+		...harness(options),
+		main: makeDatabase("main"),
+		other: makeDatabase("other"),
+	};
+}
 
 it("a frame on another owner inside a frame is a root for that owner and publishes at its own commit", () =>
 	Effect.runPromise(

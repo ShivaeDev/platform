@@ -15,7 +15,7 @@ const program = Effect.gen(function* () {
 	);
 
 	// @ts-expect-error Models are generated from the contract.
-	db.Movie;
+	void db.Movie;
 	// @ts-expect-error Unknown fields must not be accepted by object filters.
 	db.User.where({ missing: true });
 	// @ts-expect-error Filter values retain their database field types.

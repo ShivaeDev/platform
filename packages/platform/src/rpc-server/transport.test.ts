@@ -5,11 +5,11 @@ import { createProvider, origin, signup } from "#test/rpc/harness.ts";
 
 const browser = trustedOrigins({ allow: [origin], missing: "reject" });
 
-const post = async (
+async function post(
 	app: { readonly handler: (request: Request) => Promise<Response> },
 	transport: Readonly<Record<string, string>>,
 	message: ReadonlyArray<readonly [string, string]>,
-) => {
+) {
 	const response = await app.handler(
 		new Request(`${origin}/rpc`, {
 			body: JSON.stringify([{ _tag: "Request", headers: message, id: "1", payload: null, tag: "Whoami" }]),
@@ -18,7 +18,7 @@ const post = async (
 		}),
 	);
 	return JSON.stringify(await response.json());
-};
+}
 
 it("client-supplied message headers cannot satisfy the origin policy or carry credentials", async () => {
 	const provider = await createProvider();

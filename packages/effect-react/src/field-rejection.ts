@@ -25,7 +25,9 @@ export type FieldRejectionMapping<F extends Fields, E> = { readonly rejectField?
 export const fieldRejectionOf =
 	<F extends Fields>(schema: Schema.Struct<F>) =>
 	(error: unknown): FieldRejection<Name<F>> | undefined => {
-		const isName = (name: unknown): name is Name<F> => typeof name === "string" && Object.hasOwn(schema.fields, name);
+		function isName(name: unknown): name is Name<F> {
+			return typeof name === "string" && Object.hasOwn(schema.fields, name);
+		}
 		if (!(Predicate.hasProperty(error, "_tag") && Predicate.hasProperty(error, "field") && Predicate.hasProperty(error, "message"))) {
 			return undefined;
 		}

@@ -14,19 +14,19 @@ function cachedEntry(runtime: unknown): unknown {
 	return runtime;
 }
 
-const make = <Services, BuildError>(layer: Layer.Layer<Services, BuildError>): PlatformRuntime<Services, BuildError> => {
+function make<Services, BuildError>(layer: Layer.Layer<Services, BuildError>): PlatformRuntime<Services, BuildError> {
 	const managed = ManagedRuntime.make(layer);
 	const services = new AsyncLocalStorage<Context.Context<never>>();
 
 	const currentServices = () => services.getStore();
-	const withAmbient = <A, E, Requirements extends Services>(
+	function withAmbient<A, E, Requirements extends Services>(
 		effect: Effect.Effect<A, E, Requirements>,
-	): Effect.Effect<A, E | BuildError, Requirements> => {
+	): Effect.Effect<A, E | BuildError, Requirements> {
 		const ambient = currentServices();
 		return ambient === undefined
 			? effect
 			: Effect.flatMap(managed.contextEffect, (base) => Effect.provideContext(effect, Context.merge(base, ambient)));
-	};
+	}
 
 	const runPromiseExit: PlatformRuntime<Services, BuildError>["runPromiseExit"] = (effect, options) =>
 		managed.runPromiseExit(withAmbient(effect), options);
@@ -50,7 +50,7 @@ const make = <Services, BuildError>(layer: Layer.Layer<Services, BuildError>): P
 	};
 
 	return runtime;
-};
+}
 
 const production = Effect.map(Effect.orDie(Config.string("NODE_ENV").pipe(Config.withDefault(""))), (environment) => environment === "production");
 

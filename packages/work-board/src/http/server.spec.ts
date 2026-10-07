@@ -29,7 +29,9 @@ afterEach(async () => {
 	outside.remove();
 });
 
-const get = (path: string) => fetch(`${board.url}${path}`);
+function get(path: string) {
+	return fetch(`${board.url}${path}`);
+}
 
 describe("pages", () => {
 	it("shows the home file as a board with its counts and every markdown file in the top bar", async () => {
@@ -152,7 +154,9 @@ describe("pages", () => {
 		await board.stop();
 		const counting = countingPaths();
 		board = await startBoard(notes.root, "plan.md", counting.wrap);
-		const listings = () => counting.listed.filter((path) => path.endsWith("/notes")).length;
+		function listings() {
+			return counting.listed.filter((path) => path.endsWith("/notes")).length;
+		}
 		await get("/");
 		const once = listings();
 		await get("/");
@@ -185,8 +189,11 @@ describe("local-only safety", () => {
 
 	it("refuses a request from an address that is not loopback when the address is known", async () => {
 		const handler = loopbackOnly(() => Effect.succeed(HttpServerResponse.text("served")));
-		const from = (address: string) =>
-			HttpServerRequest.fromWeb(new Request("http://localhost/", { headers: { host: "localhost" } })).modify({ remoteAddress: Option.some(address) });
+		function from(address: string) {
+			return HttpServerRequest.fromWeb(new Request("http://localhost/", { headers: { host: "localhost" } })).modify({
+				remoteAddress: Option.some(address),
+			});
+		}
 		expect((await Effect.runPromise(handler(from("203.0.113.9")))).status).toBe(403);
 		expect((await Effect.runPromise(handler(from("::ffff:127.0.0.1")))).status).toBe(200);
 		expect((await Effect.runPromise(handler(from("::1")))).status).toBe(200);

@@ -133,6 +133,10 @@ it("rejects a symlinked publication directory without writing to another folder"
 
 it("bounds reviewed context before preparing a handoff", async () => {
 	await open();
-	notes.write("items/keyboard.md", SOURCE + "Large context. ".repeat(24_000));
+	const remaining = 256 * 1024 + 1 - new TextEncoder().encode(SOURCE).length;
+	const context = SOURCE + "界".repeat(Math.floor(remaining / 3)) + "x".repeat(remaining % 3);
+	expect(context.length).toBeLessThan(256 * 1024);
+	expect(new TextEncoder().encode(context).length).toBe(256 * 1024 + 1);
+	notes.write("items/keyboard.md", context);
 	await expect(client.run(client.handoffs.handoffSource.run({ item: "task.keyboard" }))).rejects.toThrow("256 KiB");
 });

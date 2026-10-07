@@ -17,16 +17,16 @@ const AuditDatabase = makeSqliteDatabase<Contract>()("@test/SqliteAuditDatabase"
 const AuditDatabaseLive = AuditDatabase.layer({ path: auditTemporary.path });
 const withDatabases = Effect.provide(Layer.merge(DatabaseLive, AuditDatabaseLive));
 
-const journalMode = (path: string): unknown => {
+function journalMode(path: string): unknown {
 	const database = new DatabaseSync(path);
 	try {
 		return database.prepare("PRAGMA journal_mode").get()?.journal_mode;
 	} finally {
 		database.close();
 	}
-};
+}
 
-const storedCreatedAt = (path: string, id: string): string => {
+function storedCreatedAt(path: string, id: string): string {
 	const database = new DatabaseSync(path);
 	try {
 		const row = database.prepare('SELECT "created_at" FROM "user" WHERE "id" = ?').get(id);
@@ -34,7 +34,7 @@ const storedCreatedAt = (path: string, id: string): string => {
 	} finally {
 		database.close();
 	}
-};
+}
 
 it.effect("applies connect-time pragmas to the database file", () =>
 	withDatabase(

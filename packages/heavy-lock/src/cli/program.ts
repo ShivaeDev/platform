@@ -13,8 +13,8 @@ type Waited =
 	| { readonly _tag: "Signalled"; readonly signal: ForwardedSignal };
 
 // A signal while waiting abandons the wait; once the command runs, signals go to the command instead.
-const underLock = (commandLine: CommandLine) =>
-	Effect.scoped(
+function underLock(commandLine: CommandLine) {
+	return Effect.scoped(
 		Effect.gen(function* () {
 			const signals = yield* receiveSignals;
 			const waited = yield* Effect.raceFirst(
@@ -24,11 +24,12 @@ const underLock = (commandLine: CommandLine) =>
 			return waited._tag === "Signalled" ? signalExitCode(waited.signal) : yield* runCommand(commandLine, waited.env, signals);
 		}),
 	);
+}
 
-const report = (cause: Cause.Cause<unknown>) => {
+function report(cause: Cause.Cause<unknown>) {
 	const error = Cause.squash(cause);
 	return Console.error(error instanceof HeavyLockError ? `heavy-lock: ${error.message}` : `heavy-lock: ${Cause.pretty(cause)}`);
-};
+}
 
 export const program = (args: readonly string[]) => {
 	const commandLine = parseCommandLine(args);

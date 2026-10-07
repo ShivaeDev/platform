@@ -8,15 +8,15 @@ import { builtInRules } from "#rules/built-in.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 
-const resolve = async (config: unknown) => {
+async function resolve(config: unknown) {
 	const decoded = await decodeConfig(config);
 	return decoded._tag === "Invalid" ? decoded : Effect.runPromise(resolveRules(decoded.value));
-};
+}
 
-const issues = async (config: unknown): Promise<readonly string[]> => {
+async function issues(config: unknown): Promise<readonly string[]> {
 	const resolved = await resolve(config);
 	return resolved._tag === "Invalid" ? resolved.issues : [];
-};
+}
 
 describe("config", () => {
 	it("defaults every rule to error", async () => {

@@ -37,7 +37,7 @@ const registration = {
 	profile: { apiKey: "key-plaintext", nickname: "alice" },
 };
 
-const run = async <A, E>(options: RequestTracingOptions, program: (client: RpcClient.FromGroup<typeof Accounts>) => Effect.Effect<A, E>) => {
+async function run<A, E>(options: RequestTracingOptions, program: (client: RpcClient.FromGroup<typeof Accounts>) => Effect.Effect<A, E>) {
 	const recorded = recorder();
 	const value = await Effect.runPromise(
 		Effect.gen(function* () {
@@ -46,7 +46,7 @@ const run = async <A, E>(options: RequestTracingOptions, program: (client: RpcCl
 		}).pipe(Effect.provide(Layer.mergeAll(Handlers, requestTracingLayer(options), recorded.layer)), Effect.scoped),
 	);
 	return { value, ...recorded };
-};
+}
 
 it("a caller's request id reaches handlers, log annotations and the RPC server span", async () => {
 	const { value, logs, spans } = await run({}, (client) => client.Echo(undefined, { headers: { "x-request-id": "trace-7f3a" } }));

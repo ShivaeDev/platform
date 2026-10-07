@@ -8,12 +8,13 @@ import { deadPid, holder, lockDirectory, removeTemporaryDirectories, services, t
 
 afterEach(removeTemporaryDirectories);
 
-const reclaimedBy = (lock: string, id: string) =>
-	Effect.gen(function* () {
+function reclaimedBy(lock: string, id: string) {
+	return Effect.gen(function* () {
 		expect(yield* tryAcquire(lock, holder(id))).toEqual(Option.none());
 		expect(Option.map(yield* readHolder(lock), ({ id }) => id)).toEqual(Option.some(id));
 		expect(lockDirectory(lock)).toEqual(["heavy-process.lock"]);
 	});
+}
 
 it.effect("a free lock is taken, names its holder, and only that holder releases it", () =>
 	Effect.gen(function* () {

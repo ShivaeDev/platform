@@ -65,6 +65,14 @@ Name the exact question and the choices. Do not imply that a response was record
 		source: `---
 id: example.result
 kind: result
+# A supplied result status is not work acceptance or an execution receipt.
+attention:
+  - id: review
+    kind: review
+    state: open
+    response_from: [maintainer]
+    reason: Review this exact report, its evidence and limitations.
+    unblocks: [example.project#readable-result]
 relationships:
   - kind: implements
     target: example.investigation
@@ -98,6 +106,18 @@ Name failures, skipped checks, uncertainty and any response needed.
 State the next action and who needs to respond, if known.
 
 [Project and acceptance target](project.md)
+
+::::question{id="verdict" select="one"}
+### What should happen with this report?
+
+:::option{id="revision"}
+Request another revision and explain what is missing.
+:::
+
+:::option{id="accept"}
+Accept this exact report version with its stated limitations.
+:::
+::::
 `,
 	},
 ] as const;

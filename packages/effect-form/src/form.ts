@@ -32,7 +32,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 	const { values } = editing;
 	const status = statusOf();
 	const held = new Map<string, AtomRef.AtomRef<unknown>>();
-	const refFor = (name: string): AtomRef.AtomRef<unknown> => {
+	function refFor(name: string): AtomRef.AtomRef<unknown> {
 		const known = held.get(name);
 		if (known !== undefined) {
 			return known;
@@ -40,7 +40,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		const made = propertyRef(holder(values), name);
 		held.set(name, made);
 		return made;
-	};
+	}
 
 	const offered = new Map<string, readonly unknown[]>();
 	for (const [name, member] of Object.entries(schema.fields)) {
@@ -100,14 +100,14 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		}),
 	);
 
-	const noted =
-		(submitted: Encoded<F>) =>
-		(cause: E | FieldFailure): Effect.Effect<void> =>
+	function noted(submitted: Encoded<F>) {
+		return (cause: E | FieldFailure): Effect.Effect<void> =>
 			Effect.sync(() => {
 				if (cause instanceof FieldFailure && Equal.equals(refFor(cause.path).value, new Map(Object.entries(submitted)).get(cause.path))) {
 					status.note(cause.path, cause.message);
 				}
 			});
+	}
 
 	const submitter: Submitter<Name<F>> = {
 		fail: (path, message) => Effect.fail(new FieldFailure({ message, path })),

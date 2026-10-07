@@ -32,13 +32,14 @@ const Handlers = Profiles.toLayer({
 it("taxonomy errors cross native RPC JSON as decoded instances with their field", async () => {
 	const app = serve(rpcHttp(Profiles).pipe(Layer.provide(Handlers)));
 	try {
-		const rename = (name: string) =>
-			Effect.runPromise(
+		function rename(name: string) {
+			return Effect.runPromise(
 				Effect.gen(function* () {
 					const client = yield* RpcClient.make(Profiles);
 					return yield* Effect.flip(client.Rename({ name }));
 				}).pipe(Effect.provide(httpClient(app, {})), Effect.scoped),
 			);
+		}
 		const taken = await rename("taken");
 		expect(taken).toBeInstanceOf(Conflict);
 		expect(rejectedField(taken)).toEqual(Option.some({ field: "name", message: "Name is taken" }));

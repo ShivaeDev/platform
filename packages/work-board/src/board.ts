@@ -21,6 +21,7 @@ import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/highlighter.ts";
 import { responsePage } from "#responses/page.ts";
 import { responseService } from "#responses/service.ts";
+import { resultPage } from "#results/page.ts";
 import { server } from "#rpc/server.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
 
@@ -33,19 +34,20 @@ export interface BoardOptions {
 type Services = Highlighter | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
 
-const routes = (options: BoardOptions) =>
-	HttpRouter.use((router) =>
+function routes(options: BoardOptions) {
+	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const home = yield* homeIn(options.root, options.home);
 			const mermaid = yield* mermaidRoot();
 			const changes = yield* watchChanges(options.root);
 			const context = (yield* Effect.context<Services>()).pipe(Context.pick(Highlighter, FileSystem.FileSystem, Path.Path));
-			const serve = <E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") =>
-				router.add(
+			function serve<E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") {
+				return router.add(
 					method,
 					route,
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
+			}
 			yield* serve("/events", events(changes));
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
@@ -53,6 +55,8 @@ const routes = (options: BoardOptions) =>
 			const startPage = start(changes, home);
 			yield* serve("/_board/start", startPage);
 			const workPage = work(index, changes, home);
+			const result = resultPage(index, changes, home);
+			yield* serve("/_board/result", result);
 			const overviewPage = overview(index, changes, home);
 			const historyPage = changesPage(changes, home);
 			yield* serve("/_board/work", workPage);
@@ -88,6 +92,9 @@ const routes = (options: BoardOptions) =>
 				const pathname = new URL(url, "http://127.0.0.1").pathname;
 				let selected: ReturnType<typeof pages>;
 				switch (pathname) {
+					case "/_board/result":
+						selected = result(request);
+						break;
 					case "/_board/handoff":
 						selected = handoff(request);
 						break;
@@ -124,6 +131,7 @@ const routes = (options: BoardOptions) =>
 			yield* serve("/*", pages);
 		}),
 	);
+}
 
 type BoardError = HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
 type BoardServices = FileSystem.FileSystem | HttpRouter.HttpRouter | Path.Path | HttpRouter.Request<"Error", PlatformError.PlatformError>;
