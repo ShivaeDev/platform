@@ -110,3 +110,7 @@ component_management:
       name: "@shivaedev/work-board"
       paths:
         - "packages/work-board/src/**"
+    - component_id: work-fleet
+      name: "@shivaedev/work-fleet"
+      paths:
+        - "packages/work-fleet/src/**"

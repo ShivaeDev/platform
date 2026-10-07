@@ -3,14 +3,17 @@ import type { Diagnostic } from "./parse.ts";
 import { Metadata } from "./schema.ts";
 
 const schemas: ReadonlyMap<string, Schema.ConstraintDecoder<unknown, never>> = new Map(Object.entries(Metadata.to.fields));
-const sourceKeys = new Map([["next_action", "nextAction"]]);
+const sourceKeys = new Map([
+	["next_action", "nextAction"],
+	["request_receipt", "requestReceipt"],
+]);
 
 export function metadataFields(data: object, lines: Readonly<Record<string, number>>) {
 	const fields: Record<string, unknown> = {};
 	const diagnostics: Diagnostic[] = [];
 	for (const [field, value] of Object.entries(data)) {
 		const key = sourceKeys.get(field) ?? field;
-		const schema = field === "nextAction" ? undefined : schemas.get(key);
+		const schema = field === "nextAction" || field === "requestReceipt" ? undefined : schemas.get(key);
 		if (!schema) {
 			diagnostics.push({ field, line: lines[field] ?? 2, message: `Unknown field ${field}; kept in the original frontmatter.` });
 			continue;

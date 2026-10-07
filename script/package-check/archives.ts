@@ -25,9 +25,7 @@ export function workspaceArchives(root: string, archives: string) {
 				continue;
 			}
 			const manifest = decodeManifest(yield* fs.readFileString(path));
-			if (manifest.private !== true) {
-				packages.push({ directory, manifest, tarball: join(archives, `${name}.tgz`) });
-			}
+			packages.push({ directory, manifest, tarball: join(archives, `${name}.tgz`) });
 		}
 		return packages;
 	});
