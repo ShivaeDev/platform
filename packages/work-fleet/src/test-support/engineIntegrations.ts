@@ -62,7 +62,11 @@ export function engineIntegrations(options: EngineOptions, provider: EngineProvi
 						return { head: result.head, revision: `merged-${result.head}`, url: result.pr };
 					}),
 				reconcileReview: (board, result, operationId) => review(board, result, operationId, true),
-				result: (board) => Effect.succeed(fixtureResult(options, board, reviews.length)),
+				result: (board) =>
+					options.resultQuery?.()
+					?? (options.resultUnavailable
+						? Effect.fail(new FleetFailure({ message: "Result ownership unavailable", reason: "integration" }))
+						: Effect.succeed(fixtureResult(options, board, reviews.length))),
 				review: (board, result, operationId) => review(board, result, operationId, false),
 			};
 		}),

@@ -1,6 +1,9 @@
 import { Effect, Schema } from "effect";
 import { Fleet } from "@shivaedev/work-fleet/fleet.ts";
 import { FleetRecord } from "@shivaedev/work-fleet/model.ts";
+import { BoardDecision, BoardDecisionAcknowledgement, BoardDecisionReading } from "@shivaedev/work-fleet/board/schema.ts";
+import { Resolve } from "@shivaedev/work-fleet/operations.ts";
+import { BoardGateway, DecisionResponse } from "@shivaedev/work-fleet/policy.ts";
 import { assessPreparation } from "@shivaedev/work-fleet/preparation/compatibility.ts";
 import { Preparation } from "@shivaedev/work-fleet/preparation/schema.ts";
 import { SessionService } from "@shivaedev/work-fleet/session/service.ts";
@@ -18,11 +21,64 @@ const assessment = await Effect.runPromise(assessPreparation(preparation, {
 if (assessment._tag !== "Compatible" || assessment.preparation.validation[0]?.revision !== "revision-a") {
   throw new Error("Preparation did not preserve its exact validation evidence");
 }
-Schema.decodeUnknownSync(FleetRecord)({
-  workId: "board.one", boardRevision: "board-revision", prompt: "Inspect source", cwd: ".",
-  stage: "prepared", preparation, attempts: [],
+const published = Schema.decodeUnknownSync(BoardDecision)({
+  itemId: "decision.one", questionId: "question.one", request: "decision-current",
+  revision: "a".repeat(64), sourcePath: "responses/decision.one.md",
+  workId: "board.one", workRevision: "board-revision", workSourcePath: "board/one.md",
 });
+const reading = Schema.decodeUnknownSync(BoardDecisionReading)({
+  _tag: "Response", response: { id: "response.one", body: "Keep current checks.", response: {
+    author: "Human label", question: published.questionId, reviewedRevision: published.revision,
+    recordedAt: 1, type: "answer", answers: [{ prompt: "fleet-action", selected: ["retry"], text: "" }],
+  } },
+});
+if (reading._tag !== "Response") throw new Error("Expected a current Board response");
+const response = Schema.decodeUnknownSync(DecisionResponse)({
+  action: "retry", decisionId: "decision-current", processedAt: 2,
+  published, boardAcknowledged: true,
+  questionId: published.questionId, questionRevision: published.revision,
+  responseId: reading.response.id, type: "answer",
+});
+const applied = Schema.decodeUnknownSync(BoardDecisionAcknowledgement)({
+  decision: published, disposition: "applied", recordedAt: response.processedAt,
+  responseId: response.responseId,
+});
+const laterPublished = Schema.decodeUnknownSync(BoardDecision)({
+  ...published, questionId: "question.later", itemId: "decision.later",
+  request: "decision-later", revision: "b".repeat(64), sourcePath: "responses/decision.later.md",
+});
+const superseded = Schema.decodeUnknownSync(BoardDecisionAcknowledgement)({
+  decision: laterPublished, disposition: "superseded", recordedAt: 3,
+});
+const resolution = Schema.decodeUnknownSync(Resolve.payload)({
+  workId: "board.one", decisionId: response.decisionId, responseId: response.responseId,
+});
+const previous = Schema.decodeUnknownSync(FleetRecord)({
+  workId: "board.one", boardRevision: "board-revision", prompt: "Inspect source", cwd: ".",
+  boardContext: "Synthetic Board context", boardSourcePath: "board/one.md",
+  stage: "needs-human", preparation,
+  decision: { id: "decision-later", reason: "Required checks still need attention", recommendation: "Review current context", links: [], published: laterPublished },
+  responses: [response], attempts: [{ operationId: "one", role: "worker", status: "completed", submittedAt: 1,
+    receipt: { sessionId: "session.one", turnId: "turn.one" }, output: "Synthetic terminal evidence" }],
+});
+const { workId, ...archived } = previous;
+const renewed = Schema.decodeUnknownSync(FleetRecord)({
+  workId, boardRevision: "board-next", boardContext: "Updated synthetic Board context",
+  prompt: "Inspect updated source", cwd: ".", preparation, stage: "prepared", attempts: [],
+  history: [{ ...archived, archivedAt: 3, decisionAcknowledged: true }],
+});
+if (renewed.history?.[0]?.decision?.published?.questionId !== superseded.decision.questionId ||
+    renewed.history[0]?.decisionAcknowledged !== true ||
+    renewed.history[0]?.responses?.[0]?.published?.questionId !== applied.decision.questionId ||
+    renewed.history[0]?.responses?.[0]?.boardAcknowledged !== true ||
+    renewed.history[0]?.attempts[0]?.receipt?.turnId !== "turn.one") {
+  throw new Error("Archived Board decisions, acknowledgement markers and execution evidence did not survive decoding");
+}
 const views = Effect.flatMap(Fleet, (fleet) => fleet.list());
 const start = Effect.flatMap(SessionService, (sessions) => sessions.start({ operationId: "one", cwd: ".", prompt: "Inspect" }));
+const resolve = Effect.flatMap(Fleet, (fleet) => fleet.resolve(resolution.workId, resolution.decisionId, resolution.responseId));
+const acknowledge = Effect.flatMap(BoardGateway, (board) => board.acknowledgeDecision(applied));
 void views;
 void start;
+void resolve;
+void acknowledge;

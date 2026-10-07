@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { closeDecisions } from "#engine/closeDecisions.ts";
 import { dispatchCommand } from "#engine/dispatchCommand.ts";
 import { makeAdvance } from "#engine/makeAdvance.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
@@ -28,7 +29,7 @@ export const Fleet = defineService({
 		dispatch: dispatchCommand(state, state.launch),
 		get: (workId: string) => state.load(workId),
 		list: () => state.store.list(),
-		prepare: prepareCommand(state),
+		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state))),
 		reconcile: reconcileCommand(state, state.advance),
 		resolve: resolveCommand(state),
 	}),

@@ -1,28 +1,42 @@
 import { Effect } from "effect";
+import { authorizeResolution } from "#engine/authorizeResolution.ts";
+import { closeDecisions } from "#engine/closeDecisions.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { readResolution } from "#engine/readResolution.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
-export function resolveCommand({ board, policy, load, save, store }: EngineState) {
-	return Effect.fn("Fleet.resolve")(function* (workId: string, decisionId: string, action: "retry" | "release") {
+export function resolveCommand(state: EngineState) {
+	const { board, policy, load, save } = state;
+	return Effect.fn("Fleet.resolve")(function* (workId: string, decisionId: string, responseId: string) {
 		const stored = yield* load(workId);
+		const prior = [...(stored.value.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(stored.value.responses ?? [])];
+		if (prior.some((previous) => previous.decisionId === decisionId && previous.responseId === responseId)) {
+			return yield* closeDecisions(state)(stored);
+		}
 		if (stored.value.decision?.id !== decisionId) {
 			return yield* Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" }));
 		}
-		const work = yield* board.get(workId);
-		if (policy.approved[workId] !== work.revision) {
-			return yield* Effect.fail(new FleetFailure({ message: "Decision cannot grant execution or delivery authority", reason: "denied" }));
+		const { action, published, response } = yield* readResolution(board, stored.value.decision, responseId);
+		const receipt = {
+			...(action === undefined ? {} : { action }),
+			decisionId,
+			processedAt: policy.now(),
+			published,
+			questionId: published.questionId,
+			questionRevision: published.revision,
+			responseId,
+			type: response.response.type,
+		};
+		const responses = [...(stored.value.responses ?? []), receipt];
+		if (action === undefined) {
+			const blocker =
+				response.response.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
+			return yield* save(stored, { ...stored.value, blocker, responses });
 		}
-		if (action === "release" && executing(stored.value)) {
-			return yield* Effect.fail(new FleetFailure({ message: "Confirm terminal execution before releasing ownership", reason: "denied" }));
-		}
-		if (action === "release" && stored.value.deliverySubmitted && stored.value.outcome === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Reconcile the submitted delivery before releasing ownership", reason: "denied" }));
-		}
-		if (action === "release" && stored.value.result?.kind === "change") {
-			yield* store.reserveForeign(stored.value.result.pr, stored.value.result.paths, { backlog: true, executing: false });
-		}
+		yield* authorizeResolution(state, stored.value, action);
 		const stage = resolutionStage(stored.value, action);
-		return yield* save(stored, { ...stored.value, decision: undefined, stage });
+		const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage });
+		return yield* closeDecisions(state)(updated);
 	});
 }
 

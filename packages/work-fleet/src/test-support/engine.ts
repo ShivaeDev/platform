@@ -1,52 +1,53 @@
 import { Effect, Layer } from "effect";
+import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
-import { backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
-import { BoardFailure, BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
+import { allAttempts, backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
+import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { prepared } from "#test/preparation.ts";
+import { scriptedBoard } from "#test/scriptedBoard.ts";
 import { withStorage } from "#test/storage.ts";
-export interface EngineFixture extends Omit<EngineProvider, "transport"> {
+export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider, "transport"> {
+	readonly acknowledgementAttempts: readonly BoardDecisionAcknowledgement[];
+	readonly acknowledgements: readonly BoardDecisionAcknowledgement[];
 	readonly acknowledgeTurn: (operationId: string, receipt: { readonly sessionId: string; readonly turnId: string }) => Effect.Effect<void, unknown>;
+	readonly approveWork: (workId: string, revision: string) => void;
 	readonly decisions: readonly string[];
+	readonly dependencies: (workId: string, references: readonly string[]) => void;
+	readonly editWork: (workId: string, revision: string) => void;
 	readonly foreign: (owner: string, paths: readonly string[]) => Effect.Effect<void, unknown>;
 	readonly merged: readonly string[];
-	readonly restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => Effect.Effect<TResult, TFailure>;
+	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
+	readonly restart: <TResult, TFailure>(
+		effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
+	) => Effect.Effect<TResult, TFailure | TBoardError>;
 	readonly reviews: readonly string[];
+	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly work: (id: string) => BoardWork;
 }
-function boardWork(id: string): BoardWork {
+function boardWork(
+	id: string,
+	revisions: ReadonlyMap<string, string> = new Map(),
+	dependencies: ReadonlyMap<string, readonly string[]> = new Map(),
+): BoardWork {
 	return {
-		context: `Work ${id}`,
-		dependsOn: id === "dependent" ? ["one"] : [],
-		revision: `board-${id}`,
+		context: `Work ${id}: ${revisions.get(id) ?? `board-${id}`}`,
+		dependsOn: dependencies.get(id) ?? (id === "dependent" ? ["one"] : []),
+		revision: revisions.get(id) ?? `board-${id}`,
 		sourcePath: `board/${id}.md`,
 		workId: id,
 	};
 }
-function boardLayer(options: EngineOptions, decisions: string[]) {
-	let failed = false;
-	return Layer.succeed(BoardGateway)({
-		decision: (id, input) =>
-			Effect.gen(function* () {
-				if (options.publishGate !== undefined) {
-					yield* options.publishGate;
-				}
-				if (options.publishFailure && !failed) {
-					failed = true;
-					return yield* Effect.fail(new BoardFailure({ message: "Board publication unavailable" }));
-				}
-				decisions.push(input.reason);
-				return `${id}.${input.id}`;
-			}),
-		get: (id) => Effect.succeed(boardWork(id)),
-	});
-}
-export function withEngine<A, E>(options: EngineOptions, use: (fixture: EngineFixture) => Effect.Effect<A, E, typeof Fleet.Identifier>) {
+export function withEngine<A, E, TBoardError = never>(
+	options: EngineOptions,
+	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
+	boardOverride?: Layer.Layer<BoardGateway, TBoardError>,
+) {
 	return withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
 			const store = yield* makePostgresFleetStore(FleetRecord, {
@@ -55,15 +56,19 @@ export function withEngine<A, E>(options: EngineOptions, use: (fixture: EngineFi
 				namespace,
 				owns,
 				reservations,
-				submissions: (record, since) => record.attempts.filter((attempt) => attempt.submittedAt >= since).length,
+				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
 			const provider = engineProvider(options);
+			const revisions = new Map<string, string>();
+			const dependencies = new Map<string, readonly string[]>();
+			const unavailable = new Set<string>();
+			const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 			const decisions: string[] = [];
 			const reviews: string[] = [];
 			const merged: string[] = [];
 			let operationCount = 0;
 			const policy: FleetConfiguration = {
-				approved: { dependent: "board-dependent", one: "board-one", two: "board-two" },
+				approved,
 				deliveryBacklog: options.backlog ?? 2,
 				executionConcurrency: options.concurrency ?? 2,
 				now: () => 100,
@@ -73,9 +78,14 @@ export function withEngine<A, E>(options: EngineOptions, use: (fixture: EngineFi
 				},
 				quota: { ...(options.unknownQuota ? {} : { available: options.quota ?? 100 }), expiresAt: 1000, observedAt: 0 },
 			};
+			const scripted = scriptedBoard(options, decisions, (id) =>
+				unavailable.has(id)
+					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
+					: Effect.succeed(boardWork(id, revisions, dependencies)),
+			);
 			const base = Layer.mergeAll(
 				Layer.succeed(FleetRepository)(store),
-				boardLayer(options, decisions),
+				boardOverride ?? scripted.layer,
 				Layer.succeed(FleetPolicy)(policy),
 				provider.transport,
 			);
@@ -89,15 +99,34 @@ export function withEngine<A, E>(options: EngineOptions, use: (fixture: EngineFi
 				yield* foreign("foreign-pr", options.foreign);
 			}
 			const journal = yield* SessionJournal.pipe(Effect.provide(fleetSessionJournal.pipe(Layer.provide(base))));
-			const fixture: EngineFixture = {
+			const fixture: EngineFixture<TBoardError> = {
 				...provider,
+				acknowledgementAttempts: scripted.acknowledgementAttempts,
+				acknowledgements: scripted.acknowledgements,
 				acknowledgeTurn: journal.acknowledgeTurn,
+				approveWork: (workId: string, revision: string) => {
+					approved[workId] = revision;
+				},
 				decisions,
+				dependencies: (workId: string, references: readonly string[]) => {
+					dependencies.set(workId, references);
+				},
+				editWork: (workId: string, revision: string) => {
+					revisions.set(workId, revision);
+				},
 				foreign,
 				merged,
+				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
 				reviews,
-				work: boardWork,
+				unavailableWork: (workId: string, value: boolean) => {
+					if (value) {
+						unavailable.add(workId);
+					} else {
+						unavailable.delete(workId);
+					}
+				},
+				work: (id: string) => boardWork(id, revisions, dependencies),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));
 		}),
@@ -112,7 +141,7 @@ export const prepareWork = Effect.fn("Fleet.prepareWork")(function* (workId: str
 		workId,
 	});
 });
-export function finishWorkers(fixture: EngineFixture) {
+export function finishWorkers(fixture: Pick<EngineFixture, "observations">) {
 	for (const [key, value] of fixture.observations) {
 		fixture.observations.set(key, { ...value, execution: "completed" });
 	}

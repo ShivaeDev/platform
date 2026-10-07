@@ -1,5 +1,9 @@
 import type { Effect } from "effect";
+import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { BoardFailure, FleetFailure, WorkResult } from "#policy.ts";
 export interface EngineOptions {
+	readonly acknowledgeFailure?: boolean;
+	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
 	readonly backlog?: number;
 	readonly checkRepair?: boolean;
 	readonly checksFailure?: boolean;
@@ -15,7 +19,10 @@ export interface EngineOptions {
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
 	readonly quota?: number;
+	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
+	readonly resultQuery?: () => Effect.Effect<WorkResult, FleetFailure>;
+	readonly resultUnavailable?: boolean;
 	readonly reviewFailure?: boolean;
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;

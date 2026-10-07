@@ -15,6 +15,7 @@ export function makeLaunch({ store, board, policy, sessions, load, save, decisio
 			work,
 			(yield* store.list()).map(({ value }) => value),
 			{ ...policy, quota },
+			board.get,
 		);
 		const foreign = yield* store.foreignReservations();
 		const overlap = foreign.find((entry) =>

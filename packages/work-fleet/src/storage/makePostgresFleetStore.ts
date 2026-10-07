@@ -114,13 +114,14 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		reserveForeign: Effect.fn("FleetStore.reserveForeign")(function* (
 			owner: string,
 			paths: readonly string[],
-			occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true },
+			occupancy: { readonly executing: boolean; readonly backlog: boolean; readonly preservePaths?: boolean } = { backlog: true, executing: true },
 		) {
 			const valid = yield* validatePaths(paths);
-			const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Array(Schema.String)))(valid);
 			yield* sql.withTransaction(
 				Effect.gen(function* () {
 					yield* lock;
+					const existing = occupancy.preservePaths ? ((yield* foreignReservations()).find((entry) => entry.owner === owner)?.paths ?? []) : [];
+					const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Array(Schema.String)))([...new Set([...valid, ...existing])]);
 					yield* sql`insert into ${sql(foreign)} (owner, paths, executing, backlog) values (${owner}, ${encoded}::jsonb, ${occupancy.executing}, ${occupancy.backlog}) on conflict (owner) do update set paths = excluded.paths, executing = excluded.executing, backlog = excluded.backlog`;
 				}),
 			);

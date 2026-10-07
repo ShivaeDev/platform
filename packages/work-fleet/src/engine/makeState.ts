@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { originalWork } from "#engine/originalWork.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardGateway, type Decision, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -51,9 +52,9 @@ export const makeState = Effect.gen(function* () {
 			reason,
 			recommendation,
 		};
-		const updated = yield* save(stored, { ...stored.value, decision: value, decisionPublished: false, stage: "needs-human" });
-		yield* board.decision(stored.value.workId, value);
-		return yield* save(updated, { ...updated.value, decisionPublished: true });
+		const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: value, decisionPublished: false, stage: "needs-human" });
+		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
+		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
 	return { board, decision, integrations, load, policy, save, sessions, store };
 });

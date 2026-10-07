@@ -30,7 +30,7 @@ export const Reconcile = command("reconcile", {
 });
 export const Resolve = command("resolve", {
 	invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
-	payload: { action: Schema.Literals(["retry", "release"]), decisionId: Schema.String, workId: Schema.String },
+	payload: { decisionId: Schema.String, responseId: Schema.String, workId: Schema.String },
 	rejections,
 	success: FleetRecord,
 });
@@ -55,7 +55,8 @@ export const fleetHandlers = FleetContract.toLayer(
 			"fleet.get": ({ workId }) => expose(fleet.get(workId).pipe(Effect.map(({ value }) => value))),
 			"fleet.prepare": (input) => expose(fleet.prepare(input).pipe(Effect.map(({ value }) => value))),
 			"fleet.reconcile": ({ workId }) => expose(fleet.reconcile(workId).pipe(Effect.map(({ value }) => value))),
-			"fleet.resolve": ({ workId, decisionId, action }) => expose(fleet.resolve(workId, decisionId, action).pipe(Effect.map(({ value }) => value))),
+			"fleet.resolve": ({ workId, decisionId, responseId }) =>
+				expose(fleet.resolve(workId, decisionId, responseId).pipe(Effect.map(({ value }) => value))),
 			"fleet.views": () => expose(fleet.list().pipe(Effect.map((records) => views(records.map(({ value }) => value))))),
 		});
 	}),

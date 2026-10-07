@@ -1,4 +1,5 @@
 import { Context, type Effect, Schema } from "effect";
+import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading } from "#board/schema.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { SessionReceipt } from "#session/schema.ts";
@@ -14,10 +15,23 @@ export type BoardWork = typeof BoardWork.Type;
 export const Decision = Schema.Struct({
 	id: Schema.String,
 	links: Schema.Array(Schema.String),
+	published: Schema.optional(BoardDecision),
 	reason: Schema.String,
 	recommendation: Schema.String,
 });
 export type Decision = typeof Decision.Type;
+export const DecisionResponse = Schema.Struct({
+	action: Schema.optional(Schema.Literals(["retry", "release"])),
+	boardAcknowledged: Schema.optional(Schema.Boolean),
+	decisionId: Schema.String,
+	processedAt: Schema.Number,
+	published: Schema.optional(BoardDecision),
+	questionId: Schema.String,
+	questionRevision: Schema.String,
+	responseId: Schema.String,
+	type: Schema.Literals(["answer", "clarify", "not_now"]),
+});
+export type DecisionResponse = typeof DecisionResponse.Type;
 export class FleetFailure extends Schema.TaggedError<FleetFailure>()("FleetFailure", {
 	message: Schema.String,
 	reason: Schema.Literals(["missing", "stale", "denied", "integration", "invalid"]),
@@ -26,8 +40,10 @@ export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailu
 export class BoardGateway extends Context.Service<
 	BoardGateway,
 	{
+		readonly acknowledgeDecision: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
 		readonly get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>;
-		readonly decision: (workId: string, decision: Decision) => Effect.Effect<string, BoardFailure>;
+		readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;
+		readonly readDecision: (decision: BoardDecision) => Effect.Effect<BoardDecisionReading, BoardFailure>;
 	}
 >()("@shivaedev/work-fleet/BoardGateway") {}
 export const ChangeResult = Schema.Struct({

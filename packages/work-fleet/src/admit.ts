@@ -1,18 +1,19 @@
 import { Effect } from "effect";
-import type { FleetRecord } from "#model.ts";
-import { type BoardWork, type FleetConfiguration, FleetFailure } from "#policy.ts";
-export const admit = Effect.fn("Fleet.admit")(function* (work: BoardWork, records: readonly FleetRecord[], policy: FleetConfiguration) {
+import { allAttempts, type FleetRecord } from "#model.ts";
+import { type BoardFailure, type BoardWork, type FleetConfiguration, FleetFailure } from "#policy.ts";
+import { qualifyDependencies } from "#qualifyDependencies.ts";
+export const admit = Effect.fn("Fleet.admit")(function* (
+	work: BoardWork,
+	records: readonly FleetRecord[],
+	policy: FleetConfiguration,
+	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
+) {
 	if (policy.approved[work.workId] !== work.revision) {
 		return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
 	}
-	const unavailable = work.dependsOn.filter(
-		(id) => !records.some((record) => record.workId === id && record.stage === "completed" && record.outcome !== undefined),
-	);
-	if (unavailable.length > 0) {
-		return yield* Effect.fail(new FleetFailure({ message: `Dependencies need accepted outcomes: ${unavailable.join(", ")}`, reason: "denied" }));
-	}
+	yield* qualifyDependencies(work.dependsOn, records, get);
 	const quota = policy.quota;
-	const submitted = records.flatMap((record) => record.attempts).filter((attempt) => attempt.submittedAt >= quota.observedAt).length;
+	const submitted = records.flatMap(allAttempts).filter((attempt) => attempt.submittedAt >= quota.observedAt).length;
 	if (
 		!(Number.isFinite(quota.observedAt) && Number.isFinite(quota.expiresAt))
 		|| quota.observedAt > policy.now()

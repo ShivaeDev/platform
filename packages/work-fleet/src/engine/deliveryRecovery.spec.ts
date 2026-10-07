@@ -19,8 +19,8 @@ describe("Fleet delivery ownership", () => {
 				expect(ambiguous.value.stage).toBe("needs-human");
 				expect(ambiguous.value.deliverySubmitted).toBe(true);
 				const decisionId = ambiguous.value.decision?.id ?? "missing";
-				expect(yield* Effect.flip(fleet.resolve("one", decisionId, "release"))).toMatchObject({ _tag: "FleetFailure" });
-				yield* fleet.resolve("one", decisionId, "retry");
+				expect(yield* Effect.flip(fleet.resolve("one", decisionId, fixture.respond(decisionId, "release")))).toMatchObject({ _tag: "FleetFailure" });
+				yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"));
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 				expect(fixture.merged).toHaveLength(1);
 				expect(fixture.reviews).toHaveLength(1);
@@ -34,7 +34,7 @@ describe("Fleet delivery ownership", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const denied = yield* fleet.reconcile("one");
-				yield* fleet.resolve("one", denied.value.decision?.id ?? "missing", "release");
+				yield* fleet.resolve("one", denied.value.decision?.id ?? "missing", fixture.respond(denied.value.decision?.id ?? "missing", "release"));
 				const overlap = fleet.prepare({
 					cwd: "/synthetic",
 					preparation: prepared({ ownedPaths: ["src/one.ts"] }),

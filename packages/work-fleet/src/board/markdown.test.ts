@@ -23,12 +23,14 @@ it.effect("reads stable Board identity and publishes a durable retryable Board d
 			reason: "Delivery authority is denied",
 			recommendation: "Approve exact scope through trusted runtime policy",
 		};
-		const id = yield* board.decision(work.workId, decision);
-		expect(yield* board.decision(work.workId, decision)).toBe(id);
+		const receipt = yield* board.decision(work.workId, decision);
+		expect(yield* board.decision(work.workId, decision)).toEqual(receipt);
 		const files = readdirSync(join(root, "responses"));
-		expect(files).toHaveLength(1);
-		const parsed = metadataParse(readFileSync(join(root, "responses", files[0] ?? ""), "utf8"));
-		expect(questionFrom({ file: `responses/${files[0]}`, parsed })?.question.item).toBe("task.one");
+		expect(files).toHaveLength(2);
+		const source = `responses/${receipt.questionId}.md`;
+		const parsed = metadataParse(readFileSync(join(root, source), "utf8"));
+		expect(questionFrom({ file: source, parsed })?.question.item).toBe(receipt.itemId);
+		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Pending" });
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });
 

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { type Attempt, backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
+import { type Attempt, allAttempts, backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
@@ -14,7 +14,7 @@ export function postgresFleetRepository(namespace?: string) {
 				executing,
 				owns,
 				reservations,
-				submissions: (record, since) => record.attempts.filter((attempt) => attempt.submittedAt >= since).length,
+				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 				...(namespace === undefined ? {} : { namespace }),
 			});
 			yield* store.initialize();
@@ -35,7 +35,11 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 		) {
 			return Effect.gen(function* () {
 				const records = yield* store.list();
-				const matches = records.flatMap((record) => record.value.attempts.filter((attempt) => attempt.operationId === operationId).map(() => record));
+				const matches = records.flatMap((record) =>
+					allAttempts(record.value)
+						.filter((attempt) => attempt.operationId === operationId)
+						.map(() => record),
+				);
 				const stored = matches.length === 1 ? matches[0] : undefined;
 				if (stored === undefined) {
 					return yield* Effect.fail(new SessionFailure({ message: "Submission intent was not persisted", reason: "persistence" }));

@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { RequestReceipt } from "#attention/RequestReceipt.ts";
 import { HandoffRecord } from "#browser/handoffs/schema.ts";
 import { QuestionRecord, ResponseRecord } from "#browser/responses/schema.ts";
 import { Identity as SourceIdentity } from "#path/Identity.ts";
@@ -9,6 +10,7 @@ const Text = Schema.String.check(Schema.isPattern(/\S/u));
 const Attention = Schema.Struct({
 	id: Identity,
 	kind: Schema.Literals(["decision", "review", "blocker"]),
+	managed: Schema.optional(Schema.Boolean),
 	reason: Text,
 	responseFrom: Schema.Array(Text).check(Schema.isMinLength(1)),
 	state: Schema.Literals(["open", "closed"]),
@@ -45,7 +47,8 @@ export const Metadata = Schema.Struct({
 	owner: Schema.optional(Text),
 	question: Schema.optional(QuestionRecord),
 	relationships: Schema.optional(Schema.Array(Relationship)),
+	requestReceipt: Schema.optional(RequestReceipt),
 	response: Schema.optional(ResponseRecord),
 	status: Schema.optional(Text),
-}).pipe(Schema.encodeKeys({ nextAction: "next_action" }));
+}).pipe(Schema.encodeKeys({ nextAction: "next_action", requestReceipt: "request_receipt" }));
 export type Metadata = typeof Metadata.Type;

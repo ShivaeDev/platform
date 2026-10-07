@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { Fleet } from "#fleet.ts";
 
 const dispatchPrepared = Effect.gen(function* () {
@@ -8,7 +9,9 @@ const dispatchPrepared = Effect.gen(function* () {
 });
 const activeWork = Effect.gen(function* () {
 	const fleet = yield* Fleet;
-	return (yield* fleet.list()).filter(({ value }) => !["completed", "released", "prepared"].includes(value.stage));
+	return (yield* fleet.list()).filter(
+		({ value }) => !["completed", "released", "prepared"].includes(value.stage) || pendingAcknowledgements(value).length > 0,
+	);
 });
 export const cycle = Effect.gen(function* () {
 	const fleet = yield* Fleet;

@@ -50,7 +50,7 @@ describe("Fleet completion path", () => {
 				expect(denied.value.decision?.reason).toContain("denies delivery");
 				expect(fixture.merged).toHaveLength(0);
 				const decisionId = denied.value.decision?.id ?? "missing";
-				expect((yield* fleet.resolve("one", decisionId, "retry")).value.stage).toBe("reviewing");
+				expect((yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"))).value.stage).toBe("reviewing");
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
 				expect(fixture.launched).toHaveLength(2);
 			}),

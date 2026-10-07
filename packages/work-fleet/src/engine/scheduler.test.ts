@@ -61,7 +61,7 @@ describe("Fleet autonomous scheduling", () => {
 			}),
 		);
 	}, 10_000);
-	test("a human release during pending question publication remains authoritative", function* () {
+	test("an unpublished decision cannot consume a fabricated response while publication remains interruptible", function* () {
 		const entered = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();
 		const gate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
@@ -75,9 +75,10 @@ describe("Fleet autonomous scheduling", () => {
 				yield* Deferred.await(entered);
 				const decision = (yield* fleet.get("one")).value.decision;
 				expect(decision).toBeDefined();
-				yield* fleet.resolve("one", decision?.id ?? "missing", "release");
+				expect(yield* Effect.flip(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatchObject({ reason: "stale" });
 				yield* Deferred.succeed(release, undefined);
-				expect((yield* Fiber.join(pending)).value.stage).toBe("released");
+				expect((yield* Fiber.join(pending)).value.stage).toBe("needs-human");
+				yield* fleet.resolve("one", decision?.id ?? "missing", fixture.respond(decision?.id ?? "missing", "release"));
 				expect((yield* fleet.get("one")).value.stage).toBe("released");
 			}),
 		);

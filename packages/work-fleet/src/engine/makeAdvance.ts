@@ -1,6 +1,8 @@
 import { Effect } from "effect";
+import { closeDecisions } from "#engine/closeDecisions.ts";
 import { makeAdopt } from "#engine/makeAdopt.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
+import { makeHuman } from "#engine/makeHuman.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
@@ -9,10 +11,8 @@ import { makeValidate } from "#engine/makeValidate.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
-		if (stored.value.stage === "needs-human" && !stored.value.decisionPublished && stored.value.decision !== undefined) {
-			yield* state.board.decision(workId, stored.value.decision);
-			return yield* state.save(stored, { ...stored.value, decisionPublished: true });
-		}
+		stored = yield* closeDecisions(state)(stored);
+		stored = yield* makeHuman(state)(stored);
 		if (["completed", "released", "prepared", "needs-human"].includes(stored.value.stage)) {
 			return stored;
 		}
@@ -27,6 +27,6 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		if (stored.value.stage === "repairing") {
 			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? "Fix required checks");
 		}
-		return yield* makeDeliver(state)(stored, work);
+		return yield* makeDeliver(state)(stored, work).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }

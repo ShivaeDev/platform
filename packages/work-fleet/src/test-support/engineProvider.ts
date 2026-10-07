@@ -30,6 +30,9 @@ export function engineProvider(options: EngineOptions) {
 			}),
 		startTurn: (input) =>
 			Effect.gen(function* () {
+				if (options.rejectTurn) {
+					return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
+				}
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
 				operations.set(input.operationId, receipt);
 				observations.set(receipt.turnId, { execution: "running", output: input.prompt, provisioning: "ready", receipt });

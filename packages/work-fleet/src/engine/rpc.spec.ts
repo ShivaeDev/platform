@@ -28,7 +28,8 @@ describe("native Fleet contract", () => {
 					expect(view.needsHuman[0]?.sessions).toHaveLength(2);
 					expect(view.needsHuman[0]?.decision?.recommendation).toContain("trusted runtime policy");
 					const decisionId = view.needsHuman[0]?.decision?.id ?? "missing";
-					const released = yield* client("fleet.resolve", { action: "release", decisionId, workId: "one" });
+					const responseId = fixture.respond(decisionId, "release");
+					const released = yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
 					expect(released.stage).toBe("released");
 					expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("released");
 				}),

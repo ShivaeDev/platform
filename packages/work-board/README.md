@@ -135,6 +135,17 @@ path creates a different generation. A stale save retains the draft and requires
 review/preview again. The preview names both files and all authored fields; the
 server assigns registration and recorded timestamps when saving.
 
+An execution addon may opt a generated `kind: decision` request into managed
+acknowledgement with `attention[].managed: true`. A separate immutable
+`kind: result` document records `request_receipt` with the registered question ID,
+its `reviewedRevision`, `recordedAt`, and disposition `applied` or `superseded`.
+An applied receipt also names the unique current `answer` response; clarification
+and deferral cannot close the request. Supersession retires a request without
+inventing a human answer. Only an unambiguous receipt matching the exact current
+source path and bytes removes that managed request from the overview and response
+surface. Source state remains unchanged and readable. Ordinary authored requests
+remain source-driven; receipts confer no execution, acceptance or delivery rights.
+
 Drafts use separate browser-local storage per workspace/origin: 2 MiB total and
 30 days since the last edit. **Clear workspace drafts** affects drafts, not saved
 source or Mark seen history. Expiry, corrupt/unavailable storage and quota failures

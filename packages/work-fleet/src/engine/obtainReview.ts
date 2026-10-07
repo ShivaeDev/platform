@@ -4,7 +4,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
-export function obtainReview({ store, policy, integrations, save }: EngineState) {
+export function obtainReview({ store, policy, integrations, save, board }: EngineState) {
 	return Effect.fn("Fleet.obtainReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult) {
 		if (stored.value.review !== undefined) {
 			return stored.value.review;
@@ -19,6 +19,7 @@ export function obtainReview({ store, policy, integrations, save }: EngineState)
 			work,
 			(yield* store.list()).map(({ value }) => value),
 			{ ...policy, quota },
+			board.get,
 		);
 		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { quota, role: "reviewer" });
 		return yield* integrations.review(work, result, attempt.operationId);
