@@ -13,6 +13,9 @@
 
 ### Changed
 
+- Render the file sidebar as nested native folders with shared ancestry, keeping
+  home first, logical reference URLs and folder collapse state through live updates.
+
 - Record agent-owned project editing and human-owned response content, practical
   best-effort conflict handling, and deferred direct editing/undo in the delivery
   plan. Ordinary file editing remains sufficient for agents; the approved D3
