@@ -789,15 +789,15 @@ handoff. These are observations on the shared managed machine, not budgets,
 zero-resource claims, or a 48-hour/90-minute soak. Harnesses own model wakeup and
 shell lifetime; the passive wait is not D3's agent launch/handoff adapter.
 
-The first safe publisher requires Linux directory descriptors, `/proc/self/fd`,
-hard links and directory synchronization. It synchronizes the workspace and new
-record before confirming no-replace publication; equal-content retries reconcile
-and synchronize again. Other supported Node platforms retain reading and explicitly
-reject publication. Moved/duplicated records and changing write boundaries remain
-explicit failures. Outside-editor changes after preflight cannot be made a universal
-transaction; saved records retain reviewed context instead of replacing that editor's
-source. Direct source replacement/undo (17) is now deferred by the ownership
-decision below; D3 is approved and D4 before 24 remains open. No export or cloud service was introduced.
+The shared publisher supports Linux descriptor-anchored operations and macOS
+canonical-path operations with directory identity checks. Both require hard links
+and file/directory synchronization. The [filesystem limits](../../README.md#filesystem-publication-and-recovery)
+state macOS pathname races, Node synchronization limits and same-ID recovery.
+Native macOS acceptance is pending the [focused host command](./delivery/response-write-examples.md#native-filesystem-acceptance);
+Linux tests do not establish macOS behavior. Outside-editor changes after preflight
+cannot be made a universal transaction; saved records retain reviewed context
+instead of replacing that editor's source. Direct source replacement/undo (17) is
+now deferred by the ownership decision below; D3 is approved and D4 before 24 remains open. No export or cloud service was introduced.
 
 
 ## Step 16 rich question and decision acceptance
@@ -847,7 +847,7 @@ one intentional skip, seven orchestration checks, real PostgreSQL and every pack
 consumer, including the 0.9.0 CLI banner. Quality baseline remains 2,547. Final log:
 `/tmp/work-board-decisions-release-ready.log`. The agent bundle is 369,150 bytes
 (360.5 KiB), without the new parser/renderer or a per-waiter daemon; no new memory
-budget or long-duration soak is claimed. Linux-only publication, local-only operation,
+budget or long-duration soak is claimed. Local-only operation,
 48-hour wait semantics and browser draft bounds remain unchanged. Representative-
 reader timing, physical devices and actual bfcache adoption evidence remain pending;
 these fixtures do not accept steps 07/13. Direct project editing/undo is deferred;

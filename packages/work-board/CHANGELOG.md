@@ -13,6 +13,12 @@
 
 ### Changed
 
+- Enable the shared no-replace publisher on macOS using canonical paths,
+  no-follow opens and directory identity checks. Retain Linux descriptor anchoring,
+  exact-context validation and same-ID recovery; synchronize reconciled files.
+  Document macOS pathname races and Node `fsync` limits, with focused native
+  filesystem, killed-writer recovery and HTTP acceptance coverage.
+
 - Render the file sidebar as nested native folders with shared ancestry, keeping
   home first, logical reference URLs and folder collapse state through live updates.
 

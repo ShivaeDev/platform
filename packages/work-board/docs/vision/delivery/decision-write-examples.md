@@ -130,8 +130,8 @@ with its source fallback when JavaScript is unavailable. The ordinary trusted-fo
 reader keeps its existing compatibility; browser recording still requires JavaScript
 and explicit server write opt-in.
 
-The Linux-only no-replace publisher, revision/path checks, typed rejected/uncertain
-outcomes, source preservation and local-only operation are unchanged. The approved
+The shared Linux/macOS no-replace publisher retains revision/path checks, typed
+rejected/uncertain outcomes, source preservation and local-only operation. The approved
 [ownership boundary](./source-editing-examples.md) defers direct source patches
 and undo; a real tool handoff remains D3 before step 18. No export,
 cloud transport or additional dependency is introduced.

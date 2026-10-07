@@ -1,11 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { type FileHandle, link, open, readFile, realpath, unlink } from "node:fs/promises";
+import { type FileHandle, link, lstat, open, readFile, realpath, unlink } from "node:fs/promises";
 import { ResponseFailed } from "#browser/responses/schema.ts";
+import { directoryPath, publicationFailure, uncertain, validateDirectory } from "./publicationDirectory.ts";
 
-function uncertain(cause: unknown) {
-	return new ResponseFailed({ cause, code: "Uncertain", message: "Publication may have completed. Re-read the record identity before retrying." });
-}
 function exists(cause: unknown) {
 	return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
 }
@@ -19,12 +17,25 @@ async function linkOrReconcile(temporary: string, name: string, content: string)
 		}
 	}
 	const existing = await open(name, constants.O_RDONLY | constants.O_NOFOLLOW);
+	let matched = false;
 	try {
 		if ((await readFile(existing, "utf8")) !== content) {
 			throw new ResponseFailed({ code: "Conflict", message: "This identity already records different content; no file was replaced." });
 		}
+		matched = true;
+		await existing.sync();
+	} catch (cause) {
+		if (matched) {
+			throw uncertain(cause);
+		}
+		throw cause;
 	} finally {
-		await existing.close();
+		await existing.close().catch((cause: unknown) => {
+			if (matched) {
+				throw uncertain(cause);
+			}
+			throw cause;
+		});
 	}
 	return false;
 }
@@ -36,10 +47,18 @@ export async function publishIn(
 	content: string,
 	namespace: "responses" | "handoffs" = "responses",
 ) {
-	const folder = `/proc/self/fd/${target.fd}`;
 	const expected = `${realRoot}/${namespace}`;
+	const folder = directoryPath(target, expected);
+	const originalRoot = await lstat(root);
 	async function validate() {
-		if ((await realpath(folder)) !== expected || (await realpath(root)) !== realRoot) {
+		await validateDirectory(target, folder, expected);
+		const currentRoot = await lstat(root);
+		if (
+			!currentRoot.isDirectory()
+			|| currentRoot.dev !== originalRoot.dev
+			|| currentRoot.ino !== originalRoot.ino
+			|| (await realpath(root)) !== realRoot
+		) {
 			throw new ResponseFailed({ code: "Conflict", message: "The write boundary changed." });
 		}
 	}
@@ -61,11 +80,10 @@ export async function publishIn(
 		await target.sync();
 		await validate();
 	} catch (cause) {
-		if (published) {
-			throw uncertain(cause);
-		}
-		throw cause;
+		published ||= cause instanceof ResponseFailed && cause.code === "Uncertain";
+		publicationFailure(cause, published);
 	} finally {
+		await validate().catch((cause: unknown) => publicationFailure(cause, published));
 		await unlink(temporary).catch(() => undefined);
 	}
 }
