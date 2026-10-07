@@ -7,7 +7,9 @@ export const elapsed = (fromMs: number, toMs: number): string => {
 	return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 };
 
-const localTime = (ms: number): string => DateTime.formatLocal(DateTime.makeUnsafe(ms), { locale: "en-GB", timeStyle: "medium" });
+function localTime(ms: number): string {
+	return DateTime.formatLocal(DateTime.makeUnsafe(ms), { locale: "en-GB", timeStyle: "medium" });
+}
 
 export const waitingLine = (holder: Holder, nowMs: number): string =>
 	`heavy-process lock: waiting for pid ${holder.pid} running \`${holder.command}\` in ${holder.cwd} since ${localTime(holder.startedAtMs)} (${elapsed(holder.startedAtMs, nowMs)})`;

@@ -8,7 +8,7 @@ export interface RejectionData {
 
 export type RejectionErrorShape = TRPCDefaultErrorShape & { readonly data: RejectionData };
 
-const inputRejection = ({ issues: [issue] }: StandardSchemaV1Error): EncodedRejection | undefined => {
+function inputRejection({ issues: [issue] }: StandardSchemaV1Error): EncodedRejection | undefined {
 	if (issue === undefined) {
 		return undefined;
 	}
@@ -16,11 +16,13 @@ const inputRejection = ({ issues: [issue] }: StandardSchemaV1Error): EncodedReje
 	return field === ""
 		? { _tag: "BadRequest", invalidInput: true, message: issue.message }
 		: { _tag: "BadRequest", field, invalidInput: true, message: issue.message };
-};
+}
 
-const declared = ({ invalidInput: _reserved, ...rejection }: DeclaredRejection): EncodedRejection => rejection;
+function declared({ invalidInput: _reserved, ...rejection }: DeclaredRejection): EncodedRejection {
+	return rejection;
+}
 
-const rejectionFrom = (error: TRPCError): EncodedRejection | undefined => {
+function rejectionFrom(error: TRPCError): EncodedRejection | undefined {
 	if (error instanceof RejectionError) {
 		return declared(error.rejection);
 	}
@@ -28,7 +30,7 @@ const rejectionFrom = (error: TRPCError): EncodedRejection | undefined => {
 		return inputRejection(error.cause);
 	}
 	return undefined;
-};
+}
 
 export const withRejection = <Shape extends { readonly data: object }>(shape: Shape, error: TRPCError): Shape & { readonly data: RejectionData } => {
 	const rejection = rejectionFrom(error);

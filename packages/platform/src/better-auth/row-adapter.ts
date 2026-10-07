@@ -29,22 +29,27 @@ function rowTyped(adapter: unknown): unknown {
 	return adapter;
 }
 
-const rejectJoin = (join: unknown): void => {
+function rejectJoin(join: unknown): void {
 	if (join !== undefined) {
 		throw new TypeError("The Effect Prisma Better Auth adapter does not support experimental native joins");
 	}
-};
+}
 
-const namesId = (condition: CleanedWhere): boolean => condition.connector !== "OR" && condition.field === "id" && condition.operator === "eq";
+function namesId(condition: CleanedWhere): boolean {
+	return condition.connector !== "OR" && condition.field === "id" && condition.operator === "eq";
+}
 
 export const makeRowAdapter =
 	(query: RelationQuery, usePlural: boolean): AdapterFactoryCustomizeAdapterCreator =>
 	({ debugLog, getFieldAttributes }) => {
-		const isUnique = (model: string, condition: CleanedWhere): boolean =>
-			condition.connector !== "OR"
-			&& condition.operator === "eq"
-			&& condition.mode !== "insensitive"
-			&& (condition.field === "id" || getFieldAttributes({ field: condition.field, model }).unique === true);
+		function isUnique(model: string, condition: CleanedWhere): boolean {
+			return (
+				condition.connector !== "OR"
+				&& condition.operator === "eq"
+				&& condition.mode !== "insensitive"
+				&& (condition.field === "id" || getFieldAttributes({ field: condition.field, model }).unique === true)
+			);
+		}
 
 		return rowTyped({
 			count: ({ model, where }) => query(model, { where }, (relation) => relation.count()),

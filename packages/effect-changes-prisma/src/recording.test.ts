@@ -91,10 +91,12 @@ integration("a write outside any transaction publishes as soon as it autocommits
 	),
 );
 
-const slowInsert = (schema: string) => [
-	`create function "${schema}".slow_insert() returns trigger language plpgsql as $$ begin perform pg_sleep(0.3); return new; end $$`,
-	`create trigger slow_insert before insert on "${schema}".changes_prisma_order for each row execute function "${schema}".slow_insert()`,
-];
+function slowInsert(schema: string) {
+	return [
+		`create function "${schema}".slow_insert() returns trigger language plpgsql as $$ begin perform pg_sleep(0.3); return new; end $$`,
+		`create trigger slow_insert before insert on "${schema}".changes_prisma_order for each row execute function "${schema}".slow_insert()`,
+	];
+}
 
 integration("an interrupted use still records a write that ran", () =>
 	Effect.runPromise(

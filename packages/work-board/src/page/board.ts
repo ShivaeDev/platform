@@ -6,10 +6,11 @@ import { escapeHtml } from "./escape.ts";
 import { readingTools } from "./readingTools.ts";
 import { updated } from "./updated.ts";
 
-const counts = (board: Board): string =>
-	countsOf(board)
+function counts(board: Board): string {
+	return countsOf(board)
 		.map(({ count, title }) => `<span><b>${count}</b> ${escapeHtml(title.toLowerCase())}</span>`)
 		.join(" · ");
+}
 
 type Render = (fragment: string) => ReturnType<typeof renderMarkdown>;
 

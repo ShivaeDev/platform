@@ -4,21 +4,27 @@ import { HttpServerResponse } from "effect/unstable/http";
 import type { Change, Changes } from "#files/changes.ts";
 import { HEADERS } from "./respond.ts";
 
-const event = (name: string, data = ""): Sse.Event => ({ _tag: "Event", data, event: name, id: undefined });
+function event(name: string, data = ""): Sse.Event {
+	return { _tag: "Event", data, event: name, id: undefined };
+}
 
-const watching = (up: boolean): Sse.Event => event(up ? "ready" : "down");
+function watching(up: boolean): Sse.Event {
+	return event(up ? "ready" : "down");
+}
 
-const eventOf = (change: Change): Sse.Event =>
-	change._tag === "Changed" ? event("change", JSON.stringify({ paths: change.paths })) : watching(change.watching);
+function eventOf(change: Change): Sse.Event {
+	return change._tag === "Changed" ? event("change", JSON.stringify({ paths: change.paths })) : watching(change.watching);
+}
 
-const subscribed = (changes: Changes) =>
-	Stream.unwrap(
+function subscribed(changes: Changes) {
+	return Stream.unwrap(
 		Effect.gen(function* () {
 			const subscription = yield* PubSub.subscribe(changes.events);
 			const now = yield* Ref.get(changes.watching);
 			return Stream.concat(Stream.succeed(watching(now)), Stream.map(Stream.fromSubscription(subscription), eventOf));
 		}),
 	);
+}
 
 export const events = (changes: Changes) => () =>
 	Effect.succeed(

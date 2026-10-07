@@ -35,7 +35,9 @@ export const collection = <const Name extends string, Id extends Schema.Top & { 
 	name,
 });
 
-const own = (key: Key): string => (key._tag === "List" ? key.collection : `${key.collection}:${key.id}`);
+function own(key: Key): string {
+	return key._tag === "List" ? key.collection : `${key.collection}:${key.id}`;
+}
 
 export const readKeys = (keys: readonly Key[]): readonly string[] => [...new Set(keys.map(own))];
 

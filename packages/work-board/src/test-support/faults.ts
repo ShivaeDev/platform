@@ -10,7 +10,7 @@ export interface FaultyWatch {
 
 const injected = PlatformError.systemError({ _tag: "Unknown", description: "Injected watcher failure", method: "watch", module: "FileSystem" });
 
-export const faultyWatch = (): FaultyWatch => {
+export function faultyWatch(): FaultyWatch {
 	let broken = false;
 	const attempts: number[] = [];
 	let failure = Effect.runSync(Deferred.make<void>());
@@ -29,16 +29,24 @@ export const faultyWatch = (): FaultyWatch => {
 				);
 			}),
 	});
-	const fail = () => {
+	function fail() {
 		broken = true;
 		Effect.runSync(Deferred.succeed(failure, undefined));
+	}
+	return {
+		attempts,
+		fail,
+		heal: () => {
+			broken = false;
+			return broken;
+		},
+		wrap,
 	};
-	return { attempts, fail, heal: () => (broken = false), wrap };
-};
+}
 
 export const silentWatch: FileSystemWrapper = (fs) => ({ ...fs, watch: () => Stream.never });
 
-export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[]; readonly listed: readonly string[] } => {
+export function countingPaths(): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[]; readonly listed: readonly string[] } {
 	const visited: string[] = [];
 	const listed: string[] = [];
 	const wrap: FileSystemWrapper = (fs) => ({
@@ -58,4 +66,4 @@ export const countingPaths = (): { readonly wrap: FileSystemWrapper; readonly vi
 		},
 	});
 	return { listed, visited, wrap };
-};
+}

@@ -8,23 +8,25 @@ export const integration = databaseUrl === undefined ? test.skip : test;
 
 const url = databaseUrl ?? "postgresql://integration-tests-disabled";
 
-const tables = (schema: string) => [
-	`create schema "${schema}"`,
-	`create table "${schema}".changes_prisma_order (id text primary key, owner_id text not null, total integer not null)`,
-	`create table "${schema}".changes_prisma_membership (id text primary key, owner_id text not null, member_id text not null)`,
-	`create table "${schema}".changes_prisma_invoice (id text primary key, owner_id text not null,
+function tables(schema: string) {
+	return [
+		`create schema "${schema}"`,
+		`create table "${schema}".changes_prisma_order (id text primary key, owner_id text not null, total integer not null)`,
+		`create table "${schema}".changes_prisma_membership (id text primary key, owner_id text not null, member_id text not null)`,
+		`create table "${schema}".changes_prisma_invoice (id text primary key, owner_id text not null,
 		order_id text references "${schema}".changes_prisma_order (id) deferrable initially deferred)`,
-	`create table "${schema}"."AuditNote" (id text primary key, text text not null)`,
-	`create table "${schema}".changes_prisma_unmodeled (id text primary key)`,
-];
+		`create table "${schema}"."AuditNote" (id text primary key, text text not null)`,
+		`create table "${schema}".changes_prisma_unmodeled (id text primary key)`,
+	];
+}
 
 export interface ConnectOptions {
 	readonly max?: number;
 	readonly timeout?: number;
 }
 
-export const connect = (schema: string, options: ConnectOptions = {}) =>
-	Effect.acquireRelease(
+export function connect(schema: string, options: ConnectOptions = {}) {
+	return Effect.acquireRelease(
 		Effect.sync(
 			() =>
 				new PrismaClient({
@@ -34,13 +36,15 @@ export const connect = (schema: string, options: ConnectOptions = {}) =>
 		),
 		(client) => Effect.promise(() => client.$disconnect()),
 	);
+}
 
-const statements = (client: PrismaClient, sql: readonly string[]) =>
-	Effect.promise(async () => {
+function statements(client: PrismaClient, sql: readonly string[]) {
+	return Effect.promise(async () => {
 		for (const statement of sql) {
 			await client.$executeRawUnsafe(statement);
 		}
 	});
+}
 
 export const makeDatabase: Effect.Effect<
 	{
@@ -60,8 +64,9 @@ export const makeDatabase: Effect.Effect<
 	return { client, execute: (...sql: readonly string[]) => statements(admin, sql), observer, schema };
 });
 
-export const orderIds = (client: PrismaClient) =>
-	Effect.map(
+export function orderIds(client: PrismaClient) {
+	return Effect.map(
 		Effect.promise(() => client.order.findMany({ orderBy: { id: "asc" }, select: { id: true } })),
 		(rows) => rows.map((row) => row.id),
 	);
+}

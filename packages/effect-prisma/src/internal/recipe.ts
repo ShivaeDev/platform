@@ -23,7 +23,7 @@ export const appendOperation = (parent: RelationRecipe, name: PropertyKey, argum
 	parent,
 });
 
-const operations = (recipe: RelationRecipe): readonly RelationOperation[] => {
+function operations(recipe: RelationRecipe): readonly RelationOperation[] {
 	const reversed: RelationOperation[] = [];
 	let current: RelationRecipe | undefined = recipe;
 
@@ -35,16 +35,16 @@ const operations = (recipe: RelationRecipe): readonly RelationOperation[] => {
 	}
 
 	return reversed.reverse();
-};
+}
 
-const applyMethod = (current: unknown, name: PropertyKey, arguments_: readonly unknown[], model: string): unknown => {
+function applyMethod(current: unknown, name: PropertyKey, arguments_: readonly unknown[], model: string): unknown {
 	if (!hasMethod(current, name)) {
 		throw new TypeError(`Cannot call ${String(name)} while replaying ${model}`);
 	}
 	return invokeMethod(current, name, arguments_);
-};
+}
 
-const replayPlan = (collection: unknown, plan: RelationPlan, owner: object, transactionIdentity: object | undefined): unknown => {
+function replayPlan(collection: unknown, plan: RelationPlan, owner: object, transactionIdentity: object | undefined): unknown {
 	if (!plan.liveness.open) {
 		throw new TypeError("Included Relation is closed");
 	}
@@ -64,9 +64,9 @@ const replayPlan = (collection: unknown, plan: RelationPlan, owner: object, tran
 		return refined;
 	}
 	return applyMethod(refined, "count", [], plan.recipe.model);
-};
+}
 
-const includeRefinement = (value: unknown, owner: object, transactionIdentity: object | undefined): ((collection: unknown) => unknown) => {
+function includeRefinement(value: unknown, owner: object, transactionIdentity: object | undefined): (collection: unknown) => unknown {
 	const plan = getRelationPlan(value);
 	if (plan !== undefined) {
 		return (collection) => replayPlan(collection, plan, owner, transactionIdentity);
@@ -97,9 +97,9 @@ const includeRefinement = (value: unknown, owner: object, transactionIdentity: o
 		const branches = Object.fromEntries(plans.map(([name, queryPlan]) => [name, replayPlan(collection, queryPlan, owner, transactionIdentity)]));
 		return applyMethod(collection, "combine", [branches], model ?? "relation");
 	};
-};
+}
 
-const replayRecipeFrom = (root: unknown, recipe: RelationRecipe, owner: object, transactionIdentity: object | undefined): unknown => {
+function replayRecipeFrom(root: unknown, recipe: RelationRecipe, owner: object, transactionIdentity: object | undefined): unknown {
 	let current = root;
 	for (const operation of operations(recipe)) {
 		const arguments_ =
@@ -109,7 +109,7 @@ const replayRecipeFrom = (root: unknown, recipe: RelationRecipe, owner: object, 
 		current = applyMethod(current, operation.name, arguments_, recipe.model);
 	}
 	return current;
-};
+}
 
 export const replayRecipe = (models: object, recipe: RelationRecipe, owner: object, transactionIdentity: object | undefined): unknown => {
 	const current: unknown = Reflect.get(models, recipe.model);

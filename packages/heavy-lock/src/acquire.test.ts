@@ -13,11 +13,12 @@ import { heavyLockLayer, withHeavyLock } from "#with-heavy-lock.ts";
 
 afterEach(removeTemporaryDirectories);
 
-const holding = (lock: string) =>
-	Effect.gen(function* () {
+function holding(lock: string) {
+	return Effect.gen(function* () {
 		const held = yield* HeldLock;
 		return { env: held.env, holder: yield* readHolder(lock) };
 	});
+}
 
 it.effect("a waiter names the holder, reminds every minute, and takes the lock once it is released", () =>
 	Effect.gen(function* () {
@@ -51,11 +52,11 @@ it.effect("CI skips the lock, even while another run holds it; an empty CI does 
 		const typecheck = holder("typecheck");
 		yield* tryAcquire(lock, typecheck);
 
-		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "true" })));
+		const skipped = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "true" })));
 		expect(skipped).toEqual({ env: {}, holder: Option.some(typecheck) });
 
 		rmSync(lock);
-		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ CI: "" })));
+		const taken = yield* withHeavyLock(holding(lock), { lockPath: lock }).pipe(Effect.provide(services({ "CI": "" })));
 		expect(taken.env).toEqual({ [HOLDER_ID_ENV]: Option.getOrThrow(taken.holder).id });
 	}).pipe(Effect.provide(services())),
 );

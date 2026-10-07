@@ -8,8 +8,9 @@ interface Settled {
 	readonly transaction: SettledTransaction;
 }
 
-const runtimeFailure = (code: string, cause: unknown, details?: Readonly<Record<string, unknown>>): Error & { readonly code: string } =>
-	Object.assign(new Error(code, { cause }), { code, ...details });
+function runtimeFailure(code: string, cause: unknown, details?: Readonly<Record<string, unknown>>): Error & { readonly code: string } {
+	return Object.assign(new Error(code, { cause }), { code, ...details });
+}
 
 class ConnectionDisposal {
 	disposed = false;
@@ -28,7 +29,7 @@ class ConnectionDisposal {
 	}
 }
 
-const commit = async ({ transaction }: Settled, disposal: ConnectionDisposal): Promise<unknown> => {
+async function commit({ transaction }: Settled, disposal: ConnectionDisposal): Promise<unknown> {
 	try {
 		await transaction.commit();
 		return undefined;
@@ -36,9 +37,9 @@ const commit = async ({ transaction }: Settled, disposal: ConnectionDisposal): P
 		await transaction.rollback().catch(() => disposal.destroy(commitError));
 		return runtimeFailure("RUNTIME.TRANSACTION_COMMIT_FAILED", commitError);
 	}
-};
+}
 
-const rollback = async ({ transaction }: Settled, disposal: ConnectionDisposal): Promise<unknown> => {
+async function rollback({ transaction }: Settled, disposal: ConnectionDisposal): Promise<unknown> {
 	try {
 		await transaction.rollback();
 		return undefined;
@@ -46,9 +47,9 @@ const rollback = async ({ transaction }: Settled, disposal: ConnectionDisposal):
 		await disposal.destroy(rollbackError);
 		return runtimeFailure("RUNTIME.TRANSACTION_ROLLBACK_FAILED", rollbackError);
 	}
-};
+}
 
-const release = async ({ connection }: Settled, disposal: ConnectionDisposal, failure: unknown): Promise<void> => {
+async function release({ connection }: Settled, disposal: ConnectionDisposal, failure: unknown): Promise<void> {
 	if (disposal.disposed) {
 		return;
 	}
@@ -58,7 +59,7 @@ const release = async ({ connection }: Settled, disposal: ConnectionDisposal, fa
 		await disposal.destroy(releaseError);
 		throw failure === undefined ? releaseError : runtimeFailure("RUNTIME.TRANSACTION_RELEASE_FAILED", failure, { releaseError });
 	}
-};
+}
 
 export const settleConnection = async (settled: Settled, commitTransaction: boolean): Promise<void> => {
 	const disposal = new ConnectionDisposal(settled.connection);

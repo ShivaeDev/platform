@@ -10,22 +10,22 @@ interface Session {
 	readonly token: string;
 }
 
-export const shell = (url: string) => {
+export function shell(url: string) {
 	window.location.href = url;
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
 	const registries: AtomRegistry.AtomRegistry[] = [];
 	const rechecks: string[] = [];
-	const Registry = () => {
+	function Registry() {
 		const registry = useContext(RegistryContext);
 		if (!registries.includes(registry)) {
 			registries.push(registry);
 		}
 		return null;
-	};
-	const show = (session: Session | undefined, id: number) =>
-		act(async () => {
+	}
+	function show(session: Session | undefined, id: number) {
+		return act(async () => {
 			root.render(
 				createElement(SessionBoundary<Session, ReturnType<typeof makeOrderEditor>>, {
 					children: ({ Editor }) => [createElement(Registry, { key: "registry" }), createElement(Editor, { id, key: "editor" })],
@@ -37,7 +37,10 @@ export const shell = (url: string) => {
 				}),
 			);
 		});
-	const input = () => container.querySelector<HTMLInputElement>('input[name="name"]');
+	}
+	function input() {
+		return container.querySelector<HTMLInputElement>('input[name="name"]');
+	}
 	return {
 		close: async () => {
 			await act(async () => root.unmount());
@@ -59,10 +62,11 @@ export const shell = (url: string) => {
 		registries,
 		show,
 	};
-};
+}
 
-export const sessions = () =>
-	new Map([
+export function sessions() {
+	return new Map([
 		["alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
 		["bob-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 	]);
+}

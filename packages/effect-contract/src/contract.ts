@@ -34,12 +34,12 @@ type Unique<Operations extends readonly OperationShape[]> = [Duplicated<Operatio
 	? unknown
 	: `Operation names must be unique; duplicated: ${Duplicated<Operations>}`;
 
-const assertUnique = (operations: readonly OperationShape[]) => {
+function assertUnique(operations: readonly OperationShape[]) {
 	const duplicated = operations.map(({ name }) => name).filter((name, index, names) => names.indexOf(name) !== index);
 	if (duplicated.length > 0) {
 		throw new Error(`Operation names must be unique; duplicated: ${[...new Set(duplicated)].join(", ")}`);
 	}
-};
+}
 
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[]>;
 
@@ -51,13 +51,13 @@ interface DeclaredGroup extends Group {
 	readonly declaration: AnyDeclared;
 }
 
-const withDeclaration = (group: Group, declaration: AnyDeclared): DeclaredGroup => {
+function withDeclaration(group: Group, declaration: AnyDeclared): DeclaredGroup {
 	const nativeMiddleware = group.middleware.bind(group);
 	return Object.assign(group, {
 		declaration,
 		middleware: (middleware: RpcMiddleware.AnyService) => withDeclaration(nativeMiddleware(middleware), declaration),
 	});
-};
+}
 
 export function contract<
 	const Name extends string,

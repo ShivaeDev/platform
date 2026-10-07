@@ -16,15 +16,17 @@ interface Announced {
 }
 
 // Taking the lock and registering its release happen as one step, so an interrupted waiter never leaves a lock behind.
-const attempt = (lock: string, holder: Holder) =>
-	Effect.uninterruptible(
+function attempt(lock: string, holder: Holder) {
+	return Effect.uninterruptible(
 		Effect.tap(tryAcquire(lock, holder), (blocker) =>
 			Option.isNone(blocker) ? Effect.addFinalizer(() => Effect.ignore(release(lock, holder.id))) : Effect.void,
 		),
 	);
+}
 
-const shouldAnnounce = (announced: Announced | undefined, blocker: Holder, nowMs: number, remindEvery: Duration.Duration): boolean =>
-	announced?.id !== blocker.id || nowMs - announced.atMs >= Duration.toMillis(remindEvery);
+function shouldAnnounce(announced: Announced | undefined, blocker: Holder, nowMs: number, remindEvery: Duration.Duration): boolean {
+	return announced?.id !== blocker.id || nowMs - announced.atMs >= Duration.toMillis(remindEvery);
+}
 
 export const waitForLock = Effect.fn("HeavyLock.waitForLock")(function* (lock: string, claim: Claim, options: WaitOptions) {
 	const waitStartedMs = yield* Clock.currentTimeMillis;

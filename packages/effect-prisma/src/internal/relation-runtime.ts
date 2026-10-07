@@ -23,15 +23,15 @@ type AnyRelationRuntime = RelationRuntime<object, AnyPostgresContract>;
 
 const runtimes = new WeakMap<object, AnyRelationRuntime>();
 
-const runtimeOf = (self: object): AnyRelationRuntime => {
+function runtimeOf(self: object): AnyRelationRuntime {
 	const runtime = runtimes.get(self);
 	if (runtime === undefined) {
 		throw new TypeError("Relation runtime is unavailable");
 	}
 	return runtime;
-};
+}
 
-const relationEffect = (self: object): Effect.Effect<unknown, PrismaError> => {
+function relationEffect(self: object): Effect.Effect<unknown, PrismaError> {
 	const runtime = runtimeOf(self);
 	return Effect.flatMap(runtime.resolveExecutor, (executor) =>
 		executeQuery(
@@ -50,11 +50,11 @@ const relationEffect = (self: object): Effect.Effect<unknown, PrismaError> => {
 			kind: "client",
 		}),
 	);
-};
+}
 
 const RelationPrototype = {
 	...Effectable.Prototype<RelationValue>({
-		evaluate() {
+		evaluate(this: RelationValue) {
 			return relationEffect(this);
 		},
 		label: "EffectPrismaRelation",
@@ -65,7 +65,7 @@ const RelationPrototype = {
 	},
 };
 
-const makeRelationProxy = (runtime: AnyRelationRuntime): object => {
+function makeRelationProxy(runtime: AnyRelationRuntime): object {
 	const target: object = Object.create(RelationPrototype);
 	const proxy = new Proxy(target, {
 		get(self, property, receiver) {
@@ -109,7 +109,7 @@ const makeRelationProxy = (runtime: AnyRelationRuntime): object => {
 		setRelationPlan(value, plan);
 	}
 	return proxy;
-};
+}
 
 // The proxy replays every Relation call onto the Prisma collection for `model`, so it has that collection's Relation surface.
 function asRelation<Collection, Model extends string>(proxy: object): Relation<Collection, undefined, Model>;

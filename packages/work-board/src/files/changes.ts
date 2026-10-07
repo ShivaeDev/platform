@@ -41,13 +41,14 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	const cached = yield* Ref.make(Option.none<Cached>());
 	const settled = yield* Deferred.make<void>();
 	const stale = Ref.update(generation, (count) => count + 1);
-	const setWatching = (now: boolean) =>
-		Effect.andThen(
+	function setWatching(now: boolean) {
+		return Effect.andThen(
 			Effect.flatMap(Ref.getAndSet(watching, now), (was) =>
 				was === now ? Effect.void : Effect.andThen(stale, publish({ _tag: "Watching", watching: now })),
 			),
 			Deferred.succeed(settled, undefined),
 		);
+	}
 	const attempt = watchDirectories(root, realRoot, stale, setWatching, (paths) => publish({ _tag: "Changed", paths }));
 	yield* attempt.pipe(
 		Effect.sandbox,

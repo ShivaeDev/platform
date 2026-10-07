@@ -12,15 +12,19 @@ export const Database = makeDatabase<Contract>()("@test/IntegrationDatabase", {
 	contractJson,
 });
 export type DatabaseService = DatabaseServiceOf<typeof Database>;
-export const scopedValues = (db: DatabaseService, email: string) => ({
-	db,
-	posts: db.Post,
-	relation: db.User.where({ email }),
-	stream: db.User.where({ email }).stream,
-});
+export function scopedValues(db: DatabaseService, email: string) {
+	return {
+		db,
+		posts: db.Post,
+		relation: db.User.where({ email }),
+		stream: db.User.where({ email }).stream,
+	};
+}
 const DatabaseLive = Database.layer({
 	url: databaseUrl ?? "postgresql://integration-tests-disabled",
 });
 export const withDatabase = Effect.provide(DatabaseLive);
 
-export const uniqueEmail = (scenario: string): string => `${scenario}-${crypto.randomUUID()}@example.test`;
+export function uniqueEmail(scenario: string): string {
+	return `${scenario}-${crypto.randomUUID()}@example.test`;
+}

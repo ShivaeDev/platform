@@ -3,11 +3,12 @@ import { expect, it } from "vitest";
 import { configuredTimeout } from "#expiry.ts";
 import { PrismaClient } from "#test/generated/client.ts";
 
-const client = (timeout?: number) =>
-	new PrismaClient({
+function client(timeout?: number) {
+	return new PrismaClient({
 		adapter: new PrismaPg({ connectionString: "postgresql://never-connected" }),
 		...(timeout === undefined ? {} : { transactionOptions: { timeout } }),
 	});
+}
 
 it("reads the transaction timeout a Prisma client was constructed with, also through $extends", () => {
 	expect(configuredTimeout(client(1234))).toBe(1234);

@@ -21,16 +21,18 @@ export interface PageOptions {
 	readonly root: string;
 }
 
-const requestedPath = (url: string): string => {
+function requestedPath(url: string): string {
 	const pathname = new URL(url, "http://127.0.0.1").pathname.replace(/^\/+/u, "");
 	try {
 		return decodeURIComponent(pathname);
 	} catch {
 		return pathname;
 	}
-};
+}
 
-const message = (text: string): string => `<p class="empty">${escapeHtml(text)}</p>`;
+function message(text: string): string {
+	return `<p class="empty">${escapeHtml(text)}</p>`;
+}
 
 export const page = (options: PageOptions, changes: Changes, index: Effect.Success<ReturnType<typeof searchSnapshot>>) => {
 	const body = Effect.fn("WorkBoard.pageBody")(function* (file: MarkdownFile, expectedIdentity?: string) {
@@ -69,8 +71,8 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 		function layout(content: string, identity?: string) {
 			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity);
 		}
-		const missing = () =>
-			respond(
+		function missing() {
+			return respond(
 				layout(
 					message(
 						expectedIdentity
@@ -81,6 +83,7 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 				"text/html",
 				404,
 			);
+		}
 		if (files.length === 0 && requestedPath(request.url) === "" && resolved === undefined && expectedIdentity === undefined) {
 			return respond(layout(startHtml(true)), "text/html");
 		}

@@ -9,45 +9,59 @@ import type { Holder } from "#holder.ts";
 
 const directories: string[] = [];
 
-export const temporaryDirectory = (): string => {
+export function temporaryDirectory(): string {
 	const directory = mkdtempSync(join(tmpdir(), "heavy-lock-"));
 	directories.push(directory);
 	return directory;
-};
+}
 
-export const temporaryLock = (): string => join(temporaryDirectory(), "nested", "heavy-process.lock");
+export function temporaryLock(): string {
+	return join(temporaryDirectory(), "nested", "heavy-process.lock");
+}
 
-export const removeTemporaryDirectories = (): void => {
+export function removeTemporaryDirectories(): void {
 	for (const directory of directories.splice(0)) {
 		rmSync(directory, { force: true, recursive: true });
 	}
-};
+}
 
-export const startTime = (pid: number): string => {
-	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8", env: { LC_ALL: "C", PATH: "/usr/bin:/bin" } });
+export function startTime(pid: number): string {
+	const { status, stdout } = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], {
+		encoding: "utf8",
+		env: { "LC_ALL": "C", "PATH": "/usr/bin:/bin" },
+	});
 	return status === 0 ? stdout.trim() : "never";
-};
+}
 
-export const holder = (id: string, pid: number = process.pid, startedAtMs = 0): Holder => ({
-	command: `pnpm ${id}`,
-	cwd: "/repo",
-	id,
-	pid,
-	processStartedAt: startTime(pid),
-	startedAtMs,
-});
+export function holder(id: string, pid: number = process.pid, startedAtMs = 0): Holder {
+	return {
+		command: `pnpm ${id}`,
+		cwd: "/repo",
+		id,
+		pid,
+		processStartedAt: startTime(pid),
+		startedAtMs,
+	};
+}
 
-export const deadPid = (): number => spawnSync("/bin/sh", ["-c", ":"]).pid ?? 0;
+export function deadPid(): number {
+	return spawnSync("/bin/sh", ["-c", ":"]).pid ?? 0;
+}
 
-export const writeLock = (lock: string, content: string): void => {
+export function writeLock(lock: string, content: string): void {
 	mkdirSync(dirname(lock), { recursive: true });
 	writeFileSync(lock, content);
-};
+}
 
-export const readLock = (lock: string): string | undefined => (existsSync(lock) ? readFileSync(lock, "utf8") : undefined);
+export function readLock(lock: string): string | undefined {
+	return existsSync(lock) ? readFileSync(lock, "utf8") : undefined;
+}
 
-export const lockDirectory = (lock: string): readonly string[] => readdirSync(dirname(lock));
+export function lockDirectory(lock: string): readonly string[] {
+	return readdirSync(dirname(lock));
+}
 
 // An explicit environment keeps a test from reading the machine's `CI` or lock variables.
-export const services = (env: Record<string, string> = {}) =>
-	Layer.mergeAll(NodeServices.layer, ConfigProvider.layer(ConfigProvider.fromEnv({ env })));
+export function services(env: Record<string, string> = {}) {
+	return Layer.mergeAll(NodeServices.layer, ConfigProvider.layer(ConfigProvider.fromEnv({ env })));
+}

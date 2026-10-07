@@ -12,16 +12,23 @@ export const integration = databaseUrl === undefined ? test.skip : test;
 export class Unavailable extends Data.TaggedError("Unavailable")<{ readonly reason: string }> {}
 export class Rejected extends Data.TaggedError("Rejected") {}
 
-export const onSqlError = (error: { readonly message: string }) => new Unavailable({ reason: error.message });
+export function onSqlError(error: { readonly message: string }) {
+	return new Unavailable({ reason: error.message });
+}
 
-const pool = () => PgClient.layer({ url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled") });
+function pool() {
+	return PgClient.layer({ url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled") });
+}
 
-export const runPostgres = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity | Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(effect).pipe(Effect.provide(Layer.merge(pool(), Reactivity.layer))));
+export function runPostgres<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity | Scope.Scope>) {
+	return Effect.runPromise(Effect.scoped(effect).pipe(Effect.provide(Layer.merge(pool(), Reactivity.layer))));
+}
 
 export const secondPool = Effect.suspend(() => Effect.map(Layer.build(pool()), (context) => Context.get(context, SqlClient.SqlClient)));
 
-const ids = (rows: ReadonlyArray<{ readonly id: number }>) => rows.map((row) => row.id);
+function ids(rows: ReadonlyArray<{ readonly id: number }>) {
+	return rows.map((row) => row.id);
+}
 
 export const setup = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -44,14 +51,22 @@ export const setup = Effect.gen(function* () {
 	for (const key of ["orders", "orders:1", "orders:2"]) {
 		reactivity.registerUnsafe([key], () => events.push(key));
 	}
-	const insert = (id: number) => sql`insert into ${sql(tables.orders)} (id, name) values (${id}, ${`order ${id}`})`;
+	function insert(id: number) {
+		return sql`insert into ${sql(tables.orders)} (id, name) values (${id}, ${`order ${id}`})`;
+	}
 	const count = Effect.map(sql<{ readonly total: number }>`select count(*)::int as total from ${sql(tables.orders)}`, ([row]) => row?.total);
-	const orderIds = (client: SqlClient.SqlClient) =>
-		Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.orders)} order by id`, ids);
-	const otherIds = (client: SqlClient.SqlClient) =>
-		Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.others)} order by id`, ids);
-	const insertOther = (client: SqlClient.SqlClient, id: number) => client`insert into ${sql(tables.others)} (id) values (${id})`;
+	function orderIds(client: SqlClient.SqlClient) {
+		return Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.orders)} order by id`, ids);
+	}
+	function otherIds(client: SqlClient.SqlClient) {
+		return Effect.map(client<{ readonly id: number }>`select id from ${sql(tables.others)} order by id`, ids);
+	}
+	function insertOther(client: SqlClient.SqlClient, id: number) {
+		return client`insert into ${sql(tables.others)} (id) values (${id})`;
+	}
 	return { count, events, insert, insertOther, orderIds, otherIds, reactivity, sql, tables };
 });
 
-export const onClient = (client: SqlClient.SqlClient) => Effect.provideService(SqlClient.SqlClient, client);
+export function onClient(client: SqlClient.SqlClient) {
+	return Effect.provideService(SqlClient.SqlClient, client);
+}

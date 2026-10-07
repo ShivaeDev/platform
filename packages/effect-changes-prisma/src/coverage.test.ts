@@ -12,8 +12,12 @@ const tables = new Map([
 	["notes", "AuditNote"],
 ]);
 const models = { AuditNote: null, Invoice: () => [], Order: () => [] };
-const covers = (model: string, change: Change) => change.domain === model.toLowerCase();
-const recorded = (...domains: readonly string[]): Observation<Change> => ({ _tag: "Recorded", changes: domains.map((domain) => ({ domain })) });
+function covers(model: string, change: Change) {
+	return change.domain === model.toLowerCase();
+}
+function recorded(...domains: readonly string[]): Observation<Change> {
+	return { _tag: "Recorded", changes: domains.map((domain) => ({ domain })) };
+}
 
 it("a written table is covered by a recorded change of its model, including changes that were later discarded", () => {
 	const observations: readonly Observation<Change>[] = [

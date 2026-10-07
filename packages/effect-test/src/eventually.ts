@@ -8,18 +8,21 @@ export interface EventuallyOptions {
 
 const defaultInterval = "10 millis";
 
-const isTestClock = (clock: Clock.Clock): clock is TestClock.TestClock => "adjust" in clock;
+function isTestClock(clock: Clock.Clock): clock is TestClock.TestClock {
+	return "adjust" in clock;
+}
 
-const retryOnLiveClock = <A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> =>
-	times === undefined
+function retryOnLiveClock<A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> {
+	return times === undefined
 		? Effect.retry(effect, Schedule.spaced(interval))
 		: Effect.retry(effect, {
 				schedule: Schedule.spaced(interval),
 				times,
 			});
+}
 
-const retryOnTestClock = <A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> =>
-	Effect.gen(function* () {
+function retryOnTestClock<A, E, R>(effect: Effect.Effect<A, E, R>, interval: Duration.Input, times: number | undefined): Effect.Effect<A, E, R> {
+	return Effect.gen(function* () {
 		let retriesLeft = times;
 		for (;;) {
 			const result = yield* Effect.result(effect);
@@ -35,6 +38,7 @@ const retryOnTestClock = <A, E, R>(effect: Effect.Effect<A, E, R>, interval: Dur
 			yield* TestClock.adjust(interval);
 		}
 	});
+}
 
 export const eventually = <A, E, R>(effect: Effect.Effect<A, E, R>, options?: EventuallyOptions): Effect.Effect<A, E, R> =>
 	Effect.gen(function* () {

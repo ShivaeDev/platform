@@ -1,4 +1,6 @@
-const isObjectLike = (value: unknown): value is object => (typeof value === "object" && value !== null) || typeof value === "function";
+function isObjectLike(value: unknown): value is object {
+	return (typeof value === "object" && value !== null) || typeof value === "function";
+}
 
 export const hasMethod = (value: unknown, name: PropertyKey): value is object =>
 	isObjectLike(value) && typeof Reflect.get(value, name) === "function";

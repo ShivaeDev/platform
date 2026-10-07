@@ -18,10 +18,10 @@ export interface Create<F extends Fields, Created, SE, ER> extends SaveState<SE 
 	readonly form: Form<F, Created, SE | FieldFailure, ER>;
 }
 
-const editedSince = <V extends object>(current: V, submitted: V | undefined): Readonly<Record<string, unknown>> => {
+function editedSince<V extends object>(current: V, submitted: V | undefined): Readonly<Record<string, unknown>> {
 	const before = new Map(Object.entries(submitted ?? current));
 	return Object.fromEntries(Object.entries(current).filter(([name, value]) => !Equal.equals(value, before.get(name))));
-};
+}
 
 export const useCreate = <F extends Fields, Created, SE, R, ER>(config: CreateConfig<F, Created, SE, R, ER>): Create<F, Created, SE, ER> => {
 	const [{ initialValues, fresh }] = useState(() => {

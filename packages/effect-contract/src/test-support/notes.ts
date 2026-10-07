@@ -45,17 +45,21 @@ export const makeServer = Effect.gen(function* () {
 	);
 	const reads = yield* Ref.make<readonly string[]>([]);
 	const denied = yield* Ref.make(false);
-	const read = (label: string) => Ref.update(reads, (all) => [...all, label]);
-	const find = (id: number) =>
-		Effect.flatMap(Ref.get(stored), (all) => {
+	function read(label: string) {
+		return Ref.update(reads, (all) => [...all, label]);
+	}
+	function find(id: number) {
+		return Effect.flatMap(Ref.get(stored), (all) => {
 			const note = all.get(id);
 			return note === undefined ? Get.reject.NoteMissing({ id }) : Effect.succeed(note);
 		});
-	const save = (note: Note) =>
-		Effect.as(
+	}
+	function save(note: Note) {
+		return Effect.as(
 			Ref.update(stored, (all) => new Map([...all, [note.id, note]])),
 			note,
 		);
+	}
 	const handlers = Notes.toLayer(
 		Effect.succeed(
 			Notes.of({

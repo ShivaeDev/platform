@@ -18,17 +18,21 @@ afterEach(async () => {
 	notes.remove();
 });
 
-const open = async (path: string, beforeScripts?: () => Promise<void>) => {
+async function open(path: string, beforeScripts?: () => Promise<void>) {
 	page = await openLive(board, path, beforeScripts);
 	return page;
-};
+}
 
-const paragraph = (text: string) => paragraphOf(page, text);
-const figure = () => page.document.querySelector("figure.diagram");
-const sourceDisplay = () => {
+function paragraph(text: string) {
+	return paragraphOf(page, text);
+}
+function figure() {
+	return page.document.querySelector("figure.diagram");
+}
+function sourceDisplay() {
 	const source = page.document.querySelector(".diagram-source");
 	return source === null ? "missing" : page.window.getComputedStyle(source).display;
-};
+}
 
 describe("diagrams", () => {
 	it("loads Mermaid only on a page with a diagram", async () => {
