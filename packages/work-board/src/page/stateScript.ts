@@ -41,7 +41,11 @@ export const applyPage = (page, preserve = false) => {
   const crumbs = page.getElementById("breadcrumbs");
   if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
   if (!preserve) {
-    document.querySelector('#files a[aria-current="page"]')?.closest("details")?.setAttribute("open", "");
+    let folder = document.querySelector('#files a[aria-current="page"]')?.closest("details");
+    while (folder) {
+      folder.open = true;
+      folder = folder.parentElement?.closest("details");
+    }
   }
   refreshLibrary(!preserve);
   if (reading) restoreReading({ ...reading, selection: null }, false);

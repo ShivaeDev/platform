@@ -19,7 +19,11 @@ Browser print focuses on the document; document export is outside product scope.
 
 It listens on `127.0.0.1` only and answers only requests addressed to a loopback
 host. Every `.md` file under the folder appears in the collapsible sidebar with
-how long ago it changed. Below the folder, files and folders starting with a dot
+how long ago it changed. Shared directories form a nested folder tree: each
+folder can be expanded or collapsed with its native summary control, including
+from the keyboard. The home file stays first. Folder choices survive live
+updates; opening a document expands its ancestors. Empty directories without
+Markdown are omitted. Below the folder, files and folders starting with a dot
 and `node_modules` are never entered. Only Markdown appears in the sidebar;
 supported local images are served when explicitly referenced below. The folder
 itself may be a dot folder such as `.notes`.
