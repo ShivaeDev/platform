@@ -46,9 +46,10 @@ source after the final check cannot be locked against every unrelated editor;
 records therefore retain the exact reviewed bytes rather than claiming a
 multi-file transaction or overwriting the editor's source.
 
-Publication requires Linux directory descriptors and supported hard links/fsync.
-Read-only operation remains available elsewhere. New files publish without
-replacement; same-ID retries reconcile exact content. Moved/duplicated/conflicting
+Publication supports Linux and macOS with hard links and file/directory `fsync`.
+See the [filesystem limits](../../../README.md#filesystem-publication-and-recovery)
+for Linux descriptor anchoring, macOS pathname races and durability limits. New
+files publish without replacement; same-ID retries reconcile exact content. Moved/duplicated/conflicting
 identities, permission failures and changed/symlinked write boundaries are rejected.
 After a post-publication failure, an uncertain result retains the draft. Reconcile
 saved identity/content and directory synchronization before confirming a retry.
@@ -72,8 +73,8 @@ D4 before step 24 and the pending representative-reader/device evidence remain.
 ## Repeatable acceptance path
 
 Run `pnpm ready` for native types, regressions, the real local PostgreSQL suites
-and packed consumers. Start the production CLI against a disposable Linux folder
-with an explicit attention request and `--responses`. Open Respond, enter a draft,
+and packed consumers. Start the production CLI against a disposable folder on
+the host OS with an explicit attention request and `--responses`. Open Respond, enter a draft,
 reload, and modify the proposal externally. The draft must survive and require a
 new preview. Start concurrent `wait <item>/<request> --revision <hash>` commands;
 restart the server at the same port, kill and reattach one waiter, then record a
@@ -88,3 +89,27 @@ For resources, sample `/proc/<pid>/smaps_rollup`, CPU ticks and descriptors for 
 registered idle waiters over five seconds, without concurrent repository handoff.
 Report PSS separately from summed RSS; neither a short idle observation nor an
 edited test deadline proves a 48-hour soak or automatic harness wakeup.
+
+## Native filesystem acceptance
+
+From the repository root on macOS with Node 24 or later and the pinned pnpm:
+
+```sh
+node -e 'if (process.platform !== "darwin") throw new Error("Run this acceptance on macOS")' &&
+./script/update &&
+pnpm build &&
+pnpm --filter @shivaedev/work-board test src/responses/publicationFlow.spec.ts src/responses/publicationRecovery.spec.ts src/responses/publicationHttp.spec.ts src/responses/response.spec.ts src/responses/questionnaire.spec.ts src/handoffs/handoff.spec.ts &&
+pnpm --filter @shivaedev/work-fleet test src/board/markdown.test.ts src/board/decisionHttp.spec.ts src/board/acknowledgementHttp.spec.ts
+```
+
+Run the same test commands on Linux for regression evidence. Do not mock
+`process.platform`: the publisher must use the host filesystem implementation.
+Run as a normal user so the permission-denial check is meaningful. The suites use
+disposable canonical temporary directories and real loopback HTTP servers.
+They cover question/response registration, packet answers, managed decision
+publication and applied/superseded acknowledgements, handoff receipt preservation,
+exact-context failures, concurrent no-replace conflicts and same-ID retries after
+restart. Recovery kills a real writer after temporary-file or published-directory
+synchronization, then checks the retained files and retries without replacement.
+Synchronization failures and observed directory replacement also exercise typed
+uncertainty. This does not measure sudden power loss or hardware-cache durability.

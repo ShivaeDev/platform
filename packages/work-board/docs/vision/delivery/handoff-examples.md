@@ -8,8 +8,8 @@ Markdown file. There is no launcher, harness hook or automatic session wakeup.
 
 Review a uniquely identified project item. Open **Prepare an agent handoff**,
 enter recipient, goal, constraints and next action, then preview and prepare.
-The existing `--responses` opt-in permits the same Linux local writer to create
-`handoffs/<stable-id>.md`; the original project item is unchanged.
+The existing `--responses` opt-in permits the same Linux/macOS local writer to
+create `handoffs/<stable-id>.md`; the original project item is unchanged.
 
 The file's frontmatter records direction and the source SHA-256. Its body contains
 the exact complete source that the person reviewed, including its original

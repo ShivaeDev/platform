@@ -1,10 +1,10 @@
 import { constants } from "node:fs";
-import { chmod, open, readdir, readFile } from "node:fs/promises";
+import { chmod, open, readdir, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { afterEach, expect, it, vi } from "vitest";
 import { type Folder, folder } from "#test/board.ts";
-import { responseDirectory, responseLink } from "#test/responseFiles.ts";
+import { outsideResponseDirectory, responseDirectory, responseLink } from "#test/responseFiles.ts";
 import { publish } from "./publish.ts";
 import { publishIn } from "./publishIn.ts";
 
@@ -51,5 +51,60 @@ it("rejects permission failure before publication and cleans temporary files", a
 		expect(await readdir(join(notes.root, "responses"))).toEqual([]);
 	} finally {
 		await chmod(join(notes.root, "responses"), 0o700);
+	}
+});
+
+it("concurrent writers publish one winner and reconcile only identical content", async () => {
+	notes = folder({});
+	const attempts = await Promise.allSettled(
+		["First feedback", "Other feedback"].map((content) => Effect.runPromise(publish(notes.root, notes.root, "response.race", content))),
+	);
+	expect(attempts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+	const saved = await readFile(join(notes.root, "responses/response.race.md"), "utf8");
+	await Promise.all(Array.from({ length: 4 }, () => Effect.runPromise(publish(notes.root, notes.root, "response.race", saved))));
+	expect(await readdir(join(notes.root, "responses"))).toEqual(["response.race.md"]);
+});
+it("rejects a replaced directory before publication and reports uncertainty after publication", async () => {
+	notes = folder({});
+	outside = folder({});
+	responseDirectory(notes.root);
+	const target = await open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+	try {
+		const sync = target.sync.bind(target);
+		vi.spyOn(target, "sync").mockImplementationOnce(async () => {
+			await sync();
+			await rename(join(notes.root, "responses"), join(notes.root, "retained"));
+			outsideResponseDirectory(notes.root, outside.root);
+		});
+		await expect(publishIn(target, notes.root, notes.root, "response.boundary", "Retained feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		expect(await readFile(join(notes.root, "retained/response.boundary.md"), "utf8")).toBe("Retained feedback");
+		await expect(publishIn(target, notes.root, notes.root, "response.other", "Other feedback")).rejects.toMatchObject({ code: "Conflict" });
+		expect(await readdir(outside.root)).toEqual([]);
+	} finally {
+		await target.close();
+	}
+});
+
+it("reports a boundary change detected during cleanup as uncertain without cleaning another directory", async () => {
+	notes = folder({});
+	outside = folder({});
+	responseDirectory(notes.root);
+	const target = await open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+	try {
+		const stat = target.stat.bind(target);
+		let checks = 0;
+		vi.spyOn(target, "stat").mockImplementation(async () => {
+			checks += 1;
+			if (checks === 4) {
+				await rename(join(notes.root, "responses"), join(notes.root, "retained"));
+				outsideResponseDirectory(notes.root, outside.root);
+			}
+			return stat();
+		});
+		await expect(publishIn(target, notes.root, notes.root, "response.cleanup", "Retained feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		expect(await readFile(join(notes.root, "retained/response.cleanup.md"), "utf8")).toBe("Retained feedback");
+		expect(await readdir(outside.root)).toEqual([]);
+	} finally {
+		await target.close();
 	}
 });

@@ -66,7 +66,7 @@ preference says otherwise. A keyboard skip link moves directly to the content.
 | --- | --- | --- |
 | `<dir>` | required | The folder to serve. |
 | `--port` | `4747` | The port on `127.0.0.1`. `0` picks a free one. |
-| `--responses` | `false` | Explicitly enable local question/response/handoff writes. The first writer requires Linux, a real workspace directory, `/proc/self/fd`, hard links and directory synchronization. Reading remains available on other supported Node platforms. |
+| `--responses` | `false` | Explicitly enable local question/response/handoff writes. Writing supports Linux and macOS with a real workspace directory, hard links and directory synchronization; see the filesystem limits below. Reading remains available on other supported Node platforms. |
 | `--home` | none | The file shown at `/` as a board, relative to the folder. The command stops with an error unless it leads to one of the markdown files listed from the folder. Without it, `/` shows the first file as a document. |
 
 ### Reviewing a returned result
@@ -102,7 +102,7 @@ its frontmatter, including declared criteria. Context is limited to 256 KiB.
 path. Paste it into the agent session you already use. Preparing a file records
 `requested`; it does not wake or launch an agent. Without clipboard permission,
 the prompt is selected for manual copying. Saved handoffs remain readable without
-JavaScript; preparing them requires JavaScript and the existing Linux writer.
+JavaScript; preparing them requires JavaScript and the local writer.
 
 The agent reads the file and edits `handoff.state` to `acknowledged`, `rejected`
 or `unavailable`, with optional `handoff.by` and `handoff.note`. These are literal
@@ -204,10 +204,8 @@ Harnesses own model wakeup and shell lifetime: completion is not a universal
 promise of autonomous agent continuation. Re-read/reattach when your harness does
 not inject a completed shell result.
 
-Publication holds Linux directory descriptors, writes and synchronizes a private
-temporary file, publishes with a no-replace hard link, then synchronizes the
-response directory. Retries reconcile the same identity/content and never replace
-another contribution; a moved/duplicated/conflicting identity is rejected.
+Retries reconcile the same identity/content and never replace another
+contribution; a moved/duplicated/conflicting identity is rejected.
 Symlinked reference folders grant read access only. Changed/moved directories,
 permissions, unsupported filesystem capabilities and uncertain outcomes remain
 explicit. An unrelated editor can change the reviewed source after a preflight
@@ -221,6 +219,42 @@ and the official response surface renders reviewed context with raw HTML disable
 with an escaped exact-source disclosure. Embedded apps must
 explicitly opt in with `boardLayer({ root, responses: true })` and own the trusted
 host boundary. There is no write endpoint for arbitrary paths or source rewriting.
+
+### Filesystem publication and recovery
+
+The shared publisher supports Linux and macOS on filesystems with hard links and
+file/directory `fsync`. It opens the workspace and record directory with
+`O_DIRECTORY | O_NOFOLLOW`, writes and synchronizes a private temporary file,
+and hard-links it to the final name without replacement. Equal-content retries
+read without following a destination symlink and synchronize the existing file
+and directory again. Questions, responses, handoffs and managed decision receipts
+use this path; source ownership and exact-context checks remain in their services.
+
+Linux operations remain anchored to open directories through `/proc/self/fd`.
+On macOS, supported Node APIs require canonical pathnames instead. The writer
+checks canonical paths and directory device/inode identities before and after
+publication, rejects observed symlinks or replacement, and avoids temporary-file
+cleanup when the boundary no longer validates. These checks cannot prevent a
+concurrent directory or ancestor swap between a check and a pathname operation,
+or detect a swap that is restored before the next check. Keep the workspace and
+its ancestors under trusted local ownership; do not rename or replace write
+boundaries during a save. macOS has no equivalent descriptor-anchoring guarantee.
+
+A successful save confirms publication and successful Node `fsync` calls, not a
+power-loss guarantee. Node exposes no macOS `F_FULLFSYNC` hardware-cache barrier;
+filesystem and hardware behavior can differ. Unsupported hard links or directory
+synchronization fail rather than silently weakening the checks. Failures before
+publication reject the save. Failed boundary checks, synchronization or directory
+closes after a link or reconciliation report `Uncertain`. Temporary-file deletion
+failures leave ignorable files without invalidating confirmed publication. Re-read
+the same identity and retry the same content. Do not create a new identity to
+recover a lost acknowledgement. A killed process can leave hidden `.tmp` files; they are ignored by readers and retries and are not reaped
+by another writer. Never promote a temporary file to a final record manually.
+
+The [focused acceptance command](docs/vision/delivery/response-write-examples.md#native-filesystem-acceptance)
+runs real filesystem, killed-process recovery and HTTP checks on the host OS.
+Fault-injected synchronization tests exercise uncertainty over real files; they
+are not power-loss tests or evidence from another OS.
 
 ## Local visual evidence
 
@@ -593,4 +627,5 @@ Ordinary Markdown and older response files still work. Decisions are authored
 feedback; superseding direction is explicit and does not establish acceptance or
 change tasks. Response-page raw HTML is disabled. Local strict Mermaid and
 no-JavaScript readable history/source fallback use the existing renderer; recording
-requires JavaScript and `--responses`. Linux-only write support is unchanged.
+requires JavaScript and `--responses`. The same filesystem limits apply to every
+record type.
