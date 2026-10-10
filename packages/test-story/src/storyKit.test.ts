@@ -112,12 +112,6 @@ bakery.it(
 	{ tags: ["mill-story"] },
 );
 
-bakery.it.skip("skips a story the way Vitest skips a test", [hasDough(4)]);
-
-bakery.it.skipIf(true)("skips a story when the condition holds", [hasDough(4)]);
-
-bakery.it.runIf(false)("runs a story only when the condition holds", [hasDough(4)]);
-
 bakery.it.runIf(true)("runs a story when the condition holds", [hasDough(2)], ({ story }) => {
 	expect(story.engine.dough).toBe(2);
 });
