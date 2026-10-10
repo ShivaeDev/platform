@@ -7,12 +7,13 @@ import { trustedOrigins } from "#rpc-server/origin.ts";
 import { Api, serverLayer } from "#test/rpc/api.ts";
 import { createProvider, origin, type Provider, signup } from "#test/rpc/harness.ts";
 
-const upgradeable = (request: Request, socket: Socket.Socket) =>
-	new Proxy(HttpServerRequest.fromWeb(request), {
+function upgradeable(request: Request, socket: Socket.Socket) {
+	return new Proxy(HttpServerRequest.fromWeb(request), {
 		get: (target, key, receiver) => (key === "upgrade" ? Effect.succeed(socket) : Reflect.get(target, key, receiver)),
 	});
+}
 
-const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<string, string>>, message: ReadonlyArray<readonly [string, string]>) => {
+function whoamiOverWebSocket(provider: Provider, transport: Readonly<Record<string, string>>, message: ReadonlyArray<readonly [string, string]>) {
 	const inbound = new TransformStream<string, string>();
 	const outbound = new TransformStream<Uint8Array, Uint8Array>();
 	return Effect.runPromise(
@@ -33,7 +34,7 @@ const whoamiOverWebSocket = (provider: Provider, transport: Readonly<Record<stri
 			Effect.scoped,
 		),
 	);
-};
+}
 
 it("WebSocket RPC decides origin and session from the upgrade request, not message headers", async () => {
 	const provider = await createProvider();

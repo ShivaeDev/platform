@@ -8,8 +8,8 @@ import { environmentVariable } from "#test/environment.ts";
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
 const integration = databaseUrl === undefined ? test.skip : test;
 
-const withDatabase = <A, E>(use: (names: { ledger: string; orders: string }) => Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) =>
-	Effect.runPromise(
+function withDatabase<A, E>(use: (names: { ledger: string; orders: string }) => Effect.Effect<A, E, SqlClient.SqlClient | Scope.Scope>) {
+	return Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
@@ -33,16 +33,18 @@ const withDatabase = <A, E>(use: (names: { ledger: string; orders: string }) => 
 			),
 		),
 	);
+}
 
-const waitUntil = (condition: Effect.Effect<boolean, unknown, SqlClient.SqlClient>) =>
-	Effect.gen(function* () {
+function waitUntil(condition: Effect.Effect<boolean, unknown, SqlClient.SqlClient>) {
+	return Effect.gen(function* () {
 		while (!(yield* condition)) {
 			yield* Effect.sleep("10 millis");
 		}
 	}).pipe(Effect.timeout("5 seconds"));
+}
 
-const heldSeed = (orders: string) =>
-	Effect.gen(function* () {
+function heldSeed(orders: string) {
+	return Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const entered = yield* Deferred.make<number>();
 		const release = yield* Deferred.make<void>();
@@ -71,6 +73,7 @@ const heldSeed = (orders: string) =>
 			waiting,
 		};
 	});
+}
 
 integration(
 	"migratePostgres serializes empty-database runners and applies each migration once",
@@ -91,7 +94,7 @@ integration(
 				]);
 				expect(yield* Fiber.join(second)).toEqual([]);
 				expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-				expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ migration_id: 1 }, { migration_id: 2 }]);
+				expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 			}),
 		);
 	},

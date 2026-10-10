@@ -7,13 +7,13 @@ const COULD_NOT_START = 127;
 const KILLED_BY = /signal: '(SIG[A-Z0-9]+)'/u;
 
 // The spawner reports a child killed by a signal only as an error naming that signal.
-const signalledExitCode = (error: PlatformError.PlatformError) => {
+function signalledExitCode(error: PlatformError.PlatformError) {
 	const signal = KILLED_BY.exec(error.cause instanceof Error ? error.cause.message : "")?.[1];
 	return signal === undefined ? Effect.fail(error) : Effect.succeed(signalExitCode(signal));
-};
+}
 
-const spawn = (commandLine: CommandLine, env: Readonly<Record<string, string>>) =>
-	Effect.gen(function* () {
+function spawn(commandLine: CommandLine, env: Readonly<Record<string, string>>) {
+	return Effect.gen(function* () {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const [executable, ...args] = commandLine;
 		const command = ChildProcess.make(executable, args, { env: { ...env }, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" });
@@ -22,6 +22,7 @@ const spawn = (commandLine: CommandLine, env: Readonly<Record<string, string>>) 
 			Effect.catch((error) => Effect.as(Console.error(`${executable}: ${error.message}`), Option.none())),
 		);
 	});
+}
 
 export const runCommand = (commandLine: CommandLine, env: Readonly<Record<string, string>>, signals: Queue.Dequeue<ForwardedSignal>) =>
 	Effect.scoped(

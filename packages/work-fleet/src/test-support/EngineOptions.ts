@@ -1,0 +1,32 @@
+import type { Effect } from "effect";
+import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { BoardFailure, FleetFailure, WorkResult } from "#policy.ts";
+export interface EngineOptions {
+	readonly acknowledgeFailure?: boolean;
+	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+	readonly backlog?: number;
+	readonly checkRepair?: boolean;
+	readonly checksFailure?: boolean;
+	readonly checksGate?: Effect.Effect<void>;
+	readonly concurrency?: number;
+	readonly deliveryFailure?: boolean;
+	readonly denyDelivery?: boolean;
+	readonly foreign?: readonly string[];
+	readonly lostAcknowledgement?: boolean;
+	readonly mainChanges?: readonly string[];
+	readonly noChange?: boolean;
+	readonly operationCollision?: boolean;
+	readonly publishFailure?: boolean;
+	readonly publishGate?: Effect.Effect<void>;
+	readonly quota?: number;
+	readonly rejectTurn?: boolean;
+	readonly repairs?: boolean;
+	readonly resultQuery?: () => Effect.Effect<WorkResult, FleetFailure>;
+	readonly resultUnavailable?: boolean;
+	readonly reviewFailure?: boolean;
+	readonly reviewGate?: Effect.Effect<void>;
+	readonly reviewRunning?: boolean;
+	readonly sameReviewer?: boolean;
+	readonly unknownQuota?: boolean;
+	readonly wrongHead?: "review" | "checks";
+}

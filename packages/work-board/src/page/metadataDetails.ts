@@ -27,6 +27,9 @@ export function metadataDetails(parsed: ParsedMetadata, file: string, model: Met
 		fields.response
 			? `<h3>Recorded response</h3><p>${referenceHtml(fields.response.question, fields.response.question, model)} · ${escapeHtml(fields.response.author)} · ${escapeHtml(fields.response.type)}</p><p>Reviewed SHA-256: <code>${fields.response.reviewedRevision}</code>. This is authored feedback, not verified acceptance.</p>${fields.response.supersedes ? `<p>Explicitly supersedes ${referenceHtml(fields.response.supersedes, fields.response.supersedes, model)}.</p>` : ""}`
 			: "",
+		fields.requestReceipt
+			? `<h3>Managed request receipt</h3><p>${referenceHtml(fields.requestReceipt.question, fields.requestReceipt.question, model)} · ${fields.requestReceipt.disposition}</p><p>Reviewed SHA-256: <code>${fields.requestReceipt.reviewedRevision}</code>. This acknowledges request handling, not execution, acceptance or delivery authority.</p>${fields.requestReceipt.response ? `<p>Applied response: ${referenceHtml(fields.requestReceipt.response, fields.requestReceipt.response, model)}</p>` : ""}`
+			: "",
 		criteriaEvidence(parsed, model),
 		attentionDetails(parsed, file, model),
 		recordedEvidence(parsed, file, model),

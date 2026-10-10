@@ -11,7 +11,9 @@ integration("a nested $transaction merges into its parent on release and is disc
 			Effect.gen(function* () {
 				const { client, observer } = yield* makeDatabase;
 				const { changes, published } = makeChanges(client);
-				const order = (id: string, ownerId: string) => changes.use((db) => db.order.create({ data: { id, ownerId, total: 1 } }));
+				function order(id: string, ownerId: string) {
+					return changes.use((db) => db.order.create({ data: { id, ownerId, total: 1 } }));
+				}
 				yield* Effect.gen(function* () {
 					yield* order("o1", "ada");
 					yield* order("o2", "bob").pipe(changes.transaction);

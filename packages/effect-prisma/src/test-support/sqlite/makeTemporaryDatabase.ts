@@ -11,7 +11,7 @@ export interface TemporaryDatabase {
 	readonly remove: () => void;
 }
 
-export const makeTemporaryDatabase = (): TemporaryDatabase => {
+export function makeTemporaryDatabase(): TemporaryDatabase {
 	const directory = mkdtempSync(join(tmpdir(), "effect-prisma-sqlite-"));
 	const path = join(directory, "test.db");
 	const database = new DatabaseSync(path);
@@ -25,4 +25,4 @@ export const makeTemporaryDatabase = (): TemporaryDatabase => {
 		path,
 		remove: () => rmSync(directory, { force: true, recursive: true }),
 	};
-};
+}

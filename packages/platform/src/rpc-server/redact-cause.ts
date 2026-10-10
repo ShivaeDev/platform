@@ -2,13 +2,15 @@ import { Cause, Context, ErrorReporter, Predicate } from "effect";
 import { redact } from "./redact.ts";
 import { isSensitiveKey, redactText, type SensitiveKey } from "./sensitive.ts";
 
-const reporterHints = (error: Error, sensitive: SensitiveKey) => ({
-	...(ErrorReporter.isIgnored(error) ? { [ErrorReporter.ignore]: true } : {}),
-	...(ErrorReporter.severity in error ? { [ErrorReporter.severity]: ErrorReporter.getSeverity(error) } : {}),
-	...(ErrorReporter.attributes in error ? { [ErrorReporter.attributes]: redact(ErrorReporter.getAttributes(error), sensitive) } : {}),
-});
+function reporterHints(error: Error, sensitive: SensitiveKey) {
+	return {
+		...(ErrorReporter.isIgnored(error) ? { [ErrorReporter.ignore]: true } : {}),
+		...(ErrorReporter.severity in error ? { [ErrorReporter.severity]: ErrorReporter.getSeverity(error) } : {}),
+		...(ErrorReporter.attributes in error ? { [ErrorReporter.attributes]: redact(ErrorReporter.getAttributes(error), sensitive) } : {}),
+	};
+}
 
-const redactError = (error: Error, sensitive: SensitiveKey): Error => {
+function redactError(error: Error, sensitive: SensitiveKey): Error {
 	const options = error.cause === undefined ? undefined : { cause: redact(error.cause, sensitive) };
 	const copy = new Error(redactText(error.message, sensitive), options);
 	Object.defineProperty(copy, "name", { configurable: true, value: error.name, writable: true });
@@ -18,7 +20,7 @@ const redactError = (error: Error, sensitive: SensitiveKey): Error => {
 		writable: true,
 	});
 	return Object.assign(copy, redact(Object.fromEntries(Object.entries(error)), sensitive), reporterHints(error, sensitive));
-};
+}
 
 export const redactDefect = (defect: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown =>
 	Predicate.isError(defect) ? redactError(defect, sensitive) : redact(defect, sensitive);

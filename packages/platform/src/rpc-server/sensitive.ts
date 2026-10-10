@@ -26,12 +26,13 @@ const SENSITIVE_NAMES = ["session", "pan"];
 
 export type SensitiveKey = (key: string) => boolean;
 
-const wordsOf = (key: string): string[] =>
-	key
+function wordsOf(key: string): string[] {
+	return key
 		.replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
 		.replaceAll(/([A-Z])([A-Z][a-z])/gu, "$1 $2")
 		.toLowerCase()
 		.split(/[\s_-]+/u);
+}
 
 export const isSensitiveKey: SensitiveKey = (key) => {
 	const normalized = key.toLowerCase().replaceAll(/[-_]/gu, "");
@@ -47,12 +48,13 @@ const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
 const URL_PASSWORD = /(\/\/[^:/\s@]+:)[^@/\s]+@/gu;
 const ASSIGNMENT = /([A-Za-z][\w.-]*)(["']?\s*[=:]\s*["']?)([^\s"'&,;]+)/gu;
 
-const scrub = (text: string, sensitive: SensitiveKey): string =>
-	text
+function scrub(text: string, sensitive: SensitiveKey): string {
+	return text
 		.replaceAll(AUTH_SCHEME, `$1 ${REDACTED}`)
 		.replaceAll(JWT, REDACTED)
 		.replaceAll(URL_PASSWORD, `$1${REDACTED}@`)
 		.replaceAll(ASSIGNMENT, (match: string, key: string, separator: string) => (sensitive(key) ? `${key}${separator}${REDACTED}` : match));
+}
 
 export const redactText = (text: string, sensitive: SensitiveKey): string => {
 	const scrubbed = scrub(text, sensitive);

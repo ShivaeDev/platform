@@ -5,7 +5,7 @@ import { expect } from "vitest";
 import { integration, onSqlError, runPostgres, secondPool, setup } from "#test/postgres-transact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
-const slowCommit = (sql: SqlClient.SqlClient, table: string, seconds: number) => {
+function slowCommit(sql: SqlClient.SqlClient, table: string, seconds: number) {
 	const name = table.replace("_orders_", "_slow_");
 	return Effect.acquireRelease(
 		Effect.andThen(
@@ -16,13 +16,14 @@ const slowCommit = (sql: SqlClient.SqlClient, table: string, seconds: number) =>
 		),
 		() => Effect.orDie(sql.unsafe(`drop function "${name}"() cascade`)),
 	);
-};
+}
 
-const committing = (observer: SqlClient.SqlClient, pid: number) =>
-	observer<{ readonly state: string | null; readonly query: string }>`select state, query from pg_stat_activity where pid = ${pid}`.pipe(
+function committing(observer: SqlClient.SqlClient, pid: number) {
+	return observer<{ readonly state: string | null; readonly query: string }>`select state, query from pg_stat_activity where pid = ${pid}`.pipe(
 		Effect.flatMap((rows) => (rows.some((row) => row.state === "active" && row.query === "COMMIT") ? Effect.void : Effect.fail("not committing"))),
 		Effect.retry({ schedule: Schedule.spaced("5 millis"), times: 2000 }),
 	);
+}
 
 integration("an interruption while COMMIT is in flight publishes exactly what a second connection sees committed", () =>
 	runPostgres(

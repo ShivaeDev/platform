@@ -8,7 +8,7 @@ import { expect, it, vi } from "vitest";
 import { bind } from "#bind.ts";
 import { makeServer, Notes } from "#test/notes.ts";
 
-const setup = async () => {
+async function setup() {
 	const server = await Effect.runPromise(makeServer);
 	class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 		group: Notes,
@@ -17,11 +17,14 @@ const setup = async () => {
 	}) {}
 	const api = bind(Notes, NotesClient);
 	const registry = AtomRegistry.make();
-	const run = <A, E>(effect: Effect.Effect<A, E, NotesClient | Reactivity.Reactivity>) =>
-		Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, NotesClient.runtime.atom(effect))));
-	const reads = () => Effect.runSync(Ref.get(server.reads));
+	function run<A, E>(effect: Effect.Effect<A, E, NotesClient | Reactivity.Reactivity>) {
+		return Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, NotesClient.runtime.atom(effect))));
+	}
+	function reads() {
+		return Effect.runSync(Ref.get(server.reads));
+	}
 	return { api, reads, registry, run, server };
-};
+}
 
 it("queries register their declared read keys and commands invalidate item and list after success only", async () => {
 	const { api, registry, run, reads } = await setup();

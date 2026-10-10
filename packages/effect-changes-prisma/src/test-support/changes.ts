@@ -20,9 +20,11 @@ export const models = {
 	Order: (order) => [{ domain: "orders", subject: order.ownerId }],
 } satisfies ChangeMap<PrismaClient, Change>;
 
-export const label = (change: Change) => `${change.subject}:${change.domain}`;
+export function label(change: Change) {
+	return `${change.subject}:${change.domain}`;
+}
 
-export const makeChanges = (client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>) => {
+export function makeChanges(client: PrismaClient, publish?: (changes: readonly Change[]) => Effect.Effect<void>) {
 	const published: (readonly string[])[] = [];
 	const observations: Observation<Change>[] = [];
 	const unnamed: UnnamedWrite[] = [];
@@ -37,10 +39,11 @@ export const makeChanges = (client: PrismaClient, publish?: (changes: readonly C
 				publish === undefined ? Effect.void : publish(batch),
 			),
 	});
-	const observe = <X, E, R>(effect: Effect.Effect<X, E, R>) =>
-		effect.pipe(
+	function observe<X, E, R>(effect: Effect.Effect<X, E, R>) {
+		return effect.pipe(
 			Effect.provideService(changes.channel.Observer, (observation: Observation<Change>) => Effect.sync(() => observations.push(observation))),
 			Effect.provideService(changes.Unnamed, (write: UnnamedWrite) => Effect.sync(() => unnamed.push(write))),
 		);
+	}
 	return { changes, observations, observe, published, unnamed };
-};
+}

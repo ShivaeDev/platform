@@ -14,9 +14,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 function eventually(assert: () => void) {
 	return vi.waitFor(async () => {
-		await act(async () => {
-			await Promise.resolve();
-		});
+		await act(async (): Promise<void> => undefined);
 		assert();
 	});
 }

@@ -21,7 +21,7 @@ interface Client {
 
 const client: Client = { $transaction: (run) => run(client), auditNote: {}, invoice: {}, membership: {} };
 
-const harness = () => {
+function harness() {
 	const published: (readonly string[])[] = [];
 	const unnamed: UnnamedWrite[] = [];
 	const changes = makePrismaChanges({
@@ -33,12 +33,13 @@ const harness = () => {
 		name: "Writes",
 		publish: (batch: readonly string[]) => Effect.sync(() => published.push(batch)),
 	});
-	const record = (model: string, operation: string, result: unknown) =>
-		changes
+	function record(model: string, operation: string, result: unknown) {
+		return changes
 			.recordWrite({ model, operation, result })
 			.pipe(Effect.provideService(changes.Unnamed, (write: UnnamedWrite) => Effect.sync(() => unnamed.push(write))));
+	}
 	return { published, record, unnamed };
-};
+}
 
 it("recordWrite applies the map to a write observed by the application's own client", () =>
 	Effect.runPromise(

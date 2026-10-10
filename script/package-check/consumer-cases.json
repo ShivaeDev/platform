@@ -46,5 +46,23 @@
 			"run": ["dist/emit-main.js"],
 			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
 		}
+	],
+	"work-fleet": [
+		{
+			"entries": [
+				"./fleet.ts",
+				"./model.ts",
+				"./operations.ts",
+				"./policy.ts",
+				"./preparation/compatibility.ts",
+				"./session/service.ts",
+				"./storage/makePostgresFleetStore.ts",
+				"./board/markdown.ts",
+				"./board/schema.ts"
+			],
+			"fixtures": ["fleet.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["fleet.ts"]
+		}
 	]
 }

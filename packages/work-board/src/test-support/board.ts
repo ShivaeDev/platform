@@ -14,17 +14,17 @@ export interface Folder {
 	readonly write: (path: string, content: string) => void;
 }
 
-export const folder = (files: Readonly<Record<string, string>>, prefix = "work-board-"): Folder => {
+export function folder(files: Readonly<Record<string, string>>, prefix = "work-board-"): Folder {
 	const root = mkdtempSync(join(tmpdir(), prefix));
-	const write = (path: string, content: string) => {
+	function write(path: string, content: string) {
 		mkdirSync(dirname(join(root, path)), { recursive: true });
 		writeFileSync(join(root, path), content);
-	};
+	}
 	for (const [path, content] of Object.entries(files)) {
 		write(path, content);
 	}
 	return { remove: () => rmSync(root, { force: true, recursive: true }), root, write };
-};
+}
 
 export interface RunningBoard {
 	readonly hostname: string;
@@ -35,10 +35,11 @@ export interface RunningBoard {
 
 export type FileSystemWrapper = (fs: FileSystem.FileSystem) => FileSystem.FileSystem;
 
-const wrapped = (wrap: FileSystemWrapper) =>
-	Layer.effect(FileSystem.FileSystem, Effect.map(Effect.service(FileSystem.FileSystem), wrap)).pipe(Layer.provide(NodeServices.layer));
+function wrapped(wrap: FileSystemWrapper) {
+	return Layer.effect(FileSystem.FileSystem, Effect.map(Effect.service(FileSystem.FileSystem), wrap)).pipe(Layer.provide(NodeServices.layer));
+}
 
-export const startBoard = async (root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs, responses = false): Promise<RunningBoard> => {
+export async function startBoard(root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs, responses = false): Promise<RunningBoard> {
 	const board = Layer.provide(boardLayer({ home, responses, root }), wrapped(wrap));
 	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
@@ -47,15 +48,15 @@ export const startBoard = async (root: string, home?: string, wrap: FileSystemWr
 	}
 	const { hostname, port } = server.address;
 	return { hostname, port, stop: () => runtime.dispose(), url: `http://${hostname}:${port}` };
-};
+}
 
 export interface RawResponse {
 	readonly body: string;
 	readonly status: number;
 }
 
-export const rawGet = (board: RunningBoard, path: string, host?: string): Promise<RawResponse> =>
-	new Promise((resolve, reject) => {
+export function rawGet(board: RunningBoard, path: string, host?: string): Promise<RawResponse> {
+	return new Promise((resolve, reject) => {
 		const outgoing = request({ headers: host === undefined ? {} : { host }, host: board.hostname, path, port: board.port }, (response) => {
 			let body = "";
 			response.setEncoding("utf8");
@@ -67,6 +68,7 @@ export const rawGet = (board: RunningBoard, path: string, host?: string): Promis
 		outgoing.on("error", reject);
 		outgoing.end();
 	});
+}
 
 export function rawPost(board: RunningBoard, path: string, headers: Readonly<Record<string, string>>, body = ""): Promise<RawResponse> {
 	return new Promise((resolve, reject) => {
@@ -88,7 +90,7 @@ export interface EventStream {
 	readonly next: () => Promise<string>;
 }
 
-export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
+export async function subscribe(board: RunningBoard): Promise<EventStream> {
 	const controller = new AbortController();
 	const body = (await fetch(`${board.url}/events`, { signal: controller.signal })).body;
 	if (body === null) {
@@ -96,7 +98,7 @@ export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
 	}
 	const reader = body.pipeThrough(new TextDecoderStream()).getReader();
 	let buffer = "";
-	const next = async (): Promise<string> => {
+	async function next(): Promise<string> {
 		while (!buffer.includes("\n\n")) {
 			const chunk = await reader.read();
 			if (chunk.done) {
@@ -107,11 +109,11 @@ export const subscribe = async (board: RunningBoard): Promise<EventStream> => {
 		const [event = "", ...rest] = buffer.split("\n\n");
 		buffer = rest.join("\n\n");
 		return event;
-	};
+	}
 	return { close: () => controller.abort(), next };
-};
+}
 
-export const changesUntil = async (events: EventStream, path: string): Promise<ReadonlyArray<readonly string[]>> => {
+export async function changesUntil(events: EventStream, path: string): Promise<ReadonlyArray<readonly string[]>> {
 	const seen: Array<readonly string[]> = [];
 	while (!seen.at(-1)?.includes(path)) {
 		const event = await events.next();
@@ -121,4 +123,4 @@ export const changesUntil = async (events: EventStream, path: string): Promise<R
 		}
 	}
 	return seen;
-};
+}

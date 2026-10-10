@@ -21,13 +21,17 @@ afterEach(async () => {
 	notes.remove();
 });
 
-const open = async (path: string, beforeScripts?: () => Promise<void>) => {
+async function open(path: string, beforeScripts?: () => Promise<void>) {
 	page = await openLive(board, path, beforeScripts);
 	return page;
-};
+}
 
-const paragraph = (text: string) => paragraphOf(page, text);
-const status = () => page.document.getElementById("live")?.textContent;
+function paragraph(text: string) {
+	return paragraphOf(page, text);
+}
+function status() {
+	return page.document.getElementById("live")?.textContent;
+}
 
 describe("live page", () => {
 	it("swaps an edited file into the open page without reloading it", async () => {

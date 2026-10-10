@@ -4,7 +4,7 @@ import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
 import { HOST, serveBoard } from "./serve.ts";
 
-const VERSION = "0.10.0";
+const VERSION = "0.11.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;

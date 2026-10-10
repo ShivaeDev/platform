@@ -14,13 +14,15 @@ const zonelessDatetime = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?(?:\.\d
 // with no zone, and `new Date` reads that form as local time. Values with a zone and date-only values already read as UTC.
 export const normalizeSqliteDatetime = (value: string): string => value.replace(zonelessDatetime, "$1T$2Z");
 
-const decodeAsUtc = (codec: ContractCodec): ContractCodec => ({
-	decode: (wire: CodecWire, context) => codec.decode(typeof wire === "string" ? normalizeSqliteDatetime(wire) : wire, context),
-	decodeJson: (json: CodecJson) => codec.decodeJson(typeof json === "string" ? normalizeSqliteDatetime(json) : json),
-	encode: (value, context) => codec.encode(value, context),
-	encodeJson: (value) => codec.encodeJson(value),
-	id: sqliteDatetimeCodecId,
-});
+function decodeAsUtc(codec: ContractCodec): ContractCodec {
+	return {
+		decode: (wire: CodecWire, context) => codec.decode(typeof wire === "string" ? normalizeSqliteDatetime(wire) : wire, context),
+		decodeJson: (json: CodecJson) => codec.decodeJson(typeof json === "string" ? normalizeSqliteDatetime(json) : json),
+		encode: (value, context) => codec.encode(value, context),
+		encodeJson: (value) => codec.encodeJson(value),
+		id: sqliteDatetimeCodecId,
+	};
+}
 
 // The registry resolves codecs for rows and included relations alike, and Prisma Next rejects a second descriptor for a registered
 // codec id, so wrapping the registry is the one way to cover every read. It must run before the first query, which reads the
@@ -30,7 +32,7 @@ export const decodeSqliteDatetimesAsUtc = (context: ExecutionContext<AnySqlContr
 	const descriptors = context.codecDescriptors;
 	const utcCodecs = new WeakMap<ContractCodec, ContractCodec>();
 
-	const wrap = (codec: ContractCodec): ContractCodec => {
+	function wrap(codec: ContractCodec): ContractCodec {
 		const existing = utcCodecs.get(codec);
 		if (existing !== undefined) {
 			return existing;
@@ -38,7 +40,7 @@ export const decodeSqliteDatetimesAsUtc = (context: ExecutionContext<AnySqlContr
 		const utc = decodeAsUtc(codec);
 		utcCodecs.set(codec, utc);
 		return utc;
-	};
+	}
 
 	const utcRegistry: CodecRegistry = {
 		forCodecRef: (reference) => {

@@ -4,7 +4,7 @@ import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "./sensi
 const MAX_DEPTH = 8;
 const MAX_ENTRIES = 50;
 
-const binary = (value: object): string | undefined => {
+function binary(value: object): string | undefined {
 	if (ArrayBuffer.isView(value)) {
 		return `<${value.constructor.name} ${value.byteLength} bytes>`;
 	}
@@ -12,9 +12,9 @@ const binary = (value: object): string | undefined => {
 		return `<ArrayBuffer ${value.byteLength} bytes>`;
 	}
 	return undefined;
-};
+}
 
-const entriesOf = (value: object): [string, unknown][] => {
+function entriesOf(value: object): [string, unknown][] {
 	const entries = Object.entries(value);
 	if (!Predicate.isError(value)) {
 		return entries;
@@ -25,9 +25,9 @@ const entriesOf = (value: object): [string, unknown][] => {
 		["stack", value.stack],
 	];
 	return value.cause === undefined ? [...shape, ...entries] : [...shape, ...entries, ["cause", value.cause]];
-};
+}
 
-const walk = (value: unknown, sensitive: SensitiveKey, depth: number): unknown => {
+function walk(value: unknown, sensitive: SensitiveKey, depth: number): unknown {
 	if (Redacted.isRedacted(value)) {
 		return REDACTED;
 	}
@@ -53,6 +53,6 @@ const walk = (value: unknown, sensitive: SensitiveKey, depth: number): unknown =
 		.slice(0, MAX_ENTRIES)
 		.map(([key, nested]): [string, unknown] => [key, sensitive(key) ? REDACTED : walk(nested, sensitive, depth + 1)]);
 	return Object.fromEntries(entries.length > MAX_ENTRIES ? [...kept, ["<truncated>", `${entries.length - MAX_ENTRIES} more keys`]] : kept);
-};
+}
 
 export const redact = (value: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown => walk(value, sensitive, 0);

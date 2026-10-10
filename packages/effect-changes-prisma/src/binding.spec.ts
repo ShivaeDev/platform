@@ -8,11 +8,11 @@ interface Client {
 const client: Client = { $transaction: (run) => run(client) };
 const other: Client = { $transaction: (run) => run(other) };
 
-const bind = async () => {
+async function bind() {
 	vi.resetModules();
 	const { makePrismaChanges } = await import("#changes.ts");
 	return makePrismaChanges({ client, models: {}, name: "Same", publish: () => Effect.void });
-};
+}
 
 it("bindings with the same name from two copies of the package keep their clients apart", async () => {
 	const first = await bind();

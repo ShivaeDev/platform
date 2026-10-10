@@ -16,11 +16,11 @@ afterEach(async () => {
 	notes.remove();
 });
 
-const ready = async () => {
+async function ready() {
 	const events = await subscribe(board);
 	expect(await events.next()).toBe("event: ready\ndata: ");
 	return events;
-};
+}
 
 describe("live updates", () => {
 	it("pushes a change event naming the markdown file that was written", async () => {
@@ -65,13 +65,13 @@ describe("live updates", () => {
 	});
 });
 
-const nextNamed = async (events: EventStream, name: string) => {
+async function nextNamed(events: EventStream, name: string) {
 	for (let event = await events.next(); ; event = await events.next()) {
 		if (event.startsWith(`event: ${name}\n`)) {
 			return event;
 		}
 	}
-};
+}
 
 describe("watcher recovery", () => {
 	it("says the folder is not watched after the watcher fails, restarts it with backoff and reports changes again", async () => {

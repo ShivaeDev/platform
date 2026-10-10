@@ -23,7 +23,7 @@ effectApp("retains harness and Layer types", function* (harness, context) {
 	expectTypeOf(later).toEqualTypeOf<string>();
 
 	// @ts-expect-error Custom harnesses do not widen unknown properties.
-	harness.missing;
+	void harness.missing;
 });
 
 effectApp(

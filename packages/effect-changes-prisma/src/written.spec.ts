@@ -6,13 +6,13 @@ import type { PrismaClient } from "#test/generated/client.ts";
 
 type Transaction = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
-const backend = async (tx: Transaction) => {
+async function backend(tx: Transaction) {
 	const [row] = await tx.$queryRawUnsafe<ReadonlyArray<{ readonly pid: number }>>("select pg_backend_pid() as pid");
 	return row?.pid;
-};
+}
 
-const reusedConnection = <X>(later: (tx: Transaction) => Promise<X>) =>
-	Effect.gen(function* () {
+function reusedConnection<X>(later: (tx: Transaction) => Promise<X>) {
+	return Effect.gen(function* () {
 		const { schema } = yield* makeDatabase;
 		const client = yield* connect(schema, { max: 1 });
 		const earlier = yield* Effect.promise(() =>
@@ -36,6 +36,7 @@ const reusedConnection = <X>(later: (tx: Transaction) => Promise<X>) =>
 			}),
 		);
 	});
+}
 
 integration("writtenTables leaves out what earlier transactions wrote on a reused connection", () =>
 	Effect.runPromise(

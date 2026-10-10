@@ -1,7 +1,7 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage } from "node:http";
 import { makeOrderWebHandler } from "./backend.ts";
 
-const toHeaders = (incoming: IncomingHttpHeaders): Headers => {
+function toHeaders(incoming: IncomingHttpHeaders): Headers {
 	const headers = new Headers();
 	for (const [name, value] of Object.entries(incoming)) {
 		for (const item of Array.isArray(value) ? value : [value]) {
@@ -11,9 +11,9 @@ const toHeaders = (incoming: IncomingHttpHeaders): Headers => {
 		}
 	}
 	return headers;
-};
+}
 
-const toRequest = async (incoming: IncomingMessage, signal: AbortSignal): Promise<Request> => {
+async function toRequest(incoming: IncomingMessage, signal: AbortSignal): Promise<Request> {
 	const chunks: Buffer[] = [];
 	for await (const chunk of incoming) {
 		chunks.push(Buffer.from(chunk));
@@ -24,17 +24,17 @@ const toRequest = async (incoming: IncomingMessage, signal: AbortSignal): Promis
 		signal,
 		...(chunks.length > 0 ? { body: Buffer.concat(chunks) } : {}),
 	});
-};
+}
 
-export const startOrderServer = async (options: Parameters<typeof makeOrderWebHandler>[0]) => {
+export async function startOrderServer(options: Parameters<typeof makeOrderWebHandler>[0]) {
 	const app = makeOrderWebHandler(options);
 	const server = createServer(async (incoming, outgoing) => {
 		const controller = new AbortController();
-		const abort = () => {
+		function abort() {
 			if (!outgoing.writableFinished) {
 				controller.abort();
 			}
-		};
+		}
 		incoming.once("aborted", abort);
 		outgoing.once("close", abort);
 		try {
@@ -81,4 +81,4 @@ export const startOrderServer = async (options: Parameters<typeof makeOrderWebHa
 		},
 		url: `http://127.0.0.1:${address.port}/rpc`,
 	};
-};
+}

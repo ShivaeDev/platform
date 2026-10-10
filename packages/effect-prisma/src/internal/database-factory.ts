@@ -34,12 +34,12 @@ export const makeSqlDatabase = <const Contract extends AnySqlContract, const Ide
 		executors: new WeakMap(),
 		service: Service,
 	};
-	const executorOf = (facade: DatabaseService<Contract, Identifier>): Effect.Effect<DatabaseExecutor<Models, Contract>> => {
+	function executorOf(facade: DatabaseService<Contract, Identifier>): Effect.Effect<DatabaseExecutor<Models, Contract>> {
 		const executor = scope.executors.get(facade);
 		return executor === undefined
 			? Effect.die(new TypeError("The database service was not created by its database Layer"))
 			: Effect.succeed(executor);
-	};
+	}
 
 	const withTestTransaction = <A, E, R>(
 		program: Effect.Effect<A, E, R> & (DatabaseId extends R ? unknown : never),

@@ -9,7 +9,9 @@ import { integration, makeDatabase } from "#test/database.ts";
 class Rejected extends Data.TaggedError("Rejected") {}
 
 const domains: Readonly<Record<string, string>> = { Invoice: "invoices", Membership: "memberships", Order: "orders" };
-const covers = (model: string, change: Change) => domains[model] === change.domain;
+function covers(model: string, change: Change) {
+	return domains[model] === change.domain;
+}
 
 class RolledBack {
 	readonly written: readonly string[];

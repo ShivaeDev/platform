@@ -2,7 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- Opt-in managed decision requests can be acknowledged by immutable, exact-context
+  `request_receipt` records. Applied receipts require the unique current answer;
+  superseded receipts retire the old request without fabricating a reply. The
+  overview and response surface exclude qualified acknowledged requests while
+  preserving their original source. Authored requests remain source-driven, and
+  receipts grant no execution, acceptance or delivery authority.
+
 ### Changed
+
+- Render the file sidebar as nested native folders with shared ancestry, keeping
+  home first, logical reference URLs and folder collapse state through live updates.
 
 - Record agent-owned project editing and human-owned response content, practical
   best-effort conflict handling, and deferred direct editing/undo in the delivery
@@ -12,6 +24,19 @@
 - Remove document export and shareable artifact/packet generation from the vision
   and delivery scope. Keep onboarding/report templates and linked in-app review.
 - Record the approved Platform-first live client direction and its actual shared HTTP/browser fixture evidence; Work Board adopts that foundation in 0.5.0 below.
+
+## 0.11.0 - 2026-10-06
+
+### Added
+
+- Returned-result review combines explicitly linked work/criteria, reported status,
+  evidence and limitations with version-pinned human feedback. Request revision or
+  accept an exact report using existing attention/question directives and immutable
+  responses; no new source schema or writer.
+- Native navigation/live review, safe Markdown/Mermaid context and no-JavaScript
+  reading. Changed or moved reports qualify earlier feedback; missing evidence and
+  ambiguous history remain explicit. Recorded Git revisions are not compared with
+  the checkout and authored choices do not establish verified criteria.
 
 ## 0.10.0 - 2026-10-06
 

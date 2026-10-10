@@ -27,8 +27,9 @@ const setup = Effect.gen(function* () {
 	return { lines, sql };
 });
 
-const run = <A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) =>
-	Effect.runPromise(effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:" }))));
+function run<A, E>(effect: Effect.Effect<A, E, SqlClient.SqlClient>) {
+	return Effect.runPromise(effect.pipe(Effect.provide(SqliteClient.layer({ filename: ":memory:" }))));
+}
 
 it("model variants derive CRUD while field codecs drive filters and selections", async () => {
 	await run(
@@ -125,7 +126,9 @@ it("undefined filter values leave that field unconstrained", async () => {
 });
 
 it("unknown runtime field names fail as SchemaError", async () => {
-	const unknownField = (): "name" => JSON.parse('"missing"');
+	function unknownField(): "name" {
+		return JSON.parse('"missing"');
+	}
 	await run(
 		Effect.gen(function* () {
 			const { lines } = yield* setup;

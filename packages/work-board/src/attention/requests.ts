@@ -1,3 +1,4 @@
+import { managedRequestReceipt } from "#attention/managedRequestReceipt.ts";
 import { identityUrl, referenceTarget } from "#metadata/links.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
 import type { Metadata } from "#metadata/schema.ts";
@@ -30,6 +31,7 @@ function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: stri
 			request.state !== "open"
 			|| requests.filter((other) => other.id === request.id).length !== 1
 			|| request.unblocks.some((target) => !referenceTarget(target, snapshot.model))
+			|| managedRequestReceipt(document, request, snapshot.model) !== undefined
 		) {
 			return [];
 		}

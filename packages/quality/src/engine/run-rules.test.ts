@@ -5,7 +5,13 @@ import type { Findings } from "#rule.ts";
 import { inputsOf } from "#test/inputs.ts";
 
 function rule(id: string, level: ActiveRule["level"], check: () => Promise<Findings>): ActiveRule {
-	return { check, description: id, family: false, id, level };
+	return {
+		check,
+		description: id,
+		family: false,
+		id,
+		level,
+	};
 }
 
 describe("running rules", () => {

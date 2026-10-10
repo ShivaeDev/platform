@@ -21,52 +21,56 @@ export interface DynamicField {
 	notIn: (value: readonly unknown[]) => Expression;
 }
 
-const escapeLike = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+function escapeLike(value: string): string {
+	return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
 
-const nonNullValues = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : [value]).filter((item) => item !== null);
+function nonNullValues(value: unknown): readonly unknown[] {
+	return (Array.isArray(value) ? value : [value]).filter((item) => item !== null);
+}
 
-const insensitiveStrings = (field: DynamicField, where: CleanedWhere, values: readonly unknown[]) => {
+function insensitiveStrings(field: DynamicField, where: CleanedWhere, values: readonly unknown[]) {
 	const ilike = field.ilike;
 	if (where.mode !== "insensitive" || ilike === undefined || !values.every((item) => typeof item === "string")) {
 		return undefined;
 	}
 	return values.map((item) => ilike(escapeLike(String(item))));
-};
+}
 
-const membership = (field: DynamicField, where: CleanedWhere): Expression => {
+function membership(field: DynamicField, where: CleanedWhere): Expression {
 	const values = nonNullValues(where.value);
 	if (values.length === 0) {
 		return and(field.isNull(), field.isNotNull());
 	}
 	const matches = insensitiveStrings(field, where, values);
 	return matches === undefined ? field.in(values) : or(...matches);
-};
+}
 
-const exclusion = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
+function exclusion(field: DynamicField, where: CleanedWhere): Expression | undefined {
 	const values = nonNullValues(where.value);
 	if (values.length === 0) {
 		return undefined;
 	}
 	const matches = insensitiveStrings(field, where, values);
 	return matches === undefined ? field.notIn(values) : and(...matches.map((match) => not(match)));
-};
+}
 
-const likePattern = (operator: CleanedWhere["operator"], escaped: string): string => {
+function likePattern(operator: CleanedWhere["operator"], escaped: string): string {
 	if (operator === "contains") {
 		return `%${escaped}%`;
 	}
 	return operator === "starts_with" ? `${escaped}%` : `%${escaped}`;
-};
+}
 
-const pattern = (field: DynamicField, where: CleanedWhere): Expression => {
+function pattern(field: DynamicField, where: CleanedWhere): Expression {
 	if (typeof where.value !== "string") {
 		throw new TypeError(`${where.operator} requires a string value`);
 	}
 	const text = likePattern(where.operator, escapeLike(where.value));
 	return where.mode === "insensitive" && field.ilike !== undefined ? field.ilike(text) : field.like(text);
-};
+}
 
-const insensitiveEquality = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
+function insensitiveEquality(field: DynamicField, where: CleanedWhere): Expression | undefined {
 	const value = where.value;
 	const operator = where.operator ?? "eq";
 	if (where.mode !== "insensitive" || typeof value !== "string" || field.ilike === undefined) {
@@ -79,9 +83,9 @@ const insensitiveEquality = (field: DynamicField, where: CleanedWhere): Expressi
 		return not(field.ilike(escapeLike(value)));
 	}
 	return undefined;
-};
+}
 
-const comparison = (field: DynamicField, where: CleanedWhere): Expression | undefined => {
+function comparison(field: DynamicField, where: CleanedWhere): Expression | undefined {
 	const value = where.value;
 	switch (where.operator ?? "eq") {
 		case "eq":
@@ -105,7 +109,7 @@ const comparison = (field: DynamicField, where: CleanedWhere): Expression | unde
 		case "ends_with":
 			return pattern(field, where);
 	}
-};
+}
 
 export const whereExpression = (fields: Record<string, DynamicField>, where: readonly CleanedWhere[]): Expression | undefined => {
 	const conjunctions: Expression[] = [];

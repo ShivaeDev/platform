@@ -54,7 +54,7 @@ databaseIt.effectDB("retains generated model types", function* (db, context) {
 	expectTypeOf(user).toEqualTypeOf<Option.Option<User>>();
 
 	// @ts-expect-error The test facade must reject models absent from the contract.
-	db.Movie;
+	void db.Movie;
 	// @ts-expect-error The test facade must preserve field input types.
 	db.User.where({ email: 123 });
 });
@@ -174,7 +174,7 @@ const program = Effect.gen(function* () {
 	if (selectedRow !== undefined) {
 		expectTypeOf(selectedRow.id).toEqualTypeOf<string>();
 		// @ts-expect-error A selected row must not silently retain omitted fields.
-		selectedRow.name;
+		void selectedRow.name;
 	}
 });
 

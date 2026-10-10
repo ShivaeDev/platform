@@ -17,7 +17,7 @@ export const shell = (
 	workspace: string,
 	board: boolean,
 	identity?: string,
-	view: boolean | "overview" | "changes" | "start" | "response" | "handoff" = false,
+	view: boolean | "overview" | "changes" | "start" | "response" | "handoff" | "result" = false,
 ): string =>
 	[
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,

@@ -29,23 +29,26 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const crud = yield* SqlModel.makeRepository(model, options);
-		const fieldAt = (key: string) => {
+		function fieldAt(key: string) {
 			const field = Object.hasOwn(model.fields, key) ? model.fields[key] : undefined;
 			return field === undefined
 				? Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(model.ast, key))))
 				: Effect.succeed(field);
-		};
-		const predicate = (key: string, value: unknown) =>
-			Effect.map(
+		}
+		function predicate(key: string, value: unknown) {
+			return Effect.map(
 				Effect.flatMap(fieldAt(key), (field) => Schema.encodeEffect(field)(value)),
 				(encoded) => (encoded === null ? sql`${sql(key)} is null` : sql`${sql(key)} = ${encoded}`),
 			);
-		const orderClause = (orderBy: FindMany<S, Key<S>>["orderBy"]) =>
-			orderBy === undefined
+		}
+		function orderClause(orderBy: FindMany<S, Key<S>>["orderBy"]) {
+			return orderBy === undefined
 				? Effect.succeed(sql``)
 				: Effect.as(fieldAt(orderBy.field), sql`order by ${sql(orderBy.field)} ${sql.literal(orderBy.direction === "desc" ? "desc" : "asc")}`);
-		const limitClause = (limit: number | undefined) =>
-			limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
+		}
+		function limitClause(limit: number | undefined) {
+			return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
+		}
 		function findMany<K extends Key<S> = Key<S>>(
 			query?: FindMany<S, K>,
 		): Effect.Effect<Pick<Row<S>, K>[], SqlError | Schema.SchemaError, S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]>;

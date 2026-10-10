@@ -20,10 +20,21 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
 	"work-board": { allowed: ["effect-contract"], module: "board" },
+	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
-const SERVER = ["effect-changes-prisma", "effect-pg-boss", "effect-prisma", "effect-sql", "effect-trpc", "local-postgres", "platform", "work-board"];
+const SERVER = [
+	"effect-changes-prisma",
+	"effect-pg-boss",
+	"effect-prisma",
+	"effect-sql",
+	"effect-trpc",
+	"local-postgres",
+	"platform",
+	"work-board",
+	"work-fleet",
+];
 const BROWSER_FOLDERS = [
 	"packages/effect-trpc/src/client",
 	"packages/platform/src/errors",

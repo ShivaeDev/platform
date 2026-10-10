@@ -8,15 +8,19 @@ import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
 
 export type InvalidationKeys = readonly unknown[] | ReadonlyRecord<string, readonly unknown[]>;
 
-const hashOf = (value: unknown): unknown =>
-	typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean"
+function hashOf(value: unknown): unknown {
+	return typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean"
 		? String(value)
 		: Hash.hash(value);
+}
 
-const isList = (keys: InvalidationKeys): keys is readonly unknown[] => Array.isArray(keys);
+function isList(keys: InvalidationKeys): keys is readonly unknown[] {
+	return Array.isArray(keys);
+}
 
-const flatten = (keys: InvalidationKeys): readonly unknown[] =>
-	isList(keys) ? keys : Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => `${name}:${hashOf(id)}`)]);
+function flatten(keys: InvalidationKeys): readonly unknown[] {
+	return isList(keys) ? keys : Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => `${name}:${hashOf(id)}`)]);
+}
 
 const nativeTransactionWithoutTransact = Effect.fn("Transact.guard")(function* () {
 	const sql = yield* SqlClient.SqlClient;

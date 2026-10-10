@@ -33,7 +33,9 @@ export const resolveSession: <Session extends SessionShape>(
 	return yield* policy.provider.get(transport);
 });
 
-const identified = (id: string) => Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
+function identified(id: string) {
+	return Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
+}
 
 export const authenticatedLayer = <Session extends SessionShape>(policy: SessionPolicy<Session>): Layer.Layer<Authenticated> =>
 	Layer.succeed(Authenticated, (effect, { headers, rpc }) =>

@@ -28,11 +28,12 @@ export interface PrismaChanges<Tx, A, R> {
 
 const ignoreUnnamed: UnnamedObserver = () => Effect.void;
 
-const expireOnClosed = (Expiry: Context.Reference<Expire>, exit: Exit.Exit<unknown, PrismaError>): Effect.Effect<void> =>
-	Option.match(Exit.isFailure(exit) ? Cause.findErrorOption(exit.cause) : Option.none(), {
+function expireOnClosed(Expiry: Context.Reference<Expire>, exit: Exit.Exit<unknown, PrismaError>): Effect.Effect<void> {
+	return Option.match(Exit.isFailure(exit) ? Cause.findErrorOption(exit.cause) : Option.none(), {
 		onNone: () => Effect.void,
 		onSome: ({ cause }) => (isTransactionClosed(cause) ? Effect.flatMap(Effect.service(Expiry), (expire) => expire(cause)) : Effect.void),
 	});
+}
 
 export const makePrismaChanges = <Tx extends Transactional<Tx>, A, R = never>(options: PrismaChangesOptions<Tx, A, R>): PrismaChanges<Tx, A, R> => {
 	const { client, models: typed, ...channelOptions } = options;

@@ -13,12 +13,17 @@ const tree = Schema.decodeUnknownSync(
 	Schema.Struct({ gitignores: Schema.Array(Seeded), ignoredPaths: Schema.Array(Schema.String), keptPaths: Schema.Array(Schema.String) }),
 )(rawTree);
 
-const sourceFiles = (paths: readonly string[]): readonly SeedFile[] => paths.map((path) => ({ content: "export const value = 1;\n", path }));
+function sourceFiles(paths: readonly string[]): readonly SeedFile[] {
+	return paths.map((path) => ({ content: "export const value = 1;\n", path }));
+}
 const ignored = sourceFiles(tree.ignoredPaths);
 const kept = sourceFiles(tree.keptPaths);
 
-const pathsOf = (root: string, sources: readonly string[] = ["."]) =>
-	Effect.map(collectInventory(root, { exclude: [], extensions: [".ts"], sources }), (inventory) => inventory.sources.map((source) => source.path));
+function pathsOf(root: string, sources: readonly string[] = ["."]) {
+	return Effect.map(collectInventory(root, { exclude: [], extensions: [".ts"], sources }), (inventory) =>
+		inventory.sources.map((source) => source.path),
+	);
+}
 
 // Expected paths were captured from git check-ignore against the same fixture.
 it.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {

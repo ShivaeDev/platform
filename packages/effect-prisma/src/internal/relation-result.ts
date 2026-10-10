@@ -3,10 +3,13 @@ import type { PrismaError } from "#error.ts";
 import { hasMethod, invokeMethod, isPromiseLike } from "./dynamic.ts";
 import { fromPrismaPromise } from "./promise.ts";
 
-const settle = (value: unknown, map: (result: unknown) => unknown): Effect.Effect<unknown, PrismaError> =>
-	isPromiseLike(value) ? fromPrismaPromise(() => value).pipe(Effect.map(map)) : Effect.succeed(map(value));
+function settle(value: unknown, map: (result: unknown) => unknown): Effect.Effect<unknown, PrismaError> {
+	return isPromiseLike(value) ? fromPrismaPromise(() => value).pipe(Effect.map(map)) : Effect.succeed(map(value));
+}
 
-const countOf = (result: unknown): unknown => (typeof result === "object" && result !== null ? Reflect.get(result, "count") : undefined);
+function countOf(result: unknown): unknown {
+	return typeof result === "object" && result !== null ? Reflect.get(result, "count") : undefined;
+}
 
 export const evaluateResult = (value: unknown, terminal: PropertyKey | undefined): Effect.Effect<unknown, PrismaError> => {
 	if (terminal === "count" && hasMethod(value, "aggregate")) {

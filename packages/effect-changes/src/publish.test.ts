@@ -15,14 +15,18 @@ const failing: ReadonlyArray<readonly [string, string, Publish<Change, Current>]
 	],
 ];
 
-const logged = (changes: number, reason: string) => ({
-	annotations: { changes, channel: "Test" },
-	cause: expect.stringContaining(reason),
-	level: "Error",
-	message: [expect.stringContaining("the committed result stands")],
-});
+function logged(changes: number, reason: string) {
+	return {
+		annotations: { changes, channel: "Test" },
+		cause: expect.stringContaining(reason),
+		level: "Error",
+		message: [expect.stringContaining("the committed result stands")],
+	};
+}
 
-const defect = (exit: Exit.Exit<unknown, unknown>) => (Exit.isFailure(exit) && Cause.hasDies(exit.cause) ? Cause.pretty(exit.cause) : "no defect");
+function defect(exit: Exit.Exit<unknown, unknown>) {
+	return Exit.isFailure(exit) && Cause.hasDies(exit.cause) ? Cause.pretty(exit.cause) : "no defect";
+}
 
 it.each(failing)(
 	"a sink that fails after commit with %s is logged with its cause by default and the committed result stands",

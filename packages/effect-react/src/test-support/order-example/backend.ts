@@ -26,19 +26,24 @@ class OrderRow extends Model.Class<OrderRow>("OrderRow")({
 	id: Model.Field({ json: Order.fields.id, select: Order.fields.id, update: Order.fields.id }),
 	ownerId: Schema.String,
 }) {}
-const publicOrder = (row: OrderRow) => new Order({ id: row.id, name: row.name, quantity: row.quantity });
+function publicOrder(row: OrderRow) {
+	return new Order({ id: row.id, name: row.name, quantity: row.quantity });
+}
 const makeOrdersRepository = makeRepository(OrderRow, { idColumn: "id", spanPrefix: "Orders", tableName: "orders" });
 class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<typeof makeOrdersRepository>>()("order/Repository") {}
 
-const unavailable = () => new StorageUnavailable();
-const owned = (userId: string, id: number) =>
-	OrdersRepository.use((repository) => repository.findById(id)).pipe(
+function unavailable() {
+	return new StorageUnavailable();
+}
+function owned(userId: string, id: number) {
+	return OrdersRepository.use((repository) => repository.findById(id)).pipe(
 		Effect.catchTag("NoSuchElementError", () => Effect.fail(new OrderNotFound())),
 		Effect.filterOrFail(
 			(row) => row.ownerId === userId,
 			() => new OrderNotFound(),
 		),
 	);
+}
 
 const OrderService = defineService({
 	id: "order/Service",
@@ -97,7 +102,7 @@ const seeded = Layer.effect(
 	}),
 );
 
-export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
+export function makeOrderWebHandler(options: OrderServerOptions = {}) {
 	const sessions =
 		options.sessions
 		?? new Map([
@@ -149,4 +154,4 @@ export const makeOrderWebHandler = (options: OrderServerOptions = {}) => {
 		),
 		{ disableLogger: true },
 	);
-};
+}

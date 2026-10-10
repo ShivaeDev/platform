@@ -18,12 +18,13 @@ button, select { padding: 6px 10px; border: 1px solid var(--border); border-radi
 .files { font-size: 14px; }
 .files ul { list-style: none; margin: 0 0 10px; padding: 0; }
 .files li { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 4px 10px; border-radius: 5px; }
-.files li:has(a[aria-current="page"]) { background: #385242; }
+.files li:has(> a[aria-current="page"]) { background: #385242; }
 .files a { flex: 1; min-width: 0; color: var(--sidebar-text); text-decoration: none; overflow-wrap: anywhere; }
 .files a:hover, .files a[aria-current="page"] { text-decoration: underline; text-underline-offset: 4px; }
+.files li.file-folder { display: block; padding: 0; }
 .files details { margin: 8px 0; }
 .files summary { padding: 6px 10px; color: var(--sidebar-muted); overflow-wrap: anywhere; }
-.files details ul { margin-left: 14px; border-left: 1px solid var(--sidebar-border); }
+.files details > ul { margin-left: 14px; border-left: 1px solid var(--sidebar-border); }
 .age { color: var(--muted); font: 12px var(--mono); margin-left: 6px; white-space: nowrap; }
 .files .age { color: var(--sidebar-muted); margin: 0; flex-shrink: 0; }
 .page { min-width: 0; }

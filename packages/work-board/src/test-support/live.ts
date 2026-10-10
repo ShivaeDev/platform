@@ -26,17 +26,22 @@ export const TWINS = `# Twins\n\n${STEPS("First.")}\n\n${STEPS("Second.")}\n`;
 
 export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "plan.md": PLAN, "twins.md": TWINS };
 
-export const waitFor = (check: () => void) => vi.waitFor(check, { interval: 10, timeout: 5000 });
+export function waitFor(check: () => void) {
+	return vi.waitFor(check, { interval: 10, timeout: 5000 });
+}
 
-export const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
+export function settle() {
+	return new Promise((resolve) => setTimeout(resolve, 300));
+}
 
-export const openLive = async (board: RunningBoard, path: string, beforeScripts?: () => Promise<void>): Promise<OpenPage> => {
+export async function openLive(board: RunningBoard, path: string, beforeScripts?: () => Promise<void>): Promise<OpenPage> {
 	const page = await openPage(board, path, beforeScripts);
 	await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
 	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1));
 	await new Promise((resolve) => setTimeout(resolve, 20));
 	return page;
-};
+}
 
-export const paragraphOf = (page: OpenPage, text: string) =>
-	[...page.document.querySelectorAll("#doc p")].find((element) => element.textContent === text);
+export function paragraphOf(page: OpenPage, text: string) {
+	return [...page.document.querySelectorAll("#doc p")].find((element) => element.textContent === text);
+}

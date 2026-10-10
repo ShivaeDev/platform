@@ -15,19 +15,21 @@ const fields = Schema.Struct({
 	quantity: Schema.NumberFromString,
 });
 
-const valuesOf = (order: Order) => ({
-	name: order.name,
-	quantity: String(order.quantity),
-});
+function valuesOf(order: Order) {
+	return {
+		name: order.name,
+		quantity: String(order.quantity),
+	};
+}
 
-const saveStatus = (submitting: boolean, dirty: boolean): string => {
+function saveStatus(submitting: boolean, dirty: boolean): string {
 	if (submitting) {
 		return "Saving…";
 	}
 	return dirty ? "Unsaved changes" : "Saved";
-};
+}
 
-export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly token?: string | undefined }) => {
+export function makeOrderEditor({ url, token }: { readonly url: string; readonly token?: string | undefined }) {
 	class Client extends AtomRpc.Service<Client>()("example/OrdersClient", {
 		group: Orders,
 		protocol: RpcClient.layerProtocolHttp({
@@ -38,7 +40,7 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 	}) {}
 	const api = bind(Orders, Client);
 
-	const Draft = ({ order }: { readonly order: Order }) => {
+	function Draft({ order }: { readonly order: Order }) {
 		const [form] = useState(() =>
 			make(fields, {
 				initialValues: valuesOf(order),
@@ -103,9 +105,9 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 			createElement("button", { disabled: submit.submitting, onClick: form.revert, type: "button" }, "Revert"),
 			createElement("p", { role: "status" }, saveStatus(submit.submitting, dirty)),
 		);
-	};
+	}
 
-	const Editor = ({ id }: { readonly id: number }) => {
+	function Editor({ id }: { readonly id: number }) {
 		const query = useQuery(api.get.query({ id }));
 		const order = Option.getOrUndefined(query.data);
 		return createElement(
@@ -118,14 +120,14 @@ export const makeOrderEditor = ({ url, token }: { readonly url: string; readonly
 			order && createElement("output", { "data-testid": "server-order" }, `${order.name} / ${order.quantity}`),
 			order && createElement(Draft, { key: order.id, order }),
 		);
-	};
-	const OrderList = () => {
+	}
+	function OrderList() {
 		const query = useQuery(api.list.query());
 		return createElement(
 			"ul",
 			{ "data-testid": "order-list" },
 			Option.getOrElse(query.data, () => []).map((order) => createElement("li", { key: order.id }, `${order.name} / ${order.quantity}`)),
 		);
-	};
+	}
 	return { api, Client, Editor, OrderList };
-};
+}
