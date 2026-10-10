@@ -121,3 +121,12 @@ bakery.it.runIf(false)("runs a story only when the condition holds", [hasDough(4
 bakery.it.runIf(true)("runs a story when the condition holds", [hasDough(2)], ({ story }) => {
 	expect(story.engine.dough).toBe(2);
 });
+
+bakery.it(
+	"accepts a single consumer tag beside the kit's genre",
+	[],
+	(_bakery, { task }) => {
+		expect(task.tags).toEqual(["bakery-story", "mill-story"]);
+	},
+	{ tags: "mill-story" },
+);

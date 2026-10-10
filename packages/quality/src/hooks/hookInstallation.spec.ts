@@ -13,7 +13,7 @@ import {
 	withQualityAt,
 	withWorktree,
 } from "#test/hookRepository.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
 const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
@@ -25,6 +25,14 @@ function hookAt(root: string): string {
 }
 
 describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
+	it("explains how to initialize a repository before installing a hook", () => {
+		const root = seedTree([config('{ rules: { biome: "off" } }')]);
+		expect(quality(root, "hooks", "install")).toEqual({
+			status: 2,
+			stderr: `quality: ${root} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
+			stdout: "",
+		});
+	});
 	it("installs an executable pre-commit hook that runs the checked-out worktree's quality", () => {
 		const repository = hookRepository();
 
@@ -121,6 +129,14 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 });
 
 describe("quality hooks uninstall", { timeout: CLI_TIMEOUT }, () => {
+	it("reports that a fresh repository has no hook to uninstall", () => {
+		const repository = hookRepository();
+		expect(quality(repository.root, "hooks", "uninstall")).toEqual({
+			status: 0,
+			stderr: "",
+			stdout: `quality: there is no pre-commit hook at ${hookAt(repository.root)}.\n`,
+		});
+	});
 	it("removes quality's hook", () => {
 		const repository = hookRepository();
 		quality(repository.root, "hooks", "install");

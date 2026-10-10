@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
@@ -17,6 +17,12 @@ export function temporaryDirectory(): string {
 
 export function temporaryLock(): string {
 	return join(temporaryDirectory(), "nested", "heavy-process.lock");
+}
+
+export function unreadableConfigDirectory(): string {
+	const directory = temporaryDirectory();
+	symlinkSync("CI", join(directory, "CI"));
+	return directory;
 }
 
 export function removeTemporaryDirectories(): void {

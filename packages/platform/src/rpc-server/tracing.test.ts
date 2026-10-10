@@ -1,5 +1,6 @@
-import { Effect, Layer, Option, Redacted, Schema } from "effect";
-import { Rpc, type RpcClient, RpcGroup, RpcTest } from "effect/unstable/rpc";
+import { Cause, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
+import { Headers } from "effect/unstable/http";
+import { Rpc, type RpcClient, RpcGroup, RpcMessage, RpcTest } from "effect/unstable/rpc";
 import { expect, it } from "vitest";
 import { rejectedField } from "#errors/rejected-field.ts";
 import { Conflict } from "#errors/taxonomy.ts";
@@ -21,11 +22,13 @@ const Accounts = RpcGroup.make(
 	Rpc.make("Echo", { success: Schema.String }),
 	Rpc.make("Register", { error: Conflict, payload: Registration, success: Schema.Void }),
 	Rpc.make("Crash", { payload: Registration, success: Schema.Void }),
+	Rpc.make("ExternalRejection", { error: Schema.String, success: Schema.Void }),
 ).middleware(RequestTracing);
 
 const Handlers = Accounts.toLayer({
 	Crash: () => Effect.die(new Error("boom")),
 	Echo: () => Effect.andThen(Effect.logInfo("echo"), RequestId),
+	ExternalRejection: () => Effect.fail("upstream rate limit"),
 	Register: () => Effect.fail(new Conflict({ field: "email", message: "Email already registered" })),
 });
 
@@ -65,7 +68,7 @@ it("missing or malformed request ids are replaced with generated ones", async ()
 			client.Echo(undefined, { headers: { "x-correlation-id": "accepted-id" } }),
 		]),
 	);
-	expect(value.slice(0, 3).every((id) => /^[0-9a-f]{32}$/u.test(id))).toBe(true);
+	expect(value.slice(0, 3)).toEqual(Array.from({ length: 3 }, () => expect.stringMatching(/^[0-9a-f]{32}$/u)));
 	expect(new Set(value.slice(0, 3)).size).toBe(3);
 	expect(value[3]).toBe("accepted-id");
 });
@@ -99,4 +102,31 @@ it("applications extend the sensitive-key policy", async () => {
 	const { logs } = await run({ sensitive: (key) => isSensitiveKey(key) || key === "email" }, (client) => Effect.flip(client.Register(registration)));
 	expect(annotationsOf(logs, "RPC failure")[0]?.["rpc.payload"]).toMatchObject({ email: "<redacted>", password: "<redacted>" });
 	expect(annotationsOf(logs, "echo")).toEqual([]);
+});
+
+it("untagged external failures reach the caller and are logged once as unknown", async () => {
+	const { value, logs } = await run({}, (client) => Effect.flip(client.ExternalRejection()));
+	expect(value).toBe("upstream rate limit");
+	expect(annotationsOf(logs, "RPC failure")).toEqual([expect.objectContaining({ "rpc.failure": "unknown", "rpc.method": "ExternalRejection" })]);
+});
+
+it("request cancellation remains interrupted without producing a failure log", async () => {
+	const recorded = recorder();
+	const exit = await Effect.runPromise(
+		Effect.gen(function* () {
+			const middleware = yield* RequestTracing;
+			return yield* Effect.exit(
+				middleware(Effect.interrupt, {
+					client: new Rpc.ServerClient(1),
+					headers: Headers.empty,
+					payload: { password: "cancelled-secret" },
+					requestId: RpcMessage.RequestId(1),
+					rpc: Rpc.make("Cancelled"),
+				}),
+			);
+		}).pipe(Effect.provide(Layer.mergeAll(requestTracingLayer(), recorded.layer)), Effect.scoped),
+	);
+	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+	expect(annotationsOf(recorded.logs, "RPC failure")).toEqual([]);
+	expect(annotationsOf(recorded.logs, "RPC defect")).toEqual([]);
 });

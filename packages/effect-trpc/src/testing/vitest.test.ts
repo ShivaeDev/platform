@@ -4,6 +4,7 @@ import { Context, Effect, Layer, ManagedRuntime, Schema } from "effect";
 import { afterAll } from "vitest";
 import { makeEffectTRPC } from "#adapter.ts";
 import { makeRequestServices } from "#request-services.ts";
+import { makeEffectCallerFactory } from "#testing/caller.ts";
 import { makeTrpcHarnessIt, makeTrpcIt } from "#testing/vitest.ts";
 
 class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/RuntimeValue") {}
@@ -36,7 +37,7 @@ const router = t.router({
 	}),
 });
 
-const it = makeTrpcIt({
+const callerIt = makeTrpcIt({
 	adapter,
 	around: (effect) => Effect.withSpan(effect, "test.effect-trpc"),
 	createCaller: (options = { requestId: "default" }) => router.createCaller(options),
@@ -59,7 +60,7 @@ const harnessIt = makeTrpcHarnessIt({
 
 afterAll(() => runtime.dispose());
 
-it.effectTRPC("provides an Effect-shaped default caller and preserves runtime services", function* (trpc, context) {
+callerIt.effectTRPC("provides an Effect-shaped default caller and preserves runtime services", function* (trpc, context) {
 	expect(context.task.name).toContain("Effect-shaped default caller");
 
 	const result = yield* trpc.read("value");
@@ -72,7 +73,7 @@ it.effectTRPC("provides an Effect-shaped default caller and preserves runtime se
 	});
 });
 
-it.effectTRPC("creates callers with per-call options without rebuilding the test Layer", function* (trpc) {
+callerIt.effectTRPC("creates callers with per-call options without rebuilding the test Layer", function* (trpc) {
 	const first = yield* trpc({ requestId: "first" }).read("one");
 	const second = yield* trpc({ requestId: "second" }).read("two");
 
@@ -80,11 +81,11 @@ it.effectTRPC("creates callers with per-call options without rebuilding the test
 	expect(second.request).toBe("second");
 });
 
-it.effectTRPC("does not shadow procedures with JavaScript function properties", function* (trpc) {
+callerIt.effectTRPC("does not shadow procedures with JavaScript function properties", function* (trpc) {
 	expect(yield* trpc.name()).toBe("procedure named name");
 });
 
-it.effectTRPC.each(["first", "second"])("supports table-driven Effect callers for %s", function* (requestId, trpc) {
+callerIt.effectTRPC.each(["first", "second"])("supports table-driven Effect callers for %s", function* (requestId, trpc) {
 	const result = yield* trpc({ requestId }).read("table");
 	expect(result.request).toBe(requestId);
 });
@@ -93,4 +94,19 @@ harnessIt.effectTRPC("builds an Effectful application harness inside the test La
 	expect(harness.contextName).toContain("Effectful application harness");
 	expect(harness.runtime).toBe("test-override");
 	expect((yield* harness.trpc.read("harness")).input).toBe("harness");
+});
+
+callerIt("can await a caller factory and an explicitly configured caller without invoking a then procedure", async () => {
+	const factory = makeEffectCallerFactory(
+		adapter,
+		(options: CallerOptions = { requestId: "default" }) => router.createCaller(options),
+		Context.empty(),
+	);
+	const awaitedFactory = await Promise.resolve(factory);
+	expect(awaitedFactory).toBe(factory);
+	const caller = factory({ requestId: "awaited" });
+	expect(typeof Reflect.get(caller, "then")).toBe("undefined");
+	const awaitedCaller = await Promise.resolve(caller);
+	expect(awaitedCaller).toBe(caller);
+	expect(await Effect.runPromise(awaitedCaller.read("value"))).toMatchObject({ input: "value", request: "awaited" });
 });

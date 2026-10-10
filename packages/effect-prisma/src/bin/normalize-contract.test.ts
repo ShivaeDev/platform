@@ -1,27 +1,16 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { afterEach, expect, it } from "vitest";
+import { generatedContractFile as contract, removeGeneratedContractFiles, runNormalizeContract } from "#test/normalizeContractCommand.ts";
 
-const directories: string[] = [];
-const cli = fileURLToPath(new URL("./normalize-contract.ts", import.meta.url));
-function contract(source: string) {
-	const directory = mkdtempSync(join(tmpdir(), "contract-normalization-"));
-	directories.push(directory);
-	const path = join(directory, "contract.d.ts");
-	writeFileSync(path, source);
-	return path;
-}
 function normalize(path: string) {
-	return spawnSync(process.execPath, ["--conditions=source", cli, path], { encoding: "utf8" });
+	return runNormalizeContract([path]);
 }
-afterEach(() => {
-	for (const directory of directories.splice(0)) {
-		rmSync(directory, { force: true, recursive: true });
-	}
+afterEach(removeGeneratedContractFiles);
+
+it.each([[], ["first.d.ts", "second.d.ts"]])("reports the invocation syntax for an invalid argument list %j", (...arguments_) => {
+	const result = runNormalizeContract(arguments_);
+	expect(result.status).toBe(1);
+	expect(result.stderr).toContain("Usage: effect-prisma-normalize <generated-contract.d.ts>");
 });
 
 it("normalizes generated timestamps, preserves other fields and can run twice", () => {

@@ -76,6 +76,16 @@ describe("suppressions/biome-recommended", () => {
 		expect(await check({ ...unextended, "biome.json": '{ "extends": ["./other.json"] }\n' })).toEqual([]);
 	});
 
+	it.each([
+		[undefined, "the file does not exist"],
+		['{ "linter": ', "Expression expected"],
+	])("reports a resolved preset that cannot be read: %s", async (text, reason) => {
+		const texts = Object.fromEntries(Object.entries(presetTexts(allAtError)).filter(([path]) => path !== `${PACKAGE}/biome/preset.json`));
+		expect(await check({ ...texts, ...(text === undefined ? {} : { [`${PACKAGE}/biome/preset.json`]: text }) })).toEqual([
+			`${PACKAGE}/biome/preset.json Cannot read the preset "@shivaedev/quality/biome": ${reason}.`,
+		]);
+	});
+
 	it("reports a preset it cannot resolve or declarations it cannot read", async () => {
 		expect(await check(EXTENDING)).toEqual([
 			'biome.json Cannot resolve "@shivaedev/quality/biome" from node_modules. Install @shivaedev/quality at the repository root.',

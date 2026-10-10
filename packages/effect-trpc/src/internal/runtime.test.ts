@@ -61,6 +61,50 @@ it("redacts defects thrown by the consumer error mapper", async () => {
 	});
 });
 
+class SubscriptionValue extends Context.Service<SubscriptionValue, string>()("@test/SubscriptionValue") {}
+
+it("ends a subscription whose transport aborted before iteration begins", async () => {
+	const controller = new AbortController();
+	controller.abort();
+	const stream = await bridge.runStream(Stream.never, { procedure, signal: controller.signal });
+
+	await expect(stream[Symbol.asyncIterator]().next()).resolves.toEqual({ done: true, value: undefined });
+});
+
+it("maps a subscription failure to the specific consumer error", async () => {
+	const streamBridge = makeRuntimeBridge(runtime, makeContextBridge(), {
+		mapError: (error, info) => {
+			expect(error).toBe("subscription unavailable");
+			expect(info).toMatchObject({ origin: "failure", path: "cancelled" });
+			return new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Updates temporarily unavailable" });
+		},
+	});
+	const stream = await streamBridge.runStream(Stream.fail("subscription unavailable"), { procedure });
+
+	await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({
+		code: "SERVICE_UNAVAILABLE",
+		message: "Updates temporarily unavailable",
+	});
+});
+
+it("uses ambient subscription services after the caller context has returned", async () => {
+	const streamRuntime = ManagedRuntime.make(Layer.succeed(SubscriptionValue, "application"));
+	const contextBridge = makeContextBridge();
+	const streamBridge = makeRuntimeBridge(streamRuntime, contextBridge, {});
+	try {
+		const stream = await contextBridge.run(Context.make(SubscriptionValue, "test override"), () =>
+			streamBridge.runStream(Stream.fromEffect(SubscriptionValue), { procedure }),
+		);
+		const values: string[] = [];
+		for await (const value of stream) {
+			values.push(value);
+		}
+		expect(values).toEqual(["test override"]);
+	} finally {
+		await streamRuntime.dispose();
+	}
+});
+
 it("redacts subscription runtime acquisition failures through the consumer error mapper", async () => {
 	class Dependency extends Context.Service<Dependency, string>()("test/SubscriptionDependency") {}
 	const failedRuntime = ManagedRuntime.make(Layer.effect(Dependency, Effect.fail(new Error("private runtime acquisition detail"))));
