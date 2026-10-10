@@ -1,10 +1,6 @@
 # Optional source structure
 
-Work Board reads optional YAML frontmatter at the beginning of a Markdown file.
-The file remains authoritative; the in-memory identity/search index is rebuilt
-from readable files and invalidated by the watcher. No database, generated source
-files, cloud service, or migration is required. Parsing uses `yaml` 2.9.0 and
-Effect Schema. The UI reads this structure and never rewrites it.
+Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. No database, generated source files, cloud service, or migration is required. Parsing uses `yaml` 2.9.0 and Effect Schema. The UI reads this structure and never rewrites it.
 
 ## Existing heading boards
 
@@ -24,10 +20,7 @@ Find document titles, headings, and passages.
 Evidence: [navigation PR](https://github.com/ShivaeDev/platform/pull/77).
 ```
 
-Existing heading boards render as before. Section names are presentation, never
-inferred workflow transitions. An unannotated card has no durable identity,
-owner, acceptance decision, or machine-readable status. Its passage URL can
-change when its heading changes. Richer identity uses one file per item.
+Existing heading boards render as before. Section names are presentation, never inferred workflow transitions. An unannotated card has no durable identity, owner, acceptance decision, or machine-readable status. Its passage URL can change when its heading changes. Richer identity uses one file per item.
 
 ## A richer item
 
@@ -52,10 +45,7 @@ relationships:
 Use deterministic local matching first. Keep Markdown authoritative.
 ```
 
-Every top-level field is optional. Missing values show as **Not recorded** in
-work details. `owner` records responsibility, without claiming authorship.
-`status` and `next_action` are explicit source text; no status vocabulary or
-transition rules are inferred.
+Every top-level field is optional. Missing values show as **Not recorded** in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text; no status vocabulary or transition rules are inferred.
 
 | Field | Source shape |
 | --- | --- |
@@ -71,15 +61,9 @@ transition rules are inferred.
 | `handoff` | Optional direction/source snapshot and explicit receipt; [ordinary-file handoff contract](./handoff-examples.md) |
 | `request_receipt` | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response) |
 
-A unique ID resolves at `/_board/item/work.search/`. This URL survives file and
-heading renames while the ID remains unchanged and unique. A criterion resolves
-at `/_board/item/work.search/#criterion-keyboard`. Normal file and generated
-heading URLs continue working; favorites/recents still refer to file paths.
+A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. Normal file and generated heading URLs continue working; favorites/recents still refer to file paths.
 
-Search includes declared ID, kind, status, owner, next action, and criteria.
-Results show source lines where known; criterion results open and focus the
-criterion's work-details context. Source diagnostics identify file/line, and
-**Original frontmatter** exposes the retained header.
+Search includes declared ID, kind, status, owner, next action, and criteria. Results show source lines where known; criterion results open and focus the criterion's work-details context. Source diagnostics identify file/line, and **Original frontmatter** exposes the retained header.
 
 ## Relationships and board declarations
 
@@ -106,16 +90,11 @@ kind: board
 items: [work.search, work.reading-state]
 ```
 
-Relationships and membership resolve only against explicit IDs. They are shown
-as readable links; unresolved or ambiguous targets stay visible with diagnostics.
-These declarations do not turn a section name into a workflow rule.
+Relationships and membership resolve only against explicit IDs. They are shown as readable links; unresolved or ambiguous targets stay visible with diagnostics. These declarations do not turn a section name into a workflow rule.
 
 ## Criterion-level recorded evidence
 
-Each record requires a nonblank `source`. All other evidence fields are optional:
-`criterion` names an item or criterion reference; `checked_revision` is a full
-40- or 64-digit hexadecimal Git revision; `observed_at` is a parseable ISO
-timestamp with a timezone; `method` and `outcome` are nonblank strings.
+Each record requires a nonblank `source`. All other evidence fields are optional: `criterion` names an item or criterion reference; `checked_revision` is a full 40- or 64-digit hexadecimal Git revision; `observed_at` is a parseable ISO timestamp with a timezone; `method` and `outcome` are nonblank strings.
 
 ```yaml
 evidence:
@@ -125,60 +104,26 @@ evidence:
     outcome: passed
 ```
 
-This example deliberately has no revision or observation time; they remain
-**Not recorded**. Supply real values when available. Relative source links resolve
-from the file containing the record. HTTP(S) sources are ordinary links;
-executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described
-in the README; other non-Markdown assets are not served.
+This example deliberately has no revision or observation time; they remain **Not recorded**. Supply real values when available. Relative source links resolve from the file containing the record. HTTP(S) sources are ordinary links; executable URL schemes stay plain text. Local image sources use the contained PNG/JPEG/GIF/WebP attachment route described in the README; other non-Markdown assets are not served.
 
-Records are labeled **Source claims — not independently verified**. A recorded
-outcome, test link, agent run completion, or proposed decision does not establish
-verified acceptance. Work Board neither runs checks nor verifies freshness here.
+Records are labeled **Source claims — not independently verified**. A recorded outcome, test link, agent run completion, or proposed decision does not establish verified acceptance. Work Board neither runs checks nor verifies freshness here.
 
 ## Invalid, unknown, and unavailable sources
 
-- A header opens with `---` on the first line, optionally after a BOM, and closes
-  with a separate `---` line. CRLF is supported. Scalar/list headers and unclosed
-  headers retain the original Markdown and show a diagnostic.
-- YAML syntax errors, duplicate keys, unsupported tags, or excessive alias
-  expansion leave the header uninterpreted and retain readable body prose.
-- Unknown top-level fields stay in the original header with a diagnostic. An
-  invalid known field, including unknown nested keys, stays uninterpreted as a
-  whole. Independent valid fields still render. No source bytes are rewritten.
-- Duplicate IDs show all matching source files and a conflict page; no winner
-  is chosen. Duplicate criterion IDs do not receive selectable criterion links.
-- Missing IDs/criteria remain unresolved. Removing the source yields an explicit
-  missing-item page. Removing or changing its ID does not preserve that identity.
-- If any listed file cannot be read, identity links report an incomplete index
-  rather than asserting uniqueness. Readable documents and partial search remain
-  usable; reference validation waits for a complete index.
+- A header opens with `---` on the first line, optionally after a BOM, and closes with a separate `---` line. CRLF is supported. Scalar/list headers and unclosed headers retain the original Markdown and show a diagnostic.
+- YAML syntax errors, duplicate keys, unsupported tags, or excessive alias expansion leave the header uninterpreted and retain readable body prose.
+- Unknown top-level fields stay in the original header with a diagnostic. An invalid known field, including unknown nested keys, stays uninterpreted as a whole. Independent valid fields still render. No source bytes are rewritten.
+- Duplicate IDs show all matching source files and a conflict page; no winner is chosen. Duplicate criterion IDs do not receive selectable criterion links.
+- Missing IDs/criteria remain unresolved. Removing the source yields an explicit missing-item page. Removing or changing its ID does not preserve that identity.
+- If any listed file cannot be read, identity links report an incomplete index rather than asserting uniqueness. Readable documents and partial search remain usable; reference validation waits for a complete index.
 
 ## Reading the reasoning and recorded claims
 
-Decision options, comparison tables, and rationale remain body Markdown. A result
-can declare `kind: implements` with `target: plan.search` in a relationship record; that plan
-can declare an `implements` relationship to `decision.search`. The reader reaches
-its rationale in two links without adding decision-specific frontmatter fields.
-`reasoningFixture()` in `src/test-support/reasoningFixture.ts` supplies the executable
-example with a plan, decision, result, ordinary evidence file, and shared board.
+Decision options, comparison tables, and rationale remain body Markdown. A result can declare `kind: implements` with `target: plan.search` in a relationship record; that plan can declare an `implements` relationship to `decision.search`. The reader reaches its rationale in two links without adding decision-specific frontmatter fields. `reasoningFixture()` in `src/test-support/reasoningFixture.ts` supplies the executable example with a plan, decision, result, ordinary evidence file, and shared board.
 
-Criteria list claims from all readable files that explicitly name their unique
-item/criterion reference. Claim counts are not acceptance counts. Records expose
-origin file/line and supplied provenance; old checked revisions remain visible
-without a comparison to current Git state. Missing/ambiguous criteria or an
-incomplete index prevent association rather than selecting a winner. Record
-anchors use their array position and can change on insertion/reordering.
+Criteria list claims from all readable files that explicitly name their unique item/criterion reference. Claim counts are not acceptance counts. Records expose origin file/line and supplied provenance; old checked revisions remain visible without a comparison to current Git state. Missing/ambiguous criteria or an incomplete index prevent association rather than selecting a winner. Record anchors use their array position and can change on insertion/reordering.
 
-Source backlinks also include explicit Markdown hyperlinks and evidence-source
-paths, resolved relative to each source file, with `/` mapped to the configured
-home or first file. Code examples, external URLs, and self references are excluded.
-Plain files can show incoming links without acquiring an ID or inferred work kind.
-Evidence associations retain source links; image inspection follows the local
-attachment boundary described in the README.
+Source backlinks also include explicit Markdown hyperlinks and evidence-source paths, resolved relative to each source file, with `/` mapped to the configured home or first file. Code examples, external URLs, and self references are excluded. Plain files can show incoming links without acquiring an ID or inferred work kind. Evidence associations retain source links; image inspection follows the local attachment boundary described in the README.
 
 
-Questionnaire responses may additionally record `response.answers` entries with
-`prompt`, `selected` option IDs and human `text`, plus an optional `response.supersedes`
-identity. These fields are optional; older plain responses remain valid. See the
-[packet contract and complete source example](./decision-write-examples.md) for
-validation, reviewed-context binding and human selection semantics.
+Questionnaire responses may additionally record `response.answers` entries with `prompt`, `selected` option IDs and human `text`, plus an optional `response.supersedes` identity. These fields are optional; older plain responses remain valid. See the [packet contract and complete source example](./decision-write-examples.md) for validation, reviewed-context binding and human selection semantics.

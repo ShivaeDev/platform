@@ -1,13 +1,8 @@
 # Work Board delivery requirements
 
-Build the [north star](../north-star.md) as useful, reviewable changes. The
-[roadmap](../roadmap.md) owns completion, acceptance and maintainer decisions;
-numbers here name requirements and dependency order, rather than release dates.
+Build the [north star](../north-star.md) as useful, reviewable changes. The [roadmap](../roadmap.md) owns completion, acceptance and maintainer decisions; numbers here name requirements and dependency order, rather than release dates.
 
-Each step names a reader outcome, prerequisites, bounded implementation and
-observable acceptance. Split a step when its review would mix independent risks.
-Extend the existing source and Effect boundaries, and deliver a visible use with
-its shared foundation.
+Each step names a reader outcome, prerequisites, bounded implementation and observable acceptance. Split a step when its review would mix independent risks. Extend the existing source and Effect boundaries, and deliver a visible use with its shared foundation.
 
 ## Delivery sequence
 
@@ -31,11 +26,7 @@ its shared foundation.
 | D3 Handoff | [Copied-file handoff contract](handoff-examples.md) | Ordinary direction and file-edited receipt for an existing session; receipt is separate from execution and acceptance |
 | D4 Evidence integration | Repeated manual step, authoritative fields, refresh/offline rules and maintenance owner | Explicit linked objects and usable local work without the adapter |
 
-The roadmap records whether each decision is settled and what it means for a step.
-The maintainer owns public APIs, file formats, dependencies and releases. Mockups
-do not choose a serialization or framework. Prepare concrete examples before
-asking for a new decision; normal acknowledgment must remain possible through
-ordinary agent file edits.
+The roadmap records whether each decision is settled and what it means for a step. The maintainer owns public APIs, file formats, dependencies and releases. Mockups do not choose a serialization or framework. Prepare concrete examples before asking for a new decision; normal acknowledgment must remain possible through ordinary agent file edits.
 
 ## Extend the existing boundaries
 
@@ -48,26 +39,12 @@ ordinary agent file edits.
 | [Native client](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/src/browser/client.ts), [DOM swap](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/src/page/swap.ts) | Scoped reads and retained reading state | Shared Effect contracts/live primitives, clear failures and reconciliation |
 | [Assets](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/src/http/assets.ts), [diagrams](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/src/page/diagrams.ts) | Local visual reading | Bounded access and locally loaded renderers |
 
-Keep CLI and embedding working together. Static mockup markup and fictional data
-are review aids, not the production data model. A new framework, persistent store
-or adapter must earn its cost through an agreed requirement.
+Keep CLI and embedding working together. Static mockup markup and fictional data are review aids, not the production data model. A new framework, persistent store or adapter must earn its cost through an agreed requirement.
 
 ## Evidence required
 
-Name the step, visible outcome, source compatibility and exclusions in a change.
-Behavior tests must fail without the change. Use pure parser tests for
-interpretation, real filesystem/HTTP tests for serving/watching, and real browsers
-for focus, layout, history and actual Mermaid. DOM fixtures establish their
-asserted behavior; they do not establish browser-engine or device correctness.
+Name the step, visible outcome, source compatibility and exclusions in a change. Behavior tests must fail without the change. Use pure parser tests for interpretation, real filesystem/HTTP tests for serving/watching, and real browsers for focus, layout, history and actual Mermaid. DOM fixtures establish their asserted behavior; they do not establish browser-engine or device correctness.
 
-Use a 50-document/100-item workspace with duplicate headings, nested/encoded paths,
-missing references, diagrams, long text and malformed metadata, plus empty/small
-folders. The [browser checks](browser-acceptance.md) and
-[combined reading review](reading-review.md) provide repeatable procedures.
-Measure on a named machine and agree numeric budgets before enforcing them.
-Reader orientation targets require representative readers, not fabricated timing.
+Use a 50-document/100-item workspace with duplicate headings, nested/encoded paths, missing references, diagrams, long text and malformed metadata, plus empty/small folders. The [browser checks](browser-acceptance.md) and [combined reading review](reading-review.md) provide repeatable procedures. Measure on a named machine and agree numeric budgets before enforcing them. Reader orientation targets require representative readers, not fabricated timing.
 
-Record results and revised scope only in the roadmap. History belongs in Git and
-the changelog. Preserve source compatibility, truthful evidence and ordinary
-conflict recovery when reducing scope. Optional adapters do not become prerequisites
-for the local product; no step adds cloud hosting, accounts or remote multiplayer.
+Record results and revised scope only in the roadmap. History belongs in Git and the changelog. Preserve source compatibility, truthful evidence and ordinary conflict recovery when reducing scope. Optional adapters do not become prerequisites for the local product; no step adds cloud hosting, accounts or remote multiplayer.
