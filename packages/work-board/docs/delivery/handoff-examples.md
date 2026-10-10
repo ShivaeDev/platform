@@ -4,7 +4,7 @@ A person can prepare reviewed direction as a Markdown file, then copy a short in
 
 ## One bounded walkthrough
 
-Review a uniquely identified project item. Open **Prepare an agent handoff**, enter recipient, goal, constraints and next action, then preview and prepare. The existing `--responses` opt-in permits the Linux local writer to create `handoffs/<stable-id>.md`; the original project item stays unchanged.
+Review a uniquely identified project item. Open **Prepare an agent handoff**, enter recipient, goal, constraints and next action, then preview and prepare. The existing `--responses` opt-in permits the local writer to create `handoffs/<stable-id>.md`; the original project item stays unchanged.
 
 The file's frontmatter records direction and the reviewed source SHA-256. Its body contains the complete source, including original frontmatter and declared criteria. A focused item's context is bounded to 256 KiB of UTF-8. The page renders its Markdown/Mermaid body through the safe local context renderer and discloses the exact source separately.
 
