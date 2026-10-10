@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Explain the runner's purpose, service and test lifetimes, clock choices and typed readiness polling in the README, agent north star and package docs; publish `docs/` with the README.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.3.1 - 2026-10-06

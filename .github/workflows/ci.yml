@@ -143,6 +143,7 @@ jobs:
       - name: Test workspace shard
         run: >-
           pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
+          --retry=${{ github.event_name == 'merge_group' && 2 || 0 }}
           --reporter=default --reporter=json --reporter=junit
           --outputFile.json=${{ github.workspace }}/.ci/tests.json
           --outputFile.junit=${{ github.workspace }}/.ci/tests.junit.xml

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Document the package's purpose, form model, examples, API and boundaries; publish the README and `docs/` while keeping agent guidance out of the package.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.2.0 - 2026-10-04
@@ -46,7 +47,7 @@
 ### Added
 
 - Extract schema-derived form state, submission, field messages, draft
-  preservation, and optional React hooks from Antumbra.
+  preservation, and optional React hooks into a reusable package.
 - Merge received values per field: untouched fields adopt refreshed server
   values while edited fields keep local input.
 - Keep a refresh received during an in-flight save as the baseline instead of

@@ -224,7 +224,7 @@ That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdou
 
 ### When a story fails
 
-When a story's test fails, for any reason, the story is added to its first error, as in the examples above:
+After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
 
 - a short guide to reading the story, in a box;
 - every line in order, traits marked `given`;
@@ -232,17 +232,18 @@ When a story's test fails, for any reason, the story is added to its first error
 - the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file;
 - the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
-The package breaks what it prints at 120 columns, between words or JSON fields, and prints the story's own lines whole. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
+The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
 
 ### Install and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/test-story @effect/vitest effect vitest
+pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.0-rc.112 effect@4.0.0-rc.112 vitest@4.1.11
 ```
 
 `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.
 
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
+- Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file; the intentional `failingStories.ts` examples use the package's explicit fixture runner.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
 - `inspect` runs after the test has failed, so it reads the engine synchronously.
 - The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.

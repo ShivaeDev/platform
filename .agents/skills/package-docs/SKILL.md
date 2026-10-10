@@ -46,6 +46,7 @@ Name the two H2 sections in words that fit the package; the split is what matter
 - The agent part is text and code only. It explains the mental model before the API, so an agent can use the package correctly in a case no example covers.
 - Organize the agent part by the order of the reader's work: what they set up once, what they write once per feature, what they write every day.
 - Name each concept by what it is. A reader without a glossary should understand the word.
+- Do not hard-wrap Markdown prose. Keep each prose paragraph on one source line, including inside lists; preserve Markdown structure and line breaks in literal code and output.
 - A code block shows the code or output exactly as it really is or prints, with no explanation inside it; the prose under the block says what the reader is looking at.
 - Every behavior the README states has a test that fails without it.
 - npm renders the README too. Use absolute URLs for images; GitHub renders Mermaid, npm shows it as a code block, so keep the text around a diagram readable without it.

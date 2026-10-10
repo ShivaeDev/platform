@@ -127,9 +127,12 @@ export const makeRuntimeBridge = <Requirements, RuntimeError>(
 			Stream.interruptWhen(interruptOn(runOptions.signal)),
 			Stream.catchCause((cause) => Stream.fail(mapCause(cause, runOptions.procedure, options.mapError))),
 		);
-		const context = await runtime.runPromise(Effect.context<Requirements>());
+		const exit = await runtime.runPromiseExit(Effect.context<Requirements>());
+		if (Exit.isFailure(exit)) {
+			throw mapCause(exit.cause, runOptions.procedure, options.mapError);
+		}
 		const ambient = contextBridge.current();
-		const provided = ambient === undefined ? context : Context.merge(context, ambient);
+		const provided = ambient === undefined ? exit.value : Context.merge(exit.value, ambient);
 		return Stream.toAsyncIterableWith(instrumented, provided);
 	},
 });

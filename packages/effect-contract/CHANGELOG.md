@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Document the package's purpose, native RPC and freshness model, complete usage, design priorities and roadmap; publish `docs/` with the README.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.4.0 - 2026-10-05

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Document the package purpose, callback assignment model, API and limits; add agent guidance and the north star and roadmap, and publish `docs/` with the README.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.2.0 - 2026-10-04
