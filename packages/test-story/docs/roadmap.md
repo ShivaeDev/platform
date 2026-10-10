@@ -1,5 +1,10 @@
 # Roadmap
 
+This file owns the story kit's implementation, next work and open questions. The
+[framework roadmap](https://github.com/ShivaeDev/platform/blob/main/docs/framework/roadmap.md)
+owns composed application features and host-level validation. Those roadmaps link
+to each other rather than repeating a completion checklist.
+
 ## Built
 
 - [x] `storyKit(definition)`: one Effect kit per engine, with every type and the services its layer provides inferred from its hooks. Plain engines plug in with plain functions.

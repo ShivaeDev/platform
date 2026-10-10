@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import { Context, Effect, Layer, ManagedRuntime, Stream } from "effect";
 import { afterAll, expect, it } from "vitest";
 import { makeContextBridge } from "#internal/context-bridge.ts";
 import { makeRuntimeBridge } from "#internal/runtime.ts";
@@ -59,4 +59,25 @@ it("redacts defects thrown by the consumer error mapper", async () => {
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",
 	});
+});
+
+it("redacts subscription runtime acquisition failures through the consumer error mapper", async () => {
+	class Dependency extends Context.Service<Dependency, string>()("test/SubscriptionDependency") {}
+	const failedRuntime = ManagedRuntime.make(Layer.effect(Dependency, Effect.fail(new Error("private runtime acquisition detail"))));
+	const mapped: Array<{ origin: string; path: string }> = [];
+	try {
+		const failedBridge = makeRuntimeBridge(failedRuntime, makeContextBridge(), {
+			mapError: (_error, context) => {
+				mapped.push({ origin: context.origin, path: context.path });
+				return undefined;
+			},
+		});
+		await expect(failedBridge.runStream(Stream.empty, { procedure: { ...procedure, path: "events", type: "subscription" } })).rejects.toMatchObject({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Internal server error",
+		});
+		expect(mapped).toEqual([{ origin: "failure", path: "events" }]);
+	} finally {
+		await failedRuntime.dispose();
+	}
 });

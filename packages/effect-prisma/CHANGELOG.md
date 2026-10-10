@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Document the package purpose, query and transaction model, API and limits; add agent guidance and package north star and roadmap, and publish `docs/` with the README.
+
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.8.0 - 2026-10-04

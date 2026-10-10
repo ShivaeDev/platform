@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Clarify roadmap ownership, failure-narration lifetime and output limits; keep the existing README and `docs/` publication shape.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
 ## 0.1.0 - 2026-10-06
