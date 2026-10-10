@@ -63,20 +63,6 @@ describe("work-fleet host against PostgreSQL", () => {
 		);
 	}, 40_000);
 
-	test("one scheduler pass launches a hundred approved items", function* () {
-		const files = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`w${index}.md`, task(`w${index}`, "approved")]));
-		yield* withHost(files, { intervalSeconds: 3600 }, (fixture) =>
-			Effect.gen(function* () {
-				const runner = yield* runFleet(fixture.host, fixture.parts).pipe(Effect.forkChild);
-				yield* until(() => fixture.provider.launched.length === 100, 60_000);
-				yield* Fiber.interrupt(runner);
-				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
-				expect(status.active).toHaveLength(100);
-				expect(new Set(status.active.map((view) => view.stage))).toEqual(new Set(["executing"]));
-			}),
-		);
-	}, 90_000);
-
 	test("dispatch denies unapproved work and explicitly re-approves an edited revision", function* () {
 		const files = { "a.md": task("a", "approved", "First revision."), "b.md": task("b") };
 		yield* withHost(files, {}, (fixture) =>

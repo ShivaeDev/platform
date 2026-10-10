@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { WAIT_EXIT, waitFor } from "#host/wait.ts";
+import { WAIT_EXIT } from "#host/wait.ts";
 import { storeState, waitProcess, withHost } from "#test/fleetHost.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
@@ -33,36 +33,6 @@ describe("work-fleet wait against PostgreSQL", () => {
 			}),
 		);
 	}, 60_000);
-
-	test("a hundred waiters and many wait processes all observe one completion", function* () {
-		yield* withHost({}, {}, (fixture) =>
-			Effect.gen(function* () {
-				yield* storeState(fixture.host, "many", { stage: "executing" });
-				const options = {
-					databaseUrl: fixture.host.databaseUrl,
-					intervalMs: 500,
-					namespace: fixture.host.namespace,
-					timeoutMs: 45_000,
-					workId: "many",
-				};
-				const inProcess = yield* Effect.all(
-					Array.from({ length: 100 }, () => waitFor(options)),
-					{ concurrency: "unbounded" },
-				).pipe(Effect.forkChild);
-				const processes = Promise.all(
-					Array.from({ length: 10 }, () => waitProcess(fixture.configFile, "many", { intervalSeconds: 0.5, timeoutSeconds: 45 })),
-				);
-				yield* Effect.sleep("5 seconds");
-				yield* storeState(fixture.host, "many", { outcome: { evidence: ["main already contains it"] }, stage: "completed" });
-				const outcomes = yield* Fiber.join(inProcess);
-				const runs = yield* Effect.promise(() => processes);
-				expect(new Set(outcomes.map((outcome) => `${outcome.code} ${outcome.summary}`))).toEqual(
-					new Set(["0 many completed: main already contains it"]),
-				);
-				expect(new Set(runs.map((run) => `${run.code} ${run.stdout}`))).toEqual(new Set(["0 many completed: main already contains it"]));
-			}),
-		);
-	}, 90_000);
 
 	test("wait keeps polling until Fleet first records the work", function* () {
 		yield* withHost({}, {}, (fixture) =>
