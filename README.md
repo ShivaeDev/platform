@@ -49,9 +49,9 @@ stay in the repository.
 - [`@shivaedev/platform`](./packages/platform): Shared errors, request identity,
   Node HTTP cancellation and runtime ownership, plus optional auth and composed
   Prisma/tRPC test integrations.
-- [`@shivaedev/quality`](./packages/quality): Repository quality gate with typed
-  rules, a baseline of existing debt, a registry of reasoned exceptions and shared
-  tsconfig presets.
+- [`@shivaedev/quality`](./packages/quality): Opinionated repository quality
+  policy with shared tooling and minimal setup; counted existing debt keeps
+  adoption practical without weakening the checks.
 - [`@shivaedev/types`](./packages/types): Type-only helpers shared by the
   packages, such as `Bivariant`.
 - [`@shivaedev/heavy-lock`](./packages/heavy-lock): Shared advisory lock that runs

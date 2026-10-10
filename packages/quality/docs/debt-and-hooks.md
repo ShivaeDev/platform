@@ -1,6 +1,6 @@
 # Existing debt, exceptions and commit checks
 
-The [README](../README.md) introduces the gate. This page explains how a repository records debt, keeps it current as files change and runs the gate at commit time.
+The [README](../README.md) introduces the gate. Adopt the whole policy with its default error levels; use the baseline to retain old debt rather than warning or off settings. This page explains how to record debt, keep it current as files change and run the gate at commit time. The wider accepted severity API is described under [configuration limits](../README.md#configuration-limits).
 
 ## Baseline
 
@@ -11,7 +11,7 @@ The [README](../README.md) introduces the gate. This page explains how a reposit
 
 The baseline is a JSON Lines file with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
 
-For an error-level rule, `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. Warning-level findings remain warnings. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
+For an error-level rule, `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. The accepted warning-level API does not fail on uncovered findings; it is outside the recommended adoption path. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for a rule that is off or unknown fails until it is pruned. The baseline covers violations at any level.
 
 - `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names the rules to record: it then replaces the entries of those rules with what the files have now, and leaves every other entry as it is.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
@@ -35,11 +35,11 @@ quality lint
 
 An error-level finding that neither the registry nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
 
-A rule enters the baseline the same way: set it to `error`, run `quality baseline write --rule <id>` and commit both.
+When an upgrade adds a shared check, keep its default error level, inspect its findings and record retained debt with `quality baseline write --rule <id>`. Review any new counts in the commit.
 
-### Changing a limit
+### Counts after a policy change
 
-A count depends on the configured limit, so changing a limit shifts every count of the rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Run `quality baseline write --rule <id>` to record the rule again under the new limit, and commit it with the config change. The raised entries show in the diff, and the pull request calls them out.
+A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. The public API also exposes numeric overrides; that does not make tuning thresholds an adoption step. Prefer the shared defaults. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
 
 ## Registry
 

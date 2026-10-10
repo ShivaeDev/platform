@@ -1,6 +1,6 @@
 # Rule reference
 
-Use the [README](../README.md) for the gate's mental model and workflow. This reference gives each built-in rule's scope, findings and options. The [naming reference](./naming.md) covers names and test layout; [shared tooling](./tooling.md) covers the Biome, Vitest and TypeScript setup.
+Use the [README](../README.md) for the gate's mental model and workflow. Quality owns the shared policy; consuming repositories adopt its defaults. This reference gives each built-in rule's scope, findings and accepted options, including the exposed local-rule API. An option being accepted is not a recommendation to tune the shared standard. Supply repository facts, such as generated locations and import boundaries, when a check needs them. The [naming reference](./naming.md) covers names and test layout; [shared tooling](./tooling.md) covers the Biome, Vitest and TypeScript setup.
 
 ## File size
 
@@ -79,7 +79,7 @@ A type test proves that an API rejects what its types forbid, and TypeScript ass
 
 #### Declared Biome overrides
 
-A scope that truly cannot follow a lint rule keeps its exception in the Biome config, and the quality config declares it with a reason. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
+Quality ships reasons for its own internal Biome exceptions. The consumer declaration API below also accepts weakenings; that is an implementation gap against the whole-policy direction, recorded in the [roadmap](./roadmap.md). Extend the shared configuration and use the baseline for debt rather than creating a weaker policy. The following describes the validation surface for an existing consumer override. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
 
 | Setting | Declared as |
 | --- | --- |
@@ -179,7 +179,7 @@ export default defineConfig({
 
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
-When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code, or turn those rules off. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
+When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code; do not disable the checks to conceal an empty inventory. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
 
 #### Aliases
 
@@ -238,3 +238,50 @@ A finding has its fence's name as its subject, so a registry entry with that sub
 ### Manifests
 
 `manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no registry exceptions.
+
+## Local-rule API
+
+The API allows a local rule to receive checked source text and return findings. This is an extension reference, not a step every repository must complete; reusable quality policy belongs in the shared package. This example is the same text-scanning rule exercised by the package's CLI tests:
+
+```ts
+import { defineRule } from "@shivaedev/quality/rule.ts";
+
+export const noLog = defineRule({
+	check: ({ sources }) =>
+		sources
+			.filter((file) => file.text.includes("console.log"))
+			.map((file) => ({ file: file.path, message: "logs to the console." })),
+	description: "Log through the logger.",
+	id: "local/no-console-log",
+});
+```
+
+It reports a file whose text contains `console.log`; it does not parse calls or distinguish a string from code. Use a syntax-aware check when the policy needs that distinction. Register it in the config:
+
+```ts
+import { defineConfig } from "@shivaedev/quality/config.ts";
+import { noLog } from "./quality/noLog.ts";
+
+export default defineConfig({ local: [noLog], sources: ["src"] });
+```
+
+`check` may return findings directly or asynchronously. For options, provide a [Standard Schema](https://standardschema.dev) validator; the check receives the decoded result. An absent options object is validated as `{}`, so defaults belong in the schema:
+
+```ts
+import { Effect, Schema } from "effect";
+import { defineRule } from "@shivaedev/quality/rule.ts";
+
+const Limit = Schema.Struct({
+	max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
+});
+
+export const limited = defineRule({
+	check: async ({ files, options }) =>
+		files.length > options.max ? [{ file: ".", message: `${files.length} files exceed ${options.max}.` }] : [],
+	description: "Keep the repository small.",
+	id: "local/max-files",
+	options: Schema.toStandardSchemaV1(Limit, { parseOptions: { onExcessProperty: "error" } }),
+});
+```
+
+This is the option-bearing rule the package tests. It defaults to two files and validates a configured `max` before the asynchronous check runs. A rule without an options schema refuses options. Set `registrable: false` when a rule must never be excused by a registry entry.

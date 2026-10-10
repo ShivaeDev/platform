@@ -2,53 +2,60 @@
 
 ## The problem
 
-A repository's quality requirements often live in several places: compiler flags, a formatter config, scripts, hand-written import rules and instructions that only review enforces. Each command explains failures differently. An existing repository cannot turn every check on at error without first repairing all its debt, so rules stay at warning or acquire inline suppressions. Neither path makes a new violation stand out. An agent sees noise it can ignore, and a human cannot see which exceptions are intentional.
+Repositories repeat the same quality decisions: which lint rules to enable, which findings to leave as warnings, how to configure formatting and compiler checks, and what an agent should do when a command fails. Copied configs drift. Inline suppressions hide exceptions. A long list of warnings gives an agent no clear obligation to repair the code, and asking every repository to assemble a policy makes adoption another maintenance job.
 
-Quality exists to give that policy one executable path. The repository chooses checked files and rule options in a typed config. Rules produce findings, the gate distinguishes inherited debt from reasoned exceptions, and one report tells the author what to repair. Shared Biome, TypeScript and Vitest setup makes the surrounding tools speak the same conventions.
+Quality exists to make that decision once. A repository adopts Quality's opinionated policy and shared tooling, then spends its effort on the code. Quality owns check selection and sensible defaults, including the checks it deliberately leaves off internally. An enabled check requires a repair for uncovered findings. The benefit is the same one an opinionated formatter offers: fewer settings to debate, one consistent result and less configuration to maintain.
 
 ## The ideal
 
-A repository can adopt a strict rule before it is clean. Existing findings have counted baseline entries; uncovered errors fail. Fixing a problem immediately passes, and the commit that fixes it can also lower the baseline. A permanent exception lives in a registry with a reason, rather than beside the code as a suppression. When it stops applying, the gate asks for its removal.
+A consuming repository gets the whole policy. It does not select a preset of standards, turn a Quality rule off or demote it to a warning. Quality decides which checks belong together and explains their repairs. Internal exceptions belong to the package and have reasons; they are part of its judgement, not a template of switches for consumers to copy.
 
-Every finding should make the next action clear to an agent that has never used the package. It names the rule, explains the repair and identifies the file and line when available. A malformed config, an unreadable policy or a typo in a boundary must stop the run rather than make the check silently narrower.
+The repository supplies facts Quality cannot infer: where the source and generated files live, which architectural boundaries its imports must respect, and which additional commands a commit must run. Shared Biome and TypeScript configuration and Vitest helpers carry the package's conventions into those tools. The usual setup should stay small, with defaults that make sense together.
 
-Policy should be easy to change deliberately and hard to weaken accidentally. A rule's options have a Standard Schema and TypeScript types. An import fence has a reason and examples that demonstrate its prohibition. A weaker Biome setting has a matching declaration. Baseline growth is explicit and visible to review; lowering tools never add debt.
+Adopting the whole policy does not require fixing all old debt in one change. The baseline records existing findings by rule and file while the checks stay strict. An uncovered finding asks for a repair. Fixing debt passes immediately, and lowering tools reduce its recorded counts. A permitted permanent exception lives in a registry with a reason. When that exception no longer applies, the gate asks for its removal.
+
+Every finding should tell an agent that has never used the package what to change. It names the rule and identifies the file and line when available. Invalid input, an unreadable policy or an import boundary with contradictory examples must stop the run rather than make a check silently narrower.
 
 ## What good looks like
 
-- The config, inventory, rule evaluation, registry, baseline and report form one path. A new repository rule reuses it.
-- A rule defines the exact scope it checks: source text, test code, stylesheets, manifests or the import graph. A message does not imply a stronger guarantee than the check proves.
-- Shared conventions have both an accepted and a rejected example. CLI and git promises have real command tests in seeded repositories; package promises have installed consumer tests.
-- Debt diffs are small enough to review. A change to one baseline entry does not rewrite unrelated lines, and tracked moves can carry the debt they already had.
-- The author keeps decisions the checker cannot make, including symbol names, semantic code order and whether a newly recorded finding is acceptable debt.
-- A repository's hook uses the committing worktree's config and dependencies, so branches are checked under their own policy.
+- Adoption is a small setup task. A repository uses the shared defaults instead of maintaining its own catalogue of rules and levels.
+- Quality's rules, tool configuration and internal exceptions express one policy. A new shared convention belongs here, with a reason and accepted and rejected examples.
+- Repository-specific inputs describe code and architecture. A generated path or import fence does not become permission to choose a weaker standard.
+- The config, inventory, rule evaluation, registry, baseline and report form one path. Checks use that path instead of inventing their own debt handling.
+- A rule defines exactly what it checks. CLI and git promises have real-command tests; package promises have installed-consumer tests. Messages never imply stronger guarantees than those tests prove.
+- Debt diffs are reviewable. Lowering one entry preserves unrelated lines, and a tracked move can carry the debt it already had.
+- The author retains choices the checker cannot make, including symbol names, semantic code order and whether a newly recorded finding is acceptable debt.
 
 ## Trade-offs
 
+### Shared defaults and repository facts
+
+A new setting creates a decision every consuming repository must make and maintain. Prefer improving the shared default. Add an input when the check needs a fact about the repository, not merely because another repository prefers a different rule or threshold. Quality can disable a tool rule internally when another tool owns the check or the rule cannot make a reliable judgement. That reason belongs with the shared configuration.
+
+The public configuration surface and its gaps are recorded in the [roadmap](./roadmap.md). Usage documentation must describe what the code actually accepts without turning an implementation gap into recommended policy.
+
 ### Strictness and adoption
 
-An all-or-nothing clean-up would prevent adoption in the repositories that most need the gate. The baseline admits existing counts while exposing uncovered errors. It is a record to review, not a proof that old debt is harmless. Explicit recording can increase counts; the maintainer and reviewer decide whether that change is justified.
-
-Warnings are useful during a transition but should not become a second permanent policy. Prefer an error-level rule with visible baseline entries when the repository is ready to require it. Use a registry entry only for an enduring, explained exception a rule permits.
+Adopt the policy as a whole; record old debt instead of weakening it. The baseline exposes uncovered findings without demanding an immediate clean-up of every file. It is a record to review, not proof that retained debt is harmless. Explicit recording can raise counts, and a reviewer owns whether that growth is justified. A registry entry is for an enduring, explained exception a rule permits, not a substitute for following that rule.
 
 ### Automation and judgement
 
-A useful fix removes repeated mechanical work. It must not take ownership of a choice the code's author needs to make. The preset disables selected fixes and the naming rules report without renaming. Biome still has enabled unsafe fixes, so `quality fix` requires review and must never be described as behavior-preserving in every case.
+A useful fix removes mechanical work. It must not take ownership of a choice the author needs to make. Selected fixes are disabled internally, and naming checks report without renaming. Biome also has enabled unsafe fixes, so `quality fix` requires review and must never promise to preserve every behavior.
 
-### One gate and specialized tools
+### One policy and specialized tools
 
-Quality coordinates specialized tools instead of replacing their compilers, parsers or runners. Biome checks its own configured scope; TypeScript resolves imports; Vitest runs the projects. The shared gate normalizes findings and debt, while those native tools remain visible enough to diagnose a mismatch.
-
-Effect conventions are useful in the repositories this package serves, but the reusable gate and an opinionated preset need clear boundaries. Which conventions belong in separate presets remains the maintainer's decision in the roadmap.
+Quality coordinates Biome, TypeScript, Vitest and git instead of replacing their compilers, parsers or runners. These tool entry points share the policy; they are not separate menus of standards to adopt. Their native behavior remains visible enough to diagnose a mismatch. A pre-commit hook uses the committing worktree's config and dependencies.
 
 ### Static evidence and runtime evidence
 
-A rule can require a test's name or report a fixture-writing call. It cannot establish that the test reaches the real engine. A fence's legal and illegal chains establish that the policy means what its author intended; they do not establish an application's deployment boundaries. Keep those runtime proofs in the application and the packages that execute the behavior.
+A rule can require a test's name or report a fixture-writing call. It cannot establish that the test reaches the real engine. A fence's legal and illegal chains show that an import policy means what its author intended; they do not establish an application's deployment behavior. Runtime proof belongs in the application and the packages that execute it.
 
 ## What it deliberately leaves out
 
-- Application services, persistence, transactions, request identity, client state and other runtime framework jobs. Quality checks policy around them; their owning packages implement them.
-- A replacement for TypeScript, Biome, Vitest or git. The package supplies shared setup and a gate around their relevant output.
-- Automatic approval of baseline growth or a registry reason. Review owns whether the retained debt is justified.
+- A consumer warning mode, rule-selection menu or set of competing opt-in quality policies as the adoption model.
+- A requirement for every repository to build its own rules or copy a complicated config before it can use Quality.
+- Application services, persistence, transactions, request identity, client state and other runtime framework jobs. Their owning packages implement them.
+- A replacement for TypeScript, Biome, Vitest or git.
+- Automatic approval of baseline growth or a registry reason. Review owns whether retained debt is justified.
 - A promise that static imports reproduce every runtime loader or that syntax rules prove business behavior.
-- Renaming public symbols or changing APIs to satisfy a policy whose maintainer decision remains open.
+- Renaming public symbols or changing APIs to satisfy a rule whose maintainer decision remains open.
