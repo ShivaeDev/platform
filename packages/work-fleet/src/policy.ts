@@ -2,7 +2,7 @@ import { Context, type Effect, Schema } from "effect";
 import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading } from "#board/schema.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
-import { SessionReceipt } from "#session/schema.ts";
+import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
 
 export const BoardWork = Schema.Struct({
 	context: Schema.String,
@@ -76,6 +76,7 @@ export interface FleetConfiguration {
 	readonly approved: Readonly<Record<string, string>>;
 	readonly deliveryBacklog?: number;
 	readonly executionConcurrency?: number;
+	readonly launch?: LaunchSettings;
 	readonly now: () => number;
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };

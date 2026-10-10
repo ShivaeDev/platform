@@ -8,11 +8,12 @@ import { Fleet } from "#fleet.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
+import { LaunchSettings } from "#session/schema.ts";
 export const fleetRecords = collection("fleet", Schema.String);
 const rejections = { FleetFailure };
 export const Prepare = command("prepare", {
 	invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
-	payload: { cwd: Schema.String, preparation: Preparation, prompt: Schema.String, workId: Schema.String },
+	payload: { cwd: Schema.String, launch: Schema.optional(LaunchSettings), preparation: Preparation, prompt: Schema.String, workId: Schema.String },
 	rejections,
 	success: FleetRecord,
 });

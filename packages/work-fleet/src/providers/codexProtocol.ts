@@ -1,10 +1,17 @@
 import { Schema } from "effect";
 
-export const ThreadResponse = Schema.Struct({ thread: Schema.Struct({ id: Schema.String }) });
+const Echo = Schema.optional(Schema.NullOr(Schema.String));
+export const ThreadResponse = Schema.Struct({
+	model: Echo,
+	reasoningEffort: Echo,
+	serviceTier: Echo,
+	thread: Schema.Struct({ id: Schema.String }),
+});
 export const TurnResponse = Schema.Struct({ turn: Schema.Struct({ id: Schema.String }) });
 export const Item = Schema.Struct({
 	clientId: Schema.optional(Schema.NullOr(Schema.String)),
 	id: Schema.String,
+	phase: Schema.optional(Schema.NullOr(Schema.String)),
 	text: Schema.optional(Schema.String),
 	type: Schema.String,
 });
