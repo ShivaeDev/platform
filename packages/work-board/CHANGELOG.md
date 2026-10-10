@@ -12,6 +12,8 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Remove hard line wrapping from Markdown prose while preserving code examples and document structure.
 
 - Render the file sidebar as nested native folders with shared ancestry, keeping home first, logical reference URLs and folder collapse state through live updates.
@@ -52,6 +54,8 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Render response context and history through the existing Markdown pipeline with raw HTML disabled, retaining local strict Mermaid and no-JavaScript source fallback. Resolve template links against the source before recording answers.
 - Scope in-memory drafts and their clearing to the workspace as well as persisted storage. Keep existing retention, write opt-in, Linux publisher and wait limits.
 
@@ -65,12 +69,16 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Keep the default server read-only. The first safe publisher requires Linux directory descriptors, hard-link publication and directory synchronization; other platforms retain reading support. Reference symlinks do not grant writes.
 - Block source form actions/frames at the content-security boundary and require native NDJSON for the opted-in command route. Existing readable Markdown, static raw HTML, local visuals and no-JavaScript reading remain supported.
 
 ## 0.7.2 - 2026-10-06
 
 ### Changed
+
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 
 - Record the combined reading-workflow review and first named-machine performance observations, keeping representative-reader acceptance and performance budgets explicitly open. Prepare response/write examples for the D2 discussion; no writer or response schema is implemented.
 - Add real HTTP regression coverage for embedding beside application routes, preserving Work Board's loopback boundary and scoped server shutdown.
@@ -83,6 +91,8 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Keep document printing focused on readable content and diagram-source fallback. No document export or portable packet generation is part of this project.
 
 ## 0.7.0 - 2026-10-06
@@ -94,11 +104,15 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Use the same remark parser/directive grammar for legacy board segmentation, rendering and search; remove Satteri. Headings inside directive containers do not become board columns. Keep native live/history ownership and local-only reading without source writes or acceptance inference.
 
 ## 0.6.1 - 2026-10-06
 
 ### Changed
+
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 
 - Adopt the `react-markdown` and `remark-gfm` rendering stack on the server, retaining no-JavaScript reading, local links/images, generated heading anchors, scoped footnotes, raw-HTML details and Shiki highlighting. Search uses the same Markdown/GFM processing and heading rules as the reader. Rendering and search plugins now use unified transformers rather than Satteri visitors; Satteri remains only for legacy heading-board source segmentation.
 - Configure Mermaid error rendering so parse failures show a local diagnostic/source without inserting Mermaid's global error diagram. Existing local assets, strict rendering and visual inspection remain available.
@@ -123,6 +137,8 @@
 - Add Pause/Resume updates with a bounded pending-hint count and transient, motion-free outlines on changed reading blocks. Resume, reconnect and watcher uncertainty reconcile the workspace without reporting retained reads as fresh.
 
 ### Changed
+
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 
 - Use native Effect RPC, AtomRegistry and effect-contract live/resume support for browser reads and update ownership, bundled locally with esbuild. Preserve server-rendered HTML and ordinary GET links; the compatibility `/events`, search and history endpoints remain available.
 - Invalidate affected source documents, stable identities and derived views through both former and current backlinks, board membership, criterion evidence and attention targets. Leave unrelated documents mounted; reconcile fully when paths, delivery or the rebuilt index are uncertain. Sequence numbers detect server-local PubSub loss; they are not a durable replay protocol.
@@ -154,6 +170,8 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Breaking: no root entry and no module that re-exports another. `exports` maps one `"./*.ts"` pattern to every module (`src` under the `source` condition, `dist` otherwise), so you import the module that defines a name, and a bundler sees only the modules you use. Where each name now lives:
   - `@shivaedev/work-board`: `@shivaedev/work-board/board.ts` (`BoardOptions`, `boardLayer`)
 
@@ -182,6 +200,8 @@
 
 ### Changed
 
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+
 - Imports that leave their folder go through `#` aliases declared in the `imports` field of `package.json`: `#*.ts` resolves to `src` under the `source` condition and to `dist` otherwise, and `#test/*` names a test file. The published modules and declarations name the package's own files through these aliases. `boardLayer` declares its error and service types, unchanged, so its declaration imports every module through an alias that a NodeNext consumer resolves.
 
 - Consolidate duplicate test cases around observable package behavior.
@@ -201,6 +221,8 @@
 ## 0.2.0 - 2026-09-28
 
 ### Changed
+
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 
 - Add `@effect/platform-node-shared` as a peer dependency pinned to the same exact version as the `effect` and `@effect/platform-node` peers, so an install holds one copy of Effect. An application that embeds `boardLayer` and already depends on the Effect stack adds `@effect/platform-node-shared` at that version; pnpm, npm and Bun install it otherwise.
 

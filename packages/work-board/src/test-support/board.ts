@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -15,7 +15,7 @@ export interface Folder {
 }
 
 export function folder(files: Readonly<Record<string, string>>, prefix = "work-board-"): Folder {
-	const root = mkdtempSync(join(tmpdir(), prefix));
+	const root = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 	function write(path: string, content: string) {
 		mkdirSync(dirname(join(root, path)), { recursive: true });
 		writeFileSync(join(root, path), content);
