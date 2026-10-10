@@ -1,122 +1,96 @@
 # Native Effect application framework
 
-Build a small, coherent application layer around Effect: Schema describes data,
-services compose behavior, repositories execute through Effect SQL, and native RPC
-connects those services to concise atom-based query, action, and form APIs.
+Platform gives an Effect application one path from its data schemas to services,
+persistence, operations and client state. Shared conventions remove repeated
+wiring while keeping native Effect dependencies, errors, scopes and interruption
+visible.
 
-The aim is a reusable default for Effect applications. Application
-code should have one model vocabulary and preserve Effect's dependency, error,
-resource, and cancellation semantics. Shared conventions should reduce repeated
-code while leaving ordinary Effects and native components accessible.
+Schema describes data once. Services implement behavior, repositories execute
+SQL, and native RPC connects ordinary results and typed failures to atom-based
+queries, actions and editable forms. Applications own authorization policy,
+user-facing text, layout and deployment choices.
 
-The [roadmap](./roadmap.md) records the work and acceptance criteria. The first foundation slice is implemented and passes `pnpm ready`, including
-installed-package checks and real PostgreSQL tests. The broader application
-integration remains open; the inventory below describes capability provenance,
-not completion. See the roadmap for the current implementation status.
+## The application path
 
-## Design boundaries
+| Job | Package | Boundary |
+| --- | --- | --- |
+| Declare services | [effect-service](../../packages/effect-service/README.md) | Declare dependencies and initialization; native Context and Layer own composition. |
+| Persist data and run migrations | [effect-sql](../../packages/effect-sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
+| Announce committed changes | [effect-changes](../../packages/effect-changes/README.md) | Record changes at a commit boundary; applications choose their meaning and delivery. |
+| Declare queries and commands | [effect-contract](../../packages/effect-contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
+| Resolve identity and share errors | [platform](../../packages/platform/README.md) | Use its errors, RPC middleware and server modules; applications decide session and Origin policy. |
+| Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; applications own registry and session lifetime. |
+| Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
+| Run durable jobs | [effect-pg-boss](../../packages/effect-pg-boss/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
+| Test Effect code | [effect-test](../../packages/effect-test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
+| Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |
 
-- Author field types and codecs with Effect Schema. Use native model variants for
-  generated and writable fields where possible. Avoid a second authored ORM model
-  or an adapter into another query builder's mental model.
-- Begin repositories with model-derived CRUD and a narrow set of common queries.
-  Explicit SQL with composed schemas is acceptable for unusual queries. A general
-  database language and automatic relationship loading are not prerequisites.
-- Return ordinary values from actions and queries. No event journal, replay,
-  sequence-number protocol, or event-sourcing requirement enters the framework.
-- Reuse native RPC and AtomRpc. Request/response plus invalidation is the default;
-  streaming is optional. Introduce wrappers only where they remove demonstrated
-  application boilerplate without weakening types or lifecycle behavior.
-- Reuse native migration execution and existing durable job infrastructure.
-  Package authoring conventions and application integration before adding engines.
-- Keep UI layout, user-facing text, authorization policy, and native device
-  behavior in applications. Shared helpers must support the desired UX without
-  forcing desktop-only or always-connected assumptions.
+The Prisma and tRPC integrations serve applications using those stacks:
+[effect-prisma](../../packages/effect-prisma/README.md) integrates Prisma Next,
+[effect-changes-prisma](../../packages/effect-changes-prisma/README.md) binds
+commit-bound changes to Prisma Classic on PostgreSQL, and
+[effect-trpc](../../packages/effect-trpc/README.md) integrates tRPC procedures.
+Choose the package for the stack the application actually uses.
 
-## Capability inventory
+## Design priorities
 
-These bars classify five capability slices per area. They are **not percentages
-of implementation effort, completion, or production readiness**. Each area can
-still require integration and validation even when its foundation exists.
+Native Effect comes first, then one path per job, then proven behavior, then
+speed. Add a helper when a real feature repeats wiring and the helper leaves the
+native pieces accessible. Preserve typed failures, cancellation, transaction
+ownership and authorization across its boundary.
 
-Legend: **E** native Effect · **A** Antumbra extraction candidate · **P** existing
-Platform · **B** build/integrate · **D** research, product-specific, or defer.
+Author fields and codecs with Effect Schema and native model variants. Start
+repositories with model-derived CRUD and demonstrated common queries. Explicit
+SQL with composed schemas remains useful for joins, aggregates and other unusual
+queries; the framework does not require a second authored ORM model or a general
+database language.
 
-| Area | Capability slices | Existing foundation | Remaining framework work |
-| --- | --- | --- | --- |
-| Services and runtime | `E E E A P` | Services, Layers, scopes, cancellation; Antumbra declarations; Platform runtime | Consolidate declaration ergonomics and version/lifetime contracts |
-| Schemas and operations | `E E A A B` | Schema and model variants; Antumbra rows and operation declarations | Ordinary result/error contracts without journal semantics |
-| SQL and repositories | `E E A B B` | SqlClient transactions; SqlModel CRUD; Antumbra codecs | Narrow typed querying, supported storage codecs, constraint errors |
-| Migrations | `E E E B D` | Native runner, ledger, loaders and transaction handling | Authoring/CLI conventions; choose additional policies only when needed |
-| RPC | `E E A B B` | Native contracts, clients, middleware and cancellation; declaration derivation | Ordinary handler composition and application transports |
-| Authentication and context | `E P P B B` | Context/middleware; Platform request services and auth integration | Native SQL auth boundary and application session/authorization wiring |
-| Client queries and actions | `E E A B B` | AtomRpc queries, mutations, invalidation and TTL; Antumbra hooks | Small React facade and explicit cache policy |
-| Freshness and live updates | `E A B B D` | Reactivity; Antumbra read keys and after-commit invalidation | Non-journal invalidation, optional streams, deployment delivery policy |
-| Loading, errors and optimistic UX | `E A A B D` | AsyncResult/optimistic primitives; retained data and pending UI | Consistent error affordances and product-level behavior verification |
-| Forms and drafts | `E A A A B` | Schema validation; Antumbra fields, submission state and draft preservation | Generic extraction and representative application forms |
-| SSR, browser and mobile lifecycle | `E E B D D` | Atom hydration, scopes and focus refresh | Per-request/session wiring and native lifecycle validation |
-| Testing | `E P A B D` | Effect testing; Platform test package; Antumbra composed harness | Native repository/RPC/UI fixture and actual deployment checks |
-| Jobs and external integrations | `E P P B D` | Scheduling/resources; Platform pg-boss payloads and worker lifecycle | Service boundary conventions and product-native behavior |
-| Tracing and diagnostics | `E E A B B` | Effect spans/logs/metrics and retained context; Antumbra sink | Correlation, export, redaction and operational presentation |
+Return ordinary values from queries and commands. Request/response plus
+invalidation is the default. Optional live hints tell a client to query again;
+applications choose delivery across processes from their deployment needs.
+Reuse native migration execution and the durable job system. Keep application
+authorization, UI wording and layout, native device behavior and offline conflict
+policy in applications.
 
-## Initial package shape
+Event sourcing, projection replay, mandatory streaming, a second cache and
+automatic relationship loading are outside the default path.
 
-- `@shivaedev/effect-service`: typed service declarations over native Context and
-  Layer, preserving method errors and caller-owned scopes.
-- `@shivaedev/effect-form`: Schema-derived form and draft state, with optional
-  React bindings.
-- `@shivaedev/effect-react`: concise query/action bindings over native atoms and
-  AtomRpc, preserving their lifecycle and result semantics, plus the
-  session-generation `SessionBoundary` and `resumeSignal`. Its `editor.ts` and
-  `create.ts` modules add `useEditor` and `useCreate` over effect-form, an
-  optional peer that only those modules load.
-- the `errors/`, `rpc/` and `rpc-server/` modules of `@shivaedev/platform`: the shared error
-  taxonomy, request identity middleware tags, and their server implementations
-  (transport-header session resolution, Origin policy, redacted tracing).
-- `@shivaedev/effect-changes`: commit-bound change channels. Changes recorded
-  inside a transaction publish once, deduplicated, after the owner's outermost
-  commit; rollbacks publish nothing. It imports only `effect` and has no SQL or
-  ORM dependency ([commit-bound changes](./changes.md)).
-- `@shivaedev/effect-changes-prisma`: an effect-changes channel bound to Prisma
-  Classic's interactive `$transaction` on PostgreSQL only, with changes
-  recorded from writes through a typed model map and a test-time coverage check
-  over `pg_stat_xact_user_tables`.
-- `@shivaedev/effect-sql`: small native SQL/model repository helpers and
-  `transact`, an effect-changes channel that invalidates Reactivity keys only
-  after the outermost commit. Database engine behavior remains with Effect SQL.
-- `@shivaedev/effect-test`: strengthen the existing test runtime and use it to
-  prove composition, including deterministic clock behavior.
-- `@shivaedev/effect-contract`: query and command declarations that become native
-  `Rpc`/`RpcGroup` definitions, with typed rejections and reactivity keys, plus a
-  browser-safe binding over native AtomRpc. Handlers, middleware, transports and
-  the atom cache stay native. The order example established the need.
+## Composing a feature
 
-Existing Prisma, tRPC, auth and job integrations continue to have consumers. The
-new packages can be developed and validated independently; adopting them in an
-application is a separate change with its own behavior checks.
+The [order-editing example](./order-example.md) follows a feature from declared
+services and a repository through authenticated HTTP RPC to query state and an
+editable form. Read it for the composition; use each package's README for its
+mental model and API.
 
-## Composed example
+- [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
+- [Request context](./request-context.md) explains session resolution, Origin
+  policy and redacted request diagnostics.
+- [Commit-bound changes](./changes.md) connects transaction bindings to
+  application change vocabularies.
+- [Live updates](./live-updates.md) composes optional hint streams with native
+  query invalidation.
+- [Editing](./editing.md) connects queries, forms and saves.
+- [Migrations](./migrations.md) and [PostgreSQL migration boundaries](./postgres-migrations.md)
+  explain authoring and runner ownership.
 
-The [order-editing example](./order-example.md) adds service declarations, encoded
-form fields, request authentication and real HTTP serialization to the initial
-repository/RPC/atom fixture. Its guide links the feature code and the behavioral
-tests; it also records the remaining application-specific boundaries.
+Work Board owns Markdown identity, context, relationships and human direction.
+[Work Fleet](../../packages/work-fleet/README.md) supplies an optional execution,
+review and authorized-delivery loop using those identities. Its runtime policy
+owns execution authority; Board remains usable without that integration.
 
-The [editing guide](./editing.md) covers `useEditor` and `useCreate`.
+## What counts as evidence
 
-The [boundary validation guide](./boundary-validation.md) covers PostgreSQL
-codecs and migrations, real BetterAuth sessions, action interruption and Node
-abort signals, client teardown and form submission/refresh behavior.
+A useful feature fixture calls actual services through actual boundaries. It
+checks values and typed failures, rollback, cancellation and release, refetching,
+and preservation of edits while fresh data arrives. Source-local tests and
+installed-package consumers answer different questions, so both matter.
 
-## What establishes success
+PostgreSQL, authenticated HTTP, SSR isolation, browser lifecycle and native device
+behavior each need their own evidence. SQLite and DOM fixtures establish only
+the paths they execute. PostgreSQL tests that skip without their database URL
+establish no database behavior. The [boundary validation guide](./boundary-validation.md)
+links the executable fixtures and describes their limits.
 
-A small application feature should declare its schemas once, implement an Effect
-service, persist through a repository, expose native RPC, and render a query plus
-an editable form. Types must remain precise across those boundaries. Tests must
-exercise that actual composition, including failure, cancellation, transaction
-rollback, refetching, and preserving edits while fresh data arrives.
-
-PostgreSQL behavior, authenticated requests, SSR isolation, and mobile lifecycle
-need their own evidence. Passing an in-memory or DOM fixture does not establish
-those guarantees. Package completion requires the repository readiness checks and
-a usable installed-package surface, not only source-local tests.
+The [framework roadmap](./roadmap.md) owns composed-feature and application-host
+work. Each package's `docs/roadmap.md` owns its implementation and open questions.
+Status belongs in those roadmaps.

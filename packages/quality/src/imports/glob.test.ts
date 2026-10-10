@@ -25,6 +25,14 @@ describe("globMatcher", () => {
 		expect(cases.map(([pattern, path]) => globMatcher(pattern)(path))).toEqual(cases.map(([, , expected]) => expected));
 	});
 
+	it.each([
+		["packages/{web}", "a { } needs two or more choices"],
+		["packages/[[:alpha:]]", "character class names are not supported"],
+		["packages/\\*", "escapes are not supported"],
+	])("explains why the workspace pattern %s is unsupported", (pattern, reason) => {
+		expect(() => globMatcher(pattern)).toThrow(`cannot read the workspace pattern "${pattern}": ${reason}`);
+	});
+
 	it("refuses a pattern it cannot read instead of matching nothing", () => {
 		expect(() => globMatcher("packages/{a,b")).toThrow('cannot read the workspace pattern "packages/{a,b": a { never closes');
 		expect(() => globMatcher("packages/[ab")).toThrow('cannot read the workspace pattern "packages/[ab": a [ never closes');

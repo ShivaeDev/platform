@@ -75,6 +75,12 @@ const it = makePlatformIt(Database)({
 	layer: DatabaseLive,
 });
 
+const withoutExtension = makePlatformIt(Database)({
+	adapter,
+	createCaller: () => router.createCaller({ actor: "minimal" }),
+	layer: DatabaseLive,
+});
+
 const integrationOptions = { skip: databaseUrl === undefined };
 const rolledBackId = crypto.randomUUID();
 const failedId = crypto.randomUUID();
@@ -130,6 +136,18 @@ it.effectApp(
 	"does not retain writes from an expected failure",
 	function* ({ userExists }) {
 		expect(yield* userExists(failedId)).toBe(false);
+	},
+	integrationOptions,
+);
+
+withoutExtension.effectApp(
+	"provides the database, caller and promise boundary without a harness extension",
+	function* ({ db, promise, trpc }) {
+		const id = crypto.randomUUID();
+		const created = yield* trpc.createUser({ email: `${id}@example.test`, id, name: "Ada" });
+		expect(created.name).toBe("minimal:Ada");
+		expect(yield* db.AuthUser.where({ id }).exists()).toBe(true);
+		expect(yield* promise(() => runtime.runPromise(Effect.flatMap(Database, (database) => database.AuthUser.where({ id }).exists())))).toBe(true);
 	},
 	integrationOptions,
 );

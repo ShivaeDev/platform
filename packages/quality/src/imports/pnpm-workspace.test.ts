@@ -32,6 +32,15 @@ describe("pnpmWorkspacePatterns", () => {
 		expect(pnpmWorkspacePatterns("catalog:\n  effect: 4.0.0\n")).toEqual([]);
 	});
 
+	it.each([
+		['packages:\n  - "apps/\\q"\n', 'cannot read ""apps/\\q"" in packages'],
+		["packages:\n  -\n", 'cannot read "" in packages'],
+		["packages:\n  - {apps: true}\n", 'cannot read "{apps: true}" in packages'],
+		["packages: [apps/*] unexpected\n", 'cannot read "unexpected" after the packages list'],
+	])("rejects malformed workspace YAML %s with its specific problem", (text, reason) => {
+		expect(() => pnpmWorkspacePatterns(text)).toThrow(`pnpm-workspace.yaml: ${reason}`);
+	});
+
 	it("refuses packages it cannot read instead of dropping them", () => {
 		expect(() => pnpmWorkspacePatterns("packages:\n  - apps/*\n  libs: true\n")).toThrow('pnpm-workspace.yaml: cannot read "libs: true" in packages');
 		expect(() => pnpmWorkspacePatterns("packages: apps/*\n")).toThrow('pnpm-workspace.yaml: cannot read "apps/*" in packages');

@@ -1,13 +1,14 @@
-import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { Effect } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { Activity, act, createElement, StrictMode, useContext, useState } from "react";
+import { Activity, act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
+import { activityRegistry } from "#test/activityRegistry.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
 import { sessions, shell } from "#test/session.ts";
+import { DraftProbe, type RegistryHolder, ReplayProbe, TrackedProbe } from "#test/sessionProbes.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
@@ -100,33 +101,23 @@ it("StrictMode's effect replay keeps the generation's registry alive until the r
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	const count = Atom.make(Effect.succeed(41));
-	let registry: AtomRegistry.AtomRegistry | undefined;
-	function Probe() {
-		registry = useContext(RegistryContext);
-		const value = useAtomValue(count);
-		return createElement("output", null, value._tag === "Success" ? value.value + 1 : "…");
-	}
+	const held: RegistryHolder = {};
 	function render(session: string | undefined) {
 		return act(async () => {
 			root.render(
-				createElement(
-					StrictMode,
-					null,
-					createElement(SessionBoundary<string, undefined>, {
-						children: () => createElement(Probe),
-						connect: () => undefined,
-						identify: (id) => id,
-						recheck: (): void => undefined,
-						session,
-					}),
-				),
+				<StrictMode>
+					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session={session}>
+						{() => <ReplayProbe count={count} held={held} />}
+					</SessionBoundary>
+				</StrictMode>,
 			);
+			await Promise.resolve();
 		});
 	}
 	await render("s1");
 	expect(container.textContent).toBe("42");
-	expect(registry?.getNodes().size).toBeGreaterThan(0);
-	const first = registry;
+	expect(held.registry?.getNodes().size).toBeGreaterThan(0);
+	const first = held.registry;
 	await render(undefined);
 	expect(container.textContent).toBe("");
 	expect(first?.getNodes().size).toBe(0);
@@ -136,39 +127,29 @@ it("StrictMode's effect replay keeps the generation's registry alive until the r
 async function activity(hoisted: boolean) {
 	const count = Atom.make(Effect.succeed(41));
 	const registries: AtomRegistry.AtomRegistry[] = [];
-	function Probe() {
-		const registry = useContext(RegistryContext);
-		if (!registries.includes(registry)) {
-			registries.push(registry);
-		}
-		const [draft] = useState(() => `draft-${registries.length}`);
-		const value = useAtomValue(count);
-		return createElement("output", null, `${draft}:${value._tag === "Success" ? value.value + 1 : "…"}`);
-	}
 	function boundary() {
-		return createElement(SessionBoundary<string, undefined>, {
-			children: () => createElement(Probe),
-			connect: () => undefined,
-			identify: (id) => id,
-			recheck: (): void => undefined,
-			session: "s1",
-		});
+		return (
+			<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session="s1">
+				{() => <DraftProbe count={count} registries={registries} />}
+			</SessionBoundary>
+		);
 	}
 	const kept = boundary();
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	const errors: unknown[] = [];
-	function render(mode: "visible" | "hidden") {
-		return act(async () => {
-			root.render(createElement(Activity, { children: hoisted ? kept : boundary(), mode }));
-		}).then(
-			(): void => undefined,
-			(error: unknown) => {
-				errors.push(error);
-			},
-		);
+	async function render(mode: "visible" | "hidden") {
+		try {
+			await act(async () => {
+				root.render(<Activity mode={mode}>{hoisted ? kept : boundary()}</Activity>);
+				await Promise.resolve();
+			});
+		} catch (error) {
+			errors.push(error);
+		}
 	}
 	await render("visible");
+	expect(errors).toEqual([]);
 	expect(container.textContent).toBe("draft-1:42");
 	await render("hidden");
 	await render("visible");
@@ -194,26 +175,18 @@ it("a generation re-rendered while hidden by <Activity> and then unmounted dispo
 			return 1;
 		}),
 	);
-	function Probe({ round }: { readonly round: number }) {
-		rendered.push(round);
-		return createElement("output", null, `${round}:${useAtomValue(held)}`);
-	}
 	const container = document.createElement("div");
 	const root = createRoot(container);
 	function render(mode: "visible" | "hidden", round: number) {
 		return act(async () => {
 			root.render(
-				createElement(Activity, {
-					children: createElement(SessionBoundary<string, undefined>, {
-						children: () => createElement(Probe, { round }),
-						connect: () => undefined,
-						identify: (id) => id,
-						recheck: (): void => undefined,
-						session: "s1",
-					}),
-					mode,
-				}),
+				<Activity mode={mode}>
+					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session="s1">
+						{() => <TrackedProbe held={held} rendered={rendered} round={round} />}
+					</SessionBoundary>
+				</Activity>,
 			);
+			await Promise.resolve();
 		});
 	}
 	await render("visible", 1);
@@ -237,17 +210,19 @@ it("connect runs once per identity: a rotated credential reaches the client only
 	function show(session: Rotating, identify: (session: Rotating) => string) {
 		return act(async () => {
 			root.render(
-				createElement(SessionBoundary<Rotating, string>, {
-					children: (token) => createElement("output", null, token),
-					connect: (current) => {
+				<SessionBoundary
+					connect={(current) => {
 						connected.push(current.token);
 						return current.token;
-					},
-					identify,
-					recheck: (): void => undefined,
-					session,
-				}),
+					}}
+					identify={identify}
+					recheck={() => undefined}
+					session={session}
+				>
+					{(token) => <output>{token}</output>}
+				</SessionBoundary>,
 			);
+			await Promise.resolve();
 		});
 	}
 	function byId(session: Rotating) {
@@ -264,4 +239,32 @@ it("connect runs once per identity: a rotated credential reaches the client only
 	expect(container.textContent).toBe("t3");
 	expect(connected).toEqual(["t1", "t2", "t3"]);
 	await act(async () => root.unmount());
+});
+
+it("revealing an Activity before hidden cleanup runs preserves its registry, including atoms added after reveal", async () => {
+	vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+	const view = activityRegistry();
+	try {
+		await view.render("visible", 1);
+		const outgoing = view.registry();
+		await view.render("hidden", 1);
+		await view.render("hidden", 2);
+		const revealed = view.registry();
+		expect(revealed).not.toBe(outgoing);
+		expect(view.built).toEqual(["first", "first", "second"]);
+		expect(view.finalized).toEqual(["first"]);
+		await view.render("visible", 2);
+		await act(async () => vi.runOnlyPendingTimers());
+		expect(view.registry()).toBe(revealed);
+		expect(view.finalized).toEqual(["first"]);
+		await view.render("visible", 3);
+		await act(async () => vi.runOnlyPendingTimers());
+		expect(view.container.textContent).toBe("retained draftfirstsecondthird");
+		expect(view.built).toEqual(["first", "first", "second", "third"]);
+		expect(view.finalized).toEqual(["first"]);
+	} finally {
+		await view.close();
+		vi.useRealTimers();
+	}
+	expect(view.finalized).toHaveLength(view.built.length);
 });

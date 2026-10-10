@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { BurntLoaf, bakery, hasBowls, hasDough, keepsSourdough, ovenIsLit, ovenIsOverfired, ovenSmokes } from "#test/bakery.ts";
 import { defectMessage } from "#test/defectMessage.ts";
 import { mill } from "#test/mill.ts";
+import { unattendedMill } from "#test/unattendedMill.ts";
 
 bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
 	expect(yield* oven.bakesEverything()).toEqual({ loaves: 3, minutes: 3 });
@@ -73,4 +74,21 @@ mill.it("dies with what to do when the kit has no run hooks", [], function* ({ m
 			"help: give the mill story kit run: { maxSteps, step }, where step advances the mill by one step.",
 		].join("\n"),
 	);
+});
+
+unattendedMill.it("steps without optional failure or diagnosis hooks", [], function* ({ miller, story }) {
+	yield* miller.waitsForWind(2);
+	expect(story.engine.wind).toBe(2);
+	expect(story.lines).toEqual(["the wind reaches 1", "the wind reaches 2"]);
+});
+
+unattendedMill.it("explains an exhausted budget even without a diagnosis hook", [], function* ({ miller, story }) {
+	expect(defectMessage(yield* Effect.exit(miller.waitsForWind(3)))).toBe(
+		[
+			"the mill ran 2 steps and never reached what runUntil waits for",
+			"help: either the mill never gets there, so check the setup and the engine, or it needs more steps, so pass a larger",
+			"      maxSteps to runUntil.",
+		].join("\n"),
+	);
+	expect(story.engine.wind).toBe(2);
 });

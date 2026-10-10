@@ -3,8 +3,8 @@ import { join } from "node:path";
 import process from "node:process";
 import { Schema } from "effect";
 import rawTrees from "#test/fixtures/cli-trees.json" with { type: "json" };
-import { ISOLATED_ENV } from "./git.ts";
-import { packageRoot } from "./tree.ts";
+import { ISOLATED_ENV } from "#test/git.ts";
+import { packageRoot } from "#test/tree.ts";
 
 const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });
 
@@ -45,6 +45,37 @@ export function qualityWithin(timeout: number, root: string, ...args: readonly s
 		}, timeout);
 		child.on("close", (status) => {
 			clearTimeout(timer);
+			resolve({ status, ...output });
+		});
+	});
+}
+
+export function interruptedQuality(root: string): Promise<Run> {
+	return new Promise((resolve, reject) => {
+		const child = spawn("node", qualityArgs(["lint"]), { cwd: root, env: ISOLATED_ENV });
+		const output = { stderr: "", stdout: "" };
+		let interrupted = false;
+		child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+			output.stdout += chunk;
+			if (!interrupted && output.stdout.includes("checking remote\n")) {
+				interrupted = true;
+				child.kill("SIGINT");
+			}
+		});
+		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+			output.stderr += chunk;
+		});
+		const timer = setTimeout(() => {
+			child.kill("SIGKILL");
+			reject(new Error("quality did not begin its remote check before interruption"));
+		}, 10_000);
+		child.on("error", reject);
+		child.on("close", (status) => {
+			clearTimeout(timer);
+			if (!interrupted) {
+				reject(new Error(`quality exited before interruption: ${JSON.stringify({ status, ...output })}`));
+				return;
+			}
 			resolve({ status, ...output });
 		});
 	});

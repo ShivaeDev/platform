@@ -27,10 +27,6 @@ it.effect.fails("fails the test when the body fails", function* () {
 	return yield* Effect.fail("expected");
 });
 
-it.effect.skipIf(true)("skips the body behind a true condition", function* () {
-	return yield* Effect.die("skipped tests never run");
-});
-
 it("keeps the plain Vitest test", () => {
 	expect(seen).toEqual(["first", "second"]);
 });

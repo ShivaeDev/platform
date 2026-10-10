@@ -1,26 +1,15 @@
-import { Effect, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import { PgBoss } from "pg-boss";
 import { describe, expect, it, vi } from "vitest";
 import { defineQueue } from "#definition.ts";
+import { PgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { makePgBoss } from "#service.ts";
 import { environmentVariable } from "#test/environment.ts";
+import { until } from "#test/until.ts";
 
 const databaseUrl = environmentVariable("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL") ?? "";
 const integration = databaseUrl === "" ? describe.skip : describe;
-
-function until<A>(read: () => Promise<A | undefined>, timeoutMilliseconds = 15_000): Promise<A> {
-	return vi.waitFor(
-		async () => {
-			const value = await read();
-			if (value === undefined) {
-				throw new Error("Timed out waiting for pg-boss");
-			}
-			return value;
-		},
-		{ interval: 50, timeout: timeoutMilliseconds },
-	);
-}
 
 integration("PostgreSQL integration", () => {
 	it("round-trips transformed payloads and rejects malformed durable data", async () => {
@@ -70,6 +59,86 @@ integration("PostgreSQL integration", () => {
 						await startedClient.deleteQueue(queueName);
 						await startedClient.deleteQueue(deadLetterQueueName(queueName));
 					});
+				}).pipe(Effect.provide(live)),
+			),
+		);
+	}, 20_000);
+});
+
+integration("PostgreSQL operational boundaries", () => {
+	it("uses the default client and returns zero health counts for externally deleted queues", async () => {
+		const queueName = `deleted-health-${crypto.randomUUID()}`;
+		const Queue = defineQueue({ name: queueName, schema: Schema.Struct({}) });
+		const Jobs = makePgBoss("@test/DeletedHealthJobs");
+		const live = Jobs.layer({
+			connectionString: databaseUrl,
+			jobs: [Queue.handle(() => Effect.void)],
+			schema: "platform_effect_pg_boss",
+		});
+		const admin = new PgBoss({ connectionString: databaseUrl, schema: "platform_effect_pg_boss" });
+		await admin.start();
+		try {
+			await Effect.runPromise(
+				Effect.scoped(
+					Effect.gen(function* () {
+						const jobs = yield* Jobs;
+						yield* Effect.promise(async () => {
+							await admin.deleteQueue(queueName);
+							await admin.deleteQueue(deadLetterQueueName(queueName));
+						});
+						expect(yield* jobs.health).toEqual({
+							activeTotal: 0,
+							deadLetteredTotal: 0,
+							failedTotal: 0,
+							jobs: [{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: queueName, queuedCount: 0, readyCount: 0 }],
+							queuedTotal: 0,
+							readyTotal: 0,
+						});
+					}).pipe(Effect.provide(live)),
+				),
+			);
+		} finally {
+			await admin.stop();
+		}
+	}, 20_000);
+
+	it("preserves the operation, queue and pg-boss error after the real database client closes", async () => {
+		const queueName = `closed-database-${crypto.randomUUID()}`;
+		const Queue = defineQueue({ name: queueName, schema: Schema.Struct({}) });
+		const Jobs = makePgBoss("@test/ClosedDatabaseJobs");
+		const client = new PgBoss({ connectionString: databaseUrl, schema: "platform_effect_pg_boss" });
+		const live = Jobs.layer({
+			clientFactory: () => client,
+			connectionString: databaseUrl,
+			jobs: [Queue.handle(() => Effect.void)],
+			schema: "platform_effect_pg_boss",
+		});
+		await Effect.runPromise(
+			Effect.scoped(
+				Effect.gen(function* () {
+					const jobs = yield* Jobs;
+					yield* Effect.promise(async () => {
+						await client.offWork(queueName);
+						await client.deleteQueue(queueName);
+						await client.deleteQueue(deadLetterQueueName(queueName));
+						await client.stop();
+					});
+					for (const [operation, effect] of [
+						["enqueue", Effect.asVoid(jobs.enqueue(Queue, {}))],
+						["health", Effect.asVoid(jobs.health)],
+					] as const) {
+						const error = yield* Effect.flip(effect);
+						expect(error).toBeInstanceOf(PgBossError);
+						if (!(error instanceof PgBossError)) {
+							throw error;
+						}
+						expect(error.operation).toBe(operation);
+						expect(error.queue).toBe(queueName);
+						expect(Redacted.value(error.original)).toMatchObject({
+							message: "Database not opened. Call open() before executing SQL.",
+							name: "AssertionError",
+						});
+					}
 				}).pipe(Effect.provide(live)),
 			),
 		);

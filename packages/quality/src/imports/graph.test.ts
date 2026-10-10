@@ -80,6 +80,16 @@ describe("imports/resolvable", () => {
 		);
 	});
 
+	it.each([
+		["./", ""],
+		["../generated", "../generated"],
+		["/generated", "/generated"],
+	])("refuses generated output outside the repository: %s", async (folder, normalized) => {
+		await expect(findingsIn(importsResolvable, { generated: [folder] }, importTree("unresolvable"))).rejects.toThrow(
+			`"${normalized}" is no folder inside the repository`,
+		);
+	});
+
 	it("takes a generated folder that git keeps with a placeholder while ignoring its contents", async () => {
 		const root = importTree("unresolvable");
 		writeFileSync(join(root, ".gitignore"), "src/generated/*\n!src/generated/.gitkeep\n");

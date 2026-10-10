@@ -114,6 +114,14 @@ describe("inheritTags", { timeout: 60_000 }, () => {
 		expect(vitest(workspace("projects")).failure).toContain('cannot apply "bakery-story" tag for this test');
 	});
 
+	it.each(["export default {};", "export default { test: {} };", "export default { test: { tags: [] } };"])(
+		"inherits no tags from an ordinary config without declared tags: %s",
+		async (content) => {
+			const root = seedTree([{ content, path: "plain.config.ts" }]);
+			expect(await inheritTags([{ extends: "./plain.config.ts" }], root)).toEqual([{ extends: "./plain.config.ts", test: { tags: [] } }]);
+		},
+	);
+
 	it("keeps a project's own tag over an inherited one of the same name, calls a config function, and leaves other projects alone", async () => {
 		const root = seedTree([
 			{

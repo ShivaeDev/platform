@@ -47,6 +47,11 @@ describe("running rules", () => {
 		expect(violations.map((violation) => violation.file)).toEqual(["src/a.ts", "src/b.ts", "src/c.ts"]);
 	});
 
+	it("preserves a local rule's string rejection in the failure an agent reads", async () => {
+		const exit = await Effect.runPromiseExit(runRules([rule("local/remote", "error", () => Promise.reject("remote check timed out"))], inputsOf({})));
+		expect(Exit.isFailure(exit) && Cause.pretty(exit.cause)).toContain("rule local/remote failed: remote check timed out");
+	});
+
 	it("fails with the rule's id when a rule throws", async () => {
 		const exit = await Effect.runPromiseExit(runRules([rule("local/boom", "error", () => Promise.reject(new Error("boom")))], inputsOf({})));
 		expect(Exit.isFailure(exit) && Cause.pretty(exit.cause)).toContain("rule local/boom failed: boom");

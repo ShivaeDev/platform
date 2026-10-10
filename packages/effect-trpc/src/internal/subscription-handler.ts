@@ -17,8 +17,10 @@ export const makeSubscriptionHandler = <RuntimeRequirements, Context, ProvidedSe
 
 	return async (invocation: ProcedureInvocation<Context>) => {
 		const info = { ...procedure, path: invocation.path };
-		const requestLayer = Layer.merge(requestServices.layer(invocation.ctx), Layer.succeed(RequestSignal, invocation.signal));
-		const stream = Stream.unwrap(Effect.suspend(() => runtime.instrument(tracedResolver(invocation.input), info))).pipe(Stream.provide(requestLayer));
+		const stream = Stream.suspend(() => {
+			const requestLayer = Layer.merge(requestServices.layer(invocation.ctx), Layer.succeed(RequestSignal, invocation.signal));
+			return Stream.unwrap(Effect.suspend(() => runtime.instrument(tracedResolver(invocation.input), info))).pipe(Stream.provide(requestLayer));
+		});
 		const decoded = outputSchema === undefined ? stream : Stream.mapEffect(stream, (value) => Schema.decodeUnknownEffect(outputSchema)(value));
 
 		return await runtime.runStream(decoded, {

@@ -109,6 +109,20 @@ effectApp(
 	{ clock: "live" },
 );
 
+liveIt.effectApp("retries without a limit at the default live-clock interval", function* () {
+	let attempts = 0;
+	const started = yield* Clock.currentTimeMillis;
+	const value = yield* eventually(
+		Effect.suspend(() => {
+			attempts += 1;
+			return attempts === 3 ? Effect.succeed("ready") : Effect.fail("not-ready");
+		}),
+	);
+	expect(value).toBe("ready");
+	expect(attempts).toBe(3);
+	expect((yield* Clock.currentTimeMillis) - started).toBeGreaterThanOrEqual(15);
+});
+
 for (const clock of ["test", "live"] as const) {
 	effectApp(
 		`stops after the configured retries under the ${clock} clock`,

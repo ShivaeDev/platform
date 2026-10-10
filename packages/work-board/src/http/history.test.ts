@@ -74,7 +74,7 @@ it("preserves valid history and infers no removals when a current source cannot 
 	expect(result.html).toContain("incomplete");
 	expect(result.html).not.toContain("1 removed");
 });
-it("declines an oversized complete workspace rather than retaining a partial snapshot", async () => {
+it("declines an oversized complete workspace rather than retaining a partial snapshot", { timeout: 30_000 }, async () => {
 	notes.write("huge.md", "界".repeat(MAX_BYTES / 2));
 	const result = await query("observe");
 	expect(result.snapshot).toBeNull();

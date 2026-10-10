@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
 import { FILES, settle, waitFor } from "#test/live.ts";
+import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
 
 let notes: Folder;
 let board: RunningBoard;
 let page: OpenPage;
 beforeEach(async () => {
-	notes = folder(FILES);
+	notes = folder({ ...FILES, "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK });
 	board = await startBoard(notes.root, "board.md");
 });
 afterEach(async () => {
@@ -37,6 +38,41 @@ function title() {
 }
 
 describe("document navigation", () => {
+	it.each(["/_board/attachment/shots/review.png", "/_board/unsupported"])("leaves non-document links to browser navigation (%s)", async (path) => {
+		await open();
+		const requests = page.pageRequests.count;
+		const link = page.document.createElement("a");
+		link.id = "browser-link";
+		link.href = path;
+		page.document.body.append(link);
+		let preventedByReader: boolean | undefined;
+		page.document.addEventListener(
+			"click",
+			(event) => {
+				preventedByReader = event.defaultPrevented;
+				event.preventDefault();
+			},
+			{ once: true },
+		);
+		click("#browser-link");
+		expect(preventedByReader).toBe(false);
+		await settle();
+		expect(page.window.location.pathname).toBe("/plan.md");
+		expect(page.pageRequests.count).toBe(requests);
+	});
+
+	it("opens returned-result review through native navigation without reloading", async () => {
+		await open("/items/result.md");
+		page.document.body.dataset.visit = "kept";
+		click('a[href="/_board/result?item=result.keyboard"]');
+		await waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("result"));
+		expect(title()).toBe("Review returned result · result.keyboard");
+		expect(page.document.body.dataset.visit).toBe("kept");
+		expect(page.window.location.pathname).toBe("/_board/result");
+		expect(page.window.location.search).toBe("?item=result.keyboard");
+		expect(page.document.getElementById("doc")?.textContent).toContain("source status: in-review");
+	});
+
 	it("opens templates through native navigation without losing the current reading page", async () => {
 		await open();
 		page.document.body.dataset.visit = "kept";

@@ -63,3 +63,18 @@ it("names the genre tag after the kit, with its words joined so a filter can nam
 		{ description: "stories over a real mill", name: "mill-story" },
 	]);
 });
+
+it(
+	"keeps Vitest's specific error for an undeclared consumer tag",
+	async () => {
+		const { moduleErrors, stories } = await runStories({
+			include: "src/test-support/invalidTagStories.ts",
+			tags: genreTags("bakery"),
+		});
+		expect(moduleErrors).toEqual([
+			'The tag "undeclared-consumer-tag" is not defined in the configuration. Available tags are:\n- bakery-story: stories over a real bakery',
+		]);
+		expect(stories).toEqual([]);
+	},
+	SLOW,
+);
