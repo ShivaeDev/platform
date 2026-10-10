@@ -1,30 +1,33 @@
 # @shivaedev/skills
 
-Shared agent instructions should have one maintained source, even when many repositories use them. This package copies the skills a repository selects into its agent directories and provides a check for missing, stale or edited copies.
+This package contains ShivaeDev's shared agent skills and a simple way to keep them in the repositories that use them. It copies selected instructions into ordinary repository files, with versioned updates and a check for drift, so the shared guidance travels with the checkout.
 
 ## Why you want this
 
-Copying instructions between repositories makes each copy another thing to maintain. Put the shared instructions in a versioned dependency, keep the selected files beside the repository's own skills, and make drift part of the checks you already run:
+A cloud agent session can arrive without the plugins or machine-local links that make shared instructions visible elsewhere. Keeping the instructions directly in the repository gives people and agents one place to read them. This package maintains both the shared skills and the small update path:
 
 ```sh
+pnpm exec shivaedev-skills sync
 pnpm exec shivaedev-skills check
 ```
 
-A check passes after the selected skills are synced. If a copied file is edited, added or removed, or the installed package version changes, the check fails and asks you to sync and commit the result. A shared instruction can change in one place instead of becoming a separate policy in every repository.
+Sync puts the selected skills and their supporting files under `.agents/skills/` as real files to review and commit. Check detects changed copies and package versions, so updating the shared instructions is a reviewable repository change. The files themselves can be read directly from the checkout; they do not need a plugin to supply their content.
 
 ## Using it
 
 ### How to think about it
 
-A **skill** is a folder of agent instructions. Its `SKILL.md` is the entry point, and the folder may include supporting files. The installed package supplies those folders and its version.
+The package owns two things: the shared instructions it ships and the sync/check commands that distribute them. A **skill** is a folder of agent instructions. Its `SKILL.md` is the entry point, and the folder may include supporting files. The installed package supplies those folders and its version. Improve shared instructions here; use the commands to carry that version into consuming repositories.
 
 The repository's **selection** is the `shivaedevSkills` list in its `package.json`. It says which shipped skills belong in the repository; it does not select the repository's own skills.
 
-The **shared copies** are real files under `.agents/skills/<name>/`. A relative symlink at `.claude/skills/<name>` points to that same folder. There is one copy of the content, with two paths to reach it.
+The **shared copies** are real files under `.agents/skills/<name>/`. They are the repository-visible instructions, including supporting files. Commit them so a checkout contains the adopted content rather than a pointer into a package installation.
+
+The **Claude compatibility link**, `.claude/skills/<name>`, is a relative symlink to that same folder. It provides another path to the one copy. Direct reading of `.agents/skills/` does not use this link; the sync operation still requires creating it, as described under [limits](#install-setup-and-limits).
 
 The **sync manifest**, `.agents/skills/.shivaedev-skills.json`, records the package version and a hash for each copied folder. It also records ownership: a folder or link whose name is absent from the manifest belongs to the repository. `sync` replaces the copies it owns and refuses to overwrite an unowned name. `check` compares the selected names, installed version and copies with that record.
 
-The work has three parts: select the shared instructions once, sync and review them when the selection or dependency changes, and check them in everyday lint and CI runs.
+The work has three parts: select the shared instructions once, sync and review them when the selection or dependency changes, and check them in everyday lint and CI runs. Each agent working from that checkout has the same committed files available; discovery and use still depend on its host's instruction-loading rules.
 
 ### 1. Choose the shared instructions
 
@@ -50,7 +53,7 @@ git diff --cached
 git commit -m "Sync shared agent skills"
 ```
 
-`sync` copies every selected skill folder, including its supporting files, and creates the relative Claude link. It records the installed version and a SHA-256 hash of each copy in the manifest. Review the copied instructions and commit the manifest, copies and links together.
+`sync` copies every selected skill folder, including its supporting files, and creates the relative Claude link. It records the installed version and a SHA-256 hash of each copy in the manifest. Review the copied instructions and commit the manifest, copies and compatibility links together. Updates arrive by changing the dependency and syncing again; the instructions an agent reads remain visible in the repository diff.
 
 When a previously synced skill is deselected, `sync` removes its copy and link. When a managed copy has been edited or has extra files, `sync` replaces it with the shipped folder. Make shared changes in this package rather than in the copy; keep repository-specific instructions in a separate local skill.
 
@@ -147,6 +150,7 @@ pnpm add --save-dev @shivaedev/skills @effect/platform-node@4.0.0-rc.112 @effect
 
 The Effect and Node platform packages are peers, and the package requires Node.js 24 or newer. Run the CLI from the repository directory that contains the selection's `package.json`.
 
+- Sync requires filesystem support for the Claude compatibility symlink. If that creation fails, sync fails; copying and manifest writing do not have an established rollback guarantee. The committed `.agents/skills/` content is directly readable, but successful sync on a host without symlink support is not a package promise.
 - Commit the shared files, relative links and manifest. The dependency supplies the next version; syncing makes that version's instructions a reviewable repository change.
 - Keep local instructions outside folders owned by the manifest. A later sync replaces managed copies, including added files.
 - The manifest is a record of a sync, not a security boundary. `check` compares copied files with recorded hashes; it does not re-hash the installed skill source or verify Claude links. A passing check is evidence about the recorded copies, not about an agent discovering or following them.

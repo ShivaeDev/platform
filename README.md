@@ -58,8 +58,7 @@ stay in the repository.
   cooperating heavy commands one at a time across repositories.
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
   service preparation that preserves existing databases and data.
-- [`@shivaedev/skills`](./packages/skills): Shared agent skills that a repository
-  selects in `package.json`, syncs into `.agents/skills` and checks in CI.
+- [`@shivaedev/skills`](./packages/skills): ShivaeDev's shared agent skills, distributed as committed repository files with simple updates and drift checks.
 - [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading
   Markdown work, following its evidence, recording human responses and preparing
   file handoffs for an existing agent session.
