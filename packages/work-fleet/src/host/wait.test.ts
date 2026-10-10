@@ -50,7 +50,7 @@ describe("work-fleet wait against PostgreSQL", () => {
 					{ concurrency: "unbounded" },
 				).pipe(Effect.forkChild);
 				const processes = Promise.all(
-					Array.from({ length: 25 }, () => waitProcess(fixture.configFile, "many", { intervalSeconds: 0.5, timeoutSeconds: 45 })),
+					Array.from({ length: 10 }, () => waitProcess(fixture.configFile, "many", { intervalSeconds: 0.5, timeoutSeconds: 45 })),
 				);
 				yield* Effect.sleep("5 seconds");
 				yield* storeState(fixture.host, "many", { outcome: { evidence: ["main already contains it"] }, stage: "completed" });

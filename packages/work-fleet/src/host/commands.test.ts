@@ -101,4 +101,33 @@ describe("work-fleet host against PostgreSQL", () => {
 			}),
 		);
 	}, 30_000);
+
+	test("cloud workers get the worker prompt and the host launch defaults under a task's fleet-launch", function* () {
+		const files = {
+			"a.md": "---\nid: a\nkind: task\nfleet: approved\nfleet-launch:\n  model: task-model\n---\n# a\n\nReport the main revision.\n",
+			"b.md": "---\nid: b\nkind: task\nfleet: approved\nfleet-launch: fast\n---\n# b\n",
+		};
+		const config = {
+			cloud: { cwd: "/workspace/repository", environmentId: "environment-test" },
+			launch: { effort: "high", model: "host-model", serviceTier: "fast" },
+			provider: "cloud",
+			worker: { branchPrefix: "fleet/", sharedEnvironment: "/workspace/env.sh" },
+		} as const;
+		yield* withHost(files, config, (fixture) =>
+			Effect.gen(function* () {
+				yield* dispatchWork(fixture.host, "a", fixture.parts);
+				expect(fixture.provider.settings.map((call) => call.settings)).toEqual([
+					{ effort: "high", model: "task-model", serviceTier: "fast" },
+					{ effort: "high", model: "task-model", serviceTier: "fast" },
+				]);
+				const [prompt] = prompts(fixture.provider);
+				expect(prompt).toMatch(/^Work Board task: a\n/u);
+				expect(prompt).toContain("create fleet/a from that exact current revision");
+				expect(prompt).toContain("Source /workspace/env.sh");
+				expect(prompt).toContain("Report the main revision.");
+				const invalid = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
+				expect(invalid).toMatchObject({ message: "b has an invalid fleet-launch; use model, effort and serviceTier strings" });
+			}),
+		);
+	}, 30_000);
 });

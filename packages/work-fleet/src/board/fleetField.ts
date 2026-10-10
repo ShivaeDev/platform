@@ -1,19 +1,29 @@
 import { parse } from "yaml";
 import type { Diagnostic, ParsedMetadata } from "@shivaedev/work-board/metadata/parse.ts";
 
-const FIELD = "fleet";
+const APPROVAL = "fleet";
+const LAUNCH = "fleet-launch";
+const FIELDS: ReadonlySet<string | undefined> = new Set([APPROVAL, LAUNCH]);
 
-// Board core reports addon fields as unknown; Fleet owns this one and interprets it itself.
+// Board core reports addon fields as unknown; Fleet owns these and interprets them itself.
 export function boardDiagnostics(parsed: ParsedMetadata): readonly Diagnostic[] {
-	return parsed.diagnostics.filter((diagnostic) => diagnostic.field !== FIELD);
+	return parsed.diagnostics.filter((diagnostic) => !FIELDS.has(diagnostic.field));
 }
 
-export function fleetApproved(parsed: ParsedMetadata): boolean {
-	if (parsed.raw === undefined || !parsed.diagnostics.some((diagnostic) => diagnostic.field === FIELD)) {
-		return false;
+function fleetField(parsed: ParsedMetadata, field: string): unknown {
+	if (parsed.raw === undefined || !parsed.diagnostics.some((diagnostic) => diagnostic.field === field)) {
+		return undefined;
 	}
 	const lines = parsed.raw.split(/\r?\n/u);
 	const closing = lines.findLastIndex((line) => line.trimEnd() === "---");
 	const data: unknown = parse(lines.slice(1, closing).join("\n"));
-	return typeof data === "object" && data !== null && FIELD in data && data[FIELD] === "approved";
+	return typeof data === "object" && data !== null ? new Map(Object.entries(data)).get(field) : undefined;
+}
+
+export function fleetApproved(parsed: ParsedMetadata): boolean {
+	return fleetField(parsed, APPROVAL) === "approved";
+}
+
+export function fleetLaunch(parsed: ParsedMetadata): unknown {
+	return fleetField(parsed, LAUNCH);
 }

@@ -1,21 +1,33 @@
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { CONFIG_FILE, DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
+import { LaunchSettings } from "#session/schema.ts";
 
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
 const Text = Schema.String.check(Schema.isMinLength(1));
 
 export const HostConfig = Schema.Struct({
 	backlog: Schema.optional(Positive),
-	cloud: Schema.optional(Schema.Struct({ cwd: Text, environmentId: Text })),
+	cloud: Schema.optional(
+		Schema.Struct({
+			authFile: Schema.optional(Text),
+			cwd: Text,
+			endpoint: Schema.optional(Text),
+			environmentId: Text,
+			refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Text })),
+			requestTimeoutMs: Schema.optional(Positive),
+			writableRoots: Schema.optional(Schema.Array(Text)),
+		}),
+	),
 	concurrency: Schema.optional(Positive),
 	database: Schema.optional(Schema.Struct({ maxConnections: Schema.optional(Positive), url: Schema.optional(Text) })),
 	intervalSeconds: Schema.optional(Positive),
-	launch: Schema.optional(Schema.Struct({ effort: Schema.optional(Text), model: Schema.optional(Text), serviceTier: Schema.optional(Text) })),
+	launch: Schema.optional(LaunchSettings),
 	local: Schema.optional(Schema.Struct({ endpoint: Text, requestTimeoutMs: Schema.optional(Positive) })),
 	namespace: Schema.optional(Schema.String.check(Schema.isPattern(NAMESPACE))),
 	provider: Schema.Literals(["local", "cloud"]),
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
+	worker: Schema.optional(Schema.Struct({ branchPrefix: Text, sharedEnvironment: Text })),
 });
 export type HostConfig = typeof HostConfig.Type;
 
@@ -35,6 +47,7 @@ export interface FleetHost {
 	readonly provider: HostConfig["provider"];
 	readonly quota: NonNullable<HostConfig["quota"]>;
 	readonly repository: NonNullable<HostConfig["repository"]>;
+	readonly worker: HostConfig["worker"];
 }
 
 export function resolveHost(boardDir: string, config: HostConfig): FleetHost {
@@ -52,6 +65,7 @@ export function resolveHost(boardDir: string, config: HostConfig): FleetHost {
 		provider: config.provider,
 		quota: config.quota ?? "codex",
 		repository: config.repository ?? { branch: "main", remote: "origin" },
+		worker: config.worker,
 	};
 }
 
@@ -66,5 +80,8 @@ export const loadHost = Effect.fn("FleetHost.loadHost")(function* (board: string
 	const config = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(HostConfig))(text).pipe(
 		Effect.mapError((error) => new HostFailure({ message: `Fleet host configuration ${file} is invalid: ${error.message}` })),
 	);
+	if (config.provider === "cloud" && (config.cloud === undefined || config.worker === undefined)) {
+		return yield* new HostFailure({ message: `Fleet host configuration ${file} selects provider "cloud" without cloud and worker settings` });
+	}
 	return resolveHost(boardDir, config);
 });

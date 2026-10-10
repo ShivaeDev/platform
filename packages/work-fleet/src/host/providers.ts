@@ -1,5 +1,7 @@
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { type FleetHost, HostFailure } from "#host/config.ts";
+import { CodexCloudConfig, codexCloudLayer } from "#providers/codexCloud.ts";
 import { CodexLocalConfig, codexLocalLayer } from "#providers/codexLocal.ts";
 import { SessionTransport } from "#session/service.ts";
 
@@ -15,8 +17,15 @@ export function hostProvider(host: FleetHost) {
 				Layer.provide(Layer.succeed(CodexLocalConfig)({ endpoint: host.local.endpoint, requestTimeoutMs: host.local.requestTimeoutMs ?? 30_000 })),
 			);
 		}
-		case "cloud":
-			return Layer.effect(SessionTransport)(Effect.fail(new HostFailure({ message: 'provider "cloud" is not wired into this host yet' })));
+		case "cloud": {
+			if (host.cloud === undefined) {
+				return Layer.effect(SessionTransport)(
+					Effect.fail(new HostFailure({ message: 'provider "cloud" needs cloud settings in the host configuration' })),
+				);
+			}
+			const { requestTimeoutMs = 60_000, ...cloud } = host.cloud;
+			return codexCloudLayer.pipe(Layer.provide([Layer.succeed(CodexCloudConfig)({ ...cloud, requestTimeoutMs }), NodeServices.layer]));
+		}
 	}
 }
 

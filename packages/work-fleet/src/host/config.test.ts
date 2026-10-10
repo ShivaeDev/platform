@@ -29,4 +29,11 @@ describe("work-fleet host configuration", () => {
 		);
 		expect(namespace.message).toMatch(/is invalid: /u);
 	});
+
+	it.effect("provider cloud needs its cloud and worker settings", function* () {
+		const failure = yield* loadHost(
+			hostBoard('{ "provider": "cloud", "cloud": { "cwd": "/workspace/repository", "environmentId": "environment-test" } }'),
+		).pipe(Effect.flip, Effect.provide(NodeServices.layer));
+		expect(failure.message).toMatch(/selects provider "cloud" without cloud and worker settings$/u);
+	});
 });

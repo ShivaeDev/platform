@@ -1,6 +1,7 @@
-import { Effect, FileSystem } from "effect";
+import { Effect, FileSystem, Schema } from "effect";
+import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { boardDocuments } from "#board/documents.ts";
-import { fleetApproved } from "#board/fleetField.ts";
+import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
@@ -8,6 +9,8 @@ import { workerCwd } from "#host/providers.ts";
 import type { FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork, FleetFailure } from "#policy.ts";
 import type { Preparation } from "#preparation/schema.ts";
+import { workerPrompt } from "#prompt/worker.ts";
+import { LaunchSettings } from "#session/schema.ts";
 
 // Workers start from current main, so the whole repository is their scope and preparation pins only the base.
 function preparation(main: MainSnapshot): Preparation {
@@ -26,8 +29,27 @@ function preparation(main: MainSnapshot): Preparation {
 	};
 }
 
-export function workerPrompt(work: BoardWork): string {
-	return work.context;
+function launchPrompt(host: FleetHost, work: BoardWork): string {
+	return host.provider === "cloud" && host.worker !== undefined
+		? workerPrompt({
+				branch: `${host.worker.branchPrefix}${work.workId}`,
+				sharedEnvironment: host.worker.sharedEnvironment,
+				task: work.context,
+				workId: work.workId,
+			})
+		: work.context;
+}
+
+function taskLaunch(work: BoardWork) {
+	const override = fleetLaunch(metadataParse(work.context));
+	return override === undefined
+		? Effect.succeed(undefined)
+		: Schema.decodeUnknownEffect(LaunchSettings)(override).pipe(
+				Effect.mapError(
+					() =>
+						new FleetFailure({ message: `${work.workId} has an invalid fleet-launch; use model, effort and serviceTier strings`, reason: "invalid" }),
+				),
+			);
 }
 
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
@@ -57,8 +79,9 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	}
 	yield* fleet.prepare({
 		cwd: workerCwd(host, main.repositoryRoot),
+		launch: yield* taskLaunch(work),
 		preparation: preparation(snapshot),
-		prompt: workerPrompt(work),
+		prompt: launchPrompt(host, work),
 		workId: work.workId,
 	});
 });

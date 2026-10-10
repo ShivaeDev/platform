@@ -43,6 +43,7 @@ export function hostPolicy(host: FleetHost) {
 			return FleetPolicy.of({
 				deliveryBacklog: host.backlog,
 				executionConcurrency: host.concurrency,
+				launch: host.launch,
 				now,
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
