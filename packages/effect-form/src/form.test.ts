@@ -15,7 +15,7 @@ it.live("invalid submission reveals field errors and never calls the handler", (
 			initialValues: { name: "" },
 			onSubmit: () =>
 				Effect.sync(() => {
-					calls++;
+					calls += 1;
 				}),
 			runtime,
 		});

@@ -47,7 +47,9 @@ blocker. It is separate from an item's status. A **question** captures that
 request's exact source text, source path and reviewed SHA-256. A **response** is
 an independent Markdown record of a person's answer, clarification or deferral.
 Responses retain their reviewed context; they do not close requests, change task
-status or start an agent.
+status or start an agent. An optional execution integration can acknowledge a
+managed decision through a separate immutable request receipt. That receipt is
+distinct from a handoff receipt, execution or acceptance.
 
 A **handoff** captures direction and the exact source the person reviewed in
 another Markdown file. The person copies its short file instruction into an
@@ -89,6 +91,12 @@ A `---` after the last heading starts the footer; a divider inside a card before
 another heading stays in that card. Code spans, reference links, footnotes and
 `<details>` can stay in the Markdown body. Leave a blank line after `<summary>`
 and before `</details>` when its content is Markdown.
+
+The sidebar groups Markdown into nested folders and keeps the home file first.
+Folder expansion choices survive live file changes; opening a document expands
+its ancestors. Empty folders without indexed Markdown stay out of the tree.
+File links keep their logical workspace paths, including reference-directory
+aliases.
 
 Directory links can include reference Markdown without copying it:
 
@@ -295,6 +303,17 @@ an independent response file there. Original source bytes stay unchanged. Source
 edits or moves require a fresh review/preview; historical replies still identify
 the old context. Same-identity/content retries reconcile, conflicting contributions
 are rejected, and uncertain publication is reported explicitly.
+
+An execution integration may mark a generated `kind: decision` request with
+`attention[].managed: true`. A separate immutable `kind: result` document records
+`request_receipt` with the registered question ID, its `reviewedRevision`,
+`recordedAt` and disposition `applied` or `superseded`. An applied receipt names
+the unique current `answer`; clarification and deferral cannot acknowledge it.
+Supersession retires the request without inventing an answer. Only an unambiguous
+receipt matching the exact current source path and bytes removes the managed
+request from the overview and response surface. The source remains unchanged
+and readable. Ordinary authored requests remain source-driven; receipts grant
+no execution, acceptance or delivery authority.
 
 Browser drafts have their own 2 MiB workspace bound and expire 30 days after their
 last edit. Navigation, reload and source refresh retain them; text edited while an

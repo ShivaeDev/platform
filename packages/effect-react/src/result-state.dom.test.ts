@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { useAction, useQuery } from "#result-state.ts";
 
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
@@ -15,7 +15,7 @@ afterEach(async () => {
 	}
 });
 
-const mount = async (Component: () => React.ReactNode) => {
+async function mount(Component: () => React.ReactNode) {
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
@@ -29,13 +29,13 @@ const mount = async (Component: () => React.ReactNode) => {
 		root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component)));
 	});
 	return container;
-};
+}
 
-const finish = async <A, E>(gate: Deferred.Deferred<A, E>, result: Exit.Exit<A, E>) => {
+async function finish<A, E>(gate: Deferred.Deferred<A, E>, result: Exit.Exit<A, E>) {
 	await act(async () => {
 		Effect.runSync(Deferred.done(gate, result));
 	});
-};
+}
 
 it("query renders retained data while refreshing and after a typed failure", async () => {
 	let gate = Effect.runSync(Deferred.make<number, string>());
@@ -53,7 +53,9 @@ it("query renders retained data while refreshing and after a typed failure", asy
 			}),
 		);
 	});
-	const snapshot = () => JSON.parse(view.textContent ?? "");
+	function snapshot() {
+		return JSON.parse(view.textContent ?? "");
+	}
 	expect(snapshot()).toEqual({
 		data: null,
 		failed: false,
@@ -136,17 +138,17 @@ it("changing query identity does not retain data from the previous query", async
 		await act(async () => root.unmount());
 		registry.dispose();
 	});
-	const Component = ({ atom }: { readonly atom: typeof first }) => {
+	function Component({ atom }: { readonly atom: typeof first }) {
 		const state = useQuery(atom);
 		return createElement(
 			"span",
 			null,
 			Option.getOrElse(state.data, () => "loading"),
 		);
-	};
-	const render = async (atom: typeof first) => {
+	}
+	async function render(atom: typeof first) {
 		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component, { atom }))));
-	};
+	}
 	await render(first);
 	expect(container.textContent).toBe("account A");
 	await render(next);
@@ -155,8 +157,15 @@ it("changing query identity does not retain data from the previous query", async
 
 it("consumers of the same query share the native execution", async () => {
 	let calls = 0;
-	const query = Atom.make(Effect.sync(() => ++calls));
-	const Child = () => createElement("span", null, Option.getOrNull(useQuery(query).data));
+	const query = Atom.make(
+		Effect.sync(() => {
+			calls += 1;
+			return calls;
+		}),
+	);
+	function Child() {
+		return createElement("span", null, Option.getOrNull(useQuery(query).data));
+	}
 	const view = await mount(() => createElement("div", null, createElement(Child), createElement(Child)));
 	expect(view.textContent).toBe("11");
 	expect(calls).toBe(1);

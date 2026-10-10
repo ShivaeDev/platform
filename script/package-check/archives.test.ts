@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { test as it } from "node:test";
 import { NodeFileSystem } from "@effect/platform-node";
 import { ConfigProvider, Effect, Layer } from "effect";
-import { verifyArchives } from "./archives.ts";
+import { privateFixture } from "#package-check/test-support/privateFixture.ts";
+import { verifyArchives, workspaceArchives } from "./archives.ts";
 import type { Package } from "./model.ts";
 
 it("shared archives reject different commits, missing packages, and modified tarballs", async () => {
@@ -39,5 +40,18 @@ it("shared archives reject different commits, missing packages, and modified tar
 		await assert.rejects(verify, /checksum mismatch/u);
 	} finally {
 		rmSync(root, { force: true, recursive: true });
+	}
+});
+
+it("private addons remain covered by packed consumers before a release is authorized", async () => {
+	const fixture = privateFixture();
+	try {
+		const packages = await Effect.runPromise(
+			workspaceArchives(fixture.root, join(fixture.root, "archives")).pipe(Effect.provide(NodeFileSystem.layer)),
+		);
+		assert.equal(packages.length, 1);
+		assert.equal(packages[0]?.manifest.private, true);
+	} finally {
+		fixture.remove();
 	}
 });

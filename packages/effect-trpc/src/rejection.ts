@@ -39,11 +39,11 @@ export interface RejectWithOptions<Tag extends string> {
 	readonly code?: (tag: Tag) => TRPC_ERROR_CODE_KEY;
 }
 
-const encodeRejection = (schema: Schema.Constraint) => {
+function encodeRejection(schema: Schema.Constraint) {
 	const encode = Schema.encodeUnknownEffect(schema);
 	const tagged = Schema.decodeUnknownEffect(DeclaredRejection);
 	return (rejection: unknown) => Effect.orDie(Effect.flatMap(encode(rejection), tagged));
-};
+}
 
 export function rejectWith<S extends Schema.ConstraintCodec<{ readonly _tag: string }, DeclaredEncoding, unknown, unknown>>(
 	schema: S,

@@ -58,5 +58,5 @@ harnessIt.effectTRPC("retains custom harness types", function* (harness) {
 	expectTypeOf(result).toEqualTypeOf<number>();
 
 	// @ts-expect-error Custom harnesses do not widen unknown properties.
-	harness.missing;
+	void harness.missing;
 });

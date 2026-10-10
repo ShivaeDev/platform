@@ -82,7 +82,8 @@ remain part of that handoff.
   [heavy commands](../../packages/heavy-lock/docs/roadmap.md),
   [local PostgreSQL](../../packages/local-postgres/docs/roadmap.md),
   [shared skills](../../packages/skills/docs/roadmap.md),
-  [Work Board](../../packages/work-board/docs/roadmap.md).
+  [Work Board](../../packages/work-board/docs/roadmap.md),
+  [Work Fleet](../../packages/work-fleet/docs/roadmap.md).
 
 ## Open questions for the maintainer
 

@@ -13,8 +13,9 @@ composed features, application adoption, version alignment and deployment valida
 `docs/roadmap.md` owns its implementation and open questions.
 
 Every package has a README for people and agents using it, a short `AGENTS.md`
-for agents changing it, and `docs/north-star.md` for its design priorities. The
-README and `docs/` ship on npm; agent instructions stay in the repository.
+for agents changing it, and `docs/north-star.md` for its design priorities.
+Published packages include the README and `docs/` on npm; agent instructions
+stay in the repository.
 
 ## Packages
 
@@ -62,8 +63,11 @@ README and `docs/` ship on npm; agent instructions stay in the repository.
 - [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading
   Markdown work, following its evidence, recording human responses and preparing
   file handoffs for an existing agent session.
+- [`@shivaedev/work-fleet`](./packages/work-fleet): A private workspace package for
+  optional Board-backed execution, independent review and authorized delivery with
+  durable ownership and receipts.
 
-No package has a root entry or a module that re-exports another. Each package exports its source modules through one `"./*.ts"` pattern, with `"./internal/*": null` keeping a package's `internal/` folder private, so you import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, with `"./internal/*": null` keeping a package's `internal/` folder private, so you import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 

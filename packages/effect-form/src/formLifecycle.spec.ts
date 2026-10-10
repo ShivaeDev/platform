@@ -101,10 +101,9 @@ it.live("a late field rejection does not attach to a newer edit", () =>
 
 const Entry = Schema.Struct({ name: Schema.Trim, note: Schema.String });
 
-const gated =
-	(started: Deferred.Deferred<void>, release: Deferred.Deferred<void>) =>
-	<A>(value: A) =>
-		Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value));
+function gated(started: Deferred.Deferred<void>, release: Deferred.Deferred<void>) {
+	return <A>(value: A) => Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value));
+}
 
 it.live("a refresh received during a save stays the baseline after it succeeds", () =>
 	Effect.gen(function* () {

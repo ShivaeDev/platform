@@ -9,8 +9,9 @@ import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
 
-const failureOf = (cwd: string, path?: string) =>
-	Effect.map(Effect.exit(loadConfig(cwd, path)), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it loaded)"));
+function failureOf(cwd: string, path?: string) {
+	return Effect.map(Effect.exit(loadConfig(cwd, path)), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it loaded)"));
+}
 
 it.layer(NodeFileSystem.layer)("config loading", (it) => {
 	it.effect("loads quality.config.ts with the defaults filled in", function* () {

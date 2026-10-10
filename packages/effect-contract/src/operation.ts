@@ -65,14 +65,14 @@ interface Loose {
 	readonly success?: Schema.Top;
 }
 
-const payloadSchema = (payload: Loose["payload"]): Schema.Top => {
+function payloadSchema(payload: Loose["payload"]): Schema.Top {
 	if (payload === undefined) {
 		return Schema.Void;
 	}
 	return Schema.isSchema(payload) ? payload : Schema.Struct(payload);
-};
+}
 
-const operation = <Kind extends OperationShape["kind"]>(kind: Kind, name: string, declaration: Loose) => {
+function operation<Kind extends OperationShape["kind"]>(kind: Kind, name: string, declaration: Loose) {
 	const { payload, success, rejections = {} } = declaration;
 	return {
 		kind,
@@ -82,7 +82,7 @@ const operation = <Kind extends OperationShape["kind"]>(kind: Kind, name: string
 		success: success ?? Schema.Void,
 		...rejectionSet(rejections),
 	};
-};
+}
 
 export function query<
 	const Name extends string,

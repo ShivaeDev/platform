@@ -26,16 +26,19 @@ export interface DatabaseDefinition<Contract extends AnySqlContract, Identifier 
 	readonly layer: (options: DatabaseLayerOptions) => Layer.Layer<DatabaseIdentifier<Contract, Identifier>, PrismaError>;
 }
 
-const clientOptions = ({ url, extensions, middleware, poolOptions, verifyMarker }: DatabaseLayerOptions) => ({
-	url: typeof url === "string" ? url : Redacted.value(url),
-	...(extensions === undefined ? {} : { extensions }),
-	...(middleware === undefined ? {} : { middleware }),
-	...(poolOptions === undefined ? {} : { poolOptions }),
-	...(verifyMarker === undefined ? {} : { verifyMarker }),
-});
+function clientOptions({ url, extensions, middleware, poolOptions, verifyMarker }: DatabaseLayerOptions) {
+	return {
+		url: typeof url === "string" ? url : Redacted.value(url),
+		...(extensions === undefined ? {} : { extensions }),
+		...(middleware === undefined ? {} : { middleware }),
+		...(poolOptions === undefined ? {} : { poolOptions }),
+		...(verifyMarker === undefined ? {} : { verifyMarker }),
+	};
+}
 
-const defaultModels = <Contract extends AnySqlContract, Models extends object>(client: Pick<PostgresClient<Contract>, "contract" | "orm">): Models =>
-	namespaceModels<Contract, Models>(client.contract, client.orm);
+function defaultModels<Contract extends AnySqlContract, Models extends object>(client: Pick<PostgresClient<Contract>, "contract" | "orm">): Models {
+	return namespaceModels<Contract, Models>(client.contract, client.orm);
+}
 
 export const makeDatabase =
 	<const Contract extends AnySqlContract>() =>

@@ -6,11 +6,12 @@ import type { SessionProvider, SessionShape } from "#rpc-server/session.ts";
 
 export type GetSession<Session extends SessionShape> = (headers: globalThis.Headers) => Promise<Session | null>;
 
-const unavailable = (cause: unknown) =>
-	Effect.andThen(
+function unavailable(cause: unknown) {
+	return Effect.andThen(
 		Effect.logError("Authentication provider failed", redact(cause)),
 		Effect.fail(new AuthUnavailable({ message: "Authentication is temporarily unavailable" })),
 	);
+}
 
 export const betterAuthSessions = <Session extends SessionShape>(getSession: GetSession<Session>): SessionProvider<Session> => ({
 	get: Effect.fn("PlatformRpc.betterAuthSession")(function* (headers: Headers.Headers) {

@@ -38,6 +38,13 @@ Directory reference reading and watcher recovery are covered by
 HTTP embedding are covered by `src/board.test.ts` and `src/embedding.spec.ts`.
 The packed-consumer gate checks the CLI and embedding declarations.
 
+Nested sidebar ancestry, home ordering, logical reference paths and folder
+expansion through live changes and navigation are covered by
+`src/page/nav.dom.test.ts`. Exact-context managed decision acknowledgements are
+covered by Work Fleet's `src/board/managedRequestReceipt.spec.ts` and
+`src/board/acknowledgementHttp.spec.ts`; those receipts leave source bytes intact
+and do not establish execution, acceptance or delivery authority.
+
 ## Next
 
 - [ ] Finish [07's representative-reader acceptance](delivery/wave1.md#07-an-attention-first-overview).

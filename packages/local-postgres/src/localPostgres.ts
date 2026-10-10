@@ -19,8 +19,9 @@ export function assertLocalDatabase(value: string, names: readonly string[]) {
 }
 
 export function localPostgres(environment: DockerEnvironment) {
-	const localDocker = (args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) =>
-		docker(environment, args, options);
+	function localDocker(args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" }) {
+		return docker(environment, args, options);
+	}
 	function sql(value: string | URL, query: string) {
 		const url = new URL(value);
 		assertLocalDatabase(url.toString(), [url.pathname.slice(1)]);
@@ -52,7 +53,7 @@ export function localPostgres(environment: DockerEnvironment) {
 			version = sql(server, "SHOW server_version");
 		} catch {
 			startContainer(localDocker);
-			for (let attempt = 0; attempt < 30; attempt++) {
+			for (let attempt = 0; attempt < 30; attempt += 1) {
 				try {
 					version = sql(server, "SHOW server_version");
 					break;

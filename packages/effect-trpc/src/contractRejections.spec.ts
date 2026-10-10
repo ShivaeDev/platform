@@ -20,7 +20,7 @@ const Place = command("place", {
 
 const Forget = command("forget", { invalidates: () => [] });
 
-const place = ({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typeof Place.error.Type> => {
+function place({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typeof Place.error.Type> {
 	if (name === "missing") {
 		return Place.reject.OrderNotFound();
 	}
@@ -28,7 +28,7 @@ const place = ({ name, quantity }: typeof Draft.Type): Effect.Effect<string, typ
 		return Place.reject.Invalid({ field: "quantity", message: "Quantity cannot be negative" });
 	}
 	return Effect.succeed(`placed:${name}`);
-};
+}
 
 const router = t.router({
 	forget: procedure.mutation(function* () {

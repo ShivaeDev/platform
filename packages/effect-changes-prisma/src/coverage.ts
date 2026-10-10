@@ -14,11 +14,13 @@ export interface Coverage<A> {
 	readonly written: Iterable<string>;
 }
 
-const recordedIn = <A>(observations: Iterable<Observation<A>>): readonly A[] =>
-	[...observations].flatMap((observation) => (observation._tag === "Recorded" ? observation.changes : []));
+function recordedIn<A>(observations: Iterable<Observation<A>>): readonly A[] {
+	return [...observations].flatMap((observation) => (observation._tag === "Recorded" ? observation.changes : []));
+}
 
-const identify = (write: UnnamedWrite): string =>
-	write.reason === "narrowed" ? `${write.model}.${write.operation}.${write.field}` : `${write.model}.${write.operation}`;
+function identify(write: UnnamedWrite): string {
+	return write.reason === "narrowed" ? `${write.model}.${write.operation}.${write.field}` : `${write.model}.${write.operation}`;
+}
 
 export const checkCoverage = <A>(coverage: Coverage<A>): readonly CoverageViolation[] => {
 	const recorded = recordedIn(coverage.observations);

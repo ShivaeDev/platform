@@ -5,7 +5,9 @@ import { levels, violation } from "#test/violations.ts";
 
 const known = levels({ "local/off": "off", "local/todo": "warn", "structure/max-lines": "error" });
 const todo = violation({ file: "src/a.ts", level: "warn", rule: "local/todo" });
-const long = (lines: number) => violation({ count: lines - 150, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
+function long(lines: number) {
+	return violation({ count: lines - 150, file: "src/big.ts", rule: "structure/max-lines", threshold: 150 });
+}
 
 describe("baseline coverage", () => {
 	it("covers a file that holds its baselined count", () => {

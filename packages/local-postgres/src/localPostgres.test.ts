@@ -19,7 +19,7 @@ it("rejects remote, mismatched and redirected local targets", () => {
 
 it("refuses remote Docker endpoints before issuing a Docker operation", () => {
 	for (const host of ["ssh://example.com", "tcp://example.com:2376"]) {
-		expect(() => docker({ DOCKER_HOST: host }, ["info"])).toThrow("remote contexts are refused");
+		expect(() => docker({ "DOCKER_HOST": host }, ["info"])).toThrow("remote contexts are refused");
 	}
 });
 

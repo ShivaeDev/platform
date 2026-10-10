@@ -34,19 +34,20 @@ export interface BoardOptions {
 type Services = Highlighter | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
 
-const routes = (options: BoardOptions) =>
-	HttpRouter.use((router) =>
+function routes(options: BoardOptions) {
+	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const home = yield* homeIn(options.root, options.home);
 			const mermaid = yield* mermaidRoot();
 			const changes = yield* watchChanges(options.root);
 			const context = (yield* Effect.context<Services>()).pipe(Context.pick(Highlighter, FileSystem.FileSystem, Path.Path));
-			const serve = <E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") =>
-				router.add(
+			function serve<E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") {
+				return router.add(
 					method,
 					route,
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
+			}
 			yield* serve("/events", events(changes));
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
@@ -130,6 +131,7 @@ const routes = (options: BoardOptions) =>
 			yield* serve("/*", pages);
 		}),
 	);
+}
 
 type BoardError = HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
 type BoardServices = FileSystem.FileSystem | HttpRouter.HttpRouter | Path.Path | HttpRouter.Request<"Error", PlatformError.PlatformError>;

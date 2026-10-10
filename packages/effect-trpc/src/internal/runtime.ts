@@ -15,19 +15,20 @@ export interface RuntimeBridge<Requirements> {
 	readonly runStream: <Value>(stream: Stream.Stream<Value, unknown, Requirements>, options: RunEffectOptions) => Promise<AsyncIterable<Value>>;
 }
 
-const internalError = (cause?: unknown): TRPCError =>
-	new TRPCError({
+function internalError(cause?: unknown): TRPCError {
+	return new TRPCError({
 		cause,
 		code: "INTERNAL_SERVER_ERROR",
 		message: "Internal server error",
 	});
+}
 
-const mapError = (
+function mapError(
 	error: unknown,
 	origin: "defect" | "failure",
 	procedure: ProcedureInfo,
 	consumerMapper: EffectTRPCErrorMapper | undefined,
-): TRPCError => {
+): TRPCError {
 	if (error instanceof TRPCError) {
 		return error;
 	}
@@ -37,9 +38,9 @@ const mapError = (
 	} catch (mapperDefect) {
 		return internalError(mapperDefect);
 	}
-};
+}
 
-const mapCause = (cause: Cause.Cause<unknown>, procedure: ProcedureInfo, consumerMapper: EffectTRPCErrorMapper | undefined): TRPCError => {
+function mapCause(cause: Cause.Cause<unknown>, procedure: ProcedureInfo, consumerMapper: EffectTRPCErrorMapper | undefined): TRPCError {
 	if (Cause.hasInterruptsOnly(cause)) {
 		return new TRPCError({
 			code: "CLIENT_CLOSED_REQUEST",
@@ -58,9 +59,9 @@ const mapCause = (cause: Cause.Cause<unknown>, procedure: ProcedureInfo, consume
 	}
 
 	return internalError();
-};
+}
 
-const interruptOn = (signal: AbortSignal | undefined): Effect.Effect<void> => {
+function interruptOn(signal: AbortSignal | undefined): Effect.Effect<void> {
 	if (signal === undefined) {
 		return Effect.never;
 	}
@@ -73,7 +74,7 @@ const interruptOn = (signal: AbortSignal | undefined): Effect.Effect<void> => {
 		signal.addEventListener("abort", abort, { once: true });
 		return Effect.sync(() => signal.removeEventListener("abort", abort));
 	});
-};
+}
 
 export const makeRuntimeBridge = <Requirements, RuntimeError>(
 	runtime: EffectTRPCRuntime<Requirements, RuntimeError>,

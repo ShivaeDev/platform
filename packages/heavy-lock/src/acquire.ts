@@ -18,7 +18,9 @@ export interface HeavyLockOptions {
 
 const REMIND_EVERY = Duration.minutes(1);
 
-const heldBy = (id: string): HeldLockShape => ({ env: { [HOLDER_ID_ENV]: id } });
+function heldBy(id: string): HeldLockShape {
+	return { env: { [HOLDER_ID_ENV]: id } };
+}
 
 const ownStartTime = Effect.gen(function* () {
 	const started = yield* processStartTime(process.pid).pipe(Effect.mapError(failWith("Could not run ps to read this process's start time.")));

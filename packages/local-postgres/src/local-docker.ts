@@ -1,6 +1,6 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
 
-export type DockerEnvironment = Readonly<{ DOCKER_CONTEXT?: string | undefined; DOCKER_HOST?: string | undefined }>;
+export type DockerEnvironment = Readonly<{ "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined }>;
 
 export function docker(
 	environment: DockerEnvironment,

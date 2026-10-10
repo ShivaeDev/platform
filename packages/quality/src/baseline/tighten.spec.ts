@@ -9,16 +9,18 @@ const cliTimeout = 60_000;
 
 afterEach(removeSeededTrees);
 
-const baseline = (root: string): string => readFileSync(join(root, "quality/baseline.jsonl"), "utf8");
+function baseline(root: string): string {
+	return readFileSync(join(root, "quality/baseline.jsonl"), "utf8");
+}
 
-const shrunkTwice = (): string => {
+function shrunkTwice(): string {
 	const root = seedTree(trees.dirty);
 	quality(root, "baseline", "write");
 	branchOff(root);
 	writeFileSync(join(root, "src/long.ts"), "1\n");
 	writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n");
 	return root;
-};
+}
 
 describe("quality baseline tighten", { timeout: cliTimeout }, () => {
 	it("with --staged, lowers and removes only the entries of staged files", () => {

@@ -2,12 +2,24 @@
 
 ## Unreleased
 
+### Added
+
+- Opt-in managed decision requests can be acknowledged by immutable, exact-context
+  `request_receipt` records. Applied receipts require the unique current answer;
+  superseded receipts retire the old request without fabricating a reply. The
+  overview and response surface exclude qualified acknowledged requests while
+  preserving their original source. Authored requests remain source-driven, and
+  receipts grant no execution, acceptance or delivery authority.
+
 ### Fixed
 
 - Keep same-origin assets and unrecognized routes in browser navigation instead
   of intercepting them as reader pages. Preserve native returned-result navigation.
 
 ### Changed
+
+- Render the file sidebar as nested native folders with shared ancestry, keeping
+  home first, logical reference URLs and folder collapse state through live updates.
 
 - Give the package a short agent north star, a usage-first README and canonical
   north-star/roadmap docs. Move vision, experience, mockups and delivery references

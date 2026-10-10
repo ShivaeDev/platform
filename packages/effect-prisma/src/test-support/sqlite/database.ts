@@ -13,4 +13,6 @@ export const Database = makeSqliteDatabase<Contract>()("@test/SqliteDatabase", {
 export const DatabaseLive = Database.layer({ path: temporary.path });
 export const withDatabase = Effect.provide(DatabaseLive);
 
-export const uniqueEmail = (scenario: string): string => `${scenario}-${crypto.randomUUID()}@example.test`;
+export function uniqueEmail(scenario: string): string {
+	return `${scenario}-${crypto.randomUUID()}@example.test`;
+}

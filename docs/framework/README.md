@@ -73,6 +73,11 @@ mental model and API.
 - [Migrations](./migrations.md) and [PostgreSQL migration boundaries](./postgres-migrations.md)
   explain authoring and runner ownership.
 
+Work Board owns Markdown identity, context, relationships and human direction.
+[Work Fleet](../../packages/work-fleet/README.md) supplies an optional execution,
+review and authorized-delivery loop using those identities. Its runtime policy
+owns execution authority; Board remains usable without that integration.
+
 ## What counts as evidence
 
 A useful feature fixture calls actual services through actual boundaries. It

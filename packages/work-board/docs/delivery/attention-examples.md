@@ -57,6 +57,7 @@ identities, an account directory, a permission boundary or a notification route.
 | `response_from` | Required nonempty list of nonblank literal labels |
 | `reason` | Required nonblank text explaining why a response is needed |
 | `unblocks` | Required nonempty list of existing item/criterion reference shapes |
+| `managed` | Optional boolean; an execution integration may opt a generated decision into exact-context request acknowledgement |
 
 Only unique, valid open requests on unique identified items with resolvable
 targets enter the queues. Missing recipients/reason/state, unsupported fields or
@@ -70,6 +71,13 @@ A closed request remains readable and searchable but leaves the open queue.
 Closing it records an author's state claim; it does not verify evidence or prove
 human acceptance, a response, authorship or approval. A response records direction against its captured context; it does not change
 that authored request state. See the [response contract](./response-write-examples.md).
+
+For a generated decision marked `managed: true`, a separate qualified
+`request_receipt` can remove the request from the open queue without changing its
+source state. The receipt must match the registered question's exact source path
+and bytes. Applying it requires the unique current answer; superseding it does
+not invent an answer. Ordinary authored requests keep the rules above. See the
+[managed acknowledgement rules](../../README.md#record-a-human-response).
 
 The overview groups decisions, reviews and blockers with visible counts, then
 orders each group by source title, item ID and request ID. Each entry shows the

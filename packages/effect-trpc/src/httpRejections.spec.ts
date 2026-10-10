@@ -46,10 +46,10 @@ const failures = {
 	undeclared: new Undeclared({ field: "password", message: SECRET }),
 };
 
-const rename = (name: string) => {
+function rename(name: string) {
 	const failure = Object.entries(failures).find(([key]) => key === name)?.[1];
 	return failure === undefined ? Effect.succeed(`renamed:${name}`) : Effect.fail(failure);
-};
+}
 
 const router = t.router({
 	defect: procedure.query(function* () {

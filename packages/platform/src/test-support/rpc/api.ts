@@ -47,23 +47,24 @@ const Handlers = Api.toLayer({
 		}),
 });
 
-export const serverLayer = (provider: Provider, origin: OriginPolicy) => {
+export function serverLayer(provider: Provider, origin: OriginPolicy) {
 	const policy = { origin, provider: betterAuthSessions(provider.getSession) };
 	return Layer.mergeAll(Handlers, authenticatedLayer(policy), maybeAuthenticatedLayer(policy), requestTracingLayer());
-};
+}
 
-export const makeApp = (provider: Provider, origin: OriginPolicy) => {
+export function makeApp(provider: Provider, origin: OriginPolicy) {
 	const recorded = recorder();
 	const app = serve(rpcHttp(Api).pipe(Layer.provide(serverLayer(provider, origin)), Layer.provide(recorded.layer)));
-	const call = <A, E>(
+	function call<A, E>(
 		headers: Readonly<Record<string, string>>,
 		run: (client: RpcClient.FromGroup<typeof Api, RpcClientError.RpcClientError>) => Effect.Effect<A, E>,
-	) =>
-		Effect.runPromise(
+	) {
+		return Effect.runPromise(
 			Effect.gen(function* () {
 				const client = yield* RpcClient.make(Api);
 				return yield* Effect.result(run(client));
 			}).pipe(Effect.provide(httpClient(app, headers)), Effect.scoped),
 		);
+	}
 	return { app, call, ...recorded };
-};
+}

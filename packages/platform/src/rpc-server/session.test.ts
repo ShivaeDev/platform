@@ -84,8 +84,9 @@ it("origin policy is an explicit decision evaluated before the provider is consu
 	const custom = makeApp(provider, onlyPublicWithoutOrigin);
 	try {
 		const alice = await signup(provider, "alice");
-		const whoami = (app: typeof strict, headers: Readonly<Record<string, string>>) =>
-			app.call({ cookie: alice.cookie, ...headers }, (client) => Effect.map(client.Whoami(), (value) => value.split(" ")[0]));
+		function whoami(app: typeof strict, headers: Readonly<Record<string, string>>) {
+			return app.call({ cookie: alice.cookie, ...headers }, (client) => Effect.map(client.Whoami(), (value) => value.split(" ")[0]));
+		}
 		const success = { _tag: "Success", success: alice.userId };
 		const forbidden = { _tag: "Failure", failure: { _tag: "Forbidden", message: "Origin not allowed" } };
 

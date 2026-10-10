@@ -5,15 +5,21 @@ import { type JobRegistration, jobContext, type QueueWorker, type ScheduledWorke
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 
-const queueOptions = (options: Readonly<Record<string, unknown>>) => ({
-	retryBackoff: true,
-	retryLimit: 3,
-	...options,
-});
+function queueOptions(options: Readonly<Record<string, unknown>>) {
+	return {
+		retryBackoff: true,
+		retryLimit: 3,
+		...options,
+	};
+}
 
-const isQueueWorker = (registration: JobRegistration): registration is QueueWorker => registration._tag === "QueueWorker";
+function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
+	return registration._tag === "QueueWorker";
+}
 
-const isScheduledWorker = (registration: JobRegistration): registration is ScheduledWorker => registration._tag === "ScheduledWorker";
+function isScheduledWorker(registration: JobRegistration): registration is ScheduledWorker {
+	return registration._tag === "ScheduledWorker";
+}
 
 export const registrationName = (registration: JobRegistration): string => {
 	if (isQueueWorker(registration)) {
@@ -31,8 +37,8 @@ function workerContext(context: unknown): unknown {
 	return context;
 }
 
-const runQueueWorker = (worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>): Promise<unknown> =>
-	Effect.runPromise(
+function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context.Context<unknown>): Promise<unknown> {
+	return Effect.runPromise(
 		Schema.decodeUnknownEffect(worker.queue.schema)(job.data).pipe(
 			Effect.mapError(
 				(error) =>
@@ -47,8 +53,9 @@ const runQueueWorker = (worker: QueueWorker, job: Job<unknown>, context: Context
 		),
 		{ signal: job.signal },
 	);
+}
 
-const registerQueue = async (client: PgBossClient, worker: QueueWorker, context: Context.Context<unknown>, replaceWorker: boolean): Promise<void> => {
+async function registerQueue(client: PgBossClient, worker: QueueWorker, context: Context.Context<unknown>, replaceWorker: boolean): Promise<void> {
 	const name = worker.queue.name;
 	const deadLetter = deadLetterQueueName(name);
 	if (replaceWorker) {
@@ -64,14 +71,14 @@ const registerQueue = async (client: PgBossClient, worker: QueueWorker, context:
 			await runQueueWorker(worker, job, context);
 		}
 	});
-};
+}
 
-const registerSchedule = async (
+async function registerSchedule(
 	client: PgBossClient,
 	worker: ScheduledWorker,
 	context: Context.Context<unknown>,
 	replaceWorker: boolean,
-): Promise<void> => {
+): Promise<void> {
 	const { schedule } = worker;
 	const deadLetter = deadLetterQueueName(schedule.name);
 	if (replaceWorker) {
@@ -90,7 +97,7 @@ const registerSchedule = async (
 		}
 	});
 	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
-};
+}
 
 export const registrationNames = (registrations: readonly JobRegistration[]): readonly string[] => {
 	const names = registrations.map(registrationName);

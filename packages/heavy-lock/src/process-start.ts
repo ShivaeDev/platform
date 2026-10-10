@@ -3,13 +3,14 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 import type { Holder } from "./holder.ts";
 
 // `ps` prints the start time in the locale's format, so every implementation reads it in the C locale to compare it byte for byte.
-const psStartTime = (pid: number) =>
-	ChildProcess.make("ps", ["-o", "lstart=", "-p", String(pid)], {
-		env: { LC_ALL: "C" },
+function psStartTime(pid: number) {
+	return ChildProcess.make("ps", ["-o", "lstart=", "-p", String(pid)], {
+		env: { "LC_ALL": "C" },
 		extendEnv: true,
 		stderr: "ignore",
 		stdin: "ignore",
 	});
+}
 
 export const processStartTime = (pid: number) =>
 	Effect.scoped(

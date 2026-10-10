@@ -4,19 +4,22 @@ import { makeChanges } from "#test/changes.ts";
 import { integration, makeDatabase, orderIds } from "#test/database.ts";
 import type { PrismaClient } from "#test/generated/client.ts";
 
-const slowCommit = (schema: string, seconds: number) => [
-	`create function "${schema}".slow_commit() returns trigger language plpgsql as $$ begin perform pg_sleep(${seconds}); return null; end $$`,
-	`create constraint trigger slow_commit after insert on "${schema}".changes_prisma_order
+function slowCommit(schema: string, seconds: number) {
+	return [
+		`create function "${schema}".slow_commit() returns trigger language plpgsql as $$ begin perform pg_sleep(${seconds}); return null; end $$`,
+		`create constraint trigger slow_commit after insert on "${schema}".changes_prisma_order
 		deferrable initially deferred for each row execute function "${schema}".slow_commit()`,
-];
+	];
+}
 
-const committing = (observer: PrismaClient, pid: number) =>
-	Effect.promise(() =>
+function committing(observer: PrismaClient, pid: number) {
+	return Effect.promise(() =>
 		observer.$queryRawUnsafe<ReadonlyArray<{ state: string | null; query: string }>>(`select state, query from pg_stat_activity where pid = ${pid}`),
 	).pipe(
 		Effect.flatMap((rows) => (rows.some((row) => row.state === "active" && row.query === "COMMIT") ? Effect.void : Effect.fail("not committing"))),
 		Effect.retry({ schedule: Schedule.spaced("5 millis"), times: 2000 }),
 	);
+}
 
 integration("an interruption while COMMIT is pending still publishes once the commit lands", () =>
 	Effect.runPromise(

@@ -32,12 +32,14 @@ export interface SqliteDatabaseDefinition<Contract extends AnySqlContract, Ident
 	readonly layer: (options: SqliteDatabaseLayerOptions) => Layer.Layer<DatabaseIdentifier<Contract, Identifier>, PrismaError>;
 }
 
-const clientOptions = ({ path, extensions, middleware, verifyMarker }: SqliteDatabaseLayerOptions) => ({
-	path,
-	...(extensions === undefined ? {} : { extensions }),
-	...(middleware === undefined ? {} : { middleware }),
-	...(verifyMarker === undefined ? {} : { verifyMarker }),
-});
+function clientOptions({ path, extensions, middleware, verifyMarker }: SqliteDatabaseLayerOptions) {
+	return {
+		path,
+		...(extensions === undefined ? {} : { extensions }),
+		...(middleware === undefined ? {} : { middleware }),
+		...(verifyMarker === undefined ? {} : { verifyMarker }),
+	};
+}
 
 export const makeSqliteDatabase =
 	<const Contract extends AnySqlContract>() =>

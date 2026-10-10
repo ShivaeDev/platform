@@ -10,8 +10,8 @@ if (Effect.runSync(Config.string("NODE_ENV").pipe(Config.withDefault(""))) === "
 const { prepareDatabases, sql } = localPostgres(
 	Effect.runSync(
 		Config.all({
-			DOCKER_CONTEXT: Config.string("DOCKER_CONTEXT").pipe(Config.withDefault("")),
-			DOCKER_HOST: Config.string("DOCKER_HOST").pipe(Config.withDefault("")),
+			"DOCKER_CONTEXT": Config.string("DOCKER_CONTEXT").pipe(Config.withDefault("")),
+			"DOCKER_HOST": Config.string("DOCKER_HOST").pipe(Config.withDefault("")),
 		}),
 	),
 );

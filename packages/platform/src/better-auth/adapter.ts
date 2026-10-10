@@ -16,22 +16,29 @@ interface DynamicDatabase {
 	readonly transaction: <A, E, R>(program: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, unknown>;
 }
 
-const isFunction = (value: unknown, key: string): boolean =>
-	((typeof value === "object" && value !== null) || typeof value === "function") && typeof Reflect.get(value, key) === "function";
+function isFunction(value: unknown, key: string): boolean {
+	return ((typeof value === "object" && value !== null) || typeof value === "function") && typeof Reflect.get(value, key) === "function";
+}
 
-const isDynamicDatabase = (value: unknown): value is DynamicDatabase => isFunction(value, "transaction");
+function isDynamicDatabase(value: unknown): value is DynamicDatabase {
+	return isFunction(value, "transaction");
+}
 
-const isDynamicRelation = (value: unknown): value is DynamicRelation<unknown> => isFunction(value, "where") && isFunction(value, "select");
+function isDynamicRelation(value: unknown): value is DynamicRelation<unknown> {
+	return isFunction(value, "where") && isFunction(value, "select");
+}
 
-const modelRelation = (database: DynamicDatabase, model: string): DynamicRelation<unknown> => {
+function modelRelation(database: DynamicDatabase, model: string): DynamicRelation<unknown> {
 	const relation: unknown = Reflect.get(database, model);
 	if (!isDynamicRelation(relation)) {
 		throw new TypeError(`Unknown database model: ${model}`);
 	}
 	return relation;
-};
+}
 
-const defaultModelName = (model: string): string => (model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`);
+function defaultModelName(model: string): string {
+	return model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`;
+}
 
 export function effectPrismaAdapter<Database extends AnyDatabase, Services, BuildError>(
 	databaseTag: Database,
@@ -49,19 +56,21 @@ export function effectPrismaAdapter(
 			isDynamicDatabase(database) ? Effect.succeed(database) : Effect.die(new TypeError("The database service has no transaction")),
 		);
 
-		const run = <Value>(operation: (database: DynamicDatabase) => Effect.Effect<Value, unknown, unknown>): Promise<Value> =>
-			runtime.runPromise(Effect.flatMap(databaseEffect, operation));
+		function run<Value>(operation: (database: DynamicDatabase) => Effect.Effect<Value, unknown, unknown>): Promise<Value> {
+			return runtime.runPromise(Effect.flatMap(databaseEffect, operation));
+		}
 
 		const query: RelationQuery = (model, refinement, use) =>
 			run((database) => use(refineRelation(modelRelation(database, mapModelName(model)), refinement)));
 
-		const inTransaction = <Value>(callback: () => Promise<Value>): Effect.Effect<Value, unknown, unknown> =>
-			Effect.flatMap(Effect.context<unknown>(), (services) =>
+		function inTransaction<Value>(callback: () => Promise<Value>): Effect.Effect<Value, unknown, unknown> {
+			return Effect.flatMap(Effect.context<unknown>(), (services) =>
 				Effect.tryPromise({
 					catch: (error) => error,
 					try: () => runtime.runWithServices(services, callback),
 				}),
 			);
+		}
 
 		let factory: ReturnType<typeof createAdapterFactory>;
 		factory = createAdapterFactory({
@@ -73,9 +82,9 @@ export function effectPrismaAdapter(
 				supportsArrays: true,
 				supportsBooleans: true,
 				supportsDates: true,
-				supportsJSON: true,
+				"supportsJSON": true,
 				supportsNumericIds: true,
-				supportsUUIDs: true,
+				"supportsUUIDs": true,
 				transaction: (callback) => run((database) => database.transaction(inTransaction(() => callback(factory(authOptions))))),
 			},
 		});

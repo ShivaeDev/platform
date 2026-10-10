@@ -21,10 +21,10 @@ class Item extends Model.Class<Item>("ConstraintItem")({
 }) {}
 class NameTaken extends Schema.TaggedError<NameTaken>()("NameTaken", {}) {}
 
-const namedUniqueViolation =
-	(unique: string) =>
-	(error: SqlError): Effect.Effect<never, NameTaken | SqlError> =>
+function namedUniqueViolation(unique: string) {
+	return (error: SqlError): Effect.Effect<never, NameTaken | SqlError> =>
 		error.reason._tag === "UniqueViolation" && error.reason.constraint === unique ? Effect.fail(new NameTaken()) : Effect.fail(error);
+}
 
 integration("known unique constraints become domain failures after rollback; other SQL failures remain intact", async () => {
 	await Effect.runPromise(
