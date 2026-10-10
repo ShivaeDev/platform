@@ -5,7 +5,8 @@ import { Fleet } from "#fleet.ts";
 const dispatchPrepared = Effect.gen(function* () {
 	const fleet = yield* Fleet;
 	const prepared = (yield* fleet.list()).filter(({ value }) => value.stage === "prepared");
-	return yield* Effect.forEach(prepared, ({ value }) => fleet.dispatch(value.workId).pipe(Effect.result));
+	// Admission serializes capacity and quota in the store, so provider launch latency need not serialize the fan-out.
+	return yield* Effect.forEach(prepared, ({ value }) => fleet.dispatch(value.workId).pipe(Effect.result), { concurrency: "unbounded" });
 });
 const activeWork = Effect.gen(function* () {
 	const fleet = yield* Fleet;
