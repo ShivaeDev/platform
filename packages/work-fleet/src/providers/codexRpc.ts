@@ -3,6 +3,13 @@ import { Envelope } from "#providers/codexProtocol.ts";
 import { SessionFailure } from "#session/schema.ts";
 
 type Resume = (result: Effect.Effect<unknown, SessionFailure>) => void;
+const RpcError = Schema.Struct({ message: Schema.String });
+function rejection(error: unknown) {
+	const decoded = Schema.decodeUnknownOption(RpcError)(error);
+	return decoded._tag === "Some"
+		? `Codex rejected the protocol request: ${decoded.value.message.slice(0, 500)}`
+		: "Codex rejected the protocol request";
+}
 export interface CodexConnection {
 	readonly closed: {
 		value: boolean;
@@ -22,18 +29,17 @@ function failPending(connection: CodexConnection, error: SessionFailure) {
 	}
 	connection.pending.clear();
 }
-function openSocket(endpoint: string) {
+export interface CodexEndpoint {
+	readonly protocols?: readonly string[];
+	readonly url: URL;
+}
+function openSocket(endpoint: CodexEndpoint) {
 	return Effect.callback<CodexConnection, SessionFailure>((resume) => {
 		let socket: WebSocket;
 		try {
-			const url = new URL(endpoint);
-			if (url.protocol !== "ws:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.username !== "" || url.password !== "") {
-				resume(Effect.fail(failure("unavailable", "Local Codex requires an explicitly configured loopback WebSocket endpoint")));
-				return;
-			}
-			socket = new WebSocket(url);
+			socket = new WebSocket(endpoint.url, endpoint.protocols === undefined ? undefined : [...endpoint.protocols]);
 		} catch {
-			resume(Effect.fail(failure("unavailable", "Invalid local Codex endpoint")));
+			resume(Effect.fail(failure("unavailable", "Invalid Codex endpoint")));
 			return;
 		}
 		const connection: CodexConnection = { closed: { value: false }, nextId: { value: 0 }, pending: new Map(), socket };
@@ -47,7 +53,7 @@ function openSocket(endpoint: string) {
 		socket.addEventListener("close", disconnected);
 		socket.addEventListener("error", () => {
 			disconnected();
-			resume(Effect.fail(failure("unavailable", "Could not connect to the configured local Codex app-server")));
+			resume(Effect.fail(failure("unavailable", "Could not connect to the configured Codex endpoint")));
 		});
 		socket.addEventListener("open", () => resume(Effect.succeed(connection)), { once: true });
 		socket.addEventListener("message", (event) => {
@@ -63,9 +69,7 @@ function openSocket(endpoint: string) {
 				}
 				const pending = connection.pending.get(envelope.id);
 				connection.pending.delete(envelope.id);
-				pending?.(
-					envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(failure("rejected", "Codex rejected the protocol request")),
-				);
+				pending?.(envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(failure("rejected", rejection(envelope.error))));
 			} catch {
 				failPending(connection, failure("protocol", "Codex returned an invalid protocol envelope"));
 			}
@@ -73,7 +77,7 @@ function openSocket(endpoint: string) {
 		return Effect.sync(() => socket.close());
 	});
 }
-export function connect(endpoint: string, timeoutMs: number) {
+export function connect(endpoint: CodexEndpoint, timeoutMs: number) {
 	return Effect.acquireRelease(
 		openSocket(endpoint).pipe(
 			Effect.timeout(`${timeoutMs} millis`),
@@ -81,6 +85,12 @@ export function connect(endpoint: string, timeoutMs: number) {
 		),
 		(connection) => Effect.sync(() => connection.socket.close()),
 	);
+}
+export function initialize(connection: CodexConnection, timeoutMs: number, experimentalApi: boolean) {
+	return request(connection, timeoutMs, "initialize", {
+		capabilities: experimentalApi ? { experimentalApi } : null,
+		clientInfo: { name: "work-fleet", title: "Work Fleet", version: "0.0.0" },
+	}).pipe(Effect.andThen(Effect.sync(() => connection.socket.send(JSON.stringify({ method: "initialized" })))));
 }
 export function request(connection: CodexConnection, timeoutMs: number, method: string, params: unknown, mutation = false) {
 	return Effect.callback<unknown, SessionFailure>((resume) => {

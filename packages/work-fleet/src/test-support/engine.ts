@@ -73,6 +73,7 @@ export function withEngine<A, E, TBoardError = never>(
 			const policy: FleetConfiguration = {
 				deliveryBacklog: options.backlog ?? 2,
 				executionConcurrency: options.concurrency ?? 2,
+				...(options.launch === undefined ? {} : { launch: options.launch }),
 				now: () => 100,
 				operationId: () => {
 					operationCount += 1;

@@ -11,9 +11,11 @@ import { FleetRepository } from "#engine/repository.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
 import { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { Preparation } from "#preparation/schema.ts";
+import type { LaunchSettings } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
 export interface PrepareWork {
 	readonly cwd: string;
+	readonly launch?: LaunchSettings | undefined;
 	readonly preparation: Preparation;
 	readonly prompt: string;
 	readonly workId: string;

@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { Checks, Decision, DecisionResponse, Delivery, Review, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
-import { SessionReceipt } from "#session/schema.ts";
+import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
@@ -24,6 +24,7 @@ const cycleFields = {
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverySubmitted: Schema.optional(Schema.Boolean),
+	launch: Schema.optional(LaunchSettings),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,

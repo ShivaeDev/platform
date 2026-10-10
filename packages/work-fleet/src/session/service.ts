@@ -59,7 +59,14 @@ export const SessionService = defineService({
 				Effect.gen(function* () {
 					const sessionId = yield* restore(transport.startSession(input));
 					yield* journal.acknowledgeSession(input.operationId, sessionId);
-					const receipt = yield* restore(transport.startTurn({ operationId: input.operationId, prompt: input.prompt, sessionId }));
+					const receipt = yield* restore(
+						transport.startTurn({
+							operationId: input.operationId,
+							prompt: input.prompt,
+							sessionId,
+							...(input.settings === undefined ? {} : { settings: input.settings }),
+						}),
+					);
 					yield* validateReceipt(receipt, { sessionId });
 					yield* journal.acknowledgeTurn(input.operationId, receipt);
 					return receipt;

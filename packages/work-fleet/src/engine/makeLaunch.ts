@@ -23,10 +23,11 @@ export function makeLaunch({ store, board, policy, sessions, load, save, decisio
 			{ quota, role },
 		);
 		const original = stored.value.attempts.find((previous) => previous.role === "worker" && previous.receipt !== undefined)?.receipt;
+		const settings = { ...policy.launch, ...stored.value.launch };
 		const submitted =
 			role === "repair" && original !== undefined
-				? sessions.continue({ operationId: attempt.operationId, prompt, sessionId: original.sessionId })
-				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt });
+				? sessions.continue({ operationId: attempt.operationId, prompt, sessionId: original.sessionId, settings })
+				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {
