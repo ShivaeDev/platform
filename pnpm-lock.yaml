@@ -278,6 +278,9 @@ catalogs:
     mermaid:
       specifier: 11.16.1
       version: 11.16.1
+    pg:
+      specifier: 8.23.0
+      version: 8.23.0
     pg-boss:
       specifier: 12.23.1
       version: 12.23.1
@@ -1094,6 +1097,12 @@ importers:
 
   packages/work-fleet:
     dependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
@@ -1106,16 +1115,13 @@ importers:
       '@shivaedev/work-board':
         specifier: workspace:*
         version: link:../work-board
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
       yaml:
         specifier: 'catalog:'
         version: 2.9.0
     devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
@@ -1128,6 +1134,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.20.0
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2

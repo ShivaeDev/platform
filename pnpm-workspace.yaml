@@ -60,6 +60,7 @@ catalog:
   effect: 4.0.0-rc.112
   esbuild: 0.28.1
   better-auth: 1.6.30
+  pg: 8.23.0
   pg-boss: 12.23.1
   satteri: 0.9.5
   shiki: 4.4.2

@@ -1,0 +1,104 @@
+import { describe, expect } from "@effect/vitest";
+import { Clock, Effect, Fiber } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
+import { Fleet } from "#fleet.ts";
+import { admitApproved } from "#host/admission.ts";
+import { dispatchWork, hostLayer, runFleet } from "#host/commands.ts";
+import type { FleetHost } from "#host/config.ts";
+import { readOnlySql } from "#host/readOnlySql.ts";
+import { fleetStatus, renderStatus } from "#host/status.ts";
+import { WAIT_EXIT, waitFor } from "#host/wait.ts";
+import { finishWorkers } from "#test/engine.ts";
+import type { EngineProvider } from "#test/engineProvider.ts";
+import { task, withHost } from "#test/fleetHost.ts";
+import { storageDatabaseUrl } from "#test/storage.ts";
+
+const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {
+	const deadline = (yield* Clock.currentTimeMillis) + timeoutMs;
+	while (!condition()) {
+		if ((yield* Clock.currentTimeMillis) > deadline) {
+			return yield* Effect.die(new Error("condition was not reached in time"));
+		}
+		yield* Effect.sleep("20 millis");
+	}
+});
+
+function prompts(provider: EngineProvider) {
+	return [...provider.observations.values()].map((observation) => observation.output);
+}
+
+function record(host: FleetHost, workId: string, parts: Parameters<typeof hostLayer>[1]) {
+	return Effect.gen(function* () {
+		return (yield* (yield* Fleet).get(workId)).value;
+	}).pipe(Effect.provide(hostLayer(host, parts)));
+}
+
+describe("work-fleet host against PostgreSQL", () => {
+	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+
+	test("run launches each approved Board revision once and wait reports the human decision", function* () {
+		const files = { "a.md": task("a", "approved"), "b.md": task("b"), "c.md": task("c", "draft") };
+		yield* withHost(files, {}, (fixture) =>
+			Effect.gen(function* () {
+				const runner = yield* runFleet(fixture.host, fixture.parts).pipe(Effect.forkChild);
+				yield* until(() => fixture.provider.launched.length === 1);
+				yield* Effect.sleep("2500 millis");
+				expect(fixture.provider.launched).toHaveLength(1);
+				expect(prompts(fixture.provider)).toEqual([expect.stringContaining("id: a")]);
+				finishWorkers(fixture.provider);
+				const outcome = yield* waitFor({
+					databaseUrl: fixture.host.databaseUrl,
+					intervalMs: 100,
+					namespace: fixture.host.namespace,
+					timeoutMs: 15_000,
+					workId: "a",
+				});
+				yield* Fiber.interrupt(runner);
+				expect(outcome.code).toBe(WAIT_EXIT.needsHuman);
+				expect(outcome.summary).toMatch(/^a needs-human: /u);
+				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
+				expect(status).toContain("Active (0)");
+				expect(status).toContain("Needs human (1)\n  a  needs-human");
+			}),
+		);
+	}, 40_000);
+
+	test("one scheduler pass launches a hundred approved items", function* () {
+		const files = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`w${index}.md`, task(`w${index}`, "approved")]));
+		yield* withHost(files, { intervalSeconds: 3600 }, (fixture) =>
+			Effect.gen(function* () {
+				const runner = yield* runFleet(fixture.host, fixture.parts).pipe(Effect.forkChild);
+				yield* until(() => fixture.provider.launched.length === 100, 60_000);
+				yield* Fiber.interrupt(runner);
+				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
+				expect(status.active).toHaveLength(100);
+				expect(new Set(status.active.map((view) => view.stage))).toEqual(new Set(["executing"]));
+			}),
+		);
+	}, 90_000);
+
+	test("dispatch denies unapproved work and explicitly re-approves an edited revision", function* () {
+		const files = { "a.md": task("a", "approved", "First revision."), "b.md": task("b") };
+		yield* withHost(files, {}, (fixture) =>
+			Effect.gen(function* () {
+				const denied = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
+				expect(denied).toMatchObject({ message: 'b needs "fleet: approved" in its Board frontmatter', reason: "denied" });
+
+				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
+				const first = yield* record(fixture.host, "a", fixture.parts);
+				expect(first.stage).toBe("prepared");
+
+				fixture.write("a.md", task("a", "approved", "Second revision."));
+				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
+				expect((yield* record(fixture.host, "a", fixture.parts)).boardRevision).toBe(first.boardRevision);
+				expect(fixture.provider.launched).toHaveLength(0);
+
+				const { value } = yield* dispatchWork(fixture.host, "a", fixture.parts);
+				expect(value.stage).toBe("executing");
+				expect(value.boardRevision).not.toBe(first.boardRevision);
+				expect(fixture.provider.launched).toHaveLength(1);
+				expect(prompts(fixture.provider)).toEqual([expect.stringContaining("Second revision.")]);
+			}),
+		);
+	}, 30_000);
+});

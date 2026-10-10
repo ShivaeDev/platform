@@ -27,11 +27,15 @@ export const cycle = Effect.gen(function* () {
 		{ concurrency: "unbounded" },
 	);
 });
-export const run = Effect.fn("Fleet.run")(function* (interval: Parameters<typeof Effect.sleep>[0]) {
+export const run = Effect.fn("Fleet.run")(function* <R = never>(
+	interval: Parameters<typeof Effect.sleep>[0],
+	admit: Effect.Effect<void, never, R> = Effect.void,
+) {
 	const fleet = yield* Fleet;
 	const running = new Set<string>();
 	yield* Effect.forever(
 		Effect.gen(function* () {
+			yield* admit;
 			for (const { value } of yield* activeWork) {
 				if (running.has(value.workId)) {
 					continue;

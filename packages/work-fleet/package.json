@@ -32,6 +32,9 @@
 		},
 		"./package.json": "./package.json"
 	},
+	"bin": {
+		"work-fleet": "./dist/cli.js"
+	},
 	"files": [
 		"dist",
 		"src",
@@ -48,19 +51,21 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/work-board": "workspace:*",
+		"pg": "catalog:",
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
+		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
