@@ -1106,6 +1106,9 @@ importers:
       '@shivaedev/work-board':
         specifier: workspace:*
         version: link:../work-board
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'

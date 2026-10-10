@@ -2,10 +2,11 @@ import { Effect, Layer } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
-import { allAttempts, backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
+import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
+import type { ForeignReservation } from "#storage/model.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
@@ -20,7 +21,8 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly decisions: readonly string[];
 	readonly dependencies: (workId: string, references: readonly string[]) => void;
 	readonly editWork: (workId: string, revision: string) => void;
-	readonly foreign: (owner: string, paths: readonly string[]) => Effect.Effect<void, unknown>;
+	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
+	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
@@ -32,10 +34,13 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 }
 function boardWork(
 	id: string,
+	approved: Readonly<Record<string, string>>,
 	revisions: ReadonlyMap<string, string> = new Map(),
 	dependencies: ReadonlyMap<string, readonly string[]> = new Map(),
 ): BoardWork {
+	const revision = revisions.get(id) ?? `board-${id}`;
 	return {
+		approved: approved[id] === revision,
 		context: `Work ${id}: ${revisions.get(id) ?? `board-${id}`}`,
 		dependsOn: dependencies.get(id) ?? (id === "dependent" ? ["one"] : []),
 		revision: revisions.get(id) ?? `board-${id}`,
@@ -54,8 +59,6 @@ export function withEngine<A, E, TBoardError = never>(
 				backlog,
 				executing,
 				namespace,
-				owns,
-				reservations,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
 			const provider = engineProvider(options);
@@ -68,7 +71,6 @@ export function withEngine<A, E, TBoardError = never>(
 			const merged: string[] = [];
 			let operationCount = 0;
 			const policy: FleetConfiguration = {
-				approved,
 				deliveryBacklog: options.backlog ?? 2,
 				executionConcurrency: options.concurrency ?? 2,
 				now: () => 100,
@@ -81,7 +83,7 @@ export function withEngine<A, E, TBoardError = never>(
 			const scripted = scriptedBoard(options, decisions, (id) =>
 				unavailable.has(id)
 					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
-					: Effect.succeed(boardWork(id, revisions, dependencies)),
+					: Effect.succeed(boardWork(id, approved, revisions, dependencies)),
 			);
 			const base = Layer.mergeAll(
 				Layer.succeed(FleetRepository)(store),
@@ -92,11 +94,11 @@ export function withEngine<A, E, TBoardError = never>(
 			const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
 			const integrations = engineIntegrations(options, provider, reviews, merged).pipe(Layer.provide(session));
 			const fleetLayer = Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations)));
-			function foreign(owner: string, paths: readonly string[]) {
-				return store.reserveForeign(owner, paths, { backlog: true, executing: false });
+			function foreign(owner: string) {
+				return store.reserveForeign(owner, { backlog: true, executing: false });
 			}
-			if (options.foreign !== undefined) {
-				yield* foreign("foreign-pr", options.foreign);
+			if (options.foreignBacklog) {
+				yield* foreign("foreign-pr");
 			}
 			const journal = yield* SessionJournal.pipe(Effect.provide(fleetSessionJournal.pipe(Layer.provide(base))));
 			const fixture: EngineFixture<TBoardError> = {
@@ -115,6 +117,7 @@ export function withEngine<A, E, TBoardError = never>(
 					revisions.set(workId, revision);
 				},
 				foreign,
+				foreignReservations: store.foreignReservations,
 				merged,
 				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
@@ -126,7 +129,7 @@ export function withEngine<A, E, TBoardError = never>(
 						unavailable.delete(workId);
 					}
 				},
-				work: (id: string) => boardWork(id, revisions, dependencies),
+				work: (id: string) => boardWork(id, approved, revisions, dependencies),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));
 		}),

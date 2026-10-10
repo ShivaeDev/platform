@@ -48,17 +48,11 @@ export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Sc
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
 export const FleetRecord = Schema.Struct({ ...cycleFields, history: Schema.optional(Schema.Array(FleetCycleSnapshot)), workId: Schema.String });
 export type FleetRecord = typeof FleetRecord.Type;
-export function owns(record: FleetRecord): boolean {
-	return record.stage !== "completed" && record.stage !== "released";
-}
 export function executing(record: FleetRecord): boolean {
 	return record.attempts.some((attempt) => ["submitting", "accepted", "running"].includes(attempt.status));
 }
 export function backlog(record: FleetRecord): boolean {
 	return record.result?.kind === "change" && record.stage !== "completed" && record.stage !== "released";
-}
-export function reservations(record: FleetRecord): readonly string[] {
-	return owns(record) ? record.preparation.ownedPaths : [];
 }
 export const FleetView = Schema.Struct({
 	blocker: Schema.optional(Schema.String),

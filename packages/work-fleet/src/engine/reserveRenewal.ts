@@ -6,7 +6,7 @@ export function reserveRenewal({ store }: EngineState) {
 	return Effect.fn("Fleet.reserveRenewal")(function* (previous: WorkResult | undefined, current: WorkResult) {
 		for (const result of [previous, current]) {
 			if (result?.kind === "change") {
-				yield* store.reserveForeign(result.pr, result.paths, { backlog: true, executing: false, preservePaths: true });
+				yield* store.reserveForeign(result.pr, { backlog: true, executing: false });
 			}
 		}
 		if (previous?.kind === "change" && (current.kind !== "change" || current.pr !== previous.pr)) {

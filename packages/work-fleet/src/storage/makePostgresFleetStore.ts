@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { acquires, checkCapacity, checkOwnership, checkQuota, ownedPaths, validatePaths } from "#storage/admission.ts";
+import { acquires, checkCapacity, checkQuota } from "#storage/admission.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, ForeignReservation, type StoredRow } from "#storage/model.ts";
@@ -15,8 +15,6 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	schema: TSchema,
 	options: {
 		readonly namespace?: string;
-		readonly reservations: (record: TSchema["Type"]) => readonly string[];
-		readonly owns: (record: TSchema["Type"]) => boolean;
 		readonly executing?: (record: TSchema["Type"]) => boolean;
 		readonly backlog?: (record: TSchema["Type"]) => boolean;
 		readonly submissions?: (record: TSchema["Type"], since: number) => number;
@@ -39,7 +37,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		return yield* Effect.forEach(rows, decode);
 	});
 	const foreignReservations = Effect.fn("FleetStore.foreignReservations")(function* () {
-		const rows = yield* sql`select owner, paths, executing, backlog from ${sql(foreign)} order by owner`;
+		const rows = yield* sql`select owner, executing, backlog from ${sql(foreign)} order by owner`;
 		return yield* Schema.decodeUnknownEffect(Schema.Array(ForeignReservation))(rows);
 	});
 	const lock = sql`select pg_advisory_xact_lock(hashtextextended(${`work_fleet_admission:${namespace}`}, 0))`.pipe(Effect.asVoid);
@@ -53,7 +51,6 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		if (record.workId !== workId) {
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}
-		const paths = yield* validatePaths(options.reservations(record));
 		return yield* sql.withTransaction(
 			Effect.gen(function* () {
 				yield* lock;
@@ -64,14 +61,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				}
 				const others = (yield* list()).filter(({ value }) => value.workId !== workId);
 				const external = yield* foreignReservations();
-				const previousPaths = ownedPaths(previous?.value, options.owns, options.reservations);
 				const acquiringExecution = acquires(options.executing, record, previous?.value);
-				const newlyOwned = acquiringExecution || limits.recheckOwnership === true ? paths : paths.filter((path) => !previousPaths.includes(path));
-				const owners = [
-					...others.filter(({ value }) => options.owns(value)).map(({ value }) => ({ owner: value.workId, paths: options.reservations(value) })),
-					...external,
-				];
-				yield* checkOwnership(workId, options.owns(record) ? newlyOwned : [], owners);
 				yield* checkCapacity(
 					"execution",
 					limits.maxExecuting,
@@ -111,20 +101,12 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 					yield* sql`delete from ${sql(foreign)} where owner = ${owner}`;
 				}),
 			),
-		reserveForeign: Effect.fn("FleetStore.reserveForeign")(function* (
-			owner: string,
-			paths: readonly string[],
-			occupancy: { readonly executing: boolean; readonly backlog: boolean; readonly preservePaths?: boolean } = { backlog: true, executing: true },
-		) {
-			const valid = yield* validatePaths(paths);
-			yield* sql.withTransaction(
+		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
+			sql.withTransaction(
 				Effect.gen(function* () {
 					yield* lock;
-					const existing = occupancy.preservePaths ? ((yield* foreignReservations()).find((entry) => entry.owner === owner)?.paths ?? []) : [];
-					const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Array(Schema.String)))([...new Set([...valid, ...existing])]);
-					yield* sql`insert into ${sql(foreign)} (owner, paths, executing, backlog) values (${owner}, ${encoded}::jsonb, ${occupancy.executing}, ${occupancy.backlog}) on conflict (owner) do update set paths = excluded.paths, executing = excluded.executing, backlog = excluded.backlog`;
+					yield* sql`insert into ${sql(foreign)} (owner, executing, backlog) values (${owner}, ${occupancy.executing}, ${occupancy.backlog}) on conflict (owner) do update set executing = excluded.executing, backlog = excluded.backlog`;
 				}),
-			);
-		}),
+			),
 	};
 });

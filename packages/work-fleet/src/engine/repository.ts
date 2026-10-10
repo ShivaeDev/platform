@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { type Attempt, allAttempts, backlog, executing, FleetRecord, owns, reservations } from "#model.ts";
+import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
@@ -12,8 +12,6 @@ export function postgresFleetRepository(namespace?: string) {
 			const store = yield* makePostgresFleetStore(FleetRecord, {
 				backlog,
 				executing,
-				owns,
-				reservations,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 				...(namespace === undefined ? {} : { namespace }),
 			});

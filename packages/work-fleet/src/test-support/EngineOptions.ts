@@ -11,7 +11,7 @@ export interface EngineOptions {
 	readonly concurrency?: number;
 	readonly deliveryFailure?: boolean;
 	readonly denyDelivery?: boolean;
-	readonly foreign?: readonly string[];
+	readonly foreignBacklog?: boolean;
 	readonly lostAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;

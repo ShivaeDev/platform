@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import type { FleetRecord } from "#model.ts";
 import { type Checks, FleetFailure, type Review, type WorkResult } from "#policy.ts";
-import { pathsOverlap } from "#storage/admission.ts";
 export function validateResult(record: FleetRecord, result: WorkResult) {
 	const valid =
 		result.kind === "no-change"
@@ -25,4 +24,3 @@ export function validateChecks(checks: Checks, head: string) {
 		? Effect.void
 		: Effect.fail(new FleetFailure({ message: "Required validation has not passed for the actual head", reason: "invalid" }));
 }
-export const overlaps = pathsOverlap;

@@ -5,6 +5,7 @@ import type { SessionObservation } from "#session/schema.ts";
 import { SessionReceipt } from "#session/schema.ts";
 
 export const BoardWork = Schema.Struct({
+	approved: Schema.Boolean,
 	context: Schema.String,
 	dependsOn: Schema.Array(Schema.String),
 	revision: Schema.String,
@@ -73,7 +74,6 @@ export type Checks = typeof Checks.Type;
 export const Delivery = Schema.Struct({ head: Schema.String, revision: Schema.String, url: Schema.String });
 export type Delivery = typeof Delivery.Type;
 export interface FleetConfiguration {
-	readonly approved: Readonly<Record<string, string>>;
 	readonly deliveryBacklog?: number;
 	readonly executionConcurrency?: number;
 	readonly now: () => number;

@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import { pathsOverlap } from "#storage/admission.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch({ store, board, policy, sessions, load, save, decision }: EngineState) {
 	return Effect.fn("Fleet.launch")(function* (stored: Versioned<FleetRecord>, role: "worker" | "repair", prompt: string) {
@@ -17,13 +16,6 @@ export function makeLaunch({ store, board, policy, sessions, load, save, decisio
 			{ ...policy, quota },
 			board.get,
 		);
-		const foreign = yield* store.foreignReservations();
-		const overlap = foreign.find((entry) =>
-			entry.paths.some((path) => stored.value.preparation.ownedPaths.some((owned) => pathsOverlap(path, owned))),
-		);
-		if (overlap !== undefined) {
-			return yield* decision(stored, `Native ownership overlaps ${overlap.owner}`, "Wait for that owner to release this scope");
-		}
 		const attempt: Attempt = { operationId: policy.operationId(), role, status: "submitting", submittedAt: policy.now() };
 		const intent = yield* save(
 			stored,

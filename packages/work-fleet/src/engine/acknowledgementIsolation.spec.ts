@@ -4,7 +4,8 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardFailure } from "#policy.ts";
 import { deniedDecision } from "#test/deniedDecision.ts";
-import { prepareWork, withEngine } from "#test/engine.ts";
+import { withEngine } from "#test/engine.ts";
+import { prepared } from "#test/preparation.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
@@ -15,14 +16,15 @@ test("permanently failed historical superseded acknowledgement never blocks curr
 			acknowledgementQuery: (input) =>
 				input.disposition === "superseded" ? Effect.fail(new BoardFailure({ message: "Historical question unavailable" })) : Effect.void,
 			denyDelivery: true,
+			mainChanges: ["src/renewed.ts"],
 		},
 		(fixture) =>
 			Effect.gen(function* () {
 				const previous = yield* deniedDecision(fixture);
 				fixture.editWork("one", "board-one-renewed");
 				fixture.approveWork("one", "board-one-renewed");
-				yield* prepareWork("one");
 				const fleet = yield* Fleet;
+				yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["src/renewed.ts"] }), prompt: "Renewed work", workId: "one" });
 				const pending = yield* fleet.dispatch("one");
 				const currentId = pending.value.decision?.id ?? "missing";
 				expect(currentId).not.toBe(previous.id);

@@ -39,7 +39,7 @@ export const makeState = Effect.gen(function* () {
 				: {
 						...(admission.quota.available === undefined
 							? {}
-							: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt }, recheckOwnership: true }),
+							: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),
 						...(policy.executionConcurrency === undefined ? {} : { maxExecuting: policy.executionConcurrency }),
 						...(admission.role !== "worker" || policy.deliveryBacklog === undefined ? {} : { maxBacklog: policy.deliveryBacklog }),
 					},

@@ -51,7 +51,8 @@
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
-		"@shivaedev/work-board": "workspace:*"
+		"@shivaedev/work-board": "workspace:*",
+		"yaml": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",

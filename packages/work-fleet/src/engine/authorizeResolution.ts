@@ -4,12 +4,12 @@ import { executing, type FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 
 export const authorizeResolution = Effect.fn("Fleet.authorizeResolution")(function* (
-	{ board, policy, store }: EngineState,
+	{ board, store }: EngineState,
 	record: FleetRecord,
 	action: "retry" | "release",
 ) {
 	const work = yield* board.get(record.workId);
-	if (policy.approved[record.workId] !== work.revision) {
+	if (!work.approved) {
 		return yield* Effect.fail(new FleetFailure({ message: "Decision cannot grant execution or delivery authority", reason: "denied" }));
 	}
 	if (action !== "release") {
@@ -22,6 +22,6 @@ export const authorizeResolution = Effect.fn("Fleet.authorizeResolution")(functi
 		return yield* Effect.fail(new FleetFailure({ message: "Reconcile the submitted delivery before releasing ownership", reason: "denied" }));
 	}
 	if (record.result?.kind === "change") {
-		yield* store.reserveForeign(record.result.pr, record.result.paths, { backlog: true, executing: false, preservePaths: true });
+		yield* store.reserveForeign(record.result.pr, { backlog: true, executing: false });
 	}
 });

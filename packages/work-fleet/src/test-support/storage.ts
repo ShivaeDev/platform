@@ -8,7 +8,6 @@ export const storageDatabaseUrl = Option.getOrUndefined(Effect.runSync(Config.op
 
 export const StorageRecord = Schema.Struct({
 	operationId: Schema.optional(Schema.String),
-	paths: Schema.Array(Schema.String),
 	sessionId: Schema.optional(Schema.String),
 	stage: Schema.Literals(["prepared", "submitting", "running", "terminal", "completed"]),
 	submittedAt: Schema.optional(Schema.Number),
@@ -16,8 +15,8 @@ export const StorageRecord = Schema.Struct({
 	workId: Schema.String,
 });
 
-export function record(workId: string, path: string): typeof StorageRecord.Type {
-	return { paths: [path], stage: "prepared", workId };
+export function record(workId: string): typeof StorageRecord.Type {
+	return { stage: "prepared", workId };
 }
 
 export function storageOptions(namespace: string) {
@@ -25,8 +24,6 @@ export function storageOptions(namespace: string) {
 		backlog: (value: typeof StorageRecord.Type) => value.stage === "terminal",
 		executing: (value: typeof StorageRecord.Type) => value.stage === "submitting" || value.stage === "running",
 		namespace,
-		owns: (value: typeof StorageRecord.Type) => value.stage !== "completed",
-		reservations: (value: typeof StorageRecord.Type) => value.paths,
 		submissions: (value: typeof StorageRecord.Type, since: number) => (value.submittedAt !== undefined && value.submittedAt >= since ? 1 : 0),
 	};
 }

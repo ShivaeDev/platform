@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { prepared } from "#test/preparation.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet admission path", () => {
@@ -28,24 +29,17 @@ describe("Fleet admission path", () => {
 				}),
 			));
 	}
-	test("native overlapping owners block only their scope", () =>
-		withEngine({ foreign: ["src/one.ts"] }, (fixture) =>
-			Effect.gen(function* () {
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "StorageOwnershipConflict" });
-				yield* prepareWork("two");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("two");
-				expect(fixture.launched).toHaveLength(1);
-			}),
-		));
-	test("foreign ownership arriving after prepare blocks dispatch", () =>
+	test("work with overlapping scope and foreign PRs dispatches concurrently", () =>
 		withEngine({}, (fixture) =>
 			Effect.gen(function* () {
-				yield* prepareWork("one");
-				yield* fixture.foreign("human-pr", ["src/one.ts"]);
 				const fleet = yield* Fleet;
-				expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
-				expect(fixture.launched).toHaveLength(0);
+				for (const workId of ["one", "two"]) {
+					yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["."] }), prompt: `Implement ${workId}`, workId });
+				}
+				yield* fixture.foreign("human-pr");
+				expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+				expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
 	test("one unit of quota cannot admit two concurrent disjoint submissions", () =>
@@ -91,7 +85,7 @@ describe("Fleet admission path", () => {
 				yield* prepareWork("two");
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
-				yield* fixture.foreign("human-pr", ["other/file.ts"]);
+				yield* fixture.foreign("human-pr");
 				finishWorkers(fixture);
 				yield* fleet.dispatch("two").pipe(Effect.result);
 				expect((yield* fleet.get("two")).value.blocker).toContain("backlog");
