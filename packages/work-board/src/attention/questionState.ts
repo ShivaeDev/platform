@@ -1,8 +1,8 @@
 import type { Question } from "#browser/responses/schema.ts";
-import { identityUrl } from "#metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { questionFrom, responseFrom } from "#responses/records.ts";
+import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { attentionRequests, isMaintainerRequest } from "./requests.ts";
 
@@ -57,7 +57,7 @@ export function pendingQuestions(snapshot: Snapshot) {
 		return [
 			{
 				document: source,
-				href: identityUrl(question.question.item),
+				href: responseUrl(question.question.item, question.question.request),
 				id: question.question.item,
 				reason: question.question.reason,
 				title: titles.get(source.file) ?? source.file,
