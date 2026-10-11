@@ -15,6 +15,7 @@ export const Snapshot = Schema.Struct({
 });
 export type Snapshot = typeof Snapshot.Type;
 export const State = Schema.Struct({
+	openNumbers: Schema.optionalKey(Schema.Array(Schema.Int)),
 	prs: Schema.Record(Schema.String, Snapshot),
 	repository: Schema.String,
 	version: Schema.Literal(1),
