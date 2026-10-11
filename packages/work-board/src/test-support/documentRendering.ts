@@ -1,3 +1,4 @@
+import { Clock, Effect } from "effect";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, vi } from "vitest";
@@ -47,13 +48,18 @@ export async function mountDocument(document: Document, idPrefix = "") {
 	return { container, render };
 }
 export async function settledDocument(check: () => void) {
-	await vi.waitFor(
-		async () => {
-			await act(async () => {
-				await new Promise((resolve) => setTimeout(resolve, 10));
-			});
+	const deadline = Effect.runSync(Clock.currentTimeMillis) + 10_000;
+	for (;;) {
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		});
+		try {
 			check();
-		},
-		{ timeout: 10_000 },
-	);
+			return;
+		} catch (error) {
+			if (Effect.runSync(Clock.currentTimeMillis) >= deadline) {
+				throw error;
+			}
+		}
+	}
 }
