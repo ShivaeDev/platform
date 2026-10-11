@@ -1,3 +1,3 @@
-### Fixed
+### Changed
 
-- The Biome preset reports `noProcessGlobal` and `useJsonImportAttributes` as errors with their automatic fixes disabled. `quality fix` leaves process globals and JSON import attributes for the author to repair; `quality lint` reports them.
+- The Biome preset now reports a bare `process` global (`noProcessGlobal`) and a JSON import without `with { type: "json" }` (`useJsonImportAttributes`) as errors. Their automatic fixes stay disabled because Biome's own fixes hang or emit invalid syntax: `quality lint` reports them and the author repairs them by hand.
