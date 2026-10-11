@@ -50,6 +50,8 @@ using a provider must use the same durable session journal and reconcile the
 existing review operation after a lost response. Build and delivery policies
 belong to the runtime and must enforce actual branch requirements without bypass.
 
+The host reads GitHub check runs and commit statuses through an authenticated `gh` CLI for the adopted PR's exact commit SHA, including all pages. Pending or absent checks keep work in validation; failed checks send their names and links to the repair worker. A newer push does not replace the adopted head's evidence. The host requires all observed checks to succeed, be neutral or be skipped; this does not establish branch protection or merge authority. No-change validation still needs a runtime integration.
+
 ```ts
 import { Layer } from "effect";
 import { Fleet } from "@shivaedev/work-fleet/fleet.ts";
