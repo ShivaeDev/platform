@@ -1,4 +1,5 @@
 import { Effect, Stream } from "effect";
+import { DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
 import type { State } from "#host/waitOutcome.ts";
 import { FleetFailure } from "#policy.ts";
@@ -10,7 +11,7 @@ export interface FollowOptions {
 }
 
 export function follow(options: FollowOptions, workIds: readonly string[]) {
-	const port = options.port ?? 3457;
+	const port = options.port ?? DAEMON_PORT;
 	let ids = workIds;
 	let connected = false;
 	let failures = 0;

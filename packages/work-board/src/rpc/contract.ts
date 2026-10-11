@@ -3,6 +3,7 @@ import { Rpc } from "effect/unstable/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
+import { Document } from "#browser/document/schema.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -51,6 +52,12 @@ const Entry = Schema.Struct({
 	title: Schema.String,
 });
 const ReadPage = query("page", { payload: { url: PageUrl }, reads: ({ url }) => pageKeys(url), rejections: { ReadFailed }, success: Page });
+const ReadDocument = query("document", {
+	payload: { url: PageUrl },
+	reads: ({ url }) => [...pageKeys(url), index.list],
+	rejections: { ReadFailed },
+	success: Document,
+});
 const ReadNavigation = query("navigation", { reads: () => [workspace.list, navigation.list], rejections: { ReadFailed }, success: Schema.String });
 const ReadSearch = query("search", {
 	payload: { query: Schema.String.check(Schema.isMaxLength(8192)) },
@@ -69,6 +76,6 @@ const ReadWatcher = query("watcher", {
 	rejections: { ReadFailed },
 	success: Schema.Struct({ watching: Schema.Boolean }),
 });
-export const workContract = contract("work-board", { queries: [ReadPage, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher] });
+export const workContract = contract("work-board", { queries: [ReadPage, ReadDocument, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher] });
 export const Subscribe = Rpc.make("work-board.subscribe", { error: ReadFailed, stream: true, success: LiveHint });
 export const workRpcs = workContract.add(Subscribe).merge(responseContract).merge(handoffContract);
