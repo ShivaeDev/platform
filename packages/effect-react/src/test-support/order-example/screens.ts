@@ -5,7 +5,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { expect } from "vitest";
-import { eventually } from "#test/react.ts";
+import { eventually } from "#testing.ts";
 import { type Application, orderId } from "./applicationEngine.ts";
 import { makeOrderEditor } from "./frontend.tsx";
 

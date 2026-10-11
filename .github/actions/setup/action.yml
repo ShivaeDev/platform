@@ -69,7 +69,8 @@ runs:
         key: pnpm-cache-${{ runner.os }}-${{ steps.store.outputs.architecture }}-${{ hashFiles('pnpm-lock.yaml') }}
     - shell: bash
       if: steps.workspace-cache.outputs.cache-hit != 'true' || steps.store.outputs.install-hooks == 'true'
-      run: pnpm install --frozen-lockfile
+      # Re-verify every entry against the supply-chain policy that local installs trust.
+      run: pnpm install --frozen-lockfile --trust-lockfile=false
     - name: Validate manifests against cached dependencies
       shell: bash
       if: steps.workspace-cache.outputs.cache-hit == 'true' && steps.store.outputs.install-hooks != 'true'

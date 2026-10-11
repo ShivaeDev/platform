@@ -1,18 +1,17 @@
 import { Effect } from "effect";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { documentHeadings } from "./documentHeadings.ts";
-import { Highlighter } from "./highlighter.ts";
+import { Highlighter } from "./Highlighter.ts";
 import { renderMarkdown } from "./markdown.ts";
 
-it("assigns unambiguous Unicode anchors across board fragments and ignores footnote headings", async () => {
+it.live("assigns unambiguous Unicode anchors across board fragments and ignores footnote headings", function* () {
 	const headings = documentHeadings();
-	const result = await Effect.runPromise(
-		Effect.gen(function* () {
-			const first = yield* renderMarkdown("# **Evidence**\n\n## Evidence\n\nA claim.[^source]\n\n[^source]: Proof.", { headings });
-			const second = yield* renderMarkdown('### Evidence-2\n\n### Evidence\n\n## Απόφαση\n\n## !!!\n\n<h2 id="authored">Kept</h2>', { headings });
-			return first + second;
-		}).pipe(Effect.provide(Highlighter.layer)),
-	);
+	const result = yield* Effect.gen(function* () {
+		const first = yield* renderMarkdown("# **Evidence**\n\n## Evidence\n\nA claim.[^source]\n\n[^source]: Proof.", { headings });
+		const second = yield* renderMarkdown('### Evidence-2\n\n### Evidence\n\n## Απόφαση\n\n## !!!\n\n<h2 id="authored">Kept</h2>', { headings });
+		return first + second;
+	}).pipe(Effect.provide(Highlighter.layer));
 	expect(headings.entries.map(({ id }) => id)).toEqual([
 		"heading-evidence",
 		"heading-evidence-2",

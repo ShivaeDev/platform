@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect";
+import { Unanswered } from "#rpc/rejections.ts";
 import { agentRequest } from "./agent.ts";
 import { flags } from "./flags.ts";
 
@@ -22,7 +23,7 @@ export async function runAgent(args: readonly string[]) {
 			{ signal: controller.signal },
 		);
 		if (result._tag === "Failure") {
-			if (result.failure instanceof Error && "code" in result.failure && result.failure.code === "Unanswered") {
+			if (result.failure instanceof Unanswered) {
 				process.exitCode = 2;
 			}
 			throw result.failure;

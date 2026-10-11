@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { formOwner } from "#browser/fieldFeedback.ts";
-import { authorLabel } from "./authorLabel.ts";
-import { draftSession } from "./draftSession.ts";
-import { requestAuthor, responseFields } from "./fields.ts";
+import { responseDraft } from "./draft.ts";
+import { responseFeedback } from "./feedback.ts";
+import { responseFields } from "./fields.ts";
 import { responseForm } from "./form.ts";
 import { responsePreview } from "./preview.ts";
 import { questionnaireControls } from "./questionnaireControls.ts";
@@ -28,19 +28,11 @@ function attach() {
 	if (status.textContent?.includes("JavaScript is required")) {
 		status.textContent = "Draft ready. Preview the Markdown before recording it.";
 	}
-	const item = form.dataset.item ?? "";
-	const request = form.dataset.request ?? "";
 	const revision = form.dataset.revision ?? "";
 	const questionId = form.dataset.question ?? "";
-	const key = `${item}/${request}`;
-	const storage = `work-board:drafts:${document.documentElement.dataset.workspace}`;
-	let storageApi: Storage | undefined;
-	try {
-		storageApi = window.localStorage;
-	} catch {
-		storageApi = undefined;
-	}
-	const drafts = draftSession(key, revision, storageApi, storage, (message) => {
+	let notice = "";
+	const { drafts, label } = responseDraft(form, (message) => {
+		notice = message;
 		status.textContent = message;
 	});
 	let draft = drafts.current();
@@ -48,12 +40,12 @@ function attach() {
 	const controls = questionnaireControls(form, owner.signal);
 	let recovery = controls.restore(draft, revision);
 	if (draft.question && draft.question !== questionId && draft.revision === revision) {
-		status.textContent = "Source moved since this draft. Text is retained and selections cleared; review the source and preview before responding.";
+		notice = "Source moved since this draft. Text is retained and selections cleared; review the source and preview before responding.";
+		status.textContent = notice;
 	}
 	if (supersedes instanceof HTMLSelectElement) {
 		supersedes.value = draft.supersedes ?? "";
 	}
-	const label = authorLabel(storageApi, document.documentElement.dataset.workspace);
 	author.value = label.read(draft.author);
 	body.value = draft.body;
 	type.value = draft.type;
@@ -61,6 +53,8 @@ function attach() {
 	const { model, sync, valid } = responseForm(form, fields, draft, controls, owner, (values) =>
 		submitResponse(form, status, drafts, pending, values),
 	);
+	const feedback = responseFeedback(form, fields, valid);
+	feedback.show(notice);
 	function save() {
 		const values = sync();
 		label.save(values.author);
@@ -82,6 +76,7 @@ function attach() {
 			save();
 			preview.hidden = true;
 			submit.disabled = true;
+			feedback.show(notice);
 		},
 		{ signal: owner.signal },
 	);
@@ -90,8 +85,10 @@ function attach() {
 	previewButton.addEventListener(
 		"click",
 		() => {
-			requestAuthor(form, status, author);
 			save();
+			if (notice.startsWith("Source ")) {
+				notice = "";
+			}
 			model.change(
 				"id",
 				draft.revision === revision && (!draft.question || draft.question === questionId) ? drafts.current().id : `response.${crypto.randomUUID()}`,
@@ -101,7 +98,8 @@ function attach() {
 			draft = drafts.update({ ...model.values.value, recovery });
 			preview.textContent = responsePreview(draft, questionId ?? "", controls.models);
 			preview.hidden = false;
-			submit.disabled = form.dataset.writable !== "true" || !valid();
+			const ready = feedback.show(notice, true);
+			submit.disabled = form.dataset.writable !== "true" || !ready;
 		},
 		{ signal: owner.signal },
 	);
@@ -110,7 +108,13 @@ function attach() {
 		"submit",
 		async (event) => {
 			event.preventDefault();
-			if (submit.disabled || draft.revision !== revision || draft.question !== questionId || !valid() || !form.reportValidity()) {
+			sync();
+			if (!feedback.show(notice, true)) {
+				feedback.focus();
+				return;
+			}
+			if (submit.disabled || draft.revision !== revision || draft.question !== questionId) {
+				status.textContent = "Preview the current draft before recording. Your text is retained.";
 				return;
 			}
 			submit.disabled = true;

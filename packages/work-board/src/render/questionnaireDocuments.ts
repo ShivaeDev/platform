@@ -17,11 +17,13 @@ function answerAction(href: string): Paragraph {
 
 export function questionnaireDocuments(actions?: ReadonlyMap<string, string>) {
 	return (tree: Root) => {
+		const shown = new Set<string>();
 		visit(tree, "containerDirective", (node) => {
 			if (node.name === "question" || node.name === "option") {
 				node.data = { hName: "section", hProperties: { className: ["questionnaire-reading", `questionnaire-${node.name}`] } };
 				const href = node.name === "question" ? actions?.get(`${node.attributes?.request ?? ""}/${node.attributes?.id ?? ""}`) : undefined;
-				if (href) {
+				if (href && !shown.has(href)) {
+					shown.add(href);
 					node.children.unshift(answerAction(href));
 				}
 			}

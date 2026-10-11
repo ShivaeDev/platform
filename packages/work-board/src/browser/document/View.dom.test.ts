@@ -1,8 +1,9 @@
 import { Effect } from "effect";
-import { expect, it, vi } from "vitest";
+import { expect, vi } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { documentData, mountDocument, settledDocument } from "#test/documentRendering.ts";
 import { documentSource } from "#test/documentSource.ts";
@@ -13,15 +14,16 @@ const engine = vi.hoisted(() => ({
 	initialize: vi.fn(),
 	render: vi.fn(async () => ({ svg: '<svg role="img"><text>Question → Response → History</text></svg>' })),
 }));
+
 vi.mock("mermaid", () => ({ default: engine }));
 
-it("renders Board document fixtures with GFM, footnotes, directives, query links, HTML and a Mermaid code override", async () => {
+it.live("renders Board document fixtures with GFM, footnotes, directives, query links, HTML and a Mermaid code override", function* () {
 	const questionActions = {
 		"/checks": "/_board/respond?item=investigation.choices&request=direction",
 		"/display": "/_board/respond?item=investigation.choices&request=direction",
 	};
-	const { container } = await mountDocument({ ...documentData(documentSource), questionActions }, "reading-");
-	await settledDocument(() => expect(container.querySelector(".diagram")?.getAttribute("data-state")).toBe("drawn"));
+	const { container } = yield* Effect.promise(() => mountDocument({ ...documentData(documentSource), questionActions }, "reading-"));
+	yield* Effect.promise(() => settledDocument(() => expect(container.querySelector(".diagram")?.getAttribute("data-state")).toBe("drawn")));
 	expect(container.querySelector("h1")?.id).toBe("heading-reading-experience");
 	expect(container.querySelector("h1 .heading-anchor")?.getAttribute("href")).toBe("#heading-reading-experience");
 	expect(container.querySelector("th")?.textContent).toBe("Check");
@@ -32,7 +34,7 @@ it("renders Board document fixtures with GFM, footnotes, directives, query links
 	expect(container.querySelector("#reading-user-content-fn-source")?.textContent).toContain("Read the source");
 	expect(container.querySelectorAll(".questionnaire-question")).toHaveLength(2);
 	expect(container.querySelectorAll(".questionnaire-option")).toHaveLength(4);
-	expect([...container.querySelectorAll(".questionnaire-answer")].map((link) => link.getAttribute("href"))).toEqual(Object.values(questionActions));
+	expect([...container.querySelectorAll(".questionnaire-answer")].map((link) => link.getAttribute("href"))).toEqual([questionActions["/display"]]);
 	expect(container.querySelector(".visual-progress progress")?.getAttribute("value")).toBe("3");
 	expect(container.querySelector(".visual-metric .visual-value")?.textContent).toBe("0 documents");
 	expect(container.querySelectorAll(".visual-timeline-entries li")).toHaveLength(2);
@@ -50,24 +52,22 @@ it("renders Board document fixtures with GFM, footnotes, directives, query links
 	);
 });
 
-it("matches server Markdown output apart from query-fed links and the drawn Mermaid SVG", async () => {
+it.live("matches server Markdown output apart from query-fed links and the drawn Mermaid SVG", function* () {
 	const source = metadataParse(documentSource).body;
 	const questionActions = {
 		"/checks": "/_board/respond?item=investigation.choices&request=direction",
 		"/display": "/_board/respond?item=investigation.choices&request=direction",
 	};
-	const html = await Effect.runPromise(
-		renderMarkdown(source, {
-			file: "nested/reading.md",
-			headings: documentHeadings(true),
-			questionActions: new Map(Object.entries(questionActions)),
-		}).pipe(Effect.provide(Highlighter.layer)),
-	);
+	const html = yield* renderMarkdown(source, {
+		file: "nested/reading.md",
+		headings: documentHeadings(true),
+		questionActions: new Map(Object.entries(questionActions)),
+	}).pipe(Effect.provide(Highlighter.layer));
 	const server = document.createElement("div");
 	server.innerHTML = html;
 	const input = { ...documentData(documentSource), links: {}, questionActions };
-	const { container } = await mountDocument(input);
-	await settledDocument(() => expect(container.querySelector(".diagram-svg svg")).not.toBeNull());
+	const { container } = yield* Effect.promise(() => mountDocument(input));
+	yield* Effect.promise(() => settledDocument(() => expect(container.querySelector(".diagram-svg svg")).not.toBeNull()));
 	const client = container.querySelector("article");
 	for (const selector of [
 		"h1",
@@ -87,12 +87,14 @@ it("matches server Markdown output apart from query-fed links and the drawn Merm
 	expect(container.querySelector(".diagram-source")?.textContent).toBe(server.querySelector(".diagram-source")?.textContent);
 });
 
-it("replaces rendered source without accumulating heading anchors and keeps failed diagrams readable", async () => {
-	const view = await mountDocument(documentData(questionnaireSource));
-	await settledDocument(() => expect(view.container.querySelector("h1")).not.toBeNull());
+it.live("replaces rendered source without accumulating heading anchors and keeps failed diagrams readable", function* () {
+	const view = yield* Effect.promise(() => mountDocument(documentData(questionnaireSource)));
+	yield* Effect.promise(() => settledDocument(() => expect(view.container.querySelector("h1")).not.toBeNull()));
 	engine.render.mockRejectedValueOnce(new Error("Invalid diagram"));
-	await view.render(documentData("# Changed\n\n# Changed\n\n```mermaid\ninvalid diagram\n```"));
-	await settledDocument(() => expect(view.container.querySelector("[data-diagram-error]")?.textContent).toContain("Invalid diagram"));
+	yield* Effect.promise(() => view.render(documentData("# Changed\n\n# Changed\n\n```mermaid\ninvalid diagram\n```")));
+	yield* Effect.promise(() =>
+		settledDocument(() => expect(view.container.querySelector("[data-diagram-error]")?.textContent).toContain("Invalid diagram")),
+	);
 	expect([...view.container.querySelectorAll("h1")].map((element) => element.id)).toEqual(["heading-changed", "heading-changed-2"]);
 	expect(view.container.querySelectorAll(".heading-anchor")).toHaveLength(2);
 	expect(view.container.querySelector(".diagram-source")?.textContent).toContain("invalid diagram");

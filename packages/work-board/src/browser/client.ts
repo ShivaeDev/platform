@@ -1,4 +1,4 @@
-import { Effect, Layer, Stream } from "effect";
+import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import type * as Atom from "effect/unstable/reactivity/Atom";
@@ -11,9 +11,9 @@ import { type Bound, bind } from "@shivaedev/effect-contract/bind.ts";
 import type { Contract } from "@shivaedev/effect-contract/contract.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { type ResumeOptions, resumeSignal } from "@shivaedev/effect-contract/resume.ts";
-import { type ReadFailed, workContract, workRpcs } from "#rpc/contract.ts";
+import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Subscribe, workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
-import { workspace } from "#rpc/keys.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
 export interface Reader {
@@ -21,7 +21,9 @@ export interface Reader {
 }
 
 type BoundContract<TContract> =
-	TContract extends Contract<infer TName, infer TQueries, infer TCommands, infer TRpcs> ? Bound<TName, TQueries, TCommands, TRpcs, Reader> : never;
+	TContract extends Contract<infer TName, infer TQueries, infer TCommands, infer TRpcs, infer TStreams>
+		? Bound<TName, TQueries, TCommands, TRpcs, Reader, TStreams>
+		: never;
 export interface BrowserClient {
 	readonly api: BoundContract<typeof workContract>;
 	readonly handoffs: BoundContract<typeof handoffContract>;
@@ -30,7 +32,7 @@ export interface BrowserClient {
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly responses: BoundContract<typeof responseContract>;
 	readonly run: <A, E>(effect: Effect.Effect<A, E, Reader>, signal?: AbortSignal) => Promise<A>;
-	readonly updates: ReturnType<typeof live<Reader, ReadFailed | RpcClientError, never>>;
+	readonly updates: ReturnType<typeof live<Reader, InternalServerError | RpcClientError, never>>;
 }
 
 export function browserClient(url: string, options: ResumeOptions = {}): BrowserClient {
@@ -42,8 +44,8 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 0, timeoutResolution: 1 });
 	const updates = live(Client.runtime, {
 		resume: resumeSignal(options),
-		resyncKeys: [workspace.list],
-		stream: Stream.unwrap(Client.use((client) => Effect.succeed(client("work-board.subscribe", undefined)))),
+		resyncKeys: Subscribe.reads(undefined),
+		stream: api.subscribe.run(undefined),
 	});
 	registry.mount(updates.connection);
 	async function read<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, signal?: AbortSignal) {

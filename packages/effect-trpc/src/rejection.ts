@@ -9,6 +9,8 @@ const TAXONOMY_CODES = new Map<string, TRPC_ERROR_CODE_KEY>([
 	["PreconditionFailed", "PRECONDITION_FAILED"],
 	["TooManyRequests", "TOO_MANY_REQUESTS"],
 	["AuthUnavailable", "SERVICE_UNAVAILABLE"],
+	["ServiceUnavailable", "SERVICE_UNAVAILABLE"],
+	["InternalServerError", "INTERNAL_SERVER_ERROR"],
 ]);
 
 export const rejectionCode = (tag: string): TRPC_ERROR_CODE_KEY => TAXONOMY_CODES.get(tag) ?? "BAD_REQUEST";

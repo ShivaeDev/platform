@@ -1,8 +1,9 @@
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { boardHtml } from "#page/board.ts";
 import { boardOf, countsOf } from "#render/board.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 
 const notes = `# Project notes
 
@@ -38,7 +39,7 @@ Finished work moves to the changelog.
 `;
 
 function html(source: string) {
-	return Effect.runPromise(boardHtml(boardOf(source), "plan.md", 0).pipe(Effect.provide(Highlighter.layer)));
+	return boardHtml(boardOf(source), "plan.md", 0).pipe(Effect.provide(Highlighter.layer));
 }
 
 describe("the board", () => {
@@ -49,8 +50,8 @@ describe("the board", () => {
 		);
 	});
 
-	it("renders the counts, items, notes and footer", async () => {
-		const rendered = await html(notes);
+	it.live("renders the counts, items, notes and footer", function* () {
+		const rendered = yield* html(notes);
 		expect(rendered).toContain(
 			'<h1 id="heading-project-notes" tabindex="-1">Project notes<a aria-label="Link to Project notes" class="heading-anchor" href="#heading-project-notes"></a></h1>',
 		);
@@ -79,23 +80,23 @@ describe("the board", () => {
 		expect(board.footer).toBe("The end.");
 	});
 
-	it("resolves reference links and footnotes inside cards", async () => {
+	it.live("resolves reference links and footnotes inside cards", function* () {
 		const referenced = notes
 			.replace("Checks are green.", "Checks are green, see [the run][run] and the note[^flaky].")
 			.concat("\n[run]: https://example.com/runs/7\n\n[^flaky]: One check was retried.\n");
-		const rendered = await html(referenced);
+		const rendered = yield* html(referenced);
 		expect(rendered).toContain('<a href="https://example.com/runs/7">the run</a>');
 		expect(rendered).toContain("One check was retried.");
 		expect(rendered).not.toContain("[run]");
 		expect(rendered).not.toContain("[^flaky]");
 	});
 
-	it("gives each card's footnotes their own ids", async () => {
+	it.live("gives each card's footnotes their own ids", function* () {
 		const shared = notes
 			.replace("Checks are green.", "Checks are green[^flaky].")
 			.replace("### Update the screenshots", "### Update the screenshots\n\nAfter the retry[^flaky].")
 			.concat("\n[^flaky]: One check was retried.\n");
-		const rendered = await html(shared);
+		const rendered = yield* html(shared);
 		const ids = [...rendered.matchAll(/ id="([^"]+)"/gu)].map(([, id]) => id);
 		const targets = [...rendered.matchAll(/ href="#([^"]+)"/gu)].map(([, id]) => id);
 		expect(ids.filter((id) => id?.includes("user-content-fn"))).toHaveLength(4);

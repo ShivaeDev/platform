@@ -2,12 +2,11 @@ import { RegistryContext } from "@effect/atom-react";
 import { Cause, Deferred, Effect, type Exit, Layer, Option } from "effect";
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
 import { onTestFinished } from "vitest";
 import { type QueryOptions, useQuery } from "#result-state.ts";
+import { render as renderView } from "#testing.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
@@ -64,19 +63,11 @@ function QueryProbe({ atom, options }: { readonly atom: Query; readonly options:
 }
 
 export async function queryView(atom: Query, options: QueryOptions = {}) {
-	const registry = AtomRegistry.make();
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
-	onTestFinished(async () => {
-		await act(async () => root.unmount());
-		registry.dispose();
-		container.remove();
-	});
+	const view = await renderView(null);
+	const { registry, container } = view;
+	onTestFinished(view.unmount);
 	async function render(next: Query, nextOptions = options, owner = registry) {
-		await act(async () =>
-			root.render(createElement(RegistryContext.Provider, { value: owner }, createElement(QueryProbe, { atom: next, options: nextOptions }))),
-		);
+		await view.render(createElement(RegistryContext.Provider, { value: owner }, createElement(QueryProbe, { atom: next, options: nextOptions })));
 	}
 	await render(atom);
 	return {
