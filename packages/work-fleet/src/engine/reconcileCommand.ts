@@ -16,7 +16,7 @@ function capacityFailure(error: unknown) {
 		error instanceof StorageAdmission
 		|| error instanceof StorageQuota
 		|| error instanceof StorageCapacity
-		|| (error instanceof FleetFailure && error.reason === "denied" && error.message.includes("quota"))
+		|| (error instanceof FleetFailure && error.code === "provider-quota-unavailable")
 	);
 }
 export function reconcileCommand(state: EngineState, advance: ReturnType<typeof makeAdvance>) {

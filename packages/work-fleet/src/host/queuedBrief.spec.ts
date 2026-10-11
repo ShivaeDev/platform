@@ -21,7 +21,9 @@ for (const rejectedCall of ["session", "turn"] as const) {
 		const provider = engineProvider(
 			{
 				submissionFailure: (call) =>
-					reject && call === rejectedCall ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined,
+					reject && call === rejectedCall
+						? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" })
+						: undefined,
 			},
 			[],
 		);

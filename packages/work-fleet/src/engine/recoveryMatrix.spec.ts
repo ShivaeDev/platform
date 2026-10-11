@@ -4,6 +4,7 @@ import { describe, expect } from "@effect/vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import { decisionSites, sourceDecisionSites } from "#test/decisionSites.ts";
+import { recoveryCapacityCases } from "#test/recoveryCapacityCases.ts";
 import { recoveryCases } from "#test/recoveryCases.ts";
 import { recoveryDaemon } from "#test/recoveryDaemon.ts";
 import { runRecoveryCase } from "#test/runRecoveryCase.ts";
@@ -11,14 +12,15 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const scenarios = recoveryCases();
+const rows = [...scenarios, ...recoveryCapacityCases];
 const covered = new Set(scenarios.flatMap((scenario) => scenario.sites));
 covered.add('engine/makeState.ts: stage: "needs-human"');
 function uncovered(sites: readonly string[]) {
 	return sites.filter((site) => !covered.has(site));
 }
 
-function uncoveredCodes(codes: readonly string[], rows = scenarios) {
-	const coveredCodes = new Set<string>(rows.map((scenario) => scenario.code));
+function uncoveredCodes(codes: readonly string[], cases = rows) {
+	const coveredCodes = new Set<string>(cases.map((scenario) => scenario.code));
 	return codes.filter((code) => !coveredCodes.has(code));
 }
 
@@ -37,11 +39,22 @@ describe("every published Fleet decision has a recovery", () => {
 		expect(uncoveredCodes(DecisionCode.literals)).toEqual([]);
 	});
 	it("a missing code row fails the matrix guard", () => {
-		const rows = scenarios.filter((scenario) => scenario.code !== "reviewed-pr-ready");
-		expect(uncoveredCodes(DecisionCode.literals, rows)).toEqual(["reviewed-pr-ready"]);
+		const missing = rows.filter((scenario) => scenario.code !== "reviewed-pr-ready");
+		expect(uncoveredCodes(DecisionCode.literals, missing)).toEqual(["reviewed-pr-ready"]);
+		for (const code of ["session-queue-full", "provider-quota-unavailable"]) {
+			expect(
+				uncoveredCodes(
+					DecisionCode.literals,
+					rows.filter((scenario) => scenario.code !== code),
+				),
+			).toEqual([code]);
+		}
 		expect(uncoveredCodes([...DecisionCode.literals, "new-code"])).toEqual(["new-code"]);
 	});
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	for (const scenario of recoveryCapacityCases) {
+		it.live.skipIf(storageDatabaseUrl === undefined)(`${scenario.code}: ${scenario.name}`, scenario.run);
+	}
 	for (const action of ["retry", "release"] as const) {
 		it.live.skipIf(storageDatabaseUrl === undefined)(
 			`HTTP daemon closes before the ${action} answer and restarts against the same PostgreSQL records`,

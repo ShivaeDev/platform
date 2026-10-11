@@ -16,7 +16,8 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queue-full answer retries 
 	return withFleetBoard(
 		{
 			now: () => now,
-			submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+			submissionFailure: () =>
+				reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 		},
 		(fixture, root) =>
 			Effect.gen(function* () {
@@ -53,7 +54,8 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer survives an 
 		{
 			launch,
 			now: () => now,
-			submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+			submissionFailure: () =>
+				reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 		},
 		(fixture, root, source) =>
 			Effect.gen(function* () {

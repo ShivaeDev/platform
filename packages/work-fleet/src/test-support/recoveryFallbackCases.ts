@@ -12,7 +12,7 @@ export function recoveryFallbackCases(): readonly RecoveryCase[] {
 	const failures = [
 		...(["missing", "stale", "denied", "integration", "invalid"] as const).map((reason) => ({
 			code: `fleet-${reason}` as const,
-			failure: new FleetFailure({ message: "Host-specific failure text", reason }),
+			failure: new FleetFailure({ message: reason === "denied" ? "Synthetic quota denial" : "Host-specific failure text", reason }),
 		})),
 		...(["unavailable", "rejected", "ambiguous", "protocol", "persistence"] as const).map((reason) => ({
 			code: `session-${reason}` as const,

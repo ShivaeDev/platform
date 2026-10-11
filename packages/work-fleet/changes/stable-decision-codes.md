@@ -5,3 +5,4 @@
 ### Fixed
 
 - Release-only answers, worker-report correction, delivery retries and merge-ready reconciliation use decision codes, so rewording a reason leaves those rules unchanged. The recovery matrix requires a row for every code and exercises retry and release after restart against PostgreSQL.
+- `DecisionCode` also includes `session-queue-full` for Codex RPC overload rejections and `provider-quota-unavailable` for quota admission failures. Launch backoff and quota waiting use these codes independently of message wording; integrations can supply them through the existing optional failure code fields.

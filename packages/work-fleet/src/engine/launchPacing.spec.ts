@@ -73,7 +73,9 @@ describe("Fleet launch acknowledgement pacing", () => {
 					if (call === "turn") {
 						turns += 1;
 					}
-					return call === "turn" && turns === 2 ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined;
+					return call === "turn" && turns === 2
+						? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" })
+						: undefined;
 				},
 			},
 			(fixture) =>
@@ -98,7 +100,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 				concurrency: 3,
 				lostAcknowledgement: true,
 				sessionAcknowledgementGate: Effect.sleep("1500 millis").pipe(
-					Effect.andThen(Effect.fail(new SessionFailure({ message: "Request queue is full", reason: "rejected" }))),
+					Effect.andThen(Effect.fail(new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }))),
 				),
 			},
 			(fixture) =>
