@@ -12,10 +12,13 @@ export const connectRouter = (control) => {
   let resolved = location.href;
   router.subscribe(() => {
     if (location.href === resolved) return;
+    const previous = new URL(resolved);
+    const target = new URL(location.href);
     resolved = location.href;
     const entry = history.state?.workBoard;
     const id = entry?.id && entry.id !== displayedId ? entry.id : newId();
-    navigate(new URL(location.href), { ...entry, id });
+    const hashOnly = target.pathname === previous.pathname && target.search === previous.search;
+    navigate(target, { ...entry, id, reading: id === entry?.id ? entry.reading : null }, hashOnly);
   });
 };
 const open = async (target) => {
@@ -41,6 +44,7 @@ try {
 let count = 0;
 const newId = () => Date.now() + "-" + ++count;
 let displayedId = history.state?.workBoard?.id ?? newId();
+let displayedRoute = location.pathname + location.search;
 let version = 0;
 let controller;
 export const pageVersion = () => version;
@@ -71,8 +75,9 @@ const saveCurrent = (write = true) => {
 };
 window.addEventListener("pagehide", () => saveCurrent(false));
 
-const navigate = async (target, entry) => {
-  const sameDocument = document.getElementById("favorite-toggle") !== null && displayedId === history.state?.workBoard?.id && target.pathname === location.pathname && target.search === location.search;
+const navigate = async (target, entry, hashOnly = false) => {
+  const route = target.pathname + target.search;
+  const sameDocument = route === displayedRoute;
   saveCurrent(!entry);
   const id = entry?.id ?? newId();
   if (!entry) history.pushState(stateWith(id), "", target);
@@ -82,15 +87,18 @@ const navigate = async (target, entry) => {
   controller = new AbortController();
   const status = document.getElementById("navigation-status");
   status.textContent = "";
-  if (!entry && sameDocument) {
+  if (sameDocument && (!entry || hashOnly)) {
     displayedId = id;
-    scrollToPassage(target.hash);
+    const reading = savedReading[id] ?? entry?.reading;
+    if (reading) restoreReading(reading);
+    else scrollToPassage(target.hash);
     return;
   }
   const cached = cache.get(id);
   if (cached) {
     applyPage(cached.page);
     displayedId = id;
+    displayedRoute = route;
     restoreReading(cached.reading);
   } else status.textContent = "Opening document…";
   try {
@@ -100,6 +108,7 @@ const navigate = async (target, entry) => {
     if (mine !== version) return;
     if (!applyPage(page, Boolean(cached))) throw new Error("Invalid page");
     displayedId = id;
+    displayedRoute = route;
     status.textContent = response.status < 400 ? "" : response.status === 404 ? "This document is missing or was renamed." : "This document could not be opened.";
     if (response.status < 400) reportMissingPassage();
     if (!cached) {
