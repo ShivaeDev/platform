@@ -1,5 +1,6 @@
 export function pageStateScript(): string {
 	return `
+import { tick } from "/_board/ages.js";
 import { remember, swap } from "/_board/swap.js";
 import { renderDiagrams } from "/_board/diagrams.js";
 import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
@@ -13,6 +14,19 @@ export const syncInbox = () => {
     topbarCount.setAttribute("aria-label", count.getAttribute("aria-label"));
   }
   for (const id of ["inbox-open", "inbox-topbar"]) document.getElementById(id)?.setAttribute("aria-current", document.getElementById("doc").dataset.view === "inbox" ? "page" : "false");
+};
+
+export const applyNavigation = (html) => {
+  const files = document.getElementById("files");
+  const next = files.cloneNode(false);
+  next.innerHTML = html;
+  const current = document.getElementById("doc").dataset.file;
+  for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
+  swap(files, next);
+  syncInbox();
+  refreshLibrary();
+  tick();
+  document.dispatchEvent(new Event("board-index-change"));
 };
 
 export const capturePage = () => {
@@ -48,6 +62,7 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("work-open")?.setAttribute("aria-current", doc.dataset.view === "work" ? "page" : "false");
   document.getElementById("overview-open")?.setAttribute("aria-current", doc.dataset.view === "overview" ? "page" : "false");
   document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
+  document.getElementById("diagnostics-open")?.setAttribute("aria-current", doc.dataset.view === "diagnostics" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
   const inbox = page.getElementById("inbox-topbar");

@@ -501,7 +501,6 @@
 {"path":"packages/quality/src/test-support/inputs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/vitest.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/types/src/bivariant.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/work-board/src/board.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/boardRendering.spec.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":2}
 {"path":"packages/work-board/src/files/home.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/files/home.ts","rule":"biome/lint/suspicious/noShadow","count":1}
@@ -522,7 +521,6 @@
 {"path":"packages/work-board/src/page/document.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/page/escape.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/page/escape.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/work-board/src/page/shell.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/page/swap.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/page/updated.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/render/board.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}

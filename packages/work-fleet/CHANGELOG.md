@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Publish structured provider capacity codes without raw upstream text and refresh health after each scheduler pass.
+
+- Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.
 - Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
 - Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
 - Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.
@@ -13,9 +16,12 @@
 - Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
+- Replace host review callbacks with independent reviewer sessions using host model settings. Reviewers receive the task and exact PR head with read-only execution, no shell network and no escalation.
+- Record completed machine-readable reviewer verdicts with evidence and findings
+  against the exact revision. Reconcile lost responses and require fresh review
+  after the PR head moves.
 - Archive Codex Cloud worker and reviewer threads after accepted completion or safe release, retain repairable conversations, and retry failed cleanup without repeating delivery.
 - Configure Cloud thread naming with `cloud.threadNamePrefix` (default `Fleet: `), project assignment with `cloud.projectId`, and opt out of cleanup with `cloud.archiveThreads: false`.
-
 
 - Add `fleet-deliverable: report`: workers return the whole report in their final message, and Fleet records an immutable Board result with the task relationship and exact session/turn receipt. Reports complete without PR adoption, review, checks or delivery; empty output needs a human. Publication retries reuse the same result identity.
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
@@ -25,9 +31,6 @@
 - Approve Board work with `fleet: approved` frontmatter on the exact revision read.
 - Launch Codex Cloud workers through a hosted provider with model, reasoning effort
   and service tier from host config, overridable per item, and read their final output.
-- Build Cloud worker prompts from one template with a startup block and a parseable
-  `FLEET_PR:` report line.
-- Require Cloud worker prompts to watch CI after every push, repair failures on the same branch, merge current main when behind or conflicted, and report the exact head's CI result before the PR marker, with a reason when blocked.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
 
@@ -47,4 +50,3 @@
   immutable qualified receipts and persisted publication markers; retry pending
   acknowledgement without repeating actions or rewriting reviewed source.
 - Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
-- Read and index Board Markdown once per scheduler pass, share that snapshot across admission and item lookups, and refresh it on the next pass. Approval remains bound to the exact source revision read.

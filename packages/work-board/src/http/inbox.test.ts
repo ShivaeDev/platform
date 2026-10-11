@@ -2,6 +2,7 @@ import { Effect, PlatformError } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { syntheticSources } from "#test/diagnostics.ts";
 import { inboxFixture } from "#test/inboxFixture.ts";
 
 let notes: Folder;
@@ -55,8 +56,16 @@ it("counts registered questions on ordinary attention sources without counting t
 
 it("serves the Inbox count on reader pages and exposes waiting work in Overview, cards and tables", async () => {
 	notes = folder(inboxFixture());
-	board = await startBoard(notes.root);
-	for (const path of ["/_board/inbox", "/question.md", "/_board/work?view=board", "/_board/overview", "/_board/changes", "/_board/start"]) {
+	board = await startBoard(notes.root, undefined, undefined, false, syntheticSources());
+	for (const path of [
+		"/_board/inbox",
+		"/question.md",
+		"/_board/work?view=board",
+		"/_board/overview",
+		"/_board/changes",
+		"/_board/start",
+		"/_board/diagnostics",
+	]) {
 		const response = await rawGet(board, path);
 		expect(response.status).toBe(200);
 		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="4 waiting">4</span>');
