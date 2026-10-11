@@ -181,9 +181,11 @@ app-server. Closing its observation scope disconnects the client without request
 remote interruption. Explicit interruption requires the exact provider acknowledgement.
 Submission ambiguity retains ownership and reconciliation checks the existing turn.
 
-The Codex app-server contract is experimental. A local app-server is distinct from
-hosted modern Cloud. No hosted adapter, endpoint or authentication contract is
-inferred from `codex cloud exec`; hosted capability is an injected transport.
+The Codex app-server contract is experimental. The hosted adapter uses bearer-authenticated WebSocket requests; a local app-server remains a separate transport. Cloud host configuration accepts `cloud.threadNamePrefix` (default `Fleet: `), `cloud.projectId` for an existing project, and `cloud.archiveThreads` (default `true`). Names combine the prefix with the provider thread ID. Fleet persists the session acknowledgement before naming it and starts no turn if naming fails. Project assignment is sent with `thread/start`.
+
+Fleet cleans up worker, repair and reviewer threads after accepted completion or explicit safe release, and after renewal makes a prior conversation unusable for further repair. Terminal provider turns alone do not trigger cleanup: review, checks and human retry can still require the conversation. Cleanup deduplicates shared repair threads, includes acknowledged sessions without a turn, and persists completion markers. Archive failures leave the Fleet outcome accepted; scheduler reconciliation retries pending cleanup, including after restart or renewal, without repeating delivery. `cloud.archiveThreads: false` retains sessions and settles cleanup for that cycle. Transports without an archive capability also retain their sessions.
+
+The adapter sends `thread/archive` and `thread/name/set`; grouping uses `thread/start.projectId`. The generated experimental app-server protocol also declares `thread/metadata/update.projectId` and `thread/list.projectId`, but Fleet does not call those methods. PostgreSQL regressions prove the cleanup lifecycle, and a synthetic WebSocket backend verifies the host configuration and wire requests. These fixtures do not prove hosted acceptance or removal from the ChatGPT and Codex sidebars.
 The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md)
 records validation boundaries and personal pilot follow-up.
 

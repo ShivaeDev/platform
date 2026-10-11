@@ -47,7 +47,7 @@ describe("renewal after explicit safe release", () => {
 				expect(rejected.value.attempts[0]?.receipt).toBeUndefined();
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.stage).toBe("prepared");
-				expect(renewed.value.history?.[0]?.attempts[0]).toEqual(rejected.value.attempts[0]);
+				expect(renewed.value.history?.[0]?.attempts[0]).toEqual({ ...rejected.value.attempts[0], sessionCleanupComplete: true });
 				expect(fixture.launched).toHaveLength(1);
 			}),
 		));
