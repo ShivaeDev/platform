@@ -65,10 +65,29 @@ export const mermaidFile = (mermaidRoot: string) =>
 export const MERMAID_ROUTE: HttpRouter.PathInput = `${MERMAID}*`;
 
 export const NATIVE_ROUTE: HttpRouter.PathInput = "/_board/native.js";
-export const nativeAsset = Effect.fn("WorkBoard.nativeAsset")(function* () {
-	const fs = yield* FileSystem.FileSystem;
+const NATIVE_MISSING =
+	"Work Board browser bundle assets/native.js is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.";
+
+const nativePath = Effect.fn("WorkBoard.nativePath")(function* () {
 	const path = yield* Path.Path;
 	const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
-	const asset = path.resolve(path.dirname(module), "../../assets/native.js");
-	return respond(yield* fs.readFile(asset), "text/javascript");
+	return path.resolve(path.dirname(module), "../../assets/native.js");
+});
+
+export const checkNativeAsset = Effect.fn("WorkBoard.checkNativeAsset")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	if (!(yield* fs.exists(yield* nativePath()))) {
+		yield* Effect.logWarning(NATIVE_MISSING);
+	}
+});
+
+export const nativeAsset = Effect.fn("WorkBoard.nativeAsset")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	return yield* fs.readFile(yield* nativePath()).pipe(
+		Effect.map((body) => respond(body, "text/javascript")),
+		Effect.catchIf(
+			(error) => error.reason._tag === "NotFound",
+			() => Effect.succeed(respond(NATIVE_MISSING, "text/plain", 500)),
+		),
+	);
 });
