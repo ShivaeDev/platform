@@ -5,6 +5,7 @@ const APPROVAL = "fleet";
 const LAUNCH = "fleet-launch";
 const DELIVERABLE = "fleet-deliverable";
 const FIELDS: ReadonlySet<string | undefined> = new Set([APPROVAL, LAUNCH, DELIVERABLE]);
+const parsedFields = new WeakMap<ParsedMetadata, ReadonlyMap<string, unknown>>();
 
 // Board core reports addon fields as unknown; Fleet owns these and interprets them itself.
 export function boardDiagnostics(parsed: ParsedMetadata): readonly Diagnostic[] {
@@ -15,10 +16,16 @@ function fleetField(parsed: ParsedMetadata, field: string): unknown {
 	if (parsed.raw === undefined || !parsed.diagnostics.some((diagnostic) => diagnostic.field === field)) {
 		return undefined;
 	}
+	const cached = parsedFields.get(parsed);
+	if (cached !== undefined) {
+		return cached.get(field);
+	}
 	const lines = parsed.raw.split(/\r?\n/u);
 	const closing = lines.findLastIndex((line) => line.trimEnd() === "---");
 	const data: unknown = parse(lines.slice(1, closing).join("\n"));
-	return typeof data === "object" && data !== null ? new Map(Object.entries(data)).get(field) : undefined;
+	const values = new Map(typeof data === "object" && data !== null ? Object.entries(data) : []);
+	parsedFields.set(parsed, values);
+	return values.get(field);
 }
 
 export function fleetApproved(parsed: ParsedMetadata): boolean {
