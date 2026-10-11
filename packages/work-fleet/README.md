@@ -197,9 +197,12 @@ app-server. Closing its observation scope disconnects the client without request
 remote interruption. Explicit interruption requires the exact provider acknowledgement.
 Submission ambiguity retains ownership and reconciliation checks the existing turn.
 
-The Codex app-server contract is experimental. A local app-server is distinct from
-hosted modern Cloud. No hosted adapter, endpoint or authentication contract is
-inferred from `codex cloud exec`; hosted capability is an injected transport.
+The Codex app-server contract is experimental. The Cloud adapter connects to a configured hosted WebSocket endpoint, creates a thread in the configured environment and verifies that environment before submitting a turn. A local app-server remains a separate provider.
+
+Restart the host with the same SQL namespace. An attempt intent commits before `thread/start`, its session acknowledgement commits before `turn/start`, and its turn acknowledgement commits before observation. SIGKILL tests against real PostgreSQL and a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. These tests prove host persistence and Cloud adapter wire behavior; they do not prove live hosted execution.
+
+If the session ID is known, reconciliation searches the provider's turn pages for the persisted operation ID and adopts the exact existing receipt. No observable match does not authorize replay. If the thread acknowledgement itself was lost, the current protocol cannot locate that thread by operation ID: Fleet retains the attempt and reservation and raises a human blocker. A retry continues reconciliation; it cannot authorize another launch for the unresolved attempt. Provider unavailability after session acknowledgement and a mismatched setting after thread creation also retain unresolved ownership.
+
 The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md)
 records validation boundaries and personal pilot follow-up.
 

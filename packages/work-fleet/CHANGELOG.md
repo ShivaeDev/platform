@@ -35,3 +35,6 @@
 - Acknowledge applied or superseded managed Board requests after SQL commits, using
   immutable qualified receipts and persisted publication markers; retry pending
   acknowledgement without repeating actions or rewriting reviewed source.
+- Wait for observed Cloud fanout launch and restart recovery progress, failing after 20 seconds without progress rather than limiting all 100 attempts to one wall-clock budget.
+- Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
+- Test host restarts with real PostgreSQL and a synthetic Cloud WebSocket server: SIGKILL before and after thread/turn mutations does not replay submissions, and 100 lost turn acknowledgements recover the existing sessions.
