@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
@@ -19,12 +20,20 @@ export function obtainReview(state: EngineState) {
 			&& !["failed", "interrupted"].includes(previous.status)
 			&& (previous.reviewHead === undefined || previous.reviewHead === result.head)
 		) {
-			return previous.receipt ?? (yield* sessions.reconcile({ operationId: previous.operationId, sessionId: previous.sessionId }));
+			return previous.receipt ?? (yield* reconcileAttempt(state)(stored, previous));
 		}
+		const prompt = reviewerPrompt({
+			result,
+			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
+			task: work.context,
+		});
+		const settings = { ...policy.launch };
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
+			prompt,
 			reviewHead: result.head,
 			role: "reviewer",
+			settings,
 			status: "submitting",
 			submittedAt: policy.now(),
 		};
@@ -41,12 +50,8 @@ export function obtainReview(state: EngineState) {
 				access: "read-only",
 				cwd: stored.value.cwd,
 				operationId: attempt.operationId,
-				prompt: reviewerPrompt({
-					result,
-					...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
-					task: work.context,
-				}),
-				settings: policy.launch,
+				prompt,
+				settings,
 			})
 			.pipe(
 				Effect.tapError((error) =>
