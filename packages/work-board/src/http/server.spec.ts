@@ -150,7 +150,7 @@ describe("pages", () => {
 		chmodSync(join(notes.root, "notes/log.md"), 0o644);
 	});
 
-	it("lists the folder once and lists it again only after the watcher reports a change", async () => {
+	it("retains the folder listing and adds a watched file without rescanning directories", async () => {
 		await board.stop();
 		const counting = countingPaths();
 		board = await startBoard(notes.root, "plan.md", counting.wrap);
@@ -167,7 +167,7 @@ describe("pages", () => {
 		await changesUntil(events, "notes/new.md");
 		events.close();
 		expect(await (await get("/")).text()).toContain('<a href="/notes/new.md">new</a>');
-		expect(listings()).toBeGreaterThan(once);
+		expect(listings()).toBe(once);
 	});
 
 	it("answers 404 for a path that is not valid percent-encoding", async () => {
