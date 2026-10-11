@@ -13,6 +13,8 @@ const explanations: Readonly<Record<string, string>> = {
 	"No-change validation is not configured in this Fleet host; inspect the worker session":
 		"Retry cannot validate a no-change result in this host; release and prepare work in a runtime with configured no-change checks.",
 	"not-ancestor": "Retry cannot rebase preparation onto unrelated main history; release and prepare against current main.",
+	"Report worker published to GitHub":
+		"Retry cannot undo GitHub publication because closed pull requests remain publication evidence; release this report cycle and inspect the published work.",
 	"Reported PR must belong to the host repository":
 		"Retry cannot move a PR into the configured repository; release this cycle and prepare work with the correct repository ownership.",
 	"Result identity changed during review":

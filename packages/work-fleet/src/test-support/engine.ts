@@ -57,7 +57,7 @@ export function withEngine<A, E, TBoardError = never>(
 				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
-			const { replaceRecord, store, upgradeAttention } = yield* attentionStorage(originalStore, namespace, options.writeGate);
+			const { replaceRecord, store, upgradeAttention } = yield* attentionStorage(originalStore, namespace, options.writeGate, options.writeFailure);
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();

@@ -29,7 +29,11 @@ export function withFleetBoard<A, E>(
 		const reports =
 			options.reportPublicationQuery === undefined
 				? decorated
-				: reportBoard(root, options.reportPublicationQuery, () => Effect.succeed({ files: [], unavailable: [] })).pipe(Layer.provide(decorated));
+				: reportBoard(
+						root,
+						options.reportPublicationQuery,
+						options.reportAttachmentsQuery ?? (() => Effect.succeed({ files: [], unavailable: [] })),
+					).pipe(Layer.provide(decorated));
 		return yield* withEngine(options, (fixture) => use(fixture, root, source).pipe(Effect.provide(NodeServices.layer), Effect.scoped), reports);
 	}).pipe(Effect.provide(NodeServices.layer));
 }

@@ -11,10 +11,17 @@ import { finishRecoveryWorker } from "#test/recoverySteps.ts";
 export function recoveryReportCases(): readonly RecoveryCase[] {
 	let publications = 0;
 	let restored = false;
+	let closed = false;
+	function publicationResponse(endpoint: string) {
+		if (endpoint.includes("matching-refs")) {
+			return closed ? [[]] : [[{ ref: "refs/heads/synthetic" }]];
+		}
+		return endpoint.includes("state=all")
+			? [[{ "html_url": "https://github.com/example/repository/pull/7", state: closed ? "closed" : "open" }]]
+			: [[]];
+	}
 	function publishedReport() {
-		return makeReportPublication((endpoint) =>
-			Effect.succeed(JSON.stringify(endpoint.includes("matching-refs") && !restored ? [[{ ref: "refs/heads/synthetic" }]] : [[]])),
-		)("example/repository", "synthetic");
+		return makeReportPublication((endpoint) => Effect.succeed(JSON.stringify(publicationResponse(endpoint))))("example/repository", "synthetic");
 	}
 	function unavailableReport() {
 		return makeReportPublication(() => Effect.succeed(restored ? "[[]]" : "invalid"))("example/repository", "synthetic");
@@ -34,13 +41,17 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
 		},
 		...[
-			{ check: publishedReport, name: "report published to GitHub", reason: "Report worker published to GitHub" },
+			{ check: publishedReport, name: "closed published report PR with deleted branch", reason: "Report worker published to GitHub" },
 			{ check: unavailableReport, name: "report GitHub observation unavailable", reason: "Report publication could not be checked on GitHub" },
 		].map(
 			(fault): RecoveryCase => ({
 				enter: Effect.fnUntraced(function* (ctx) {
 					writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
 					yield* finishRecoveryWorker(ctx, "Completed findings.");
+					if (fault.check === publishedReport) {
+						closed = true;
+						expect(yield* publishedReport()).toBe(true);
+					}
 				}),
 				name: fault.name,
 				options: { reportPublicationQuery: fault.check },

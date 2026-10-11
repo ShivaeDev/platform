@@ -1,4 +1,5 @@
 import { recoveryAdoptionCases } from "#test/recoveryAdoptionCases.ts";
+import { recoveryBoardReportCases } from "#test/recoveryBoardReportCases.ts";
 import { recoveryBoundaryCases } from "#test/recoveryBoundaryCases.ts";
 import { recoveryChecksCases } from "#test/recoveryChecksCases.ts";
 import { recoveryDeliveryCases } from "#test/recoveryDeliveryCases.ts";
@@ -7,6 +8,8 @@ import { recoveryHostCases } from "#test/recoveryHostCases.ts";
 import { recoveryIntegrationCases } from "#test/recoveryIntegrationCases.ts";
 import { recoveryJournalCases } from "#test/recoveryJournalCases.ts";
 import { recoveryPreparationCases } from "#test/recoveryPreparationCases.ts";
+import { recoveryProducerCases } from "#test/recoveryProducerCases.ts";
+import { recoveryProviderCases } from "#test/recoveryProviderCases.ts";
 import { recoveryRecordCases } from "#test/recoveryRecordCases.ts";
 import { recoveryReportCases } from "#test/recoveryReportCases.ts";
 import { recoveryReviewCases } from "#test/recoveryReviewCases.ts";
@@ -20,6 +23,8 @@ export function recoveryCases() {
 		...recoveryRecordCases(),
 		...recoveryBoundaryCases(),
 		...recoveryHostCases(),
+		...recoveryProducerCases(),
+		...recoveryProviderCases(),
 		...recoveryJournalCases(),
 		...recoveryChecksCases(),
 		...recoveryGithubDeliveryCases(),
@@ -29,6 +34,7 @@ export function recoveryCases() {
 		...recoveryUncertainCases(),
 		...recoveryReviewCases,
 		...recoveryReportCases(),
+		...recoveryBoardReportCases(),
 		...recoveryDeliveryCases(),
 		...recoveryIntegrationCases(),
 	];

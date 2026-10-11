@@ -1,8 +1,10 @@
 import type { Effect } from "effect";
+import type { SqlError } from "effect/unstable/sql/SqlError";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, FleetFailure, WorkResult } from "#policy.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
+import type { ReportAttachments } from "#reportAttachments.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 export interface EngineOptions {
@@ -40,6 +42,7 @@ export interface EngineOptions {
 	readonly refreshQuota?: FleetConfiguration["refreshQuota"];
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
+	readonly reportAttachmentsQuery?: (observation: SessionObservation) => Effect.Effect<ReportAttachments>;
 	readonly reportPublicationQuery?: (work: BoardWork) => Effect.Effect<boolean, FleetFailure>;
 	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
@@ -54,6 +57,7 @@ export interface EngineOptions {
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly workerGuidance?: string;
+	readonly writeFailure?: (value: FleetRecord) => SqlError | undefined;
 	readonly writeGate?: (value: FleetRecord) => Effect.Effect<void>;
 	readonly wrongHead?: "review" | "checks";
 }
