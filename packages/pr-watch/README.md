@@ -45,12 +45,13 @@ The watcher emits these transitions, once per successful comparison:
 | `merged` | The PR becomes merged. |
 | `closed` | An open PR closes without merging. |
 | `conflict` | An open PR's mergeable state becomes `dirty`. |
+| `queued` | An open PR enters the merge queue. |
 | `dequeued` | A previously queued open PR has no queue ref, and its own queue entry and auto-merge request are both absent. |
-| `auto-merge-off` | An open PR's auto-merge changes from enabled to disabled. |
+| `auto-merge-off` | An open PR's auto-merge is disabled outside the queue after being enabled or queued. |
 | `checks-failed` | An open PR changes from no observed failing checks to failing checks. |
 | `stuck` | An open PR enters auto-merge enabled with conflicts or failing checks. |
 
-Failure evidence includes completed check runs with `failure`, `timed_out`, `cancelled`, `action_required`, `startup_failure` or `stale`, and combined commit statuses with `failure` or `error`. Pending, successful, neutral and skipped check runs do not count as failures. Checks use the current head SHA and include all response pages. Queue discovery uses the REST matching refs endpoint, recognizing `gh-readonly-queue/.../pr-N-...` names; it does not discover queue membership from auto-merge settings. When a previously queued open PR loses its refs, a GraphQL request confirms the PR’s own queue entry and auto-merge request. Either one still present retains its previous queue membership during a rebuild. A failed, incomplete or errored confirmation retains the last successful snapshot.
+Failure evidence includes completed check runs with `failure`, `timed_out`, `cancelled`, `action_required`, `startup_failure` or `stale`, and combined commit statuses with `failure` or `error`. Pending, successful, neutral and skipped check runs do not count as failures. Checks use the current head SHA and include all response pages. Queue discovery uses the REST matching refs endpoint, recognizing `gh-readonly-queue/.../pr-N-...` names; it does not discover queue membership from auto-merge settings. Entering the queue emits `queued` even when GitHub clears the auto-merge request. A queued PR never emits `auto-merge-off`. When a previously queued open PR loses its refs, a GraphQL request confirms the PR’s own queue entry and auto-merge request. Either one still present retains its previous queue membership during a rebuild. A confirmed drop with auto-merge still off emits both `dequeued` and `auto-merge-off`. A failed, incomplete or errored confirmation retains the last successful snapshot.
 
 ### Quota cost
 
@@ -70,4 +71,4 @@ The exported `StateFile.layer` requires Effect `FileSystem`, and `GitHubHttp.lay
 
 ### Evidence
 
-Synthetic HTTP tests cover conditional 304 responses, all seven events, already-stuck PRs at startup, terminal pruning across restarts, confirmed queue drops and rebuilds, native IO injection and typed failures, checks independent of PR ETags, fleet discovery and pagination, quota slowdown, failed requests, and clean restart comparison. The packed consumer runs the installed executable against a synthetic server. These tests establish the REST and GraphQL handling and installed package behavior; they do not establish live GitHub or Monitor adoption.
+Synthetic HTTP tests cover conditional 304 responses, all eight events, already-stuck PRs at startup, terminal pruning across restarts, queue entry with a cleared auto-merge request, confirmed queue drops and rebuilds, manual auto-merge disablement, native IO injection and typed failures, checks independent of PR ETags, fleet discovery and pagination, quota slowdown, failed requests, and clean restart comparison. A CLI subprocess test verifies that pending mergeability diagnostics stay on stderr while stdout contains JSON event lines. The packed consumer runs the installed executable against a synthetic server. These tests establish the REST and GraphQL handling and installed package behavior; they do not establish live GitHub or Monitor adoption.

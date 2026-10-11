@@ -38,7 +38,7 @@ effectApp("checks and queue refs include later pages", function* (h) {
 	h.set("/refs?page=2", { body: [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }] });
 	const state = yield* h.cycle;
 	expect(state.prs["1"]?.queued).toBe(true);
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["checks-failed", "stuck"]);
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["queued", "checks-failed", "stuck"]);
 });
 effectApp("a new head uses its own checks and preserves updated event identity", function* (h) {
 	yield* h.cycle;
