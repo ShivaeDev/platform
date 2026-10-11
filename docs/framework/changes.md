@@ -183,12 +183,8 @@ const observeAll = Layer.succeed(liveChanges.Observer, (observation: Observation
 
 ## Limits
 
-- Delivery is in-process. A crash between `COMMIT` and publishing loses the
-  changes along with the in-process subscribers that would have received them.
-- There is no cross-process delivery. PostgreSQL `NOTIFY` is itself
-  commit-bound (delivered at `COMMIT`, dropped on rollback) and would be the
-  transport for several processes, sent as the last statement before `COMMIT`.
-  It is not implemented.
+- Default delivery is local Reactivity. The optional `postgresChanges` binding in effect-sql sends invalidation keys through the writing transaction's SQL connection and delivers them to each process's local Reactivity. A heartbeat detects listener loss and resyncs on loss and recovery. The [reference composition](./composed-example.md) proves two HTTP servers and a pg-boss worker against PostgreSQL.
+- PostgreSQL NOTIFY is a wake-up signal, not a durable log. It delivers at commit and drops notifications on rollback. Payloads must be smaller than 8,000 bytes in the default configuration; the binding splits UTF-8 JSON key arrays and rejects a key that cannot fit before commit. LISTEN requires a session connection; PgBouncer transaction pooling needs another adapter.
 - Only recorded changes are published. Triggers, cascades and raw SQL that does
   not call `record` are invisible to the channel.
 - Changes with equal keys are not merged; the first one wins.

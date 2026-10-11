@@ -363,3 +363,7 @@ pnpm add @shivaedev/effect-contract effect@4.0.0-rc.112
 - Live hints carry refresh requests, not authoritative data or durable history. Applications own dependency discovery, authenticated subscriptions, delivery across processes, SSR and deployment behavior. Those boundaries need their own tests.
 
 The package's design priorities are in [docs/north-star.md](docs/north-star.md), and package work and maintainer questions are in [docs/roadmap.md](docs/roadmap.md).
+
+### Server hint streams
+
+Import `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.

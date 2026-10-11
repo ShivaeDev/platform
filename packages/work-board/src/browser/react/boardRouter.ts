@@ -1,8 +1,14 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router";
-
-const root = createRootRoute({ component: Outlet });
-const placeholder = createRoute({ component: () => null, getParentRoute: () => root, path: "/" });
-
-export function boardRouter() {
-	return createRouter({ routeTree: root.addChildren([placeholder]) });
+import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
+import { createElement } from "react";
+import { BoardShell, type ShellOptions } from "./BoardShell.tsx";
+export function boardRouter(options?: ShellOptions) {
+	const root = createRootRouteWithContext<{ readonly shell?: ShellOptions }>()({
+		component: () => {
+			const { shell } = root.useRouteContext();
+			return shell ? createElement(BoardShell, shell) : null;
+		},
+	});
+	const home = createRoute({ component: () => null, getParentRoute: () => root, path: "/" });
+	const page = createRoute({ component: () => null, getParentRoute: () => root, path: "$" });
+	return createRouter({ context: options ? { shell: options } : {}, routeTree: root.addChildren([home, page]), trailingSlash: "preserve" });
 }

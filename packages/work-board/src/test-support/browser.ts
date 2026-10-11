@@ -1,4 +1,4 @@
-import { Effect, type Scope } from "effect";
+import { Clock, Effect, type Scope } from "effect";
 import { Browser, type BrowserWindow, type IFetchInterceptor } from "happy-dom";
 import { type RunningBoard, rawGet } from "./board.ts";
 import type { RpcStream } from "./RpcStream.ts";
@@ -83,7 +83,10 @@ function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: 
 export const openPage = Effect.fn("Test.openPage")(function* (
 	board: RunningBoard,
 	path = "/",
-	beforeScripts: (window: BrowserWindow) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
+	beforeScripts: (
+		window: BrowserWindow,
+		mermaid: MermaidControl,
+	) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
 ) {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
@@ -102,13 +105,27 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	page.url = `${board.url}${path}`;
 	yield* Effect.addFinalizer(() => Effect.promise(close));
 	const html = (yield* rawGet(board, path)).body;
-	const prepared = beforeScripts(window);
+	const prepared = beforeScripts(window, mermaid);
 	if (Effect.isEffect(prepared)) {
 		yield* prepared;
 	} else {
 		yield* Effect.promise(async () => prepared);
 	}
 	page.content = html;
+	const deadline = (yield* Clock.currentTimeMillis) + 5000;
+	while (
+		!(
+			window.document.documentElement.dataset.boardReady
+			&& window.document.getElementById("doc")
+			&& window.document.querySelector("#files [data-inbox-count]")
+		)
+	) {
+		if ((yield* Clock.currentTimeMillis) >= deadline) {
+			throw new Error("The React shell did not initialize");
+		}
+		yield* Effect.sleep("10 millis");
+	}
+
 	async function close() {
 		window.dispatchEvent(new window.Event("pagehide"));
 		for (const stream of streams) {

@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import process from "node:process";
 import { locate } from "#internal/callSite.ts";
 import { engineSnapshot } from "#internal/engineSnapshot.ts";
 import type { Narration, Subject } from "#internal/narration.ts";

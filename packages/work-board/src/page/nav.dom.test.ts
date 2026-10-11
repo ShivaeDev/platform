@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { legacyPage } from "#browser/react/legacyPage.ts";
 import { type Folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import type { OpenPage } from "#test/browser.ts";
 import { openLive, waitFor } from "#test/live.ts";
@@ -61,8 +62,7 @@ it.live("serves a native reference tree and preserves parent and child state thr
 	board = yield* startBoard(notes.root, "root.md");
 	const response = yield* rawGet(board, "/packages/form/README.md");
 	expect(response.status).toBe(200);
-	const html = document.createElement("div");
-	html.innerHTML = response.body;
+	const html = legacyPage(response.body);
 	expect([...html.querySelectorAll("#sidebar > [id]")].map((element) => element.id)).toEqual([
 		"primary-navigation",
 		"library-open",
@@ -111,5 +111,7 @@ it.live("serves a native reference tree and preserves parent and child state thr
 	yield* Effect.promise(() => waitFor(() => expect(page.window.location.pathname).toBe("/packages/changes/guide.md")));
 	yield* Effect.promise(() => waitFor(() => expect(folderAt("packages").open).toBe(true)));
 	expect(folderAt("packages/changes").open).toBe(true);
-	expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/packages/changes/guide.md");
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/packages/changes/guide.md")),
+	);
 });

@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { CodexCloudConfig, type CodexCloudConfiguration, codexCloudLayer } from "#providers/codexCloud.ts";

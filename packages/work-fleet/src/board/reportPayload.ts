@@ -42,6 +42,11 @@ function decode(content: string) {
 }
 export function reportPayload(root: string, work: BoardWork, observation: SessionObservation) {
 	const { itemId } = reportIdentity(work, observation.receipt);
+	function saved(content: string | undefined) {
+		return content === undefined
+			? Effect.fail(new BoardFailure({ message: "Report publication payload could not be recovered or persisted; retry the same completed attempt" }))
+			: decode(content);
+	}
 	return {
 		read: reportPayloadFile(root, itemId).pipe(Effect.flatMap((content) => (content === undefined ? Effect.succeed(undefined) : decode(content)))),
 		save: (payload: ReportPayload) =>
@@ -52,10 +57,6 @@ export function reportPayload(root: string, work: BoardWork, observation: Sessio
 					files: payload.files.map(({ path, bytes }) => ({ base64: Buffer.from(bytes).toString("base64"), path })),
 					output: payload.output,
 				}),
-			).pipe(
-				Effect.flatMap((content) =>
-					content === undefined ? Effect.fail(new BoardFailure({ message: "Report publication payload was not persisted" })) : decode(content),
-				),
-			),
+			).pipe(Effect.flatMap(saved)),
 	};
 }

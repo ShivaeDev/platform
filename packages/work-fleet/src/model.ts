@@ -16,6 +16,7 @@ export const Attempt = Schema.Struct({
 	settings: Schema.optional(LaunchSettings),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submittedAt: Schema.Number,
+	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
@@ -28,6 +29,7 @@ const cycleFields = {
 	boardRevision: Schema.String,
 	boardSourcePath: Schema.optional(Schema.String),
 	checks: Schema.optional(Checks),
+	conflictRepairs: Schema.optional(Schema.Array(Schema.String)),
 	cwd: Schema.String,
 	decision: Schema.optional(Decision),
 	decisionAcknowledged: Schema.optional(Schema.Boolean),

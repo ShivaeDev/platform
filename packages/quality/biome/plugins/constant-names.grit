@@ -11,7 +11,7 @@ language js(typescript, jsx)
 		JsArrowFunctionExpression(),
 		JsClassDeclaration(),
 		JsClassExpression()
-	} ,
+	},
 	! $name <: r"[A-Z][A-Z0-9_]*",
 	register_diagnostic(span=$name, message="A module-level constant holding a string or number literal is CONSTANT_CASE, such as MAX_ITEMS or DEFAULT_PORT.")
 }

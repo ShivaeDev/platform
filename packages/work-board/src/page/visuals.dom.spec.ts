@@ -24,8 +24,8 @@ function images() {
 	return [...page.document.querySelectorAll("img")].filter((image) => image.hasAttribute("data-local-image"));
 }
 
-effectApp("opens an image gallery by keyboard, bounds navigation and zoom, and returns focus to the source", () =>
-	Effect.sync(() => {
+effectApp("opens an image gallery by keyboard, bounds navigation and zoom, and returns focus to the source", function* () {
+	yield* Effect.sync(() => {
 		const image = images()[0];
 		image?.focus();
 		image?.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
@@ -51,8 +51,8 @@ effectApp("opens an image gallery by keyboard, bounds navigation and zoom, and r
 		expect(page.document.getElementById("visual-context")?.textContent).toContain("Open reference");
 		click("visual-close");
 		expect(page.document.activeElement).toBe(link);
-	}),
-);
+	});
+});
 
 effectApp("refreshes an edited image through native reconciliation and discloses an already-open preview as older", function* () {
 	const image = images()[1];
@@ -66,14 +66,14 @@ effectApp("refreshes an edited image through native reconciliation and discloses
 	expect(page.document.activeElement).toBe(image);
 });
 
-effectApp("keeps failed images readable with a useful local-path message", () =>
-	Effect.sync(() => {
+effectApp("keeps failed images readable with a useful local-path message", function* () {
+	yield* Effect.sync(() => {
 		const image = images()[2];
 		image?.dispatchEvent(new page.window.Event("error"));
 		expect(image?.nextElementSibling?.textContent).toContain("workspace boundary and 16 MiB limit");
 		expect(image?.getAttribute("alt")).toBe("Missing screenshot");
-	}),
-);
+	});
+});
 
 effectApp("inspects a rendered diagram, exposes a local SVG export and releases it on keyboard dismissal", function* () {
 	const downloads = diagramDownloads(page);

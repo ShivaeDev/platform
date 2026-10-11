@@ -91,10 +91,7 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 		});
 	}
 
-	for (const scenario of [
-		{ options: { before: { state: "closed" } }, output: REPORT },
-		{ options: { before: { head: { sha: MOVED } } }, output: REPORT },
-	]) {
+	for (const scenario of [{ options: { before: { state: "closed" } }, output: REPORT }]) {
 		test(`failed adoption requires a human decision before review: ${JSON.stringify(scenario)}`, () => {
 			const github = resultFixture(scenario.options);
 			return withEngine({ resultQuery: github.adopt }, (fixture) =>

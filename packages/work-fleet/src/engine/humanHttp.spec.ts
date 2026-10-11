@@ -60,7 +60,7 @@ test("Board HTTP answer resumes the real SQL work through native RPC and restart
 	));
 
 test("scheduler consumes a Board answer automatically while runtime delivery remains denied", () =>
-	withFleetBoard({ denyDelivery: true }, (fixture, root) =>
+	withFleetBoard({ denyDelivery: true, reviewFailure: true }, (fixture, root) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");

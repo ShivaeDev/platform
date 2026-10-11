@@ -1,11 +1,12 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { admit } from "#admit.ts";
+import { validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
-import { reviewerPrompt } from "#prompt/reviewer.ts";
+import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function obtainReview(state: EngineState) {
@@ -16,8 +17,10 @@ export function obtainReview(state: EngineState) {
 		}
 		const previous = stored.value.attempts.at(-1);
 		const previousHead = reviewAttemptHead(stored.value, previous);
+		const unusable = yield* invalidPriorReview(stored.value, previous, result.head);
 		if (
 			previous?.role === "reviewer"
+			&& !unusable
 			&& !["failed", "interrupted"].includes(previous.status)
 			&& (previousHead === undefined || previousHead === result.head)
 		) {
@@ -81,3 +84,19 @@ function reviewAttemptHead(record: FleetRecord, attempt: Attempt | undefined) {
 			: undefined;
 	return attempt?.reviewHead ?? reviewedHead;
 }
+
+const invalidPriorReview = Effect.fn("Fleet.invalidPriorReview")(function* (record: FleetRecord, previous: Attempt | undefined, head: string) {
+	if (
+		record.responses?.at(-1)?.action !== "retry"
+		|| previous?.status !== "completed"
+		|| previous.role !== "reviewer"
+		|| previous.receipt === undefined
+	) {
+		return false;
+	}
+	const parsed = yield* readReviewerVerdict(previous.output ?? "", previous.receipt).pipe(
+		Effect.tap((review) => validateReview(record, review, head)),
+		Effect.result,
+	);
+	return Result.isFailure(parsed);
+});

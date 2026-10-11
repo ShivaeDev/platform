@@ -22,12 +22,12 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	const namespace = options.namespace ?? "work_fleet";
 	const records = `${namespace}_records`;
 	const foreign = `${namespace}_foreign_reservations`;
-	const JsonRecord = Schema.fromJsonString(schema);
 	const columns = recordColumns(schema);
 	const model = recordModel(schema);
 	const rows = yield* makeRepository(model, { idColumn: "work_id", spanPrefix: "FleetRow", tableName: records, versionColumn: "version" });
 	const reservations = yield* makeRepository(ForeignReservationRow, { idColumn: "owner", spanPrefix: "FleetForeign", tableName: foreign });
-	const encodeRecord = Schema.encodeEffect(JsonRecord);
+	const encodeRecord = Schema.encodeEffect(schema);
+	const decodeObject = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decodeInsert = Schema.decodeUnknownEffect(model.insert);
 	const decodeRecord = Schema.decodeUnknownEffect(schema);
 	const decodeRecords = Schema.decodeUnknownEffect(Schema.Array(schema));
@@ -57,7 +57,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		workId: string,
 		expectedVersion: number | null,
 		record: TSchema["Type"],
-		encoded: string,
+		encoded: object,
 		entry: { readonly order: bigint; readonly stored: Versioned<TSchema["Type"]> } | undefined,
 	) {
 		const requeue = entry !== undefined && options.requeue?.(record, entry.stored.value) === true;
@@ -76,7 +76,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		record: TSchema["Type"],
 		limits: AdmissionLimits = {},
 	) {
-		const encoded = yield* encodeRecord(record);
+		const encoded = yield* decodeObject(yield* encodeRecord(record));
 		if (record.workId !== workId) {
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}

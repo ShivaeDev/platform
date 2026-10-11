@@ -218,7 +218,7 @@
 				"noNonoctalDecimalEscape": "error",
 				"noPrecisionLoss": "error",
 				"noPrivateImports": "error",
-				"noProcessGlobal": "off",
+				"noProcessGlobal": { "fix": "none", "level": "error" },
 				"noReactPropAssignments": "error",
 				"noRenderReturnValue": "error",
 				"noSelfAssign": "error",
@@ -257,7 +257,7 @@
 				"useHookAtTopLevel": "error",
 				"useInlineScriptId": "error",
 				"useIsNan": "error",
-				"useJsonImportAttributes": "off",
+				"useJsonImportAttributes": { "fix": "none", "level": "error" },
 				"useJsxKeyInIterable": {
 					"level": "error",
 					"options": {
@@ -294,7 +294,8 @@
 				"noJsxLeakedDollar": "error",
 				"noJsxNamespace": "error",
 				"noLoopFunc": "error",
-				"noMisusedPromises": "off",
+				"noMisplacedListElements": "error",
+				"noMisusedPromises": { "fix": "none", "level": "error" },
 				"noNegationInEqualityCheck": "error",
 				"noNonScalableViewport": "error",
 				"noObsoleteTags": "error",
@@ -308,7 +309,9 @@
 				"noPlaywrightWaitForNavigation": "error",
 				"noPlaywrightWaitForSelector": "error",
 				"noPlaywrightWaitForTimeout": "error",
+				"noReactObjectTypeAsDefaultProp": "error",
 				"noReactStringRefs": "error",
+				"noSelfImport": "error",
 				"noThisOutsideOfClass": "error",
 				"noTopLevelLiterals": "error",
 				"noUndeclaredClasses": "off",
@@ -345,7 +348,8 @@
 				"useControlLabel": "error",
 				"useDisposables": "error",
 				"useExhaustiveSwitchCases": {
-					"level": "off",
+					"fix": "none",
+					"level": "error",
 					"options": {
 						"requireExplicitCase": true
 					}
@@ -354,6 +358,7 @@
 				"useIncludes": "error",
 				"useNamedCaptureGroup": "error",
 				"useNamedLayer": "error",
+				"usePromiseRejectErrors": "error",
 				"useReactAsyncServerFunction": "error",
 				"useReactNamingConvention": "error",
 				"useReduceTypeParameter": "error",
@@ -534,7 +539,7 @@
 				"noEmptyBlockStatements": "error",
 				"noEmptyInterface": "error",
 				"noEmptySource": "error",
-				"noEqualsToNull": "off",
+				"noEqualsToNull": { "fix": "none", "level": "error" },
 				"noEvolvingTypes": "error",
 				"noExplicitAny": "error",
 				"noExportsInTest": "error",

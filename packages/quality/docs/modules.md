@@ -9,7 +9,7 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [cli.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli.ts) | None; executable entry. |
-| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `PreCommit`, `QualityConfig`, `defineConfig` |
+| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
 | [decoded.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/decoded.ts) | `Decoded`, `decodeWith`, `validOrFail` |
 | [failure.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/failure.ts) | `SetupFailure`, `GateFailed` |
 | [rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rule.ts) | `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext`, `Configured`, `Rule`, `defineRule` |
@@ -128,6 +128,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [inventory/collect.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/collect.ts) | `InventoryScope`, `Inventory`, `linesOf`, `collectInventory` |
 | [inventory/filesystem.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/filesystem.ts) | `FilesystemFailure`, `orWhenAbsent`, `readOptionalText`, `readRequiredText`, `writeText` |
 | [inventory/ignore-scope.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/ignore-scope.ts) | `Verdict`, `IgnoreScope`, `emptyScope`, `posix`, `withIgnoreFile`, `insideKept`, `verdictFor` |
+| [inventory/trackedPaths.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/trackedPaths.ts) | `trackedPaths`, `ignoredTrackedPaths` |
 | [inventory/walk.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/inventory/walk.ts) | `ignoreScopeAt`, `scopeAbove`, `walk` |
 
 ## manifests
@@ -197,6 +198,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [rules/imports/aliased.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/aliased.ts) | `importsAliased` |
 | [rules/imports/cycles.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/cycles.ts) | `importCycles` |
 | [rules/imports/fences.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/fences.ts) | `importFences` |
+| [rules/imports/noTestCode.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/noTestCode.ts) | `noTestCode` |
 | [rules/imports/resolvable.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rules/imports/resolvable.ts) | `importsResolvable` |
 
 ## rules/stories

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import process from "node:process";
+
 const action = process.argv[2];
 if (action === "wait" || action === "response" || action === "question") {
 	try {
@@ -12,5 +14,3 @@ if (action === "wait" || action === "response" || action === "question") {
 	const entry = await import("./serve-cli.ts");
 	entry.runServe();
 }
-
-export {};

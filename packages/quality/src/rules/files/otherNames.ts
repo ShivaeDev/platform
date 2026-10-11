@@ -5,16 +5,7 @@ import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { stylesheetImporters } from "./stylesheetImporters.ts";
 
-const DEFAULT_TOOL_OWNED: readonly string[] = [
-	".*",
-	"package.json",
-	"tsconfig*.json",
-	"biome.json",
-	"biome.jsonc",
-	"*.config.*",
-	"migrations/",
-	"generated/",
-];
+const DEFAULT_TOOL_OWNED: readonly string[] = [".*", "package.json", "tsconfig*.json", "biome.json", "biome.jsonc", "*.config.*", "migrations/"];
 
 const CONVENTIONAL: ReadonlySet<string> = new Set(["AGENTS", "CHANGELOG", "CLAUDE", "CONTRIBUTING", "LICENSE", "README", "SECURITY", "SKILL"]);
 

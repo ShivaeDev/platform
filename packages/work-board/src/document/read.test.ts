@@ -40,7 +40,7 @@ it.live("returns Schema source, link targets, metadata and exact-context respons
 	expect(result.references["investigation.choices"]).toBe("/_board/item/investigation.choices/");
 	expect(result.questionActions["direction/display"]).toBe("/_board/respond?item=investigation.choices&request=direction");
 	expect(result.questionActions["/checks"]).toBe(result.questionActions["direction/display"]);
-	expect(Object.keys(result).sort()).toEqual([
+	expect(Object.keys(result).sort((left, right) => left.localeCompare(right))).toEqual([
 		"diagnostics",
 		"file",
 		"identity",

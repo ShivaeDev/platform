@@ -50,9 +50,10 @@ describe("diagrams", () => {
 	});
 
 	effectApp("reserves space and hides a diagram's source until it is drawn", function* () {
-		page = yield* openPage(board, "/flow.md");
 		const drawing = held();
-		page.mermaid.gate = drawing.gate;
+		page = yield* openPage(board, "/flow.md", (_window, mermaid) => {
+			mermaid.gate = drawing.gate;
+		});
 		yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls).toHaveLength(1)));
 		expect(figure()?.getAttribute("data-state")).toBe("pending");
 		expect(sourceDisplay()).toBe("none");
@@ -155,9 +156,10 @@ describe("diagrams", () => {
 	});
 
 	effectApp("never lets a drawing for the previous colour scheme replace one for the current scheme", function* () {
-		page = yield* openPage(board, "/flow.md");
 		const light = held();
-		page.mermaid.gate = light.gate;
+		page = yield* openPage(board, "/flow.md", (_window, mermaid) => {
+			mermaid.gate = light.gate;
+		});
 		yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls).toHaveLength(1)));
 		const darkDrawing = held();
 		page.mermaid.gate = darkDrawing.gate;

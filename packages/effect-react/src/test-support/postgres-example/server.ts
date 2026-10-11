@@ -6,22 +6,32 @@ import { HttpRouter, HttpServer } from "effect/unstable/http";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { SqlClient } from "effect/unstable/sql";
+import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
 import { authenticatedLayer } from "@shivaedev/platform/rpc-server/session.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
+import { OrderLive } from "./OrderLive.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderHandlers } from "./orderHandlers.ts";
 import { repositoryLayer } from "./repository.ts";
 
 export interface ServerOptions {
+	readonly applicationName?: string;
 	readonly beforeCommit?: Effect.Effect<void, Rejected>;
+	readonly channel?: string;
+	readonly keepTables?: boolean;
+	readonly ledger?: string;
+	readonly table?: string;
 }
 
 export async function startServer(databaseUrl: string, options: ServerOptions = {}) {
 	const suffix = crypto.randomUUID().replaceAll("-", "");
-	const table = `composed_orders_${suffix}`;
-	const ledger = `composed_migrations_${suffix}`;
+	const table = options.table ?? `composed_orders_${suffix}`;
+	const ledger = options.ledger ?? `composed_migrations_${suffix}`;
 	function pool() {
-		return PgClient.layer({ url: Redacted.make(databaseUrl) });
+		return PgClient.layer({
+			url: Redacted.make(databaseUrl),
+			...(options.applicationName === undefined ? {} : { applicationName: options.applicationName }),
+		});
 	}
 	const observer = ManagedRuntime.make(pool());
 	function read() {
@@ -32,7 +42,26 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 		);
 	}
 	const { handlers, publications, delivered, reads } = orderHandlers(read, options.beforeCommit);
-	const service = OrderService.layer.pipe(Layer.provide(repositoryLayer(table, ledger)), Layer.provideMerge(Layer.merge(pool(), Reactivity.layer)));
+	const base = Layer.merge(pool(), Reactivity.layer);
+	const live = OrderLive.layer.pipe(Layer.provideMerge(base));
+	const delivery =
+		options.channel === undefined
+			? Layer.empty
+			: Layer.unwrap(
+					Effect.gen(function* () {
+						const client = yield* PgClient.PgClient;
+						const hints = yield* OrderLive;
+						return postgresChanges({
+							channel: options.channel ?? "orders",
+							client,
+							heartbeatInterval: "100 millis",
+							heartbeatTimeout: "300 millis",
+							resync: hints.resync,
+							retryDelay: "50 millis",
+						});
+					}),
+				);
+	const service = OrderService.layer.pipe(Layer.provide(repositoryLayer(table, ledger)), Layer.provideMerge(delivery.pipe(Layer.provideMerge(live))));
 	const sessions = new Map([
 		["Bearer alice-session", "alice"],
 		["Bearer bob-session", "bob"],
@@ -57,7 +86,9 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			await runtime.dispose();
 		} finally {
 			try {
-				await observer.runPromise(SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`));
+				if (!options.keepTables) {
+					await observer.runPromise(SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`));
+				}
 			} finally {
 				await observer.dispose();
 			}

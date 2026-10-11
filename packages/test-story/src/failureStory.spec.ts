@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { runStories } from "#test/runStories.ts";

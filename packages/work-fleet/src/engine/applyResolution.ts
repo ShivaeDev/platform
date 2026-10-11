@@ -1,9 +1,10 @@
 import { Effect } from "effect";
-import { authorizeResolution } from "#engine/authorizeResolution.ts";
 import { briefChanged, changedBrief, refreshedBrief } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { requestRework } from "#engine/requestRework.ts";
+import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -27,7 +28,7 @@ export function applyResolution(state: EngineState) {
 		if (action === "continue") {
 			return yield* continueWorker(state)(stored, responses, body).pipe(Effect.flatMap(closeDecisions(state)));
 		}
-		return yield* retryOrRelease(state)(stored, action, responses).pipe(Effect.flatMap(closeDecisions(state)));
+		return yield* retryOrRelease(state)(stored, action, responses, body).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }
 
@@ -36,21 +37,25 @@ function retryOrRelease(state: EngineState) {
 		stored: Versioned<FleetRecord>,
 		action: "retry" | "release",
 		responses: readonly DecisionResponse[],
+		body: string,
 	) {
-		yield* authorizeResolution(state, stored.value, action);
+		const current = yield* resolveExecution(state, stored, action);
 		if (action === "retry") {
-			const refreshed = yield* retryChangedBrief(state)(stored, responses);
+			if (current.value.decision?.reason === "Reviewed PR is ready to merge" && current.value.result?.kind === "change" && body.trim()) {
+				return yield* requestRework(state)(current, body, responses);
+			}
+			const refreshed = yield* retryChangedBrief(state)(current, responses);
 			if (refreshed !== undefined) {
 				return refreshed;
 			}
 		}
-		const stage = resolutionStage(stored.value, action);
+		const stage = resolutionStage(current.value, action);
 		const reportFailure =
-			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(stored.value, stored.value.decision?.reason ?? "") : undefined;
+			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.reason ?? "") : undefined;
 		if (reportFailure !== undefined) {
-			return yield* correctWorkerReport(state)(stored, reportFailure, responses);
+			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
-		return yield* state.save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage });
+		return yield* state.save(current, { ...current.value, blocker: undefined, decision: undefined, responses, stage });
 	});
 }
 
@@ -58,8 +63,11 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 	if (action === "release") {
 		return "released";
 	}
-	if (record.result?.kind === "change" && record.decision?.reason === MOVED_PR_HEAD_REASON) {
+	if (deliveryRetry(record)) {
 		return "delivering";
+	}
+	if (record.attempts.at(-1)?.status === "completed" && record.attempts.at(-1)?.receipt === undefined) {
+		return "executing";
 	}
 	if (record.deliverable === "report" && !executing(record)) {
 		const latest = record.attempts.at(-1);
@@ -96,4 +104,12 @@ function retryChangedBrief(state: EngineState) {
 			stage: hasWorker ? "repairing" : "prepared",
 		});
 	});
+}
+
+function deliveryRetry(record: FleetRecord) {
+	return (
+		record.result?.kind === "change"
+		&& (record.decision?.reason === MOVED_PR_HEAD_REASON
+			|| (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
+	);
 }

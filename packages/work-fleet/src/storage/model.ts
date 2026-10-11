@@ -93,8 +93,8 @@ export type ForeignReservation = typeof ForeignReservation.Type;
 
 export class ForeignReservationRow extends Model.Class<ForeignReservationRow>("ForeignReservationRow")(ForeignReservation.fields) {}
 
-export function recordInput(value: string, columns: ReturnType<typeof recordColumns>) {
-	const encoded: Record<string, unknown> = JSON.parse(value);
+export function recordInput(value: string | object, columns: ReturnType<typeof recordColumns>) {
+	const encoded: Record<string, unknown> = typeof value === "string" ? JSON.parse(value) : { ...value };
 	return Object.fromEntries(
 		Object.entries(columns).map(([name, kind]) => {
 			if (encoded[name] === undefined) {

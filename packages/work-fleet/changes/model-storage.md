@@ -12,4 +12,5 @@
 
 ### Fixed
 
+- Accept schema-encoded objects in `recordInput` as well as JSON strings, avoiding a whole-record JSON round trip before model validation.
 - Avoid unchanged preparation writes, repeated full-record decoding and status publication within scheduler passes. Task discovery skips the generated Fleet status view and retains authored work at the same path. The real-PostgreSQL scheduler test admits and launches 100 tasks within five seconds with one metadata parse per task.
