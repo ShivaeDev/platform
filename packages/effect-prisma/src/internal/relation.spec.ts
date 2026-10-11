@@ -13,31 +13,31 @@ interface User {
 	readonly id: number;
 }
 
-class FakeCollection<Row extends object> {
-	private readonly rows: readonly Row[];
+class FakeCollection<TRow extends object> {
+	private readonly rows: readonly TRow[];
 	private readonly limit: number | undefined;
 
-	constructor(rows: readonly Row[], limit?: number) {
+	constructor(rows: readonly TRow[], limit?: number) {
 		this.rows = rows;
 		this.limit = limit;
 	}
 
-	where(filter: Partial<Row>): FakeCollection<Row> {
+	where(filter: Partial<TRow>): FakeCollection<TRow> {
 		return new FakeCollection(
 			this.rows.filter((row) => Object.entries(filter).every(([key, value]) => Reflect.get(row, key) === value)),
 			this.limit,
 		);
 	}
 
-	take(limit: number): FakeCollection<Row> {
+	take(limit: number): FakeCollection<TRow> {
 		return new FakeCollection(this.rows, limit);
 	}
 
-	all(): FakeResult<Row> {
+	all(): FakeResult<TRow> {
 		return new FakeResult(this.limit === undefined ? this.rows : this.rows.slice(0, this.limit));
 	}
 
-	async first(): Promise<Row | null> {
+	async first(): Promise<TRow | null> {
 		return (this.limit === undefined ? this.rows[0] : this.rows.slice(0, this.limit)[0]) ?? null;
 	}
 }

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Prefix descriptive type-parameter names in database and relation internals with `T`; preserve their types and runtime behavior.
+
 - Document the package purpose, query and transaction model, API and limits; add agent guidance and package north star and roadmap, and publish `docs/` with the README.
 
 - Build package JavaScript, declarations and source maps with TypeScript 7.
