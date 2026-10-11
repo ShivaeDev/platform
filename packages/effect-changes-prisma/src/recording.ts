@@ -30,11 +30,11 @@ function recordingDelegate(delegate: object, model: string, collect: (write: Wri
 	});
 }
 
-export const recordingClient = <Client extends object>(
-	client: Client,
+export const recordingClient = <TClient extends object>(
+	client: TClient,
 	delegates: ReadonlyMap<string, string>,
 	collect: (write: Write) => void,
-): Client =>
+): TClient =>
 	new Proxy(client, {
 		get: (target, key) => {
 			const value: unknown = Reflect.get(target, key);

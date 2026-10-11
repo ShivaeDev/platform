@@ -18,11 +18,11 @@ const errnoOf = (error: PlatformError): string => {
 	return typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string" ? cause.code : "";
 };
 
-const attempt = <Value>(
+const attempt = <TValue>(
 	path: string,
-	action: Effect.Effect<Value, PlatformError, FileSystem.FileSystem>,
-	whenAbsent: Value,
-): Effect.Effect<Value, FilesystemFailure, FileSystem.FileSystem> =>
+	action: Effect.Effect<TValue, PlatformError, FileSystem.FileSystem>,
+	whenAbsent: TValue,
+): Effect.Effect<TValue, FilesystemFailure, FileSystem.FileSystem> =>
 	Effect.catchTag(action, "PlatformError", (error) =>
 		ABSENT.has(errnoOf(error))
 			? Effect.succeed(whenAbsent)
