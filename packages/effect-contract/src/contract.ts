@@ -1,38 +1,38 @@
 import { Rpc, RpcGroup, type RpcMiddleware } from "effect/unstable/rpc";
 import type { CommandShape, OperationShape, QueryShape } from "./operation.ts";
 
-export type Tag<Contract extends string, Name extends string> = `${Contract}.${Name}`;
+export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
 
-export type OperationRpc<Contract extends string, Operation> = Operation extends OperationShape
-	? Rpc.Rpc<Tag<Contract, Operation["name"]>, Operation["payload"], Operation["success"], Operation["error"]>
+export type OperationRpc<TContract extends string, TOperation> = TOperation extends OperationShape
+	? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], TOperation["error"]>
 	: never;
 
-export interface Declared<Name extends string, Queries extends readonly QueryShape[], Commands extends readonly CommandShape[]> {
-	readonly commands: Commands;
-	readonly name: Name;
-	readonly queries: Queries;
+export interface Declared<TName extends string, TQueries extends readonly QueryShape[], TCommands extends readonly CommandShape[]> {
+	readonly commands: TCommands;
+	readonly name: TName;
+	readonly queries: TQueries;
 }
 
 export interface Contract<
-	Name extends string,
-	Queries extends readonly QueryShape[],
-	Commands extends readonly CommandShape[],
-	Rpcs extends Rpc.Any = OperationRpc<Name, Queries[number] | Commands[number]>,
-> extends RpcGroup.RpcGroup<Rpcs> {
-	readonly declaration: Declared<Name, Queries, Commands>;
-	middleware: <M extends RpcMiddleware.AnyService>(middleware: M) => Contract<Name, Queries, Commands, Rpc.AddMiddleware<Rpcs, M>>;
+	TName extends string,
+	TQueries extends readonly QueryShape[],
+	TCommands extends readonly CommandShape[],
+	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]>,
+> extends RpcGroup.RpcGroup<TRpcs> {
+	readonly declaration: Declared<TName, TQueries, TCommands>;
+	middleware: <TM extends RpcMiddleware.AnyService>(middleware: TM) => Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TM>>;
 }
 
-type Duplicated<Operations extends readonly OperationShape[], Seen extends string = never> = Operations extends readonly [
-	infer Head extends OperationShape,
-	...infer Tail extends readonly OperationShape[],
+type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
+	infer THead extends OperationShape,
+	...infer TTail extends readonly OperationShape[],
 ]
-	? (Head["name"] extends Seen ? Head["name"] : never) | Duplicated<Tail, Seen | Head["name"]>
+	? (THead["name"] extends TSeen ? THead["name"] : never) | Duplicated<TTail, TSeen | THead["name"]>
 	: never;
 
-type Unique<Operations extends readonly OperationShape[]> = [Duplicated<Operations>] extends [never]
+type Unique<TOperations extends readonly OperationShape[]> = [Duplicated<TOperations>] extends [never]
 	? unknown
-	: `Operation names must be unique; duplicated: ${Duplicated<Operations>}`;
+	: `Operation names must be unique; duplicated: ${Duplicated<TOperations>}`;
 
 function assertUnique(operations: readonly OperationShape[]) {
 	const duplicated = operations.map(({ name }) => name).filter((name, index, names) => names.indexOf(name) !== index);
@@ -60,13 +60,13 @@ function withDeclaration(group: Group, declaration: AnyDeclared): DeclaredGroup 
 }
 
 export function contract<
-	const Name extends string,
-	const Queries extends readonly QueryShape[] = readonly [],
-	const Commands extends readonly CommandShape[] = readonly [],
+	const TName extends string,
+	const TQueries extends readonly QueryShape[] = readonly [],
+	const TCommands extends readonly CommandShape[] = readonly [],
 >(
-	name: Name,
-	operations: { readonly queries?: Queries & Unique<Queries>; readonly commands?: Commands & Unique<[...Queries, ...Commands]> },
-): Contract<Name, Queries, Commands>;
+	name: TName,
+	operations: { readonly queries?: TQueries & Unique<TQueries>; readonly commands?: TCommands & Unique<[...TQueries, ...TCommands]> },
+): Contract<TName, TQueries, TCommands>;
 export function contract(
 	name: string,
 	operations: { readonly queries?: readonly QueryShape[]; readonly commands?: readonly CommandShape[] },
