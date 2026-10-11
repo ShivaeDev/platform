@@ -295,7 +295,7 @@
 				"noJsxNamespace": "error",
 				"noLoopFunc": "error",
 				"noMisplacedListElements": "error",
-				"noMisusedPromises": "off",
+				"noMisusedPromises": { "fix": "none", "level": "error" },
 				"noNegationInEqualityCheck": "error",
 				"noNonScalableViewport": "error",
 				"noObsoleteTags": "error",
@@ -348,7 +348,8 @@
 				"useControlLabel": "error",
 				"useDisposables": "error",
 				"useExhaustiveSwitchCases": {
-					"level": "off",
+					"fix": "none",
+					"level": "error",
 					"options": {
 						"requireExplicitCase": true
 					}
@@ -538,7 +539,7 @@
 				"noEmptyBlockStatements": "error",
 				"noEmptyInterface": "error",
 				"noEmptySource": "error",
-				"noEqualsToNull": "off",
+				"noEqualsToNull": { "fix": "none", "level": "error" },
 				"noEvolvingTypes": "error",
 				"noExplicitAny": "error",
 				"noExportsInTest": "error",
