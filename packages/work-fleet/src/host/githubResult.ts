@@ -44,8 +44,8 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (host
 	const files = (yield* githubJson(FilePages, read, ["api", `${endpoint}/files?per_page=100`, "--paginate", "--slurp"])).flat();
 	const after = yield* githubJson(PullRequest, read, ["api", endpoint]);
 	yield* validatePullRequest(after, head, number, prUrl, host.repository.branch);
-	if (before.base.sha !== after.base.sha || before.changedFiles !== after.changedFiles) {
-		return yield* new FleetFailure({ message: "PR base or changed paths moved during observation", reason: "stale" });
+	if (before.changedFiles !== after.changedFiles) {
+		return yield* new FleetFailure({ message: "PR changed paths moved during observation", reason: "stale" });
 	}
 	if (files.length !== after.changedFiles || new Set(files.map((file) => file.filename)).size !== files.length) {
 		return yield* new FleetFailure({ message: "GitHub returned an incomplete changed-path observation", reason: "integration" });
