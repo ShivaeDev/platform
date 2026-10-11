@@ -4,10 +4,12 @@ import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { type DecisionResponse, FleetFailure } from "#policy.ts";
+import { reportPrompt } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function continueWorker(state: EngineState) {
 	return Effect.fn("Fleet.continueWorker")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[], prompt: string) {
+		const workerPrompt = stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt;
 		const worker = stored.value.decision?.worker;
 		const latest = stored.value.attempts.at(-1);
 		if (
@@ -33,7 +35,7 @@ export function continueWorker(state: EngineState) {
 		);
 		const attempt: Attempt = {
 			operationId: state.policy.operationId(),
-			prompt,
+			prompt: workerPrompt,
 			role: latest.role,
 			sessionId: worker.sessionId,
 			status: "submitting",
@@ -54,7 +56,7 @@ export function continueWorker(state: EngineState) {
 		yield* state.sessions
 			.continue({
 				operationId: attempt.operationId,
-				prompt,
+				prompt: workerPrompt,
 				sessionId: worker.sessionId,
 				settings: { ...state.policy.launch, ...stored.value.launch },
 			})

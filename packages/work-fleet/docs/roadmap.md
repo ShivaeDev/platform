@@ -11,6 +11,8 @@
 - Managed Board decisions retain exact question/context receipts. Current guided retry/release responses resolve idempotently in SQL, and immutable Board request receipts acknowledge applied or superseded decisions. HTTP and renewal tests cover publication recovery and stale or ambiguous responses.
 - Completed worker and repair turns that report the explicit `FLEET_QUESTION:` marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread; concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. The worker-question and continuation tests cover these boundaries.
 - The command host reads GitHub check runs and commit statuses for the adopted PR's exact SHA through `gh`. Pending checks keep validation open and failures reach repair. `src/host/githubChecks.test.ts` and `src/engine/validation.spec.ts` cover these transitions with synthetic GitHub responses.
+- Approved tasks with `fleet-deliverable: report` return the whole report in the worker's final message. Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery; empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status, wait and lost-publication recovery without a duplicate result or worker.
+- The Cloud adapter and headless host commit each attempt intent before `thread/start`, the session acknowledgement before `turn/start` and the turn acknowledgement before observation. PostgreSQL SIGKILL tests with a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it stays blocked with ownership retained.
 - The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
 ## Open for the command host
@@ -31,4 +33,4 @@ Live Cloud computation, actual pull request adoption, independent review, requir
 ## Maintainer decisions
 
 - Release and public distribution: the package remains private at version `0.0.0`.
-- Live pilot: validate disjoint work, replacement timing, restart recovery and normal delivery once the open host integrations are connected.
+- Live pilot: validate disjoint work, replacement timing, restart recovery and normal delivery once the open host integrations are connected. Provider lookup for an unacknowledged thread and live hosted restart evidence remain pending.

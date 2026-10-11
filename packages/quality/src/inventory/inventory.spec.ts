@@ -90,6 +90,39 @@ it.layer(NodeFileSystem.layer)("inventory", (it) => {
 		expect(inventory.files).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
 	});
 
+	it.effect("orders paths by UTF-16 code units and keeps overlapping sources unique", function* () {
+		const paths = [
+			"src/\uE000.ts",
+			"src/😀.ts",
+			"src/𐀀.ts",
+			"src/é.ts",
+			"src/e\u0301.ts",
+			"src/aa.ts",
+			"src/a2.ts",
+			"src/a10.ts",
+			"src/a.ts",
+			"src/Z.ts",
+			"src/A.ts",
+		];
+		const root = seedTree(paths.map((path) => ({ content: path, path })));
+		const inventory = yield* collectInventory(root, scope({ sources: ["src", "src/a.ts", "src"] }));
+		const expected = [
+			"src/A.ts",
+			"src/Z.ts",
+			"src/a.ts",
+			"src/a10.ts",
+			"src/a2.ts",
+			"src/aa.ts",
+			"src/e\u0301.ts",
+			"src/é.ts",
+			"src/𐀀.ts",
+			"src/😀.ts",
+			"src/\uE000.ts",
+		];
+		expect(inventory.files).toEqual(expected);
+		expect(inventory.sources).toEqual(expected.map((path) => ({ lines: [path], path, text: path })));
+	});
+
 	it.effect("leaves out excluded paths, written in .gitignore syntax", function* () {
 		const inventory = yield* collectInventory(repository(), scope({ exclude: ["*.gen.ts", "docs/"] }));
 		expect(inventory.files).toEqual(["scripts/tool.ts", "src/app.ts", "src/view.tsx"]);
