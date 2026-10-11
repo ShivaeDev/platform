@@ -3,7 +3,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Context, Effect, Exit, FileSystem, Layer, Scope } from "effect";
+import { Context, Effect, Exit, FileSystem, Layer, Scope, Tracer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { boardLayer } from "#board.ts";
 import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
@@ -48,13 +48,20 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 	sources?: Sources,
 	maintainer?: string,
 	fleetPort?: number,
+	tracer?: Tracer.Tracer,
 ) {
 	const board = Layer.provide(
 		boardLayer({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, responses, root }),
 		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
 	);
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const context = yield* Layer.buildWithScope(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))), scope);
+	const context = yield* Layer.buildWithScope(
+		HttpRouter.serve(board, { disableLogger: true }).pipe(
+			Layer.provideMerge(listenOn(0)),
+			Layer.provideMerge(tracer ? Layer.succeed(Tracer.Tracer, tracer) : Layer.empty),
+		),
+		scope,
+	);
 	const server = Context.get(context, HttpServer.HttpServer);
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("the board did not listen on TCP");

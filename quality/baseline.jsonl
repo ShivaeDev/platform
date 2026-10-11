@@ -242,8 +242,6 @@
 {"path":"packages/effect-sql/src/postgresCodecs.spec.ts","rule":"biome/plugin","count":7}
 {"path":"packages/effect-sql/src/postgresMigrationBootstrap.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/postgresMigrations.spec.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-sql/src/repository.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-sql/src/repository.ts","rule":"biome/lint/style/useNamingConvention","count":8}
 {"path":"packages/effect-sql/src/repository.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-sql/src/test-support/postgres-transact.ts","rule":"files/named-after-export","count":1}

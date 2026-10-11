@@ -18,7 +18,7 @@ it.live("rejects registration retries after the durable question file is moved",
 	);
 	yield* Effect.promise(() =>
 		expect(workspace.register()).rejects.toMatchObject({
-			code: "Conflict",
+			_tag: "Conflict",
 			message: "The registered identity moved or is duplicated. Read the existing record instead of retrying a write.",
 		}),
 	);
@@ -39,7 +39,7 @@ it.live("rejects a new response identity already owned by an ordinary project it
 				}),
 			),
 		).rejects.toMatchObject({
-			code: "Conflict",
+			_tag: "Conflict",
 			message: "This response identity is already used.",
 		}),
 	);
@@ -64,7 +64,7 @@ it.live("rejects response retries after the saved reply is moved by an external 
 	);
 	yield* Effect.promise(() =>
 		expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({
-			code: "Conflict",
+			_tag: "Conflict",
 			message: "The saved response moved. Read its existing record instead of retrying a write.",
 		}),
 	);

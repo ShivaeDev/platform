@@ -53,9 +53,7 @@ it.live("preserves the typed page read error when a real source file becomes unr
 	try {
 		yield* Effect.promise(() =>
 			expect(client.read(client.api.page.query({ url: "/note.md" }))).rejects.toMatchObject({
-				_tag: "ReadFailed",
-				operation: "page",
-				status: 500,
+				_tag: "InternalServerError",
 			}),
 		);
 	} finally {

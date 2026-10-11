@@ -11,39 +11,31 @@ it.live("returns specific native read errors when an external process removes th
 	yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })));
 	workspace.notes.remove();
 	yield* Effect.promise(() =>
-		expect.poll(() => client.run(client.api.navigation.run({ current: "" })).then(() => "readable", String)).toContain("ReadFailed"),
+		expect.poll(() => client.run(client.api.navigation.run({ current: "" })).then(() => "readable", String)).toContain("InternalServerError"),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.api.navigation.run({ current: "" }))).rejects.toMatchObject({
-			_tag: "ReadFailed",
-			operation: "navigation",
-			status: 500,
+			_tag: "InternalServerError",
 		}),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.api.search.run({ query: "review" }))).rejects.toMatchObject({
-			_tag: "ReadFailed",
-			operation: "search",
-			status: 500,
+			_tag: "InternalServerError",
 		}),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.api.history.run({ action: "observe", baseline: null }))).rejects.toMatchObject({
-			_tag: "ReadFailed",
-			operation: "history",
-			status: 500,
+			_tag: "InternalServerError",
 		}),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.api.page.run({ url: "/proposal.md" }))).rejects.toMatchObject({
-			_tag: "ReadFailed",
-			operation: "page",
-			status: 500,
+			_tag: "InternalServerError",
 		}),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.handoffs.handoffs.run({ item: "investigation.choices" }))).rejects.toMatchObject({
-			code: "Unavailable",
+			_tag: "ServiceUnavailable",
 			message: "The workspace could not be indexed.",
 		}),
 	);

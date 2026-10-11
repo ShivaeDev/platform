@@ -1,10 +1,10 @@
 import { Effect, FileSystem, Layer, Path, PubSub, Ref } from "effect";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Change, Changes } from "#files/changes.ts";
 import { HandoffsService } from "#handoffs/Service.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { ResponseConfig, Responses } from "#responses/service.ts";
-import { ReadFailed } from "#rpc/contract.ts";
 import { handlers } from "#rpc/handlers.ts";
 import { entriesOf } from "#search/entries.ts";
 import { metadataEntries } from "#search/metadataEntries.ts";
@@ -38,7 +38,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 			return yield* handlers({
 				...options,
 				home,
-				page: () => Effect.fail(new ReadFailed({ operation: "page", status: 404 })),
+				page: () => Effect.fail(new InternalServerError({ message: "Page rendering is unavailable." })),
 			}).pipe(Effect.provide(Layer.merge(Responses.layer, HandoffsService.layer).pipe(Layer.provide(Layer.succeed(ResponseConfig, options)))));
 		}),
 	).pipe(Layer.provide([FileSystem.layerNoop({}), Path.layer]));

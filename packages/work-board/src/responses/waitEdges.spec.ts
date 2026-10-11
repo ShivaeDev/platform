@@ -2,7 +2,7 @@ import { Clock, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { ResponseFailed } from "#browser/responses/schema.ts";
+import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { waitForResponse } from "#responses/waitFor.ts";
 import { recordedEdgeResponse, responseWorkspace } from "#test/responseEdges.ts";
 import { waitReplies } from "#test/waitReplies.ts";
@@ -10,9 +10,9 @@ import { waitReplies } from "#test/waitReplies.ts";
 let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
 
 it.live("preserves a nonretryable external RPC rejection without polling it again", function* () {
-	const failure = new ResponseFailed({ code: "Conflict", message: "The registered question identity is ambiguous; response history is unknown." });
+	const failure = new Conflict({ message: "The registered question identity is ambiguous; response history is unknown." });
 	const rpc = waitReplies([Effect.fail(failure)]);
-	expect(yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).toMatchObject({ code: failure.code, message: failure.message });
+	expect(yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).toMatchObject({ _tag: failure._tag, message: failure.message });
 	expect(rpc.calls()).toBe(1);
 });
 
@@ -20,7 +20,7 @@ it.live("reconnects after repeated external service failures and reports one out
 	workspace = yield* responseWorkspace();
 	const question = yield* Effect.promise(() => workspace.register());
 	const response = recordedEdgeResponse(question);
-	const unavailable = Effect.fail(new ResponseFailed({ code: "Unavailable", message: "The workspace could not be indexed." }));
+	const unavailable = Effect.fail(new ServiceUnavailable({ message: "The workspace could not be indexed." }));
 	const rpc = waitReplies([
 		unavailable,
 		unavailable,
@@ -48,10 +48,7 @@ it.live("does not invent an unanswered verdict when transport fails after the kn
 	workspace = yield* responseWorkspace();
 	const registered = yield* Effect.promise(() => workspace.register());
 	const question = { ...registered, question: { ...registered.question, deadline: (yield* Clock.currentTimeMillis) - 1 } };
-	const rpc = waitReplies([
-		Effect.succeed({ expired: false, question }),
-		Effect.fail(new ResponseFailed({ code: "Unavailable", message: "Connection lost." })),
-	]);
+	const rpc = waitReplies([Effect.succeed({ expired: false, question }), Effect.fail(new ServiceUnavailable({ message: "Connection lost." }))]);
 	expect((yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).message).toContain(
 		"The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns.",
 	);

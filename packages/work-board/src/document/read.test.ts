@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { Conflict, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { browserClient } from "#browser/client.ts";
 import { Document } from "#browser/document/schema.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
@@ -120,16 +121,11 @@ it.live("keeps malformed response history unavailable instead of reporting an em
 
 it.live("rejects missing and duplicate document identities with typed read failures", function* () {
 	yield* open();
-	yield* Effect.promise(() =>
-		expect(client.run(client.api.document.run({ url: "/missing.md" }))).rejects.toMatchObject({ operation: "document", status: 404 }),
-	);
+	yield* Effect.promise(() => expect(client.run(client.api.document.run({ url: "/missing.md" }))).rejects.toBeInstanceOf(NotFound));
 	notes.write("duplicate.md", "---\nid: investigation.choices\n---\n# Duplicate");
 	yield* Effect.promise(async () =>
 		waitFor(async () => {
-			await expect(client.run(client.api.document.run({ url: "/_board/item/investigation.choices/" }))).rejects.toMatchObject({
-				operation: "document",
-				status: 409,
-			});
+			await expect(client.run(client.api.document.run({ url: "/_board/item/investigation.choices/" }))).rejects.toBeInstanceOf(Conflict);
 		}),
 	);
 });

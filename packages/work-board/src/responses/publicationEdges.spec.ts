@@ -18,7 +18,7 @@ it.live("refuses publication when an external process moves the already-open wri
 		renameSync(join(notes.root, "responses"), join(notes.root, "moved"));
 		yield* Effect.promise(() =>
 			expect(publishIn(target, notes.root, notes.root, "response.edge", "New feedback")).rejects.toMatchObject({
-				code: "Conflict",
+				_tag: "Conflict",
 				message: "The write boundary changed.",
 			}),
 		);

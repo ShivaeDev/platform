@@ -14,7 +14,7 @@ it.live("rejects absent attention requests with an exact missing-request error",
 	yield* Effect.promise(() =>
 		expect(workspace.client.run(workspace.client.responses.question.run({ item: "investigation.choices", request: "absent" }))).rejects.toMatchObject(
 			{
-				code: "Missing",
+				_tag: "NotFound",
 				message: "The exact open attention request is missing, ambiguous or unavailable.",
 			},
 		),
@@ -25,7 +25,7 @@ it.live("bounds the UTF-8 source context before registering a question", functio
 	workspace = yield* responseWorkspace(`${questionnaireSource}\n${"💬".repeat((256 * 1024) / 4)}`);
 	yield* Effect.promise(() =>
 		expect(workspace.register()).rejects.toMatchObject({
-			code: "Unsupported",
+			_tag: "BadRequest",
 			message: "Question context is limited to 256 KiB; use a focused source document.",
 		}),
 	);
@@ -35,7 +35,7 @@ it.live("returns the template diagnostic when an authored packet has an empty op
 	workspace = yield* responseWorkspace(questionnaireSource.replace("**Latest reply** — compact, with older replies behind a link.", ""));
 	yield* Effect.promise(() =>
 		expect(workspace.register()).rejects.toMatchObject({
-			code: "Unsupported",
+			_tag: "BadRequest",
 			message: "Invalid response template: Options need Markdown descriptions and cannot nest response controls.",
 		}),
 	);
@@ -45,7 +45,7 @@ it.live("rejects a project item passed as a registered-question identity", funct
 	workspace = yield* responseWorkspace();
 	yield* Effect.promise(() =>
 		expect(workspace.client.run(workspace.client.responses.responses.run({ question: "investigation.choices" }))).rejects.toMatchObject({
-			code: "Conflict",
+			_tag: "Conflict",
 			message: "This identity is not a valid registered question; response history is unknown.",
 		}),
 	);
@@ -58,7 +58,7 @@ it.live("rejects a next-response cursor absent from durable history", function* 
 		expect(
 			workspace.client.run(workspace.client.responses.awaitResponse.run({ after: "response.absent", question: question.id })),
 		).rejects.toMatchObject({
-			code: "Missing",
+			_tag: "NotFound",
 			message: "The next-response cursor is not recorded for this question.",
 		}),
 	);
@@ -113,7 +113,7 @@ it.live("refuses to select responses when a real workspace file becomes unreadab
 					),
 				)
 				.toMatchObject({
-					code: "Unavailable",
+					_tag: "ServiceUnavailable",
 					message: "The workspace index is incomplete; no response can be selected safely.",
 				}),
 		);

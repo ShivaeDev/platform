@@ -16,6 +16,7 @@
 				"./rpc/identity.ts",
 				"./rpc/middleware.ts",
 				"./rpc-server/adapters/better-auth-sessions.ts",
+				"./rpc-server/boundary.ts",
 				"./rpc-server/local.ts",
 				"./rpc-server/origin.ts",
 				"./rpc-server/redact-cause.ts",

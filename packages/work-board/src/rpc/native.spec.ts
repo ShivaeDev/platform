@@ -39,6 +39,16 @@ it.live("reads SSR documents, stable item URLs, navigation, search and explicit 
 	expect(seen.snapshot).toContain("Read this.");
 	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
 	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).headers.get("content-type")).toContain("javascript");
+	const boardUrl = board.url;
+	for (const [asset, type] of [
+		["react.js", "text/javascript"],
+		["react.css", "text/css"],
+	]) {
+		const response = yield* Effect.promise(() => fetch(`${boardUrl}/_board/${asset}`));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe(type);
+		expect(yield* Effect.promise(() => response.text())).not.toBe("");
+	}
 });
 
 it.live("retains unrelated mounted reads while reconciling dependent pages and navigation after source changes", function* () {

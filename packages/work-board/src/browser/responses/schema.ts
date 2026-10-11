@@ -43,11 +43,6 @@ export const RecordedResponse = Schema.Struct({ body: Schema.String, id: Identit
 export const Reading = Schema.Struct({ question: Question, responses: Schema.Array(RecordedResponse) });
 export const WaitReading = Schema.Struct({ expired: Schema.Boolean, question: Question, response: Schema.optional(RecordedResponse) });
 export type WaitReading = typeof WaitReading.Type;
-export class ResponseFailed extends Schema.TaggedError<ResponseFailed>()("ResponseFailed", {
-	cause: Schema.optional(Schema.Defect()),
-	code: Schema.Literals(["Disabled", "Missing", "Stale", "Conflict", "Unavailable", "Unsupported", "Uncertain", "Unanswered"]),
-	message: Schema.String,
-}) {}
 export const DraftInput = Schema.Struct({
 	answers: Schema.optional(Answers),
 	author: ResponseRecord.fields.author,

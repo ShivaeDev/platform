@@ -1,8 +1,10 @@
+import { Schema } from "effect";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { session } from "#browser/session.ts";
+import { PublicationUncertain, ResponseRejection } from "#rpc/rejections.ts";
 import type { draftSession } from "./draftSession.ts";
 import type { Draft } from "./drafts.ts";
 import type { ResponseSubmission } from "./formSchema.ts";
-import { ResponseFailed } from "./schema.ts";
 
 export async function submitResponse(
 	form: HTMLFormElement,
@@ -30,7 +32,10 @@ export async function submitResponse(
 		return cleared;
 	} catch (error) {
 		if (form.isConnected) {
-			const outcome = error instanceof ResponseFailed && error.code !== "Uncertain" ? "rejected" : "uncertain";
+			const outcome =
+				Schema.is(ResponseRejection)(error) && !(error instanceof PublicationUncertain) && !(error instanceof InternalServerError)
+					? "rejected"
+					: "uncertain";
 			status.dataset.outcome = outcome;
 			status.textContent = `${outcome === "rejected" ? "Rejected" : "Uncertain"}: ${String(error)}. Draft retained. Preview and retry with the same identity; saved content will be reconciled.`;
 		}

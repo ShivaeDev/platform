@@ -51,7 +51,9 @@ it.live("keeps recorded answers readable when a question closes or its option la
 			expect(page.body).toContain("Recorded responses");
 			expect(page.body).toContain("Keep readable project files.");
 			expect(page.body).toContain("Earlier reviewed context");
-			expect(page.body).not.toContain("ResponseFailed");
+			expect(page.body).not.toContain("NotFound:");
+			expect(page.body).not.toContain("BadRequest:");
+			expect(page.body).not.toContain("PreconditionFailed:");
 			expect(page.body).not.toContain("Error:");
 			expect(page.body).not.toContain('id="response-form"');
 		}
