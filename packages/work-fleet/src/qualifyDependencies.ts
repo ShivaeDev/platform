@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { workRevision } from "#board/workRevision.ts";
 import type { FleetRecord } from "#model.ts";
 import { type BoardFailure, type BoardWork, FleetFailure } from "#policy.ts";
 
@@ -52,5 +53,7 @@ function dependencyAccepted(workId: string, current: BoardWork, records: readonl
 	const record = records.find((entry) => entry.workId === workId);
 	return record === undefined
 		? current.status === "done"
-		: record.stage === "completed" && record.outcome !== undefined && record.boardRevision === current.revision;
+		: record.stage === "completed"
+				&& record.outcome !== undefined
+				&& workRevision(record.boardRevision, record.boardContext) === workRevision(current.revision, current.context);
 }

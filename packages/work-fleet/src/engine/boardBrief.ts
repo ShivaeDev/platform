@@ -1,11 +1,12 @@
 import { Effect } from "effect";
+import { workRevision } from "#board/workRevision.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import { type BoardWork, FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function briefChanged(record: FleetRecord, work: BoardWork): boolean {
-	return record.boardRevision !== work.revision;
+	return workRevision(record.boardRevision, record.boardContext) !== workRevision(work.revision, work.context);
 }
 
 export function briefUpdate(record: FleetRecord, work: BoardWork): string {

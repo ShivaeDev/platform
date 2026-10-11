@@ -9,6 +9,7 @@ import { boardDiagnostics } from "#board/fleetField.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";
 import { reportContent } from "#board/reportContent.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
+import { workRevision } from "#board/workRevision.ts";
 import { BoardFailure, type BoardWork } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
@@ -23,8 +24,8 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 			|| source?.parsed.fields.id !== work.workId
 			|| parsed.fields.id !== work.workId
 			|| boardDiagnostics(parsed).length > 0
-			|| briefRevision(source.parsed) !== work.revision
-			|| work.revision !== briefRevision(parsed)
+			|| briefRevision(source.parsed) !== workRevision(work.revision, work.context)
+			|| workRevision(work.revision, work.context) !== briefRevision(parsed)
 			|| observation.execution !== "completed"
 			|| !observation.output.trim()
 		) {

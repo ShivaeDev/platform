@@ -7,6 +7,7 @@ import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetF
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
+import { workRevision } from "#board/workRevision.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
@@ -48,7 +49,7 @@ export function markdownBoard(root: string) {
 					const relativeSource = path.relative(realRoot, work.sourcePath);
 					if (
 						work.workId !== workId
-						|| work.revision !== briefRevision(parsed)
+						|| workRevision(work.revision, work.context) !== briefRevision(parsed)
 						|| parsed.fields.id !== workId
 						|| boardDiagnostics(parsed).length > 0
 						|| relativeSource === "."

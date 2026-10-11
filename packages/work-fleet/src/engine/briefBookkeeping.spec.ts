@@ -12,21 +12,27 @@ import { answerWorker } from "#test/workerQuestion.ts";
 
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
-for (const [field, before, after] of [
-	["status", "status: planned", "status: deferred"],
-	["superseded status", "status: planned", "status: superseded"],
-	["next_action", "next_action: Implement the work.", "next_action: Work completed."],
-	["owner", "owner: first-owner", "owner: next-owner"],
-] as const) {
+for (const wholeFileRevision of [false, true]) {
+	for (const [field, before, after] of [
+		["status", "status: planned", "status: deferred"],
+		["superseded status", "status: planned", "status: superseded"],
+		["next_action", "next_action: Implement the work.", "next_action: Work completed."],
+		["owner", "owner: first-owner", "owner: next-owner"],
+	] as const) {
+		registerBookkeepingTests(wholeFileRevision, field, before, after);
+	}
+}
+
+function registerBookkeepingTests(wholeFileRevision: boolean, field: string, before: string, after: string) {
 	for (const phase of ["preparation", "execution", "review", "decision"]) {
-		test(`${field} edits during ${phase} preserve durable work and its decision after restart`, () =>
+		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${field} edits during ${phase} preserve durable work and its decision after restart`, () =>
 			withFleetBoard({ noChange: true, reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
 					const files = boardHttpFiles(root);
 					const original = source.replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.\nowner: first-owner");
 					files.write("one.md", original);
 					const fleet = yield* Fleet;
-					const active = yield* prepareBookkeepingPhase(fixture, phase);
+					const active = yield* prepareBookkeepingPhase(fixture, phase, wholeFileRevision);
 					const changed = original.replace(before, after);
 					files.write("one.md", changed);
 					const unchanged = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
