@@ -41,3 +41,22 @@ const scoped = makeEffectIt({
 })
 scoped.effectApp("uses per-test Scope", function* () { yield* Effect.addFinalizer(() => Effect.void) })
 scoped.effectApp.each([1])("scopes table bodies %s", function* () { yield* Effect.addFinalizer(() => Effect.void) })
+
+
+effectApp("retains packed Effect-returning fixture types", (harness, context) => {
+  const token: string = harness.token
+  void token
+  void context.task.name
+  return Effect.service(Token)
+})
+
+effectApp.each([{ id: 1 as const }])("retains packed Effect-returning case types", (item, harness) => {
+  const id: 1 = item.id
+  const token: string = harness.token
+  void id
+  void token
+  return Effect.service(Token)
+})
+
+// @ts-expect-error Packed Effect-returning bodies cannot use a service absent from the Layer.
+scoped.effectApp("rejects an unprovided service", () => Effect.service(Token))

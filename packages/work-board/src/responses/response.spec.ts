@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { Clock, Effect } from "effect";
-import { afterEach, expect, it } from "vitest";
+import { Cause, Clock, Effect, Fiber } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { outsideResponseDirectory } from "#test/responseFiles.ts";
@@ -23,25 +24,34 @@ attention:
 
 Choose explicit requests.
 `;
+
 let notes: Folder;
 let board: RunningBoard;
 let client: ReturnType<typeof browserClient>;
-afterEach(async () => {
+
+afterEach(() => {
 	client?.registry.dispose();
-	await board?.stop();
 	notes?.remove();
 });
-async function open(enabled = true) {
+
+const open = Effect.fn("Test.open")(function* (enabled = true) {
 	notes = folder({ "investigation.md": source });
-	board = await startBoard(notes.root, undefined, (fs) => fs, enabled);
-	client = browserClient(board.url);
-}
-async function register() {
-	const question = await client.run(client.responses.question.run({ item: "investigation.model", request: "review-model" }));
-	return client.mutate(
-		client.responses.registerQuestion.run({ item: "investigation.model", request: "review-model", revision: question.reviewedRevision }),
+	board = yield* startBoard(notes.root, undefined, (fs) => fs, enabled);
+	client = yield* Effect.acquireRelease(
+		Effect.sync(() => browserClient(board.url)),
+		(value) => Effect.sync(() => value.registry.dispose()),
 	);
-}
+});
+
+const register = Effect.fn("Test.register")(function* () {
+	const question = yield* Effect.promise(() => client.run(client.responses.question.run({ item: "investigation.model", request: "review-model" })));
+	return yield* Effect.promise(() =>
+		client.mutate(
+			client.responses.registerQuestion.run({ item: "investigation.model", request: "review-model", revision: question.reviewedRevision }),
+		),
+	);
+});
+
 function input(question: string, id = "response.first", body = "Use explicit requests.") {
 	return {
 		author: "maintainer",
@@ -51,126 +61,151 @@ function input(question: string, id = "response.first", body = "Use explicit req
 		type: "answer" as const,
 	};
 }
-it("requires explicit write opt-in and rejects source forms at the HTTP boundary", async () => {
-	await open(false);
-	await expect(register()).rejects.toThrow("explicitly enable");
+
+it.live("requires explicit write opt-in and rejects source forms at the HTTP boundary", function* () {
+	yield* open(false);
+	expect(yield* register().pipe(Effect.matchCause({ onFailure: Cause.squash, onSuccess: () => undefined }))).toMatchObject({
+		message: expect.stringContaining("explicitly enable"),
+	});
 	expect(readdirSync(notes.root)).toEqual(["investigation.md"]);
-	await board.stop();
+	yield* board.stop();
 	client.registry.dispose();
-	board = await startBoard(notes.root, undefined, (fs) => fs, true);
-	client = browserClient(board.url);
-	const forged = await fetch(`${board.url}/_board/rpc`, { body: "{}", headers: { "content-type": "text/plain", origin: board.url }, method: "POST" });
+	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);
+	client = yield* Effect.acquireRelease(
+		Effect.sync(() => browserClient(board.url)),
+		(value) => Effect.sync(() => value.registry.dispose()),
+	);
+	const forged = yield* Effect.promise(() =>
+		fetch(`${board.url}/_board/rpc`, { body: "{}", headers: { "content-type": "text/plain", origin: board.url }, method: "POST" }),
+	);
 	expect(forged.status).toBe(403);
-	const page = await fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`);
+	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 	expect(page.headers.get("content-security-policy")).toContain("form-action 'none'");
-	expect(await page.text()).toContain("Exact source being reviewed");
+	expect(yield* Effect.promise(() => page.text())).toContain("Exact source being reviewed");
 });
-it("publishes one durable question and response, leaves original bytes unchanged, and reconciles repeated writes", async () => {
-	await open();
-	const question = await register();
-	expect((await register()).question.registeredAt).toBe(question.question.registeredAt);
-	const saved = await client.mutate(client.responses.recordResponse.run(input(question.id)));
-	expect(await client.mutate(client.responses.recordResponse.run(input(question.id)))).toEqual(saved);
+
+it.live("publishes one durable question and response, leaves original bytes unchanged, and reconciles repeated writes", function* () {
+	yield* open();
+	const question = yield* register();
+	expect((yield* register()).question.registeredAt).toBe(question.question.registeredAt);
+	const saved = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input(question.id))));
+	expect(yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input(question.id))))).toEqual(saved);
 	expect(readFileSync(join(notes.root, "investigation.md"), "utf8")).toBe(source);
 	expect(readdirSync(join(notes.root, "responses")).sort()).toEqual([`${question.id}.md`, "response.first.md"].sort());
-	await expect(client.mutate(client.responses.recordResponse.run(input(question.id, "response.first", "Different intent")))).rejects.toThrow(
-		"different content",
+	yield* Effect.promise(() =>
+		expect(client.mutate(client.responses.recordResponse.run(input(question.id, "response.first", "Different intent")))).rejects.toThrow(
+			"different content",
+		),
 	);
-	await board.stop();
+	yield* board.stop();
 	client.registry.dispose();
-	board = await startBoard(notes.root, undefined, (fs) => fs, true);
-	client = browserClient(board.url);
-	expect((await client.run(client.responses.responses.run({ question: question.id }))).responses).toEqual([saved]);
-	const result = await Effect.runPromise(agentRequest("wait", { request: question.id, url: board.url }));
+	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);
+	client = yield* Effect.acquireRelease(
+		Effect.sync(() => browserClient(board.url)),
+		(value) => Effect.sync(() => value.registry.dispose()),
+	);
+	expect((yield* Effect.promise(() => client.run(client.responses.responses.run({ question: question.id })))).responses).toEqual([saved]);
+	const result = yield* agentRequest("wait", { request: question.id, url: board.url });
 	expect(result).toMatchObject({ kind: "response", question, response: saved });
 });
-it("retains attributable old replies but rejects a stale new save or changed request generation", async () => {
-	await open();
-	const question = await register();
-	const saved = await client.mutate(client.responses.recordResponse.run(input(question.id)));
+
+it.live("retains attributable old replies but rejects a stale new save or changed request generation", function* () {
+	yield* open();
+	const question = yield* register();
+	const saved = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input(question.id))));
 	notes.write("investigation.md", source.replace("Choose explicit requests.", "Changed proposal."));
-	await expect(client.mutate(client.responses.recordResponse.run(input(question.id, "response.second")))).rejects.toThrow("Source changed");
-	await expect(
-		client.mutate(
-			client.responses.registerQuestion.run({ item: "investigation.model", request: "review-model", revision: question.question.reviewedRevision }),
-		),
-	).rejects.toThrow("Source changed");
-	expect((await client.run(client.responses.responses.run({ question: question.id }))).responses).toEqual([saved]);
-	const next = await register();
+	yield* Effect.promise(() =>
+		expect(client.mutate(client.responses.recordResponse.run(input(question.id, "response.second")))).rejects.toThrow("Source changed"),
+	);
+	yield* Effect.promise(() =>
+		expect(
+			client.mutate(
+				client.responses.registerQuestion.run({ item: "investigation.model", request: "review-model", revision: question.question.reviewedRevision }),
+			),
+		).rejects.toThrow("Source changed"),
+	);
+	expect((yield* Effect.promise(() => client.run(client.responses.responses.run({ question: question.id })))).responses).toEqual([saved]);
+	const next = yield* register();
 	expect(next.id).not.toBe(question.id);
 });
-it("rejects rename/delete and escaping response links without writing outside the root", async () => {
-	await open();
-	const question = await register();
+
+it.live("rejects rename/delete and escaping response links without writing outside the root", function* () {
+	yield* open();
+	const question = yield* register();
 	renameSync(join(notes.root, "investigation.md"), join(notes.root, "moved.md"));
-	await expect(client.mutate(client.responses.recordResponse.run(input(question.id)))).rejects.toThrow("Source changed");
+	yield* Effect.promise(() => expect(client.mutate(client.responses.recordResponse.run(input(question.id)))).rejects.toThrow("Source changed"));
 	unlinkSync(join(notes.root, "moved.md"));
-	await expect(client.mutate(client.responses.recordResponse.run(input(question.id)))).rejects.toThrow();
+	yield* Effect.promise(() => expect(client.mutate(client.responses.recordResponse.run(input(question.id)))).rejects.toThrow());
 	const outside = folder({});
 	try {
 		notes.write("investigation.md", source.replace("Choose explicit requests.", "A new reviewed generation."));
 		renameSync(join(notes.root, "responses"), join(notes.root, "old-responses"));
 		outsideResponseDirectory(notes.root, outside.root);
-		await expect(register()).rejects.toThrow();
+		expect((yield* Effect.exit(register()))._tag).toBe("Failure");
 		expect(readdirSync(outside.root)).toEqual([]);
 	} finally {
 		outside.remove();
 	}
 });
-it("returns clarification separately and waits for the next attributable reply without consuming either", async () => {
-	await open();
-	const question = await register();
-	const first = await client.mutate(client.responses.recordResponse.run({ ...input(question.id), type: "clarify" }));
-	const controller = new AbortController();
-	const waiting = Effect.runPromise(agentRequest("wait", { after: first.id, request: question.id, url: board.url }), { signal: controller.signal });
-	const second = await client.mutate(client.responses.recordResponse.run(input(question.id, "response.second", "No.")));
-	expect(await waiting).toMatchObject({ response: second });
+
+it.live("returns clarification separately and waits for the next attributable reply without consuming either", function* () {
+	yield* open();
+	const question = yield* register();
+	const first = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run({ ...input(question.id), type: "clarify" })));
+	const waiting = yield* agentRequest("wait", { after: first.id, request: question.id, url: board.url }).pipe(Effect.forkChild);
+	const second = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input(question.id, "response.second", "No."))));
+	expect(yield* Fiber.join(waiting)).toMatchObject({ response: second });
 	expect(second.response.recordedAt).toBeGreaterThan(first.response.recordedAt);
-	expect(await Effect.runPromise(agentRequest("wait", { request: question.id, url: board.url }))).toMatchObject({ response: first });
+	expect(yield* agentRequest("wait", { request: question.id, url: board.url })).toMatchObject({ response: first });
 	expect(questionFrom({ file: "plain.md", parsed: { body: "plain", bodyLine: 1, diagnostics: [], fields: {}, lines: {} } })).toBeUndefined();
 });
-it("shows ambiguous recorded history as unavailable instead of falsely saying no response exists", async () => {
-	await open();
-	const question = await register();
+
+it.live("shows ambiguous recorded history as unavailable instead of falsely saying no response exists", function* () {
+	yield* open();
+	const question = yield* register();
 	notes.write("duplicate.md", readFileSync(join(notes.root, "responses", `${question.id}.md`), "utf8"));
-	const response = await fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`);
-	const html = await response.text();
+	const response = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
+	const html = yield* Effect.promise(() => response.text());
 	expect(response.status).toBe(409);
 	expect(html).toContain("response history is unknown");
 	expect(html).not.toContain("No response is recorded");
 });
-it("does not interpret malformed recorded feedback as an unanswered human request", async () => {
-	await open();
-	const question = await register();
+
+it.live("does not interpret malformed recorded feedback as an unanswered human request", function* () {
+	yield* open();
+	const question = yield* register();
 	notes.write(
 		"responses/response.broken.md",
 		"---\nid: response.broken\nkind: response\nresponse: { type: answer }\n---\nActual feedback with incomplete provenance\n",
 	);
-	await expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established");
+	yield* Effect.promise(() =>
+		expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established"),
+	);
 });
-it("treats syntactically damaged record files as unknown history while ordinary malformed Markdown still reads", async () => {
-	await open();
-	const question = await register();
+
+it.live("treats syntactically damaged record files as unknown history while ordinary malformed Markdown still reads", function* () {
+	yield* open();
+	const question = yield* register();
 	const expired = {
 		...question,
 		question: {
 			...question.question,
-			deadline: Effect.runSync(Clock.currentTimeMillis) - 1,
-			registeredAt: Effect.runSync(Clock.currentTimeMillis) - 48 * 60 * 60 * 1000 - 1,
+			deadline: (yield* Clock.currentTimeMillis) - 1,
+			registeredAt: (yield* Clock.currentTimeMillis) - 48 * 60 * 60 * 1000 - 1,
 		},
 	};
 	notes.write(`responses/${question.id}.md`, questionMarkdown(expired));
 	const broken = "---\nid: response.broken\nkind: response\nresponse: [broken\n---\nActual human feedback\n";
 	notes.write("unrelated.md", broken);
-	expect((await client.run(client.responses.responses.run({ question: question.id }))).responses).toEqual([]);
+	expect((yield* Effect.promise(() => client.run(client.responses.responses.run({ question: question.id })))).responses).toEqual([]);
 	notes.write("responses/response.broken.md", broken);
-	await expect
-		.poll(() => client.run(client.responses.responses.run({ question: question.id })).then(() => "Readable", String))
-		.toContain("malformed");
-	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");
+	yield* Effect.promise(() =>
+		expect.poll(() => client.run(client.responses.responses.run({ question: question.id })).then(() => "Readable", String)).toContain("malformed"),
+	);
+	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
 	notes.write("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
-	await expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed");
-	const page = await fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`);
+	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
+	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 	expect(page.status).toBe(409);
-	expect(await page.text()).not.toContain("No response is recorded");
+	expect(yield* Effect.promise(() => page.text())).not.toContain("No response is recorded");
 });

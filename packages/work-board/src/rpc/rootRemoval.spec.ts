@@ -1,27 +1,42 @@
-import { afterEach, expect, it } from "vitest";
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { responseWorkspace } from "#test/responseEdges.ts";
 
-let workspace: Awaited<ReturnType<typeof responseWorkspace>>;
-afterEach(async () => workspace?.stop());
+let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
 
-it("returns specific native read errors when an external process removes the workspace root", async () => {
-	workspace = await responseWorkspace();
+it.live("returns specific native read errors when an external process removes the workspace root", function* () {
+	workspace = yield* responseWorkspace();
 	const { client } = workspace;
-	await client.run(client.api.navigation.run({ current: "" }));
+	yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })));
 	workspace.notes.remove();
-	await expect.poll(() => client.run(client.api.navigation.run({ current: "" })).then(() => "readable", String)).toContain("InternalServerError");
-	await expect(client.run(client.api.navigation.run({ current: "" }))).rejects.toMatchObject({ _tag: "InternalServerError" });
-	await expect(client.run(client.api.search.run({ query: "review" }))).rejects.toMatchObject({
-		_tag: "InternalServerError",
-	});
-	await expect(client.run(client.api.history.run({ action: "observe", baseline: null }))).rejects.toMatchObject({
-		_tag: "InternalServerError",
-	});
-	await expect(client.run(client.api.page.run({ url: "/proposal.md" }))).rejects.toMatchObject({
-		_tag: "InternalServerError",
-	});
-	await expect(client.run(client.handoffs.handoffs.run({ item: "investigation.choices" }))).rejects.toMatchObject({
-		_tag: "ServiceUnavailable",
-		message: "The workspace could not be indexed.",
-	});
+	yield* Effect.promise(() =>
+		expect.poll(() => client.run(client.api.navigation.run({ current: "" })).then(() => "readable", String)).toContain("InternalServerError"),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.navigation.run({ current: "" }))).rejects.toMatchObject({
+			_tag: "InternalServerError",
+		}),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.search.run({ query: "review" }))).rejects.toMatchObject({
+			_tag: "InternalServerError",
+		}),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.history.run({ action: "observe", baseline: null }))).rejects.toMatchObject({
+			_tag: "InternalServerError",
+		}),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.page.run({ url: "/proposal.md" }))).rejects.toMatchObject({
+			_tag: "InternalServerError",
+		}),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.handoffs.handoffs.run({ item: "investigation.choices" }))).rejects.toMatchObject({
+			_tag: "ServiceUnavailable",
+			message: "The workspace could not be indexed.",
+		}),
+	);
 });

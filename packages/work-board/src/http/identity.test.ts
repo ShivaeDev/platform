@@ -1,24 +1,28 @@
 import { renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { Effect, PlatformError } from "effect";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { Effect, Layer, PlatformError } from "effect";
+import { afterEach, expect } from "vitest";
+import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { identityFixture } from "#test/identityFixture.ts";
 import { changesUntil, rpcSearch, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
-beforeEach(async () => {
+
+const setupBoard = Effect.gen(function* () {
 	notes = folder(identityFixture());
-	board = await startBoard(notes.root, "legacy.md");
+	board = yield* startBoard(notes.root, "legacy.md");
 });
-afterEach(async () => {
-	await board.stop();
+
+const { effectApp } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupBoard });
+
+afterEach(() => {
 	notes.remove();
 });
 
-it("renders optional work fields, criteria/evidence claims, source locations, and ordinary boards", async () => {
-	const item = await rawGet(board, "/_board/item/work.search/");
+effectApp("renders optional work fields, criteria/evidence claims, source locations, and ordinary boards", function* () {
+	const item = yield* rawGet(board, "/_board/item/work.search/");
 	expect(item.status).toBe(200);
 	expect(item.body).toContain('data-file="items/search &amp; review.md"');
 	expect(item.body).toContain('data-identity="work.search"');
@@ -28,75 +32,75 @@ it("renders optional work fields, criteria/evidence claims, source locations, an
 	expect(item.body).toContain("not independently verified");
 	expect(item.body).toContain("items/search &amp; review.md:2");
 	expect(item.body).toContain("Readable project prose.");
-	const legacy = await rawGet(board, "/");
+	const legacy = yield* rawGet(board, "/");
 	expect(legacy.body).toContain('class="item"');
 	expect(legacy.body).not.toContain('class="work-meta"');
-	const blocked = await rawGet(board, "/_board/item/work.search/", "evil.example");
+	const blocked = yield* rawGet(board, "/_board/item/work.search/", "evil.example");
 	expect(blocked.status).toBe(403);
 });
 
-it("keeps identity URLs valid after heading edits and file renames and makes deletion explicit", async () => {
-	const events = await subscribe(board);
-	await events.next();
+effectApp("keeps identity URLs valid after heading edits and file renames and makes deletion explicit", function* () {
+	const events = yield* subscribe(board);
+	yield* events.next();
 	try {
-		expect((await rawGet(board, "/_board/item/work.search/")).status).toBe(200);
+		expect((yield* rawGet(board, "/_board/item/work.search/")).status).toBe(200);
 		notes.write(
 			"items/search & review.md",
 			identityFixture()["items/search & review.md"]?.replace("# Search the workspace", "# Renamed heading") ?? "",
 		);
-		await changesUntil(events, "items/search & review.md");
-		expect((await rawGet(board, "/_board/item/work.search/")).body).toContain("Renamed heading");
+		yield* changesUntil(events, "items/search & review.md");
+		expect((yield* rawGet(board, "/_board/item/work.search/")).body).toContain("Renamed heading");
 		renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "renamed.md"));
-		await changesUntil(events, "renamed.md");
-		const renamed = await rawGet(board, "/_board/item/work.search/");
+		yield* changesUntil(events, "renamed.md");
+		const renamed = yield* rawGet(board, "/_board/item/work.search/");
 		expect(renamed.status).toBe(200);
 		expect(renamed.body).toContain('data-file="renamed.md"');
 		rmSync(join(notes.root, "renamed.md"));
-		await changesUntil(events, "renamed.md");
-		const missing = await rawGet(board, "/_board/item/work.search/");
+		yield* changesUntil(events, "renamed.md");
+		const missing = yield* rawGet(board, "/_board/item/work.search/");
 		expect(missing.status).toBe(404);
 		expect(missing.body).toContain("No item with ID work.search");
 	} finally {
-		events.close();
+		yield* events.close();
 	}
 });
 
-it("returns a conflict for duplicate IDs and diagnoses references without choosing a source", async () => {
-	const events = await subscribe(board);
-	await events.next();
+effectApp("returns a conflict for duplicate IDs and diagnoses references without choosing a source", function* () {
+	const events = yield* subscribe(board);
+	yield* events.next();
 	try {
 		notes.write("duplicate.md", "---\nid: work.search\n---\n# Another source");
-		await changesUntil(events, "duplicate.md");
-		const result = await rawGet(board, "/_board/item/work.search/");
+		yield* changesUntil(events, "duplicate.md");
+		const result = yield* rawGet(board, "/_board/item/work.search/");
 		expect(result.status).toBe(409);
 		expect(result.body).toContain("No document was selected");
-		const decision = await rawGet(board, "/decision.md");
+		const decision = yield* rawGet(board, "/decision.md");
 		expect(decision.body).toContain("Ambiguous reference work.search");
-		const source = await rawGet(board, "/items/search%20%26%20review.md");
+		const source = yield* rawGet(board, "/items/search%20%26%20review.md");
 		expect(source.body).toContain("Duplicate ID work.search");
 		expect(source.body).not.toContain('data-identity="work.search"');
 	} finally {
-		events.close();
+		yield* events.close();
 	}
 });
 
-it("indexes declared IDs/status/owner and criteria at exact source locations", async () => {
-	const body = await rpcSearch(board, "agent-navigation");
+effectApp("indexes declared IDs/status/owner and criteria at exact source locations", function* () {
+	const body = yield* rpcSearch(board, "agent-navigation");
 	expect(body.results[0]?.href).toBe("/_board/item/work.search/");
 	expect(body.results[0]?.line).toBe(23);
-	const criteria = await rpcSearch(board, "Escape returns focus");
+	const criteria = yield* rpcSearch(board, "Escape returns focus");
 	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/#criterion-keyboard");
 	expect(criteria.results[0]?.line).toBe(8);
-	const prose = await rpcSearch(board, "Readable project prose");
+	const prose = yield* rpcSearch(board, "Readable project prose");
 	expect(prose.results[0]?.line).toBe(25);
 });
 
-it("keeps invalid and unknown metadata visible without making prose unreadable", async () => {
+effectApp("keeps invalid and unknown metadata visible without making prose unreadable", function* () {
 	notes.write(
 		"bad.md",
 		"---\nid: work.bad\nstatus: 7\nrisk_budget: strict\nrelationships:\n  - kind: informs\n    target: missing.id\n---\n# Readable body",
 	);
-	const result = await rawGet(board, "/bad.md");
+	const result = yield* rawGet(board, "/bad.md");
 	expect(result.status).toBe(200);
 	expect(result.body).toContain("Invalid status");
 	expect(result.body).toContain("Unknown field risk_budget");
@@ -105,61 +109,61 @@ it("keeps invalid and unknown metadata visible without making prose unreadable",
 	expect(result.body).toContain("Readable body");
 });
 
-it("does not claim unique identity when part of the workspace cannot be read", async () => {
-	await board.stop();
-	board = await startBoard(notes.root, "legacy.md", (fs) => ({
+effectApp("does not claim unique identity when part of the workspace cannot be read", function* () {
+	yield* board.stop();
+	board = yield* startBoard(notes.root, "legacy.md", (fs) => ({
 		...fs,
 		readFileString: (file, options) =>
 			file.endsWith("decision.md")
 				? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
 				: fs.readFileString(file, options),
 	}));
-	const result = await rawGet(board, "/_board/item/work.search/");
+	const result = yield* rawGet(board, "/_board/item/work.search/");
 	expect(result.status).toBe(503);
 	expect(result.body).toContain("index is incomplete");
-	const normal = await rawGet(board, "/items/search%20%26%20review.md");
+	const normal = yield* rawGet(board, "/items/search%20%26%20review.md");
 	expect(normal.status).toBe(200);
 	expect(normal.body).toContain("Identity and references cannot be validated completely");
 	expect(normal.body).not.toContain('data-identity="work.search"');
 });
 
-it("rebuilds identities from files after a server restart without stored index data", async () => {
-	expect((await rawGet(board, "/_board/item/work.search/")).status).toBe(200);
-	await board.stop();
+effectApp("rebuilds identities from files after a server restart without stored index data", function* () {
+	expect((yield* rawGet(board, "/_board/item/work.search/")).status).toBe(200);
+	yield* board.stop();
 	renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "moved.md"));
-	board = await startBoard(notes.root, "legacy.md");
-	const result = await rawGet(board, "/_board/item/work.search/");
+	board = yield* startBoard(notes.root, "legacy.md");
+	const result = yield* rawGet(board, "/_board/item/work.search/");
 	expect(result.status).toBe(200);
 	expect(result.body).toContain('data-file="moved.md"');
 });
 
-it("escapes metadata text and leaves executable evidence URLs as plain text", async () => {
+effectApp("escapes metadata text and leaves executable evidence URLs as plain text", function* () {
 	notes.write(
 		"unsafe.md",
 		"---\nid: work.unsafe\nowner: '<img src=x onerror=alert(1)>'\nevidence:\n  - source: 'javascript:alert(1)'\n---\n# Safe metadata",
 	);
-	const result = await rawGet(board, "/unsafe.md");
+	const result = yield* rawGet(board, "/unsafe.md");
 	expect(result.status).toBe(200);
 	expect(result.body).toContain("&lt;img src=x onerror=alert(1)&gt;");
 	expect(result.body).not.toContain("<img src=x");
 	expect(result.body).not.toContain('href="javascript:');
 });
 
-it("keeps Markdown paths under the reserved prefix readable, including IDs ending in .md", async () => {
+effectApp("keeps Markdown paths under the reserved prefix readable, including IDs ending in .md", function* () {
 	notes.write("_board/item/source.md", "# A regular file under the route prefix");
 	notes.write("named.md", "---\nid: source.md\n---\n# An explicitly identified item");
-	const file = await rawGet(board, "/_board/item/source.md");
+	const file = yield* rawGet(board, "/_board/item/source.md");
 	expect(file.body).toContain("A regular file under the route prefix");
-	expect((await rawGet(board, "/_board/item/source%2Emd")).body).toContain("A regular file under the route prefix");
-	const item = await rawGet(board, "/_board/item/source.md/");
+	expect((yield* rawGet(board, "/_board/item/source%2Emd")).body).toContain("A regular file under the route prefix");
+	const item = yield* rawGet(board, "/_board/item/source.md/");
 	expect(item.body).toContain("An explicitly identified item");
 	expect(item.body).toContain('data-identity="source.md"');
 });
 
-it("does not retarget an item URL when its source identity changes between index and page reads", async () => {
-	await board.stop();
+effectApp("does not retarget an item URL when its source identity changes between index and page reads", function* () {
+	yield* board.stop();
 	let reads = 0;
-	board = await startBoard(notes.root, "legacy.md", (fs) => ({
+	board = yield* startBoard(notes.root, "legacy.md", (fs) => ({
 		...fs,
 		readFileString: (file, options) =>
 			fs.readFileString(file, options).pipe(
@@ -172,7 +176,7 @@ it("does not retarget an item URL when its source identity changes between index
 				}),
 			),
 	}));
-	const result = await rawGet(board, "/_board/item/work.search/");
+	const result = yield* rawGet(board, "/_board/item/work.search/");
 	expect(result.status).toBe(404);
 	expect(result.body).toContain("its source identity changed or is invalid");
 	expect(result.body).not.toContain('data-identity="work.replacement"');
