@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import process from "node:process";
+import { NodeFileSystem } from "@effect/platform-node";
 import { Config, Effect, Layer } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
 import { GitHub } from "./GitHub.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { WatchError } from "./model.ts";
@@ -8,7 +10,15 @@ import { program } from "./program.ts";
 import { StateFile } from "./StateFile.ts";
 import { Watcher } from "./Watcher.ts";
 
-const services = Watcher.layer.pipe(Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))));
+const services = Watcher.layer.pipe(
+	Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))),
+	Layer.provide(
+		Layer.mergeAll(
+			NodeFileSystem.layer,
+			FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }))),
+		),
+	),
+);
 function write(stream: NodeJS.WriteStream) {
 	return (line: string) =>
 		Effect.tryPromise({

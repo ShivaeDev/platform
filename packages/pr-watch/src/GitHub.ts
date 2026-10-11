@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { confirmQueue } from "./confirmQueue.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "./model.ts";
 
@@ -44,6 +45,7 @@ export const GitHub = defineService({
 			});
 		}
 		return {
+			confirmQueue: (options: Options, snapshot: Snapshot) => confirmQueue(http, options, snapshot),
 			delay: http.delay,
 			discover: (options: Options) =>
 				Effect.gen(function* () {

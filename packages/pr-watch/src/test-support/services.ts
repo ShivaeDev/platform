@@ -1,12 +1,22 @@
 import { writeFile } from "node:fs/promises";
+import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { GitHub } from "#GitHub.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { StateFile } from "#StateFile.ts";
 import { Watcher } from "#Watcher.ts";
 import { startServer } from "./server.ts";
-export const services = Watcher.layer.pipe(Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))));
+export const services = Watcher.layer.pipe(
+	Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))),
+	Layer.provide(
+		Layer.mergeAll(
+			NodeFileSystem.layer,
+			FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }))),
+		),
+	),
+);
 export const { effectApp } = makeEffectIt({
 	around: (test) => test.pipe(Effect.provide(Layer.fresh(services))),
 	clock: "live",

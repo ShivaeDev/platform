@@ -4,6 +4,13 @@ import { events } from "./events.ts";
 import { GitHub } from "./GitHub.ts";
 import type { Options, Snapshot, State, WatchError } from "./model.ts";
 import { StateFile } from "./StateFile.ts";
+
+function activeNumbers(options: Options, discovered: readonly number[], state: State) {
+	return [...new Set([...options.numbers, ...discovered, ...Object.keys(state.prs).map(Number)])].filter((number) => {
+		const saved = state.prs[String(number)];
+		return saved === undefined || (saved.state === "open" && !saved.merged);
+	});
+}
 export const Watcher = defineService({
 	id: "@shivaedev/pr-watch/Watcher",
 	initialize: Effect.gen(function* () {
@@ -22,6 +29,20 @@ export const Watcher = defineService({
 				}),
 			);
 		}
+		function observe(options: Options, number: number, queue: ReadonlySet<number>, before: Snapshot | undefined) {
+			return Effect.gen(function* () {
+				const snapshot = yield* github.snapshot(options, number, queue);
+				return before?.queued === true && snapshot.state === "open" && !snapshot.queued ? yield* github.confirmQueue(options, snapshot) : snapshot;
+			});
+		}
+		function targets(options: Options, state: State) {
+			return Effect.gen(function* () {
+				const discovered = options.fleet ? yield* github.discover(options) : [];
+				const numbers = activeNumbers(options, discovered, state);
+				const queue = numbers.length > 0 ? yield* github.queue(options) : new Set<number>();
+				return { numbers, queue };
+			});
+		}
 		return {
 			delay: github.delay,
 			load: (options: Options) => file.load(options.stateFile, options.repository),
@@ -33,12 +54,10 @@ export const Watcher = defineService({
 			) =>
 				Effect.gen(function* () {
 					let state: State = { ...previous, prs: { ...previous.prs } };
-					const discovered = options.fleet ? yield* github.discover(options) : [];
-					const numbers = new Set([...options.numbers, ...discovered, ...Object.keys(state.prs).map(Number)]);
-					const queue = yield* github.queue(options);
+					const { numbers, queue } = yield* targets(options, state);
 					let failure: WatchError | undefined;
 					for (const number of numbers) {
-						const result = yield* Effect.result(github.snapshot(options, number, queue));
+						const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));
 						if (result._tag === "Failure") {
 							yield* diagnostic(result.failure.message);
 							failure = result.failure;
