@@ -34,6 +34,8 @@ The sidebar Diagnostics view reads Codex usage windows, cached GitHub REST/Graph
 
 The static handoff, response and question forms use `effect-form` for Schema decoding, field messages and submission snapshots. The unchanged form and draft regressions above preserve reviewed context and durable storage. `src/browser/effectForms.dom.spec.ts` exercises Schema feedback, response edits during a save, and form restoration after persisted pageshow in DOM/HTTP fixtures.
 
+The client tooling builds and serves a Vite React bundle with a placeholder TanStack route and Tailwind neutral theme beside the native client. Existing pages still use the native client; `src/browser/react/boardRouter.dom.test.tsx` checks that the placeholder route mounts without visible content. `src/board.test.ts` and the packed CLI fixture check asset delivery; `src/browser/react/queryRendering.dom.spec.tsx` renders a search query through the shared RPC handlers with an in-memory Markdown index and the published `effect-react/testing.ts` helpers. This establishes React 19 and atom-registry composition in happy-dom, rather than a migrated page or browser layout.
+
 ## Next
 
 - [ ] Finish [07's representative-reader acceptance](delivery/wave1.md#07-an-attention-first-overview). The proposed target is finding the actual next judgment within 30 seconds. Automated queues and browser fixtures do not establish that outcome.

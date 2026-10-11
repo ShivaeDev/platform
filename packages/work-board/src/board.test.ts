@@ -29,6 +29,25 @@ describe("embedding", () => {
 		expect(await response.text()).toContain("<span><b>1</b> to do</span>");
 	});
 
+	it("serves the React bundle and theme beside the native client without changing the page", async () => {
+		for (const [path, type, content] of [
+			["react.js", "javascript", "data-board-react-root"],
+			["react.css", "text/css", "--background:"],
+			["native.js", "javascript", "work-board.subscribe"],
+		]) {
+			const response = await board.handler(new Request(`http://localhost/_board/${path}`, { headers: { host: "localhost" } }));
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toContain(type);
+			expect(await response.text()).toContain(content);
+		}
+		const page = await board.handler(new Request("http://localhost/", { headers: { host: "localhost" } }));
+		const html = await page.text();
+		expect(html).toContain("<span><b>1</b> to do</span>");
+		expect(html).not.toContain("/_board/react.js");
+		expect(html).not.toContain("/_board/react.css");
+		expect(html).not.toContain("data-board-react-root");
+	});
+
 	it("refuses a request without a Host header", async () => {
 		expect((await board.handler(new Request("http://localhost/"))).status).toBe(403);
 	});

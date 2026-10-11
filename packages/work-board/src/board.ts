@@ -9,7 +9,7 @@ import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
 import { handoffService } from "#handoffs/service.ts";
-import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
+import { ASSET_HANDLERS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
 import { events } from "#http/events.ts";
 import { changesPage, history } from "#http/history.ts";
@@ -18,7 +18,6 @@ import { inbox } from "#http/inbox.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { readPage } from "#http/readPage.ts";
-import { respond } from "#http/respond.ts";
 import { search } from "#http/search.ts";
 import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
@@ -76,11 +75,10 @@ function routes(options: BoardOptions) {
 			yield* serve("/_board/overview", overviewPage);
 			yield* serve("/_board/changes", historyPage);
 			yield* serve("/_board/history", history(index), "POST");
-			for (const [route, body, contentType] of ASSETS) {
-				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
+			for (const [route, asset] of ASSET_HANDLERS) {
+				yield* serve(route, asset);
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			yield* serve(NATIVE_ROUTE, nativeAsset);
 			const responses = yield* responseService({
 				changes,
 				enabled: options.responses === true,
