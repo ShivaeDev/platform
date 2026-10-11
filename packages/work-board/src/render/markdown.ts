@@ -4,13 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MarkdownAsync } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
-import { codeBlocks } from "./code.ts";
 import type { documentHeadings } from "./documentHeadings.ts";
 import { documentLinks } from "./documentLinks.ts";
 import { documentPlugins } from "./documentPlugins.ts";
 import { RenderFailed } from "./failed.ts";
 import { footnoteIds } from "./footnotes.ts";
-import { Highlighter } from "./highlighter.ts";
+import { Highlighter } from "./Highlighter.ts";
 
 export interface RenderOptions {
 	readonly file?: string;
@@ -22,7 +21,7 @@ export interface RenderOptions {
 
 export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, options: RenderOptions = {}) {
 	const highlighter = yield* Highlighter;
-	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), codeBlocks(highlighter)];
+	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), yield* highlighter.codeBlocks()];
 	if (options.idPrefix !== undefined) {
 		plugins.push(footnoteIds(options.idPrefix));
 	}

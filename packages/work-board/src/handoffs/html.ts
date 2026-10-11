@@ -4,7 +4,7 @@ import { fileUrl } from "#files/url.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { escapeHtml } from "#page/escape.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 
 export function promptHtml(id: string, prompt: string) {
