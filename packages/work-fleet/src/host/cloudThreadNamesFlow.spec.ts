@@ -96,8 +96,10 @@ test("reports read and rename failures, continues other sessions, and retries on
 			let errors = "";
 			const args = ["name-threads", "--board", fixture.host.boardDir];
 			const first = yield* Effect.promise(() =>
-				cliProcess(args, (text) => {
-					errors += text;
+				cliProcess(args, {
+					onError: (text) => {
+						errors += text;
+					},
 				}),
 			);
 			expect(first.code).toBe(0);

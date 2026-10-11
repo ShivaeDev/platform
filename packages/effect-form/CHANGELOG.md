@@ -1,16 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Added
-
-- `Form.errorAt(path)` reads nested Schema feedback beneath a top-level field, including individual array entries, without adding nested field state. Top-level touch/submission controls visibility; `error(name)` retains aggregated Schema, handler and advisory messages. `messageAtPath(issue, path)` selects the first Schema message at or beneath a path; `schemaFeedback(decoded)` adapts a decoded result atom to aggregated and nested messages.
-
-### Changed
-
-- Document the package's purpose, form model, examples, API and boundaries; publish the README and `docs/` while keeping agent guidance out of the package.
-- Build package JavaScript, declarations and source maps with TypeScript 7.
-
 ## 0.2.0 - 2026-10-04
 
 ### Changed

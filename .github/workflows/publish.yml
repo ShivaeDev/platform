@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -34,6 +35,10 @@ jobs:
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Validate collected release notes
+        run: pnpm run changelog:release --check
+        env:
+          CHANGELOG_BASE_REF: ${{ github.event.before }}
       - name: Build packages
         run: pnpm build
       - name: Check packed consumers and bins
@@ -51,6 +56,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -65,6 +71,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate collected release notes
+        run: pnpm run changelog:release --check
+        env:
+          CHANGELOG_BASE_REF: ${{ github.event.before }}
       - name: Build packages
         run: pnpm build
 
