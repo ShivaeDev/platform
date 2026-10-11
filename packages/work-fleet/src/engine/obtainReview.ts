@@ -15,10 +15,11 @@ export function obtainReview(state: EngineState) {
 			return stored.value.review.receipt;
 		}
 		const previous = stored.value.attempts.at(-1);
+		const previousHead = reviewAttemptHead(stored.value, previous);
 		if (
 			previous?.role === "reviewer"
 			&& !["failed", "interrupted"].includes(previous.status)
-			&& (previous.reviewHead === undefined || previous.reviewHead === result.head)
+			&& (previousHead === undefined || previousHead === result.head)
 		) {
 			return previous.receipt ?? (yield* reconcileAttempt(state)(stored, previous));
 		}
@@ -70,4 +71,13 @@ export function obtainReview(state: EngineState) {
 				),
 			);
 	});
+}
+
+function reviewAttemptHead(record: FleetRecord, attempt: Attempt | undefined) {
+	const review = record.review;
+	const reviewedHead =
+		review !== undefined && review.receipt.sessionId === attempt?.receipt?.sessionId && review.receipt.turnId === attempt?.receipt?.turnId
+			? review.head
+			: undefined;
+	return attempt?.reviewHead ?? reviewedHead;
 }

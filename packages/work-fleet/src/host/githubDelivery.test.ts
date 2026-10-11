@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
+import { MovedPrHead } from "#host/movedPrHead.ts";
 import { FleetFailure } from "#policy.ts";
 
 const result = { head: "reviewed-head", kind: "change", paths: ["src/task.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
@@ -31,6 +32,18 @@ it.effect("reports a closed unmerged PR explicitly even when its head changed", 
 		Effect.flip,
 	);
 	expect(error.message).toContain("closed without merging");
+});
+
+it.effect("carries the observed head only when the adopted PR has consistent delivery evidence", function* () {
+	const headRefOid = "current-head";
+	const moved = yield* githubDelivery("/repository", () => Effect.succeed({ ...open, headRefOid }))(result).pipe(Effect.flip);
+	expect(moved).toBeInstanceOf(MovedPrHead);
+	expect(moved).toMatchObject({ head: headRefOid, reason: "stale" });
+	const inconsistent = yield* githubDelivery("/repository", () => Effect.succeed({ ...open, headRefOid, mergedAt: merged.mergedAt }))(result).pipe(
+		Effect.flip,
+	);
+	expect(inconsistent).not.toBeInstanceOf(MovedPrHead);
+	expect(inconsistent.message).toContain("inconsistent");
 });
 
 for (const [name, observation] of [
