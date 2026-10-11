@@ -25,11 +25,9 @@ export function hostIntegrations(host: FleetHost) {
 		Effect.gen(function* () {
 			const main = yield* MainSource;
 			return FleetIntegrations.of({
-				authorize: () => Effect.succeed(false),
 				checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,
-				merge: () => unconfigured("Merge"),
 				result: host.result === "github" ? githubResult(host, main) : () => unconfigured("Worker result adoption"),
 			});
 		}),

@@ -53,9 +53,6 @@ const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, r
 			new FleetFailure({ message: "Reconcile and confirm terminal execution before renewing preparation", reason: "denied" }),
 		);
 	}
-	if (record.deliverySubmitted && record.outcome === undefined) {
-		return yield* Effect.fail(new FleetFailure({ message: "Reconcile the submitted delivery before renewing preparation", reason: "denied" }));
-	}
 	if (record.stage === "completed" && record.boardRevision === revision) {
 		return yield* Effect.fail(new FleetFailure({ message: "Completed work needs a newly approved Board context before renewal", reason: "denied" }));
 	}

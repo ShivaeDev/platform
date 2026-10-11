@@ -26,7 +26,7 @@ export function reviewerPrompt(input: { readonly task: string; readonly result: 
 		"",
 		"Read root and package AGENTS.md. Inspect only the exact target head, using existing repository objects or read-only repository tools. The checkout may be a different revision; never review that revision in its place.",
 		"You have no worker conversation. Judge the implementation and acceptance evidence independently.",
-		"This session is read-only. Do not edit, commit, push, merge, publish comments or reviews, or launch workers. Do not request escalation. Shell network access is disabled; use read-only repository tools to inspect remote source when needed.",
+		"This session is read-only. Do not edit, commit, push, merge, publish comments or reviews, or launch workers. Do not request escalation. Shell network access is enabled for read-only inspection. Use `gh pr view`, `gh pr diff` and `gh api --method GET` to read the PR and exact-head CI results; verify the PR head before using its diff. Network writes are prohibited.",
 		"If the exact head or required evidence cannot be inspected, report the limitation and end without a verdict. Never approve from the task text or a worker's claims alone.",
 		"End with exactly one machine-readable line, with no Markdown fencing:",
 		`${REVIEW_MARKER} ${JSON.stringify({ evidence: ["Evidence you inspected"], findings: [], head: input.result.head, verdict: "approve" })}`,

@@ -51,17 +51,11 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 		const latest = record.attempts.at(-1);
 		return latest?.status === "completed" && latest.output?.trim() ? "adopting" : "prepared";
 	}
-	if (record.deliverySubmitted && !executing(record)) {
-		return "delivering";
-	}
 	if (record.attempts.at(-1)?.role === "reviewer") {
 		return "reviewing";
 	}
 	if (executing(record)) {
 		return "executing";
-	}
-	if (record.deliverySubmitted) {
-		return "delivering";
 	}
 	return record.result === undefined ? "prepared" : "reviewing";
 }
