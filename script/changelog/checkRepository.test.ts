@@ -11,7 +11,7 @@ import { checkRepository } from "./checkRepository.ts";
 import { migrateUnreleased } from "./fragments.ts";
 import { releasePackage } from "./releasePackage.ts";
 
-function check(root: string, base: string) {
+function check(root: string, base?: string) {
 	return Effect.runPromise(checkRepository(root, base).pipe(Effect.provide(NodeFileSystem.layer)));
 }
 
@@ -124,6 +124,32 @@ it("validates resolved changelog migrations against main during the merge commit
 		await check(fixture.root, "main");
 		fixture.write("changes/previous.md", initial.fragment);
 		await assert.rejects(() => check(fixture.root, "main"), /changes only in a release/u);
+	} finally {
+		fixture.remove();
+	}
+});
+
+it("resolves the default base as origin/main, then main, and names the fetch command when neither exists", async () => {
+	const fixture = repository();
+	try {
+		const base = fixture.commit();
+		fixture.git("branch", "origin/main", base);
+		fixture.write("CHANGELOG.md", fixture.read("CHANGELOG.md").replace("First release.", "Changed history."));
+		fixture.commit();
+		await assert.rejects(() => check(fixture.root), /CHANGELOG.md changes only in a release/u);
+		fixture.git("branch", "-D", "origin/main");
+		await check(fixture.root);
+		fixture.git("branch", "-m", "main", "trunk");
+		const result = spawnSync(
+			"env",
+			["CHANGELOG_BASE_REF=", process.execPath, "--conditions=source", join(process.cwd(), "script/changelog.ts"), "check"],
+			{
+				cwd: fixture.root,
+				encoding: "utf8",
+			},
+		);
+		assert.notEqual(result.status, 0);
+		assert.equal(result.stderr.trim(), "Changelog base origin/main or main not found; fetch it with git fetch origin main.");
 	} finally {
 		fixture.remove();
 	}

@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  CHANGELOG_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+  CHANGELOG_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
   CI_WORKSPACE_CONCURRENCY: ${{ vars.PLATFORM_CI_CONCURRENCY || 4 }}
 
 concurrency:

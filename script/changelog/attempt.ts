@@ -1,8 +1,10 @@
-import { Data, Effect } from "effect";
+import { Data, Effect, Runtime } from "effect";
 
 export class ChangelogFailure extends Data.TaggedError("ChangelogFailure")<{
 	readonly message: string;
-}> {}
+}> {
+	override readonly [Runtime.errorReported] = false;
+}
 
 export function attempt<TValue>(action: () => TValue): Effect.Effect<TValue, ChangelogFailure> {
 	return Effect.try({
