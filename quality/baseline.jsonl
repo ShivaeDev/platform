@@ -555,7 +555,6 @@
 {"path":"packages/quality/src/test-support/inputs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/vitest.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/quality/vitest.config.ts","rule":"imports/aliased","count":1}
-{"path":"packages/types/src/bivariant.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/types/src/bivariant.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/board.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/boardRendering.spec.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":2}
