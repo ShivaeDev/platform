@@ -25,6 +25,11 @@ const boot = Effect.asVoid(Jobs).pipe(Effect.provide(layer))
 Effect.runPromise(boot)
 Effect.runPromise(boot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))
 
+const OtherJobs = makePgBoss("@consumer/OtherJobs")
+const otherLayer = OtherJobs.layer({ connectionString: "postgresql://compile-only", jobs: [] })
+// @ts-expect-error A different jobs Layer leaves Jobs unprovided through the packed package.
+Effect.runPromise(Effect.asVoid(Jobs).pipe(Effect.provide(otherLayer)))
+
 const program = Effect.gen(function* () {
   const jobs = yield* Jobs
   yield* jobs.enqueue(Queue, { id: 1 })
