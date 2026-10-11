@@ -5,7 +5,7 @@ import { FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
 
 export const healthSnapshot: FleetHealth = {
 	concurrency: 8,
-	lastCapacityRejection: { at: 800, cause: "Synthetic provider capacity" },
+	lastCapacityRejection: { at: 800, cause: "serverOverloaded" },
 	lastSchedulerPass: 900,
 	needsHuman: 2,
 	observedAt: 1000,

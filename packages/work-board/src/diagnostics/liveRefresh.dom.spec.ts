@@ -14,11 +14,12 @@ afterEach(async () => {
 	notes?.remove();
 });
 
-it("navigates from the sidebar, polls native page reads, pauses, resumes, and stops polling after navigation", async () => {
+it("navigates from the header, polls native page reads, pauses, resumes, and stops polling after navigation", async () => {
 	notes = folder({ "fleet/health.json": JSON.stringify(health), "home.md": "# Home" });
 	board = await startBoard(notes.root, "home.md", undefined, false, syntheticSources({ fleet: fleetHealth(notes.root) }));
 	let poll: () => void = () => undefined;
 	page = await openPage(board, "/", (window) => {
+		window.Date.prototype.toLocaleTimeString = () => "14:20";
 		const interval = window.setInterval.bind(window);
 		window.setInterval = (callback, delay, ...args) => {
 			if (delay === 15_000 && typeof callback === "function") {
@@ -31,6 +32,8 @@ it("navigates from the sidebar, polls native page reads, pauses, resumes, and st
 	page.document.getElementById("diagnostics-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("3 / 8"));
 	expect(page.window.location.pathname).toBe("/_board/diagnostics");
+	expect(page.document.querySelector(".bar #diagnostics-open")).not.toBeNull();
+	await waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20"));
 	expect(page.document.getElementById("diagnostics-open")?.getAttribute("aria-current")).toBe("page");
 	page.document.getElementById("updates-toggle")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	notes.write("fleet/health.json", JSON.stringify({ ...health, running: 7 }));
@@ -38,6 +41,7 @@ it("navigates from the sidebar, polls native page reads, pauses, resumes, and st
 	expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("3 / 8");
 	page.document.getElementById("updates-toggle")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("7 / 8"));
+	await waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20"));
 	notes.write("fleet/health.json", JSON.stringify({ ...health, running: 6 }));
 	poll();
 	await waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("6 / 8"));
