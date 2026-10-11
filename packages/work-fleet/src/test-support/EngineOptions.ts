@@ -32,6 +32,7 @@ export interface EngineOptions {
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
+	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly wrongHead?: "review" | "checks";
 }

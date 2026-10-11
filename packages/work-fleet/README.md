@@ -102,6 +102,24 @@ Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTIO
 
 Record a nonempty answer through Board's response page or response API. Reconciliation continues the exact worker thread with the answer body under current approval, quota and capacity policy. The response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection. Clarification, deferral, changed context and competing answers keep the work blocked. Answer text supplies task input and does not grant delivery authority.
 
+### Return a research report
+
+Declare `fleet-deliverable: report` on an approved task to request read-only research. Report worker prompts forbid changes, commits, pushes, branches and PRs, and ask for the whole report in the final message. Omit the field to keep the PR workflow.
+
+```markdown
+---
+id: research.example
+kind: task
+fleet: approved
+fleet-deliverable: report
+---
+# Compare the available approaches
+```
+
+After a completed worker turn, Fleet publishes an ordinary `kind: result` item under `responses/fleet-report.<digest>.md`, with an `informs` relationship to the task. The result preserves the whole final output and records the exact session, turn and task revision in its worker receipt. The Markdown gateway uses Board's durable publisher; custom gateways implement `BoardGateway.report` with the same immutable, idempotent boundary. A publication retry reuses the same identity and bytes, including after a lost acknowledgement.
+
+Successful publication completes the Fleet attempt without PR adoption, independent review, checks or delivery. Empty or whitespace-only output creates a human decision instead of a result. `wait` and the status views expose the same terminal states and result path. A retry after a publication failure republishes the existing completed attempt; a retry after empty output prepares another worker attempt. These prompts direct worker behavior; runtime policy still owns execution authority.
+
 ### Answer the current Board decision
 
 Fleet publishes an ordinary Board decision and stores its exact `BoardDecision`
@@ -201,9 +219,12 @@ app-server. Closing its observation scope disconnects the client without request
 remote interruption. Explicit interruption requires the exact provider acknowledgement.
 Submission ambiguity retains ownership and reconciliation checks the existing turn.
 
-The Codex app-server contract is experimental. A local app-server is distinct from
-hosted modern Cloud. No hosted adapter, endpoint or authentication contract is
-inferred from `codex cloud exec`; hosted capability is an injected transport.
+The Codex app-server contract is experimental. The Cloud adapter connects to a configured hosted WebSocket endpoint, creates a thread in the configured environment and verifies that environment before submitting a turn. A local app-server remains a separate provider.
+
+Restart the host with the same SQL namespace. An attempt intent commits before `thread/start`, its session acknowledgement commits before `turn/start`, and its turn acknowledgement commits before observation. SIGKILL tests against real PostgreSQL and a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. These tests prove host persistence and Cloud adapter wire behavior; they do not prove live hosted execution.
+
+If the session ID is known, reconciliation searches the provider's turn pages for the persisted operation ID and adopts the exact existing receipt. No observable match does not authorize replay. If the thread acknowledgement itself was lost, the current protocol cannot locate that thread by operation ID: Fleet retains the attempt and reservation and raises a human blocker. A retry continues reconciliation; it cannot authorize another launch for the unresolved attempt. Provider unavailability after session acknowledgement and a mismatched setting after thread creation also retain unresolved ownership.
+
 The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md)
 records validation boundaries and personal pilot follow-up.
 

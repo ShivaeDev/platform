@@ -55,7 +55,9 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 		startSession: Effect.fn("Codex.startSession")(function* (input) {
 			const result = yield* rpc("thread/start", dialect.threadStart(input), true).pipe(Effect.flatMap((value) => decode(ThreadResponse, value)));
 			dialect.sessionStarted?.(result.thread.id);
-			yield* echoedSettings(input.settings, result);
+			yield* echoedSettings(input.settings, result).pipe(
+				Effect.mapError((error) => failure("ambiguous", `${error.message}; retain the started session reservation`)),
+			);
 			return result.thread.id;
 		}),
 		startTurn: Effect.fn("Codex.startTurn")(function* (input: ContinueSession) {
