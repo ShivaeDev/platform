@@ -1,9 +1,11 @@
+import { Effect } from "effect";
 import { Window } from "happy-dom";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { draftSession } from "./draftSession.ts";
 import { readDrafts } from "./drafts.ts";
 
-it("preserves and persists edits made while an earlier submission completes under a fresh response identity", async () => {
+it.live("preserves and persists edits made while an earlier submission completes under a fresh response identity", function* () {
 	const window = new Window({ url: "http://127.0.0.1" });
 	const storage = window.localStorage;
 	const key = `task/${crypto.randomUUID()}`;
@@ -17,9 +19,10 @@ it("preserves and persists edits made while an earlier submission completes unde
 	expect(session.current().id).not.toBe(pending.id);
 	expect(readDrafts(storage.getItem("drafts"), session.current().updatedAt).drafts[key]).toEqual(session.current());
 	expect(notices).toEqual([]);
-	await window.happyDOM.abort();
+	yield* Effect.promise(() => window.happyDOM.abort());
 });
-it("isolates in-memory questionnaire drafts and clearing by workspace", async () => {
+
+it.live("isolates in-memory questionnaire drafts and clearing by workspace", function* () {
 	const window = new Window({ url: "http://127.0.0.1" });
 	const first = draftSession("same/request", "a", window.localStorage, "workspace:first", () => undefined);
 	const second = draftSession("same/request", "a", window.localStorage, "workspace:first:second", () => undefined);
@@ -28,5 +31,5 @@ it("isolates in-memory questionnaire drafts and clearing by workspace", async ()
 	first.clear();
 	expect(draftSession("same/request", "a", window.localStorage, "workspace:first:second", () => undefined).current().body).toBe("Second workspace");
 	expect(draftSession("same/request", "a", window.localStorage, "workspace:first", () => undefined).current().body).toBe("");
-	await window.happyDOM.abort();
+	yield* Effect.promise(() => window.happyDOM.abort());
 });

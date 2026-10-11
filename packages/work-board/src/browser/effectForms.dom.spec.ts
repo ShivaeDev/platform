@@ -1,4 +1,6 @@
-import { afterEach, expect, it } from "vitest";
+import { Effect } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
@@ -10,30 +12,30 @@ import { rpcCall } from "#test/rpc.ts";
 let notes: Folder;
 let board: RunningBoard;
 let page: OpenPage;
-afterEach(async () => {
-	await page?.close();
-	await board?.stop();
+
+afterEach(() => {
 	notes?.remove();
 });
-async function open(kind: "handoff" | "response", beforeScripts?: Parameters<typeof openPage>[2]) {
+const open = Effect.fn("Test.open")(function* (kind: "handoff" | "response", beforeScripts?: Parameters<typeof openPage>[2]) {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
-	board = await startBoard(notes.root, undefined, undefined, true);
-	page = await openPage(
+	board = yield* startBoard(notes.root, undefined, undefined, true);
+	page = yield* openPage(
 		board,
 		kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction",
 		beforeScripts,
 	);
-	await waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false));
-}
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false)));
+});
 function click(id: string) {
 	page.document.getElementById(id)?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 }
+
 function submit(kind: string) {
 	page.document.getElementById(`${kind}-form`)?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
 }
 
-it("shows Schema field messages for handoff direction and clears them when corrected", async () => {
-	await open("handoff");
+it.live("shows Schema field messages for handoff direction and clears them when corrected", function* () {
+	yield* open("handoff");
 	enterField(page, "recipient", "agent-local");
 	const goal = enterField(page, "goal", " ");
 	click("handoff-preview");
@@ -51,10 +53,10 @@ it("shows Schema field messages for handoff direction and clears them when corre
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 });
 
-it("saves the captured response while retaining and resubmitting input typed during the command", async () => {
+it.live("saves the captured response while retaining and resubmitting input typed during the command", function* () {
 	const gate = held();
 	let reached = false;
-	await open("response", (window) => {
+	yield* open("response", (window) => {
 		const fetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
 			const call = await rpcCall(window, input, init);
@@ -70,23 +72,29 @@ it("saves the captured response while retaining and resubmitting input typed dur
 	click("response-preview");
 	submit("response");
 	try {
-		await waitFor(() => expect(reached).toBe(true));
+		yield* Effect.promise(() => waitFor(() => expect(reached).toBe(true)));
 		enterField(page, "body", "New direction typed while saving");
 	} finally {
 		gate.release();
 	}
-	await waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Your current draft remains unsaved"));
-	await waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("First reviewed response"));
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Your current draft remains unsaved")),
+	);
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("First reviewed response")),
+	);
 	expect(body.value).toBe("New direction typed while saving");
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
 	click("response-preview");
 	submit("response");
-	await waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("New direction typed while saving"));
-	await waitFor(() => expect(body.value).toBe(""));
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("New direction typed while saving")),
+	);
+	yield* Effect.promise(() => waitFor(() => expect(body.value).toBe("")));
 });
 
-it.each(["handoff", "response"] as const)("rebinds the %s form after persisted pageshow with the durable draft intact", async (kind) => {
-	await open(kind);
+it.live.each(["handoff", "response"] as const)("rebinds the %s form after persisted pageshow with the durable draft intact", function* (kind) {
+	yield* open(kind);
 	enterField(page, kind === "handoff" ? "recipient" : "author", "local-label");
 	const input = enterField(page, kind === "handoff" ? "goal" : "body", "Direction before freezing");
 	page.window.dispatchEvent(new page.window.Event("pagehide"));
@@ -95,14 +103,16 @@ it.each(["handoff", "response"] as const)("rebinds the %s form after persisted p
 	click(`${kind}-preview`);
 	expect(page.document.getElementById(`${kind}-submit`)?.hasAttribute("disabled")).toBe(false);
 	submit(kind);
-	await waitFor(() => expect(page.document.getElementById(`${kind}-status`)?.textContent).toContain(kind === "handoff" ? "Prepared:" : "Saved:"));
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.getElementById(`${kind}-status`)?.textContent).toContain(kind === "handoff" ? "Prepared:" : "Saved:")),
+	);
 });
 
-it("puts each questionnaire Schema message on its own unanswered control", async () => {
+it.live("puts each questionnaire Schema message on its own unanswered control", function* () {
 	notes = folder({ "item.md": questionnaireSource });
-	board = await startBoard(notes.root, undefined, undefined, true);
-	page = await openPage(board, "/_board/respond?item=investigation.choices&request=direction");
-	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
+	board = yield* startBoard(notes.root, undefined, undefined, true);
+	page = yield* openPage(board, "/_board/respond?item=investigation.choices&request=direction");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
 	enterField(page, "author", "reviewer");
 	const choice = page.document.querySelector('input[value="history"]');
 	if (!(choice instanceof page.window.HTMLInputElement)) {

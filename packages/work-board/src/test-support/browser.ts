@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Clock, Effect, type Scope } from "effect";
 import { Browser, type BrowserWindow, type IFetchInterceptor } from "happy-dom";
 import { type RunningBoard, rawGet } from "./board.ts";
 import type { RpcStream } from "./RpcStream.ts";
@@ -80,11 +80,14 @@ function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: 
 	};
 }
 
-export async function openPage(
+export const openPage = Effect.fn("Test.openPage")(function* (
 	board: RunningBoard,
 	path = "/",
-	beforeScripts: (window: BrowserWindow, mermaid: MermaidControl) => void | Promise<void> = async (): Promise<void> => undefined,
-): Promise<OpenPage> {
+	beforeScripts: (
+		window: BrowserWindow,
+		mermaid: MermaidControl,
+	) => void | Promise<void> | Effect.Effect<void, unknown, Scope.Scope> = async (): Promise<void> => undefined,
+) {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
 	const streams: RpcStream[] = [];
@@ -100,10 +103,16 @@ export async function openPage(
 	const mermaid: MermaidControl = { calls: [], configs: [], gate: Promise.resolve() };
 	Object.assign(window, { mermaidStub: mermaid });
 	page.url = `${board.url}${path}`;
-	const html = (await rawGet(board, path)).body;
-	await beforeScripts(window, mermaid);
+	yield* Effect.addFinalizer(() => Effect.promise(close));
+	const html = (yield* rawGet(board, path)).body;
+	const prepared = beforeScripts(window, mermaid);
+	if (Effect.isEffect(prepared)) {
+		yield* prepared;
+	} else {
+		yield* Effect.promise(async () => prepared);
+	}
 	page.content = html;
-	const deadline = Effect.runSync(Clock.currentTimeMillis) + 5000;
+	const deadline = (yield* Clock.currentTimeMillis) + 5000;
 	while (
 		!(
 			window.document.documentElement.dataset.boardReady
@@ -111,10 +120,10 @@ export async function openPage(
 			&& window.document.querySelector("#files [data-inbox-count]")
 		)
 	) {
-		if (Effect.runSync(Clock.currentTimeMillis) >= deadline) {
+		if ((yield* Clock.currentTimeMillis) >= deadline) {
 			throw new Error("The React shell did not initialize");
 		}
-		await new Promise<void>((resolve) => setTimeout(resolve, 10));
+		yield* Effect.sleep("10 millis");
 	}
 
 	async function close() {
@@ -129,7 +138,7 @@ export async function openPage(
 		window.dispatchEvent(new window.Event("resize"));
 	}
 	return { close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
-}
+});
 
 export function held(): { readonly gate: Promise<void>; readonly release: () => void } {
 	const { promise, resolve } = Promise.withResolvers<void>();

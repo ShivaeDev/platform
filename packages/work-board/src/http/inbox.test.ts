@@ -1,5 +1,6 @@
 import { Effect, PlatformError } from "effect";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { syntheticSources } from "#test/diagnostics.ts";
@@ -7,14 +8,14 @@ import { inboxFixture } from "#test/inboxFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;
-afterEach(async () => {
-	await board?.stop();
+
+afterEach(() => {
 	notes?.remove();
 });
 
-it("renders unknown Inbox counts when a source cannot be indexed", async () => {
+it.live("renders unknown Inbox counts when a source cannot be indexed", function* () {
 	notes = folder(inboxFixture());
-	board = await startBoard(notes.root, undefined, (fs) => ({
+	board = yield* startBoard(notes.root, undefined, (fs) => ({
 		...fs,
 		readFileString: (file, options) =>
 			file.endsWith("question.md")
@@ -22,41 +23,43 @@ it("renders unknown Inbox counts when a source cannot be indexed", async () => {
 				: fs.readFileString(file, options),
 	}));
 	for (const path of ["/owner.md", "/_board/inbox", "/_board/overview"]) {
-		const response = await rawGet(board, path);
+		const response = yield* rawGet(board, path);
 		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="? waiting">?</span>');
 		expect(response.body).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="? waiting">?</span>');
 	}
 });
 
-it("counts registered questions on ordinary attention sources without counting the captured copy twice", async () => {
+it.live("counts registered questions on ordinary attention sources without counting the captured copy twice", function* () {
 	const source = inboxFixture()["responses/decision.md"]?.replace("managed: true", "managed: false") ?? "";
 	notes = folder({ "decision.md": source, "fleet.md": "---\nid: task.fleet\n---\n# Work\n" });
-	board = await startBoard(notes.root, undefined, (fs) => fs, true);
+	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);
 	const client = browserClient(board.url);
 	try {
-		const preview = await client.run(client.responses.question.run({ item: "decision.delivery", request: "delivery" }));
-		const question = await client.mutate(
-			client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision }),
+		const preview = yield* Effect.promise(() => client.run(client.responses.question.run({ item: "decision.delivery", request: "delivery" })));
+		const question = yield* Effect.promise(() =>
+			client.mutate(client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision })),
 		);
-		expect((await rawGet(board, "/_board/inbox")).body).toContain("1 waiting");
-		await client.mutate(
-			client.responses.recordResponse.run({
-				author: "Casey",
-				body: "Proceed with local delivery",
-				id: "response.delivery",
-				question: question.id,
-				type: "answer",
-			}),
+		expect((yield* rawGet(board, "/_board/inbox")).body).toContain("1 waiting");
+		yield* Effect.promise(() =>
+			client.mutate(
+				client.responses.recordResponse.run({
+					author: "Casey",
+					body: "Proceed with local delivery",
+					id: "response.delivery",
+					question: question.id,
+					type: "answer",
+				}),
+			),
 		);
-		expect((await rawGet(board, "/_board/inbox")).body).toContain("0 waiting");
+		expect((yield* rawGet(board, "/_board/inbox")).body).toContain("0 waiting");
 	} finally {
 		client.registry.dispose();
 	}
 });
 
-it("serves the Inbox count on reader pages and exposes waiting work in Overview, cards and tables", async () => {
+it.live("serves the Inbox count on reader pages and exposes waiting work in Overview, cards and tables", function* () {
 	notes = folder(inboxFixture());
-	board = await startBoard(notes.root, undefined, undefined, false, syntheticSources());
+	board = yield* startBoard(notes.root, undefined, undefined, false, syntheticSources());
 	for (const path of [
 		"/_board/inbox",
 		"/question.md",
@@ -66,21 +69,21 @@ it("serves the Inbox count on reader pages and exposes waiting work in Overview,
 		"/_board/start",
 		"/_board/diagnostics",
 	]) {
-		const response = await rawGet(board, path);
+		const response = yield* rawGet(board, path);
 		expect(response.status).toBe(200);
 		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="4 waiting">4</span>');
 	}
-	const inbox = (await rawGet(board, "/_board/inbox")).body;
+	const inbox = (yield* rawGet(board, "/_board/inbox")).body;
 	expect(inbox).toContain("4 waiting");
 	expect(inbox).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="4 waiting">4</span>');
 	expect(inbox).toContain("Review keyboard behavior");
 	expect(inbox).toContain('data-modified="');
 	for (const path of ["/_board/overview", "/_board/work?view=board", "/_board/work?view=table"]) {
-		const view = (await rawGet(board, path)).body;
+		const view = (yield* rawGet(board, path)).body;
 		expect(view).toContain(path === "/_board/overview" ? "Open Inbox" : "Waiting on you");
 		expect(view).not.toContain("All quiet");
 	}
-	const question = (await rawGet(board, "/question.md")).body;
+	const question = (yield* rawGet(board, "/question.md")).body;
 	expect(question).toContain("Keep local files · Recommended");
 	expect(question).toContain('data-choice="option-1"');
 	expect(question).toContain("Read-only mode");
