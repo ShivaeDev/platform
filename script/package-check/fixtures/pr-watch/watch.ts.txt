@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { resolve, join } from "node:path";
+import { promisify } from "node:util";
+import { Effect, Layer } from "effect";
+import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
+import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";
+import { StateFile } from "@shivaedev/pr-watch/StateFile.ts";
+import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
+
+const layer = Watcher.layer.pipe(Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))));
+assert.equal(await Effect.runPromise(Effect.map(Watcher, (watcher) => typeof watcher.poll).pipe(Effect.provide(layer))), "function");
+const directory = await mkdtemp(join(tmpdir(), "pr-watch-consumer-"));
+let closed = false;
+const server = createServer((request, response) => {
+  const path = request.url ?? "";
+  const body = path.includes("matching-refs") ? [] : path.includes("check-runs") ? { check_runs: [] } : path.endsWith("/status") ? { state: "success" } : {
+    number: 7, title: "Packed executable", state: closed ? "closed" : "open", merged: closed,
+    mergeable: true, mergeable_state: "clean", head: { ref: "feature", sha: "abc" }, auto_merge: null,
+  };
+  response.writeHead(200, { "content-type": "application/json" });
+  response.end(JSON.stringify(body));
+});
+await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+try {
+  const address = server.address();
+  assert(address !== null && typeof address !== "string");
+  const state = join(directory, "state.json");
+  const args = ["--repo", "acme/project", "7", "--once", "--state", state, "--api-url", `http://127.0.0.1:${address.port}`];
+  const run = () => promisify(execFile)(resolve("node_modules/.bin/pr-watch"), args, { env: { ...process.env, GH_TOKEN: "fixture-token" } });
+  assert.equal((await run()).stdout, "");
+  closed = true;
+  assert.deepEqual(JSON.parse((await run()).stdout), { event: "merged", number: 7, branch: "feature", title: "Packed executable" });
+  assert.equal((await run()).stdout, "");
+  assert.equal(JSON.parse(await readFile(state, "utf8")).prs["7"].merged, true);
+} finally {
+  server.closeAllConnections();
+  await new Promise<void>((done) => server.close(() => done()));
+  await rm(directory, { recursive: true, force: true });
+}

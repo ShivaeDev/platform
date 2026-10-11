@@ -10,6 +10,7 @@ import { prepareCommand } from "#engine/prepareCommand.ts";
 import { reconcileCommand } from "#engine/reconcileCommand.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
+import { cleanupSessions } from "#engine/sessionCleanup.ts";
 import { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import type { LaunchSettings } from "#session/schema.ts";
@@ -33,9 +34,10 @@ export const Fleet = defineService({
 		dispatch: dispatchCommand(state, state.launch),
 		get: (workId: string) => state.load(workId),
 		list: () => state.store.list(),
-		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state))),
-		reconcile: reconcileCommand(state, state.advance),
-		resolve: resolveCommand(state),
+		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state)), Effect.flatMap(cleanupSessions(state))),
+		reconcile: (workId: string) => reconcileCommand(state, state.advance)(workId).pipe(Effect.flatMap(cleanupSessions(state))),
+		resolve: (workId: string, decisionId: string, responseId: string) =>
+			resolveCommand(state)(workId, decisionId, responseId).pipe(Effect.flatMap(cleanupSessions(state))),
 	}),
 	requires: [FleetRepository, BoardGateway, FleetPolicy, FleetIntegrations, SessionService],
 });

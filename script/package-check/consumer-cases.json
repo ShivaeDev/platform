@@ -31,6 +31,14 @@
 			"run": ["runtime-minimal.ts"]
 		}
 	],
+	"pr-watch": [
+		{
+			"entries": ["./Watcher.ts", "./GitHub.ts", "./GitHubHttp.ts", "./StateFile.ts"],
+			"fixtures": ["watch.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["watch.ts"]
+		}
+	],
 	"quality": [
 		{
 			"entries": ["./config.ts"],

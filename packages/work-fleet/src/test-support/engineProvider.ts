@@ -4,6 +4,8 @@ import { SessionTransport } from "#session/service.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 export function engineProvider(options: EngineOptions) {
 	const launched: string[] = [];
+	const archived: string[] = [];
+	let archiveFailed = false;
 	const settings: { readonly call: "session" | "turn"; readonly operationId: string; readonly settings: LaunchSettings | undefined }[] = [];
 	const observations = new Map<string, SessionObservation>();
 	const failedObservations = new Set<string>();
@@ -26,6 +28,14 @@ export function engineProvider(options: EngineOptions) {
 		});
 	}
 	const transport = Layer.succeed(SessionTransport)({
+		archive: (sessionId) =>
+			Effect.gen(function* () {
+				if (options.archiveFailure && !archiveFailed) {
+					archiveFailed = true;
+					return yield* Effect.fail(new SessionFailure({ message: "Archive temporarily unavailable", reason: "unavailable" }));
+				}
+				archived.push(sessionId);
+			}),
 		interrupt: (receipt) => Effect.succeed(receipt),
 		observe: (receipt) =>
 			failedObservations.delete(receipt.turnId)
@@ -62,6 +72,7 @@ export function engineProvider(options: EngineOptions) {
 			}),
 	});
 	return {
+		archived,
 		failedObservations,
 		launched,
 		loseAcknowledgement: () => {
