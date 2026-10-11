@@ -47,10 +47,11 @@ export async function startBoard(
 	responses = false,
 	sources?: Sources,
 	maintainer?: string,
+	fleetPort?: number,
 	tracer?: Tracer.Tracer,
 ): Promise<RunningBoard> {
 	const board = Layer.provide(
-		boardLayer({ home, maintainer, responses, root }),
+		boardLayer({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, responses, root }),
 		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
 	);
 	const runtime = ManagedRuntime.make(

@@ -3,7 +3,7 @@ import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
-import { capacityRejected } from "#engine/health.ts";
+import { capacityRejected, HealthSnapshot } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -83,6 +83,7 @@ test("failed health publication leaves execution usable and retries on the next 
 			const fleet = yield* Fleet;
 			expect((yield* fleet.get("one")).value.stage).toBe("executing");
 			expect(yield* fleetHealth(root).pipe(Effect.flip)).toMatchObject({ kind: "error" });
+			expect(yield* yield* HealthSnapshot).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
 			yield* Effect.sync(heal);
 			yield* cycle;
 			expect(yield* fleetHealth(root)).toMatchObject({ concurrency: 8, queued: 0, running: 1 });

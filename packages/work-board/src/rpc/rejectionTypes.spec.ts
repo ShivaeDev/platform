@@ -48,6 +48,7 @@ it("Board redacts a handler defect into a declared rejection while the server sp
 		false,
 		undefined,
 		undefined,
+		undefined,
 		tracer,
 	);
 	client = browserClient(board.url);

@@ -1,5 +1,6 @@
 import { Clock, Context, Effect, Ref } from "effect";
-import type { CapacityRejection } from "@shivaedev/work-board/diagnostics/health.ts";
+import type { CapacityRejection, FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
+import type { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
 export interface HealthState {
@@ -7,6 +8,7 @@ export interface HealthState {
 	readonly lastSchedulerPass: number | null;
 }
 export class Health extends Context.Service<Health, Ref.Ref<HealthState>>()("Fleet/Health") {}
+export class HealthSnapshot extends Context.Service<HealthSnapshot, Effect.Effect<FleetHealth, SourceFailure>>()("Fleet/HealthSnapshot") {}
 export class HealthPublication extends Context.Service<HealthPublication, Effect.Effect<void>>()("Fleet/HealthPublication") {}
 
 export const schedulerPassed = Effect.gen(function* () {

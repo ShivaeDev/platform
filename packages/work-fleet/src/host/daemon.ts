@@ -2,12 +2,13 @@ import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Fiber, Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
+import { DAEMON_PORT as DEFAULT_DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonRpc } from "#host/daemonRpc.ts";
 
 export const DAEMON_HOST = "127.0.0.1";
-export const DAEMON_PORT = 3457;
+export const DAEMON_PORT = DEFAULT_DAEMON_PORT;
 
 class Scheduler extends Context.Service<Scheduler, Fiber.Fiber<void, unknown>>()("@shivaedev/work-fleet/DaemonScheduler") {}
 
