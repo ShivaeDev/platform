@@ -3,8 +3,13 @@
 ## Unreleased
 
 - Breaking: replace `FleetViews.needsHuman` with `waiting.maintainer`, `waiting.orchestrator` and `waiting.automation`. Persist `attentionOwner` on waiting records; group status and generated Board views by owner and name the owner in wait/watch output. Stage values and wait exit codes are unchanged.
-- Route worker questions to the orchestrator by default; require `FLEET_MAINTAINER_QUESTION:` for explicit maintainer escalation. Add Fleet, RPC and CLI reassignment with durable supersession of the prior question. Recover legacy question publication before assigning its new owner.
+- Route ready-to-merge work to the maintainer and worker questions to the orchestrator by default; require `FLEET_MAINTAINER_QUESTION:` for explicit maintainer escalation. Add Fleet, RPC and CLI reassignment with durable supersession of the prior question. Recover legacy question publication before assigning its new owner.
 
+- Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
+- Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
+- Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.
+- Preserve the current Board decision and ownership when GitHub delivery observation is temporarily unavailable.
+- Hide resolved delivery decisions in completed views while retaining the original decision in detailed records.
 - Start Cloud turns even when thread naming is rejected or times out; naming and archive-cleanup failure warnings include the session ID and cause.
 - Follow multiple items with `work-fleet watch [ids...]`, emitting one line per completed, needs-human or released item. With no IDs, follow the active items at startup. Watch and wait read only summary fields in one PostgreSQL query per poll; wait retains its exit codes.
 - Generate `fleet/status.md` from the CLI host's Fleet views, with Active, Needs human and Done heading columns, task and adopted PR links, and live Work Board updates. Preserve authored sources and retry failed publication without changing execution outcomes.

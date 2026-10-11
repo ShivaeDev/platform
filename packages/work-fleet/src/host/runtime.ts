@@ -6,6 +6,7 @@ import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
+import { githubDelivery } from "#host/githubDelivery.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostQuota } from "#host/quota.ts";
 import { FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -25,10 +26,10 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 	Effect.gen(function* () {
 		const main = yield* MainSource;
 		return FleetIntegrations.of({
-			authorize: () => unconfigured("Delivery authorization"),
+			authorize: () => Effect.succeed(false),
 			checks: (_work, result) =>
 				result.kind === "no-change" ? unconfigured("No-change validation") : githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
-			delivery: () => unconfigured("Delivery observation"),
+			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),
 			reconcileReview: () => unconfigured("Review reconciliation"),

@@ -8,7 +8,7 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet delivery ownership", () => {
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
-	test("lost delivery acknowledgement retains ownership and adopts the actual merged PR", () =>
+	test("failed delivery observation retains ownership and recovers without a human retry", () =>
 		withEngine({ deliveryFailure: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -17,10 +17,8 @@ describe("Fleet delivery ownership", () => {
 				finishWorkers(fixture);
 				const ambiguous = yield* fleet.reconcile("one");
 				expect(ambiguous.value.stage).toBe("needs-human");
-				expect(ambiguous.value.deliverySubmitted).toBe(true);
-				const decisionId = ambiguous.value.decision?.id ?? "missing";
-				expect(yield* Effect.flip(fleet.resolve("one", decisionId, fixture.respond(decisionId, "release")))).toMatchObject({ _tag: "FleetFailure" });
-				yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"));
+				expect(ambiguous.value.deliverySubmitted).toBe(false);
+				expect(ambiguous.value.decision?.reason).toContain("observation unavailable");
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 				expect(fixture.merged).toHaveLength(1);
 				expect(fixture.reviews).toHaveLength(1);
