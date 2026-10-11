@@ -26,7 +26,7 @@ export const TWINS = `# Twins\n\n${STEPS("First.")}\n\n${STEPS("Second.")}\n`;
 
 export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "plan.md": PLAN, "twins.md": TWINS };
 
-export function waitFor(check: () => void) {
+export function waitFor(check: () => void | Promise<void>) {
 	return vi.waitFor(check, { interval: 10, timeout: 5000 });
 }
 
