@@ -172,7 +172,29 @@ const profile = make(Schema.Struct({ name: Schema.String }), {
 
 This check produces advisory feedback after the configured debounce and completion. A message is shown only while its checked input is still the current field value. Pending checks, older results and a defective check do not show an earlier value's message. Checks can read services from the supplied runtime. Keep authoritative validation in the schema or handler.
 
-For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first issue at or beneath that path; a sibling issue does not appear there. Handler rejections and advisory checks remain on `error("answers")`. Nested values are still edited as a whole top-level field.
+For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback and handler rejections for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first message at or beneath that path; a sibling message does not appear there. `error("answers")` retains the top-level summary. Advisory checks remain top-level. Nested values are still edited as a whole top-level field.
+
+### Errors on array elements
+
+Pass a path tuple to `submitter.fail` to reject one element or a property inside it. Paths use indices in the submitted encoded snapshot. Optional `arrayKeys` selectors receive encoded elements of top-level array fields and return their stable, unique keys:
+
+```ts
+const answers = make(Schema.Struct({
+  answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })),
+}), {
+  arrayKeys: { answers: answer => answer.id },
+  initialValues: { answers: [{ id: "question", text: "Yes" }] },
+  onSubmit: (_values, submitter) =>
+    submitter.fail(["answers", 0, "text"], "This answer is closed"),
+  runtime,
+});
+```
+
+`FieldFailure.path` keeps the top-level field name as a string. For a tuple rejection, optional `FieldFailure.segments` contains its submitted path.
+
+Read the message at the element's **current** index: in React, `useAtomValue(answers.errorAt(["answers", index, "text"]))` from `@effect/atom-react` renders it beside that answer. Schema messages update from current values. Keyed handler rejections follow insertion, removal and reorder, even when elements are recreated, and a late rejection follows its submitted key to the current index. Editing the rejected input or removing its element discards the rejection; editing a sibling or blurring the array preserves it. Duplicate keys cannot identify an element and discard its rejection.
+
+Without a selector for an array, handler errors fall back to index paths. They remain at that index while its input value matches, even if a different element with the same value moves there. Arrays nested inside an element also use index paths. Use immutable value updates and stable, unique keys for top-level arrays whose errors must follow elements.
 
 ### Choices and nullable inputs
 
@@ -219,7 +241,7 @@ The returned form exposes:
 | `change(name, value)` | Write encoded input through the form's editing operation |
 | `blur(name)` | Field blur operation, supplied as `useField(...).onBlur` |
 | `error(name)` | Atom of `string \| undefined` |
-| `errorAt([name, ...path])` | Atom of nested Schema feedback; visibility follows the top-level field |
+| `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |
 | `choices(name)` | Encoded choices or `undefined` |
 | `dirty` | Atom of `boolean` |
 | `receive(values)` | Merge received encoded values |
@@ -227,7 +249,7 @@ The returned form exposes:
 | `submit` | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>` |
 | `submitting` | Atom of `boolean` for submission waiting state |
 
-`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains `path` and `message`; `Invalid` contains `messages`, a `FieldMessages` record.
+`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
 `useField(form, name)` returns `name`, `value`, `error`, `choices`, `onChange(value)` and `onBlur()`. `useSubmit(form)` returns `result`, `run()` and `submitting`. `useDirty(form)` returns a boolean.
 
