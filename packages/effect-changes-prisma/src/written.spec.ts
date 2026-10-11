@@ -11,7 +11,7 @@ async function backend(tx: Transaction) {
 	return row?.pid;
 }
 
-function reusedConnection<X>(later: (tx: Transaction) => Promise<X>) {
+function reusedConnection<TX>(later: (tx: Transaction) => Promise<TX>) {
 	return Effect.gen(function* () {
 		const { schema } = yield* makeDatabase;
 		const client = yield* connect(schema, { max: 1 });

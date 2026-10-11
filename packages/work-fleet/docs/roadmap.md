@@ -2,6 +2,8 @@
 
 ## Implemented slice
 
+Approved report tasks use `fleet-deliverable: report`. The worker returns its whole report in the final message; Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery. Empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status and wait; a lost-publication regression recovers the existing attempt after restart without a duplicate result or worker. Provider execution in these regressions is synthetic.
+
 The headless addon reads stable Board identities and dependencies. Ordinary
 PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns,
 review/check evidence, decisions and accepted outcomes. Completion is attached to
@@ -60,7 +62,6 @@ admission under fresh quota, automatic replacement or delivery.
 
 The maintainer will verify this live loop in a personal pilot after the environment's
 checks. Missing credentials and hosted capabilities remain concrete pilot blockers;
-synthetic fixtures do not supply live proof. A modern hosted transport remains a
-separate verified integration, not an inferred local CLI capability.
+synthetic fixtures do not supply live proof. The Cloud WebSocket adapter and headless host have PostgreSQL SIGKILL coverage around thread and turn mutations, including recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it remains blocked with ownership retained. Provider lookup for that case and live hosted restart evidence remain pending.
 The addon is private at version 0.0.0 until the maintainer chooses a release; packed
 consumer validation still covers its archive. No existing package version changes.

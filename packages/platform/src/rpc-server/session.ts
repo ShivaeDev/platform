@@ -10,22 +10,22 @@ export interface SessionShape {
 	readonly user: { readonly id: string };
 }
 
-export interface SessionProvider<Session extends SessionShape> {
-	readonly get: (headers: Headers.Headers) => Effect.Effect<Option.Option<Session>, AuthUnavailable>;
+export interface SessionProvider<TSession extends SessionShape> {
+	readonly get: (headers: Headers.Headers) => Effect.Effect<Option.Option<TSession>, AuthUnavailable>;
 }
 
-export interface SessionPolicy<Session extends SessionShape> {
+export interface SessionPolicy<TSession extends SessionShape> {
 	readonly origin: OriginPolicy;
-	readonly provider: SessionProvider<Session>;
+	readonly provider: SessionProvider<TSession>;
 }
 
-export const resolveSession: <Session extends SessionShape>(
-	policy: SessionPolicy<Session>,
+export const resolveSession: <TSession extends SessionShape>(
+	policy: SessionPolicy<TSession>,
 	headers: Headers.Headers,
 	rpc: string,
-) => Effect.Effect<Option.Option<Session>, AuthUnavailable | Forbidden> = Effect.fn("PlatformRpc.resolveSession")(function* <
-	Session extends SessionShape,
->(policy: SessionPolicy<Session>, headers: Headers.Headers, rpc: string) {
+) => Effect.Effect<Option.Option<TSession>, AuthUnavailable | Forbidden> = Effect.fn("PlatformRpc.resolveSession")(function* <
+	TSession extends SessionShape,
+>(policy: SessionPolicy<TSession>, headers: Headers.Headers, rpc: string) {
 	const transport = yield* transportHeaders(headers);
 	if (!policy.origin(originRequest(transport, rpc))) {
 		return yield* new Forbidden({ message: "Origin not allowed" });
@@ -37,7 +37,7 @@ function identified(id: string) {
 	return Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
 }
 
-export const authenticatedLayer = <Session extends SessionShape>(policy: SessionPolicy<Session>): Layer.Layer<Authenticated> =>
+export const authenticatedLayer = <TSession extends SessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<Authenticated> =>
 	Layer.succeed(Authenticated, (effect, { headers, rpc }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
@@ -49,7 +49,7 @@ export const authenticatedLayer = <Session extends SessionShape>(policy: Session
 		}),
 	);
 
-export const maybeAuthenticatedLayer = <Session extends SessionShape>(policy: SessionPolicy<Session>): Layer.Layer<MaybeAuthenticated> =>
+export const maybeAuthenticatedLayer = <TSession extends SessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<MaybeAuthenticated> =>
 	Layer.succeed(MaybeAuthenticated, (effect, { headers, rpc }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);

@@ -1,10 +1,11 @@
 import { type Cause, Effect, Schema } from "effect";
 
-export type RejectionValue<Tag extends string, Fields extends Schema.Struct.Fields> = Schema.TaggedStruct<Tag, Fields>["Type"] & Cause.YieldableError;
+export type RejectionValue<TTag extends string, TFields extends Schema.Struct.Fields> = Schema.TaggedStruct<TTag, TFields>["Type"] &
+	Cause.YieldableError;
 
-export type RejectionClass<Tag extends string, Fields extends Schema.Struct.Fields> = Schema.Class<
-	RejectionValue<Tag, Fields>,
-	Schema.TaggedStruct<Tag, Fields>,
+export type RejectionClass<TTag extends string, TFields extends Schema.Struct.Fields> = Schema.Class<
+	RejectionValue<TTag, TFields>,
+	Schema.TaggedStruct<TTag, TFields>,
 	Cause.YieldableError
 >;
 
@@ -14,42 +15,42 @@ export interface RejectionSpecs {
 	readonly [tag: string]: Schema.Struct.Fields | TaggedRejection;
 }
 
-export type Rejections<Specs extends RejectionSpecs> = {
-	readonly [Tag in keyof Specs & string]: Specs[Tag] extends TaggedRejection
-		? Specs[Tag]
-		: Specs[Tag] extends Schema.Struct.Fields
-			? RejectionClass<Tag, Specs[Tag]>
+export type Rejections<TSpecs extends RejectionSpecs> = {
+	readonly [TTag in keyof TSpecs & string]: TSpecs[TTag] extends TaggedRejection
+		? TSpecs[TTag]
+		: TSpecs[TTag] extends Schema.Struct.Fields
+			? RejectionClass<TTag, TSpecs[TTag]>
 			: never;
 };
 
-export type RejectedBy<Specs extends RejectionSpecs> = {
-	[Tag in keyof Specs & string]: Rejections<Specs>[Tag]["Type"];
-}[keyof Specs & string];
+export type RejectedBy<TSpecs extends RejectionSpecs> = {
+	[TTag in keyof TSpecs & string]: Rejections<TSpecs>[TTag]["Type"];
+}[keyof TSpecs & string];
 
-export type Reject<Specs extends RejectionSpecs> = {
-	readonly [Tag in keyof Specs & string]: Rejections<Specs>[Tag] extends new (
-		...args: infer Arguments
-	) => infer Value
-		? (...args: Arguments) => Effect.Effect<never, Value>
+export type Reject<TSpecs extends RejectionSpecs> = {
+	readonly [TTag in keyof TSpecs & string]: Rejections<TSpecs>[TTag] extends new (
+		...args: infer TArguments
+	) => infer TValue
+		? (...args: TArguments) => Effect.Effect<never, TValue>
 		: never;
 };
 
-export type RejectionUnion<Specs extends RejectionSpecs> = [keyof Specs & string] extends [never]
+export type RejectionUnion<TSpecs extends RejectionSpecs> = [keyof TSpecs & string] extends [never]
 	? Schema.Never
-	: Schema.Union<readonly Rejections<Specs>[keyof Specs & string][]>;
+	: Schema.Union<readonly Rejections<TSpecs>[keyof TSpecs & string][]>;
 
-export type MatchingTags<Specs extends RejectionSpecs> = {
-	readonly [Tag in keyof Specs]: Specs[Tag] extends TaggedRejection
-		? Specs[Tag]["Type"] extends { readonly _tag: Tag }
-			? Specs[Tag]
-			: `The rejection class under "${Tag & string}" must have that _tag`
-		: Specs[Tag];
+export type MatchingTags<TSpecs extends RejectionSpecs> = {
+	readonly [TTag in keyof TSpecs]: TSpecs[TTag] extends TaggedRejection
+		? TSpecs[TTag]["Type"] extends { readonly _tag: TTag }
+			? TSpecs[TTag]
+			: `The rejection class under "${TTag & string}" must have that _tag`
+		: TSpecs[TTag];
 };
 
-export interface RejectionSet<Specs extends RejectionSpecs> {
-	readonly error: RejectionUnion<Specs>;
-	readonly Rejection: Rejections<Specs>;
-	readonly reject: Reject<Specs>;
+export interface RejectionSet<TSpecs extends RejectionSpecs> {
+	readonly error: RejectionUnion<TSpecs>;
+	readonly Rejection: Rejections<TSpecs>;
+	readonly reject: Reject<TSpecs>;
 }
 
 interface LooseRejectionSet {
@@ -58,7 +59,7 @@ interface LooseRejectionSet {
 	readonly reject: { readonly [tag: string]: (...args: readonly unknown[]) => Effect.Effect<never, unknown> };
 }
 
-export function rejectionSet<const Specs extends RejectionSpecs>(specs: Specs): RejectionSet<Specs>;
+export function rejectionSet<const TSpecs extends RejectionSpecs>(specs: TSpecs): RejectionSet<TSpecs>;
 export function rejectionSet(specs: RejectionSpecs): LooseRejectionSet {
 	const classes = Object.entries(specs).map(([tag, spec]): readonly [string, TaggedRejection] => [
 		tag,
@@ -73,16 +74,18 @@ export function rejectionSet(specs: RejectionSpecs): LooseRejectionSet {
 	};
 }
 
-export type FieldRejection<Field extends string> = Readonly<{
-	field: Schema.Literals<readonly Field[]>;
+export type FieldRejection<TField extends string> = Readonly<{
+	field: Schema.Literals<readonly TField[]>;
 	message: Schema.String;
 }>;
 
-export function fieldRejection<const Fields extends Schema.Struct.Fields>(struct: { readonly fields: Fields }): FieldRejection<keyof Fields & string>;
-export function fieldRejection<const Fields extends Schema.Struct.Fields, const Field extends keyof Fields & string>(
-	struct: { readonly fields: Fields },
-	fields: readonly Field[],
-): FieldRejection<Field>;
+export function fieldRejection<const TFields extends Schema.Struct.Fields>(struct: {
+	readonly fields: TFields;
+}): FieldRejection<keyof TFields & string>;
+export function fieldRejection<const TFields extends Schema.Struct.Fields, const TField extends keyof TFields & string>(
+	struct: { readonly fields: TFields },
+	fields: readonly TField[],
+): FieldRejection<TField>;
 export function fieldRejection(struct: { readonly fields: Schema.Struct.Fields }, fields?: readonly string[]): FieldRejection<string> {
 	return { field: Schema.Literals(fields ?? Object.keys(struct.fields)), message: Schema.String };
 }
