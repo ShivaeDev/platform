@@ -7,6 +7,13 @@ import { BoardGateway, DecisionResponse } from "@shivaedev/work-fleet/policy.ts"
 import { assessPreparation } from "@shivaedev/work-fleet/preparation/compatibility.ts";
 import { Preparation } from "@shivaedev/work-fleet/preparation/schema.ts";
 import { SessionService } from "@shivaedev/work-fleet/session/service.ts";
+import { DAEMON_HOST, DAEMON_PORT, daemonLayer, serveFleet } from "@shivaedev/work-fleet/host/daemon.ts";
+import { DaemonContract, RPC_PATH } from "@shivaedev/work-fleet/host/daemonContract.ts";
+
+if (DAEMON_HOST !== "127.0.0.1" || DAEMON_PORT !== 3457 || RPC_PATH !== "/_fleet/rpc" ||
+    !DaemonContract.requests.has("fleet.dispatch")) throw new Error("Fleet daemon exports are missing");
+void daemonLayer;
+void serveFleet;
 
 const preparation = Schema.decodeUnknownSync(Preparation)({
   baseRevision: "revision-a", ownedPaths: ["src/one"], sourcePaths: ["src/one"],

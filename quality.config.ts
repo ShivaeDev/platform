@@ -21,7 +21,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
 	"work-board": { allowed: ["effect-contract", "effect-form"], module: "board" },
-	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql"], module: "fleet" },
+	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql", "platform"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
 const BROWSER = ["effect-changes", "effect-contract", "effect-form", "effect-react"];
@@ -68,7 +68,10 @@ function leaf([name, { allowed, module }]: readonly [string, { readonly allowed:
 		.from(folders(`packages/${name}/src`))
 		.mayNotImport(workspace.except(packages(name, ...allowed)))
 		.demonstratedBy({
-			illegal: [source, `packages/${BROWSER.includes(name) ? "effect-react/src/result-state.ts" : "platform/src/runtime/make.ts"}`],
+			illegal: [
+				source,
+				`packages/${BROWSER.includes(name) || allowed.includes("platform") ? "effect-react/src/result-state.ts" : "platform/src/runtime/make.ts"}`,
+			],
 			legal: [source, external("effect")],
 		});
 }
