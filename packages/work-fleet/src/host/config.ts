@@ -3,12 +3,14 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { CONFIG_FILE, DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
+import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import { LaunchSettings } from "#session/schema.ts";
 
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
 const Text = Schema.String.check(Schema.isMinLength(1));
 
 export const HostConfig = Schema.Struct({
+	areaMergeWaitMs: Schema.optional(Positive),
 	backlog: Schema.optional(Positive),
 	cloud: Schema.optional(
 		Schema.Struct({
@@ -41,6 +43,7 @@ export type HostConfig = typeof HostConfig.Type;
 export class HostFailure extends Schema.TaggedError<HostFailure>()("HostFailure", { message: Schema.String }) {}
 
 export interface FleetHost {
+	readonly areaMergeWaitMs: number;
 	readonly backlog: number;
 	readonly boardDir: string;
 	readonly cloud: HostConfig["cloud"];
@@ -60,6 +63,7 @@ export interface FleetHost {
 
 export function resolveHost(boardDir: string, config: HostConfig): FleetHost {
 	return {
+		areaMergeWaitMs: config.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS,
 		backlog: config.backlog ?? 100,
 		boardDir,
 		cloud: config.cloud,

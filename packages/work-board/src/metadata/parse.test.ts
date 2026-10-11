@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { metadataParse } from "./parse.ts";
 
 describe("optional metadata", () => {
+	it("reads area names and discloses invalid area lists without changing the source", () => {
+		const valid = metadataParse("---\nareas: [work-fleet/host, work-board/ui]\n---\n# Work");
+		expect(valid.fields.areas).toEqual(["work-fleet/host", "work-board/ui"]);
+		expect(valid.diagnostics).toEqual([]);
+		for (const areas of ["host", "[host, 3]", '[" "]']) {
+			const source = `---\nareas: ${areas}\n---\n# Work`;
+			const parsed = metadataParse(source);
+			expect(parsed.fields.areas).toBeUndefined();
+			expect(parsed.diagnostics[0]?.field).toBe("areas");
+			expect(parsed.raw + parsed.body).toBe(source);
+		}
+	});
 	it("keeps ordinary Markdown byte-for-byte and recognizes only an opening header", () => {
 		for (const source of ["# Plain\n\n---\nFooter", "\n---\nid: late\n---\n# Plain", "# Board\n\n## Review\n\n### Item"]) {
 			expect(metadataParse(source).body).toBe(source);

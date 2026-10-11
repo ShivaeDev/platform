@@ -36,11 +36,15 @@ it("defers resume reconciliation while paused until the consumer unpauses", asyn
 	const client = liveClient(server.url);
 	const registry = AtomRegistry.make();
 	const one = client.api.get.query({ id: "one" });
-	registry.mount(client.connection);
 	registry.mount(one);
 	try {
-		await vi.waitFor(() => expect(registry.get(client.status).connection).toBe("live"));
 		await vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("First"));
+		registry.mount(client.connection);
+		await vi.waitFor(() => {
+			expect(registry.get(client.status).connection).toBe("live");
+			expect(Effect.runSync(Ref.get(server.reads)).filter((id) => id === "one")).toHaveLength(2);
+			expect(registry.get(one).waiting).toBe(false);
+		});
 		registry.set(client.paused, true);
 		await server.edit("one", "Changed while paused");
 		await vi.waitFor(() => expect(registry.get(client.status).pending).toBe(1));

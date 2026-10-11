@@ -14,6 +14,8 @@ const form = make(schema, {
 });
 const encoded: string = form.field("count").value;
 void encoded;
+const message: Atom.Atom<string | undefined> = form.errorAt(["count"]);
+void message;
 void (form satisfies Form<typeof schema.fields, number, never, never>);
 // @ts-expect-error Field names come from the schema.
 form.field("missing");

@@ -17,6 +17,7 @@ export function prepareCommand(state: EngineState) {
 			return yield* Effect.fail(new FleetFailure({ message: "Preparation needs fixed prompt and owned paths", reason: "invalid" }));
 		}
 		const current: FleetRecord = {
+			areas: work.areas,
 			attempts: [],
 			boardContext: work.context,
 			boardRevision: work.revision,

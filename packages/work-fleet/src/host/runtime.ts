@@ -43,6 +43,7 @@ export function hostPolicy(host: FleetHost) {
 				return clock.currentTimeMillisUnsafe();
 			}
 			return FleetPolicy.of({
+				areaMergeWaitMs: host.areaMergeWaitMs,
 				deliveryBacklog: host.backlog,
 				executionConcurrency: host.concurrency,
 				launch: host.launch,

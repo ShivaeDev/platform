@@ -4,6 +4,7 @@
 
 - [x] `make` derives encoded field state and decoded submission from `Schema.Struct`, with supplied atom-runtime services and typed result atoms.
 - [x] Invalid submission reveals schema messages without calling the handler. Field rejections clear when input changes, and a late rejection does not attach to newer input.
+- [x] `errorAt` reads nested Schema messages under a top-level field, including array entries, while field state stays top-level; `src/nestedErrors.spec.ts` covers independent messages and touch/submission visibility.
 - [x] Encoded literal choices, including fields whose codec decodes to another type, and `emptyAsNull` for nullable domain values.
 - [x] Debounced field checks show completed feedback only for their current input and use services from the supplied runtime.
 - [x] Per-field received-value merging, optional-key removal, dirty state and explicit revert to the latest baseline.
