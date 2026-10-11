@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect, it } from "vitest";
 import { documentHeadings } from "./documentHeadings.ts";
-import { Highlighter } from "./highlighter.ts";
+import { Highlighter } from "./Highlighter.ts";
 import { renderMarkdown } from "./markdown.ts";
 
 it("assigns unambiguous Unicode anchors across board fragments and ignores footnote headings", async () => {

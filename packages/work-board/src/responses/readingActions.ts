@@ -1,20 +1,20 @@
 import { Effect } from "effect";
 import { authoredQuestion } from "#attention/inbox.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
-import type { responseService } from "./service.ts";
+import { Responses } from "./service.ts";
 import { questionTemplate } from "./template.ts";
 import { responseUrl } from "./url.ts";
 
 export const readingActions = Effect.fn("WorkBoard.readingActions")(function* (
 	document: MetadataDocument,
 	source: string,
-	service: Effect.Success<ReturnType<typeof responseService>> | undefined,
 	enabled: boolean,
 	identity: string | undefined,
 ) {
-	if (!(service && enabled && identity)) {
+	if (!(enabled && identity)) {
 		return undefined;
 	}
+	const service = yield* Responses;
 	const item = identity;
 	const requests = authoredQuestion(document) ? ["answer"] : (document.parsed.fields.attention ?? []).map((request) => request.id);
 	const actions = new Map<string, string>();

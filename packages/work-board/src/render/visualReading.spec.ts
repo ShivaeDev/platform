@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { boardOf } from "#render/board.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { entriesOf } from "#search/entries.ts";
 

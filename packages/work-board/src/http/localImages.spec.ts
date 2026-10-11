@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { changesUntil, rawGet, subscribe } from "#test/board.ts";
+import { rawGet } from "#test/board.ts";
+import { subscribe } from "#test/nativeRpc.ts";
 import { SCREENSHOT, visualWorkspace } from "#test/visuals.ts";
 
 let workspace: Awaited<ReturnType<typeof visualWorkspace>>;
@@ -48,8 +49,9 @@ it("refuses traversal, malformed paths, unsupported types and escaping file or d
 
 it("bounds image reads and reports image edits through the existing watcher", async () => {
 	const events = await subscribe(workspace.board);
+	await events.next();
 	workspace.replaceImage();
-	expect((await changesUntil(events, "shots/second.png")).at(-1)).toContain("shots/second.png");
+	expect(await events.next()).toEqual({ _tag: "Resync" });
 	events.close();
 	workspace.oversize();
 	const response = await workspace.get("/_board/attachment/shots/second.png");
