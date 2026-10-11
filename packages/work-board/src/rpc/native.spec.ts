@@ -1,3 +1,4 @@
+import { Stream } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
@@ -22,7 +23,9 @@ it("reads SSR documents, stable item URLs, navigation, search and explicit histo
 	const page = await client.read(client.api.page.query({ url: "/_board/item/note/" }));
 	expect(page.html).toContain("Read this.");
 	expect(page.status).toBe(200);
-	expect(await client.read(client.api.navigation.query())).toContain("/note.md");
+	expect((await client.read(client.api.navigation.query({ current: "note.md" }))).tree.files).toEqual(
+		expect.arrayContaining([expect.objectContaining({ current: true, href: "/note.md" })]),
+	);
 	expect((await client.read(client.api.search.query({ query: "Read this" }))).results).toEqual(
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),
 	);
@@ -30,13 +33,22 @@ it("reads SSR documents, stable item URLs, navigation, search and explicit histo
 	expect(seen.snapshot).toContain("Read this.");
 	expect((await fetch(`${board.url}/note.md`)).status).toBe(200);
 	expect((await fetch(`${board.url}/_board/native.js`)).headers.get("content-type")).toContain("javascript");
+	for (const [asset, type] of [
+		["react.js", "text/javascript"],
+		["react.css", "text/css"],
+	]) {
+		const response = await fetch(`${board.url}/_board/${asset}`);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe(type);
+		expect(await response.text()).not.toBe("");
+	}
 });
 it("retains unrelated mounted reads while reconciling dependent pages and navigation after source changes", async () => {
 	await open();
 	const atom = client.api.page.query({ url: "/note.md" });
 	const release = client.registry.mount(atom);
 	const initial = await client.read(atom);
-	const nav = client.api.navigation.query();
+	const nav = client.api.navigation.query({ current: "note.md" });
 	const releaseNav = client.registry.mount(nav);
 	const oldNav = await client.read(nav);
 	notes.write("other.md", "# Updated unrelated");
@@ -79,4 +91,10 @@ it("reads getting-started templates through the shared native page contract", as
 	expect(page.html).toContain("Project and report templates");
 	expect(page.html).toContain('data-view="start"');
 	expect(page.html).toContain("example.result");
+});
+
+it("delivers the initial reconciliation hint through the bound Board subscription", async () => {
+	await open();
+	const hints = await client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1))));
+	expect(hints).toEqual([{ _tag: "Resync" }]);
 });

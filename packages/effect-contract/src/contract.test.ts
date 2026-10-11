@@ -1,9 +1,9 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect, Ref } from "effect";
+import { Effect, Ref, Schema, Stream } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { contract } from "#contract.ts";
-import { type CommandShape, command, type QueryShape } from "#operation.ts";
+import { type CommandShape, command, type QueryShape, type StreamShape, stream } from "#operation.ts";
 import { Create, Get, List, makeServer, NoteMissing, Notes, Rename } from "#test/notes.ts";
 
 describe("contract", () => {
@@ -12,6 +12,9 @@ describe("contract", () => {
 		expect(() => contract("dupes", { queries })).toThrow("Operation names must be unique; duplicated: list");
 		const commands: readonly CommandShape[] = [command("get", { invalidates: () => [] })];
 		expect(() => contract("dupes", { commands, queries: [Get] })).toThrow("Operation names must be unique; duplicated: get");
+		const streams: readonly StreamShape[] = [stream("get", { reads: () => [], success: Schema.String })];
+		expect(() => contract("dupes", { queries: [Get], streams })).toThrow("Operation names must be unique; duplicated: get");
+		expect(() => contract("dupes", { streams: [...streams, ...streams] })).toThrow("Operation names must be unique; duplicated: get");
 	});
 
 	it.effect("reuses declared rejection classes and generates classes for field specs", function* () {
@@ -49,3 +52,19 @@ describe("contract", () => {
 		}).pipe(Effect.scoped),
 	);
 });
+
+it.effect("streams decode payloads and elements with declared read keys through native RPC", () =>
+	Effect.gen(function* () {
+		const Follow = stream("follow", {
+			payload: Schema.Struct({ id: Schema.Number }),
+			reads: ({ id }) => Get.reads({ id }),
+			success: Schema.String,
+		});
+		const Feed = contract("feed", { streams: [Follow] });
+		const handlers = Feed.toLayer({ "feed.follow": ({ id }) => Stream.make(`note:${id}`, "done") });
+		const client = yield* RpcTest.makeClient(Feed, { flatten: true }).pipe(Effect.provide(handlers));
+		expect(yield* Stream.runCollect(client("feed.follow", { id: 2 }))).toEqual(["note:2", "done"]);
+		expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }));
+		expect(Follow.error).toBe(Schema.Never);
+	}).pipe(Effect.scoped),
+);

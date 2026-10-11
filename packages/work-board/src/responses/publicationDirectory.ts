@@ -1,13 +1,14 @@
 import { type FileHandle, lstat, realpath } from "node:fs/promises";
 import process from "node:process";
-import { ResponseFailed } from "#browser/responses/schema.ts";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { PublicationUncertain } from "#rpc/rejections.ts";
 
 export function directoryPath(directory: FileHandle, expected: string): string {
 	return process.platform === "linux" ? `/proc/self/fd/${directory.fd}` : expected;
 }
 
 function boundaryChanged(cause?: unknown) {
-	return new ResponseFailed({ cause, code: "Conflict", message: "The write boundary changed." });
+	return Object.defineProperty(new Conflict({ message: "The write boundary changed." }), "cause", { value: cause });
 }
 function missing(cause: unknown) {
 	return cause instanceof Error && "code" in cause && (cause.code === "ENOENT" || cause.code === "ENOTDIR" || cause.code === "ELOOP");
@@ -27,9 +28,13 @@ export async function validateDirectory(directory: FileHandle, path: string, exp
 }
 
 export function uncertain(cause: unknown) {
-	return cause instanceof ResponseFailed && cause.code === "Uncertain"
+	return cause instanceof PublicationUncertain
 		? cause
-		: new ResponseFailed({ cause, code: "Uncertain", message: "Publication may have completed. Re-read the record identity before retrying." });
+		: Object.defineProperty(
+				new PublicationUncertain({ message: "Publication may have completed. Re-read the record identity before retrying." }),
+				"cause",
+				{ value: cause },
+			);
 }
 
 export function publicationFailure(cause: unknown, published: boolean): never {

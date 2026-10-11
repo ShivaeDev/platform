@@ -20,6 +20,18 @@ describe("GitHub worker result adoption", () => {
 		]);
 	});
 
+	it.effect("adopts the unchanged head and paths when main advances during observation", function* () {
+		const fixture = resultFixture({ after: { base: { ref: "main", sha: MOVED } }, mainHead: MOVED });
+		expect(yield* fixture.adopt(work, completed())).toEqual({
+			head: HEAD,
+			kind: "change",
+			paths: ["src/one.ts", "src/two.ts"],
+			pr: PR,
+			prNumber: 7,
+		});
+		expect(fixture.refreshes()).toBe(0);
+	});
+
 	for (const before of [{ merged: true, state: "closed" }, {}]) {
 		it.effect(`adopts a matching merged PR before or during path observation: ${JSON.stringify(before)}`, function* () {
 			const fixture = resultFixture({ after: { merged: true, state: "closed" }, before });

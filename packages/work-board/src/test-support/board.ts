@@ -3,7 +3,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, ManagedRuntime } from "effect";
+import { Effect, FileSystem, Layer, ManagedRuntime, Tracer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { boardLayer } from "#board.ts";
 import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
@@ -48,12 +48,18 @@ export async function startBoard(
 	sources?: Sources,
 	maintainer?: string,
 	fleetPort?: number,
+	tracer?: Tracer.Tracer,
 ): Promise<RunningBoard> {
 	const board = Layer.provide(
 		boardLayer({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, responses, root }),
 		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
 	);
-	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
+	const runtime = ManagedRuntime.make(
+		HttpRouter.serve(board, { disableLogger: true }).pipe(
+			Layer.provideMerge(listenOn(0)),
+			Layer.provideMerge(tracer ? Layer.succeed(Tracer.Tracer, tracer) : Layer.empty),
+		),
+	);
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("the board did not listen on TCP");
@@ -95,44 +101,4 @@ export function rawPost(board: RunningBoard, path: string, headers: Readonly<Rec
 		outgoing.on("error", reject);
 		outgoing.end(body);
 	});
-}
-
-export interface EventStream {
-	readonly close: () => void;
-	readonly next: () => Promise<string>;
-}
-
-export async function subscribe(board: RunningBoard): Promise<EventStream> {
-	const controller = new AbortController();
-	const body = (await fetch(`${board.url}/events`, { signal: controller.signal })).body;
-	if (body === null) {
-		throw new Error("the event stream has no body");
-	}
-	const reader = body.pipeThrough(new TextDecoderStream()).getReader();
-	let buffer = "";
-	async function next(): Promise<string> {
-		while (!buffer.includes("\n\n")) {
-			const chunk = await reader.read();
-			if (chunk.done) {
-				throw new Error("the event stream ended");
-			}
-			buffer += chunk.value;
-		}
-		const [event = "", ...rest] = buffer.split("\n\n");
-		buffer = rest.join("\n\n");
-		return event;
-	}
-	return { close: () => controller.abort(), next };
-}
-
-export async function changesUntil(events: EventStream, path: string): Promise<ReadonlyArray<readonly string[]>> {
-	const seen: Array<readonly string[]> = [];
-	while (!seen.at(-1)?.includes(path)) {
-		const event = await events.next();
-		const data = /^event: change\ndata: (.*)$/u.exec(event)?.[1];
-		if (data !== undefined) {
-			seen.push(JSON.parse(data).paths);
-		}
-	}
-	return seen;
 }

@@ -20,7 +20,13 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		}
+		},
+		"#*.tsx": {
+			"source": "./src/*.tsx",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"#*.css": "./src/*.css"
 	},
 	"exports": {
 		"./*.ts": {
@@ -39,7 +45,9 @@
 		"src",
 		"assets",
 		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
 		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
 		"!src/**/test-support",
 		"docs",
 		"CHANGELOG.md",
@@ -47,16 +55,23 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js",
+		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@effect/atom-react": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-react": "workspace:*",
+		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
+		"@tanstack/react-router": "catalog:",
+		"class-variance-authority": "catalog:",
+		"clsx": "catalog:",
+		"lucide-react": "catalog:",
 		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",
 		"react": "catalog:",
@@ -67,6 +82,7 @@
 		"remark-gfm": "catalog:",
 		"remark-parse": "catalog:",
 		"shiki": "catalog:",
+		"tailwind-merge": "catalog:",
 		"unified": "catalog:",
 		"unist-util-visit": "catalog:",
 		"yaml": "catalog:"
@@ -75,16 +91,20 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@tailwindcss/vite": "catalog:",
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
 		"@typescript/native": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
+		"tailwindcss": "catalog:",
 		"typescript": "catalog:",
+		"vite": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {

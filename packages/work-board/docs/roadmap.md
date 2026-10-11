@@ -10,7 +10,7 @@ The reading, response, handoff and result-review implementation has these capabi
 | --- | --- | --- |
 | [01](delivery/wave1.md#01-a-real-workspace-shell) | Workspace shell, theme/density/sidebar preferences | `src/page/shell.test.ts`, `src/page/client.dom.test.ts`, `src/page/sidebarScript.dom.test.ts` |
 | [02](delivery/wave1.md#02-document-locations-and-reading-state) | Passage links, reading navigation, favorites and recents | `src/render/documentHeadings.test.ts`, `src/page/navigationScript.dom.test.ts` |
-| [03](delivery/wave1.md#03-find-work-from-anywhere) | Local deterministic search and command dialog | `src/search/entries.test.ts`, `src/http/search.test.ts`, `src/page/searchRequests.dom.spec.ts` |
+| [03](delivery/wave1.md#03-find-work-from-anywhere) | Local deterministic search and command dialog | `src/search/entries.test.ts`, `src/http/search.spec.ts`, `src/page/searchRequests.dom.spec.ts` |
 | [04](delivery/wave1.md#04-optional-identity-and-a-rebuildable-index) | Optional identity, metadata and rebuildable reference index | `src/metadata/parse.test.ts`, `src/metadata/model.test.ts`, `src/http/identity.test.ts` |
 | [05](delivery/wave1.md#05-one-body-of-work-several-views) | Shared board/table projections, URL state and named local views | `src/http/work.test.ts`, `src/http/tableViews.spec.ts`, `src/page/savedViews.dom.spec.ts` |
 | [06](delivery/wave1.md#06-follow-the-reasoning-and-the-evidence) | Relationships, source backlinks and recorded criterion claims | `src/http/reasoning.spec.ts`, `src/page/reasoning.dom.spec.ts` |
@@ -33,6 +33,8 @@ Nested sidebar ancestry, home ordering, logical reference paths and folder expan
 The sidebar Diagnostics view reads Codex usage windows, cached GitHub REST/GraphQL limits and Fleet health from the daemon's native HTTP RPC API. Synthetic source, command and app-server fixtures cover ready, missing, failing and malformed states, shared caching and refused provider approvals in `src/diagnostics/source.test.ts`, `readers.spec.ts` and `codexRateLimits.test.ts`. Real HTTP fixtures cover daemon responses, stopped-daemon recovery, ignored health files and stale observation times in `src/diagnostics/diagnosticsRpc.spec.ts`; `page.test.ts` and `liveRefresh.dom.spec.ts` cover navigation, rendering and native polling/pause/resume. These fixtures do not establish live account authorization.
 
 The static handoff, response and question forms use `effect-form` for Schema decoding, field messages and submission snapshots. The unchanged form and draft regressions above preserve reviewed context and durable storage. `src/browser/effectForms.dom.spec.ts` exercises Schema feedback, response edits during a save, and form restoration after persisted pageshow in DOM/HTTP fixtures.
+
+The client tooling builds and serves a Vite React bundle with a placeholder TanStack route and Tailwind neutral theme beside the native client. Existing pages still use the native client; `src/browser/react/boardRouter.dom.test.tsx` checks that the placeholder route mounts without visible content. `src/board.test.ts` and the packed CLI fixture check asset delivery; `src/browser/react/queryRendering.dom.spec.tsx` renders a search query through the shared RPC handlers with an in-memory Markdown index and the published `effect-react/testing.ts` helpers. This establishes React 19 and atom-registry composition in happy-dom, rather than a migrated page or browser layout.
 
 ## Next
 

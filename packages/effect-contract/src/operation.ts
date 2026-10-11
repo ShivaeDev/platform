@@ -11,7 +11,7 @@ type NoRejections = Record<never, never>;
 
 export interface OperationShape {
 	readonly error: Schema.Top;
-	readonly kind: "query" | "command";
+	readonly kind: "query" | "command" | "stream";
 	readonly name: string;
 	readonly payload: Schema.Top;
 	readonly Rejection: object;
@@ -22,6 +22,11 @@ export interface OperationShape {
 
 export interface QueryShape extends OperationShape {
 	readonly kind: "query";
+	reads: Bivariant<(payload: unknown) => readonly Key[]>;
+}
+
+export interface StreamShape extends OperationShape {
+	readonly kind: "stream";
 	reads: Bivariant<(payload: unknown) => readonly Key[]>;
 }
 
@@ -44,6 +49,12 @@ interface Operation<TName extends string, TPayload extends Schema.Top, TSuccess 
 export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
 	extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	readonly kind: "query";
+	reads: (payload: TPayload["Type"]) => readonly Key[];
+}
+
+export interface Streaming<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
+	extends Operation<TName, TPayload, TSuccess, TSpecs> {
+	readonly kind: "stream";
 	reads: (payload: TPayload["Type"]) => readonly Key[];
 }
 
@@ -115,4 +126,20 @@ export function command(
 	declaration: Loose & { readonly invalidates: (payload: unknown, result: unknown) => readonly Key[] },
 ): CommandShape {
 	return { ...operation("command", name, declaration), invalidates: declaration.invalidates };
+}
+
+export function stream<
+	const TName extends string,
+	TPayload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
+	TSuccess extends Schema.Top = Schema.Void,
+	const TSpecs extends RejectionSpecs = NoRejections,
+>(
+	name: TName,
+	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
+		readonly success: TSuccess;
+		readonly reads: (payload: PayloadSchema<TPayload>["Type"]) => readonly Key[];
+	},
+): NoInfer<Streaming<TName, PayloadSchema<TPayload>, TSuccess, TSpecs>>;
+export function stream(name: string, declaration: Loose & { readonly reads: (payload: unknown) => readonly Key[] }): StreamShape {
+	return { ...operation("stream", name, declaration), reads: declaration.reads };
 }

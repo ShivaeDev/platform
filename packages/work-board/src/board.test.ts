@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
@@ -29,6 +30,25 @@ describe("embedding", () => {
 		expect(await response.text()).toContain("<span><b>1</b> to do</span>");
 	});
 
+	it("serves the React bundle and theme beside the native client without changing the page", async () => {
+		for (const [path, type] of [
+			["react.js", "javascript"],
+			["react.css", "text/css"],
+			["native.js", "javascript"],
+		]) {
+			const response = await board.handler(new Request(`http://localhost/_board/${path}`, { headers: { host: "localhost" } }));
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toContain(type);
+			expect(await response.text()).toBe(readFileSync(new URL(`../assets/${path}`, import.meta.url), "utf8"));
+		}
+		const page = await board.handler(new Request("http://localhost/", { headers: { host: "localhost" } }));
+		const html = await page.text();
+		expect(html).toContain("<span><b>1</b> to do</span>");
+		expect(html).not.toContain("/_board/react.js");
+		expect(html).not.toContain("/_board/react.css");
+		expect(html).not.toContain("data-board-react-root");
+	});
+
 	it("refuses a request without a Host header", async () => {
 		expect((await board.handler(new Request("http://localhost/"))).status).toBe(403);
 	});
@@ -37,4 +57,15 @@ describe("embedding", () => {
 		const response = await board.handler(new Request("http://board.example/", { headers: { host: "board.example" } }));
 		expect(response.status).toBe(403);
 	});
+});
+
+it("has no duplicate search, history or SSE endpoint", async () => {
+	for (const [method, path] of [
+		["GET", "/_board/search?q=Plan"],
+		["POST", "/_board/history"],
+		["GET", "/events"],
+	] as const) {
+		const response = await board.handler(new Request(`http://localhost${path}`, { headers: { host: "localhost" }, method }));
+		expect(response.status).toBe(404);
+	}
 });

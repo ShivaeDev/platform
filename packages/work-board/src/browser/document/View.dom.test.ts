@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect, it, vi } from "vitest";
 import { metadataParse } from "#metadata/parse.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { documentData, mountDocument, settledDocument } from "#test/documentRendering.ts";
 import { documentSource } from "#test/documentSource.ts";
@@ -32,7 +32,7 @@ it("renders Board document fixtures with GFM, footnotes, directives, query links
 	expect(container.querySelector("#reading-user-content-fn-source")?.textContent).toContain("Read the source");
 	expect(container.querySelectorAll(".questionnaire-question")).toHaveLength(2);
 	expect(container.querySelectorAll(".questionnaire-option")).toHaveLength(4);
-	expect([...container.querySelectorAll(".questionnaire-answer")].map((link) => link.getAttribute("href"))).toEqual(Object.values(questionActions));
+	expect([...container.querySelectorAll(".questionnaire-answer")].map((link) => link.getAttribute("href"))).toEqual([questionActions["/display"]]);
 	expect(container.querySelector(".visual-progress progress")?.getAttribute("value")).toBe("3");
 	expect(container.querySelector(".visual-metric .visual-value")?.textContent).toBe("0 documents");
 	expect(container.querySelectorAll(".visual-timeline-entries li")).toHaveLength(2);

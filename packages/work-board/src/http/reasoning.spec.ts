@@ -2,7 +2,8 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { changesUntil, subscribe } from "#test/nativeRpc.ts";
 import { reasoningFixture } from "#test/reasoningFixture.ts";
 
 let notes: Folder;

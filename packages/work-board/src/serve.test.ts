@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Folder, folder, startBoard } from "#test/board.ts";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
+import { subscribe } from "#test/nativeRpc.ts";
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), "cli.ts");
 
@@ -97,11 +98,12 @@ describe("the server", () => {
 		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
 		try {
 			const address = await listening(child);
-			const body = (await fetch(`${address}/events`)).body;
-			await body?.getReader().read();
+			const subscription = await subscribe({ url: address });
+			await subscription.next();
 			const stopped = exited(child);
 			child.kill("SIGINT");
 			expect(await stopped).toBeLessThan(3000);
+			subscription.close();
 		} finally {
 			child.kill();
 		}

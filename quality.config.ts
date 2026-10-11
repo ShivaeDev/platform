@@ -21,7 +21,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	skills: { allowed: [], module: "syncSkills" },
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
-	"work-board": { allowed: ["effect-contract", "effect-form", "platform"], module: "board" },
+	"work-board": { allowed: ["effect-contract", "effect-form", "effect-react", "effect-service", "platform"], module: "board" },
 	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql", "platform"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
@@ -56,7 +56,6 @@ const BROWSER_FILES = [
 	"packages/work-board/src/render/documentPlugins.ts",
 	"packages/work-board/src/render/failed.ts",
 	"packages/work-board/src/render/footnotes.ts",
-	"packages/work-board/src/render/highlighter.ts",
 	"packages/work-board/src/render/questionnaireDocuments.ts",
 	"packages/work-board/src/render/textContent.ts",
 	"packages/work-board/src/render/visual.ts",
@@ -67,6 +66,7 @@ const BROWSER_FILES = [
 	"packages/work-board/src/rpc/responseContract.ts",
 	"packages/work-board/src/rpc/handoffContract.ts",
 	"packages/work-board/src/rpc/keys.ts",
+	"packages/work-board/src/rpc/rejections.ts",
 	"packages/work-board/src/rpc/pageKeys.ts",
 	"packages/work-board/src/history/schema.ts",
 ];
@@ -94,6 +94,10 @@ const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependencies
 
 function leaf([name, { allowed, module }]: readonly [string, { readonly allowed: readonly string[]; readonly module: string }]): Fence {
 	const source = `packages/${name}/src/${module}.ts`;
+	let illegal = "effect-sql/src/repository.ts";
+	if (!allowed.includes("effect-react")) {
+		illegal = BROWSER.includes(name) || allowed.includes("platform") ? "effect-react/src/result-state.ts" : "platform/src/runtime/make.ts";
+	}
 	return fence(`leaf-${name}`)
 		.because(
 			`@shivaedev/${name} is a leaf package: its source imports no other @shivaedev package${allowed.map((other) => ` but @shivaedev/${other}`).join("")}.${allowed.includes("types") ? ` ${TYPE_ONLY}` : ""}`,
@@ -101,10 +105,7 @@ function leaf([name, { allowed, module }]: readonly [string, { readonly allowed:
 		.from(folders(`packages/${name}/src`))
 		.mayNotImport(workspace.except(packages(name, ...allowed)))
 		.demonstratedBy({
-			illegal: [
-				source,
-				`packages/${BROWSER.includes(name) || allowed.includes("platform") ? "effect-react/src/result-state.ts" : "platform/src/runtime/make.ts"}`,
-			],
+			illegal: [source, `packages/${illegal}`],
 			legal: [source, external("effect")],
 		});
 }
@@ -121,10 +122,26 @@ const fences: readonly Fence[] = [
 		}),
 	fence("browser-folder-stays-browser-safe")
 		.because(
-			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract and effect-form, never @trpc/server, Node or other server code.",
+			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract, effect-form, effect-react and React UI libraries, never @trpc/server, Node or other server code.",
 		)
 		.from(BROWSER_CODE.except(MARKDOWN_CODE))
-		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "effect-form", "types"), modules("effect")))
+		.mayNotReach(
+			anything.except(
+				BROWSER_CODE,
+				packages("effect-contract", "effect-form", "effect-react", "types"),
+				modules(
+					"effect",
+					"react",
+					"react-dom",
+					"@effect/atom-react",
+					"@tanstack/react-router",
+					"clsx",
+					"tailwind-merge",
+					"class-variance-authority",
+					"lucide-react",
+				),
+			),
+		)
 		.demonstratedBy({
 			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
 			legal: ["packages/work-board/src/browser/handoffs/form.ts", "packages/effect-form/src/form.ts"],

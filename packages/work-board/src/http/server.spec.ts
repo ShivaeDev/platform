@@ -1,11 +1,12 @@
-import { chmodSync, existsSync, linkSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { countingPaths, silentWatch } from "#test/faults.ts";
+import { changesUntil, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let outside: Folder;
@@ -212,7 +213,7 @@ describe("assets", () => {
 		const response = await get("/_board/native.js");
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toBe("text/javascript");
-		expect(await response.text()).toContain("work-board.subscribe");
+		expect(await response.text()).toBe(readFileSync(new URL("../../assets/native.js", import.meta.url), "utf8"));
 	});
 
 	it("serves Mermaid's modules from the installed package and nothing else", async () => {

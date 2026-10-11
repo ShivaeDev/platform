@@ -1,6 +1,6 @@
 # @shivaedev/effect-contract
 
-Declare a feature's queries, commands, expected failures and refresh dependencies once. The declarations become native Effect RPC definitions, and a client binding connects their dependency keys to native AtomRpc queries.
+Declare a feature's queries, commands, streams, expected failures and refresh dependencies once. The declarations become native Effect RPC definitions, and a client binding connects their dependency keys to native AtomRpc queries.
 
 ## Why you want this
 
@@ -27,9 +27,9 @@ const Notes = contract("notes", { queries: [List], commands: [Rename] });
 
 ### How to think about it
 
-An **operation** describes a boundary, not its implementation: its name, payload schema, success schema and expected failures. A **query** also declares the keys it reads; a **command** declares the keys its successful result changes. A **rejection** is an expected typed failure, such as a missing note or an invalid title. Middleware failures and RPC client failures remain separate parts of the native client's error type.
+An **operation** describes a boundary, not its implementation: its name, payload schema, success schema and expected failures. A **query** also declares the keys it reads; a **command** declares the keys its successful result changes. A **stream** declares an element schema in `success`, typed rejections and the keys it reads. A **rejection** is an expected typed failure, such as a missing note or an invalid title. Middleware failures and RPC client failures remain separate parts of the native client's error type.
 
-A **contract** groups operations into a native `RpcGroup`. Its RPC tags are the contract name and operation name joined by a dot. A **binding** connects that declaration to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success.
+A **contract** groups operations into a native `RpcGroup`. Its RPC tags are the contract name and operation name joined by a dot. A **binding** connects that declaration to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success. Streams expose a native `Stream` through `run`; the caller owns consumption and interruption.
 
 A **collection key** names a dependency. Its item key identifies one item; its list key identifies a list in that collection. Keys do not hold data. Native query atoms hold results, and native Reactivity asks matching queries to run again.
 
@@ -84,7 +84,7 @@ Save this module as `notes.ts`. The payload can be struct fields, as in `Get`, o
 
 The collection's ID schema gives `item` its ID type. Here, `notes.item` takes a number. Query and command callbacks retain their payload and result types, including when the operations are declared inline inside `contract`.
 
-Operation names must differ within a contract, including across queries and commands. Literal duplicate declarations fail compilation. If the compiler cannot see the names in an array, contract construction checks them and throws with the duplicated names.
+Operation names must differ within a contract, including across queries, commands and streams. Literal duplicate declarations fail compilation. If the compiler cannot see the names in an array, contract construction checks them and throws with the duplicated names.
 
 ### Expected failures
 
@@ -230,17 +230,16 @@ Client invalidation follows RPC success. For server invalidation at the SQL comm
 
 ### 4. When needed: live invalidation and resume
 
-Keep ordinary operations in their contract and add a native streaming RPC to the transport group. `bind` accepts the larger client's group while retaining the original contract's types. Compiler fixtures reject a client missing an operation or changing its payload or rejection types.
+Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription in the real HTTP tests. Compiler checks reject a unary client for a streaming operation.
 
 Every query that should reconcile together must read the same explicit scope. This variant of the feature adds `workspace.list` alongside each query's item or list key:
 
 ```ts
 import { Schema } from "effect";
-import { Rpc } from "effect/unstable/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { query } from "@shivaedev/effect-contract/operation.ts";
+import { query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { Create, Get, List, notes, Rename } from "./notes.ts";
 
 export const workspace = collection("workspace", Schema.String);
@@ -254,17 +253,16 @@ const LiveList = query("list", {
   success: List.success,
   reads: () => [notes.list, workspace.list],
 });
-export const LiveContract = contract("notes", { queries: [LiveGet, LiveList], commands: [Rename, Create] });
-export const Subscribe = Rpc.make("subscribe", { stream: true, success: LiveHint });
-export const LiveNotes = LiveContract.add(Subscribe);
+export const Subscribe = stream("subscribe", { reads: () => [workspace.list], success: LiveHint });
+export const LiveNotes = contract("notes", { queries: [LiveGet, LiveList], commands: [Rename, Create], streams: [Subscribe] });
 ```
 
 Save the shared module as `live-notes.ts`. A collection list key alone does not cover its item queries. The common `workspace.list` key expresses that the caller intends to reconcile all queries that read it.
 
-Use `LiveNotes` as the server group and implement `subscribe` with a native Stream. For streaming HTTP, the tested fixture uses `RpcSerialization.layerNdjson` on both sides. This client mounts live coordination alongside its queries:
+Use `LiveNotes` as the server group and implement `notes.subscribe` with a native Stream. For streaming HTTP, the tested fixture uses `RpcSerialization.layerNdjson` on both sides. This client mounts live coordination alongside its queries:
 
 ```ts
-import { Effect, Layer, Stream } from "effect";
+import { Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
@@ -272,7 +270,7 @@ import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { resumeSignal } from "@shivaedev/effect-contract/resume.ts";
-import { LiveContract, LiveNotes, workspace } from "./live-notes.ts";
+import { LiveNotes, Subscribe } from "./live-notes.ts";
 
 class Client extends AtomRpc.Service<Client>()("app/LiveNotes", {
   group: LiveNotes,
@@ -280,11 +278,11 @@ class Client extends AtomRpc.Service<Client>()("app/LiveNotes", {
     Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
   ),
 }) {}
-const api = bind(LiveContract, Client);
+const api = bind(LiveNotes, Client);
 const registry = AtomRegistry.make();
 const updates = live(Client.runtime, {
-  stream: Stream.unwrap(Client.use((client) => Effect.succeed(client("subscribe", undefined)))),
-  resyncKeys: [workspace.list],
+  stream: api.subscribe.run(undefined),
+  resyncKeys: Subscribe.reads(undefined),
   resume: resumeSignal({ window }),
   retryDelay: "100 millis",
 });
@@ -292,7 +290,7 @@ const releaseQuery = registry.mount(api.get.query({ id: 1 }));
 const releaseConnection = registry.mount(updates.connection);
 ```
 
-`LiveContract` retains the declaration for binding; `LiveNotes` is the larger native RPC group for transport. The [live updates guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/live-updates.md) shows server and client composition, and the [HTTP fixture](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract/src/test-support/live) supplies a complete working server.
+`LiveNotes` supplies both the declaration for binding and the native RPC group for transport. Stream read keys describe its dependencies; `run` does not mount query atoms or trigger automatic invalidation. Here the caller uses `Subscribe.reads(undefined)` as the explicit live reconciliation scope. `bind` also accepts a larger native client group that preserves the contract RPC types. The [live updates guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/live-updates.md) shows server and client composition, and the [HTTP fixture](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract/src/test-support/live) supplies a complete working server.
 
 | Observation | Invalidation |
 | --- | --- |
@@ -328,11 +326,11 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Functions and schemas |
 | --- | --- |
-| `operation.ts` | `query(name, { payload?, success?, rejections?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`. |
-| `contract.ts` | `contract(name, { queries?, commands? })`, returning a native RPC group with `declaration: { name, queries, commands }`. |
+| `operation.ts` | `query(name, { payload?, success?, rejections?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
+| `contract.ts` | `contract(name, { queries?, commands?, streams? })`, returning a native RPC group with `declaration: { name, queries, commands, streams }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
 | `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys)` and `invalidationKeys(keys)`. |
-| `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries and `{ run }` for commands. |
+| `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, resume?, retryDelay? })`, exposing `connection`, `paused` and `status`. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 
@@ -340,11 +338,11 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Exported types |
 | --- | --- |
-| `operation.ts` | `Query`, `Command`, `QueryShape`, `CommandShape`, `OperationShape`, `PayloadSchema`. |
+| `operation.ts` | `Query`, `Command`, `Streaming`, `QueryShape`, `CommandShape`, `StreamShape`, `OperationShape`, `PayloadSchema`. |
 | `contract.ts` | `Contract`, `Declared`, `OperationRpc`, `Tag`. |
 | `rejection.ts` | `FieldRejection`, `MatchingTags`, `Reject`, `RejectedBy`, `RejectionClass`, `RejectionSpecs`, `Rejections`, `RejectionSet`, `RejectionUnion`, `RejectionValue`, `TaggedRejection`. |
 | `keys.ts` | `Collection`, `Identity`, `ItemKey`, `ListKey`, `Key`. |
-| `bind.ts` | `Bound`, `BoundQuery`, `BoundCommand`, `Failure`, `RunFailure`, `QueryOptions`. |
+| `bind.ts` | `Bound`, `BoundQuery`, `BoundCommand`, `BoundStream`, `Failure`, `RunFailure`, `QueryOptions`. |
 | `live.ts` | `LiveHint`, `LiveOptions`, `LiveStatus`. |
 | `resume.ts` | `ResumeOptions`, `ResumeSource`, `ResumeWindow`. |
 
