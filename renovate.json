@@ -45,7 +45,6 @@
 	],
 	"prConcurrentLimit": 3,
 	"rebaseWhen": "conflicted",
-	"schedule": ["* 0-5 * * *"],
 	"vulnerabilityAlerts": {
 		"automerge": false,
 		"prConcurrentLimit": 1
