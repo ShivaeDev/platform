@@ -20,7 +20,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	skills: { allowed: [], module: "syncSkills" },
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
-	"work-board": { allowed: ["effect-contract", "effect-form"], module: "board" },
+	"work-board": { allowed: ["effect-contract", "effect-form", "platform"], module: "board" },
 	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql", "platform"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
@@ -45,6 +45,22 @@ const BROWSER_FOLDERS = [
 	"packages/work-board/src/path",
 ];
 const BROWSER_FILES = [
+	"packages/work-board/src/attention/RequestReceipt.ts",
+	"packages/work-board/src/metadata/schema.ts",
+	"packages/work-board/src/render/callouts.ts",
+	"packages/work-board/src/render/code.ts",
+	"packages/work-board/src/render/documentHeadings.ts",
+	"packages/work-board/src/render/documentLinks.ts",
+	"packages/work-board/src/render/documentPlugins.ts",
+	"packages/work-board/src/render/failed.ts",
+	"packages/work-board/src/render/footnotes.ts",
+	"packages/work-board/src/render/highlighter.ts",
+	"packages/work-board/src/render/questionnaireDocuments.ts",
+	"packages/work-board/src/render/textContent.ts",
+	"packages/work-board/src/render/visual.ts",
+	"packages/work-board/src/render/visualDocuments.ts",
+	"packages/work-board/src/render/visualFields.ts",
+	"packages/work-board/src/files/url.ts",
 	"packages/work-board/src/rpc/contract.ts",
 	"packages/work-board/src/rpc/responseContract.ts",
 	"packages/work-board/src/rpc/handoffContract.ts",
@@ -53,6 +69,21 @@ const BROWSER_FILES = [
 	"packages/work-board/src/history/schema.ts",
 ];
 const BROWSER_CODE = anyOf(folders(...BROWSER_FOLDERS), files(...BROWSER_FILES));
+const MARKDOWN_CODE = anyOf(folders("packages/work-board/src/browser/document"), files(...BROWSER_FILES.filter((file) => file.includes("/render/"))));
+const MARKDOWN_MODULES = modules(
+	"react",
+	"react-markdown",
+	"rehype-raw",
+	"remark-directive",
+	"remark-gfm",
+	"unified",
+	"unist-util-visit",
+	"shiki",
+	"mermaid",
+	"hast",
+	"mdast",
+	"mdast-util-directive",
+);
 const PLATFORM_CORE_FOLDERS = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((folder) => `packages/platform/src/${folder}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
@@ -90,11 +121,21 @@ const fences: readonly Fence[] = [
 		.because(
 			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract and effect-form, never @trpc/server, Node or other server code.",
 		)
-		.from(BROWSER_CODE)
+		.from(BROWSER_CODE.except(MARKDOWN_CODE))
 		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "effect-form", "types"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
 			legal: ["packages/work-board/src/browser/handoffs/form.ts", "packages/effect-form/src/form.ts"],
+		}),
+	fence("document-rendering-stays-browser-safe")
+		.because(
+			"The React document view and its shared Markdown plugins reach only browser-safe Board data, Effect and the existing Markdown libraries.",
+		)
+		.from(MARKDOWN_CODE)
+		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "effect-form", "types"), modules("effect"), MARKDOWN_MODULES))
+		.demonstratedBy({
+			illegal: ["packages/work-board/src/browser/document/View.ts", external("node:fs")],
+			legal: ["packages/work-board/src/browser/document/View.ts", external("react-markdown")],
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(

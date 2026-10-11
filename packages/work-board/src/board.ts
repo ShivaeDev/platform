@@ -1,8 +1,10 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
+import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
 import { DiagnosticsSources, diagnostics } from "#diagnostics/source.ts";
+import { readDocument } from "#document/read.ts";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
@@ -13,12 +15,10 @@ import { events } from "#http/events.ts";
 import { changesPage, history } from "#http/history.ts";
 import { identity } from "#http/identity.ts";
 import { inbox } from "#http/inbox.ts";
-import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { readPage } from "#http/readPage.ts";
 import { respond } from "#http/respond.ts";
-import { sameOrigin } from "#http/sameOrigin.ts";
 import { search } from "#http/search.ts";
 import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
@@ -116,20 +116,25 @@ function routes(options: BoardOptions) {
 			);
 			const rpc = yield* server({
 				changes,
+				document: (url) =>
+					Effect.provideContext(
+						readDocument({
+							changes,
+							home,
+							index: Effect.provideContext(index, context),
+							responses,
+							root: options.root,
+							writable: options.responses === true,
+						})(url),
+						context,
+					),
 				handoffs,
 				home,
 				index: Effect.provideContext(index, context),
 				page: (url) => Effect.provideContext(reading(url), context),
 				responses,
 			});
-			yield* serve(
-				"/_board/rpc",
-				(request) =>
-					sameOrigin(request) && (options.responses !== true || request.headers["content-type"]?.split(";")[0] === "application/ndjson")
-						? rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request))
-						: Effect.succeed(respond("Local same-origin requests only", "text/plain", 403)),
-				"POST",
-			);
+			yield* serve("/_board/rpc", (request) => rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request)), "POST");
 			yield* serve("/", pages);
 			yield* serve("/*", pages);
 		}),
