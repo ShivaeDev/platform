@@ -418,12 +418,9 @@
 {"path":"packages/platform/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/platform/src/test-support/rpc/harness.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/platform/src/test-support/rpc/harness.ts","rule":"biome/plugin","count":1}
-{"path":"packages/platform/src/testing/types.ts","rule":"biome/lint/style/useNamingConvention","count":16}
 {"path":"packages/platform/src/testing/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
-{"path":"packages/platform/src/testing/vitest.ts","rule":"biome/lint/style/useNamingConvention","count":11}
 {"path":"packages/platform/src/testing/vitest.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/platform/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/style/noDoneCallback","count":1}
-{"path":"packages/platform/src/testing/vitest.typecheck.test.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/baseline/compare.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/baseline/format.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"biome/plugin","count":1}
