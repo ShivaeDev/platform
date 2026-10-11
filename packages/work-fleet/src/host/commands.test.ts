@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Clock, Effect, Fiber } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
@@ -59,6 +61,10 @@ describe("work-fleet host against PostgreSQL", () => {
 				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
 				expect(status).toContain("Active (0)");
 				expect(status).toContain("Needs human (1)\n  a  needs-human");
+				const board = readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8");
+				expect(board).toContain("## Needs human\n\n### a");
+				expect(board).toContain("Stage: needs-human");
+				expect(readFileSync(join(fixture.host.boardDir, "a.md"), "utf8")).toBe(files["a.md"]);
 			}),
 		);
 	}, 40_000);
