@@ -5,6 +5,7 @@
 - Breaking: replace `FleetViews.needsHuman` with `waiting.maintainer`, `waiting.orchestrator` and `waiting.automation`. Persist `attentionOwner` on waiting records; group status and generated Board views by owner and name the owner in wait/watch output. Stage values and wait exit codes are unchanged.
 - Route ready-to-merge work to the maintainer and worker questions to the orchestrator by default; require `FLEET_MAINTAINER_QUESTION:` for explicit maintainer escalation. Add Fleet, RPC and CLI reassignment with durable supersession of the prior question. Recover legacy question publication before assigning its new owner.
 
+- Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.
 - Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
 - Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
 - Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.

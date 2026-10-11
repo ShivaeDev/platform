@@ -1,4 +1,5 @@
 export const client = `
+import "/_board/diagnostics.js";
 import "/_board/saved-views.js";
 import "/_board/history.js";
 import "/_board/preferences.js";

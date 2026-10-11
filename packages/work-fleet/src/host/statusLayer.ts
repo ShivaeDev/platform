@@ -1,8 +1,11 @@
-import { Console, Effect, FileSystem, Layer, Semaphore } from "effect";
+import { Clock, Console, Effect, FileSystem, Layer, Ref, Semaphore } from "effect";
+import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
+import { Health } from "#engine/health.ts";
 import { Fleet } from "#fleet.ts";
+import { executing } from "#model.ts";
 
-export function statusLayer(root: string) {
+export function statusLayer(root: string, healthConfig?: { readonly concurrency: number; readonly staleAfterMs: number }) {
 	return Layer.effect(Fleet)(
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -19,9 +22,25 @@ export function statusLayer(root: string) {
 						root,
 						realRoot,
 						records.map(({ value }) => value),
-					);
+					).pipe(Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)));
+					if (healthConfig !== undefined) {
+						const health = yield* Effect.serviceOption(Health);
+						const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
+						yield* writeHealth(root, realRoot, {
+							observedAt: yield* Clock.currentTimeMillis,
+							version: 1,
+							...healthConfig,
+							...state,
+							needsHuman: records.filter(({ value }) => value.stage === "needs-human").length,
+							queued: records.filter(({ value }) => value.stage === "prepared").length,
+							running: records.filter(({ value }) => executing(value)).length,
+						});
+					}
 				}),
-			).pipe(Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)));
+			).pipe(Effect.catch((error) => Console.error(`work-fleet: publication failed: ${error.message}`)));
+			if (healthConfig !== undefined) {
+				yield* publish;
+			}
 			function after<A, E, R>(effect: Effect.Effect<A, E, R>) {
 				return effect.pipe(Effect.ensuring(publish));
 			}

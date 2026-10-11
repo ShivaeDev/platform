@@ -2,6 +2,7 @@
 
 ## Built
 
+- The CLI host atomically publishes a versioned health snapshot for Board Diagnostics. Filesystem, provider and PostgreSQL tests cover freshness, configured capacity, execution counts, scheduler passes and structured provider rejection observations.
 - The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait` for one item or `watch` for several. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags, wait process exit codes and watch outcomes.
 - The CLI host publishes an optional `fleet/status.md` heading board with Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns for Work Board. Renderer, filesystem and PostgreSQL scheduler tests cover card grouping, links, unsafe Markdown inputs, authored-content and symlink boundaries, and publication retry.
 - Board frontmatter uses `fleet: approved` and per-field `fleet-launch` overrides. Host launch defaults and task overrides reach worker sessions and turns; repair retains the settings. Frontmatter, host and launch-setting tests cover these boundaries.
@@ -27,6 +28,8 @@ The command host's default integrations read GitHub checks and observe human del
 ## Validation boundary
 
 Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Synthetic paginated GitHub responses cover green, red, pending and newer-push checks; they do not prove live GitHub authentication or branch requirements. Cloud and local provider tests use synthetic WebSocket servers. Status board tests include invalidation of a mounted native Board page over real HTTP; they do not establish physical-browser acceptance. Packed consumers exercise the package exports and command help.
+
+The CLI host publishes an atomic versioned `fleet/health.json` using Board's shared schema. Filesystem fixtures cover atomic replacement, unchanged writes, authored content and symlink refusal; restart fixtures restore last scheduler/capacity observations. PostgreSQL scheduler fixtures exercise actual Fleet counts and independent status/health publication, while synthetic provider fixtures cover structured capacity errors across the WebSocket boundary and terminal-turn observation. These checks live in `src/board/writeHealth.test.ts`, `src/host/healthLayer.test.ts`, `healthPublication.spec.ts`, `providerHealth.test.ts`, and `src/providers/capacityWire.spec.ts`. They do not establish live provider capacity or credential access.
 
 Live Cloud computation, actual pull request adoption, independent review, required checks and an observed human merge still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 

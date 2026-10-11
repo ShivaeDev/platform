@@ -6,6 +6,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { boardLayer } from "#board.ts";
+import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
 import { listenOn } from "#serve.ts";
 
 export interface Folder {
@@ -39,8 +40,17 @@ function wrapped(wrap: FileSystemWrapper) {
 	return Layer.effect(FileSystem.FileSystem, Effect.map(Effect.service(FileSystem.FileSystem), wrap)).pipe(Layer.provide(NodeServices.layer));
 }
 
-export async function startBoard(root: string, home?: string, wrap: FileSystemWrapper = (fs) => fs, responses = false): Promise<RunningBoard> {
-	const board = Layer.provide(boardLayer({ home, responses, root }), wrapped(wrap));
+export async function startBoard(
+	root: string,
+	home?: string,
+	wrap: FileSystemWrapper = (fs) => fs,
+	responses = false,
+	sources?: Sources,
+): Promise<RunningBoard> {
+	const board = Layer.provide(
+		boardLayer({ home, responses, root }),
+		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
+	);
 	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
 	if (server.address._tag !== "TcpAddress") {
