@@ -67,7 +67,7 @@ catalog:
   superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.0-rc.112
-  esbuild: 0.28.1
+  esbuild: 0.28.2
   better-auth: 1.6.33
   pg: 8.23.0
   pg-boss: 12.23.1
