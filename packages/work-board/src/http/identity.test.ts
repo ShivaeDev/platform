@@ -2,8 +2,9 @@ import { renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { identityFixture } from "#test/identityFixture.ts";
+import { changesUntil, rpcSearch, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -80,14 +81,14 @@ it("returns a conflict for duplicate IDs and diagnoses references without choosi
 });
 
 it("indexes declared IDs/status/owner and criteria at exact source locations", async () => {
-	const body = await (await fetch(`${board.url}/_board/search?q=agent-navigation`)).json();
-	expect(body.results[0].href).toBe("/_board/item/work.search/");
-	expect(body.results[0].line).toBe(23);
-	const criteria = await (await fetch(`${board.url}/_board/search?q=Escape%20returns%20focus`)).json();
-	expect(criteria.results[0].href).toBe("/_board/item/work.search/#criterion-keyboard");
-	expect(criteria.results[0].line).toBe(8);
-	const prose = await (await fetch(`${board.url}/_board/search?q=Readable%20project%20prose`)).json();
-	expect(prose.results[0].line).toBe(25);
+	const body = await rpcSearch(board, "agent-navigation");
+	expect(body.results[0]?.href).toBe("/_board/item/work.search/");
+	expect(body.results[0]?.line).toBe(23);
+	const criteria = await rpcSearch(board, "Escape returns focus");
+	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/#criterion-keyboard");
+	expect(criteria.results[0]?.line).toBe(8);
+	const prose = await rpcSearch(board, "Readable project prose");
+	expect(prose.results[0]?.line).toBe(25);
 });
 
 it("keeps invalid and unknown metadata visible without making prose unreadable", async () => {

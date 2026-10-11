@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { attentionFixture } from "#test/attentionFixture.ts";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { changesUntil, rpcSearch, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -43,7 +44,7 @@ it("groups multiple explicit judgments and links their reason, recipients, targe
 	expect(source.body).toContain("closed");
 	expect(source.body).toContain("does not establish acceptance or record an answer");
 	expect((await rawGet(board, "/_board/item/work.search/")).body).toContain("Attention request");
-	expect((await rawGet(board, "/_board/search?q=keyboard%20evidence%20marvin")).body).toContain("#attention-request-keyboard-review");
+	expect(JSON.stringify(await rpcSearch(board, "keyboard evidence marvin"))).toContain("#attention-request-keyboard-review");
 	expect((await rawGet(board, "/")).body).toContain('href="/_board/overview"');
 });
 

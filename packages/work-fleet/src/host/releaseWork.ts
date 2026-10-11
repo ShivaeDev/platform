@@ -1,10 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Clock, Effect, FileSystem } from "effect";
+import { Clock, Effect, FileSystem, Layer } from "effect";
 import { watchChanges } from "@shivaedev/work-board/files/changes.ts";
 import { makeResponse } from "@shivaedev/work-board/responses/make.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
-import { responseService } from "@shivaedev/work-board/responses/service.ts";
+import { ResponseConfig, Responses } from "@shivaedev/work-board/responses/service.ts";
 import { searchSnapshot } from "@shivaedev/work-board/search/snapshot.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { Fleet } from "#fleet.ts";
@@ -19,13 +19,14 @@ export function releaseWork(host: FleetHost, workIds: readonly string[], parts: 
 			const changes = yield* watchChanges(host.boardDir);
 			const read = yield* searchSnapshot(host.boardDir, undefined, changes);
 			const index = read.pipe(Effect.provide(NodeServices.layer));
-			const responses = yield* responseService({ changes, enabled: true, index, root: host.boardDir });
-			return yield* Effect.forEach(workIds, releaseItem(host.boardDir, responses));
+			return yield* Effect.forEach(workIds, releaseItem(host.boardDir)).pipe(
+				Effect.provide(Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { changes, enabled: true, index, root: host.boardDir })))),
+			);
 		}),
 	).pipe(Effect.provide(hostLayer(host, parts)));
 }
 
-function releaseItem(root: string, responses: Effect.Success<ReturnType<typeof responseService>>) {
+function releaseItem(root: string) {
 	return Effect.fn("FleetHost.releaseItem")(function* (workId: string) {
 		const fleet = yield* Fleet;
 		let stored = yield* fleet.get(workId);
@@ -42,16 +43,13 @@ function releaseItem(root: string, responses: Effect.Success<ReturnType<typeof r
 		if (decision?.published === undefined) {
 			return yield* Effect.fail(new FleetFailure({ message: "Publish the waiting decision before release", reason: "stale" }));
 		}
-		const responseId = yield* recordRelease(root, responses, { ...decision, published: decision.published });
+		const responseId = yield* recordRelease(root, { ...decision, published: decision.published });
 		return yield* fleet.resolve(workId, decision.id, responseId);
 	});
 }
 
-const recordRelease = Effect.fn("FleetHost.recordRelease")(function* (
-	root: string,
-	responses: Effect.Success<ReturnType<typeof responseService>>,
-	decision: Decision & { readonly published: BoardDecision },
-) {
+const recordRelease = Effect.fn("FleetHost.recordRelease")(function* (root: string, decision: Decision & { readonly published: BoardDecision }) {
+	const responses = yield* Responses;
 	const board = yield* BoardGateway;
 	const published = decision.published;
 	const reading = yield* board.readDecision(published);
