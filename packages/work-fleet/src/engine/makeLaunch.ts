@@ -1,9 +1,11 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
-export function makeLaunch({ store, board, policy, sessions, load, save, decision }: EngineState) {
+export function makeLaunch(state: EngineState) {
+	const { store, board, policy, sessions, load, save, decision } = state;
 	return Effect.fn("Fleet.launch")(function* (stored: Versioned<FleetRecord>, role: "worker" | "repair", prompt: string) {
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
@@ -30,19 +32,7 @@ export function makeLaunch({ store, board, policy, sessions, load, save, decisio
 				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
-				Effect.gen(function* () {
-					const current = yield* load(intent.value.workId);
-					if (error.reason === "rejected" || error.reason === "unavailable") {
-						const attempts = current.value.attempts.map((item) =>
-							item.operationId === attempt.operationId ? { ...item, status: "failed" as const } : item,
-						);
-						yield* decision(
-							yield* save(current, { ...current.value, attempts }),
-							error.message,
-							"Restore provider access and retry this approved work",
-						);
-					}
-				}),
+				submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
 			),
 		);
 		return yield* load(stored.value.workId);

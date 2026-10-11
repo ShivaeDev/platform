@@ -16,6 +16,8 @@ and archives prior context, attempts, responses and evidence after confirming te
 execution and resolving existing result ownership. Current dependency revisions
 need fresh accepted outcomes; criterion-specific references remain unsupported.
 
+Completed worker and repair turns that report the explicit question marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread. Concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. Unmarked prose is not classified as a question.
+
 Published decisions retain exact Board question/context receipts. Reconciliation
 consumes current guided retry/release responses and records idempotent SQL
 acknowledgements. Native resolution names the work, decision and response IDs.
