@@ -25,13 +25,17 @@ function linkVitest(root: string): string {
 	return root;
 }
 
+function config(options = ""): SeedFile {
+	return {
+		content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects(${options}) });\n`,
+		path: "vitest.config.ts",
+	};
+}
+
 function repository(options = ""): string {
 	return linkVitest(
 		seedTree([
-			{
-				content: `import { defineConfig } from "vitest/config";\nimport { testProjects } from "${helper}";\n\nexport default defineConfig({ test: testProjects(${options}) });\n`,
-				path: "vitest.config.ts",
-			},
+			config(options),
 			testFile("src/a.test.ts", 'it("runs in Node", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
 			testFile("src/b.dom.test.tsx", 'it("runs in a DOM", () => {\n\texpect(typeof document).toBe("object");\n});'),
 			testFile("src/c.slow.test.ts", 'it("runs only when asked for", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
@@ -109,6 +113,19 @@ describe("testProjects", { timeout: 60_000 }, () => {
 
 	it("runs the slow tests alone when the slow project is asked for", () => {
 		expect(vitest(repository(), "--project", "slow")).toMatchObject({ ran: ["src/c.slow.test.ts passed"], status: 0 });
+	});
+
+	it("gives each test 30 seconds instead of Vitest's 5", () => {
+		const root = linkVitest(
+			seedTree([
+				config(),
+				testFile(
+					"src/wait.test.ts",
+					'it("outlasts the Vitest default", async () => {\n\tawait new Promise((resolve) => setTimeout(resolve, 6_000));\n\texpect(1).toBe(1);\n});',
+				),
+			]),
+		);
+		expect(vitest(root)).toMatchObject({ ran: ["src/wait.test.ts passed"], status: 0 });
 	});
 });
 

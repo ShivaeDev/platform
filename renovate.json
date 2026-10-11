@@ -46,6 +46,14 @@
 			"matchPackageNames": ["@prisma-next/**"]
 		},
 		{
+			"description": "`@types/pg` describes the `pg` runtime, so both move in one update and never drift apart. The update runs whenever either side has one instead of waiting for the daily patch window.",
+			"groupName": "pg",
+			"groupSlug": "pg",
+			"matchPackageNames": ["pg", "@types/pg"],
+			"schedule": ["at any time"],
+			"updateNotScheduled": true
+		},
+		{
 			"allowedVersions": "<1.7.0",
 			"description": "Better Auth stays on 1.6. Platform pins it as an exact peer, so moving to 1.7 is a planned migration, not a routine update.",
 			"matchPackageNames": ["better-auth", "@better-auth/**"]

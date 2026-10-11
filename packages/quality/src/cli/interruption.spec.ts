@@ -12,5 +12,5 @@ describe("interrupted quality checks", () => {
 			),
 		]);
 		expect(await interruptedQuality(root)).toEqual({ status: 130, stderr: "", stdout: "checking remote\n" });
-	}, 15_000);
+	});
 });

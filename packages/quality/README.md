@@ -217,7 +217,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({ test: testProjects() });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options and rejects suite exclusions.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options and rejects suite exclusions.
 
 #### PostgreSQL URL gate
 
