@@ -30,7 +30,7 @@ for (const contextChanged of [false, true]) {
 						const held = yield* fleet.reconcile("one");
 						expect(held.value.stage).toBe("needs-human");
 						expect(contextChanged ? held.value.blocker : held.value.decision?.reason).toBe(
-							contextChanged ? "Work is no longer approved or is done or superseded" : "Result needs evidence and known reserved scope",
+							contextChanged ? "Work is no longer approved or is done" : "Result needs evidence and known reserved scope",
 						);
 						expect(held.value.attentionOwner).toBe(contextChanged ? "maintainer" : "orchestrator");
 						expect(held.value.result).toEqual(approved.value.result);

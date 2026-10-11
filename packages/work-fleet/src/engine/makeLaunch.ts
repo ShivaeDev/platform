@@ -4,6 +4,7 @@ import { authorizeBrief, briefChanged, briefUpdate, refreshedBrief } from "#engi
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { settleDone } from "#engine/settleDone.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, DecisionResponse } from "#policy.ts";
@@ -19,6 +20,9 @@ export function makeLaunch(state: EngineState) {
 	) {
 		let stored = input;
 		const work = yield* board.get(stored.value.workId);
+		if (work.status === "done") {
+			return yield* settleDone(state)(stored);
+		}
 		yield* authorizeBrief(work);
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;

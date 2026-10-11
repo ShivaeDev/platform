@@ -33,9 +33,12 @@ export function makeHuman(state: EngineState) {
 		}
 		return yield* resolveCommand(state)(stored.value.workId, decision.id, reading.response.id).pipe(
 			Effect.catch((error) =>
-				error instanceof FleetFailure || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota
-					? state.save(stored, { ...stored.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) })
-					: Effect.fail(error),
+				Effect.gen(function* () {
+					if (error instanceof FleetFailure || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota) {
+						return yield* state.save(stored, { ...stored.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
+					}
+					return yield* Effect.fail(error);
+				}),
 			),
 		);
 	});

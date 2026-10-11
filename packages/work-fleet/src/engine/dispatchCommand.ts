@@ -4,6 +4,7 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { settleDone } from "#engine/settleDone.ts";
 import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
@@ -17,6 +18,9 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 			return stored;
 		}
 		const work = yield* board.get(workId);
+		if (work.status === "done") {
+			return yield* settleDone(state)(stored);
+		}
 		const authorized = yield* authorizeBrief(work).pipe(Effect.result);
 		if (Result.isFailure(authorized)) {
 			return yield* decision(

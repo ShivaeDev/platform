@@ -17,7 +17,7 @@ const assertMaintainerScopeApproval = Effect.fn("FleetTest.assertMaintainerScope
 	const path = yield* Path.Path;
 	expect(record).toMatchObject({
 		attentionOwner: "maintainer",
-		decision: { attentionOwner: "maintainer", reason: "Work is no longer approved or is done or superseded" },
+		decision: { attentionOwner: "maintainer", reason: "Work is no longer approved or is done" },
 		decisionPublished: true,
 		stage: "needs-human",
 	});

@@ -13,7 +13,7 @@ import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
-for (const status of ["planned", "done", "deferred"]) {
+for (const status of ["planned", "deferred"]) {
 	test(`a Board HTTP release closes a changed and moved ${status} task decision without current approval`, () =>
 		withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root) =>
 			Effect.gen(function* () {

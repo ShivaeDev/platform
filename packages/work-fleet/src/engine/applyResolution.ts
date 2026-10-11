@@ -4,6 +4,7 @@ import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
+import { settleDone } from "#engine/settleDone.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -19,6 +20,9 @@ export function applyResolution(state: EngineState) {
 		body: string,
 		responseId: string,
 	) {
+		if (action !== "release" && (yield* state.board.get(stored.value.workId)).status === "done") {
+			return yield* settleDone(state)(stored);
+		}
 		if (action === undefined) {
 			const blocker =
 				responses.at(-1)?.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;

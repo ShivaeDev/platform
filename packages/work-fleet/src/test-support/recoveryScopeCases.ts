@@ -27,7 +27,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts).toHaveLength(1);
 				expect(after.stage).toBe("executing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
+			reason: "Work is no longer approved or is done",
 			restore,
 			sites: ["engine/dispatchCommand.ts: authorized.failure.message"],
 		},
@@ -44,7 +44,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 				expect(after.stage).toBe("reviewing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
+			reason: "Work is no longer approved or is done",
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
 		},

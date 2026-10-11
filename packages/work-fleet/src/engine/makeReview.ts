@@ -5,6 +5,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
+import { settleDone } from "#engine/settleDone.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, Review, WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -19,10 +20,7 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		yield* authorizeBrief(work);
-		if (
-			briefChanged(stored.value, work)
-			&& !stored.value.attempts.some((attempt) => attempt.role === "reviewer" && ["submitting", "accepted", "running"].includes(attempt.status))
-		) {
+		if (reviewOutdated(stored.value, work)) {
 			return yield* continueChangedBrief(state)(stored, work);
 		}
 		const receipt = yield* obtainReview(state)(stored, work, result);
@@ -34,6 +32,9 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		const currentWork = yield* state.board.get(work.workId);
+		if (currentWork.status === "done") {
+			return yield* settleDone(state)(stored);
+		}
 		yield* authorizeBrief(currentWork);
 		if (briefChanged(stored.value, currentWork)) {
 			return yield* continueChangedBrief(state)(stored, currentWork);
@@ -69,4 +70,11 @@ function finishReview(state: EngineState) {
 		}
 		return yield* save(refreshed, { ...refreshed.value, stage: review.verdict === "changes" ? "repairing" : "validating" });
 	});
+}
+
+function reviewOutdated(record: FleetRecord, work: BoardWork) {
+	return (
+		briefChanged(record, work)
+		&& !record.attempts.some((attempt) => attempt.role === "reviewer" && ["submitting", "accepted", "running"].includes(attempt.status))
+	);
 }

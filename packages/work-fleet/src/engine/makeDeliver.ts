@@ -5,6 +5,7 @@ import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boar
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
+import { settleDone } from "#engine/settleDone.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
@@ -34,6 +35,9 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 ) {
 	const record = stored.value;
 	const work = yield* state.board.get(record.workId);
+	if (work.status === "done") {
+		return yield* settleDone(state)(stored);
+	}
 	const denied = yield* deniedDelivery(state, stored, work);
 	if (denied !== undefined) {
 		return denied;

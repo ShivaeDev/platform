@@ -9,19 +9,36 @@ import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
+import { settleDone } from "#engine/settleDone.ts";
+import type { FleetRecord } from "#model.ts";
+import type { Versioned } from "#storage/model.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
 		stored = yield* closeDecisions(state)(stored);
+		if (["completed", "released"].includes(stored.value.stage)) {
+			return stored;
+		}
+		const current = yield* state.board.get(workId);
+		if (current.status === "done") {
+			return yield* settleDone(state)(stored);
+		}
 		if (stored.value.stage === "needs-human") {
 			stored = yield* makeDeliver(state)(stored);
 		}
 		stored = yield* makeHuman(state)(stored);
+		return yield* advanceExecution(state, launch)(stored);
+	});
+}
+
+function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
+	return Effect.fn("Fleet.advanceExecution")(function* (input: Versioned<FleetRecord>) {
+		let stored = input;
 		if (["completed", "released", "prepared", "needs-human"].includes(stored.value.stage)) {
 			return stored;
 		}
 		stored = yield* makeObserve(state)(stored);
-		const work = yield* state.board.get(workId);
+		const work = yield* state.board.get(stored.value.workId);
 		yield* authorizeBrief(work);
 		if (["validating", "delivering"].includes(stored.value.stage) && briefChanged(stored.value, work)) {
 			stored = yield* continueChangedBrief(state)(stored, work);

@@ -5,7 +5,7 @@ import { type BoardWork, FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function briefChanged(record: FleetRecord, work: BoardWork): boolean {
-	return record.boardContext === undefined ? record.boardRevision !== work.revision : record.boardContext !== work.context;
+	return record.boardRevision !== work.revision;
 }
 
 export function briefUpdate(record: FleetRecord, work: BoardWork): string {
@@ -13,14 +13,14 @@ export function briefUpdate(record: FleetRecord, work: BoardWork): string {
 }
 
 export function briefApproved(work: BoardWork): boolean {
-	return work.approved && work.status !== "done" && work.status !== "superseded";
+	return work.approved && work.status !== "done";
 }
 
 export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work: BoardWork) {
 	if (!briefApproved(work)) {
 		return yield* new FleetFailure({
 			attentionOwner: "maintainer",
-			message: "Work is no longer approved or is done or superseded",
+			message: "Work is no longer approved or is done",
 			reason: "denied",
 		});
 	}
