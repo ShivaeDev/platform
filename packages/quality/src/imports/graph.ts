@@ -77,7 +77,7 @@ async function build(inputs: RuleInputs): Promise<ImportGraph> {
 
 const graphs = new WeakMap<readonly SourceFile[], Promise<ImportGraph>>();
 
-// The three imports rules run on one scan, so they share the graph built from its sources.
+// The imports rules run on one scan, so they share the graph built from its sources.
 export function importGraph(inputs: RuleInputs): Promise<ImportGraph> {
 	const known = graphs.get(inputs.sources) ?? build(inputs);
 	graphs.set(inputs.sources, known);

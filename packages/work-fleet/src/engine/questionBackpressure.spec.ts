@@ -4,6 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
+import { boardHttpFiles } from "#test/boardHttp.ts";
 import { prepareWork } from "#test/engine.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
@@ -37,6 +38,56 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queue-full answer retries 
 				const accepted = (yield* fleet.get("one")).value;
 				expect(accepted.attempts.at(-1)).toMatchObject({ prompt: answer.body, receipt: { sessionId: decision.worker?.sessionId }, role: "worker" });
 				expect(accepted.responses).toHaveLength(1);
+				expect(accepted.history ?? []).toEqual([]);
+				expect(fixture.launched).toHaveLength(1);
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);
+			}),
+	);
+});
+
+it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer survives an approved brief edit with its original launch intent", () => {
+	let now = 100;
+	let reject = false;
+	const launch = { model: "initial-model" };
+	return withFleetBoard(
+		{
+			launch,
+			now: () => now,
+			submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+		},
+		(fixture, root, source) =>
+			Effect.gen(function* () {
+				const fleet = yield* Fleet;
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				const { decision } = yield* askWorker(fixture);
+				const answer = yield* answerWorker(root, decision);
+				reject = true;
+				const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
+				expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+				const failed = queued.attempts.at(-1);
+				expect(failed).toMatchObject({ prompt: answer.body, role: "worker", settings: { model: "initial-model" }, status: "failed" });
+				const current = `${source}\nNew approved criteria.\n`;
+				boardHttpFiles(root).write("one.md", current);
+				launch.model = "new-host-model";
+				reject = false;
+				now = 30_099;
+				yield* fixture.restart(cycle);
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
+				expect((yield* fleet.get("one")).value.launchRetry).toEqual(queued.launchRetry);
+				now = 30_100;
+				yield* fixture.restart(cycle);
+				const accepted = (yield* fleet.get("one")).value;
+				const attempt = accepted.attempts.at(-1);
+				expect(accepted.stage).toBe("executing");
+				expect(accepted.boardContext).toBe(current);
+				expect(accepted.launchRetry).toBeUndefined();
+				expect(attempt).toMatchObject({ receipt: { sessionId: decision.worker?.sessionId }, role: "worker", settings: { model: "initial-model" } });
+				expect(attempt?.prompt).toBe(
+					`${answer.body}\n\nThe approved worker brief changed. Continue with the current brief and adjust the work to its criteria.\n\nPrevious brief:\n${source}\n\nCurrent brief:\n${current}`,
+				);
+				expect(accepted.attempts.at(-2)).toEqual(failed);
+				expect(accepted.responses).toEqual(queued.responses);
 				expect(accepted.history ?? []).toEqual([]);
 				expect(fixture.launched).toHaveLength(1);
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);

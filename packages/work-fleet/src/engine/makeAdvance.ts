@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { makeAdopt } from "#engine/makeAdopt.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
@@ -21,10 +22,14 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		}
 		stored = yield* makeObserve(state)(stored);
 		const work = yield* state.board.get(workId);
+		yield* authorizeBrief(work);
+		if (["validating", "delivering"].includes(stored.value.stage) && briefChanged(stored.value, work)) {
+			stored = yield* continueChangedBrief(state)(stored, work);
+		}
 		stored = yield* makeAdopt(state)(stored, work);
 		stored = yield* makeReview(state)(stored, work);
 		if (stored.value.stage === "repairing") {
-			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? "Address review findings");
+			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? stored.value.prompt);
 		}
 		stored = yield* makeValidate(state)(stored, work);
 		if (stored.value.stage === "repairing") {

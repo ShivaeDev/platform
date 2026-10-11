@@ -152,12 +152,13 @@ A weakening the preset makes without such a declaration is reported at the line 
 
 ### Imports
 
-Four rules check the imports of the TypeScript and JavaScript modules among the sources. `imports/cycles`, `imports/resolvable` and `imports/fences` with declared fences build a graph resolved by the TypeScript compiler. `imports/aliased` checks relative path syntax.
+Five rules check the imports of the TypeScript and JavaScript modules among the sources. `imports/cycles`, `imports/resolvable`, `imports/manifest` and `imports/fences` with declared fences build a graph resolved by the TypeScript compiler. `imports/aliased` checks relative path syntax.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `imports/cycles` | Modules that import each other at run time | none |
 | `imports/resolvable` | An import that resolves to nothing | `generated` |
+| `imports/manifest` | A workspace import missing from the importing package’s shipped dependencies, or present only in `devDependencies` in shipped code | none |
 | `imports/fences` | An import that crosses a fence the config declares | `fences` |
 | `imports/aliased` | A relative import that leaves its own folder | none |
 
@@ -180,6 +181,14 @@ export default defineConfig({
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code; do not disable the checks to conceal an empty inventory. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
+
+#### Manifest dependencies
+
+`imports/manifest` discovers named workspace members from `pnpm-workspace.yaml` or the root manifest's `workspaces`, with no package scope convention or fence configuration. It discovers manifests across the repository, independently of `sources`, skipping files ignored by git and `node_modules`. Selecting only a member's `src` folder still checks its imports of members outside that selection against its own manifest. Each import of another member must appear in the importing member's `dependencies`, `peerDependencies` or `optionalDependencies`. The workspace root uses its own manifest for code outside a member. Self-imports and packages outside the workspace do not need a workspace declaration under this rule.
+
+Tests and files under `test-support/` may also use `devDependencies`. Tooling means files under a `script/`, `scripts/` or `tooling/` folder directly below the importing package's root, or a config file directly at that root, named `config.ts`, `vitest.config.ts` or another `*.config.*` with a JavaScript or TypeScript extension. A folder or config file nested under `src/` still counts as shipped code.
+
+The rule checks type imports as well as value imports. Resolved aliases and relative paths use the target's workspace owner; unresolved bare package names and subpaths still require a declaration. A nested manifest that is not a workspace member does not replace its owner's dependency policy. Malformed dependency objects stop the run. Add the dependency to the correct manifest field or remove the import; the rule does not edit manifests.
 
 #### Aliases
 
