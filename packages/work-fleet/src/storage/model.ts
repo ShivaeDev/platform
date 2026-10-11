@@ -8,6 +8,7 @@ export interface AdmissionLimits {
 	readonly maxBacklog?: number;
 	readonly maxExecuting?: number;
 	readonly quota?: { readonly observedAt: number; readonly available: number };
+	readonly scheduling?: { readonly now: number; readonly areaMergeWaitMs: number };
 }
 
 export interface StoredRow {

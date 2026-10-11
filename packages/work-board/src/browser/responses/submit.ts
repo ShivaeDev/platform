@@ -1,21 +1,27 @@
 import { session } from "#browser/session.ts";
 import type { draftSession } from "./draftSession.ts";
 import type { Draft } from "./drafts.ts";
+import type { ResponseSubmission } from "./formSchema.ts";
 import { ResponseFailed } from "./schema.ts";
-import { submissionFields } from "./submissionFields.ts";
 
-export async function submitResponse(form: HTMLFormElement, status: HTMLParagraphElement, drafts: ReturnType<typeof draftSession>, pending: Draft) {
+export async function submitResponse(
+	form: HTMLFormElement,
+	status: HTMLParagraphElement,
+	drafts: ReturnType<typeof draftSession>,
+	pending: Draft,
+	values: ResponseSubmission,
+) {
 	status.dataset.outcome = "pending";
 	status.textContent = "Pending: registering reviewed context, then recording response…";
 	const native = session(window);
 	try {
 		const question = await native.mutate(
-			native.responses.registerQuestion.run({ item: form.dataset.item ?? "", request: form.dataset.request ?? "", revision: pending.revision }),
+			native.responses.registerQuestion.run({ item: form.dataset.item ?? "", request: form.dataset.request ?? "", revision: values.revision }),
 		);
-		await native.mutate(native.responses.recordResponse.run(submissionFields(pending, question.id)));
+		await native.mutate(native.responses.recordResponse.run({ ...values, question: question.id }));
 		if (form.isConnected) {
 			status.dataset.outcome = "saved";
-			status.textContent = `Saved: responses/${pending.id}.md. This records feedback, not acceptance.`;
+			status.textContent = `Saved: responses/${values.id}.md. This records feedback, not acceptance.`;
 		}
 		const cleared = drafts.saved(pending);
 		if (!cleared && form.isConnected) {
@@ -28,6 +34,6 @@ export async function submitResponse(form: HTMLFormElement, status: HTMLParagrap
 			status.dataset.outcome = outcome;
 			status.textContent = `${outcome === "rejected" ? "Rejected" : "Uncertain"}: ${String(error)}. Draft retained. Preview and retry with the same identity; saved content will be reconciled.`;
 		}
-		return false;
+		throw error;
 	}
 }

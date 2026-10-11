@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand({ board, load, save, decision, integrations }: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.dispatch")(function* (workId: string) {
@@ -22,7 +23,14 @@ export function dispatchCommand({ board, load, save, decision, integrations }: E
 			Effect.catch((error) =>
 				Effect.gen(function* () {
 					const current = yield* load(workId);
-					yield* save(current, { ...current.value, blocker: failureMessage(error) });
+					if (current.value.stage !== "prepared") {
+						return current;
+					}
+					yield* save(current, {
+						...current.value,
+						admissionReady: !(error instanceof FleetFailure && error.reason === "denied"),
+						blocker: failureMessage(error),
+					});
 					return yield* Effect.fail(error);
 				}),
 			),

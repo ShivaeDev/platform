@@ -64,6 +64,27 @@ fleet-launch:
 
 The launch fields are strings. Omitted fields inherit the host settings; without host settings or an override, they inherit provider defaults. An invalid override fails before dispatch. The selected settings also apply to repair turns. `src/board/fleetField.test.ts`, `src/host/commands.test.ts` and `src/engine/launchSettings.spec.ts` cover these rules.
 
+### Schedule areas and dependencies
+
+Use `areas` to name the code areas a task changes. Area names are exact shared labels, such as `work-fleet/host`; they do not expand into filesystem paths. Fleet admits one task per area, while disjoint areas and tasks without areas can run concurrently within the existing capacity and quota limits.
+
+```yaml
+---
+id: task.follow-up
+kind: task
+fleet: approved
+areas: [work-fleet/host, work-board/ui]
+relationships:
+  - kind: depends_on
+    target: task.foundation
+---
+# Add the follow-up behavior
+```
+
+An overlapping task remains prepared with a reason such as `waiting for area work-fleet/host held by task.foundation`. Areas are held through execution, review and validation, and are freed on completion or safe release. For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery. PostgreSQL preserves admission order across restarts; eligible overlapping tasks wait behind earlier prepared work.
+
+A `depends_on` relationship waits for an accepted Fleet outcome on the target's current Board revision: an observed merge or validated no-change completion. If the target has no Fleet record, its authored `status: done` also qualifies. A prepared, released or unfinished Fleet record does not qualify through Board status alone. Missing or ambiguous targets and criterion-specific references remain blocked. Status, wait timeout summaries and the generated Board view show the stored reason. Real PostgreSQL regressions in `src/engine/areaScheduling.spec.ts`, `areaMergeWait.spec.ts`, `areaDeliveryObservation.spec.ts`, `dependencyScheduling.spec.ts`, `dependencies.spec.ts` and `src/host/schedulingViews.spec.ts` cover admission, release, ordered restart, dependency acceptance and those views with synthetic provider integrations.
+
 ### Run, dispatch and inspect
 
 | Command | Behavior |

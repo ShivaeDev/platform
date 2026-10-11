@@ -16,6 +16,8 @@ it.effect("reads stable Board identity and publishes a durable retryable Board d
 		const board = yield* BoardGateway;
 		const work = yield* board.get("task.one");
 		expect(work.dependsOn).toEqual(["task.before"]);
+		expect(work.areas).toEqual(["work-fleet/host", "work-board/ui"]);
+		expect(work.status).toBe("done");
 		expect(work.context).toContain("# Useful work");
 		const decision = {
 			id: "fleet.denied",

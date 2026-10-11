@@ -3,6 +3,7 @@ export function navigationScript(): string {
 import { applyPage, capturePage } from "/_board/page-state.js";
 import { reportMissingPassage, restoreReading, scrollToPassage } from "/_board/reading-state.js";
 import { refreshLibrary } from "/_board/library.js";
+import { revealCurrentFile } from "/_board/sidebar.js";
 import { session } from "/_board/native.js";
 
 const cache = new Map();
@@ -23,6 +24,8 @@ history.replaceState(stateWith(displayedId, history.state?.workBoard?.reading), 
 history.scrollRestoration = "manual";
 document.getElementById("doc").dataset.scheme = document.documentElement.dataset.scheme;
 refreshLibrary(true);
+revealCurrentFile(true);
+document.getElementById("home-open").setAttribute("aria-current", location.pathname === "/" ? "page" : "false");
 const initialReading = savedReading[displayedId] ?? history.state.workBoard.reading;
 requestAnimationFrame(() => {
   if (initialReading) restoreReading(initialReading);
@@ -90,6 +93,7 @@ document.addEventListener("click", (event) => {
   const target = new URL(link.href, location.href);
   if (target.origin !== location.origin || !(target.pathname === "/" || target.pathname === "/_board/diagnostics" || target.pathname === "/_board/handoff" || target.pathname === "/_board/result" || target.pathname === "/_board/respond" || target.pathname === "/_board/start" || target.pathname === "/_board/changes" || target.pathname === "/_board/inbox" || target.pathname === "/_board/overview" || target.pathname === "/_board/work" || target.pathname.startsWith("/_board/item/") || /\\.md$/i.test(target.pathname))) return;
   event.preventDefault();
+  document.dispatchEvent(new Event("board-navigate"));
   navigate(target);
 });
 document.addEventListener("submit", (event) => {
