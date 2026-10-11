@@ -2,14 +2,14 @@ import { Schema } from "effect";
 
 export type Identity = string | number;
 
-export interface ListKey<Name extends string = string> {
+export interface ListKey<TName extends string = string> {
 	readonly _tag: "List";
-	readonly collection: Name;
+	readonly collection: TName;
 }
 
-export interface ItemKey<Name extends string = string> {
+export interface ItemKey<TName extends string = string> {
 	readonly _tag: "Item";
-	readonly collection: Name;
+	readonly collection: TName;
 	readonly id: Identity;
 }
 
@@ -20,16 +20,16 @@ export const Key = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Item"), collection: Schema.String, id: Schema.Union([Schema.String, Schema.Number]) }),
 ]);
 
-export interface Collection<Name extends string, Id extends Identity> {
-	readonly item: (id: Id) => ItemKey<Name>;
-	readonly list: ListKey<Name>;
-	readonly name: Name;
+export interface Collection<TName extends string, TId extends Identity> {
+	readonly item: (id: TId) => ItemKey<TName>;
+	readonly list: ListKey<TName>;
+	readonly name: TName;
 }
 
-export const collection = <const Name extends string, Id extends Schema.Top & { readonly Type: Identity }>(
-	name: Name,
-	_id: Id,
-): Collection<Name, Id["Type"]> => ({
+export const collection = <const TName extends string, TId extends Schema.Top & { readonly Type: Identity }>(
+	name: TName,
+	_id: TId,
+): Collection<TName, TId["Type"]> => ({
 	item: (id) => ({ _tag: "Item", collection: name, id }),
 	list: { _tag: "List", collection: name },
 	name,
