@@ -16,6 +16,8 @@ and archives prior context, attempts, responses and evidence after confirming te
 execution and resolving existing result ownership. Current dependency revisions
 need fresh accepted outcomes; criterion-specific references remain unsupported.
 
+Completed worker and repair turns that report the explicit question marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread. Concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. Unmarked prose is not classified as a question.
+
 Published decisions retain exact Board question/context receipts. Reconciliation
 consumes current guided retry/release responses and records idempotent SQL
 acknowledgements. Native resolution names the work, decision and response IDs.
@@ -35,6 +37,10 @@ Unrelated changes refresh preparation while preserving original validation evide
 relevant or uncertain changes require preparation again for the affected work.
 
 ## Validation boundary
+
+The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns. Renderer tests cover card grouping, links and unsafe Markdown inputs; filesystem tests cover unchanged writes, authored content and symlink boundaries. PostgreSQL scheduler tests cover completion, human intervention, suspended validation and publication retry, including invalidation of a mounted native Board page over real HTTP. These fixtures use synthetic provider and delivery integrations; they do not establish a live Cloud worker or physical-browser acceptance.
+
+The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
 
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
 response recording, native Fleet RPC and the actual admission/completion paths.

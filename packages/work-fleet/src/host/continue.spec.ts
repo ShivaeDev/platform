@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
@@ -68,6 +70,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const args = ["continue", "one", ...(input === "argument" ? [message] : []), ...flags];
 				const run = yield* Effect.promise(() => cliProcess(args, input === "stdin" ? message : ""));
 				expect(run).toEqual({ code: 0, stderr: "", stdout: "one executing" });
+				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");
 				expect(requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
 					input: [{ text: message, type: "text" }],
 					threadId: first.value.attempts[0]?.receipt?.sessionId,

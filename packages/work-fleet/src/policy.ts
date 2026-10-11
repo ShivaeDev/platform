@@ -19,10 +19,11 @@ export const Decision = Schema.Struct({
 	published: Schema.optional(BoardDecision),
 	reason: Schema.String,
 	recommendation: Schema.String,
+	worker: Schema.optional(SessionReceipt),
 });
 export type Decision = typeof Decision.Type;
 export const DecisionResponse = Schema.Struct({
-	action: Schema.optional(Schema.Literals(["retry", "release"])),
+	action: Schema.optional(Schema.Literals(["retry", "release", "continue"])),
 	boardAcknowledged: Schema.optional(Schema.Boolean),
 	decisionId: Schema.String,
 	processedAt: Schema.Number,
@@ -68,6 +69,7 @@ export const Checks = Schema.Struct({
 	evidence: Schema.Array(Schema.String),
 	head: Schema.String,
 	passed: Schema.Boolean,
+	pending: Schema.optional(Schema.Boolean),
 	repairPrompt: Schema.optional(Schema.String),
 });
 export type Checks = typeof Checks.Type;

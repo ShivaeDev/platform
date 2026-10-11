@@ -50,6 +50,8 @@ using a provider must use the same durable session journal and reconcile the
 existing review operation after a lost response. Build and delivery policies
 belong to the runtime and must enforce actual branch requirements without bypass.
 
+The host reads GitHub check runs and commit statuses through an authenticated `gh` CLI for the adopted PR's exact commit SHA, including all pages. Pending or absent checks keep work in validation; failed checks send their names and links to the repair worker. A newer push does not replace the adopted head's evidence. The host requires all observed checks to succeed, be neutral or be skipped; this does not establish branch protection or merge authority. No-change validation still needs a runtime integration.
+
 ```ts
 import { Layer } from "effect";
 import { Fleet } from "@shivaedev/work-fleet/fleet.ts";
@@ -106,6 +108,12 @@ work-fleet wait work-id --board .work
 
 The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet run` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output goes through the same result adoption, review, validation and delivery path as a first launch and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
 
+### Answer a worker question
+
+Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
+
+Record a nonempty answer through Board's response page or response API. Reconciliation continues the exact worker thread with the answer body under current approval, quota and capacity policy. The response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection. Clarification, deferral, changed context and competing answers keep the work blocked. Answer text supplies task input and does not grant delivery authority.
+
 ### Answer the current Board decision
 
 Fleet publishes an ordinary Board decision and stores its exact `BoardDecision`
@@ -153,7 +161,19 @@ Custom Board gateways must implement the same durable acknowledgement boundary.
 decision resolution and the three derived views through native Effect RPC.
 The host supplies transport and authentication. Detailed records remain available
 through the native `Get` query or `Fleet.list`; completion resides in SQL attachments to the Board ID. The
-addon does not rewrite authored task status or maintain competing status files.
+addon does not rewrite authored task status.
+
+### Read the generated heading board
+
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Needs human and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+
+After the first scheduler cycle creates the file, select it as Work Board's home:
+
+```sh
+work-board ./notes --home fleet/status.md
+```
+
+The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services.
 
 ### Start a small personal pilot
 

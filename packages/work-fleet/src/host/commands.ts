@@ -7,6 +7,7 @@ import type { FleetHost } from "#host/config.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
+import { statusLayer } from "#host/statusLayer.ts";
 import type { FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { SessionTransport } from "#session/service.ts";
 
@@ -22,7 +23,8 @@ export function productionParts(host: FleetHost): HostParts {
 }
 
 export function hostLayer(host: FleetHost, parts: HostParts) {
-	return Layer.mergeAll(fleetHostLayer(host, parts), NodeServices.layer);
+	const runtime = Layer.mergeAll(fleetHostLayer(host, parts), NodeServices.layer);
+	return statusLayer(host.boardDir).pipe(Layer.provideMerge(runtime));
 }
 
 export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {
