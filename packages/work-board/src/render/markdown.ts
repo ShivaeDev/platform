@@ -20,6 +20,7 @@ export interface RenderOptions {
 	readonly file?: string;
 	readonly headings?: ReturnType<typeof documentHeadings>;
 	readonly idPrefix?: string;
+	readonly questionActions?: ReadonlyMap<string, string>;
 	readonly safe?: boolean;
 }
 
@@ -43,7 +44,7 @@ export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (s
 					children: source,
 					components: { img: ({ node: _node, ...props }) => createElement("img", { ...props, loading: "lazy" }) },
 					rehypePlugins: plugins,
-					remarkPlugins: [remarkGfm, remarkDirective, questionnaireDocuments, visualDocuments, callouts],
+					remarkPlugins: [remarkGfm, remarkDirective, [questionnaireDocuments, options.questionActions], visualDocuments, callouts],
 					skipHtml: options.safe,
 				}),
 			),

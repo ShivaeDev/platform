@@ -87,6 +87,14 @@ const documents = `
 @media print { .visual-document, .visual-callout { break-inside: avoid; } }
 `;
 
+const questionnaires = `
+.questionnaire-option { padding: .25rem 0 .25rem 1rem; margin: 1rem 0; border-left: 2px solid var(--border); overflow-wrap: anywhere; }
+.questionnaire-option > :last-child { margin-bottom: 0; }
+.questionnaire-answer { display: inline-block; padding: .65rem 1rem; border-radius: 6px; background: var(--link); color: var(--bg); font-weight: 650; text-decoration: none; }
+.questionnaire-answer:hover { text-decoration: underline; }
+.questionnaire-answer:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+`;
+
 export const style =
 	theme
 	+ diagnosticsStyle()
@@ -103,6 +111,7 @@ export const style =
 	+ attentionStyle()
 	+ visualStyles
 	+ documents
-	+ ".response-panel fieldset, .questionnaire-reading { min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin: 1rem 0; } .response-panel legend { font-weight: 650; } .response-panel .question-option { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .75rem; padding: 1rem; margin: .5rem 0; border: 1px solid var(--border); border-radius: 8px; } .response-panel .question-option:has(input:checked) { border-color: var(--link); background: var(--surface); } .response-panel .question-option input { width: 1.2rem; height: 1.2rem; margin-top: .2rem; accent-color: var(--link); } .response-panel .question-option label { font-weight: 650; cursor: pointer; } .response-panel .question-option p { margin-top: .5rem; } .response-panel #response-history article { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1rem; } .response-context, .question-option, .response-panel fieldset { overflow-wrap: anywhere; }"
+	+ questionnaires
+	+ ".response-panel fieldset, .questionnaire-question { min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin: 1rem 0; } .response-panel legend { font-weight: 650; } .response-panel .question-option { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .75rem; padding: 1rem; margin: .5rem 0; border: 1px solid var(--border); border-radius: 8px; } .response-panel .question-option:has(input:checked) { border-color: var(--link); background: var(--surface); } .response-panel .question-option input { width: 1.2rem; height: 1.2rem; margin-top: .2rem; accent-color: var(--link); } .response-panel .question-option label { font-weight: 650; cursor: pointer; } .response-panel .question-option p { margin-top: .5rem; } .response-panel #response-history article { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1rem; } .response-context, .question-option, .response-panel fieldset { overflow-wrap: anywhere; }"
 	+ "[data-view=result] .response-panel { overflow-wrap: anywhere; } #result-criteria ul { padding-inline-start: 1.25rem; } #result-criteria dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; margin: .75rem 0; } #result-criteria dt { color: var(--muted); } #result-criteria dd { margin: 0 0 .5rem; min-width: 0; } #result-feedback article { border-top: 1px solid var(--border); margin-top: 1.5rem; padding-top: 1rem; }"
 	+ ".response-panel { max-width: 850px; margin: auto; padding: 1.5rem; } .response-panel form { display: grid; gap: 1rem; } .response-panel label { display: grid; gap: .5rem; } .response-panel input, .response-panel textarea, .response-panel select { width: 100%; box-sizing: border-box; font: inherit; background: var(--surface); color: inherit; padding: .75rem; border: 1px solid var(--border); } .response-panel pre, .response-panel code { white-space: pre-wrap; overflow-wrap: anywhere; }";
