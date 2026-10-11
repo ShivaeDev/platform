@@ -1137,6 +1137,9 @@ importers:
       '@shivaedev/effect-react':
         specifier: workspace:*
         version: link:../effect-react
+      '@shivaedev/effect-service':
+        specifier: workspace:*
+        version: link:../effect-service
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform

@@ -1,12 +1,16 @@
 import { Clock, Effect, Ref } from "effect";
+import { HandoffsService } from "#handoffs/Service.ts";
 import { historyResponse } from "#history/response.ts";
 import { navHtml } from "#page/nav.ts";
+import { Responses } from "#responses/service.ts";
 import { searchMatch } from "#search/match.ts";
 import { ReadFailed, workRpcs } from "./contract.ts";
 import { hints } from "./hints.ts";
 import type { ServerOptions } from "./server.ts";
 
-export function handlers({ changes, document, handoffs, home, index, page, responses }: ServerOptions) {
+export const handlers = Effect.fn("WorkBoard.handlers")(function* ({ changes, document, home, index, page }: ServerOptions) {
+	const handoffs = yield* HandoffsService;
+	const responses = yield* Responses;
 	return workRpcs.toLayer({
 		"work-board.awaitResponse": responses.awaitResponse,
 		"work-board.document": ({ url }) =>
@@ -47,4 +51,4 @@ export function handlers({ changes, document, handoffs, home, index, page, respo
 		"work-board.subscribe": () => hints(changes, index),
 		"work-board.watcher": () => Effect.map(Ref.get(changes.watching), (watching) => ({ watching })),
 	});
-}
+});

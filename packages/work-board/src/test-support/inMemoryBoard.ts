@@ -1,9 +1,9 @@
 import { Effect, FileSystem, Layer, Path, PubSub, Ref } from "effect";
 import type { Change, Changes } from "#files/changes.ts";
-import { handoffService } from "#handoffs/service.ts";
+import { HandoffsService } from "#handoffs/Service.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
-import { responseService } from "#responses/service.ts";
+import { ResponseConfig, Responses } from "#responses/service.ts";
 import { ReadFailed } from "#rpc/contract.ts";
 import { handlers } from "#rpc/handlers.ts";
 import { entriesOf } from "#search/entries.ts";
@@ -35,13 +35,11 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 				watching: yield* Ref.make(false),
 			};
 			const options = { changes, enabled: false, index: Effect.succeed(snapshot), root: "/board" };
-			return handlers({
+			return yield* handlers({
 				...options,
-				handoffs: yield* handoffService(options),
 				home,
 				page: () => Effect.fail(new ReadFailed({ operation: "page", status: 404 })),
-				responses: yield* responseService(options),
-			});
+			}).pipe(Effect.provide(Layer.merge(Responses.layer, HandoffsService.layer).pipe(Layer.provide(Layer.succeed(ResponseConfig, options)))));
 		}),
 	).pipe(Layer.provide([FileSystem.layerNoop({}), Path.layer]));
 }

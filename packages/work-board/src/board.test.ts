@@ -57,3 +57,14 @@ describe("embedding", () => {
 		expect(response.status).toBe(403);
 	});
 });
+
+it("has no duplicate search, history or SSE endpoint", async () => {
+	for (const [method, path] of [
+		["GET", "/_board/search?q=Plan"],
+		["POST", "/_board/history"],
+		["GET", "/events"],
+	] as const) {
+		const response = await board.handler(new Request(`http://localhost${path}`, { headers: { host: "localhost" }, method }));
+		expect(response.status).toBe(404);
+	}
+});

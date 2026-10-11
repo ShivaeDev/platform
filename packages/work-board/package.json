@@ -66,6 +66,7 @@
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-react": "workspace:*",
+		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@tanstack/react-router": "catalog:",
 		"class-variance-authority": "catalog:",

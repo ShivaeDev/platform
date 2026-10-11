@@ -2,12 +2,12 @@ import { Effect, type FileSystem, type Path, type PlatformError } from "effect";
 import type { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
 import type { Changes } from "#files/changes.ts";
 import { handoffFormHtml, handoffHistoryHtml } from "#handoffs/html.ts";
-import type { handoffService } from "#handoffs/service.ts";
+import { HandoffsService } from "#handoffs/Service.ts";
 import { respond } from "#http/respond.ts";
 import { escapeHtml } from "#page/escape.ts";
 import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 
 function unknownHistory(files: readonly string[]) {
@@ -15,16 +15,15 @@ function unknownHistory(files: readonly string[]) {
 		? `<p role="status">Some handoff history is unavailable: ${files.map(escapeHtml).join(", ")}. Missing records do not establish that no receipt exists.</p>`
 		: "";
 }
-export function handoffPage(
-	service: Effect.Success<ReturnType<typeof handoffService>>,
-	changes: Changes,
-	home: string | undefined,
-	enabled: boolean,
-	index?: Effect.Success<ReturnType<typeof searchSnapshot>>,
-) {
+export function handoffPage(changes: Changes, home: string | undefined, enabled: boolean, index?: Effect.Success<ReturnType<typeof searchSnapshot>>) {
 	return Effect.fn("WorkBoard.handoffPage")(function* (
 		request: HttpServerRequest.HttpServerRequest,
-	): Effect.fn.Return<HttpServerResponse.HttpServerResponse, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path | Highlighter> {
+	): Effect.fn.Return<
+		HttpServerResponse.HttpServerResponse,
+		PlatformError.PlatformError,
+		FileSystem.FileSystem | Path.Path | Highlighter | HandoffsService
+	> {
+		const service = yield* HandoffsService;
 		const item = new URL(request.url, "http://127.0.0.1").searchParams.get("item") ?? "";
 		const files = yield* changes.files;
 		const snapshot = index ? yield* index : undefined;
