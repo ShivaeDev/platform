@@ -25,9 +25,13 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 });
 
 const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixture: HostFixture) {
+	const snapshot = Promise.withResolvers<void>();
 	const first = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(first, Exit.void));
-	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, fixture.parts), first);
+	const context = yield* Layer.buildWithScope(
+		readDaemonLayer(fixture.host, fixture.parts, 0, () => snapshot.resolve()),
+		first,
+	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (address._tag !== "TcpAddress") {
 		return yield* Effect.die("Expected a TCP daemon");
@@ -36,7 +40,7 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	yield* storeState(fixture.host, "b", { stage: "executing" });
 	yield* withFollower(fixture.configFile, "watch", [], { interval: 0.1, port: address.port }, (follower) =>
 		Effect.gen(function* () {
-			yield* Effect.sleep("2 seconds");
+			yield* Effect.promise(() => snapshot.promise);
 			yield* storeState(fixture.host, "a", { stage: "released" });
 			yield* untilOutput(follower, "a released\n");
 			yield* Scope.close(first, Exit.void);
