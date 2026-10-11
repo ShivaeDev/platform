@@ -2,6 +2,8 @@
 
 ## Built
 
+- Status, dispatch, wait and watch use local HTTP RPC without client PostgreSQL connections. The followers subscribe before their initial snapshot and resync after reconnect while retaining their selected set and output. HTTP and PostgreSQL regressions cover command output, exit codes, explicit dispatch, daemon restart and missing-daemon errors.
+
 - The local daemon shares one bounded PostgreSQL pool and provider connection set between scheduling and native HTTP RPC. Platform request tracing supplies per-call request ids. PostgreSQL and HTTP regressions cover completion, concurrent clients, resource closure and launch recovery after SIGKILL with a synthetic Cloud backend.
 
 - Cloud threads carry their prepared Board work ID and first heading, with configurable prefixes, trimmed titles, and role labels for separate review and repair threads. `work-fleet name-threads` backfills current and archived sessions, reports failures and skips successful names on repeat runs. Formatting tests and PostgreSQL CLI tests against a synthetic Cloud backend cover naming and idempotence.

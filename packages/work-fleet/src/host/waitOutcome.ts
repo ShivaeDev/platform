@@ -18,6 +18,8 @@ export const WaitState = Schema.Struct({
 });
 export type WaitState = typeof WaitState.Type;
 
+export const State = Schema.Struct({ ...WaitState.fields, workId: Schema.String });
+
 export function settled(workId: string, state: WaitState): WaitOutcome | undefined {
 	const owner = waitingOwner(state);
 	const attention = owner === undefined ? "" : ` (waiting on ${owner})`;

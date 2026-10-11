@@ -4,52 +4,46 @@ import * as Option from "effect/Option";
 import * as Argument from "effect/unstable/cli/Argument";
 import * as Command from "effect/unstable/cli/Command";
 import * as Flag from "effect/unstable/cli/Flag";
-import { board, config, host } from "#host/cliOptions.ts";
+import { board, config, port } from "#host/cliOptions.ts";
 
 export const waitCommand = Command.make(
 	"wait",
 	{
 		board,
 		config,
-		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between PostgreSQL reads")),
+		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
+		port,
 		timeout: Flag.float("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
 		workId: Argument.string("id"),
 	},
 	Effect.fn("WorkFleetCli.wait")(function* (input) {
 		const { waitFor } = yield* Effect.promise(() => import("#host/wait.ts"));
-		const settings = yield* host(input.board, input.config);
 		const outcome = yield* waitFor({
-			databaseUrl: settings.databaseUrl,
 			intervalMs: input.interval * 1000,
-			namespace: settings.namespace,
+			port: input.port,
 			workId: input.workId,
 			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
 		});
 		yield* Console.log(outcome.summary);
 		process.exitCode = outcome.code;
 	}),
-).pipe(
-	Command.withDescription(
-		"Block until the work completes (exit 0), needs a human (2) or is released (3); 4 on --timeout, 1 on errors. Read-only against PostgreSQL",
-	),
-);
+).pipe(Command.withDescription("Block until the work completes (exit 0), needs a human (2) or is released (3); 4 on --timeout, 1 on errors"));
 
 export const watchCommand = Command.make(
 	"watch",
 	{
 		board,
 		config,
-		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between PostgreSQL reads")),
+		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
+		port,
 		timeout: Flag.float("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
 		workIds: Argument.string("id").pipe(Argument.variadic()),
 	},
 	Effect.fn("WorkFleetCli.watch")(function* (input) {
 		const { watchFor } = yield* Effect.promise(() => import("#host/watch.ts"));
-		const settings = yield* host(input.board, input.config);
 		process.exitCode = yield* watchFor({
-			databaseUrl: settings.databaseUrl,
 			intervalMs: input.interval * 1000,
-			namespace: settings.namespace,
+			port: input.port,
 			workIds: input.workIds,
 			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
 		});

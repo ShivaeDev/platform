@@ -79,7 +79,7 @@ export function fleetHostLayer<TProvider, TMain>(
 		readonly provider: Layer.Layer<SessionTransport, TProvider>;
 	},
 ) {
-	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provide(hostSql(host)));
+	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provideMerge(hostSql(host)));
 	const sessions = SessionService.layer.pipe(
 		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);

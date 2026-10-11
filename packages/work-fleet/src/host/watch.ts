@@ -1,8 +1,6 @@
-import * as Clock from "effect/Clock";
-import * as Console from "effect/Console";
-import * as Effect from "effect/Effect";
+import { Console, Deferred, Effect, Stream } from "effect";
 import { waitingOwner } from "#attention.ts";
-import { readWaitStates } from "#host/readWaitStates.ts";
+import { follow } from "#host/follow.ts";
 import type { WaitOptions } from "#host/wait.ts";
 import { settled, WAIT_EXIT } from "#host/waitOutcome.ts";
 
@@ -10,38 +8,32 @@ export interface WatchOptions extends Omit<WaitOptions, "workId"> {
 	readonly workIds: readonly string[];
 }
 
-const report = Effect.fn("FleetWatch.report")(function* (states: Effect.Success<ReturnType<typeof readWaitStates>>, pending?: Set<string>) {
-	const remaining = pending ?? new Set(states.map((state) => state.workId));
-	const order = ["maintainer", "orchestrator", "automation", undefined];
-	for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
-		const outcome = settled(state.workId, state);
-		if (outcome !== undefined && remaining.delete(state.workId)) {
-			yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
-		}
-	}
-	return remaining;
-});
-
 export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: WatchOptions) {
-	const deadline = (yield* Clock.currentTimeMillis) + (options.timeoutMs ?? Number.POSITIVE_INFINITY);
+	const ready = yield* Deferred.make<void>();
 	let pending = options.workIds.length === 0 ? undefined : new Set(options.workIds);
-	let unreachable = 0;
-	while (true) {
-		const next = yield* readWaitStates(options, pending === undefined ? undefined : [...pending]).pipe(Effect.result);
-		unreachable = next._tag === "Success" ? 0 : unreachable + 1;
-		if (next._tag === "Success") {
-			pending = yield* report(next.success, pending);
-		} else if (unreachable >= 20) {
-			yield* Console.error(`watch: Fleet PostgreSQL is unreachable (${next.failure.message})`);
-			return WAIT_EXIT.error;
-		}
-		if (pending?.size === 0) {
-			return WAIT_EXIT.completed;
-		}
-		if ((yield* Clock.currentTimeMillis) >= deadline) {
-			yield* Console.error("watch: timed out waiting for Fleet work");
-			return WAIT_EXIT.timeout;
-		}
-		yield* Effect.sleep(options.intervalMs);
+	const order = ["maintainer", "orchestrator", "automation", undefined];
+	const consume = follow(options, options.workIds).pipe(
+		Stream.tap(() => Deferred.succeed(ready, undefined)),
+		Stream.tap((states) =>
+			Effect.gen(function* () {
+				pending ??= new Set(states.map((state) => state.workId));
+				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
+					const outcome = settled(state.workId, state);
+					if (outcome !== undefined && pending.delete(state.workId)) {
+						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
+					}
+				}
+			}),
+		),
+		Stream.takeUntil(() => pending?.size === 0),
+		Stream.runDrain,
+	);
+	yield* options.timeoutMs === undefined
+		? consume
+		: Effect.raceFirst(consume, Deferred.await(ready).pipe(Effect.andThen(Effect.sleep(options.timeoutMs))));
+	if (pending?.size === 0) {
+		return WAIT_EXIT.completed;
 	}
+	yield* Console.error("watch: timed out waiting for Fleet work");
+	return WAIT_EXIT.timeout;
 });

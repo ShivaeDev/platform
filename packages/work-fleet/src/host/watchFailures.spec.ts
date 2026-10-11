@@ -1,53 +1,40 @@
+import { createServer } from "node:http";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { withHost } from "#test/fleetHost.ts";
-import { withFollower } from "#test/follower.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 
-describe("work-fleet follower failures against PostgreSQL", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
-	test("missing watch configuration exits 1", function* () {
-		yield* withHost(
-			{},
-			{},
-			Effect.fnUntraced(function* (fixture) {
-				yield* withFollower(
-					`${fixture.configFile}.missing`,
-					"watch",
-					["a"],
-					{},
-					Effect.fnUntraced(function* (follower) {
-						expect((yield* Effect.promise(() => follower.done)).code).toBe(1);
-					}),
-				);
-			}),
-		);
+function unusedPort() {
+	return new Promise<number>((resolve, reject) => {
+		const server = createServer();
+		server.on("error", reject);
+		server.listen(0, "127.0.0.1", () => {
+			const address = server.address();
+			if (address === null || typeof address === "string") {
+				reject(new Error("Expected TCP address"));
+				return;
+			}
+			server.close((error) => (error ? reject(error) : resolve(address.port)));
+		});
 	});
+}
 
-	for (const command of ["watch", "wait"] as const) {
-		test(`${command} stops after consecutive connection failures`, function* () {
-			yield* withHost(
-				{},
-				{},
-				Effect.fnUntraced(function* (fixture) {
-					fixture.write(
-						"fleet.config.json",
-						JSON.stringify({ database: { url: "postgresql://postgres:postgres@127.0.0.1:1/unavailable" }, provider: "local" }),
-					);
-					yield* withFollower(
-						fixture.configFile,
-						command,
-						["a"],
-						{ interval: 0.001 },
-						Effect.fnUntraced(function* (follower) {
-							const outcome = yield* Effect.promise(() => follower.done);
-							expect(outcome.code).toBe(1);
-							expect(`${outcome.stderr}${outcome.stdout}`).toContain("Fleet PostgreSQL is unreachable");
-						}),
-					);
+describe("Fleet commands without a daemon", () => {
+	for (const command of ["status", "wait", "watch", "dispatch"]) {
+		it.live(`${command} names the missing daemon and how to start it`, function* () {
+			const port = yield* Effect.promise(unusedPort);
+			let stderr = "";
+			const result = yield* Effect.promise(() =>
+				cliProcess([command, ...(command === "status" ? [] : ["unknown"]), "--port", String(port)], {
+					onError: (text) => {
+						stderr += text;
+					},
 				}),
 			);
+			expect(result.code).toBe(1);
+			expect(stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
+			expect(stderr).toContain(`start work-fleet serve <board-dir> --port ${port}`);
+			expect(stderr).not.toContain("PostgreSQL");
 		});
 	}
 });

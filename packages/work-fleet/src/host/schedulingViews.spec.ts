@@ -12,6 +12,7 @@ import { fleetHostLayer } from "#host/runtime.ts";
 import { renderStatus } from "#host/status.ts";
 import { waitFor } from "#host/wait.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 it.live.skipIf(storageDatabaseUrl === undefined)("area and dependency admission reasons reach status, wait and the generated Board view", () =>
@@ -48,7 +49,7 @@ it.live.skipIf(storageDatabaseUrl === undefined)("area and dependency admission 
 					["second", areaReason],
 					["dependent", dependencyReason],
 				] as const) {
-					const outcome = yield* waitFor({ ...fixture.host, intervalMs: 1, timeoutMs: 0, workId });
+					const outcome = yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 1, port, timeoutMs: 100, workId }));
 					expect(outcome.code).toBe(4);
 					expect(outcome.summary).toContain(reason);
 				}

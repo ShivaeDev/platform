@@ -13,6 +13,7 @@ import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { finishWorkers } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {
@@ -48,13 +49,14 @@ describe("work-fleet host against PostgreSQL", () => {
 				expect(fixture.provider.launched).toHaveLength(1);
 				expect(prompts(fixture.provider)).toEqual([expect.stringContaining("id: a")]);
 				finishWorkers(fixture.provider);
-				const outcome = yield* waitFor({
-					databaseUrl: fixture.host.databaseUrl,
-					intervalMs: 100,
-					namespace: fixture.host.namespace,
-					timeoutMs: 15_000,
-					workId: "a",
-				});
+				const outcome = yield* withReadDaemon(fixture.host, (port) =>
+					waitFor({
+						intervalMs: 100,
+						port,
+						timeoutMs: 15_000,
+						workId: "a",
+					}),
+				);
 				yield* Fiber.interrupt(runner);
 				expect(outcome.code).toBe(WAIT_EXIT.waitingDecision);
 				expect(outcome.summary).toMatch(/^a needs-human \(waiting on automation\): /u);
