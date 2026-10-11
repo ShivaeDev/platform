@@ -16,7 +16,7 @@ export const Item = Schema.Struct({
 	type: Schema.String,
 });
 export const Turn = Schema.Struct({
-	error: Schema.optional(Schema.NullOr(Schema.Struct({ message: Schema.String }))),
+	error: Schema.optional(Schema.NullOr(Schema.Struct({ codexErrorInfo: Schema.optional(Schema.Unknown), message: Schema.String }))),
 	id: Schema.String,
 	items: Schema.Array(Item),
 	status: Schema.Literals(["inProgress", "completed", "interrupted", "failed"]),
