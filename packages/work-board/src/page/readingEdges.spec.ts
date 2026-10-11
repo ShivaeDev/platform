@@ -4,7 +4,7 @@ import { boardHtml } from "#page/board.ts";
 import { readingTools } from "#page/readingTools.ts";
 import { boardOf } from "#render/board.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 
 it("uses the escaped source filename when a home board has no authored top-level title", async () => {

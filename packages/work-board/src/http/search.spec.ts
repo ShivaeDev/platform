@@ -1,8 +1,10 @@
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
 import { afterEach, expect, it } from "vitest";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
+import { changesUntil, rpcSearch, subscribe } from "#test/nativeRpc.ts";
+import { searchPrivacyFixture } from "#test/searchPrivacyFixture.ts";
 import { workspaceFixture } from "#test/workspaceFixture.ts";
 
 let notes: Folder;
@@ -11,22 +13,20 @@ afterEach(async () => {
 	await board?.stop();
 	notes?.remove();
 });
-async function search(query: string) {
-	const response = await fetch(`${board.url}/_board/search?q=${encodeURIComponent(query)}`);
-	expect(response.status).toBe(200);
-	return response.json();
+function search(query: string) {
+	return rpcSearch(board, query);
 }
 
 it("finds fixture phrases, encoded paths, duplicate headings, and reports bounded/empty results", async () => {
 	notes = folder({ ...workspaceFixture(), "plans/home & more.md": "# Board\n\n## Evidence\n\nFirst.\n\n## Evidence\n\nUnique second phrase." });
 	board = await startBoard(notes.root, "plans/home & more.md");
 	const found = await search("unique second phrase");
-	expect(found.results[0].href).toBe("/plans/home%20%26%20more.md#heading-evidence-2");
+	expect(found.results[0]?.href).toBe("/plans/home%20%26%20more.md#heading-evidence-2");
 	expect((await search("project note")).results.length).toBeGreaterThan(0);
 	expect((await search("project note")).results.length).toBeLessThanOrEqual(40);
 	expect((await search("impossible-asdf")).total).toBe(0);
 	expect(found.unavailable).toEqual([]);
-	const blocked = await rawGet(board, "/_board/search?q=Unique", "evil.example");
+	const blocked = await rawPost(board, "/_board/rpc", { host: "evil.example" });
 	expect(blocked.status).toBe(403);
 });
 
@@ -53,9 +53,8 @@ it("invalidates cached text after edits, additions, and deletions", async () => 
 });
 
 it("excludes hidden files and root-escaping symlinks and discloses unreadable files", async () => {
-	const outside = folder({ "outside.md": "# Outside secret" });
-	notes = folder({ ".hidden.md": "# Hidden secret", "note.md": "# Visible", "unreadable.md": "# Unreadable secret" });
-	symlinkSync(join(outside.root, "outside.md"), join(notes.root, "escape.md"));
+	const privacy = searchPrivacyFixture();
+	notes = privacy.notes;
 	try {
 		board = await startBoard(notes.root, undefined, (fs) => ({
 			...fs,
@@ -68,6 +67,6 @@ it("excludes hidden files and root-escaping symlinks and discloses unreadable fi
 		expect(found.total).toBe(0);
 		expect(found.unavailable).toEqual(["unreadable.md"]);
 	} finally {
-		outside.remove();
+		privacy.outside.remove();
 	}
 });

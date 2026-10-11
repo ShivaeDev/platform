@@ -17,13 +17,11 @@ import { startHtml } from "#page/startHtml.ts";
 import { boardOf } from "#render/board.ts";
 import { authoredQuestionHtml } from "#responses/authoredQuestionHtml.ts";
 import { readingActions } from "#responses/readingActions.ts";
-import type { responseService } from "#responses/service.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
 
 export interface PageOptions {
 	readonly home: string | undefined;
-	readonly responses?: Effect.Success<ReturnType<typeof responseService>>;
 	readonly root: string;
 	readonly writable?: boolean;
 }
@@ -64,14 +62,13 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 		if (expectedIdentity && identity !== expectedIdentity) {
 			return Option.none();
 		}
-		const service = options.responses;
-		const actions = yield* readingActions({ file: file.path, parsed }, source, service, options.writable === true, identity);
+		const actions = yield* readingActions({ file: file.path, parsed }, source, options.writable === true, identity);
 		const html =
 			file.path === options.home
 				? yield* boardHtml(boardOf(parsed.body), file.path, file.modified, metadata, actions)
 				: yield* documentHtml(parsed.body, file, metadata, itemIntroduction(parsed), actions);
-		const question = service && identity && authoredQuestion({ file: file.path, parsed });
-		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, service, options.writable === true) : "";
+		const question = identity && authoredQuestion({ file: file.path, parsed });
+		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, options.writable === true) : "";
 		return Option.some({ html: html + answer, identity });
 	});
 	return Effect.fn("WorkBoard.page")(function* (request: HttpServerRequest.HttpServerRequest, resolved?: string, expectedIdentity?: string) {
