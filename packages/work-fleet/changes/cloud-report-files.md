@@ -1,9 +1,12 @@
 ### Fixed
 
+- Report publication retries reuse a durable payload, including attachment bytes and unavailable-file warnings, after restart or a lost acknowledgement even when Cloud retrieval changes.
+
 - Reconstruct private report attachments from the exact completed Cloud turn’s paginated app-server `fileChange` items, replaying adds, updates, moves and deletes under `/tmp/fleet-report/attachments/`. Require file-edit/apply_patch writes and explicit attachment declarations in report prompts; binary evidence uses base64 text. Publish report text and unavailable-file reasons when retrieval, reconstruction or collection limits fail, while retaining retrievable files after per-file failures.
 
 ### Added
 
+- Add `reportPayload` and `reportPayloadFile` to persist and recover the first complete publication payload under a report's immutable identity.
 - Add `ReportAttachments`, `UnavailableAttachment`, attachment directory/marker constants and `declaredAttachments` in `reportAttachments.ts`; `codexReportAttachments` and `makeCodexReportAttachments` fetch turn files, `reportFileChanges` and `reportFileReplay` reconstruct them, and `applyReportPatch` validates update hunks.
 
 ### Breaking

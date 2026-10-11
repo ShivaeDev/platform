@@ -5,6 +5,7 @@ import { reportContent } from "#board/reportContent.ts";
 import { reportFiles } from "#board/reportFiles.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportLinks } from "#board/reportLinks.ts";
+import { reportPayload } from "#board/reportPayload.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { FleetHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -49,15 +50,23 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 					Effect.flatMap((published) => (published ? Effect.fail(new FleetFailure({ message: PUBLISHED_REPORT, reason: "invalid" })) : Effect.void)),
 				);
 			}
-			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
+			const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {
 				const attachments = yield* files(observation).pipe(
 					Effect.provide(services),
 					Effect.catch((error) => Effect.succeed(unavailableAttachments(observation, error))),
 				);
 				const { itemId } = reportIdentity(work, observation.receipt);
-				const reportObservation = { ...observation, output: observation.output + reportLinks(itemId, attachments.files, attachments.unavailable) };
+				const output = observation.output + reportLinks(itemId, attachments.files, attachments.unavailable);
+				yield* reportContent(work, { ...observation, output });
+				return yield* reportPayload(root, work, observation).save({ files: attachments.files, output });
+			});
+			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
+				const { itemId } = reportIdentity(work, observation.receipt);
+				const existing = yield* reportPayload(root, work, observation).read;
+				const payload = existing ?? (yield* collect(work, observation));
+				const reportObservation = { ...observation, output: payload.output };
 				yield* reportContent(work, reportObservation);
-				yield* reportFiles(root, itemId, attachments.files);
+				yield* reportFiles(root, itemId, payload.files);
 				return yield* board.report(work, reportObservation);
 			}, Effect.mapError(attachmentFailure));
 			return Layer.merge(Layer.succeed(ReportInspection)({ check: inspect }), Layer.succeed(BoardGateway)({ ...board, report }));
