@@ -1,9 +1,9 @@
 import { Effect, Stream } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/effect-contract/keys.ts";
-import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { LiveOrders, type Order, orders, type Rejected } from "./contract.ts";
+import { OrderLive } from "./OrderLive.ts";
 import { OrderService } from "./OrderService.ts";
 
 export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | "quantity">[]>, beforeCommit?: Effect.Effect<void, Rejected>) {
@@ -14,15 +14,15 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 		Effect.gen(function* () {
 			const service = yield* OrderService;
 			const reactivity = yield* Reactivity.Reactivity;
+			const live = yield* OrderLive;
 			yield* Effect.acquireRelease(
 				Effect.sync(() => reactivity.registerUnsafe(readKeys([orders.item(1)]), () => publications.push("orders:1"))),
 				(cancel) => Effect.sync(cancel),
 			);
-			function observe(id: number) {
+			function observe() {
 				return Effect.gen(function* () {
 					const rows = yield* Effect.promise(read);
 					delivered.push(rows);
-					return { _tag: "Changed", keys: [orders.item(id)] } satisfies LiveHint;
 				});
 			}
 			return LiveOrders.of({
@@ -36,7 +36,7 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 					Stream.unwrap(
 						Effect.gen(function* () {
 							yield* service.get((yield* Identity).id, id);
-							return Reactivity.stream(observe(id), readKeys([orders.item(id)]));
+							return live.stream([orders.item(id)]).pipe(Stream.tap(() => observe()));
 						}),
 					),
 			});
