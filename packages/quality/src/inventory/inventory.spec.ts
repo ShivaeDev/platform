@@ -26,7 +26,7 @@ afterEach(() => {
 	}
 });
 
-function failureText<Value, Error, Requirements>(effect: Effect.Effect<Value, Error, Requirements>): Effect.Effect<string, never, Requirements> {
+function failureText<Value, TError, Requirements>(effect: Effect.Effect<Value, TError, Requirements>): Effect.Effect<string, never, Requirements> {
 	return Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
 }
 

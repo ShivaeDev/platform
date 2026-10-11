@@ -8,14 +8,16 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
-test("continuation retains an unresolved delivery instead of starting new execution", () =>
-	withEngine({ deliveryFailure: true }, (fixture) =>
+test("continuation retains an unresolved prior merge submission instead of starting new execution", () =>
+	withEngine({ denyDelivery: true }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
 			const fleet = yield* Fleet;
 			yield* fleet.dispatch("one");
 			finishWorkers(fixture);
-			const stopped = yield* fleet.reconcile("one");
+			yield* fleet.reconcile("one");
+			yield* fixture.markLegacyDeliverySubmitted("one");
+			const stopped = yield* fleet.get("one");
 			expect(stopped.value.stage).toBe("needs-human");
 			expect(yield* fleet.continue("one", "Change again").pipe(Effect.flip)).toMatchObject({
 				message: "Reconcile the submitted delivery before continuing",

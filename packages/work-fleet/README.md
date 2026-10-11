@@ -12,7 +12,7 @@ work-fleet run <board-dir>
 
 ## Use the command
 
-Board owns authored work and its revision. Fleet stores preparation, attempts and outcomes against that identity in PostgreSQL. A terminal worker turn is execution evidence; accepted completion also needs result adoption, independent review, checks and authorized delivery or validated no-change. The core tests exercise those completion paths with synthetic integrations.
+Board owns authored work and its revision. Fleet stores preparation, attempts and outcomes against that identity in PostgreSQL. A terminal worker turn is execution evidence; accepted completion also needs result adoption, independent review, checks and an observed human merge of the reviewed head, or validated no-change. The core tests exercise those completion paths with synthetic integrations.
 
 ### Configure the host
 
@@ -105,7 +105,7 @@ The host refreshes the view on scheduler reads and after preparation, dispatch, 
 
 ### Continue a worker with new instructions
 
-Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal Needs human or Completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work and unresolved delivery are refused.
+Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal Needs human or Completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work and an unresolved prior merge submission are refused.
 
 ```sh
 work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
@@ -161,6 +161,10 @@ The command host reads GitHub check runs and commit statuses through an authenti
 
 For built capabilities and open host integrations, see the [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md).
 
+### Human delivery
+
+Fleet never submits a merge. Reviewed, green PRs wait in Needs human as ready to merge. Reconciliation keeps observing the adopted PR through `gh pr view` with the host's existing CLI authentication, accepts only a merge of the reviewed head and records the PR head and merge commit. A PR closed without merging stays in Needs human with that fact, as does a PR whose head moved after review. A temporary observation failure preserves the current Board decision and ownership until GitHub evidence is available again. `src/host/githubDelivery.test.ts`, `src/engine/humanDelivery.spec.ts` and `src/engine/deliveryObservation.spec.ts` cover these rules with synthetic GitHub responses and real PostgreSQL.
+
 ## Compose the Effect core
 
 Each scheduler pass shares one Board read and identity index across admission, dispatch and reconciliation. The next pass reads changed, added and removed files again. Approval and decisions remain bound to the exact source revision read. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
@@ -176,6 +180,6 @@ yield* fleet.prepare({ workId, preparation, prompt, cwd });
 yield* cycle;
 ```
 
-Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, independent review, required checks and authorized delivery. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
+Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, independent review, required checks and delivery observation. Fleet does not call the `authorize` and `merge` callbacks, which remain in the integration contract for compatibility. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current Board revisions. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` covers those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.

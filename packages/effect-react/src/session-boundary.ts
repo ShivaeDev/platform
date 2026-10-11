@@ -2,9 +2,9 @@ import { RegistryContext } from "@effect/atom-react";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 
-export interface SessionBoundaryProps<S, Client> {
-	readonly children: (client: Client) => ReactNode;
-	readonly connect: (session: S) => Client;
+export interface SessionBoundaryProps<S, TClient> {
+	readonly children: (client: TClient) => ReactNode;
+	readonly connect: (session: S) => TClient;
 	readonly identify: (session: S) => string;
 	readonly recheck: () => void;
 	readonly session: S | undefined;
@@ -15,18 +15,18 @@ const Recheck = createContext<() => void>((): void => undefined);
 
 export const useSessionRecheck = (): (() => void) => useContext(Recheck);
 
-interface Owned<Client> {
-	readonly client: Client;
+interface Owned<TClient> {
+	readonly client: TClient;
 	mounted: number;
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 
-function owning<Client>(client: Client): Owned<Client> {
+function owning<TClient>(client: TClient): Owned<TClient> {
 	return { client, mounted: 0, registry: AtomRegistry.make() };
 }
 
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
-function hidden<Client>(client: Client): Owned<Client> {
+function hidden<TClient>(client: TClient): Owned<TClient> {
 	const owned = owning(client);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
@@ -44,14 +44,14 @@ function hidden<Client>(client: Client): Owned<Client> {
 	return owned;
 }
 
-interface GenerationProps<S, Client> {
-	readonly children: (client: Client) => ReactNode;
-	readonly connect: (session: S) => Client;
+interface GenerationProps<S, TClient> {
+	readonly children: (client: TClient) => ReactNode;
+	readonly connect: (session: S) => TClient;
 	readonly recheck: () => void;
 	readonly session: S;
 }
 
-const Generation = <S, Client>({ session, connect, recheck, children }: GenerationProps<S, Client>): ReactNode => {
+const Generation = <S, TClient>({ session, connect, recheck, children }: GenerationProps<S, TClient>): ReactNode => {
 	const [owned, own] = useState(() => owning(connect(session)));
 	useEffect(() => {
 		owned.mounted += 1;
@@ -73,14 +73,14 @@ const Generation = <S, Client>({ session, connect, recheck, children }: Generati
 	);
 };
 
-export const SessionBoundary = <S, Client>({
+export const SessionBoundary = <S, TClient>({
 	session,
 	identify,
 	connect,
 	recheck,
 	signedOut,
 	children,
-}: SessionBoundaryProps<S, Client>): ReactNode =>
+}: SessionBoundaryProps<S, TClient>): ReactNode =>
 	session === undefined
 		? createElement(Fragment, null, signedOut)
-		: createElement(Generation<S, Client>, { children, connect, key: identify(session), recheck, session });
+		: createElement(Generation<S, TClient>, { children, connect, key: identify(session), recheck, session });
