@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
+- Test host restarts with real PostgreSQL and a synthetic Cloud WebSocket server: SIGKILL before and after thread/turn mutations does not replay submissions, and 100 lost turn acknowledgements recover the existing sessions.
+
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a

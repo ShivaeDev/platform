@@ -33,13 +33,16 @@ export function makeLaunch({ store, board, policy, sessions, load, save, decisio
 				Effect.gen(function* () {
 					const current = yield* load(intent.value.workId);
 					if (error.reason === "rejected" || error.reason === "unavailable") {
+						const acknowledged = current.value.attempts.find((item) => item.operationId === attempt.operationId);
+						const unresolvedSession =
+							acknowledged?.receipt !== undefined || (error.reason === "unavailable" && acknowledged?.sessionId !== undefined);
 						const attempts = current.value.attempts.map((item) =>
-							item.operationId === attempt.operationId ? { ...item, status: "failed" as const } : item,
+							item.operationId === attempt.operationId && !unresolvedSession ? { ...item, status: "failed" as const } : item,
 						);
 						yield* decision(
 							yield* save(current, { ...current.value, attempts }),
 							error.message,
-							"Restore provider access and retry this approved work",
+							unresolvedSession ? "Reconcile the acknowledged session before retrying" : "Restore provider access and retry this approved work",
 						);
 					}
 				}),
