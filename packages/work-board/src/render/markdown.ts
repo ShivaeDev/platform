@@ -8,12 +8,11 @@ import remarkGfm from "remark-gfm";
 import type { PluggableList } from "unified";
 import { callouts } from "#render/callouts.ts";
 import { visualDocuments } from "#render/visualDocuments.ts";
-import { codeBlocks } from "./code.ts";
 import type { documentHeadings } from "./documentHeadings.ts";
 import { documentLinks } from "./documentLinks.ts";
 import { RenderFailed } from "./failed.ts";
 import { footnoteIds } from "./footnotes.ts";
-import { Highlighter } from "./highlighter.ts";
+import { Highlighter } from "./Highlighter.ts";
 import { questionnaireDocuments } from "./questionnaireDocuments.ts";
 
 export interface RenderOptions {
@@ -25,7 +24,7 @@ export interface RenderOptions {
 
 export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, options: RenderOptions = {}) {
 	const highlighter = yield* Highlighter;
-	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), codeBlocks(highlighter)];
+	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), yield* highlighter.codeBlocks()];
 	if (options.idPrefix !== undefined) {
 		plugins.push(footnoteIds(options.idPrefix));
 	}

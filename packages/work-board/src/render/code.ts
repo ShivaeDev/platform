@@ -1,7 +1,7 @@
 import type { Element, ElementContent, Root } from "hast";
 import { type BundledLanguage, bundledLanguages, type Highlighter as Shiki } from "shiki";
 import { visit as visitElements } from "unist-util-visit";
-import { THEMES } from "./highlighter.ts";
+export const THEMES = { dark: "github-dark", light: "github-light" } as const;
 
 function languageOf(code: Element): string | undefined {
 	const classes = code.properties.className;

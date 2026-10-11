@@ -7,16 +7,16 @@ import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { composerHtml } from "./composerHtml.ts";
-import type { responseService } from "./service.ts";
+import { Responses } from "./service.ts";
 
 export function responsePage(
-	service: Effect.Success<ReturnType<typeof responseService>>,
 	changes: Changes,
 	home: string | undefined,
 	enabled: boolean,
 	index?: Effect.Success<ReturnType<typeof searchSnapshot>>,
 ) {
 	return Effect.fn("WorkBoard.responsePage")(function* (request: HttpServerRequest.HttpServerRequest) {
+		const service = yield* Responses;
 		const params = new URL(request.url, "http://127.0.0.1").searchParams;
 		const files = yield* changes.files;
 		const snapshot = index ? yield* index : undefined;

@@ -20,7 +20,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	skills: { allowed: [], module: "syncSkills" },
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
-	"work-board": { allowed: ["effect-contract", "effect-form"], module: "board" },
+	"work-board": { allowed: ["effect-contract", "effect-form", "effect-service"], module: "board" },
 	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql", "platform"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";

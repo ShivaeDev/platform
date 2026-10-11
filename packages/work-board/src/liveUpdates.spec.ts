@@ -1,7 +1,8 @@
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { changesUntil, type EventStream, type Folder, folder, type RunningBoard, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
+import { changesUntil, type EventStream, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -18,7 +19,8 @@ afterEach(async () => {
 
 async function ready() {
 	const events = await subscribe(board);
-	expect(await events.next()).toBe("event: ready\ndata: ");
+	expect(await events.next()).toEqual({ _tag: "Resync" });
+	expect((await rpcWatcher(board)).watching).toBe(true);
 	return events;
 }
 
@@ -26,7 +28,10 @@ describe("live updates", () => {
 	it("pushes a change event naming the markdown file that was written", async () => {
 		const events = await ready();
 		notes.write("notes/log.md", "# Log\n\nA new line.\n");
-		expect((await changesUntil(events, "notes/log.md")).at(-1)).toContain("notes/log.md");
+		expect(await changesUntil(events, "notes/log.md")).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
+		});
 		events.close();
 	});
 
@@ -34,7 +39,9 @@ describe("live updates", () => {
 		const events = await ready();
 		notes.write("notes/raw.txt", "plain\n");
 		notes.write("plan.md", "# Plan\n");
-		expect((await changesUntil(events, "plan.md")).flat()).not.toContain("notes/raw.txt");
+		const hint = await changesUntil(events, "plan.md");
+		expect(hint).toMatchObject({ _tag: "Changed" });
+		expect(JSON.stringify(hint)).not.toContain("notes/raw.txt");
 		events.close();
 	});
 
@@ -43,14 +50,20 @@ describe("live updates", () => {
 		notes.write("notes/log.md", "# Log\n\nOne.\n");
 		notes.write("plan.md", "# Plan\n\nTwo.\n");
 		const seen = await changesUntil(events, "plan.md");
-		expect(seen.at(-1)).toEqual(expect.arrayContaining(["notes/log.md", "plan.md"]));
+		expect(seen).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([
+				{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" },
+				{ _tag: "Item", collection: "work-board/documents", id: "plan.md" },
+			]),
+		});
 		events.close();
 	});
 
 	it("serves and announces a file in a new folder without a restart", async () => {
 		const events = await ready();
 		notes.write("later/idea.md", "# Idea\n");
-		expect((await changesUntil(events, "later/idea.md")).at(-1)).toContain("later/idea.md");
+		await changesUntil(events, "later/idea.md");
 		const page = await (await fetch(`${board.url}/later/idea.md`)).text();
 		expect(page).toContain(
 			'<article class="doc"><h1 id="heading-idea" tabindex="-1">Idea<a aria-label="Link to Idea" class="heading-anchor" href="#heading-idea"></a></h1>',
@@ -65,10 +78,11 @@ describe("live updates", () => {
 	});
 });
 
-async function nextNamed(events: EventStream, name: string) {
-	for (let event = await events.next(); ; event = await events.next()) {
-		if (event.startsWith(`event: ${name}\n`)) {
-			return event;
+async function nextWatching(events: EventStream, watching: boolean) {
+	for (;;) {
+		await events.next();
+		if ((await rpcWatcher(board)).watching === watching) {
+			return;
 		}
 	}
 }
@@ -80,14 +94,18 @@ describe("watcher recovery", () => {
 		board = await startBoard(notes.root, "plan.md", faults.wrap);
 		const events = await ready();
 		faults.fail();
-		await nextNamed(events, "down");
+		await nextWatching(events, false);
 		const late = await subscribe(board);
-		expect(await late.next()).toBe("event: down\ndata: ");
+		expect(await late.next()).toEqual({ _tag: "Resync" });
+		expect((await rpcWatcher(board)).watching).toBe(false);
 		late.close();
 		faults.heal();
-		await nextNamed(events, "ready");
+		await nextWatching(events, true);
 		notes.write("notes/log.md", "# Log\n\nAfter the restart.\n");
-		expect((await changesUntil(events, "notes/log.md")).at(-1)).toContain("notes/log.md");
+		expect(await changesUntil(events, "notes/log.md")).toMatchObject({
+			_tag: "Changed",
+			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
+		});
 		events.close();
 	});
 
@@ -97,7 +115,7 @@ describe("watcher recovery", () => {
 		board = await startBoard(notes.root, "plan.md", faults.wrap);
 		const events = await ready();
 		faults.fail();
-		await nextNamed(events, "down");
+		await nextWatching(events, false);
 		await new Promise((resolve) => setTimeout(resolve, 1500));
 		events.close();
 		const retries = faults.attempts.slice(1);
@@ -138,11 +156,12 @@ describe("a folder whose own name starts with a dot", () => {
 		expect((await fetch(`${dotBoard.url}/.hidden/x.md`)).status).toBe(404);
 		expect((await fetch(`${dotBoard.url}/node_modules/x.md`)).status).toBe(404);
 		const events = await subscribe(dotBoard);
-		expect(await events.next()).toBe("event: ready\ndata: ");
+		expect(await events.next()).toEqual({ _tag: "Resync" });
+		expect((await rpcWatcher(dotBoard)).watching).toBe(true);
 		dotted.write(".notes/.hidden/x.md", "# Hidden, edited\n");
 		dotted.write(".notes/notes/log.md", "# Log\n\nEdited.\n");
 		const seen = await changesUntil(events, "notes/log.md");
-		expect(seen.flat()).not.toContain(".hidden/x.md");
+		expect(JSON.stringify(seen)).not.toContain(".hidden/x.md");
 		events.close();
 	});
 });

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect, it } from "vitest";
-import { Highlighter } from "./highlighter.ts";
+import { Highlighter } from "./Highlighter.ts";
 import { renderMarkdown } from "./markdown.ts";
 
 it("resolves source-relative links with encoded filenames and leaves fragments and external links intact", async () => {

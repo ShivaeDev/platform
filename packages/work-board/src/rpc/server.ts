@@ -2,12 +2,12 @@ import { Clock, Effect, Layer, Ref } from "effect";
 import { HttpIncomingMessage, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import type { Changes } from "#files/changes.ts";
-import type { handoffService } from "#handoffs/service.ts";
+import { HandoffsService } from "#handoffs/Service.ts";
 import { MAX_BYTES } from "#history/limits.ts";
 import { historyResponse } from "#history/response.ts";
 import { HEADERS } from "#http/respond.ts";
 import { navHtml } from "#page/nav.ts";
-import type { responseService } from "#responses/service.ts";
+import { Responses } from "#responses/service.ts";
 import { searchMatch } from "#search/match.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { ReadFailed, workRpcs } from "./contract.ts";
@@ -15,14 +15,14 @@ import { hints } from "./hints.ts";
 
 export interface ServerOptions {
 	readonly changes: Changes;
-	readonly handoffs: Effect.Success<ReturnType<typeof handoffService>>;
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
 	readonly page: (url: string) => Effect.Effect<HttpServerResponse.HttpServerResponse, unknown>;
-	readonly responses: Effect.Success<ReturnType<typeof responseService>>;
 }
 
-export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handoffs, home, index, page, responses }: ServerOptions) {
+export const server = Effect.fn("WorkBoard.server")(function* ({ changes, home, index, page }: ServerOptions) {
+	const handoffs = yield* HandoffsService;
+	const responses = yield* Responses;
 	const handlers = workRpcs.toLayer({
 		"work-board.awaitResponse": responses.awaitResponse,
 		"work-board.handoffSource": ({ item }) => handoffs.locate(item),

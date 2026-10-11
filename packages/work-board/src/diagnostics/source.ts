@@ -1,4 +1,5 @@
 import { Clock, Context, Data, Effect, Schema } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { FleetHealth } from "./health.ts";
 
 export class SourceFailure extends Data.TaggedError("SourceFailure")<{
@@ -47,4 +48,13 @@ export const diagnostics = Effect.fn("WorkBoard.diagnostics")(function* (sources
 		{ codex: Effect.uninterruptible(codex), fleet: observe(sources.fleet), github: Effect.uninterruptible(github) },
 		{ concurrency: "unbounded" },
 	);
+});
+
+export const Diagnostics = defineService({
+	id: "WorkBoard/Diagnostics",
+	initialize: Effect.gen(function* () {
+		return yield* diagnostics(yield* DiagnosticsSources);
+	}),
+	methods: (read) => ({ read: () => read }),
+	requires: [DiagnosticsSources],
 });
