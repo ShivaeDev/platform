@@ -10,12 +10,17 @@ export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(funct
 	original: Store,
 	namespace: string,
 	writeGate: EngineOptions["writeGate"],
+	writeFailure?: EngineOptions["writeFailure"],
 ) {
 	const sql = yield* SqlClient.SqlClient;
 	const store = {
 		...original,
-		compareAndSet: (...args: Parameters<typeof original.compareAndSet>) =>
-			(writeGate?.(args[2]) ?? Effect.void).pipe(Effect.andThen(original.compareAndSet(...args))),
+		compareAndSet: (...args: Parameters<typeof original.compareAndSet>) => {
+			const failure = writeFailure?.(args[2]);
+			return failure === undefined
+				? (writeGate?.(args[2]) ?? Effect.void).pipe(Effect.andThen(original.compareAndSet(...args)))
+				: Effect.fail(failure);
+		},
 	};
 	const replaceRecord = Effect.fn("FleetFixture.replaceRecord")(function* (value: FleetRecord) {
 		const stored = yield* store.load(value.workId);

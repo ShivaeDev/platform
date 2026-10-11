@@ -16,11 +16,11 @@ import { hostReportBoard } from "#host/reportBoard.ts";
 import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
-function unconfigured(what: string) {
+function unconfigured(message: string) {
 	return Effect.fail(
 		new FleetFailure({
 			attentionOwner: "automation",
-			message: `${what} is not configured in this Fleet host; inspect the worker session`,
+			message,
 			reason: "integration",
 		}),
 	);
@@ -32,10 +32,15 @@ export function hostIntegrations(host: FleetHost) {
 			const main = yield* MainSource;
 			return FleetIntegrations.of({
 				checks: (_work, result) =>
-					result.kind === "no-change" ? unconfigured("No-change validation") : githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
+					result.kind === "no-change"
+						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session")
+						: githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,
-				result: host.result === "github" ? githubResult(host, main) : () => unconfigured("Worker result adoption"),
+				result:
+					host.result === "github"
+						? githubResult(host, main)
+						: () => unconfigured("Worker result adoption is not configured in this Fleet host; inspect the worker session"),
 			});
 		}),
 	);

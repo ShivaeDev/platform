@@ -1,20 +1,18 @@
 import { Effect } from "effect";
 import { validateResult } from "#completion.ts";
+import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import { type BoardWork, FleetFailure, type WorkResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
-export function refreshReviewResult({ integrations, save, board, decision, policy }: EngineState) {
+export function refreshReviewResult(state: EngineState) {
+	const { integrations, save, board, decision, policy } = state;
 	return Effect.fn("Fleet.refreshReviewResult")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult, head = result.head) {
-		if ((yield* board.get(work.workId)).revision !== stored.value.boardRevision) {
-			return yield* decision(
-				stored,
-				"Board context changed during review",
-				"Approve and prepare the current task and criteria",
-				undefined,
-				"maintainer",
-			);
+		const currentWork = yield* board.get(work.workId);
+		yield* authorizeBrief(currentWork);
+		if (briefChanged(stored.value, currentWork)) {
+			return yield* continueChangedBrief(state)(stored, currentWork);
 		}
 		const worker = reviewWorker(stored.value);
 		if (worker?.receipt === undefined) {

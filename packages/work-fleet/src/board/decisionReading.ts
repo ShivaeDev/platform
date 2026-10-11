@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { Reading } from "@shivaedev/work-board/browser/responses/schema.ts";
 import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
+import { currentResponses } from "@shivaedev/work-board/responses/current.ts";
 import { readResponses } from "@shivaedev/work-board/responses/read.ts";
 import { questionId, revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDocument } from "#board/documents.ts";
@@ -8,8 +9,7 @@ import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
 function currentResponse(reading: Reading): BoardDecisionReading {
-	const superseded = new Set(reading.responses.flatMap((response) => (response.response.supersedes ? [response.response.supersedes] : [])));
-	const current = reading.responses.filter((response) => !superseded.has(response.id));
+	const current = currentResponses(reading.responses);
 	if (current.length === 0 && reading.responses.length === 0) {
 		return { _tag: "Pending" };
 	}

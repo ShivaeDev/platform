@@ -71,7 +71,7 @@ Test files are left to the test rules. The `toolOwned` option lists `.gitignore`
 - A folder that only groups files is kebab-case: `test-support/`, `.github/`.
 - A folder the `content` option lists is snake_case: `forest_path/`.
 
-The `toolOwned` option lists folders a tool names, `generated/` and `migrations/` by default.
+The `toolOwned` option lists folders a tool names, `migrations/` by default. Authored files under `generated/` follow the same naming checks as other source; ignored, untracked output stays outside discovery.
 
 ### Other files
 
@@ -82,7 +82,7 @@ The `toolOwned` option lists folders a tool names, `generated/` and `migrations/
 - A Prisma schema is camelCase: `schema.prisma`.
 - A file the `content` option lists is snake_case: `forest_path.json`. A double underscore separates the parts of an id: `forest_path__clearing.json`.
 
-The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*`, `migrations/` and `generated/` by default.
+The `toolOwned` option lists files a tool names: dotfiles, `package.json`, `tsconfig*.json`, `biome.json`, `*.config.*` and `migrations/` by default.
 
 ### Tests
 
@@ -110,7 +110,7 @@ Both rules take a `suites` option, `.gitignore` patterns of folders that hold te
 
 ### Test code
 
-Test code is a test file (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the folder for fixtures, harnesses and generated clients that tests share. `imports/fences` never holds test code, and `structure/max-lines` gives it the test limit.
+Test code is a test file (`*.test.ts` or `*.spec.ts`, with any environment), or any file under a folder named `test-support/`. `test-support/` is the folder for fixtures, harnesses and generated clients that tests share. `imports/fences` never holds test code, and `structure/max-lines` gives it the test limit. `imports/no-test-code` prevents production modules from importing test code; put code they share in a production module.
 
 Name shared helpers without a `.test` or `.spec` suffix. `tests/follow` and `tests/colocated` use those suffixes to identify test files; the folder name alone does not make them skip a test-named file. `tests/story-setup` skips every file under `test-support/`, including a test-named file there.
 

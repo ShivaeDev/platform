@@ -46,9 +46,12 @@ describe("quality fix rounds", () => {
 
 	it("fail after the last allowed round, naming the files it still changed", async () => {
 		const { ran, settling } = tree([flip, () => 0]);
-		expect(await failureOf(settling)).toContain(
+		const failure = await failureOf(settling);
+		expect(failure).toContain(
 			"Biome still rewrote files after 5 rounds, so quality fix stopped. These files changed in the last round:\n  src/flip.ts\nTwo fixes",
 		);
+		expect(failure).toContain("Repair the conflicting code by hand so both checks pass.");
+		expect(failure).not.toContain("turn off");
 		expect(ran).toEqual(Array.from({ length: MAX_FIX_ROUNDS }, (_, index) => index + 1));
 	});
 

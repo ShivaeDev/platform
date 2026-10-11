@@ -54,13 +54,13 @@ describe("suppressions/biome-overrides resolves an extends entry", () => {
 			"package.json": JSON.stringify({ exports: { "./lint": "./lint.json" }, name: "@acme/app" }),
 		};
 		expect(await found({ ...texts, "lint.json": weak("own") })).toEqual([
-			'biome.json:1 Extends "@acme/app/lint", which weakens "lint/suspicious/own" for "**" without a declaration.',
+			'biome.json:1 Extends "@acme/app/lint", which weakens "lint/suspicious/own" for "**" without a declaration. Repair the code and restore the check in the preset.',
 		]);
 	});
 
 	it("as a path from the repository root when it names a file there", async () => {
 		expect(await found({ "biome.json": extending("configs/base.json"), "configs/base.json": weak("base") })).toEqual([
-			'configs/base.json:1 Weakens "lint/suspicious/base" for "**" without a declaration.',
+			'configs/base.json:1 Weakens "lint/suspicious/base" for "**" without a declaration. Repair the code and remove the weakening setting.',
 		]);
 	});
 

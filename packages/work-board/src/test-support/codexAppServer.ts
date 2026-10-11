@@ -1,3 +1,4 @@
+import process from "node:process";
 import { createInterface } from "node:readline";
 
 const mode = process.argv[2];

@@ -14,10 +14,10 @@ describe("renewal reconciles prior result ownership", () => {
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
 				finishWorkers(fixture);
 				const stale = yield* fleet.reconcile("one");
 				expect(stale.value.result).toBeUndefined();
+				fixture.approveWork("one", "board-one-next");
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 				expect(renewed.value.history?.[0]?.outcome).toBeUndefined();
@@ -33,9 +33,9 @@ describe("renewal reconciles prior result ownership", () => {
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
 				finishWorkers(fixture);
 				yield* fleet.reconcile("one");
+				fixture.approveWork("one", "board-one-next");
 				const error = yield* Effect.flip(prepareWork("one"));
 				expect(error).toMatchObject({ _tag: "FleetFailure", message: expect.stringContaining("ownership is unavailable"), reason: "denied" });
 				const retained = yield* fleet.get("one");
@@ -53,8 +53,8 @@ describe("renewal reconciles prior result ownership", () => {
 				const submitted = yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
 				yield* fleet.reconcile("one");
+				fixture.approveWork("one", "board-one-next");
 				fixture.failedObservations.add(submitted.value.attempts[0]?.receipt?.turnId ?? "missing");
 				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();

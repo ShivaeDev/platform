@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import process from "node:process";
 import { promisify } from "node:util";
 import { Cause, Clock, Effect, Exit, Fiber } from "effect";
 import { afterEach, expect } from "vitest";

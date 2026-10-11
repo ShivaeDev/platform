@@ -170,13 +170,14 @@ Import from the module that defines the name; the package has no root entry.
 
 | Module | Names |
 | --- | --- |
-| `channel.ts` | `makeChannel`, `ChannelOptions`, `Channel` |
-| `frame.ts` | `Frame`, `Outcome` |
+| `channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit` |
+| `frame.ts` | `Frame`, `CommitFrame`, `Outcome` |
 | `observe.ts` | `Observation`, `Observer` |
 | `publish.ts` | `Publish`, `PublishFailure` |
 
 ```ts
-interface ChannelOptions<A, R> {
+interface ChannelOptions<A, R, E = never> {
+  readonly beforeCommit?: BeforeCommit<A, E, R>;
   readonly name: string;
   readonly owner: Effect.Effect<unknown, never, R>;
   readonly key?: (change: A) => unknown;
@@ -185,15 +186,21 @@ interface ChannelOptions<A, R> {
   readonly unowned?: Effect.Effect<void, never, R>;
 }
 
-interface Channel<A, R> {
+interface Channel<A, R, HookError = never> {
+  readonly BeforeCommit: Context.Reference<BeforeCommit<A, HookError, R>>;
+  readonly CommittedSink: Context.Reference<Publish<A, R> | undefined>;
   readonly record: (changes: Iterable<A>) => Effect.Effect<void, never, R>;
   readonly within: <X, E, R2, E2, R3>(
-    native: (body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E2, R3>,
+    native: (body: Effect.Effect<X, E | HookError, R2>) => Effect.Effect<X, E2, R3>,
   ) => (body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E2, R | R3>;
-  readonly open: Effect.Effect<Frame, never, R>;
+  readonly open: Effect.Effect<CommitFrame<HookError>, never, R>;
   readonly batch: <X, E, R2>(body: Effect.Effect<X, E, R2>) => Effect.Effect<X, E, R | R2>;
   readonly Sink: Context.Reference<Publish<A, R>>;
   readonly Observer: Context.Reference<Observer<A>>;
+}
+
+interface CommitFrame<E = never> extends Frame {
+  readonly beforeCommit: Effect.Effect<void, E>;
 }
 
 interface Frame {
@@ -228,3 +235,9 @@ pnpm add @shivaedev/effect-changes effect@4.0.0-rc.112
 - A native adapter must observe the real commit outcome. Wrapping only the body of a transaction does not establish that outcome.
 - Use a durable event design when every business event must be retained. A deduplicated notification is a request to refresh, not an event journal.
 - Core tests use a fake transaction. SQL and Prisma bindings have PostgreSQL tests for their actual commit behavior, which require a database URL to run.
+
+### Work inside the committing transaction
+
+`makeChannel<A, R, E>` accepts an optional `beforeCommit: (changes: readonly A[]) => Effect<void, E, R>`. Its scoped `BeforeCommit` reference lets a binding replace that hook. `within` runs the hook after a successful body, with deduplicated changes from successful nested work, before the native root transaction commits. Empty transactions and rolled-back bodies do not run it. A typed hook failure is passed to the native transaction and rolls back the write. The hook does not run for an unframed record or a batch of already committed writes.
+
+A direct driver binding using `open` must run `frame.beforeCommit` inside its transaction callback after the body succeeds, before returning to the driver. Then settle from the driver's actual commit result. `CommittedSink` optionally replaces the transaction's after-commit sink; the ordinary `Sink` still handles unframed records and batches. A PostgreSQL binding can use this to deliver through its listener once instead of also publishing locally after commit.

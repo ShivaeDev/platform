@@ -21,7 +21,15 @@ export const workerReportFailure = Effect.fn("Fleet.workerReportFailure")(functi
 		return undefined;
 	}
 	const parsed = yield* resultReport(latest.output ?? "").pipe(Effect.result);
-	return Result.isFailure(parsed) && parsed.failure.message === reason ? parsed.failure : undefined;
+	if (Result.isFailure(parsed)) {
+		return parsed.failure.message === reason ? parsed.failure : undefined;
+	}
+	return [
+		"PR head moved after the worker report",
+		"Merged PR head differs from the reported head; inspect delivery before accepting this work",
+	].includes(reason)
+		? new FleetFailure({ message: reason, reason: "stale" })
+		: undefined;
 });
 
 export function correctWorkerReport(state: EngineState) {
@@ -32,7 +40,7 @@ export function correctWorkerReport(state: EngineState) {
 	) {
 		const latest = stored.value.attempts.at(-1);
 		if (latest?.receipt === undefined || latest.role === "reviewer" || latest.status !== "completed") {
-			return yield* new FleetFailure({ message: "Report correction requires a completed worker receipt", reason: "invalid" });
+			return yield* new FleetFailure({ message: "Report execution lacks a completed receipt", reason: "invalid" });
 		}
 		if (responses === undefined && latest.prompt?.startsWith(correctionPrompt)) {
 			return yield* state.decision(stored, failure.message, "Retry to request a corrected worker report or safely release");
