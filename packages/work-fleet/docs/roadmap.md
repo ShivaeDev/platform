@@ -18,6 +18,22 @@
 - Authorized delivery: supply trusted authorization, delivery observation and normal merge under branch requirements.
 - Board view: present Fleet execution attachments and decisions in the Board interface.
 
+Completed worker and repair turns that report the explicit question marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread. Concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. Unmarked prose is not classified as a question.
+
+Published decisions retain exact Board question/context receipts. Reconciliation
+consumes current guided retry/release responses and records idempotent SQL
+acknowledgements. Native resolution names the work, decision and response IDs.
+Clarification, deferral, stale context and competing unsuperseded answers remain
+concrete human blockers. Response labels and bodies cannot grant runtime authority.
+Applied responses retain the exact published decision and Board acknowledgement
+marker in SQL. After SQL resolution commits, the Markdown gateway publishes a
+qualified immutable request receipt, allowing Board's native attention to acknowledge
+the managed request without modifying its reviewed source. Failed publication retries
+without repeating the action. Renewal recovers the exact decision publication receipt
+from stored original context before archival; missing context blocks renewal.
+archived open decisions retain pending acknowledgement state and receive superseded
+acknowledgements. Clarification and deferral stay open.
+
 The command host's default integrations read GitHub checks but do not supply result adoption, review or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
 
 ## Validation boundary
