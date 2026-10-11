@@ -44,10 +44,10 @@ describe("typed result adoption failures", () => {
 				.pipe(Effect.flip),
 		).toMatchObject({ reason: "stale" });
 	});
-	for (const after of [{ head: { sha: MOVED } }, { base: { ref: "main", sha: MOVED } }, { "changed_files": 3 }, { state: "closed" }]) {
+	for (const after of [{ head: { sha: MOVED } }, { base: { ref: "other", sha: MOVED } }, { "changed_files": 3 }, { state: "closed" }]) {
 		it.effect(`rejects movement or closure during path observation: ${JSON.stringify(after)}`, function* () {
 			expect(yield* resultFixture({ after }).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({
-				reason: "state" in after ? "invalid" : "stale",
+				reason: "state" in after || "base" in after ? "invalid" : "stale",
 			});
 		});
 	}

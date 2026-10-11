@@ -1,3 +1,5 @@
+import { formReadingScript } from "./formReadingScript.ts";
+
 export function pageStateScript(): string {
 	return `
 import { tick } from "/_board/ages.js";
@@ -6,7 +8,9 @@ import { renderDiagrams } from "/_board/diagrams.js";
 import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
 import { revealCurrentFile } from "/_board/sidebar.js";
 import { refreshLibrary } from "/_board/library.js";
+import { navigationHtml } from "/_board/native.js";
 
+${formReadingScript()}
 export const syncInbox = () => {
   const count = document.querySelector("#files [data-inbox-count]")?.dataset.inboxCount;
   if (count !== undefined) for (const id of ["inbox-count", "inbox-topbar-count"]) {
@@ -19,12 +23,10 @@ export const syncInbox = () => {
   for (const id of ["inbox-open", "inbox-topbar"]) document.getElementById(id)?.setAttribute("aria-current", document.getElementById("doc").dataset.view === "inbox" ? "page" : "false");
 };
 
-export const applyNavigation = (html) => {
+export const applyNavigation = (data) => {
   const files = document.getElementById("files");
   const next = files.cloneNode(false);
-  next.innerHTML = html;
-  const current = document.getElementById("doc").dataset.file;
-  for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
+  next.innerHTML = navigationHtml(data);
   swap(files, next);
   syncInbox();
   revealCurrentFile();
@@ -43,6 +45,7 @@ export const applyPage = (page, preserve = false) => {
   const incoming = page.getElementById("doc");
   const current = document.getElementById("doc");
   if (!incoming || !page.getElementById("files")) return false;
+  const responseFocus = preserve ? captureResponseFocus() : null;
   const reading = preserve ? captureReading() : null;
   const cachedScheme = incoming.dataset.scheme;
   if (preserve && (current.dataset.file === incoming.dataset.file || (current.dataset.identity && current.dataset.identity === incoming.dataset.identity))) {
@@ -81,6 +84,7 @@ export const applyPage = (page, preserve = false) => {
   renderDiagrams(document, cachedScheme && cachedScheme !== doc.dataset.scheme ? "figure.diagram" : undefined);
   reportMissingPassage();
   document.dispatchEvent(new Event("board-page"));
+  restoreResponseFocus(responseFocus);
   return true;
 };
 `;

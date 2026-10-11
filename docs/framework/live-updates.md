@@ -6,15 +6,12 @@ cache nor authoritative data. Ordinary typed queries establish current values;
 the application discovers dependencies and decides which keys changed.
 
 The [HTTP consumer](../../packages/effect-contract/src/liveConsumer.spec.ts)
-mounts two documents and a derived list. Its native RPC group adds a streaming
-operation to an ordinary contract. `bind` accepts that larger client group while
-preserving the contract's query/action types; a client missing its operations is
-rejected by the compiler fixture.
+mounts two documents and a derived list. Its contract declares a streaming
+operation alongside its queries. `bind` preserves the contract's query, command and stream types; a client missing its operations is rejected by the compiler fixture.
 
 ## Server and client composition
 
-Use `LiveHint` as a streaming RPC's success schema, with application errors in
-its error schema. For HTTP streaming, both sides use native
+Use `stream` from `effect-contract/operation.ts` with `LiveHint` as its `success` schema and application failures in `rejections`. Add it to the contract's `streams` array. For HTTP streaming, both sides use native
 `RpcSerialization.layerNdjson`; ordinary `layerJson` buffers the entire response
 and cannot deliver an unending subscription's hints. The fixture uses native
 `RpcServer.layerHttp`, a loopback Node HTTP server, native FetchHttpClient,
@@ -23,9 +20,8 @@ protocol is required.
 
 ```ts
 const subscription = live(Client.runtime, {
-  stream: Stream.unwrap(Client.use((client) =>
-    Effect.succeed(client("subscribe", undefined)))),
-  resyncKeys: [workspace.list],
+  stream: api.subscribe.run(undefined),
+  resyncKeys: Subscribe.reads(undefined),
   resume: resumeSignal({ window }),
 });
 const release = registry.mount(subscription.connection);
