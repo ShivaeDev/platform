@@ -4,22 +4,22 @@ export interface TransactionOptions {
 	readonly timeout?: number;
 }
 
-export interface Transactional<Tx> {
-	$transaction: <X>(run: (tx: Tx) => Promise<X>, options?: TransactionOptions) => PromiseLike<X>;
+export interface Transactional<TTx> {
+	$transaction: <TX>(run: (tx: TTx) => Promise<TX>, options?: TransactionOptions) => PromiseLike<TX>;
 }
 
-type PayloadOf<Delegate> = Delegate extends { readonly [key: symbol]: { readonly types: { readonly payload: infer Payload } } } ? Payload : never;
+type PayloadOf<TDelegate> = TDelegate extends { readonly [key: symbol]: { readonly types: { readonly payload: infer TPayload } } } ? TPayload : never;
 
-type Delegates<Client> = Exclude<keyof Client & string, `$${string}`>;
+type Delegates<TClient> = Exclude<keyof TClient & string, `$${string}`>;
 
-export type ModelName<Client> = {
-	[Key in Delegates<Client>]: PayloadOf<Client[Key]> extends { readonly name: infer Name extends string } ? Name : never;
-}[Delegates<Client>];
+export type ModelName<TClient> = {
+	[TKey in Delegates<TClient>]: PayloadOf<TClient[TKey]> extends { readonly name: infer TName extends string } ? TName : never;
+}[Delegates<TClient>];
 
-export type ModelRow<Client, Model extends string> = Extract<
+export type ModelRow<TClient, TModel extends string> = Extract<
 	{
-		[Key in Delegates<Client>]: PayloadOf<Client[Key]> extends { readonly name: Model; readonly scalars: infer Row } ? Row : never;
-	}[Delegates<Client>],
+		[TKey in Delegates<TClient>]: PayloadOf<TClient[TKey]> extends { readonly name: TModel; readonly scalars: infer TRow } ? TRow : never;
+	}[Delegates<TClient>],
 	object
 >;
 
@@ -27,10 +27,10 @@ export type RowOperation = "create" | "update" | "upsert" | "delete" | "createMa
 
 export type CountOperation = "createMany" | "updateMany" | "deleteMany";
 
-export type ModelChanges<Row, A> = (row: Row, operation: RowOperation) => Iterable<A>;
+export type ModelChanges<TRow, A> = (row: TRow, operation: RowOperation) => Iterable<A>;
 
-export type ChangeMap<Client, A> = {
-	readonly [Model in ModelName<Client>]: ModelChanges<ModelRow<Client, Model>, A> | null;
+export type ChangeMap<TClient, A> = {
+	readonly [TModel in ModelName<TClient>]: ModelChanges<ModelRow<TClient, TModel>, A> | null;
 };
 
 export const rowOperations: ReadonlySet<string> = new Set<RowOperation>([

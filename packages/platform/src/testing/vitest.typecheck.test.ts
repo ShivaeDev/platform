@@ -10,7 +10,7 @@ import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 import { makePlatformIt } from "#testing/vitest.ts";
 
-type IsAny<Value> = 0 extends 1 & Value ? true : false;
+type IsAny<TValue> = 0 extends 1 & TValue ? true : false;
 
 const Database = makeDatabase<Contract>()("@types/PlatformDatabase", {
 	contractJson,
