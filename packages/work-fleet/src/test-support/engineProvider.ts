@@ -22,6 +22,8 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const reviewers = new Set<string>();
 	let reviewFailed = false;
 	let reviewLost = options.lostReviewAcknowledgement ?? false;
+	const archived: string[] = [];
+	let archiveFailed = false;
 	const settings: { readonly call: "session" | "turn"; readonly operationId: string; readonly settings: LaunchSettings | undefined }[] = [];
 	const observations = new Map<string, SessionObservation>();
 	const failedObservations = new Set<string>();
@@ -38,6 +40,14 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		return missing;
 	}
 	const transport = Layer.succeed(SessionTransport)({
+		archive: (sessionId) =>
+			Effect.gen(function* () {
+				if (options.archiveFailure && !archiveFailed) {
+					archiveFailed = true;
+					return yield* Effect.fail(new SessionFailure({ message: "Archive temporarily unavailable", reason: "unavailable" }));
+				}
+				archived.push(sessionId);
+			}),
 		interrupt: (receipt) => Effect.succeed(receipt),
 		observe: (receipt) =>
 			Effect.gen(function* () {
@@ -86,6 +96,6 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				return receipt;
 			}),
 	});
-	return { failedObservations, launched, observations, operations, settings, starts, transport };
+	return { archived, failedObservations, launched, observations, operations, settings, starts, transport };
 }
 export type EngineProvider = ReturnType<typeof engineProvider>;

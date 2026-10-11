@@ -26,6 +26,21 @@
 		},
 		"files": {}
 	},
+	"pr-watch": {
+		"args": ["--repo", "acme/project", "7", "--once", "--state", "state.json"],
+		"env": {
+			"GH_TOKEN": "fixture-token",
+			"NODE_OPTIONS": "--import ./github.mjs"
+		},
+		"expectedFiles": {
+			"state.json": "\"merged\":true"
+		},
+		"files": {
+			"github.mjs": "import { createServer } from \"node:http\";\nconst server = createServer((req, res) => {\n const body = req.url.includes(\"matching-refs\") ? [] : { number: 7, title: \"Packed executable\", state: \"closed\", merged: true, mergeable: true, mergeable_state: \"clean\", head: { ref: \"feature\", sha: \"abc\" }, auto_merge: null };\n res.writeHead(200, { \"content-type\": \"application/json\" }); res.end(JSON.stringify(body));\n});\nawait new Promise(done => server.listen(0, \"127.0.0.1\", done));\nprocess.argv.push(\"--api-url\", `http://127.0.0.1:${server.address().port}`);\nserver.unref();\n",
+			"state.json": "{\"version\": 1, \"repository\": \"acme/project\", \"prs\": {\"7\": {\"number\": 7, \"branch\": \"feature\", \"title\": \"Packed executable\", \"state\": \"open\", \"merged\": false, \"dirty\": false, \"autoMerge\": false, \"failed\": false, \"queued\": false}}}\n"
+		},
+		"output": "{\"branch\":\"feature\",\"event\":\"merged\",\"number\":7,\"title\":\"Packed executable\"}"
+	},
 	"quality": {
 		"args": ["baseline", "write"],
 		"expectedFiles": {
