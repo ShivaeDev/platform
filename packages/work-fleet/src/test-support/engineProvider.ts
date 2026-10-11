@@ -8,6 +8,7 @@ export function engineProvider(options: EngineOptions) {
 	const observations = new Map<string, SessionObservation>();
 	const failedObservations = new Set<string>();
 	const operations = new Map<string, SessionReceipt>();
+	let turns = 0;
 	let lost = options.lostAcknowledgement ?? false;
 	const transport = Layer.succeed(SessionTransport)({
 		interrupt: (receipt) => Effect.succeed(receipt),
@@ -32,14 +33,18 @@ export function engineProvider(options: EngineOptions) {
 			}),
 		startTurn: (input) =>
 			Effect.gen(function* () {
+				turns += 1;
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
+				if (turns === 2 && options.continuationGate !== undefined) {
+					yield* options.continuationGate;
+				}
 				if (options.rejectTurn) {
 					return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
 				}
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
 				operations.set(input.operationId, receipt);
 				observations.set(receipt.turnId, { execution: "running", output: input.prompt, provisioning: "ready", receipt });
-				if (lost) {
+				if (lost || (options.lostContinuationAcknowledgement && turns === 2)) {
 					lost = false;
 					return yield* Effect.fail(new SessionFailure({ message: "Lost acceptance response", reason: "ambiguous" }));
 				}
