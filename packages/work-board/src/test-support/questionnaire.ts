@@ -1,3 +1,5 @@
+import { questionId, questionMarkdown, revisionOf } from "#responses/records.ts";
+
 export const questionnaireSource = `---
 id: investigation.choices
 kind: investigation
@@ -46,3 +48,33 @@ export const questionnaireAnswers = [
 	{ prompt: "display", selected: ["history"], text: "Preserve why the direction changed." },
 	{ prompt: "checks", selected: ["back", "reload"], text: "Check a narrow screen too." },
 ] as const;
+
+export function capturedQuestionnaire(source = questionnaireSource) {
+	return questionMarkdown({
+		context: source,
+		id: questionId("investigation.choices", "direction", revisionOf(source), "decision.md"),
+		question: {
+			deadline: 200,
+			item: "investigation.choices",
+			reason: "Choose the reading experience and its verification.",
+			registeredAt: 100,
+			request: "direction",
+			reviewedRevision: revisionOf(source),
+			source: "decision.md",
+		},
+	});
+}
+
+export const scopedQuestionnaire = questionnaireSource
+	.replace(
+		"    unblocks: [investigation.choices]",
+		`    unblocks: [investigation.choices]
+  - id: verification
+    kind: review
+    state: open
+    response_from: [maintainer]
+    reason: Choose verification.
+    unblocks: [investigation.choices]`,
+	)
+	.replace('id="display" select="one"', 'id="display" select="one" request="direction"')
+	.replace('id="checks" select="many"', 'id="display" select="many" request="verification"');
