@@ -48,6 +48,7 @@ export interface EngineOptions {
 	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
+	readonly workerGuidance?: string;
 	readonly writeGate?: (value: FleetRecord) => Effect.Effect<void>;
 	readonly wrongHead?: "review" | "checks";
 }

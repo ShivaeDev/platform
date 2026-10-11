@@ -5,6 +5,7 @@ import { resultReport } from "#host/resultReport.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
 import { FleetFailure } from "#policy.ts";
+import { withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 
 const correctionPrompt = [
@@ -34,7 +35,7 @@ export function correctWorkerReport(state: EngineState) {
 		if (latest?.receipt === undefined || latest.role === "reviewer" || latest.status !== "completed") {
 			return yield* new FleetFailure({ message: "Report correction requires a completed worker receipt", reason: "invalid" });
 		}
-		if (responses === undefined && latest.prompt === correctionPrompt) {
+		if (responses === undefined && latest.prompt === withWorkerGuidance(correctionPrompt, state.policy.workerGuidance)) {
 			return yield* state.decision(stored, failure.message, "Retry to request a corrected worker report or safely release");
 		}
 		return yield* makeLaunch(state)(stored, latest.role, correctionPrompt, {
