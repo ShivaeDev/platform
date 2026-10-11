@@ -86,8 +86,13 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 			...adapter,
 			archive: (sessionId: string) =>
 				config.archiveThreads === false ? Effect.void : rpc("thread/archive", { threadId: sessionId }, true).pipe(Effect.asVoid),
-			nameSession: (sessionId: string) =>
-				rpc("thread/name/set", { name: `${config.threadNamePrefix ?? "Fleet: "}${sessionId}`, threadId: sessionId }, true).pipe(Effect.asVoid),
+			nameSession: (sessionId: string, name: string) =>
+				rpc("thread/name/set", { name: `${config.threadNamePrefix ?? "Fleet: "}${name}`, threadId: sessionId }, true).pipe(Effect.asVoid),
+			readSessionName: (sessionId: string) =>
+				rpc("thread/read", { includeTurns: false, threadId: sessionId }).pipe(
+					Effect.flatMap((value) => decode(Schema.Struct({ thread: Schema.Struct({ name: Schema.optional(Schema.NullOr(Schema.String)) }) }), value)),
+					Effect.map((value) => value.thread.name ?? undefined),
+				),
 			startSession: (input: StartSession) =>
 				input.cwd === config.cwd
 					? adapter.startSession(input)

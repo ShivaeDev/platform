@@ -2,6 +2,7 @@
 
 ## Built
 
+- Cloud threads carry their prepared Board work ID and first heading, with configurable prefixes, trimmed titles, and role labels for separate review and repair threads. `work-fleet name-threads` backfills current and archived sessions, reports failures and skips successful names on repeat runs. Formatting tests and PostgreSQL CLI tests against a synthetic Cloud backend cover naming and idempotence.
 - The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait` for one item or `watch` for several. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags, wait process exit codes and watch outcomes.
 - The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns for Work Board. Renderer, filesystem and PostgreSQL scheduler tests cover card grouping, links, unsafe Markdown inputs, authored-content and symlink boundaries, and publication retry.
 - Board frontmatter uses `fleet: approved` and per-field `fleet-launch` overrides. Host launch defaults and task overrides reach worker sessions and turns; repair retains the settings. Frontmatter, host and launch-setting tests cover these boundaries.
