@@ -30,6 +30,8 @@ checkbox. The [design guide](./README.md) explains how the paths fit.
   exercise retained failures, missed changes, stale responses, pause/resume and
   teardown. [Composition and evidence](./live-updates.md).
 
+- [x] PostgreSQL notification delivery connects two HTTP server processes and a pg-boss worker through transaction-owned NOTIFY. Rollback and failed commit send no invalidation; listener termination and missing heartbeats resync streams. [Process and SQL evidence](./composed-example.md#delivery-between-processes).
+
 These are executable fixtures; their evidence does not establish a consuming
 application's deployment behavior. Work Board's use of the shared live path and
 its browser acceptance belong to
@@ -48,9 +50,9 @@ its browser acceptance belong to
    application chooses the operational timeout and status interface.
 4. Verify request cancellation through the deployment host and proxy, including
    interruption inside a transaction and resource release at the host boundary.
-5. Select and test delivery between processes and background workers when an
-   application's deployment needs it. In-process invalidation alone is
-   insufficient evidence for that job.
+5. Validate the PostgreSQL delivery adapter against an application's deployment,
+   or select another adapter when it uses PgBouncer transaction pooling. The
+   reference process fixture does not establish a deployment proxy's behavior.
 6. Prove optimistic edits only for a concrete feature that benefits from them,
    including rejection and out-of-order responses.
 7. Establish request/action correlation, trace export, redaction and error

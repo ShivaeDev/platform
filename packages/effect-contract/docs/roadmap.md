@@ -11,12 +11,13 @@ This file owns effect-contract's implementation status and package questions. Th
 - [x] Collection item/list keys with native read hashing, deduplication and item-to-list mutation invalidation. Native Reactivity tests distinguish affected and unrelated items.
 - [x] Native AtomRpc binding with query atoms and per-call Effects. Successful commands invalidate their declared keys, including keys derived from results; rejected commands do not invalidate. Client type checks cover matching, larger, incomplete and incompatible RPC groups.
 - [x] Optional `LiveHint`/`Key` schemas and native live coordination: precise refresh, explicit first/reconnected scope reconciliation, a paused count capped at 256, typed stream failures and registry teardown. The framework guide owns the composed HTTP fixture evidence.
+- [x] `makeLiveServer` turns committed Reactivity keys into scoped hint streams and resyncs every active read scope. [Server evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/src/makeLiveServer.test.ts).
 - [x] Shared browser/native `resumeSignal`. Synthetic event tests cover visible versus hidden browser events, injected native callbacks, native SWR composition and listener disposal. The installed consumer checks an otherwise unobserved source's initialization and cleanup through `live`.
 - [x] Installed-package runtime and type fixtures for contracts, keys, rejection fields and live pause/resume composition.
 
 ## Next
 
-No additional declaration or live helper is selected. A concrete consuming feature should establish the next repeated task before this package adds an abstraction. Host/proxy behavior, authenticated subscriptions, SSR and physical browser/mobile lifecycle remain framework or application validation work.
+No additional declaration or live helper is selected beyond the server helper used by the reference order handlers. A concrete consuming feature should establish the next repeated task before this package adds an abstraction. Host/proxy behavior, authenticated subscriptions, SSR and physical browser/mobile lifecycle remain framework or application validation work.
 
 ## Open questions
 
