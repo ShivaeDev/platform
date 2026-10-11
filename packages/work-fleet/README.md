@@ -73,6 +73,7 @@ The launch fields are strings. Omitted fields inherit the host settings; without
 | `work-fleet status --board <board-dir>` | Prints Active, Needs human and Completed views from stored records. |
 | `work-fleet status <work-id> --board <board-dir> --json` | Filters to one item and prints the views as JSON. |
 | `work-fleet wait <work-id> --board <board-dir> --timeout <seconds>` | Polls stored state until an outcome or timeout. |
+| `work-fleet watch [work-ids...] --board <board-dir>` | Follows several items in one process and reports each outcome once. |
 
 Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `run` active to reconcile worker progress; `wait` only observes PostgreSQL. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
 
@@ -87,6 +88,20 @@ Automatic admission does not re-approve an edited item that already has a record
 | `4` | The requested timeout expired. |
 
 `--interval <seconds>` controls the time between reads. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout, missing configuration and delayed creation against PostgreSQL.
+
+`watch` prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. Each poll uses one PostgreSQL query for summary fields, without loading execution history or the Fleet runtime. `--interval <seconds>` defaults to 15; `--timeout <seconds>` exits 4 and writes a timeout message to stderr. Read failures retry up to 20 consecutive polls before exit 1. `src/host/watch.test.ts` and `src/host/readWaitStates.test.ts` exercise these rules against PostgreSQL.
+
+### Read the generated heading board
+
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Needs human and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+
+After the first scheduler cycle creates the file, select it as Work Board's home:
+
+```sh
+work-board ./notes --home fleet/status.md
+```
+
+The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services. `src/board/statusMarkdown.test.ts`, `src/board/writeStatus.test.ts` and `src/host/statusLayer.test.ts` cover rendering, file boundaries and publication retry.
 
 ### Answer a worker question
 

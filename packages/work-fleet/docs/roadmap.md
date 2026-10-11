@@ -2,7 +2,8 @@
 
 ## Built
 
-- The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait`. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags and wait process exit codes.
+- The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait` for one item or `watch` for several. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags, wait process exit codes and watch outcomes.
+- The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns for Work Board. Renderer, filesystem and PostgreSQL scheduler tests cover card grouping, links, unsafe Markdown inputs, authored-content and symlink boundaries, and publication retry.
 - Board frontmatter uses `fleet: approved` and per-field `fleet-launch` overrides. Host launch defaults and task overrides reach worker sessions and turns; repair retains the settings. Frontmatter, host and launch-setting tests cover these boundaries.
 - The Codex Cloud provider sends the configured environment and launch settings, confirms the environment before a turn and rejects work prepared for a different workspace, reads final output, and refreshes expired login files through a configured command. `src/providers/codexCloud.test.ts` covers these requests and failures with a synthetic WebSocket backend.
 - Worker instructions include Cloud startup waiting, current-main checkout, repository checks and one human-review pull request. The report parser recognizes a URL or explicit no-change marker. `src/prompt/worker.test.ts` covers these instructions and parsing.
@@ -23,7 +24,7 @@ The command host's default integrations read GitHub checks but do not supply res
 
 ## Validation boundary
 
-Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Synthetic paginated GitHub responses cover green, red, pending and newer-push checks; they do not prove live GitHub authentication or branch requirements. Cloud and local provider tests use synthetic WebSocket servers. Packed consumers exercise the package exports and command help.
+Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Synthetic paginated GitHub responses cover green, red, pending and newer-push checks; they do not prove live GitHub authentication or branch requirements. Cloud and local provider tests use synthetic WebSocket servers. Status board tests include invalidation of a mounted native Board page over real HTTP; they do not establish physical-browser acceptance. Packed consumers exercise the package exports and command help.
 
 Live Cloud computation, actual pull request adoption, independent review, required checks and authorized delivery still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 

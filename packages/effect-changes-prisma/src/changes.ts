@@ -9,21 +9,21 @@ import { interpret, type LooseMap, type UnnamedWrite, type Write } from "./write
 
 export type UnnamedObserver = (write: UnnamedWrite) => Effect.Effect<void>;
 
-export interface PrismaChangesOptions<Tx, A, R> extends Omit<ChannelOptions<A, R>, "owner" | "unowned"> {
-	readonly client: Tx & Transactional<Tx>;
-	readonly models: Partial<ChangeMap<Tx, A>>;
+export interface PrismaChangesOptions<TTx, A, R> extends Omit<ChannelOptions<A, R>, "owner" | "unowned"> {
+	readonly client: TTx & Transactional<TTx>;
+	readonly models: Partial<ChangeMap<TTx, A>>;
 }
 
-export interface PrismaChanges<Tx, A, R> {
-	readonly Client: Context.Reference<Tx>;
+export interface PrismaChanges<TTx, A, R> {
+	readonly Client: Context.Reference<TTx>;
 	readonly channel: Channel<A, R>;
 	readonly recordWrite: (write: Write) => Effect.Effect<void, never, R>;
-	readonly transaction: <X, E, R2>(
-		body: Effect.Effect<X, E, R2>,
+	readonly transaction: <TX, E, TR2>(
+		body: Effect.Effect<TX, E, TR2>,
 		options?: TransactionOptions,
-	) => Effect.Effect<X, E | TransactionExpired | PrismaError, R | R2>;
+	) => Effect.Effect<TX, E | TransactionExpired | PrismaError, R | TR2>;
 	readonly Unnamed: Context.Reference<UnnamedObserver>;
-	readonly use: <X>(query: (client: Tx) => PromiseLike<X>) => Effect.Effect<X, PrismaError, R>;
+	readonly use: <TX>(query: (client: TTx) => PromiseLike<TX>) => Effect.Effect<TX, PrismaError, R>;
 }
 
 const ignoreUnnamed: UnnamedObserver = () => Effect.void;
@@ -35,12 +35,14 @@ function expireOnClosed(Expiry: Context.Reference<Expire>, exit: Exit.Exit<unkno
 	});
 }
 
-export const makePrismaChanges = <Tx extends Transactional<Tx>, A, R = never>(options: PrismaChangesOptions<Tx, A, R>): PrismaChanges<Tx, A, R> => {
+export const makePrismaChanges = <TTx extends Transactional<TTx>, A, R = never>(
+	options: PrismaChangesOptions<TTx, A, R>,
+): PrismaChanges<TTx, A, R> => {
 	const { client, models: typed, ...channelOptions } = options;
 	const models: LooseMap<A> = typed;
 	const prefix = `@shivaedev/effect-changes-prisma/${options.name}/${crypto.randomUUID()}`;
 	const channel = makeChannel<A, R>({ ...channelOptions, owner: Effect.succeed(client) });
-	const Client = Context.Reference<Tx>(`${prefix}/Client`, { defaultValue: () => client });
+	const Client = Context.Reference<TTx>(`${prefix}/Client`, { defaultValue: () => client });
 	const Unnamed = Context.Reference<UnnamedObserver>(`${prefix}/Unnamed`, { defaultValue: () => ignoreUnnamed });
 	const Expiry = makeExpiry(`${prefix}/Expiry`);
 	const delegates = delegatesOf(models);
@@ -55,7 +57,7 @@ export const makePrismaChanges = <Tx extends Transactional<Tx>, A, R = never>(op
 		}
 	});
 
-	const use = Effect.fn("PrismaChanges.use")(function* <X>(query: (client: Tx) => PromiseLike<X>) {
+	const use = Effect.fn("PrismaChanges.use")(function* <TX>(query: (client: TTx) => PromiseLike<TX>) {
 		const current = yield* Client;
 		const writes: Write[] = [];
 		const recording = recordingClient(current, delegates, (write) => writes.push(write));
@@ -65,11 +67,11 @@ export const makePrismaChanges = <Tx extends Transactional<Tx>, A, R = never>(op
 		return yield* exit;
 	}, Effect.uninterruptible);
 
-	const transaction = <X, E, R2>(body: Effect.Effect<X, E, R2>, transactionOptions?: TransactionOptions) =>
+	const transaction = <TX, E, TR2>(body: Effect.Effect<TX, E, TR2>, transactionOptions?: TransactionOptions) =>
 		Effect.flatMap(Effect.service(Client), (current) => {
 			const savepoint = isTransactionClient(current);
 			const run = runTransaction({
-				body: (tx: Tx) => Effect.provideService(body, Client, tx),
+				body: (tx: TTx) => Effect.provideService(body, Client, tx),
 				client: current,
 				deadline: savepoint ? undefined : (transactionOptions?.timeout ?? configuredTimeout(current)),
 				Expiry,

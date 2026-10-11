@@ -4,25 +4,25 @@ import { PrismaError, TransactionExpired } from "./error.ts";
 import { type Expire, expiring, isTransactionClosed } from "./expiry.ts";
 import type { Transactional, TransactionOptions } from "./model.ts";
 
-interface Settled<X, E> {
+interface Settled<TX, E> {
 	readonly closed?: TransactionExpired;
 	readonly committed: boolean;
-	readonly exit: Exit.Exit<X, E | TransactionExpired | PrismaError>;
+	readonly exit: Exit.Exit<TX, E | TransactionExpired | PrismaError>;
 }
 
 class BodyFailed {}
 
-function commit<Tx extends Transactional<Tx>, X, E, R>(
-	client: Tx,
+function commit<TTx extends Transactional<TTx>, TX, E, R>(
+	client: TTx,
 	options: TransactionOptions | undefined,
 	savepoint: boolean,
-	body: (tx: Tx) => Effect.Effect<X, E, R>,
+	body: (tx: TTx) => Effect.Effect<TX, E, R>,
 	context: Context.Context<R>,
 	signal: AbortSignal,
-): Promise<Settled<X, E>> {
+): Promise<Settled<TX, E>> {
 	let started = false;
-	let failed: Exit.Exit<X, E> | undefined;
-	async function run(tx: Tx) {
+	let failed: Exit.Exit<TX, E> | undefined;
+	async function run(tx: TTx) {
 		started = true;
 		const exit = await Effect.runPromiseExitWith(context)(body(tx), { signal });
 		if (Exit.isSuccess(exit)) {
@@ -31,7 +31,7 @@ function commit<Tx extends Transactional<Tx>, X, E, R>(
 		failed = exit;
 		throw new BodyFailed();
 	}
-	function rejected(cause: unknown): Settled<X, E> {
+	function rejected(cause: unknown): Settled<TX, E> {
 		if (failed !== undefined) {
 			return { committed: false, exit: failed };
 		}
@@ -42,32 +42,32 @@ function commit<Tx extends Transactional<Tx>, X, E, R>(
 		return { closed, committed: false, exit: Exit.fail(closed) };
 	}
 	return Promise.resolve(client.$transaction(run, options)).then(
-		(value): Settled<X, E> => ({ committed: true, exit: Exit.succeed(value) }),
+		(value): Settled<TX, E> => ({ committed: true, exit: Exit.succeed(value) }),
 		rejected,
 	);
 }
 
-export const runTransaction = <Tx extends Transactional<Tx>, X, E, R, RO>(options: {
-	readonly client: Tx;
-	readonly open: Effect.Effect<Frame, never, RO>;
-	readonly body: (tx: Tx) => Effect.Effect<X, E, R>;
+export const runTransaction = <TTx extends Transactional<TTx>, TX, E, R, TOpenRequirements>(options: {
+	readonly client: TTx;
+	readonly open: Effect.Effect<Frame, never, TOpenRequirements>;
+	readonly body: (tx: TTx) => Effect.Effect<TX, E, R>;
 	readonly transaction: TransactionOptions | undefined;
 	readonly savepoint: boolean;
 	readonly deadline: number | undefined;
 	readonly Expiry: Context.Reference<Expire>;
-}): Effect.Effect<X, E | TransactionExpired | PrismaError, R | RO> =>
+}): Effect.Effect<TX, E | TransactionExpired | PrismaError, R | TOpenRequirements> =>
 	Effect.uninterruptibleMask((restore) =>
 		Effect.gen(function* () {
 			const { client, savepoint, body, deadline, Expiry } = options;
 			const frame = yield* options.open;
 			const context = yield* Effect.context<R>();
 			const abort = new AbortController();
-			function guarded(tx: Tx) {
+			function guarded(tx: TTx) {
 				return expiring(frame.provide(body(tx)), deadline, Expiry);
 			}
 			const outcome = commit(client, options.transaction, savepoint, guarded, context, abort.signal);
 			const expire = yield* Expiry;
-			function settle(settled: Settled<X, E | TransactionExpired>) {
+			function settle(settled: Settled<TX, E | TransactionExpired>) {
 				return Effect.andThen(
 					settled.closed === undefined ? Effect.void : expire(settled.closed.cause),
 					Effect.as(frame.settle(settled.committed ? "committed" : "rolledBack"), settled.exit),
