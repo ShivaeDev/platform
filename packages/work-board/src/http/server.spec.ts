@@ -1,4 +1,4 @@
-import { chmodSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Layer, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
@@ -215,7 +215,7 @@ describe("assets", () => {
 		const response = yield* Effect.promise(() => get("/_board/native.js"));
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toBe("text/javascript");
-		expect(yield* Effect.promise(() => response.text())).toContain("work-board.subscribe");
+		expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL("../../assets/native.js", import.meta.url), "utf8"));
 	});
 
 	effectApp("serves Mermaid's modules from the installed package and nothing else", function* () {

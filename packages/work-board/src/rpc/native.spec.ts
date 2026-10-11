@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#browser/client.ts";
@@ -98,4 +98,10 @@ it.live("reads getting-started templates through the shared native page contract
 	expect(page.html).toContain("Project and report templates");
 	expect(page.html).toContain('data-view="start"');
 	expect(page.html).toContain("example.result");
+});
+
+it.live("delivers the initial reconciliation hint through the bound Board subscription", function* () {
+	yield* open();
+	const hints = yield* Effect.promise(() => client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1)))));
+	expect(hints).toEqual([{ _tag: "Resync" }]);
 });
