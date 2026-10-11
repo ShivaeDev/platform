@@ -1,4 +1,7 @@
 import { posix } from "node:path";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import { Effect } from "effect";
+import { manifestsIn } from "#manifests/sorted.ts";
 import type { RuleInputs } from "#rule.ts";
 import { globMatcher } from "./glob.ts";
 import { pnpmWorkspacePatterns } from "./pnpm-workspace.ts";
@@ -8,7 +11,7 @@ export interface WorkspacePackage {
 	readonly name: string;
 }
 
-type Reader = Pick<RuleInputs, "files" | "readText">;
+type Reader = Pick<RuleInputs, "files" | "readText"> & Partial<Pick<RuleInputs, "root">>;
 
 const MANIFEST = "package.json";
 
@@ -60,7 +63,9 @@ async function memberOf(inputs: Reader): Promise<(directory: string) => boolean>
 
 export async function workspacePackages(inputs: Reader): Promise<readonly WorkspacePackage[]> {
 	const member = await memberOf(inputs);
-	const directories = inputs.files
+	const manifests =
+		inputs.root === undefined ? inputs.files : await Effect.runPromise(manifestsIn(inputs.root).pipe(Effect.provide(NodeFileSystem.layer)));
+	const directories = manifests
 		.filter((file) => posix.basename(file) === MANIFEST && file !== MANIFEST)
 		.map((manifest) => posix.dirname(manifest))
 		.filter(member);
