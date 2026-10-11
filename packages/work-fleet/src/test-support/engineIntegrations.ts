@@ -43,7 +43,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 				main: (preparation) => Effect.succeed(mainObservation({ changedPaths: options.mainChanges ?? [], fromRevision: preparation.baseRevision })),
 				result: (board, observation) => {
 					if (options.resultQuery !== undefined) {
-						return options.resultQuery();
+						return options.resultQuery(board, observation);
 					}
 					if (options.resultUnavailable) {
 						return Effect.fail(new FleetFailure({ message: "Result ownership unavailable", reason: "integration" }));

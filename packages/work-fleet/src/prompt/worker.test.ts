@@ -43,6 +43,7 @@ describe("workerPrompt", () => {
 		expect(prompt).toContain(`\`${QUESTION_MARKER} <question>\``);
 		expect(prompt).toContain("continues this same thread with the recorded answer");
 		expect(prompt).toContain(`\`${PULL_REQUEST_MARKER} <url>\``);
+		expect(prompt).toContain("`FLEET_HEAD: <sha>`");
 	});
 	it("requires CI repair on the same branch and current main before reporting", () => {
 		expect(prompt).toContain("After every push, watch your PR's CI until all checks finish");
@@ -72,17 +73,41 @@ describe("workerPrompt", () => {
 	});
 });
 describe("reportedPullRequest", () => {
-	it("reads the last marker line as a URL or an explicit no-change result", () => {
-		expect(reportedPullRequest(`Done.\n${PULL_REQUEST_MARKER} https://example.test/pull/1\n`)).toEqual({
+	it("reads one final marker line as a GitHub PR URL or an explicit no-change result", () => {
+		expect(reportedPullRequest(`Done.\n${PULL_REQUEST_MARKER} https://github.com/example/repository/pull/1\n`)).toEqual({
 			kind: "url",
-			url: "https://example.test/pull/1",
+			url: "https://github.com/example/repository/pull/1",
 		});
-		expect(reportedPullRequest(`${PULL_REQUEST_MARKER} https://example.test/pull/1\n${PULL_REQUEST_MARKER} \`none\``)).toEqual({ kind: "none" });
+		expect(reportedPullRequest(`Done.\r\n${PULL_REQUEST_MARKER} none\r\n`)).toEqual({ kind: "none" });
 	});
+	for (const wrap of ["", "`"]) {
+		it(`tolerates whitespace and ${wrap === "" ? "plain" : "backtick-wrapped"} values`, () => {
+			expect(reportedPullRequest(`Done.\n \tFLEET_PR:  ${wrap}https://github.com/example/repository/pull/1${wrap} \t\n`)).toEqual({
+				kind: "url",
+				url: "https://github.com/example/repository/pull/1",
+			});
+			expect(reportedPullRequest(`Done.\n \tFLEET_PR:  ${wrap}none${wrap} \t\n`)).toEqual({ kind: "none" });
+		});
+	}
 	it("returns nothing for a missing or malformed marker", () => {
 		expect(reportedPullRequest("PR: https://example.test/pull/1")).toBeUndefined();
 		expect(reportedPullRequest(`${PULL_REQUEST_MARKER} soon`)).toBeUndefined();
 	});
+	for (const value of [
+		"https://example.test/pull/1",
+		"https://github.com/example/repository/issues/1",
+		"https://github.com/example/repository/pull/0",
+		"https://github.com/example/repository/pull/1?extra=true",
+		"https://github.com/example/repository/pull/1#extra",
+		"`none",
+		"none`",
+		"none\nMore text",
+		"none\nFLEET_PR: none",
+	]) {
+		it(`rejects malformed or ambiguous reports: ${value}`, () => {
+			expect(reportedPullRequest(`${PULL_REQUEST_MARKER} ${value}`)).toBeUndefined();
+		});
+	}
 });
 
 describe("reportedQuestion", () => {
