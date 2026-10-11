@@ -16,12 +16,17 @@ export function authoredQuestion(document: MetadataDocument): boolean {
 	return document.parsed.fields.kind === "question" && document.parsed.fields.question === undefined;
 }
 
+function addressedElsewhere(document: MetadataDocument, maintainer: string): boolean {
+	const open = document.parsed.fields.attention?.filter((request) => request.state === "open") ?? [];
+	return open.length > 0 && !open.some((request) => isMaintainerRequest(request, maintainer));
+}
+
 export function waitingReason(document: MetadataDocument, model: MetadataModel, maintainer = "maintainer"): string | undefined {
 	const fields = document.parsed.fields;
 	if (!openItem(document) || fields.kind === "response" || fields.kind === "handoff" || fields.question) {
 		return undefined;
 	}
-	if (fields.attention?.length && !fields.attention.some((request) => isMaintainerRequest(request, maintainer))) {
+	if (addressedElsewhere(document, maintainer)) {
 		return undefined;
 	}
 	if (authoredQuestion(document) && answeredQuestion(document, model)) {

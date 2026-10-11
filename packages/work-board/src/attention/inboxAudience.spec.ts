@@ -49,3 +49,16 @@ it("does not reintroduce another responder's question through owner actions or n
 		]);
 	}
 });
+
+it("ignores another responder's closed requests when a person owns the next action", () => {
+	const files = inboxAudienceFixture();
+	const source =
+		files["orchestrator.md"]
+			?.replace("kind: decision\n", "kind: decision\nowner: Casey\nnext_action: Choose a direction\n")
+			.replace("state: open", "state: closed") ?? "";
+	expect(inboxItems(inboxSnapshot({ ...files, "orchestrator.md": source })).map((item) => item.id)).toEqual([
+		"decision.orchestrator",
+		"decision.reader",
+		"question.storage",
+	]);
+});
