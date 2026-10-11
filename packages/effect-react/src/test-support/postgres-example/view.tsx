@@ -20,6 +20,13 @@ export async function mountView(url: string, token = "alice-session") {
 	window.location.href = url;
 	const client = makeClient(url, token, NodeHttpClient.layerUndici);
 	const registry = AtomRegistry.make();
+	const releaseQuery = registry.mount(client.query);
+	try {
+		await Effect.runPromise(AtomRegistry.getResult(registry, client.query));
+	} catch (error) {
+		registry.dispose();
+		throw error;
+	}
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
@@ -43,6 +50,7 @@ export async function mountView(url: string, token = "alice-session") {
 			}),
 		close: async () => {
 			await act(async () => root.unmount());
+			releaseQuery();
 			registry.dispose();
 			container.remove();
 		},

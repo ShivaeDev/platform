@@ -21,6 +21,9 @@ integration(
 				expect(reader.input("quantity").value).toBe("300");
 				expect(reader.registry.get(reader.status).connection).toBe("live");
 				expect(writer.registry.get(writer.status).connection).toBe("live");
+				expect(server.reads).toHaveLength(4);
+				expect(writer.registry.get(writer.query).waiting).toBe(false);
+				expect(reader.registry.get(reader.query).waiting).toBe(false);
 			}),
 		);
 		const deliveries = server.delivered.length;
@@ -91,6 +94,8 @@ integration(
 			eventually(() => {
 				expect(reader.input("name").value).toBe("Printer paper");
 				expect(reader.registry.get(reader.status).connection).toBe("live");
+				expect(server.reads).toHaveLength(2);
+				expect(reader.registry.get(reader.query).waiting).toBe(false);
 			}),
 		);
 		const deliveries = server.delivered.length;
