@@ -265,6 +265,8 @@ Fleet never submits a merge. Reviewed, green PRs wait on the maintainer as ready
 
 Each scheduler pass shares one Board read and identity index across admission, dispatch and reconciliation. The next pass reads changed, added and removed files again. Approval and decisions remain bound to the exact source revision read. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
 
+Fleet excludes files with invalid metadata or unreadable sources from admission, records a Board problem with the file and diagnostic, and retries them on the next pass. An unrelated invalid file leaves running work executing. A lookup of an invalid or missing work source still blocks that work; when metadata cannot supply its identity, the missing-identity diagnostic includes the Board file problems. The named problem reaches the execution status and the published decision, using the original approved context for publication. `src/host/boardReadErrors.spec.ts` proves admission, recovery, running-work isolation and named diagnostics against real PostgreSQL.
+
 Provide `BoardGateway`, `FleetRepository`, `FleetPolicy`, `FleetIntegrations` and `SessionService` to `Fleet.layer`. The Markdown gateway reads Board context, and `postgresFleetRepository(namespace?)` supplies durable SQL attachments on a native `SqlClient`. A session journal persists intents and acknowledged turns before further remote mutation. `src/session/service.test.ts` and `src/engine/recovery.spec.ts` cover receipt ordering and recovery without duplicate launch.
 
 ```ts

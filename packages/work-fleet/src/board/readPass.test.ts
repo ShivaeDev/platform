@@ -116,16 +116,22 @@ it.effect("a pass sees its own durable decisions without rescanning and the next
 	}).pipe(Effect.provide(fixture.board));
 });
 
-it.effect("a failed scan is shared without admitting partial context and a new pass can recover", function* () {
+it.effect("a pass excludes invalid metadata, shares its named problem and retries it on the next pass", function* () {
 	const fixture = yield* boardReads(1);
 	yield* fixture.write("invalid.md", "---\nid: [\n---\nBroken metadata.");
 	yield* Effect.gen(function* () {
 		const board = yield* BoardGateway;
 		yield* withBoardReadPass(
 			Effect.gen(function* () {
-				expect((yield* Effect.result(board.get("item.0")))._tag).toBe("Failure");
+				expect((yield* board.get("item.0")).approved).toBe(true);
+				expect(yield* approvedWorkIds(resolveHost(fixture.root, { provider: "local" })).pipe(Effect.provide(fixture.services))).toEqual(["item.0"]);
+				const missing = yield* Effect.result(board.get("missing"));
+				expect(missing._tag).toBe("Failure");
+				if (missing._tag === "Failure") {
+					expect(missing.failure.message).toContain("Board metadata is invalid: invalid.md (line 3: Flow sequence");
+				}
 				yield* fixture.remove("invalid.md");
-				expect((yield* Effect.result(board.get("item.0")))._tag).toBe("Failure");
+				expect((yield* board.get("item.0")).approved).toBe(true);
 			}),
 		);
 		expect(fixture.scans()).toBe(1);
