@@ -4,8 +4,8 @@ import { HttpServer } from "effect/unstable/http";
 import { browserClient } from "@shivaedev/work-board/browser/client.ts";
 import { serveBoard } from "@shivaedev/work-board/serve.ts";
 
-export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string) {
-	const runtime = ManagedRuntime.make(serveBoard({ port: 0, responses: true, root }).pipe(Layer.provide(NodeServices.layer)));
+export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string) {
+	const runtime = ManagedRuntime.make(serveBoard({ home, port: 0, responses: true, root }).pipe(Layer.provide(NodeServices.layer)));
 	yield* Effect.addFinalizer(() => Effect.promise(() => runtime.dispose()));
 	const server = yield* Effect.promise(() => runtime.runPromise(Effect.service(HttpServer.HttpServer)));
 	if (server.address._tag !== "TcpAddress") {

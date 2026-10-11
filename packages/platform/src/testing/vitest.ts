@@ -22,17 +22,20 @@ interface LooseOptions {
 }
 
 function platformIt<
-	Database extends AnyDatabase,
-	CreateCaller extends (...arguments_: never[]) => object,
-	Provided,
-	LayerError,
-	Extension extends object,
+	TDatabase extends AnyDatabase,
+	TCreateCaller extends (...arguments_: never[]) => object,
+	TProvided,
+	TLayerError,
+	TExtension extends object,
 >(
-	database: Database,
-	options: MakePlatformItOptions<Database, CreateCaller, Provided, LayerError, Extension> & {
-		readonly layer: Layer.Layer<Provided | Effect.Services<Database>, LayerError>;
+	database: TDatabase,
+	options: MakePlatformItOptions<TDatabase, TCreateCaller, TProvided, TLayerError, TExtension> & {
+		readonly layer: Layer.Layer<TProvided | Effect.Services<TDatabase>, TLayerError>;
 	},
-): PlatformIt<PlatformHarness<Database, CallerOptions<CreateCaller>, CallerResult<CreateCaller>, Extension>, Provided | Effect.Services<Database>>;
+): PlatformIt<
+	PlatformHarness<TDatabase, CallerOptions<TCreateCaller>, CallerResult<TCreateCaller>, TExtension>,
+	TProvided | Effect.Services<TDatabase>
+>;
 function platformIt(database: AnyDatabase, options: LooseOptions): unknown {
 	const trpcIt = makeTrpcHarnessIt({
 		adapter: options.adapter,
@@ -44,7 +47,7 @@ function platformIt(database: AnyDatabase, options: LooseOptions): unknown {
 				const services = yield* Effect.context<unknown>();
 				const db = yield* database;
 				const extension = options.extend ? yield* options.extend({ db, trpc }, context) : {};
-				const promise = <Value>(evaluate: () => Promise<Value>) => Effect.tryPromise(() => options.adapter.runWithServices(services, evaluate));
+				const promise = <TValue>(evaluate: () => Promise<TValue>) => Effect.tryPromise(() => options.adapter.runWithServices(services, evaluate));
 				return { ...extension, db, promise, trpc };
 			}),
 	});
@@ -60,13 +63,13 @@ function platformIt(database: AnyDatabase, options: LooseOptions): unknown {
 }
 
 export const makePlatformIt =
-	<const Database extends AnyDatabase>(database: Database) =>
-	<CreateCaller extends (...arguments_: never[]) => object, Provided, LayerError, Extension extends object = Record<never, never>>(
-		options: MakePlatformItOptions<Database, CreateCaller, Provided, LayerError, Extension> & {
-			readonly layer: Layer.Layer<Provided | Effect.Services<Database>, LayerError>;
+	<const TDatabase extends AnyDatabase>(database: TDatabase) =>
+	<TCreateCaller extends (...arguments_: never[]) => object, TProvided, TLayerError, TExtension extends object = Record<never, never>>(
+		options: MakePlatformItOptions<TDatabase, TCreateCaller, TProvided, TLayerError, TExtension> & {
+			readonly layer: Layer.Layer<TProvided | Effect.Services<TDatabase>, TLayerError>;
 		},
 	): PlatformIt<
-		PlatformHarness<Database, CallerOptions<CreateCaller>, CallerResult<CreateCaller>, Extension>,
-		Provided | Effect.Services<Database>
+		PlatformHarness<TDatabase, CallerOptions<TCreateCaller>, CallerResult<TCreateCaller>, TExtension>,
+		TProvided | Effect.Services<TDatabase>
 	> =>
 		platformIt(database, options);

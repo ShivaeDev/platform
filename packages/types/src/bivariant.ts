@@ -1,5 +1,5 @@
-declare class BivariantHost<Fn extends (...args: never[]) => unknown> {
-	method(...args: Parameters<Fn>): ReturnType<Fn>;
+declare class BivariantHost<TFn extends (...args: never[]) => unknown> {
+	method(...args: Parameters<TFn>): ReturnType<TFn>;
 }
 
-export type Bivariant<Fn extends (...args: never[]) => unknown> = BivariantHost<Fn>["method"];
+export type Bivariant<TFn extends (...args: never[]) => unknown> = BivariantHost<TFn>["method"];

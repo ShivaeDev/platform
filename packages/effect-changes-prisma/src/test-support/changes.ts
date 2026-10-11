@@ -39,7 +39,7 @@ export function makeChanges(client: PrismaClient, publish?: (changes: readonly C
 				publish === undefined ? Effect.void : publish(batch),
 			),
 	});
-	function observe<X, E, R>(effect: Effect.Effect<X, E, R>) {
+	function observe<TX, E, R>(effect: Effect.Effect<TX, E, R>) {
 		return effect.pipe(
 			Effect.provideService(changes.channel.Observer, (observation: Observation<Change>) => Effect.sync(() => observations.push(observation))),
 			Effect.provideService(changes.Unnamed, (write: UnnamedWrite) => Effect.sync(() => unnamed.push(write))),

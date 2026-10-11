@@ -19,8 +19,8 @@ interface GenericMethodWithDeclaredRequirementsIsUnsupported {
 	readonly _serviceDefinitionError: "generic methods cannot subtract declared service requirements";
 }
 
-type MethodRequirements<Method> = Method extends (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, infer Requirements>
-	? Requirements
+type MethodRequirements<TMethod> = TMethod extends (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, infer TRequirements>
+	? TRequirements
 	: never;
 
 interface MethodHasUndeclaredServiceRequirements {
@@ -31,27 +31,27 @@ interface ServiceMembersMustBeMethods {
 	readonly _serviceDefinitionError: "service members must be methods";
 }
 
-type OrdinaryMethodProof<Method, Requirements extends RequirementRecord> = [
-	Exclude<MethodRequirements<Method>, RequirementsOf<Requirements> | Scope.Scope>,
+type OrdinaryMethodProof<TMethod, TRequirements extends RequirementRecord> = [
+	Exclude<MethodRequirements<TMethod>, RequirementsOf<TRequirements> | Scope.Scope>,
 ] extends [never]
-	? Method
+	? TMethod
 	: MethodHasUndeclaredServiceRequirements;
 
-type SupportedMethod<Method, Requirements extends RequirementRecord> =
-	Method extends GenericMethodDescriptor<AnyMethod>
-		? Requirements extends readonly []
-			? Method
+type SupportedMethod<TMethod, TRequirements extends RequirementRecord> =
+	TMethod extends GenericMethodDescriptor<AnyMethod>
+		? TRequirements extends readonly []
+			? TMethod
 			: GenericMethodWithDeclaredRequirementsIsUnsupported
-		: Method extends AnyMethod
-			? HasDistinctCallSignatures<Method> extends true
+		: TMethod extends AnyMethod
+			? HasDistinctCallSignatures<TMethod> extends true
 				? GenericOrStructurallyOverloadedMethodsAreUnsupported
-				: Method extends (...arguments_: infer Arguments) => infer Result
-					? ((...arguments_: Arguments) => Result) extends Method
-						? OrdinaryMethodProof<Method, Requirements>
+				: TMethod extends (...arguments_: infer TArguments) => infer TResult
+					? ((...arguments_: TArguments) => TResult) extends TMethod
+						? OrdinaryMethodProof<TMethod, TRequirements>
 						: GenericOrStructurallyOverloadedMethodsAreUnsupported
 					: GenericOrStructurallyOverloadedMethodsAreUnsupported
 			: ServiceMembersMustBeMethods;
 
-export type MethodProof<Methods extends MethodInventory, Requirements extends RequirementRecord> = {
-	readonly [Name in keyof Methods]: SupportedMethod<Methods[Name], Requirements>;
+export type MethodProof<TMethods extends MethodInventory, TRequirements extends RequirementRecord> = {
+	readonly [TName in keyof TMethods]: SupportedMethod<TMethods[TName], TRequirements>;
 };

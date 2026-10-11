@@ -6,6 +6,7 @@ export interface WorkerPrompt extends CloudStartup {
 	readonly task: string;
 	readonly workId: string;
 }
+export const QUESTION_MARKER = "FLEET_QUESTION:";
 export const PULL_REQUEST_MARKER = "FLEET_PR:";
 
 // Codex Cloud cannot run startup steps; without this block workers spend minutes probing a provisioning sandbox.
@@ -36,6 +37,10 @@ export function workerPrompt(input: WorkerPrompt) {
 		"- Open exactly ONE pull request for human review. Do not merge it and do not launch other workers.",
 		"- Keep Board IDs, environment IDs, prompts and other private identifiers out of source, docs and pull request metadata.",
 		"",
+		"When you need a decision:",
+		`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
+		"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
+		"",
 		"Final report:",
 		"- The pull request URL, its head SHA and base, the changed paths and the exact commands you ran with their results.",
 		"- A short result against each acceptance criterion, separating proven behavior from anything still pending.",
@@ -53,4 +58,14 @@ export function reportedPullRequest(output: string) {
 		return undefined;
 	}
 	return { kind: "url", url: value } as const;
+}
+
+export function reportedQuestion(output: string) {
+	const lines = output.split("\n");
+	const index = lines.findIndex((line) => line.trim().startsWith(QUESTION_MARKER));
+	if (index < 0) {
+		return undefined;
+	}
+	const question = [lines[index]?.trim().slice(QUESTION_MARKER.length).trim(), ...lines.slice(index + 1)].join("\n").trim();
+	return question.length === 0 ? undefined : question;
 }
