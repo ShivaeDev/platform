@@ -110,6 +110,18 @@ The CLI host also atomically publishes `fleet/health.json`, using Board's versio
 
 A composed runtime enables health publication with `statusLayer(boardRoot, { concurrency, staleAfterMs })`, provides `healthLayer(boardRoot)` from `@shivaedev/work-fleet/host/healthLayer.ts`, and wraps its provider with `providerHealth` from `@shivaedev/work-fleet/host/providerHealth.ts`. Capacity comes only from structured `rateLimitExceeded`, `flexUnavailable` or `serverOverloaded` errors; unclassified rejection text is not treated as capacity. A repeatedly observed terminal turn does not refresh the same rejection's timestamp.
 
+### Continue a worker with new instructions
+
+Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal Needs human or Completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work is refused. Work waiting on a human merge can continue on the same worker thread; its reviewed head stays in history and its PR ownership remains until the new result is adopted.
+
+```sh
+work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
+printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --board .work
+work-fleet wait work-id --board .work
+```
+
+The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet run` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output follows the first-launch adoption path, including report publication or PR review, validation and delivery, and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
+
 ### Answer a worker question
 
 Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.

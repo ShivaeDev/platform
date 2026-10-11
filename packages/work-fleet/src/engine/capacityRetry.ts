@@ -23,7 +23,7 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 		),
 		blocker: undefined,
 		launchRetry: { rejectedAt, rejections, retryAt: rejectedAt + delay },
-		stage: previous.stage,
+		stage: previous.stage === "prepared" ? "prepared" : "repairing",
 	});
 	return true;
 });

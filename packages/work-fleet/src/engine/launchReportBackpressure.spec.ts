@@ -28,7 +28,8 @@ describe("report launch backpressure", () => {
 						yield* prepareWork("one");
 						const fleet = yield* Fleet;
 						yield* cycle;
-						expect((yield* fleet.get("one")).value).toMatchObject({ deliverable: "report", stage: "prepared" });
+						const queued = (yield* fleet.get("one")).value;
+						expect(queued).toMatchObject({ deliverable: "report", stage: "prepared" });
 						reject = false;
 						now = 30_099;
 						yield* fixture.restart(cycle);
@@ -37,6 +38,7 @@ describe("report launch backpressure", () => {
 						yield* fixture.restart(cycle);
 						expect(fixture.launched).toHaveLength(2);
 						const [observation] = fixture.observations.values();
+						expect(observation?.output).toBe(queued.attempts[0]?.prompt);
 						expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
 						expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
 						finishWorkers(fixture);
