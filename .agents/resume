@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# The shared PostgreSQL container has no restart policy, so an orb restored from the snapshot
+# starts with it stopped.
+if [ "$(docker inspect --format '{{.State.Running}}' development-postgres 2>/dev/null)" = false ]; then
+	docker start development-postgres >/dev/null
+fi
+
+# Amp sets a global core.hooksPath, which bypasses the pre-commit hook that `./script/update`
+# installs in the repository; delegate to it.
+hooks="$(git config --global --type=path --get core.hooksPath || true)"
+if [ -n "$hooks" ] && [ ! -e "$hooks/pre-commit" ]; then
+	mkdir -p "$hooks"
+	cat >"$hooks/pre-commit" <<'EOF'
+#!/bin/sh
+hook="$(git rev-parse --path-format=absolute --git-common-dir)/hooks/pre-commit"
+if [ -x "$hook" ]; then exec "$hook" "$@"; fi
+EOF
+	chmod +x "$hooks/pre-commit"
+fi

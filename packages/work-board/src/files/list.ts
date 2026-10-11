@@ -16,7 +16,7 @@ function folderOf(path: string): string {
 	return path.slice(0, Math.max(0, path.lastIndexOf("/")));
 }
 
-function byFolder(left: string, right: string): number {
+export function byFolder(left: string, right: string): number {
 	return folderOf(left).localeCompare(folderOf(right)) || left.localeCompare(right);
 }
 

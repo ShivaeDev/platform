@@ -48,9 +48,12 @@ it("groups multiple explicit judgments and links their reason, recipients, targe
 });
 
 it("keeps duplicate, missing-identity and unresolved criterion requests unclassified with readable diagnostics", async () => {
+	const events = await subscribe(board);
+	await events.next();
 	const fixture = attentionFixture()["attention/review.md"] ?? "";
 	notes.write("duplicate.md", fixture.replace("# Search judgments", "# Duplicate"));
 	notes.write("attention/blocker.md", (attentionFixture()["attention/blocker.md"] ?? "").replace("work.search#keyboard", "work.search#missing"));
+	await changesUntil(events, "attention/blocker.md");
 	const ambiguous = await rawGet(board, "/_board/overview");
 	expect(cards(ambiguous.body)).toEqual([]);
 	expect(ambiguous.body).toContain("Duplicate ID request.search");
@@ -59,14 +62,17 @@ it("keeps duplicate, missing-identity and unresolved criterion requests unclassi
 	expect(ambiguous.body).toContain('href="/duplicate.md"');
 	notes.write("duplicate.md", "# Ordinary file");
 	notes.write("attention/review.md", fixture.replace("id: request.search\n", ""));
+	await changesUntil(events, "attention/review.md");
 	expect((await rawGet(board, "/_board/overview")).body).toContain("require an explicit item ID");
 	notes.write("attention/review.md", fixture.replace("id: matching-decision", "id: keyboard-review"));
+	await changesUntil(events, "attention/review.md");
 	const repeated = await rawGet(board, "/_board/overview");
 	expect(cards(repeated.body)).toEqual([]);
 	expect(repeated.body).toContain("Duplicate attention request ID keyboard-review");
 	const physical = await rawGet(board, "/attention/review.md");
 	expect(physical.body).toContain('id="attention-record-0"');
 	expect(physical.body).not.toContain('id="attention-request-keyboard-review"');
+	events.close();
 });
 
 it("shows malformed or invalid source issues and a genuine quiet state without inventing judgments", async () => {

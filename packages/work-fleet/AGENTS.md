@@ -4,10 +4,7 @@ Work Fleet is an optional execution addon to Work Board. Board owns identity,
 context, relationships and human decisions. Fleet attaches durable execution and
 accepted outcomes to those Board IDs. A headless runtime still reads Board core.
 
-Move approved work through execution, independent review, repair, validation and
-explicitly authorized delivery without routine human handoffs. Preserve uncertain
-submission ownership and reconcile the existing operation. A provider receipt,
-terminal turn, passing review and accepted delivery are distinct facts.
+Move approved work through execution, independent review, repair, validation and observed human delivery. Fleet never submits a merge; reviewed, green work waits for a human merge, which reconciliation adopts against the reviewed head. Preserve uncertain submission ownership and reconcile the existing operation. A provider receipt, terminal turn, passing review and accepted delivery are distinct facts.
 
 Native Effect semantics, durable safety and truthful evidence take priority over
 throughput. Runtime policy owns authority and build/provider integrations; worker

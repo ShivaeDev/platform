@@ -5,10 +5,11 @@ import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import type { FleetRecord } from "#model.ts";
-import { type Boundary, hostProcess, hostRecord, restartBackend, until } from "#test/cloudRestart.ts";
+import { type Boundary, hostRecord, restartBackend } from "#test/cloudRestart.ts";
 import { codexServer } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { hostProcess } from "#test/hostProcess.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const expected = {
@@ -36,9 +37,9 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	boundary: Boundary,
 ) {
 	const first = yield* hostProcess(fixture.configFile);
-	yield* until(() => Effect.succeed(backend.reached));
+	yield* first.until(() => Effect.succeed(backend.reached));
 	if (boundary === "acknowledged-turn") {
-		yield* until(() => hostRecord(fixture).pipe(Effect.map((record) => record.attempts[0]?.receipt !== undefined)));
+		yield* first.until(() => hostRecord(fixture).pipe(Effect.map((record) => record.attempts[0]?.receipt !== undefined)));
 	}
 	const before = yield* hostRecord(fixture);
 	expect(before.attempts).toHaveLength(1);
@@ -46,7 +47,7 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	yield* first.kill;
 	const restarted = yield* hostProcess(fixture.configFile);
 	const { recoverable } = expected[boundary];
-	yield* until(() =>
+	yield* restarted.until(() =>
 		hostRecord(fixture).pipe(Effect.map((record) => (recoverable ? record.attempts[0]?.status === "running" : record.stage === "needs-human"))),
 	);
 	yield* restarted.kill;
@@ -77,7 +78,7 @@ function restartStory(boundary: Boundary) {
 					provider: "cloud",
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},
-				(fixture) => interruptHost(fixture, backend, boundary),
+				(fixture) => interruptHost(fixture, backend, boundary).pipe(Effect.scoped),
 			);
 		}),
 	);
