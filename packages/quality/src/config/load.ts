@@ -34,7 +34,7 @@ const importDefault = (file: string): Effect.Effect<unknown, SetupFailure> =>
 const resolved = (root: string, file: string, config: ConfigInput, rules: ResolvedRules): ResolvedConfig => ({
 	...rules,
 	baseline: config.baseline ?? "quality/baseline.jsonl",
-	exclude: config.exclude ?? [],
+	exclude: [],
 	extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 	file,
 	registry: config.registry ?? "quality/registry.json",

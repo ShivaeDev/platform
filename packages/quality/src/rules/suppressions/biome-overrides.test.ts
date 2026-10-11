@@ -130,3 +130,34 @@ describe("suppressions/biome-overrides declarations", () => {
 		expect(await issuesOf(biomeOverrides, options)).toEqual([expect.stringContaining(field)]);
 	});
 });
+
+describe("narrow consumer Biome declarations", () => {
+	it.each([
+		["lint", ["src/a.ts"]],
+		["lint/style", ["src/a.ts"]],
+		["lint/domains/react", ["src/a.ts"]],
+		["format", ["src/a.ts"]],
+		["lint/style/noNonNullAssertion", ["**"]],
+		["lint/style/noNonNullAssertion", ["src/**"]],
+		["lint/style/noNonNullAssertion", ["src"]],
+		["files/includes", ["src/**"]],
+		["files/includes", ["**", "!**"]],
+		["files/includes", ["**", "!**/*.ts"]],
+	])("rejects %s for %j", async (rule, includes) => {
+		expect(await issuesOf(biomeOverrides, { declared: [{ includes, reason, rule }] })).toEqual([expect.stringContaining("Whole checks")]);
+	});
+
+	it("accepts named generated-directory exclusions with a reason", async () => {
+		expect(
+			await issuesOf(biomeOverrides, {
+				declared: [
+					{
+						includes: ["**", "!**/test-support/generated", "!**/test-support/*/generated"],
+						reason: "Generated test clients are not source.",
+						rule: "files/includes",
+					},
+				],
+			}),
+		).toEqual([]);
+	});
+});

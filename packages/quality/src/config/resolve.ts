@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import type { Level } from "#config.ts";
 import type { Decoded } from "#decoded.ts";
 import type { ActiveRule } from "#engine/run-rules.ts";
 import type { RuleIndex } from "#engine/violation.ts";
@@ -15,8 +14,6 @@ type Setting = NonNullable<ConfigInput["rules"]>[string];
 
 const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
-const levelOf = (setting: Setting | undefined): Level => (typeof setting === "string" ? setting : (setting?.level ?? "error"));
-
 const optionsOf = (setting: Setting | undefined): unknown => (typeof setting === "object" ? setting.options : undefined);
 
 const duplicateIssues = (rules: readonly Rule[]): readonly string[] =>
@@ -24,23 +21,21 @@ const duplicateIssues = (rules: readonly Rule[]): readonly string[] =>
 		rules.findIndex((other) => other.id === rule.id) === index ? [] : [`local: rule id "${rule.id}" is already defined`],
 	);
 
-const activate = (rule: Rule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule | undefined>> => {
-	const level = levelOf(setting);
-	if (level === "off") {
-		return Effect.succeed({ _tag: "Valid", value: undefined });
-	}
-	return Effect.tryPromise({ catch: messageOf, try: () => rule.configure(optionsOf(setting)) }).pipe(
+const activate = (rule: Rule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule>> =>
+	Effect.tryPromise({ catch: messageOf, try: () => rule.configure(optionsOf(setting)) }).pipe(
 		Effect.map(
-			(configured): Decoded<ActiveRule | undefined> =>
+			(configured): Decoded<ActiveRule> =>
 				configured._tag === "Invalid"
 					? { _tag: "Invalid", issues: configured.issues.map((issue) => `rules.${rule.id}.options: ${issue}`) }
-					: { _tag: "Valid", value: { check: configured.check, description: rule.description, family: rule.family === true, id: rule.id, level } },
+					: {
+							_tag: "Valid",
+							value: { check: configured.check, description: rule.description, family: rule.family === true, id: rule.id, level: "error" },
+						},
 		),
 		Effect.catch((failure: string) =>
-			Effect.succeed<Decoded<ActiveRule | undefined>>({ _tag: "Invalid", issues: [`rules.${rule.id}.options: validation threw: ${failure}`] }),
+			Effect.succeed<Decoded<ActiveRule>>({ _tag: "Invalid", issues: [`rules.${rule.id}.options: validation threw: ${failure}`] }),
 		),
 	);
-};
 
 export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<ResolvedRules>> =>
 	Effect.gen(function* () {
@@ -58,8 +53,8 @@ export const resolveRules = (config: ConfigInput): Effect.Effect<Decoded<Resolve
 		if (issues.length > 0) {
 			return { _tag: "Invalid", issues };
 		}
-		const active = activated.flatMap((result) => (result._tag === "Valid" && result.value !== undefined ? [result.value] : []));
-		const levels = new Map(rules.map((rule) => [rule.id, levelOf(settings[rule.id])]));
+		const active = activated.flatMap((result) => (result._tag === "Valid" ? [result.value] : []));
+		const levels = new Map(rules.map((rule) => [rule.id, "error" as const]));
 		const unregistrable = new Set(rules.filter((rule) => rule.registrable === false).map((rule) => rule.id));
 		return { _tag: "Valid", value: { active, families, levels, unregistrable } };
 	});

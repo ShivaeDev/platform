@@ -92,3 +92,7 @@ describe("comments/max-per-file options", () => {
 		expect(await issuesOf(maxPerFile, { maximum: 3 })).toEqual([expect.stringContaining("maximum")]);
 	});
 });
+
+it("rejects a comment threshold above the shared limit", async () => {
+	expect(await issuesOf(maxPerFile, { max: 3 })).toEqual([expect.stringContaining("max")]);
+});
