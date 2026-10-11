@@ -25,7 +25,7 @@ describe("work-fleet wait against PostgreSQL", () => {
 				);
 				expect(runs).toEqual([
 					{ code: WAIT_EXIT.completed, stdout: "done completed: https://example.test/pull/1" },
-					{ code: WAIT_EXIT.needsHuman, stdout: "stuck needs-human (waiting on orchestrator): Independent review rejected the change" },
+					{ code: WAIT_EXIT.waitingDecision, stdout: "stuck needs-human (waiting on orchestrator): Independent review rejected the change" },
 					{ code: WAIT_EXIT.released, stdout: "gone released" },
 					{ code: WAIT_EXIT.timeout, stdout: "busy still executing (waiting on orchestrator): Worker is running: wait timed out" },
 				]);

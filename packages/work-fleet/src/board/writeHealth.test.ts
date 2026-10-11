@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, FileSystem } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { healthFolder, healthSnapshot } from "#test/health.ts";
 import { writeHealth } from "./writeHealth.ts";
@@ -16,7 +16,7 @@ it.effect("atomically replaces versioned snapshots, retains identical files and 
 		expect(folder.stat().mtimeMs).toBe(before.mtimeMs);
 		for (let running = 0; running < 20; running += 1) {
 			const writing = Effect.runPromise(writeHealth(folder.root, folder.root, { ...healthSnapshot, running }));
-			expect(folder.read().version).toBe(1);
+			expect(folder.read().version).toBe(2);
 			yield* Effect.tryPromise(() => writing);
 			expect(folder.read().running).toBe(running);
 		}
@@ -36,3 +36,13 @@ for (const trait of ["directory", "file", "occupied"] as const) {
 		}).pipe(Effect.provide(NodeServices.layer)),
 	);
 }
+
+it.effect("replaces an earlier health snapshot with owner counts", () =>
+	Effect.gen(function* () {
+		const folder = yield* healthFolder();
+		const fs = yield* FileSystem.FileSystem;
+		yield* fs.writeFileString(`${folder.root}/fleet/health.json`, JSON.stringify({ ...healthSnapshot, version: 1, waiting: undefined }));
+		yield* writeHealth(folder.root, folder.root, healthSnapshot);
+		expect(folder.read()).toEqual(healthSnapshot);
+	}).pipe(Effect.provide(NodeServices.layer)),
+);

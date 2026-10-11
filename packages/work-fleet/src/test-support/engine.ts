@@ -1,4 +1,5 @@
 import { Effect, Layer } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
@@ -24,7 +25,6 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly editWork: (workId: string, revision: string) => void;
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
-	readonly markLegacyDeliverySubmitted: (workId: string) => Effect.Effect<void, unknown>;
 	readonly merged: readonly string[];
 	readonly replaceRecord: (value: FleetRecord) => Effect.Effect<void, unknown>;
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
@@ -33,6 +33,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	) => Effect.Effect<TResult, TFailure | TBoardError>;
 	readonly reviews: readonly string[];
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
+	readonly upgradeAttention: Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
 }
 export function withEngine<A, E, TBoardError = never>(
@@ -42,12 +43,18 @@ export function withEngine<A, E, TBoardError = never>(
 ) {
 	return withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
-			const store = yield* makePostgresFleetStore(FleetRecord, {
+			const originalStore = yield* makePostgresFleetStore(FleetRecord, {
 				backlog,
 				executing,
 				namespace,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
+			const store = {
+				...originalStore,
+				compareAndSet: (...args: Parameters<typeof originalStore.compareAndSet>) =>
+					(options.writeGate?.(args[2]) ?? Effect.void).pipe(Effect.andThen(originalStore.compareAndSet(...args))),
+			};
+			const sql = yield* SqlClient.SqlClient;
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
@@ -113,14 +120,6 @@ export function withEngine<A, E, TBoardError = never>(
 				},
 				foreign,
 				foreignReservations: store.foreignReservations,
-				markLegacyDeliverySubmitted: (workId) =>
-					Effect.gen(function* () {
-						const stored = yield* store.load(workId);
-						if (stored === undefined) {
-							return yield* Effect.die("Missing legacy work");
-						}
-						yield* store.compareAndSet(workId, stored.version, { ...stored.value, deliverySubmitted: true });
-					}),
 				merged,
 				replaceRecord,
 				respond: scripted.respond,
@@ -133,6 +132,11 @@ export function withEngine<A, E, TBoardError = never>(
 						unavailable.delete(workId);
 					}
 				},
+				upgradeAttention: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 3`.pipe(
+					Effect.andThen(store.initialize()),
+					Effect.asVoid,
+					Effect.provideService(SqlClient.SqlClient, sql),
+				),
 				work: (id: string) => boardWork(id, approved, revisions, dependencies),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));

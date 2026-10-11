@@ -19,7 +19,7 @@ const OUTPUT = "  # Findings\n\nWhole report, including whitespace.\n";
 const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixture, body: string) {
 	yield* dispatchWork(fixture.host, "research", fixture.parts);
 	const [observation] = fixture.provider.observations.values();
-	expect(observation?.output).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+	expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR");
 	for (const [id, current] of fixture.provider.observations) {
 		fixture.provider.observations.set(id, { ...current, execution: "completed", output: body });
 	}
@@ -29,7 +29,6 @@ const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixtur
 	expect(completed.value.result).toBeUndefined();
 	expect(completed.value.review).toBeUndefined();
 	expect(completed.value.checks).toBeUndefined();
-	expect(completed.value.deliverySubmitted).toBeUndefined();
 	expect(fixture.provider.launched).toHaveLength(1);
 	return { observation, value: completed.value };
 });
@@ -81,7 +80,7 @@ describe("Fleet report host", () => {
 				expect(value.decision?.reason).toBe("Report worker returned empty output");
 				expect(value.report).toBeUndefined();
 				expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
-				yield* terminalViews(fixture, WAIT_EXIT.needsHuman, "Waiting on orchestrator (1)");
+				yield* terminalViews(fixture, WAIT_EXIT.waitingDecision, "Waiting on orchestrator (1)");
 				const decision = value.decision?.published;
 				if (decision === undefined) {
 					return yield* Effect.die(new Error("An empty report needs a Board decision"));

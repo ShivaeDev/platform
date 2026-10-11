@@ -12,9 +12,16 @@ export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (name
 			}),
 			"2_occupancy_only_foreign_reservations": sql`alter table ${sql(`${namespace}_foreign_reservations`)} drop column paths`,
 			"3_attention_owner": sql`update ${sql(`${namespace}_records`)} set version = version + 1,
-				payload = jsonb_set(payload, '{attentionOwner}',
-					case when payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'
+				payload = case
+					when payload->>'stage' = 'needs-human' and payload->'decision' is not null
+						and (payload->'decision'->>'attentionOwner' is null or payload->'decision'->'published' is not null or payload->'decision'->>'reason' = 'Reviewed PR is ready to merge')
+					then jsonb_set(jsonb_set(payload, '{attentionOwner}', '"maintainer"'::jsonb), '{decision,attentionOwner}', '"maintainer"'::jsonb)
+					else jsonb_set(payload, '{attentionOwner}',
+						case when (payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true')
+							or payload->>'blocker' = 'Fresh available provider quota is required'
+							or payload->>'blocker' ~ '^(execution|backlog) capacity is occupied'
 						then '"automation"'::jsonb else '"orchestrator"'::jsonb end)
+					end
 				where payload->>'attentionOwner' is null and
 					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or
 					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,

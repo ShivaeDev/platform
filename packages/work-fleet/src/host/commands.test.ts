@@ -56,7 +56,7 @@ describe("work-fleet host against PostgreSQL", () => {
 					workId: "a",
 				});
 				yield* Fiber.interrupt(runner);
-				expect(outcome.code).toBe(WAIT_EXIT.needsHuman);
+				expect(outcome.code).toBe(WAIT_EXIT.waitingDecision);
 				expect(outcome.summary).toMatch(/^a needs-human \(waiting on automation\): /u);
 				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
 				expect(status).toContain("Active (0)");

@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import { AttentionOwner, waitingOwner } from "#attention.ts";
 
-export const WAIT_EXIT = { completed: 0, error: 1, needsHuman: 2, released: 3, timeout: 4 } as const;
+export const WAIT_EXIT = { completed: 0, error: 1, released: 3, timeout: 4, waitingDecision: 2 } as const;
 
 export interface WaitOutcome {
 	readonly code: (typeof WAIT_EXIT)[keyof typeof WAIT_EXIT];
@@ -27,7 +27,7 @@ export function settled(workId: string, state: WaitState): WaitOutcome | undefin
 	}
 	if (state.stage === "needs-human") {
 		return {
-			code: WAIT_EXIT.needsHuman,
+			code: WAIT_EXIT.waitingDecision,
 			summary: `${workId} needs-human${attention}: ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
 		};
 	}

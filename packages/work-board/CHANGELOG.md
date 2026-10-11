@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Breaking: Fleet Diagnostics reads version 2 health snapshots with separate waiting counts for maintainer, orchestrator and automation.
+
 ### Added
 
 - Add a Diagnostics view with live native reads of Codex app-server usage windows, one-minute shared GitHub REST/GraphQL limit reads, and optional versioned Fleet health snapshots. Each source reports missing configuration and failures independently; Fleet freshness, concurrency, queues, human blockers and scheduler/capacity observations remain visible.

@@ -11,7 +11,7 @@ export const boardScheduler = Effect.fn("FleetTest.boardScheduler")(function* (
 ) {
 	const dispatched = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
-	const read = yield* Deferred.make<void>();
+	const read = yield* Deferred.make<BoardWork>();
 	let lists = 0;
 	return {
 		dispatched: Deferred.await(dispatched),
@@ -29,8 +29,8 @@ export const boardScheduler = Effect.fn("FleetTest.boardScheduler")(function* (
 			reconcile: () =>
 				Effect.gen(function* () {
 					yield* Deferred.await(release);
-					yield* readWork;
-					yield* Deferred.succeed(read, undefined);
+					const work = yield* readWork;
+					yield* Deferred.succeed(read, work);
 					return stored;
 				}),
 		},

@@ -9,6 +9,6 @@ if (!help.includes("Reassign the exact waiting decision to its next actor")) {
 }
 Schema.decodeUnknownSync(Reassign.payload)({ attentionOwner: "maintainer", decisionId: "synthetic-decision", workId: "synthetic-work" });
 const views = Schema.decodeUnknownSync(FleetViews)({ active: [], completed: [], waiting: { automation: [], maintainer: [], orchestrator: [] } });
-if (Object.keys(views).includes("needsHuman") || Object.keys(views.waiting).length !== 3) {
+if (Object.keys(views.waiting).length !== 3) {
   throw new Error("Packed Fleet views do not expose the three waiting owners");
 }

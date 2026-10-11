@@ -7,12 +7,12 @@ export const healthSnapshot: FleetHealth = {
 	concurrency: 8,
 	lastCapacityRejection: { at: 800, cause: "serverOverloaded" },
 	lastSchedulerPass: 900,
-	needsHuman: 2,
 	observedAt: 1000,
 	queued: 5,
 	running: 3,
 	staleAfterMs: 60_000,
-	version: 1,
+	version: 2,
+	waiting: { automation: 1, maintainer: 2, orchestrator: 3 },
 };
 export const healthFolder = Effect.fn("FleetStory.healthFolder")(function* (trait: "empty" | "directory" | "file" | "occupied" = "empty") {
 	const fs = yield* FileSystem.FileSystem;

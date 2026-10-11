@@ -30,7 +30,6 @@ const cycleFields = {
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverable: Schema.optional(Schema.Literal("report")),
-	deliverySubmitted: Schema.optional(Schema.Boolean),
 	launch: Schema.optional(LaunchSettings),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,

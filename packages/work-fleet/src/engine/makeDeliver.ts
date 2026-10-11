@@ -29,7 +29,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	result: typeof ChangeResult.Type,
 ) {
 	const record = stored.value;
-	function needsHuman(reason: string, recommendation: string, attentionOwner: AttentionOwner = "orchestrator") {
+	function waitingDecision(reason: string, recommendation: string, attentionOwner: AttentionOwner = "orchestrator") {
 		return record.decision?.reason === reason ? Effect.succeed(stored) : decision(stored, reason, recommendation, undefined, attentionOwner);
 	}
 	const observed = yield* integrations.delivery(result).pipe(Effect.result);
@@ -37,7 +37,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 		if (observed.failure.reason === "integration" && record.decision !== undefined) {
 			return stored;
 		}
-		return yield* needsHuman(
+		return yield* waitingDecision(
 			observed.failure.message,
 			"Inspect the adopted PR and its delivery evidence before retrying or releasing this work",
 			observed.failure.attentionOwner,
@@ -51,7 +51,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	if (observed.success === undefined) {
 		return record.responses?.some((response) => response.decisionId === record.decision?.id && response.action === undefined)
 			? stored
-			: yield* needsHuman(
+			: yield* waitingDecision(
 					"Reviewed PR is ready to merge",
 					"Merge the reviewed, green PR; Fleet will observe delivery without submitting a merge",
 					"maintainer",
@@ -60,5 +60,5 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	const delivery = observed.success;
 	return delivery.head === result.head
 		? yield* save(stored, { ...record, blocker: undefined, outcome: delivery, stage: "completed" })
-		: yield* needsHuman("Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
+		: yield* waitingDecision("Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
 });

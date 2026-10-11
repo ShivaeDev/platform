@@ -65,8 +65,9 @@ effectApp("a failed queue request does not imply dequeue", function* (h) {
 	yield* Effect.result(h.cycle);
 	expect(h.lines).toEqual([]);
 	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
+	h.setPull(1, { "auto_merge": null });
 	yield* h.cycle;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["dequeued"]);
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["dequeued", "auto-merge-off"]);
 });
 effectApp("malformed responses and unknown mergeability retain the old state", function* (h) {
 	yield* h.cycle;

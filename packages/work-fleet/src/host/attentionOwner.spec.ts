@@ -22,7 +22,7 @@ test("CLI status groups all owners and wait names each owner without changing ex
 			for (const owner of ["maintainer", "orchestrator", "automation"] as const) {
 				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "needs-human"), attentionOwner: owner, blocker: "Synthetic blocker" });
 				expect(yield* Effect.promise(() => waitProcess(fixture.configFile, owner))).toEqual({
-					code: WAIT_EXIT.needsHuman,
+					code: WAIT_EXIT.waitingDecision,
 					stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker`,
 				});
 			}
@@ -36,7 +36,6 @@ test("CLI status groups all owners and wait names each owner without changing ex
 			expect(JSON.parse(json.stdout)).toMatchObject({
 				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
 			});
-			expect(json.stdout).not.toContain("needsHuman");
 		}),
 	);
 }, 30_000);

@@ -24,7 +24,7 @@ async function readSnapshot(file: FileHandle): Promise<FleetHealth> {
 	}
 	const source = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(await file.readFile("utf8"));
 	const { version } = Schema.decodeUnknownSync(Schema.Struct({ version: Schema.Int }))(source);
-	if (version !== 1) {
+	if (version !== 2) {
 		throw new SourceFailure({ kind: "error", message: `Fleet health snapshot version ${version} is not supported by this Board` });
 	}
 	return Schema.decodeUnknownSync(FleetHealth)(source);

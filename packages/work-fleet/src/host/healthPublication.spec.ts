@@ -15,7 +15,7 @@ import { healthLayer } from "./healthLayer.ts";
 import { statusLayer } from "./statusLayer.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
-test("publishes an idle scheduler pass without an extra list request", () =>
+test("publishes an idle scheduler pass from one snapshot without an extra list request", () =>
 	withFleetBoard({}, (_fixture, root) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -29,7 +29,7 @@ test("publishes an idle scheduler pass without an extra list request", () =>
 						}).pipe(Effect.andThen(fleet.list())),
 				}),
 			);
-			expect(reads).toBe(2);
+			expect(reads).toBe(1);
 			expect((yield* fleetHealth(root)).lastSchedulerPass).toBeGreaterThan(0);
 		}).pipe(
 			Effect.provide(
@@ -53,7 +53,20 @@ test("publishes counts, configured cap, scheduler pass and provider rejection th
 			expect(running.lastSchedulerPass).toBeGreaterThan(0);
 			finishWorkers(fixture);
 			yield* cycle;
-			expect(yield* fleetHealth(root)).toMatchObject({ needsHuman: 1, running: 0 });
+			expect(yield* fleetHealth(root)).toMatchObject({ running: 0, waiting: { automation: 0, maintainer: 1, orchestrator: 0 } });
+			const fleet = yield* Fleet;
+			for (const owner of ["orchestrator", "automation"] as const) {
+				const decision = (yield* fleet.get("one")).value.decision;
+				if (decision === undefined) {
+					return yield* Effect.die("Missing waiting decision");
+				}
+				yield* fleet.reassign("one", decision.id, owner);
+				expect((yield* fleetHealth(root)).waiting).toEqual({
+					automation: Number(owner === "automation"),
+					maintainer: 0,
+					orchestrator: Number(owner === "orchestrator"),
+				});
+			}
 		}).pipe(
 			Effect.provide(
 				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),

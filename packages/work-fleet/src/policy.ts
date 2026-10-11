@@ -28,6 +28,7 @@ export type Decision = typeof Decision.Type;
 export const SupersededDecision = Schema.Struct({
 	boardAcknowledged: Schema.optional(Schema.Boolean),
 	published: BoardDecision,
+	reassignedTo: Schema.optional(Schema.Struct({ attentionOwner: AttentionOwner, decisionId: Schema.String })),
 	supersededAt: Schema.Number,
 });
 export const DecisionResponse = Schema.Struct({
@@ -63,6 +64,7 @@ export const ChangeResult = Schema.Struct({
 	kind: Schema.Literal("change"),
 	paths: Schema.Array(Schema.String),
 	pr: Schema.String,
+	prNumber: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
 });
 export const NoChangeResult = Schema.Struct({ evidence: Schema.Array(Schema.String), head: Schema.String, kind: Schema.Literal("no-change") });
 export const WorkResult = Schema.Union([ChangeResult, NoChangeResult]);
@@ -103,8 +105,6 @@ export class FleetIntegrations extends Context.Service<
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
-		readonly authorize: (work: BoardWork, result: typeof ChangeResult.Type) => Effect.Effect<boolean, FleetFailure>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
-		readonly merge: (work: BoardWork, result: typeof ChangeResult.Type) => Effect.Effect<Delivery, FleetFailure>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}

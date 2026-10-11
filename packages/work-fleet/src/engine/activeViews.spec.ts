@@ -48,7 +48,7 @@ test("native Automation waiting query exposes backlog admission blockers with th
 		),
 	));
 
-test("native Orchestrator waiting query exposes the exact quota admission blocker", () =>
+test("native Automation waiting query exposes the exact quota admission blocker", () =>
 	withEngine({ unknownQuota: true }, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -56,8 +56,8 @@ test("native Orchestrator waiting query exposes the exact quota admission blocke
 				const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" }).pipe(Effect.result);
 				const result = yield* client("fleet.views", undefined);
-				expect(result.waiting.orchestrator[0]?.stage).toBe("prepared");
-				expect(result.waiting.orchestrator[0]?.blocker).toBe("Fresh available provider quota is required");
+				expect(result.waiting.automation[0]?.stage).toBe("prepared");
+				expect(result.waiting.automation[0]?.blocker).toBe("Fresh available provider quota is required");
 			}),
 		),
 	));

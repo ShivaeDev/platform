@@ -5,6 +5,7 @@ import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 import { askWorker } from "#test/workerQuestion.ts";
+import { writeBarrier } from "#test/writeBarrier.ts";
 
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
@@ -23,11 +24,12 @@ test("reassignment recovers a failed supersession acknowledgement without publis
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;
+					const retried = yield* restarted.reassign("one", old.decision.id, "maintainer");
+					expect(retried.value.decision?.id).toBe(id);
 					const recovered = yield* restarted.reconcile("one");
 					expect(recovered.value.decision?.id).toBe(id);
 					expect(recovered.value.supersededDecisions?.[0]?.boardAcknowledged).toBe(true);
 					expect(recovered.value.blocker).toBeUndefined();
-					yield* restarted.reassign("one", id, "maintainer");
 				}),
 			);
 			expect(fixture.decisions).toHaveLength(2);
@@ -36,14 +38,16 @@ test("reassignment recovers a failed supersession acknowledgement without publis
 		}),
 	));
 
-test("concurrent reassignment commits one new decision and rejects stale decision IDs", () =>
-	withEngine({}, (fixture) =>
+test("concurrent reassignment commits one new decision and rejects stale decision IDs", function* () {
+	const barrier = yield* writeBarrier;
+	return yield* withEngine({ writeGate: barrier.writeGate }, (fixture) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
 			expect(yield* fleet.reassign("one", "missing", "maintainer").pipe(Effect.flip)).toMatchObject({ reason: "stale" });
 			yield* fleet.dispatch("one");
 			const old = yield* askWorker(fixture);
+			barrier.arm();
 			const results = yield* Effect.all(
 				[
 					fleet.reassign("one", old.decision.id, "maintainer").pipe(Effect.result),
@@ -52,10 +56,43 @@ test("concurrent reassignment commits one new decision and rejects stale decisio
 				{ concurrency: "unbounded" },
 			);
 			expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
+			for (const result of results) {
+				if (result._tag === "Failure") {
+					expect(result.failure).toMatchObject({ _tag: "FleetFailure", reason: "stale" });
+				}
+			}
 			const current = (yield* fleet.reconcile("one")).value;
 			expect(current.attentionOwner).toBe("maintainer");
 			expect(current.supersededDecisions).toHaveLength(1);
 			expect(yield* fleet.reassign("one", old.decision.id, "orchestrator").pipe(Effect.flip)).toMatchObject({ reason: "stale" });
 			expect(fixture.launched).toHaveLength(1);
 		}),
-	));
+	);
+});
+
+test("reassignment racing resolution commits one action and the loser reports a typed stale decision", function* () {
+	const barrier = yield* writeBarrier;
+	return yield* withEngine({ writeGate: barrier.writeGate }, (fixture) =>
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			const old = yield* askWorker(fixture);
+			const answer = fixture.respond(old.decision.id, "retry");
+			barrier.arm();
+			const results = yield* Effect.all(
+				[fleet.reassign("one", old.decision.id, "maintainer").pipe(Effect.result), fleet.resolve("one", old.decision.id, answer).pipe(Effect.result)],
+				{ concurrency: "unbounded" },
+			);
+			expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
+			for (const result of results) {
+				if (result._tag === "Failure") {
+					expect(result.failure).toMatchObject({ _tag: "FleetFailure", reason: "stale" });
+				}
+			}
+			const current = (yield* fleet.get("one")).value;
+			expect((current.responses?.length ?? 0) + (current.supersededDecisions?.length ?? 0)).toBe(1);
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(current.stage === "executing" ? 2 : 1);
+		}),
+	);
+});
