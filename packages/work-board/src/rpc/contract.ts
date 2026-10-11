@@ -4,6 +4,7 @@ import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
 import { Document } from "#browser/document/schema.ts";
+import { Navigation } from "#browser/navigation/schema.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -58,7 +59,12 @@ const ReadDocument = query("document", {
 	rejections: { ReadFailed },
 	success: Document,
 });
-const ReadNavigation = query("navigation", { reads: () => [workspace.list, navigation.list], rejections: { ReadFailed }, success: Schema.String });
+const ReadNavigation = query("navigation", {
+	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
+	reads: () => [workspace.list, navigation.list],
+	rejections: { ReadFailed },
+	success: Navigation,
+});
 const ReadSearch = query("search", {
 	payload: { query: Schema.String.check(Schema.isMaxLength(8192)) },
 	reads: () => [workspace.list, index.list],

@@ -6,6 +6,7 @@ import { renderDiagrams } from "/_board/diagrams.js";
 import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
 import { revealCurrentFile } from "/_board/sidebar.js";
 import { refreshLibrary } from "/_board/library.js";
+import { navigationHtml } from "/_board/native.js";
 
 export const syncInbox = () => {
   const count = document.querySelector("#files [data-inbox-count]")?.dataset.inboxCount;
@@ -19,12 +20,10 @@ export const syncInbox = () => {
   for (const id of ["inbox-open", "inbox-topbar"]) document.getElementById(id)?.setAttribute("aria-current", document.getElementById("doc").dataset.view === "inbox" ? "page" : "false");
 };
 
-export const applyNavigation = (html) => {
+export const applyNavigation = (data) => {
   const files = document.getElementById("files");
   const next = files.cloneNode(false);
-  next.innerHTML = html;
-  const current = document.getElementById("doc").dataset.file;
-  for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
+  next.innerHTML = navigationHtml(data);
   swap(files, next);
   syncInbox();
   revealCurrentFile();
