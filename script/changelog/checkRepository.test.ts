@@ -45,12 +45,17 @@ it("accepts independent PR fragments and rejects direct changelog edits through 
 it("requires the collector output, version bump and deletion of collected fragments for a release", async () => {
 	const fixture = repository();
 	try {
+		const emptyBase = fixture.commit();
 		fixture.write("changes/editor.md", "### Fixed\n\n- Save drafts.\n");
 		const base = fixture.commit();
 		fixture.version("1.1.0");
-		await assert.rejects(() => check(fixture.root, base), /collect the release fragments/u);
+		await assert.rejects(() => check(fixture.root, emptyBase), /collect and delete/u);
+		await assert.rejects(() => check(fixture.root, base), /collect and delete/u);
 		await Effect.runPromise(releasePackage(fixture.directory, "2026-10-11").pipe(Effect.provide(NodeFileSystem.layer)));
 		await check(fixture.root, base);
+		fixture.write("changes/new-note.md", "### Added\n\n- New behavior.\n");
+		await assert.rejects(() => check(fixture.root, base), /collect and delete/u);
+		rmSync(join(fixture.directory, "changes/new-note.md"));
 		fixture.write("changes/editor.md", "### Fixed\n\n- Save drafts.\n");
 		await assert.rejects(() => check(fixture.root, base), /collect and delete/u);
 		rmSync(join(fixture.directory, "changes/editor.md"));
