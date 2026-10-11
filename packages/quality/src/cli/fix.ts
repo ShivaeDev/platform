@@ -91,7 +91,7 @@ function unsettled(changed: ReadonlySet<string>): SetupFailure {
 					"Run `biome check --write --unsafe --verbose` to name them.",
 				];
 	return new SetupFailure({
-		message: [...named, "Two fixes probably undo each other there. Fix the code by hand, or turn off one of the rules."].join("\n"),
+		message: [...named, "Two fixes probably undo each other there. Repair the conflicting code by hand so both checks pass."].join("\n"),
 	});
 }
 

@@ -29,7 +29,7 @@ export interface ImportGraph {
 const QUERY = /\?.*$/u;
 
 const NO_MODULES =
-	"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the code, or turn the imports rules off.";
+	"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the TypeScript or JavaScript code.";
 
 function relativeTarget(from: string, request: ImportRequest): string | undefined {
 	const relative = request.kind === "path-reference" || request.specifier.startsWith("./") || request.specifier.startsWith("../");
@@ -77,7 +77,7 @@ async function build(inputs: RuleInputs): Promise<ImportGraph> {
 
 const graphs = new WeakMap<readonly SourceFile[], Promise<ImportGraph>>();
 
-// The three imports rules run on one scan, so they share the graph built from its sources.
+// Import rules run on one scan, so they share the graph built from its sources.
 export function importGraph(inputs: RuleInputs): Promise<ImportGraph> {
 	const known = graphs.get(inputs.sources) ?? build(inputs);
 	graphs.set(inputs.sources, known);

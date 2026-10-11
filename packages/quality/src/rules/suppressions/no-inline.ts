@@ -33,7 +33,7 @@ export const noInline = defineRule({
 			(site) => !allowed(site),
 		),
 	description:
-		"A suppression silences a check at one site instead of fixing the cause. Fix the code; where a lint rule truly cannot apply, turn it off for that scope in the Biome config and declare it under suppressions/biome-overrides. A type test asserts a compile error with @ts-expect-error in a *.typecheck.test.ts or *.typecheck.spec.ts file.",
+		"A suppression silences a check at one site instead of fixing the cause. Repair the code that fails the check and remove the suppression. A type test asserts a compile error with @ts-expect-error in a *.typecheck.test.ts or *.typecheck.spec.ts file.",
 	id: "suppressions/no-inline",
 	registrable: false,
 });

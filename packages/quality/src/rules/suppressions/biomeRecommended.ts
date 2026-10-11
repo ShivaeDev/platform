@@ -22,7 +22,7 @@ function settingOf(rules: Json | undefined, rule: string): Setting {
 	return { level: textOf(node) ?? textOf(member(node, "level")), line: node?.line };
 }
 
-const FIX = `Set it to "error" in the preset, or declare why not in its ${PRESET_DECLARATIONS}.`;
+const FIX = 'Set it to "error" in the preset and repair the code it reports.';
 
 function looseRule(file: string, rule: string, { level, line }: Setting): Finding {
 	const state = level === undefined ? "leaves at Biome's default level" : `sets to "${level}"`;
@@ -65,7 +65,7 @@ export function biomeRecommendedFrom(recommended: () => Promise<readonly string[
 	return defineRule({
 		check: ({ readText }) => check(readText, recommended),
 		description:
-			"Every rule the installed Biome recommends is at error in the shared preset, or the preset declares why not, so a Biome upgrade that adds or changes a recommended rule cannot slip in at Biome's default level.",
+			"Every recommended Biome rule without a shipped internal exception runs at error in the shared preset. Set missing rules to error in the preset and repair the code they report.",
 		id: "suppressions/biome-recommended",
 		registrable: false,
 	});

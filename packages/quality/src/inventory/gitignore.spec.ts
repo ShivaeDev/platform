@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 import { afterEach, expect } from "vitest";
 import { collectInventory } from "#inventory/collect.ts";
 import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
+import { git } from "#test/git.ts";
 import { it } from "#test/it.ts";
 import { removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
@@ -53,5 +54,20 @@ it.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {
 			{ content: "export const v = 1;\n", path: "packages/x/node_modules/v/index.ts" },
 		]);
 		expect(yield* pathsOf(root)).toEqual(["packages/x/src/mod.ts"]);
+	});
+
+	it.effect("keeps tracked files in ignored directories while pruning untracked output beside them", function* () {
+		const root = seedTree([
+			{ content: "generated/\n", path: ".gitignore" },
+			{ content: "export const authored = 1;", path: "src/generated/Nested/authored.ts" },
+			{ content: "!output.ts\n", path: "src/generated/Nested/.gitignore" },
+			{ content: "export const output = 1;", path: "src/generated/Nested/output.ts" },
+			{ content: "export const loose = 1;", path: "src/generated/loose.ts" },
+		]);
+		git(root, "init", "--quiet");
+		git(root, "add", "--force", "src/generated/Nested/authored.ts");
+		expect(yield* pathsOf(root)).toEqual(["src/generated/Nested/authored.ts"]);
+		expect(yield* pathsOf(root, ["src/generated"])).toEqual(["src/generated/Nested/authored.ts"]);
+		expect(yield* pathsOf(root, ["src/generated/Nested"])).toEqual(["src/generated/Nested/authored.ts"]);
 	});
 });
