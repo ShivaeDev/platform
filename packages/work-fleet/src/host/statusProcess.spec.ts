@@ -29,5 +29,5 @@ describe("work-fleet status process against PostgreSQL", () => {
 				});
 			}),
 		);
-	}, 30_000);
+	});
 });

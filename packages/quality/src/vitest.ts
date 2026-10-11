@@ -23,6 +23,8 @@ export function testProjects({ exclude = [] }: { readonly exclude?: readonly str
 			{ extends: true, test: { environment: "happy-dom", exclude: excluding(exclude, named("slow")), include: [named("dom")], name: "dom" } },
 			{ extends: true, test: { environment: "node", exclude: excluding(exclude), include: [named("slow")], name: "slow" } },
 		],
+		// Tests that start real servers, browsers or CLIs need seconds on a busy CI runner, and Vitest's 5s default fails them for load, not behavior.
+		testTimeout: 30_000,
 	};
 }
 

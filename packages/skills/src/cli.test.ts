@@ -7,7 +7,7 @@ afterEach(removeConsumerRepos);
 
 const VERSION: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-it("check exits non-zero and asks for sync until sync copies the package's own skills", { timeout: 30_000 }, () => {
+it("check exits non-zero and asks for sync until sync copies the package's own skills", () => {
 	const repo = consumerRepo(["pr-description"]);
 
 	const before = runCli(repo, ["check"]);
