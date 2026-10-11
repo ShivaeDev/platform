@@ -94,6 +94,18 @@ terminal adopted PR transfers its actual paths into a foreign reservation until
 the runtime observes that the PR no longer owns them. Ambiguous submitted
 delivery cannot be released.
 
+### Continue a worker with new instructions
+
+Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal Needs human or Completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work and unresolved delivery are refused.
+
+```sh
+work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
+printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --board .work
+work-fleet wait work-id --board .work
+```
+
+The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet run` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output goes through the same result adoption, review, validation and delivery path as a first launch and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
+
 ### Answer the current Board decision
 
 Fleet publishes an ordinary Board decision and stores its exact `BoardDecision`

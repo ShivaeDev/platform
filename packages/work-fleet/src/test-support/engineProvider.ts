@@ -9,6 +9,7 @@ export function engineProvider(options: EngineOptions) {
 	const failedObservations = new Set<string>();
 	const operations = new Map<string, SessionReceipt>();
 	let lost = options.lostAcknowledgement ?? false;
+	let rejectNext = false;
 	const transport = Layer.succeed(SessionTransport)({
 		interrupt: (receipt) => Effect.succeed(receipt),
 		observe: (receipt) =>
@@ -33,7 +34,8 @@ export function engineProvider(options: EngineOptions) {
 		startTurn: (input) =>
 			Effect.gen(function* () {
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
-				if (options.rejectTurn) {
+				if (options.rejectTurn || rejectNext) {
+					rejectNext = false;
 					return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
 				}
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
@@ -46,6 +48,19 @@ export function engineProvider(options: EngineOptions) {
 				return receipt;
 			}),
 	});
-	return { failedObservations, launched, observations, operations, settings, transport };
+	return {
+		failedObservations,
+		launched,
+		loseAcknowledgement: () => {
+			lost = true;
+		},
+		observations,
+		operations,
+		rejectNextTurn: () => {
+			rejectNext = true;
+		},
+		settings,
+		transport,
+	};
 }
 export type EngineProvider = ReturnType<typeof engineProvider>;

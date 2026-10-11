@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { continueCommand } from "#engine/continueCommand.ts";
 import { dispatchCommand } from "#engine/dispatchCommand.ts";
 import { makeAdvance } from "#engine/makeAdvance.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
@@ -28,6 +29,7 @@ export const Fleet = defineService({
 		return { ...state, advance: makeAdvance(state, launch), launch };
 	}),
 	methods: (state) => ({
+		continue: continueCommand(state, state.launch),
 		dispatch: dispatchCommand(state, state.launch),
 		get: (workId: string) => state.load(workId),
 		list: () => state.store.list(),

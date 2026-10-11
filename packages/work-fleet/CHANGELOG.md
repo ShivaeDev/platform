@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Continue terminal needs-human or completed work on its existing worker thread with
+  `work-fleet continue <id> <message>` or a message on stdin. Persist each message
+  and attempt before submission, preserve the prior cycle in history, and reconcile
+  lost acknowledgements without replay. Status and wait follow the continued turn
+  and result; running and released work cannot be continued.
+
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a
