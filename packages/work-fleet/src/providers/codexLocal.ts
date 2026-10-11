@@ -43,13 +43,15 @@ export const codexLocalLayer = Layer.effect(SessionTransport)(
 						)
 				).pipe(
 					Effect.map((params) =>
-						input.access === "read-only" ? { ...params, approvalPolicy: "never", sandboxPolicy: { networkAccess: false, type: "readOnly" } } : params,
+						input.access === "read-only" ? { ...params, approvalPolicy: "never", sandboxPolicy: { networkAccess: true, type: "readOnly" } } : params,
 					),
 				),
 			provisioning: "ready",
 			sessionStarted: (sessionId) => resumed.add(sessionId),
 			threadStart: (input) => ({
-				...(input.access === "read-only" ? { approvalPolicy: "never", sandbox: "read-only" } : {}),
+				...(input.access === "read-only"
+					? { approvalPolicy: "never", config: { "sandbox_read_only.network_access": true }, sandbox: "read-only" }
+					: {}),
 				cwd: input.cwd,
 				ephemeral: false,
 				...(input.settings?.model === undefined ? {} : { model: input.settings.model }),

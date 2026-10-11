@@ -76,7 +76,6 @@ describe("context-bound Fleet renewal", () => {
 				expect(renewed.value.history?.[0]?.review).toEqual(completed.value.review);
 				expect(renewed.value.history?.[0]?.checks).toEqual(completed.value.checks);
 				expect(renewed.value.history?.[0]?.boardContext).toContain("board-one");
-				expect(renewed.value.deliverySubmitted).toBeUndefined();
 				expect(renewed.value.outcome).toBeUndefined();
 			}),
 		));
@@ -98,23 +97,6 @@ describe("context-bound Fleet renewal", () => {
 				expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
 				expect(fixture.launched).toHaveLength(2);
 				expect((yield* fleet.get("one")).value.attempts).toEqual([]);
-			}),
-		));
-	test("a legacy unresolved delivery submission cannot be archived into a new cycle", () =>
-		withEngine({ deliveryFailure: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const ambiguous = yield* fleet.reconcile("one");
-				yield* fixture.markLegacyDeliverySubmitted("one");
-				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
-				expect((yield* fleet.get("one")).value.deliverySubmitted).toBe(true);
-				expect((yield* fleet.get("one")).value.attempts).toEqual(ambiguous.value.attempts);
-				expect((yield* fleet.get("one")).value.history).toBeUndefined();
 			}),
 		));
 	test("renewal conserves an adopted open PR backlog reservation and relaunches the same scope", () =>

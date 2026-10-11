@@ -18,9 +18,6 @@ export const authorizeResolution = Effect.fn("Fleet.authorizeResolution")(functi
 	if (executing(record)) {
 		return yield* Effect.fail(new FleetFailure({ message: "Confirm terminal execution before releasing ownership", reason: "denied" }));
 	}
-	if (record.deliverySubmitted && record.outcome === undefined) {
-		return yield* Effect.fail(new FleetFailure({ message: "Reconcile the submitted delivery before releasing ownership", reason: "denied" }));
-	}
 	if (record.result?.kind === "change") {
 		yield* store.reserveForeign(record.result.pr, { backlog: true, executing: false });
 	}

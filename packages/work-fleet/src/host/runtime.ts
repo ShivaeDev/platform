@@ -23,11 +23,9 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 	Effect.gen(function* () {
 		const main = yield* MainSource;
 		return FleetIntegrations.of({
-			authorize: () => Effect.succeed(false),
 			checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
-			merge: () => unconfigured("Merge"),
 			result: () => unconfigured("Worker result adoption"),
 		});
 	}),
