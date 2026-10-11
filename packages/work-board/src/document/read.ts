@@ -6,7 +6,6 @@ import { markdownPath } from "#files/markdownPath.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { readingActions } from "#responses/readingActions.ts";
-import type { responseService } from "#responses/service.ts";
 import { ReadFailed } from "#rpc/contract.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { documentRequests } from "./requests.ts";
@@ -16,7 +15,6 @@ export interface DocumentOptions {
 	readonly changes: Changes;
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
-	readonly responses?: Effect.Success<ReturnType<typeof responseService>>;
 	readonly root: string;
 	readonly writable: boolean;
 }
@@ -45,7 +43,7 @@ const selected = Effect.fn("WorkBoard.selected")(function* (
 	return { file, item };
 });
 
-export function readDocument({ changes, home, index, responses, root, writable }: DocumentOptions) {
+export function readDocument({ changes, home, index, root, writable }: DocumentOptions) {
 	return Effect.fn("WorkBoard.document")(function* (url: string) {
 		const snapshot = yield* index;
 		const files = yield* changes.files;
@@ -65,7 +63,7 @@ export function readDocument({ changes, home, index, responses, root, writable }
 		if (item && identity !== item) {
 			return yield* Effect.fail(new ReadFailed({ operation: "document", status: 404 }));
 		}
-		const questionActions = yield* readingActions(document, source, responses, writable, identity);
+		const questionActions = yield* readingActions(document, source, writable, identity);
 		return {
 			...documentTargets(document, model),
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
