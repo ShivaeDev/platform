@@ -16,7 +16,10 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
 		dispatched.push(result);
-		if (Result.isSuccess(result) && result.success.value.launchRetry !== undefined) {
+		if (
+			(Result.isSuccess(result) && result.success.value.launchRetry !== undefined)
+			|| (yield* fleet.list()).some(({ value: current }) => current.launchRetry !== undefined)
+		) {
 			break;
 		}
 	}

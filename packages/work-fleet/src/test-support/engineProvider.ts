@@ -88,6 +88,9 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				if (failure !== undefined) {
 					return yield* Effect.fail(failure);
 				}
+				if (starts.length === 1) {
+					yield* options.sessionAcknowledgementGate ?? Effect.void;
+				}
 				return input.access === "read-only" && options.sameReviewer ? `session-${launched[0]}` : `session-${input.operationId}`;
 			}),
 		startTurn: (input) =>
@@ -106,6 +109,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 					observations.set(receipt.turnId, { execution: "running", output: input.prompt, provisioning: "ready", receipt });
 				}
 				if (consumeLostAcknowledgement(input.access === "read-only")) {
+					yield* options.acknowledgementGate ?? Effect.void;
 					return yield* Effect.fail(new SessionFailure({ message: "Lost acceptance response", reason: "ambiguous" }));
 				}
 				return receipt;
