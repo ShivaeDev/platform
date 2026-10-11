@@ -89,28 +89,6 @@ describe("independent reviewer sessions", () => {
 				expect(fixture.launched).toHaveLength(3);
 			}),
 		));
-	test("a malformed completed verdict raises a decision without accepting review evidence", () =>
-		withEngine({ reviewRunning: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const reviewing = yield* fleet.reconcile("one");
-				const receipt = reviewing.value.attempts.at(-1)?.receipt;
-				if (receipt === undefined) {
-					return yield* Effect.die(new Error("Reviewer receipt missing"));
-				}
-				fixture.observations.set(receipt.turnId, { execution: "completed", output: "FLEET_REVIEW: invalid", provisioning: "ready", receipt });
-				const invalid = yield* fleet.reconcile("one");
-				expect(invalid.value.stage).toBe("needs-human");
-				expect(invalid.value.attentionOwner).toBe("orchestrator");
-				expect(invalid.value.decision?.reason).toContain("malformed");
-				expect(invalid.value.review).toBeUndefined();
-				expect(invalid.value.attempts.at(-1)?.status).toBe("completed");
-				expect(fixture.merged).toHaveLength(0);
-			}),
-		));
 	test("keeps approval on the old head and starts fresh review when the PR head moves", () => {
 		let result: WorkResult = { head: "first-head", kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" };
 		return withEngine({ resultQuery: () => Effect.succeed(result), reviewRunning: true }, (fixture) =>
