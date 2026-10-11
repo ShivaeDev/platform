@@ -1,0 +1,14 @@
+import { execFileSync } from "node:child_process";
+import { Schema } from "effect";
+import { FleetViews } from "@shivaedev/work-fleet/model.ts";
+import { Reassign } from "@shivaedev/work-fleet/operations.ts";
+
+const help = execFileSync("node_modules/.bin/work-fleet", ["reassign", "--help"], { encoding: "utf8" });
+if (!help.includes("Reassign the exact waiting decision to its next actor")) {
+  throw new Error("Packed Fleet CLI does not expose reassignment");
+}
+Schema.decodeUnknownSync(Reassign.payload)({ attentionOwner: "maintainer", decisionId: "synthetic-decision", workId: "synthetic-work" });
+const views = Schema.decodeUnknownSync(FleetViews)({ active: [], completed: [], waiting: { automation: [], maintainer: [], orchestrator: [] } });
+if (Object.keys(views).includes("needsHuman") || Object.keys(views.waiting).length !== 3) {
+  throw new Error("Packed Fleet views do not expose the three waiting owners");
+}
