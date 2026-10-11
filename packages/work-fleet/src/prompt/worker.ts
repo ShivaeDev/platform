@@ -1,3 +1,5 @@
+import { REPORT_ATTACHMENT_DIRECTORY, REPORT_ATTACHMENT_MARKER } from "#reportAttachments.ts";
+
 export interface CloudStartup {
 	readonly sharedEnvironment: string;
 }
@@ -17,7 +19,8 @@ const QUESTION_INSTRUCTIONS = [
 const REPORT_INSTRUCTIONS = [
 	"Report deliverable:",
 	"- Leave repository sources unchanged. Commit nothing, push nothing, and open no PR. Do not create a branch or launch other workers.",
-	"- You may create report attachments such as screenshots as new uncommitted files in the workspace. Fleet downloads them from the Cloud task into Board beside the result. Never publish attachments to git or GitHub.",
+	`- Write report attachments as new uncommitted files under ${REPORT_ATTACHMENT_DIRECTORY}, using the file-edit/apply_patch tool for every add and update. Fleet reconstructs files from this turn's fileChange items; files created or changed by shell commands are not retrievable. Never publish attachments to git or GitHub.`,
+	`- Use UTF-8 text attachments. For binary evidence, write a base64 text file with the file-edit tool and describe its encoding. List every promised attachment in the final report on its own line: ${REPORT_ATTACHMENT_MARKER} <path relative to ${REPORT_ATTACHMENT_DIRECTORY}>. Do not reuse files from earlier turns.`,
 	"- Read the root and package AGENTS.md and use read-only research to answer the approved task.",
 	"- Return the whole report as your final message, with evidence for each acceptance criterion and any remaining uncertainty.",
 ].join("\n");

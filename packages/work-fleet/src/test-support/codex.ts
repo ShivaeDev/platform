@@ -19,10 +19,14 @@ function frame(value: unknown) {
 	if (body.length < 126) {
 		return Buffer.concat([Buffer.from([129, body.length]), body]);
 	}
-	const header = Buffer.alloc(4);
+	const header = Buffer.alloc(body.length < 65_536 ? 4 : 10);
 	header[0] = 129;
-	header[1] = 126;
-	header.writeUInt16BE(body.length, 2);
+	header[1] = body.length < 65_536 ? 126 : 127;
+	if (body.length < 65_536) {
+		header.writeUInt16BE(body.length, 2);
+	} else {
+		header.writeBigUInt64BE(BigInt(body.length), 2);
+	}
 	return Buffer.concat([header, body]);
 }
 function nextFrame(buffered: Buffer) {

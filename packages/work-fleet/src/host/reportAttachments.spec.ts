@@ -7,7 +7,7 @@ import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { PUBLISHED_REPORT } from "#host/reportBoard.ts";
 import { withHost } from "#test/fleetHost.ts";
-import { attachmentBoard, attachmentDiff, expectReportAttachments, taskDownload } from "#test/reportAttachments.ts";
+import { attachmentBoard, attachmentItems, expectReportAttachments, turnDownload } from "#test/reportAttachments.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
@@ -16,8 +16,8 @@ const OUTPUT = "The report stays private to Board.";
 describe("Report attachments", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
 	for (const attachments of [true, false]) {
-		test(`completes a report ${attachments ? "with downloaded text and binary files beside the result" : "without attachments"}`, function* () {
-			const download = yield* taskDownload(attachments ? attachmentDiff() : "");
+		test(`completes a report ${attachments ? "with downloaded text and encoded binary files beside the result" : "without attachments"}`, function* () {
+			const download = yield* turnDownload(attachments ? attachmentItems() : []);
 			yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 				Effect.gen(function* () {
 					const collector = attachmentBoard(fixture.host.boardDir, download);
@@ -39,8 +39,8 @@ describe("Report attachments", () => {
 						return yield* Effect.die(new Error(result.value.decision?.reason ?? "No report result"));
 					}
 					expectReportAttachments(fixture.host.boardDir, report, attachments, OUTPUT);
-					expect(download.requests).toEqual([
-						{ accountSelected: true, authenticated: true, path: `/backend-api/wham/tasks/${encodeURIComponent(observation.receipt.sessionId)}` },
+					expect(download.requests.filter((request) => request.method === "thread/items/list").map((request) => request.params)).toEqual([
+						{ cursor: null, limit: 100, sortDirection: "asc", threadId: observation.receipt.sessionId, turnId: observation.receipt.turnId },
 					]);
 					expect(collector.requests).toHaveLength(4);
 					expect((yield* complete).value.report).toEqual(report);
@@ -54,7 +54,7 @@ describe("Report attachments", () => {
 	for (const published of ["branch", "pr"] as const) {
 		for (const output of [OUTPUT, "FLEET_QUESTION: Which approach?"]) {
 			test(`rejects a published ${published} after a report turn${output === OUTPUT ? "" : " with a question and changed context"}`, function* () {
-				const download = yield* taskDownload(attachmentDiff());
+				const download = yield* turnDownload(attachmentItems());
 				yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 					Effect.gen(function* () {
 						const collector = attachmentBoard(fixture.host.boardDir, download, published);

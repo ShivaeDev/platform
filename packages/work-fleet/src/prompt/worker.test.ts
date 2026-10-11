@@ -19,6 +19,11 @@ describe("workerPrompt", () => {
 		expect(report).toContain("Leave repository sources unchanged");
 		expect(report).toContain("Commit nothing, push nothing, and open no PR");
 		expect(report).toContain("new uncommitted files");
+		expect(report).toContain("/tmp/fleet-report/attachments/");
+		expect(report).toContain("file-edit/apply_patch tool for every add and update");
+		expect(report).toContain("shell commands are not retrievable");
+		expect(report).toContain("FLEET_ATTACHMENT:");
+		expect(report).toContain("base64 text file");
 		expect(report).toContain("Never publish attachments to git or GitHub");
 		expect(report).toContain("Do not create a branch or launch other workers");
 		expect(report).toContain(QUESTION_MARKER);

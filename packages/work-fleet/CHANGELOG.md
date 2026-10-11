@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reconstruct private report attachments from the exact completed Cloud turn’s paginated app-server `fileChange` items, replaying adds, updates, moves and deletes under `/tmp/fleet-report/attachments/`. Require file-edit/apply_patch writes and explicit attachment declarations in report prompts; binary evidence uses base64 text. Publish report text and unavailable-file reasons when retrieval, reconstruction or collection limits fail, while retaining retrievable files after per-file failures.
+- Add `ReportAttachments`, `UnavailableAttachment`, attachment directory/marker constants and `declaredAttachments` in `reportAttachments.ts`; `codexReportAttachments` and `makeCodexReportAttachments` fetch turn files, `reportFileChanges` and `reportFileReplay` reconstruct them, and `applyReportPatch` validates update hunks.
+- Breaking: `reportBoard` collectors now receive `SessionObservation` and return `ReportAttachments` with `files` and `unavailable`; `ReportFile` moves to `reportAttachments.ts`. Remove the obsolete `codexTaskDiff`, `makeCodexTaskDiff`, `readTaskResponse` and `reportDiffFiles` exports and their REST/Git-patch modules. `codexTurns` exposes shared bounded `readItems` pagination in addition to `readOutput`; `reportLinks` accepts optional unavailable-file records.
+
 - Adopt PRs already merged at the reported head, including merges during review, then require independent approval and checks for that head before accepting observed human delivery. Retry failed adoption from the completed worker receipt instead of launching another worker; keep mismatched merges and unmerged closures waiting for a human.
 - Recover interrupted Cloud launches on the acknowledged thread: adopt matching accepted turns, wait five seconds for late acceptance, then start the saved turn only when the thread remains empty. Guided retry uses the same recovery for existing missing-turn decisions and retains the attempt identity; uncertain thread evidence stays blocked.
 - Check complete report bytes, including attachment links, before writing attachment files, so oversized reports leave no attachment folder. Name launching threads with one record lookup using the work ID retained from session acknowledgement.
@@ -13,8 +17,7 @@
 - Breaking: remove the unused `authorize` and `merge` hooks from `FleetIntegrations` and the obsolete `deliverySubmitted` field from Fleet records and archived cycles.
 - Breaking: `hostIntegrations` now takes a `FleetHost` and returns its integration Layer. It selects result adoption while retaining GitHub checks and human delivery observation.
 - Accept surrounding whitespace and backtick-wrapped values in the final worker head and PR markers. Preserve no-change evidence when main moves; adopting it still requires the task revision to match the revision dispatched.
-- Reject ambiguous attachment modes and non-regular or escaping reconstructed paths before reading files. Limit report diff text to 8 MiB, task downloads to 16 MiB, attachment count to 64 and total attachment bytes to 32 MiB; rejected reports need a human with the failed limit named.
-- Download new uncommitted report files from the completed Cloud task diff beside the Board result, including text and Git binary patches. Reject report workers that publish their branch or open a PR on GitHub, without deleting public evidence. Unavailable downloads or remote checks need a human.
+- Reject report workers that publish their branch or open a PR on GitHub, without deleting public evidence. Unavailable remote checks need a human.
 - Publish structured provider capacity codes without raw upstream text and refresh health after each scheduler pass.
 
 - Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.

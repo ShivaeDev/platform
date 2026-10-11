@@ -2,8 +2,8 @@ import { constants, type Stats } from "node:fs";
 import { type FileHandle, lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Effect } from "effect";
-import type { ReportFile } from "#host/reportDiff.ts";
 import { FleetFailure } from "#policy.ts";
+import type { ReportFile } from "#reportAttachments.ts";
 import { REPORT_LIMITS, reportLimit } from "#reportLimits.ts";
 
 function inside(folder: string, file: string) {

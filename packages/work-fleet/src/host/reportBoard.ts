@@ -8,11 +8,11 @@ import { reportLinks } from "#board/reportLinks.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { FleetHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
-import { type ReportFile, reportDiffFiles } from "#host/reportDiff.ts";
 import { reportPublication, reportRepository } from "#host/reportPublication.ts";
 import { BoardFailure, BoardGateway, type BoardWork, FleetFailure } from "#policy.ts";
-import { codexTaskDiff } from "#providers/codexTaskDiff.ts";
-import { SessionFailure, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
+import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
+import { declaredAttachments, type ReportAttachments } from "#reportAttachments.ts";
+import { SessionFailure, type SessionObservation } from "#session/schema.ts";
 
 export const PUBLISHED_REPORT = "Report worker published to GitHub";
 
@@ -25,10 +25,18 @@ function attachmentFailure(error: unknown) {
 	return new BoardFailure({ message });
 }
 
+function unavailableAttachments(observation: SessionObservation, error: unknown): ReportAttachments {
+	const declared = declaredAttachments(observation.output);
+	return {
+		files: [],
+		unavailable: (declared.length === 0 ? ["Attachment collection"] : declared).map((path) => ({ path, reason: attachmentFailure(error).message })),
+	};
+}
+
 export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileError>(
 	root: string,
 	check: (work: BoardWork) => Effect.Effect<boolean, TCheckError, TCheckServices>,
-	files: (receipt: SessionReceipt) => Effect.Effect<readonly ReportFile[], TFileError, TFileServices>,
+	files: (observation: SessionObservation) => Effect.Effect<ReportAttachments, TFileError, TFileServices>,
 ) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
@@ -42,11 +50,14 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 				);
 			}
 			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
-				const attachments = yield* files(observation.receipt).pipe(Effect.provide(services));
+				const attachments = yield* files(observation).pipe(
+					Effect.provide(services),
+					Effect.catch((error) => Effect.succeed(unavailableAttachments(observation, error))),
+				);
 				const { itemId } = reportIdentity(work, observation.receipt);
-				const reportObservation = { ...observation, output: observation.output + reportLinks(itemId, attachments) };
+				const reportObservation = { ...observation, output: observation.output + reportLinks(itemId, attachments.files, attachments.unavailable) };
 				yield* reportContent(work, reportObservation);
-				yield* reportFiles(root, itemId, attachments);
+				yield* reportFiles(root, itemId, attachments.files);
 				return yield* board.report(work, reportObservation);
 			}, Effect.mapError(attachmentFailure));
 			return Layer.merge(Layer.succeed(ReportInspection)({ check: inspect }), Layer.succeed(BoardGateway)({ ...board, report }));
@@ -69,10 +80,10 @@ export function hostReportBoard(host: FleetHost) {
 					);
 				});
 			}
-			function files(receipt: SessionReceipt) {
+			function files(observation: SessionObservation) {
 				return host.provider === "cloud" && host.cloud !== undefined
-					? Effect.scoped(codexTaskDiff(host.cloud, host.cloud.requestTimeoutMs ?? 60_000)(receipt).pipe(Effect.flatMap(reportDiffFiles)))
-					: Effect.succeed([]);
+					? codexReportAttachments(host.cloud, host.cloud.requestTimeoutMs ?? 60_000)(observation)
+					: Effect.succeed({ files: [], unavailable: [] });
 			}
 			return reportBoard(host.boardDir, check, files).pipe(Layer.provide(markdownBoard(host.boardDir)));
 		}),
