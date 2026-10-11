@@ -11,9 +11,10 @@ migration of an existing application or a deployed application.
   rejections and order reactivity keys, grouped into a native RPC group. Browser
   code imports this module without importing database drivers or server
   initialization.
-- [Backend](../../packages/effect-react/src/test-support/order-example/backend.ts):
+- [Backend](../../packages/effect-react/src/test-support/order-example/service.ts):
   model-derived repository, service declaration, business validation and
-  request authentication.
+  request-scoped authorization.
+- [HTTP runtime](../../packages/effect-react/src/test-support/order-example/runtime.ts): session middleware, native handlers and JSON serialization, composed with the feature service Layer.
 - [Frontend](../../packages/effect-react/src/test-support/order-example/frontend.tsx): the
   contract bound to a native AtomRpc service, encoded form fields and decoded
   submission.
@@ -52,10 +53,8 @@ The session implementation is an injected example boundary, not a replacement
 for Better Auth. Production cookie handling, CSRF policy, session storage and
 mobile authentication still need application integration.
 
-The example uses SQLite and a loopback HTTP listener with native RPC
-serialization. Its DOM tests do not prove browser networking, SSR hydration,
-Capacitor resume, offline writes or cross-process invalidation. PostgreSQL codec
-coverage remains separate from this feature.
+The original boundary tests use SQLite. The [application story kit](../../packages/effect-react/src/test-support/order-example/application.ts) runs the same service, repository, contracts and components against real PostgreSQL and a loopback HTTP listener with native RPC serialization. Its DOM tests do not prove browser networking, SSR hydration,
+Capacitor resume, offline writes or cross-process invalidation. The PostgreSQL story coverage uses the kit described below; broader codec coverage remains separate from this feature.
 
 The small Node HTTP bridge is test infrastructure, not a production server
 adapter. The framework continues to expose native components so applications can
@@ -81,3 +80,11 @@ The focused test runs four scenarios:
 Run `pnpm --filter @shivaedev/effect-react exec vitest run src/orderExample.dom.spec.tsx`
 from the workspace. The test binds an ephemeral loopback port and requires local
 network access. The full workspace gate is `pnpm ready`.
+
+## Application-owned story kit
+
+The [story specs](../../packages/effect-react/src/orderStory.dom.spec.tsx) import shared traits and domain verbs. The kit owns fresh application services, native RPC clients, scoped React roots and atom registries. Its worker Layer leases one disposable PostgreSQL database for both real-commit HTTP stories and local rollback stories. Migrations use `migratePostgres`; HTTP stories truncate application tables before and after each story while retaining the ledger, and observe persistence through an independent pool. Local stories wrap creation, seeds and body in `transact` and verify rollback before cleanup truncation.
+
+The PostgreSQL stories check a committed save, a typed rejection after a write with no publication, cross-owner rejection, rendered list refresh through `useAction`, and a `useEditor` form retaining rejected encoded input before a successful corrected save. A failed story exercises root cleanup and table reset before the next story. [Database lifecycle tests](../../packages/effect-react/src/orderDatabase.spec.ts) check leases, pool shutdown before the last database drop, setup failure, interruption, destination validation and invalid seed rejection.
+
+Run `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-react test src/orderStory.dom.spec.tsx src/orderDatabase.spec.ts` after `pnpm db:setup`. These tests skip without that explicit URL. `pnpm ready` supplies the workspace test database URLs and runs them with the rest of the gates.

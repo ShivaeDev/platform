@@ -107,8 +107,10 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | Hook | Says |
 | --- | --- |
 | `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
+| `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
+| `clock` | Optional. `"test"` by default, or `"live"` for HTTP and DOM stories. A story’s `options.clock` takes precedence. |
 | `create()` | A fresh engine. Every story starts from a new one. |
-| `layer` | Optional. The Effect layer that provides every service the hooks, traits and test bodies use. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
+| `layer` | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
 | `stages` | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile. |
 | `after` | Optional. A hook per stage that runs once that stage's traits are applied, even when no trait names the stage, so a value it derives is ready before a later stage reads it. Its typed failure fails the test. |
 | `run` | Optional. What `story.runUntil` needs: `step(engine, tell)` advances the engine once and tells what happened, `maxSteps` caps one run, `failed(engine)` returns a sentence when the engine is in a state it cannot recover from, and `diagnose(engine)` says why it has not finished. |
@@ -233,6 +235,40 @@ After the engine has been created, a failing story test adds the story to its fi
 - the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
 The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
+
+### Whole-stack application kits
+
+Keep one kit in the application’s `test-support/`. `effect-test` owns Vitest registration, worker Layer acquisition, the per-test Scope, cancellation and clock selection. `test-story` owns engine creation, staged traits, verbs and narration. The application owns database lifecycle, migrations, isolation, seeds, actual server/client wiring and screen interactions.
+
+The [order feature kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) runs the existing feature’s services, repository, contracts, JSON serialization and authentication middleware over a loopback HTTP listener. Its [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) test visible commits through a separate PostgreSQL pool, rollback of a rejected write without publication, cross-owner rejection, a native React action refreshing a list, and an editor retaining rejected input before a corrected save.
+
+```ts
+import { app, realPostgres } from "./test-support/application.ts";
+import { aliceHasOrder } from "./test-support/traits.ts";
+
+app.it("a save commits and a rejected write leaves storage intact", [realPostgres(), aliceHasOrder("paper")], function* ({ saveOrder, rejectOrder, storedOrderIs, changesAre }) {
+  yield* saveOrder("paper", "Office chairs", 8);
+  yield* storedOrderIs("paper", "Office chairs", 8);
+  yield* rejectOrder("paper", -1);
+  yield* storedOrderIs("paper", "Office chairs", 8);
+  yield* changesAre(1);
+});
+```
+
+The application’s worker Layer leases a uniquely named disposable database, opens native PgClient pools and runs `migratePostgres`. Multiple kits in the worker share the database; the last lease drops it after the pools close. The PostgreSQL trait checks that infrastructure and the declared policy; it does not start a database. The application validates its local disposable destination before database creation or reset and skips database stories without `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`. Tests sharing that database run serially; parallelism belongs between workers or inside one story.
+
+| Application mode | Reset policy | Transaction policy | Coverage |
+| --- | --- | --- | --- |
+| HTTP | Truncate application tables and restart identities before and after the story; retain the migration ledger. | Commands perform real commits. | RPC serialization/transport, independent persistence reads, React refresh and forms. |
+| Local | Reset the baseline before and after the story. | Wrap creation, seeds and body in an outer Platform `transact`, then force rollback after success with a private sentinel. | Local repositories and services, transactional seeds and nested writes. |
+
+The kit’s `around` implements that policy. HTTP requests run in separate fibers, so an outer test transaction cannot isolate their writes. Local rollback starts with Platform `transact`; putting it inside a native outer transaction violates transaction ownership. Catch only the wrapper’s private rollback sentinel, let other failures escape, and check independent storage before cleanup truncation so cleanup cannot hide an accidental commit.
+
+Application-authored seed builders reuse application schemas, validate overrides, insert actual rows and return generated values. Traits retain aliases such as `"paper"` so specs avoid generated IDs. There is no shared factory or automatic relationship seeding.
+
+React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
+
+The example proves DOM and loopback HTTP behavior, not browser credentials, BetterAuth cookies, SSR, mobile or a deployed proxy. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
 
 ### Install and limits
 

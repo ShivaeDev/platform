@@ -9,7 +9,7 @@ export type EffectTestOptions = TestOptions & {
 	readonly clock?: EffectClock;
 };
 
-export type EffectTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unknown, unknown, TProvided>>(
+export type EffectTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unknown, unknown, TProvided | Scope.Scope>>(
 	name: string,
 	body: (harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 	options?: number | EffectTestOptions,
@@ -18,7 +18,7 @@ export type EffectTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unk
 export interface EffectTester<THarness, TProvided> extends EffectTest<THarness, TProvided> {
 	readonly each: <TItem>(
 		cases: readonly TItem[],
-	) => <A, TEff extends Effect.Effect<unknown, unknown, TProvided>>(
+	) => <A, TEff extends Effect.Effect<unknown, unknown, TProvided | Scope.Scope>>(
 		name: string,
 		body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 		options?: number | EffectTestOptions,
@@ -32,11 +32,13 @@ export interface EffectTester<THarness, TProvided> extends EffectTest<THarness, 
 
 export interface MakeEffectItOptions<THarness, TTestLayer extends AnyTestLayer> {
 	readonly around?:
-		| (<A, E>(effect: Effect.Effect<A, E, Layer.Success<TTestLayer>>) => Effect.Effect<A, unknown, Layer.Success<TTestLayer>>)
+		| (<A, E>(
+				effect: Effect.Effect<A, E, Layer.Success<TTestLayer> | Scope.Scope>,
+		  ) => Effect.Effect<A, unknown, Layer.Success<TTestLayer> | Scope.Scope>)
 		| undefined;
 	readonly clock?: EffectClock | undefined;
 	readonly layer: TTestLayer;
-	readonly makeHarness: (context: TestContext) => Effect.Effect<THarness, unknown, Layer.Success<TTestLayer>>;
+	readonly makeHarness: (context: TestContext) => Effect.Effect<THarness, unknown, Layer.Success<TTestLayer> | Scope.Scope>;
 }
 
 export interface MakeEffectItResult<THarness, TProvided> {

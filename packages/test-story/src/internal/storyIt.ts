@@ -52,7 +52,12 @@ function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTes
 
 export function storyIt(definition: LooseDefinition): LooseIt {
 	const genre = genreOf(definition.name);
-	const { effectApp } = makeEffectIt({ layer: definition.layer ?? Layer.empty, makeHarness: () => Effect.void });
+	const { effectApp } = makeEffectIt({
+		around: definition.around,
+		clock: definition.clock,
+		layer: definition.layer ?? Layer.empty,
+		makeHarness: () => Effect.void,
+	});
 	return Object.assign(declaring(definition, genre, effectApp), {
 		fails: declaring(definition, genre, effectApp.fails),
 		only: declaring(definition, genre, effectApp.only),

@@ -1,5 +1,6 @@
-import { Cause, Effect } from "effect";
+import { Cause, Effect, type Scope } from "effect";
 import type { AnyTestLayer } from "@shivaedev/effect-test/any-test-layer.ts";
+import type { EffectClock } from "@shivaedev/effect-test/types.ts";
 import { refusal } from "#internal/errors.ts";
 import { type AnyEffect, type Hook, hooked } from "#internal/hooked.ts";
 import { type Narration, tellGiven } from "#internal/narration.ts";
@@ -18,6 +19,8 @@ export interface LooseStory {
 
 export interface LooseDefinition {
 	readonly after?: Readonly<Partial<Record<string, Hook<[engine: unknown], AnyEffect, void>>>>;
+	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | Scope.Scope>;
+	readonly clock?: EffectClock;
 	readonly create: Hook<[], AnyEffect, unknown>;
 	readonly inspect?: (engine: unknown) => unknown;
 	readonly layer?: AnyTestLayer;

@@ -612,6 +612,12 @@ importers:
       '@effect/atom-react':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(react@19.2.8)(scheduler@0.27.0)
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)
@@ -624,9 +630,18 @@ importers:
       '@shivaedev/effect-sql':
         specifier: workspace:*
         version: link:../effect-sql
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
+      '@shivaedev/local-postgres':
+        specifier: workspace:*
+        version: link:../local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.10.1

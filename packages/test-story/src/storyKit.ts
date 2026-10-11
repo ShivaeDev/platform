@@ -1,6 +1,6 @@
 import type { TestContext } from "@effect/vitest";
-import type { Effect, Layer } from "effect";
-import type { EffectTestOptions } from "@shivaedev/effect-test/types.ts";
+import type { Effect, Layer, Scope } from "effect";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
 import { type AnyEffect, type ErrorOf, type Hook, hooked, type ServicesOf } from "#internal/hooked.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
 import { type LooseIt, storyIt } from "#internal/storyIt.ts";
@@ -15,9 +15,9 @@ type Needs<TProvided> = Effect.Effect<unknown, unknown, TProvided>;
 // A plain after hook yields nothing to infer, so TypeScript leaves its effect at the AnyEffect constraint.
 type AfterEffects<TAfter> = { readonly [TKey in keyof TAfter]-?: AnyEffect extends TAfter[TKey] ? never : TAfter[TKey] }[keyof TAfter];
 
-type LayerFor<THooks, TProvided> = [ServicesOf<THooks>] extends [TProvided]
+type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope>] extends [TProvided]
 	? unknown
-	: { readonly layer: Layer.Layer<ServicesOf<THooks>, unknown, never> };
+	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope>, unknown, never> };
 
 export interface RunUntilOptions {
 	readonly maxSteps?: number | undefined;
@@ -52,6 +52,8 @@ export interface StoryKitDefinition<
 	TDiagnose extends AnyEffect,
 > {
 	readonly after?: { readonly [TKey in keyof TAfter]: Hook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
+	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Scope.Scope>;
+	readonly clock?: EffectClock;
 	readonly create: Hook<[], TCreate, TEngine>;
 	readonly inspect?: (engine: TEngine) => unknown;
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
@@ -68,9 +70,11 @@ export type StoryBody<TEngine, TVerbs, TRun extends AnyEffect, TEffect extends A
 	context: TestContext,
 ) => Generator<TEffect, unknown, never> | undefined;
 
-export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided> = <TEffect extends Needs<TProvided> = never>(
+export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided> = <
+	TEffect extends Needs<TProvided | Scope.Scope> = never,
+>(
 	name: string,
-	given: readonly Trait<TEngine, TStage, TProvided>[],
+	given: readonly Trait<TEngine, TStage, TProvided | Scope.Scope>[],
 	body?: StoryBody<TEngine, TVerbs, TRun, TEffect>,
 	options?: number | EffectTestOptions,
 ) => void;

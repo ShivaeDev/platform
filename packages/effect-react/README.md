@@ -303,6 +303,10 @@ Import the defining `.ts` module, such as `@shivaedev/effect-react/editor.ts`. T
 
 `Editor` exposes `query`, optional `form` and `SaveState`; `Create` exposes `form`, `created` and `SaveState`. `SaveState` has `save`, `saving`, `dirty`, `failure` and `revert`. Prefer the two complete hooks when binding a form to a command. The lower-level form modules expose the same composition pieces: `submission` makes a form and its submission snapshot reader, `rejecting` maps save failures through a submitter, and `useSaveState` observes submission and invokes a success callback.
 
+### Testing a feature through its stack
+
+The [order feature’s application-owned kit](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/order-example) uses `test-story` above `effect-test` to compose real PostgreSQL, HTTP RPC and the actual React components. Its screen traits mount fresh native atom registries and scoped roots; its verbs dispatch DOM events and wait for rendered output. The [stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/orderStory.dom.spec.tsx) verify list refresh through `useAction` and rejected-input retention and retry through `useEditor`, with persistence read from a separate PostgreSQL pool. These tests require `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`; DOM and loopback HTTP establish no physical browser, SSR or mobile behavior.
+
 ### Install, setup and limits
 
 ```sh
