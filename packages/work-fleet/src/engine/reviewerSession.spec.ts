@@ -59,7 +59,7 @@ describe("independent reviewer sessions", () => {
 					expect(failed.value.stage).toBe("needs-human");
 					expect(failed.value.attempts.at(-1)?.status).toBe(reviewExecution);
 					expect(failed.value.review).toBeUndefined();
-					expect(fixture.merged).toHaveLength(0);
+					expect(failed.value.outcome).toBeUndefined();
 				}),
 			));
 	}
