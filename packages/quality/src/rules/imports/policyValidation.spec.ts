@@ -14,7 +14,7 @@ const examples = {
 } as const;
 
 describe("fence configuration boundaries", () => {
-	it("allows disabling all fences even when there are no source modules", async () => {
+	it("has no fences to check when neither declarations nor source modules are supplied", async () => {
 		expect(await checkRule(importFences, { fences: [] }, {})).toEqual([]);
 	});
 

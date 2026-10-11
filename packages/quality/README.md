@@ -68,10 +68,11 @@ quality hooks install
 
 ### 2. When architecture needs it: describe an import boundary
 
-A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. The rule validates the examples against the policy, so an accidental contradiction stops the run.
+The manifest owns ordinary workspace dependencies. When a package promises more, put `quality.fences.config.ts` beside its `package.json`, exporting an array of fences as the default. Quality discovers this file at the repository root and in workspace packages, even when `sources` includes only their source folders. The root config does not list boundary files.
+
+A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. Quality validates all discovered fences together, so duplicate names or contradictory examples stop the run. An unreadable file or invalid default export also stops the run. Fences remain an internal `imports/fences` module of Quality and use its shared import graph, resolver and report.
 
 ```ts
-import { defineConfig } from "@shivaedev/quality/config.ts";
 import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
 import { external, folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
@@ -84,12 +85,10 @@ const uiBoundary = fence("ui-never-imports-server")
 		legal: ["packages/ui/src/app.ts", external("effect")],
 	});
 
-export default defineConfig({
-	rules: { "imports/fences": { options: { fences: [uiBoundary] } } },
-});
+export default [uiBoundary];
 ```
 
-This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The default `imports/no-test-code` rule rejects production imports of either, including type imports and re-exports. Move shared code into a production module that tests can import. The [import reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#imports) covers resolution, selectors and generated files.
+This is `packages/ui/quality.fences.config.ts`; paths remain relative to the repository root. Existing fences supplied through `rules["imports/fences"].options.fences` join the same policy. This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The default `imports/no-test-code` rule rejects production imports of either, including type imports and re-exports. Move shared code into a production module that tests can import. The [import reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#imports) covers resolution, selectors and generated files.
 
 ### Story tests
 
