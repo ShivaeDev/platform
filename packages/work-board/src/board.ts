@@ -34,6 +34,7 @@ import { searchSnapshot } from "#search/snapshot.ts";
 
 export interface BoardOptions {
 	readonly home?: string | undefined;
+	readonly maintainer?: string | undefined;
 	readonly responses?: boolean;
 	readonly root: string;
 }
@@ -57,7 +58,7 @@ function routes(options: BoardOptions) {
 			}
 			yield* serve("/events", events(changes));
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
-			const index = yield* searchSnapshot(options.root, home, changes);
+			const index = yield* searchSnapshot(options.root, home, changes, options.maintainer);
 			const provided = yield* Effect.serviceOption(DiagnosticsSources);
 			const sources = provided._tag === "Some" ? provided.value : { codex: codexLimits(), fleet: fleetHealth(options.root), github: githubLimits() };
 			const healthPage = diagnosticsPage(yield* diagnostics(sources), changes, home, index);

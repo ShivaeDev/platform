@@ -4,6 +4,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Folder, folder, startBoard } from "#test/board.ts";
+import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), "cli.ts");
 
@@ -51,6 +52,21 @@ describe("the server", () => {
 			const address = await listening(child);
 			expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
 			expect(await (await fetch(address)).text()).toContain("<span><b>1</b> to do</span>");
+		} finally {
+			child.kill();
+		}
+	});
+
+	it("selects the Inbox responder through the maintainer CLI option", async () => {
+		notes = folder(inboxAudienceFixture("Casey"));
+		const child = spawn(process.execPath, ["--conditions=source", cli, notes.root, "--port", "0", "--maintainer", "Casey"], {
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		try {
+			const address = await listening(child);
+			const html = await (await fetch(`${address}/_board/inbox`)).text();
+			expect(html).toContain("2 waiting");
+			expect(html.slice(html.indexOf('<section class="inbox-list"'))).not.toContain("Question for orchestrator");
 		} finally {
 			child.kill();
 		}
