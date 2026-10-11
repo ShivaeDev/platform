@@ -5,50 +5,50 @@ import type { MethodEntry, MethodInventory, MethodProof, MethodRecord, RuntimeMe
 import type { RequirementProof } from "./requirement-proof.ts";
 import type { RequirementRecord, RequirementsOf } from "./service-requirements.ts";
 
-type BoundMethod<Method, Requirements> = Method extends (
-	...arguments_: infer Arguments
-) => Effect.Effect<infer Success, infer Failure, infer Residual>
-	? (...arguments_: Arguments) => Effect.Effect<Success, Failure, Exclude<Residual, Requirements>>
+type BoundMethod<TMethod, TRequirements> = TMethod extends (
+	...arguments_: infer TArguments
+) => Effect.Effect<infer TSuccess, infer TFailure, infer TResidual>
+	? (...arguments_: TArguments) => Effect.Effect<TSuccess, TFailure, Exclude<TResidual, TRequirements>>
 	: never;
 
-type PublicMethod<Entry, Requirements> = Entry extends GenericMethodDescriptor<infer Method> ? Method : BoundMethod<Entry, Requirements>;
+type PublicMethod<TEntry, TRequirements> = TEntry extends GenericMethodDescriptor<infer TMethod> ? TMethod : BoundMethod<TEntry, TRequirements>;
 
-type ServiceShape<Methods extends MethodInventory, Requirements extends RequirementRecord> = Readonly<{
-	[Name in keyof Methods]: PublicMethod<Methods[Name], RequirementsOf<Requirements>>;
+type ServiceShape<TMethods extends MethodInventory, TRequirements extends RequirementRecord> = Readonly<{
+	[TName in keyof TMethods]: PublicMethod<TMethods[TName], RequirementsOf<TRequirements>>;
 }>;
 
 interface ServiceDefinition<
-	Identifier extends string,
-	Requirements extends RequirementRecord,
-	Initializer extends Effect.Effect<unknown, unknown, unknown>,
-	Methods extends MethodInventory,
+	TIdentifier extends string,
+	TRequirements extends RequirementRecord,
+	TInitializer extends Effect.Effect<unknown, unknown, unknown>,
+	TMethods extends MethodInventory,
 > {
-	readonly id: Identifier;
-	readonly initialize: Initializer & InitializerProof<Initializer, RequirementsOf<Requirements>>;
-	readonly methods: (state: Effect.Success<Initializer>) => Methods & MethodProof<NoInfer<Methods>, Requirements>;
-	readonly requires: Requirements & RequirementProof<Requirements>;
+	readonly id: TIdentifier;
+	readonly initialize: TInitializer & InitializerProof<TInitializer, RequirementsOf<TRequirements>>;
+	readonly methods: (state: Effect.Success<TInitializer>) => TMethods & MethodProof<NoInfer<TMethods>, TRequirements>;
+	readonly requires: TRequirements & RequirementProof<TRequirements>;
 }
 
-interface RuntimeDefinition<State> {
+interface RuntimeDefinition<TState> {
 	readonly id: string;
-	readonly initialize: Effect.Effect<State, unknown, unknown>;
-	readonly methods: (state: State) => RuntimeMethodInventory;
+	readonly initialize: Effect.Effect<TState, unknown, unknown>;
+	readonly methods: (state: TState) => RuntimeMethodInventory;
 	readonly requires: RequirementRecord;
 }
 
-type DefinedService<Identifier extends string, Shape, Failure, Requirements> = Context.Service<Identifier, Shape> & {
-	readonly layer: Layer.Layer<Identifier, Failure, Requirements>;
+type DefinedService<TIdentifier extends string, TShape, TFailure, TRequirements> = Context.Service<TIdentifier, TShape> & {
+	readonly layer: Layer.Layer<TIdentifier, TFailure, TRequirements>;
 };
 
 export function defineService<
-	const Identifier extends string,
-	const Requirements extends RequirementRecord,
-	const Initializer extends Effect.Effect<unknown, unknown, unknown>,
-	const Methods extends MethodInventory,
+	const TIdentifier extends string,
+	const TRequirements extends RequirementRecord,
+	const TInitializer extends Effect.Effect<unknown, unknown, unknown>,
+	const TMethods extends MethodInventory,
 >(
-	definition: ServiceDefinition<Identifier, Requirements, Initializer, Methods>,
-): DefinedService<Identifier, ServiceShape<Methods, Requirements>, Effect.Error<Initializer>, RequirementsOf<Requirements>>;
-export function defineService<State>(definition: RuntimeDefinition<State>): unknown {
+	definition: ServiceDefinition<TIdentifier, TRequirements, TInitializer, TMethods>,
+): DefinedService<TIdentifier, ServiceShape<TMethods, TRequirements>, Effect.Error<TInitializer>, RequirementsOf<TRequirements>>;
+export function defineService<TState>(definition: RuntimeDefinition<TState>): unknown {
 	const service = Context.Service<string, MethodRecord>(definition.id);
 	const layer = Layer.effect(service)(
 		Effect.gen(function* () {

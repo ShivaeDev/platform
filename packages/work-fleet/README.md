@@ -149,9 +149,25 @@ Custom Board gateways must implement the same durable acknowledgement boundary.
 decision resolution and the three derived views through native Effect RPC.
 The host supplies transport and authentication. Detailed records remain available
 through the native `Get` query or `Fleet.list`; completion resides in SQL attachments to the Board ID. The
-addon does not rewrite authored task status or maintain competing status files.
+addon does not rewrite authored task status.
+
+### Read the generated heading board
+
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Needs human and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+
+After the first scheduler cycle creates the file, select it as Work Board's home:
+
+```sh
+work-board ./notes --home fleet/status.md
+```
+
+The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services.
 
 ### Start a small personal pilot
+
+Use `work-fleet watch first-item second-item --board <folder>` to follow several items in one process. It prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. Each poll uses one PostgreSQL query for summary fields, without loading execution history or the Fleet runtime.
+
+`--interval <seconds>` defaults to 15; `--timeout <seconds>` exits 4 and writes a timeout message to stderr. Read failures retry up to 20 consecutive polls before exit 1. `work-fleet wait <id>` prints the same outcome summary and keeps its individual exit codes: completed 0, needs-human 2, released 3, timeout 4 and errors 1. Both commands read host settings from `<board>/fleet.config.json` or `--config <file>`.
 
 The smallest host is an Effect program with the composed Fleet Layer above; it can
 run headlessly. The package supplies no provider login, hosting-specific merge
