@@ -7,45 +7,60 @@ import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#en
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
-import type { ChangeResult } from "#policy.ts";
+import type { BoardWork, ChangeResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function makeDeliver(state: EngineState) {
-	const { save } = state;
 	return Effect.fn("Fleet.makeDeliver")(function* (stored: Versioned<FleetRecord>) {
 		const record = stored.value;
 		const result = record.result;
 		if (!["delivering", "needs-human"].includes(record.stage) || result === undefined) {
 			return stored;
 		}
+		if (executing(record)) {
+			return result.kind === "change" ? yield* observeDelivery(state, stored, result) : stored;
+		}
 		if (deliveryPending(record)) {
 			return stored;
 		}
-		const work = yield* state.board.get(record.workId);
-		const denied = yield* authorizeBrief(work).pipe(
-			Effect.catch((error) =>
-				record.decision === undefined
-					? state.decision(stored, error.message, "Restore approval for work that is still needed, or release it", undefined, "maintainer")
-					: save(stored, { ...record, blocker: error.message, mergeReadyAt: undefined, mergeReadyHead: undefined }),
-			),
-		);
-		if (denied !== undefined) {
-			return denied;
-		}
-		if (briefChanged(record, work)) {
-			return yield* continueChangedBrief(state)(stored, work);
-		}
-		if (result.kind === "no-change") {
-			return record.stage === "delivering"
-				? yield* save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
-				: stored;
-		}
-		return yield* observeDelivery(state, yield* expireMergeAreas(state, stored), result);
+		return yield* continueDelivery(state, stored, result);
 	});
 }
 
+const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
+	state: EngineState,
+	stored: Versioned<FleetRecord>,
+	result: NonNullable<FleetRecord["result"]>,
+) {
+	const record = stored.value;
+	const work = yield* state.board.get(record.workId);
+	const denied = yield* deniedDelivery(state, stored, work);
+	if (denied !== undefined) {
+		return denied;
+	}
+	if (briefChanged(record, work)) {
+		return yield* continueChangedBrief(state)(stored, work);
+	}
+	if (result.kind === "no-change") {
+		return record.stage === "delivering"
+			? yield* state.save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
+			: stored;
+	}
+	return yield* observeDelivery(state, yield* expireMergeAreas(state, stored), result);
+});
+
+function deniedDelivery(state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
+	return authorizeBrief(work).pipe(
+		Effect.catch((error) =>
+			stored.value.decision === undefined
+				? state.decision(stored, error.message, "Restore approval for work that is still needed, or release it", undefined, "maintainer")
+				: state.save(stored, { ...stored.value, blocker: error.message, mergeReadyAt: undefined, mergeReadyHead: undefined }),
+		),
+	);
+}
+
 function deliveryPending(record: FleetRecord): boolean {
-	return executing(record) || record.decision?.worker !== undefined || (record.decision !== undefined && record.decision.published === undefined);
+	return record.decision?.worker !== undefined || (record.decision !== undefined && record.decision.published === undefined);
 }
 
 const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
