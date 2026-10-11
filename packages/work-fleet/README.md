@@ -94,7 +94,7 @@ Automatic admission does not re-approve an edited item that already has a record
 
 ### Read the generated heading board
 
-The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns from the same Fleet views, with one card per current unreleased item, retaining released items while a blocker remains. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
 
 After the first scheduler cycle creates the file, select it as Work Board's home:
 
@@ -106,7 +106,7 @@ The host refreshes the view on scheduler reads and after preparation, dispatch, 
 
 ### Identify who must act
 
-Waiting records and views carry `attentionOwner`: `maintainer` for scope decisions or merging a reviewed PR, `orchestrator` for routine worker questions, result inspection and retry, and `automation` for missing host integrations, occupied capacity or pending checks. `FleetViews.waiting` contains separate `maintainer`, `orchestrator` and `automation` arrays. The former `needsHuman` list is removed. Items with an admission blocker also appear in waiting groups while retaining their stage. `work-fleet status`, its JSON output and the generated Board views use these groups; wait and watch summaries name the owner while retaining their exit codes.
+Waiting records and views carry `attentionOwner`: `maintainer` for scope decisions or merging a reviewed PR, `orchestrator` for routine worker questions, result inspection and retry, and `automation` for missing host integrations, occupied capacity or pending checks. `FleetViews.waiting` contains separate `maintainer`, `orchestrator` and `automation` arrays. The former `needsHuman` list is removed. Items with blockers also appear in waiting groups while retaining their stage, including released work awaiting a Board acknowledgement. `work-fleet status`, its JSON output and the generated Board views use these groups; wait and watch summaries name the owner while retaining their exit codes.
 
 Reassign the exact current question with `fleet.reassign(workId, decisionId, attentionOwner)`, the native `Reassign` RPC command, or the CLI:
 

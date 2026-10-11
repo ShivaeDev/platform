@@ -19,18 +19,20 @@ export const WaitState = Schema.Struct({
 export type WaitState = typeof WaitState.Type;
 
 export function settled(workId: string, state: WaitState): WaitOutcome | undefined {
+	const owner = waitingOwner(state);
+	const attention = owner === undefined ? "" : ` (waiting on ${owner})`;
 	if (state.stage === "completed") {
 		const outcome = state.outcome?.url ?? state.outcome?.evidence?.join("; ");
-		return { code: WAIT_EXIT.completed, summary: `${workId} completed${outcome ? `: ${outcome}` : ""}` };
+		return { code: WAIT_EXIT.completed, summary: `${workId} completed${attention}${outcome ? `: ${outcome}` : ""}` };
 	}
 	if (state.stage === "needs-human") {
 		return {
 			code: WAIT_EXIT.needsHuman,
-			summary: `${workId} needs-human (waiting on ${waitingOwner(state)}): ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
+			summary: `${workId} needs-human${attention}: ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
 		};
 	}
 	if (state.stage === "released") {
-		return { code: WAIT_EXIT.released, summary: `${workId} released` };
+		return { code: WAIT_EXIT.released, summary: `${workId} released${attention}` };
 	}
 	return undefined;
 }

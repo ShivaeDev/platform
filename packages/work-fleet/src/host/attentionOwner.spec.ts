@@ -41,6 +41,30 @@ test("CLI status groups all owners and wait names each owner without changing ex
 	);
 }, 30_000);
 
+test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
+	yield* withHost({}, {}, (fixture) =>
+		Effect.gen(function* () {
+			for (const stage of ["completed", "released"] as const) {
+				yield* storeState(fixture.host, stage, {
+					...statusRecord(stage, stage),
+					attentionOwner: "orchestrator",
+					blocker: "Synthetic publication blocker",
+					outcome: undefined,
+				});
+				expect(yield* Effect.promise(() => waitProcess(fixture.configFile, stage))).toEqual({
+					code: WAIT_EXIT[stage],
+					stdout: `${stage} ${stage} (waiting on orchestrator)`,
+				});
+			}
+			const status = yield* Effect.promise(() => cliProcess(["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
+			expect(status.code).toBe(0);
+			expect(status.stdout).toContain("Waiting on orchestrator (2)");
+			expect(status.stdout).toContain("  completed  completed  Synthetic publication blocker");
+			expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
+		}),
+	);
+}, 30_000);
+
 test("CLI reassignment publishes a new maintainer question and refreshes the generated Board", function* () {
 	const calls: string[] = [];
 	const server = yield* codexServer((request) => {

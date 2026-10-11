@@ -2,7 +2,7 @@ import { waitingOwner } from "#attention.ts";
 import type { FleetRecord, FleetViews } from "#model.ts";
 export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	const items = records
-		.filter((record) => record.stage !== "released")
+		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
 			attentionOwner: waitingOwner(record),
 			blocker: record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason),
