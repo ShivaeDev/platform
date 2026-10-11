@@ -35,10 +35,14 @@ export function workerPrompt(input: WorkerPrompt) {
 		"- Run focused tests while working, then `pnpm ready` before handing off. Never bypass or skip hooks, and never raise the quality baseline.",
 		"- Open exactly ONE pull request for human review. Do not merge it and do not launch other workers.",
 		"- Keep Board IDs, environment IDs, prompts and other private identifiers out of source, docs and pull request metadata.",
+		"- After every push, watch your PR's CI until all checks finish. Fix failures on the same branch, push again and repeat.",
+		"- Before reporting, fetch the latest origin/main and check whether your PR is behind or has conflicts. If it does, merge the latest main into your branch and resolve conflicts. Run `pnpm ready`, push and watch CI again for the new head.",
+		"- Report only when all checks are green for the exact head against current main, or when genuinely blocked. If blocked, explain why and identify the failed or pending checks.",
 		"",
 		"Final report:",
 		"- The pull request URL, its head SHA and base, the changed paths and the exact commands you ran with their results.",
 		"- A short result against each acceptance criterion, separating proven behavior from anything still pending.",
+		"- State the CI result for the exact head SHA you report, including any failed or pending checks and why you are blocked. Put the CI result before the final `FLEET_PR:` line.",
 		`- End with one line \`${PULL_REQUEST_MARKER} <url>\` naming the pull request, or \`${PULL_REQUEST_MARKER} none\` when no change was needed.`,
 	].join("\n");
 }

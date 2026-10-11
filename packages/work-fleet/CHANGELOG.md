@@ -11,6 +11,7 @@
   and service tier from host config, overridable per item, and read their final output.
 - Build Cloud worker prompts from one template with a startup block and a parseable
   `FLEET_PR:` report line.
+- Require Cloud worker prompts to watch CI after every push, repair failures on the same branch, merge current main when behind or conflicted, and report the exact head's CI result before the PR marker, with a reason when blocked.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
 
