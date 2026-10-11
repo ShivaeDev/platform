@@ -1,8 +1,9 @@
-import { Clock, Effect, Layer, Ref } from "effect";
+import { Clock, Effect, Ref } from "effect";
 import { HttpIncomingMessage, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
 import type { Changes } from "#files/changes.ts";
 import type { handoffService } from "#handoffs/service.ts";
@@ -64,10 +65,15 @@ export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handof
 		"work-board.subscribe": () => hints(changes, index),
 		"work-board.watcher": () => Effect.map(Ref.get(changes.watching), (watching) => ({ watching })).pipe(readBoundary),
 	});
+	const wire = RpcSerialization.ndjson;
 	const handler = yield* RpcServer.toHttpEffect(workRpcs).pipe(
-		Effect.provide(Layer.mergeAll(handlers, RpcSerialization.layerNdjson, requestTracingLayer())),
+		Effect.provide(handlers),
+		Effect.provide(requestTracingLayer()),
+		Effect.provideService(RpcSerialization.RpcSerialization, wire),
 	);
 	return handler.pipe(
+		localRpcGuard,
+		Effect.provideService(RpcSerialization.RpcSerialization, wire),
 		Effect.provideService(HttpIncomingMessage.MaxBodySize, BigInt(4 * MAX_BYTES + 4096)),
 		Effect.map((response) => HttpServerResponse.setHeaders(response, HEADERS)),
 	);
