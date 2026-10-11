@@ -116,7 +116,7 @@ Record a nonempty answer through Board's response page or response API. Reconcil
 
 ### Return a research report
 
-Declare `fleet-deliverable: report` on an approved task to request read-only research. Report worker prompts forbid changes, commits, pushes, branches and PRs, and ask for the whole report in the final message. Omit the field to keep the PR workflow.
+Declare `fleet-deliverable: report` on an approved task to request research. Report workers leave repository sources unchanged and return the whole report in the final message. They may create new uncommitted attachment files such as screenshots, but must never commit, push, create branches or open PRs. Omit the field to keep the PR workflow.
 
 ```markdown
 ---
@@ -129,6 +129,10 @@ fleet-deliverable: report
 ```
 
 After a completed worker turn, Fleet publishes an ordinary `kind: result` item under `responses/fleet-report.<digest>.md`, with an `informs` relationship to the task. The result preserves the whole final output and records the exact session, turn and task revision in its worker receipt. The Markdown gateway uses Board's durable publisher; custom gateways implement `BoardGateway.report` with the same immutable, idempotent boundary. A publication retry reuses the same identity and bytes, including after a lost acknowledgement.
+
+The CLI host downloads new regular files from the completed Cloud task's backend diff into `responses/fleet-report.<digest>.attachments/` beside the result, with links in the report. Text and Git binary patches are supported; edits to existing files, symlinks, unsafe paths, unavailable downloads or mismatched turns need a human. Existing attachment bytes are never replaced. Markdown attachments receive a `.attachment` suffix so Board does not index them as authored items. Collection accepts exactly one mode line per section, for a new `100644` or `100755` file. After applying the diff in a temporary folder, it checks each attachment with `lstat`, checks its resolved path stays inside that folder and opens it without following a symlink. Diff text is limited to 8 MiB, the streamed task response to 16 MiB, attachment count to 64 and total attachment bytes to 32 MiB. Exceeding a limit needs a human with the limit named, before any report or attachment is written to Board. Collection never stages, commits or publishes the diff.
+
+After a terminal report turn, the host checks the configured GitHub remote for the exact `<branchPrefix><workId>` ref and all PRs opened from that branch, including closed PRs. A published branch or PR makes the work Needs human with the reason `Report worker published to GitHub`; Fleet never deletes the branch. Unavailable remote evidence also blocks completion. The host rechecks before result publication on retry. Custom headless runtimes provide their report inspection and collection boundaries; the Markdown gateway alone publishes report text.
 
 Successful publication records the report in the current Board read pass and completes the Fleet attempt without PR adoption, independent review, checks or delivery. Empty or whitespace-only output, or a complete report document over Board’s 256 KiB UTF-8 context limit, creates a human decision with a concrete reason instead of a result. The size check includes metadata and the worker receipt. `wait` and the status views expose the same terminal states and result path. A retry after a publication failure republishes the existing completed attempt; a retry after empty output prepares another worker attempt. Oversized output remains blocked until a human resolves it; scheduler passes do not repeat publication. `src/board/publishReport.test.ts` and `src/host/reportSize.spec.ts` cover the size boundary, immediate visibility and durable human decision. These prompts direct worker behavior; runtime policy still owns execution authority.
 

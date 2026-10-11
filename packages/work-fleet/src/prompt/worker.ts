@@ -16,7 +16,8 @@ const QUESTION_INSTRUCTIONS = [
 ].join("\n");
 const REPORT_INSTRUCTIONS = [
 	"Report deliverable:",
-	"- Change nothing, commit nothing, push nothing, and open no PR. Do not create a branch or launch other workers.",
+	"- Leave repository sources unchanged. Commit nothing, push nothing, and open no PR. Do not create a branch or launch other workers.",
+	"- You may create report attachments such as screenshots as new uncommitted files in the workspace. Fleet downloads them from the Cloud task into Board beside the result. Never publish attachments to git or GitHub.",
 	"- Read the root and package AGENTS.md and use read-only research to answer the approved task.",
 	"- Return the whole report as your final message, with evidence for each acceptance criterion and any remaining uncertainty.",
 ].join("\n");

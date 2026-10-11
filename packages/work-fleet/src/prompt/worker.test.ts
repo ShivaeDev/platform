@@ -16,7 +16,10 @@ describe("workerPrompt", () => {
 			task: "Research.",
 			workId: "synthetic.report",
 		});
-		expect(report).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+		expect(report).toContain("Leave repository sources unchanged");
+		expect(report).toContain("Commit nothing, push nothing, and open no PR");
+		expect(report).toContain("new uncommitted files");
+		expect(report).toContain("Never publish attachments to git or GitHub");
 		expect(report).toContain("Do not create a branch or launch other workers");
 		expect(report).toContain(QUESTION_MARKER);
 		expect(reportPrompt(report)).toBe(report);

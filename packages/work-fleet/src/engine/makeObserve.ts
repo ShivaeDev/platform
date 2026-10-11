@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
@@ -6,7 +6,7 @@ import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
-export function makeObserve({ sessions, load, save, decision }: EngineState) {
+export function makeObserve({ sessions, load, save, decision, board, reportInspection }: EngineState) {
 	return Effect.fn("Fleet.makeObserve")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
 		if (stored.value.stage !== "executing") {
@@ -31,6 +31,10 @@ export function makeObserve({ sessions, load, save, decision }: EngineState) {
 		stored = yield* save(stored, { ...stored.value, attempts });
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
+		}
+		if (stored.value.deliverable === "report") {
+			const work = yield* board.get(stored.value.workId);
+			yield* Option.match(reportInspection, { onNone: () => Effect.void, onSome: (inspection) => inspection.check(work) });
 		}
 		if (observation.execution !== "completed") {
 			return yield* decision(stored, terminalReason(observation), "Inspect the terminal evidence and retry or safely release");

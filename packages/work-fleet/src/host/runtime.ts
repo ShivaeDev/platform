@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
+import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
@@ -11,7 +11,8 @@ import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
-import { FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { hostReportBoard } from "#host/reportBoard.ts";
+import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
 function unconfigured(what: string) {
@@ -62,6 +63,7 @@ export function hostSql(host: FleetHost) {
 export function fleetHostLayer<TProvider, TMain>(
 	host: FleetHost,
 	parts: {
+		readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource>;
 		readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource>;
 		readonly main: Layer.Layer<MainSource, TMain>;
 		readonly policy?: Layer.Layer<FleetPolicy>;
@@ -72,7 +74,7 @@ export function fleetHostLayer<TProvider, TMain>(
 	const sessions = SessionService.layer.pipe(
 		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
-	const board = markdownBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer));
+	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
