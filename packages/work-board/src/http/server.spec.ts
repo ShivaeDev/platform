@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, linkSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
@@ -212,7 +212,7 @@ describe("assets", () => {
 		const response = await get("/_board/native.js");
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toBe("text/javascript");
-		expect(await response.text()).toContain("work-board.subscribe");
+		expect(await response.text()).toBe(readFileSync(new URL("../../assets/native.js", import.meta.url), "utf8"));
 	});
 
 	it("serves Mermaid's modules from the installed package and nothing else", async () => {

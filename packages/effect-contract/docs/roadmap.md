@@ -5,6 +5,7 @@ This file owns effect-contract's implementation status and package questions. Th
 ## Built
 
 - [x] `query`, `command` and `contract`: Schema payloads/results, namespaced native RPC groups, inline declarations, typed defaults, native handler layers and middleware. Compiler fixtures and native client round-trips cover the declared types and failures.
+- [x] `stream(name, { payload?, success, rejections?, reads })` declarations in `contract(..., { streams })` map to native RPC with `stream: true`. Bound `run` returns a native Stream. Compiler checks cover payloads, elements, errors, duplicate names and unary-client mismatch; real HTTP tests cover delivery, declared rejection, completion and client interruption releasing the server subscription. Work Board uses this path for its live subscription.
 - [x] Shared tagged rejection classes, generated operation-specific rejection classes and typed `reject` helpers. Field rejections derive and optionally narrow a struct's field names.
 - [x] Unique operation names checked in literal declarations and at construction when arrays conceal them.
 - [x] Collection item/list keys with native read hashing, deduplication and item-to-list mutation invalidation. Native Reactivity tests distinguish affected and unrelated items.

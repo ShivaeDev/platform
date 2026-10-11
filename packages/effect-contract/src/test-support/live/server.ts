@@ -4,7 +4,7 @@ import { Deferred, Effect, Layer, ManagedRuntime, PubSub, Ref, Stream } from "ef
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import type { LiveHint } from "#live.ts";
-import { Document, documents, Get, LiveDocuments, Unavailable } from "./contract.ts";
+import { Document, Documents, documents, Get, Unavailable } from "./contract.ts";
 
 export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }) {
 	const stored = await Effect.runPromise(
@@ -26,7 +26,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	function record(id: string) {
 		return Ref.update(reads, (all) => [...all, id]);
 	}
-	const handlers = LiveDocuments.toLayer({
+	const handlers = Documents.toLayer({
 		"documents.get": ({ id }) =>
 			Effect.gen(function* () {
 				yield* record(id);
@@ -42,7 +42,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 				record("list"),
 				Effect.map(Ref.get(stored), (all) => [...all].map(([id, body]) => new Document({ body, id }))),
 			),
-		subscribe: () =>
+		"documents.subscribe": () =>
 			Stream.unwrap(
 				Effect.gen(function* () {
 					yield* Ref.update(connections, (count) => count + 1);
@@ -62,7 +62,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 			),
 	});
 	const routes = Layer.merge(
-		RpcServer.layerHttp({ group: LiveDocuments, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, RpcSerialization.layerNdjson])),
+		RpcServer.layerHttp({ group: Documents, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, RpcSerialization.layerNdjson])),
 		HttpRouter.use((router) =>
 			Effect.all([
 				router.add(
