@@ -32,6 +32,8 @@ Nested sidebar ancestry, home ordering, logical reference paths and folder expan
 
 The header Diagnostics view reads Codex app-server usage windows, cached GitHub REST/GraphQL limits and optional versioned Fleet health snapshots. Synthetic source, command and app-server fixtures cover ready, missing, failing and malformed states, shared caching and refused provider approvals in `src/diagnostics/source.test.ts`, `readers.spec.ts` and `codexRateLimits.test.ts`. HTTP and DOM fixtures cover header navigation, source isolation, snapshot freshness and native polling/pause/resume in `src/diagnostics/page.test.ts`, `fleetHealth.test.ts` and `liveRefresh.dom.spec.ts`. These fixtures do not establish live account authorization.
 
+The static handoff, response and question forms use `effect-form` for Schema decoding, field messages and submission snapshots. The unchanged form and draft regressions above preserve reviewed context and durable storage. `src/browser/effectForms.dom.spec.ts` exercises Schema feedback, response edits during a save, and form restoration after persisted pageshow in DOM/HTTP fixtures.
+
 ## Next
 
 - [ ] Finish [07's representative-reader acceptance](delivery/wave1.md#07-an-attention-first-overview). The proposed target is finding the actual next judgment within 30 seconds. Automated queues and browser fixtures do not establish that outcome.

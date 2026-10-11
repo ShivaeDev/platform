@@ -14,7 +14,7 @@ function restoreAnswers(fields: readonly HTMLFieldSetElement[], draft: Draft, sa
 		}
 	}
 }
-export function questionnaireControls(form: HTMLFormElement) {
+export function questionnaireControls(form: HTMLFormElement, signal: AbortSignal) {
 	function modeOf(field: HTMLFieldSetElement) {
 		if (field.dataset.mode === "text") {
 			return "text";
@@ -28,19 +28,23 @@ export function questionnaireControls(form: HTMLFormElement) {
 			button.setAttribute("aria-pressed", String(input?.checked ?? false));
 		}
 	}
-	form.addEventListener("click", (event) => {
-		const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-choice]") : null;
-		if (!button) {
-			return;
-		}
-		const input = form.querySelector<HTMLInputElement>(`input[value="${button.dataset.choice}"]`);
-		if (input) {
-			input.checked = true;
-			syncChoices();
-			input.dispatchEvent(new Event("input", { bubbles: true }));
-		}
-	});
-	form.addEventListener("input", syncChoices);
+	form.addEventListener(
+		"click",
+		(event) => {
+			const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-choice]") : null;
+			if (!button) {
+				return;
+			}
+			const input = form.querySelector<HTMLInputElement>(`input[value="${button.dataset.choice}"]`);
+			if (input) {
+				input.checked = true;
+				syncChoices();
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+		},
+		{ signal },
+	);
+	form.addEventListener("input", syncChoices, { signal });
 	const models: Prompt[] = fields.map((field) => ({
 		id: field.dataset.prompt ?? "",
 		mode: modeOf(field),
@@ -74,21 +78,17 @@ export function questionnaireControls(form: HTMLFormElement) {
 		}
 		return retained;
 	}
-	function validate(type: string) {
-		for (const field of fields) {
-			const text = field.querySelector<HTMLTextAreaElement>("textarea");
-			text?.setCustomValidity(
-				type === "answer" && !text.value.trim() && !field.querySelector("input:checked") ? "Choose an option or answer in your own words." : "",
-			);
-		}
-	}
 	for (const field of fields) {
-		field.querySelector("[data-clear-choices]")?.addEventListener("click", () => {
-			for (const input of field.querySelectorAll<HTMLInputElement>("input")) {
-				input.checked = false;
-			}
-			form.dispatchEvent(new Event("input", { bubbles: true }));
-		});
+		field.querySelector("[data-clear-choices]")?.addEventListener(
+			"click",
+			() => {
+				for (const input of field.querySelectorAll<HTMLInputElement>("input")) {
+					input.checked = false;
+				}
+				form.dispatchEvent(new Event("input", { bubbles: true }));
+			},
+			{ signal },
+		);
 	}
-	return { models, read, restore, validate };
+	return { models, read, restore };
 }
