@@ -135,6 +135,8 @@ Criteria collect explicitly linked claims across files. **Referenced by** also s
 
 Tables, task lists, footnotes, raw-HTML details and highlighted fenced code render on the server. Heading passage links and an **On this page** outline distinguish duplicate headings. Relative document links resolve from their source file, including a nested home served at `/`.
 
+Document content starts with its title and, for frontmatter documents, source status and next action. Missing authored values say **Not recorded**. **Context and tools** follows the introduction in document order and contains source provenance, backlinks, the outline and the favorite control. DOM fixtures check this order and the disclosure's desktop/narrow media-query defaults; they do not establish browser layout or physical-device behavior.
+
 `mermaid` fences draw locally in the browser. Diagrams follow the theme and keep unchanged drawings during refresh. A parse failure exposes its source and error; without JavaScript the source remains readable.
 
 Metrics and progress use fixed directives with a label and a source:
