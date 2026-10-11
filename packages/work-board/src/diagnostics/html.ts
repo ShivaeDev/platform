@@ -75,7 +75,13 @@ function fleet(value: FleetHealth, now: number): string {
 	} else if (now - value.observedAt > value.staleAfterMs) {
 		freshness = "Stale snapshot — Fleet may be stopped or unable to publish";
 	}
-	return `<p class="diagnostics-freshness">${freshness}</p><dl class="diagnostics-metrics"><div><dt>Running / concurrency cap</dt><dd><strong>${value.running} / ${value.concurrency}</strong></dd></div><div><dt>Queued</dt><dd><strong>${value.queued}</strong></dd></div><div><dt>Needs human</dt><dd><strong>${value.needsHuman}</strong></dd></div><div><dt>Last scheduler pass</dt><dd>${time(value.lastSchedulerPass)}</dd></div><div><dt>Last provider capacity rejection</dt><dd>${value.lastCapacityRejection === null ? "None observed" : `${escapeHtml(value.lastCapacityRejection.cause)}<br>${time(value.lastCapacityRejection.at)}`}</dd></div></dl>`;
+	return `<p class="diagnostics-freshness">${freshness}</p><dl class="diagnostics-metrics"><div><dt>Running / concurrency cap</dt><dd><strong>${value.running} / ${value.concurrency}</strong></dd></div><div><dt>Queued</dt><dd><strong>${value.queued}</strong></dd></div>${Object.entries(
+		value.waiting,
+	)
+		.map(([owner, count]) => `<div><dt>Waiting on ${owner}</dt><dd><strong>${count}</strong></dd></div>`)
+		.join(
+			"",
+		)}<div><dt>Last scheduler pass</dt><dd>${time(value.lastSchedulerPass)}</dd></div><div><dt>Last provider capacity rejection</dt><dd>${value.lastCapacityRejection === null ? "None observed" : `${escapeHtml(value.lastCapacityRejection.cause)}<br>${time(value.lastCapacityRejection.at)}`}</dd></div></dl>`;
 }
 
 export function diagnosticsHtml(
@@ -83,5 +89,5 @@ export function diagnosticsHtml(
 	now: number,
 ): string {
 	const fleetSource = sources.fleet.state === "ready" ? { ...sources.fleet, observedAt: sources.fleet.value.observedAt } : sources.fleet;
-	return `<div class="diagnostics"><h1>Diagnostics</h1><p>Agent usage and Fleet health. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view.</p><div class="diagnostics-grid">${card("Codex", sources.codex, (value) => codex(value, now), sources.codex.state === "ready" && [sources.codex.value.primary, sources.codex.value.secondary].some((window) => window !== null && window.usedPercent >= 90))}${card("GitHub", sources.github, (value) => github(value, now), sources.github.state === "ready" && [sources.github.value.core, sources.github.value.graphql].some((window) => window.remaining === 0))}${card("Fleet", fleetSource, (value) => fleet(value, now), fleetSource.state === "ready" && (fleetSource.value.running >= fleetSource.value.concurrency || fleetSource.value.needsHuman > 0 || now < fleetSource.value.observedAt), fleetSource.state === "ready" && now - fleetSource.value.observedAt > fleetSource.value.staleAfterMs)}</div></div>`;
+	return `<div class="diagnostics"><h1>Diagnostics</h1><p>Agent usage and Fleet health. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view.</p><div class="diagnostics-grid">${card("Codex", sources.codex, (value) => codex(value, now), sources.codex.state === "ready" && [sources.codex.value.primary, sources.codex.value.secondary].some((window) => window !== null && window.usedPercent >= 90))}${card("GitHub", sources.github, (value) => github(value, now), sources.github.state === "ready" && [sources.github.value.core, sources.github.value.graphql].some((window) => window.remaining === 0))}${card("Fleet", fleetSource, (value) => fleet(value, now), fleetSource.state === "ready" && (fleetSource.value.running >= fleetSource.value.concurrency || Object.values(fleetSource.value.waiting).some((count) => count > 0) || now < fleetSource.value.observedAt), fleetSource.state === "ready" && now - fleetSource.value.observedAt > fleetSource.value.staleAfterMs)}</div></div>`;
 }

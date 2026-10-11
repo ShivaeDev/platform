@@ -1,18 +1,28 @@
 import { Effect } from "effect";
 import { failureMessage } from "#engine/failureMessage.ts";
+import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
-export function dispatchCommand({ board, load, save, decision, integrations }: EngineState, launch: ReturnType<typeof makeLaunch>) {
+export function dispatchCommand({ board, load, save, decision, integrations, policy }: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.dispatch")(function* (workId: string) {
 		let stored = yield* load(workId);
 		if (stored.value.stage !== "prepared") {
 			return stored;
 		}
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
 		const work = yield* board.get(workId);
 		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(stored, "Board context changed after preparation", "Approve the current Board revision and prepare this work again");
+			return yield* decision(
+				stored,
+				"Board context changed after preparation",
+				"Approve the current Board revision and prepare this work again",
+				undefined,
+				"maintainer",
+			);
 		}
 		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
 		if (assessment._tag === "Reprepare") {
@@ -29,6 +39,7 @@ export function dispatchCommand({ board, load, save, decision, integrations }: E
 					yield* save(current, {
 						...current.value,
 						admissionReady: !(error instanceof FleetFailure && error.reason === "denied"),
+						attentionOwner: failureOwner(error),
 						blocker: failureMessage(error),
 					});
 					return yield* Effect.fail(error);

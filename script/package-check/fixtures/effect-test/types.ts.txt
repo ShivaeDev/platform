@@ -30,3 +30,14 @@ effectApp("retains packed harness types", function* (harness, context) {
 effectApp("accepts a live clock override", function* () {
   return yield* Token
 }, { clock: "live" })
+
+const scoped = makeEffectIt({
+  around: effect => Effect.gen(function* () {
+    yield* Effect.addFinalizer(() => Effect.void)
+    return yield* effect
+  }),
+  layer: Layer.empty,
+  makeHarness: () => Effect.acquireRelease(Effect.succeed("scoped"), () => Effect.void),
+})
+scoped.effectApp("uses per-test Scope", function* () { yield* Effect.addFinalizer(() => Effect.void) })
+scoped.effectApp.each([1])("scopes table bodies %s", function* () { yield* Effect.addFinalizer(() => Effect.void) })

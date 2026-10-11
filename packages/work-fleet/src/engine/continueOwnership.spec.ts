@@ -17,11 +17,14 @@ test("continuing work waiting on a human merge retains the reviewed head and wor
 			finishWorkers(fixture);
 			const ready = yield* fleet.reconcile("one");
 			expect(ready.value.stage).toBe("needs-human");
+			expect(ready.value).toMatchObject({ attentionOwner: "maintainer", decision: { attentionOwner: "maintainer" } });
 			expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 			expect(ready.value.review?.head).toBe(ready.value.result?.head);
 			expect(ready.value.checks).toMatchObject({ head: ready.value.result?.head, passed: true });
 			const continued = yield* fleet.continue("one", "Change again");
 			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.attentionOwner).toBeUndefined();
+			expect(continued.value.history?.[0]?.attentionOwner).toBe("maintainer");
 			expect(continued.value.result).toEqual(ready.value.result);
 			expect(continued.value.history?.[0]?.review).toEqual(ready.value.review);
 			expect(continued.value.attempts[0]).toMatchObject({

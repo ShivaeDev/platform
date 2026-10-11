@@ -1,18 +1,17 @@
 import { Deferred, Effect, Result } from "effect";
 import { expect } from "vitest";
 import { Rejected } from "#test/postgres-example/contract.ts";
-import { integration } from "#test/postgres-example/integration.ts";
+import { app, realPostgres } from "#test/postgres-example/integration.ts";
 import { makeClient } from "#test/postgres-example/makeClient.ts";
 import { call, eventually } from "#test/postgres-example/view.tsx";
 
-integration(
+app.it(
 	"an authenticated PostgreSQL commit reaches another client's query and open editor over live HTTP",
-	function* (harness) {
+	[realPostgres()],
+	function* ({ start }) {
 		const entered = yield* Deferred.make<void>();
 		const released = yield* Deferred.make<void>();
-		const server = yield* Effect.promise(() =>
-			harness.start({ beforeCommit: Effect.andThen(Deferred.succeed(entered, undefined), Deferred.await(released)) }),
-		);
+		const server = yield* start({ beforeCommit: Effect.andThen(Deferred.succeed(entered, undefined), Deferred.await(released)) });
 		const writer = yield* Effect.promise(server.mount);
 		const reader = yield* Effect.promise(server.mount);
 		yield* Effect.promise(() =>
@@ -75,20 +74,19 @@ integration(
 	20_000,
 );
 
-integration(
+app.it(
 	"a write recorded inside a rolled-back PostgreSQL transaction publishes no live hint",
-	function* (harness) {
+	[realPostgres()],
+	function* ({ start }) {
 		const entered = yield* Deferred.make<void>();
 		const released = yield* Deferred.make<void>();
-		const server = yield* Effect.promise(() =>
-			harness.start({
-				beforeCommit: Effect.gen(function* () {
-					yield* Deferred.succeed(entered, undefined);
-					yield* Deferred.await(released);
-					return yield* new Rejected();
-				}),
+		const server = yield* start({
+			beforeCommit: Effect.gen(function* () {
+				yield* Deferred.succeed(entered, undefined);
+				yield* Deferred.await(released);
+				return yield* new Rejected();
 			}),
-		);
+		});
 		const reader = yield* Effect.promise(server.mount);
 		yield* Effect.promise(() =>
 			eventually(() => {

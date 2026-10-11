@@ -62,7 +62,8 @@ describe("GitHub worker result adoption", () => {
 		const result = yield* integrations.result(work, completed(NO_CHANGE));
 		expect(result.kind).toBe("no-change");
 		expect(yield* integrations.checks(work, result).pipe(Effect.flip)).toMatchObject({
-			message: "GitHub checks need an adopted pull request",
+			attentionOwner: "automation",
+			message: "No-change validation is not configured in this Fleet host; inspect the worker session",
 			reason: "integration",
 		});
 	});

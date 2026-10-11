@@ -71,6 +71,7 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(after.attempts).toHaveLength(1);
 	expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
 	if (!recoverable) {
+		expect(after).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 		expect(after.attempts[0]?.status).toBe("submitting");
 		yield* cannotRenew(fixture, after);
 	}

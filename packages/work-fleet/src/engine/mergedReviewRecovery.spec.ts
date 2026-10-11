@@ -24,6 +24,7 @@ test("retry of a stored post-review open-PR failure completes after restart with
 					finishWorkers(fixture);
 					const blocked = yield* fleet.reconcile("one");
 					expect(blocked.value.stage).toBe("needs-human");
+					expect(blocked.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 					expect(blocked.value.decision?.reason).toBe("Reported PR must be open and target the configured repository branch");
 					expect(blocked.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
 					expect(blocked.value.checks).toBeUndefined();

@@ -80,10 +80,10 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 	const defaultClock = options.clock ?? "test";
 
 	function run<A>(
-		body: (harness: THarness, context: TestContext) => Generator<Effect.Effect<unknown, unknown, Provided>, A, never>,
+		body: (harness: THarness, context: TestContext) => Generator<Effect.Effect<unknown, unknown, Provided | Scope.Scope>, A, never>,
 		context: EffectFixture<Provided>,
 	): Effect.Effect<A, unknown, Scope.Scope> {
-		const ready: Effect.Effect<A, unknown, Provided> = Effect.gen(function* () {
+		const ready: Effect.Effect<A, unknown, Provided | Scope.Scope> = Effect.gen(function* () {
 			const harness = yield* options.makeHarness(context);
 			return yield* Effect.gen(() => body(harness, context));
 		});
@@ -114,7 +114,7 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 	const effectApp: EffectTester<THarness, Provided> = Object.assign(register(fixtureIt), {
 		each:
 			<TItem>(cases: readonly TItem[]) =>
-			<A, TEff extends Effect.Effect<unknown, unknown, Provided>>(
+			<A, TEff extends Effect.Effect<unknown, unknown, Provided | Scope.Scope>>(
 				name: string,
 				body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 				testOptions?: number | EffectTestOptions,

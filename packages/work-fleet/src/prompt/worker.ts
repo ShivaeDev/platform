@@ -9,11 +9,13 @@ export interface WorkerPrompt extends CloudStartup {
 	readonly task: string;
 	readonly workId: string;
 }
+export const MAINTAINER_QUESTION_MARKER = "FLEET_MAINTAINER_QUESTION:";
 export const QUESTION_MARKER = "FLEET_QUESTION:";
 export const PULL_REQUEST_MARKER = "FLEET_PR:";
 const QUESTION_INSTRUCTIONS = [
 	"When you need a decision:",
 	`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
+	`- Questions go to the orchestrator by default. Only when a decision requires maintainer authority, use \`${MAINTAINER_QUESTION_MARKER} <question>\` instead.`,
 	"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
 ].join("\n");
 const REPORT_INSTRUCTIONS = [
@@ -103,10 +105,13 @@ export function reportedPullRequest(output: string) {
 
 export function reportedQuestion(output: string) {
 	const lines = output.split("\n");
-	const index = lines.findIndex((line) => line.trim().startsWith(QUESTION_MARKER));
+	const index = lines.findIndex((line) => [QUESTION_MARKER, MAINTAINER_QUESTION_MARKER].some((candidate) => line.trim().startsWith(candidate)));
 	if (index < 0) {
 		return undefined;
 	}
-	const question = [lines[index]?.trim().slice(QUESTION_MARKER.length).trim(), ...lines.slice(index + 1)].join("\n").trim();
-	return question.length === 0 ? undefined : question;
+	const first = lines[index]?.trim() ?? "";
+	const maintainer = first.startsWith(MAINTAINER_QUESTION_MARKER);
+	const marker = maintainer ? MAINTAINER_QUESTION_MARKER : QUESTION_MARKER;
+	const question = [first.slice(marker.length).trim(), ...lines.slice(index + 1)].join("\n").trim();
+	return question.length === 0 ? undefined : { attentionOwner: maintainer ? ("maintainer" as const) : ("orchestrator" as const), question };
 }

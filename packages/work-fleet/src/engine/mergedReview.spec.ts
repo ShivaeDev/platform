@@ -26,6 +26,7 @@ for (const pending of [false, true]) {
 						let observed = yield* fleet.reconcile("one");
 						if (pending) {
 							expect(observed.value.stage).toBe("validating");
+							expect(observed.value.attentionOwner).toBe("automation");
 							expect(observed.value.outcome).toBeUndefined();
 							github.state.pending = false;
 							observed = yield* fleet.reconcile("one");
@@ -56,7 +57,7 @@ for (const scenario of [
 		status: "CLOSED",
 	},
 ] as const) {
-	test(`${scenario.name} during review retains ownership and waits for a human`, () =>
+	test(`${scenario.name} during review retains ownership and waits on the orchestrator`, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
 				const github = yield* mergedReviewGithub();
@@ -69,6 +70,7 @@ for (const scenario of [
 						const fleet = yield* Fleet;
 						const observed = yield* fleet.reconcile("one");
 						expect(observed.value.stage).toBe("needs-human");
+						expect(observed.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 						expect(observed.value.decision?.reason).toContain(scenario.reason);
 						expect(observed.value.outcome).toBeUndefined();
 						expect(backlog(observed.value)).toBe(true);

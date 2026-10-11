@@ -19,6 +19,7 @@ test("a dependency chain launches in order after validated completion", () =>
 			const fleet = yield* Fleet;
 			yield* cycle;
 			expect((yield* fleet.get("two")).value.blocker).toContain("waiting for dependency one");
+			expect((yield* fleet.get("two")).value.attentionOwner).toBe("orchestrator");
 			expect((yield* fleet.get("dependent")).value.blocker).toContain("waiting for dependency two");
 			for (const id of ["one", "two"]) {
 				finishWorkers(fixture);

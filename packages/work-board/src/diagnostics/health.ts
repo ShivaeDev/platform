@@ -11,11 +11,11 @@ export const FleetHealth = Schema.Struct({
 	concurrency: Schema.Int.check(Schema.isGreaterThan(0)),
 	lastCapacityRejection: Schema.NullOr(CapacityRejection),
 	lastSchedulerPass: Schema.NullOr(Timestamp),
-	needsHuman: Count,
 	observedAt: Timestamp,
 	queued: Count,
 	running: Count,
 	staleAfterMs: Schema.Int.check(Schema.isGreaterThan(0)),
-	version: Schema.Literal(1),
+	version: Schema.Literal(2),
+	waiting: Schema.Struct({ automation: Count, maintainer: Count, orchestrator: Count }),
 });
 export type FleetHealth = typeof FleetHealth.Type;

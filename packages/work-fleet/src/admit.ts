@@ -25,6 +25,8 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 		|| quota.expiresAt <= policy.now()
 		|| quota.available <= submitted
 	) {
-		return yield* Effect.fail(new FleetFailure({ message: "Fresh available provider quota is required", reason: "denied" }));
+		return yield* Effect.fail(
+			new FleetFailure({ attentionOwner: "automation", message: "Fresh available provider quota is required", reason: "denied" }),
+		);
 	}
 });

@@ -5,6 +5,10 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 import { reviewerObservation } from "#test/reviewerObservation.ts";
 
 const acceptTurn = Effect.fnUntraced(function* (options: EngineOptions, turns: number) {
+	const failure = options.submissionFailure?.("turn");
+	if (failure !== undefined) {
+		return yield* Effect.fail(failure);
+	}
 	if (turns === 2 && options.continuationGate !== undefined) {
 		yield* options.continuationGate;
 	}
@@ -76,10 +80,14 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 					: receipt;
 			}),
 		startSession: (input) =>
-			Effect.sync(() => {
+			Effect.gen(function* () {
 				launched.push(input.operationId);
 				starts.push(input);
 				settings.push({ call: "session", operationId: input.operationId, settings: input.settings });
+				const failure = options.submissionFailure?.("session");
+				if (failure !== undefined) {
+					return yield* Effect.fail(failure);
+				}
 				return input.access === "read-only" && options.sameReviewer ? `session-${launched[0]}` : `session-${input.operationId}`;
 			}),
 		startTurn: (input) =>

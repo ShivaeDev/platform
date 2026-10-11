@@ -25,9 +25,9 @@ describe("native Fleet contract", () => {
 					finishWorkers(fixture);
 					yield* client("fleet.reconcile", { workId: "one" });
 					const view = yield* client("fleet.views", undefined);
-					expect(view.needsHuman[0]?.sessions).toHaveLength(2);
-					expect(view.needsHuman[0]?.decision?.recommendation).toContain("Merge the reviewed, green PR");
-					const decisionId = view.needsHuman[0]?.decision?.id ?? "missing";
+					expect(view.waiting.maintainer[0]?.sessions).toHaveLength(2);
+					expect(view.waiting.maintainer[0]?.decision?.recommendation).toContain("Merge the reviewed, green PR");
+					const decisionId = view.waiting.maintainer[0]?.decision?.id ?? "missing";
 					const responseId = fixture.respond(decisionId, "release");
 					const released = yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
 					expect(released.stage).toBe("released");

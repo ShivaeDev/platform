@@ -80,7 +80,7 @@ describe("Fleet report host", () => {
 				expect(value.decision?.reason).toBe("Report worker returned empty output");
 				expect(value.report).toBeUndefined();
 				expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
-				yield* terminalViews(fixture, WAIT_EXIT.needsHuman, "Needs human (1)");
+				yield* terminalViews(fixture, WAIT_EXIT.waitingDecision, "Waiting on orchestrator (1)");
 				const decision = value.decision?.published;
 				if (decision === undefined) {
 					return yield* Effect.die(new Error("An empty report needs a Board decision"));

@@ -61,7 +61,23 @@ const statusCommand = Command.make(
 		const current = yield* fleetStatus(settings, Option.getOrUndefined(input.workId)).pipe(Effect.provide(readOnlySql(settings)));
 		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current));
 	}),
-).pipe(Command.withDescription("Show active, needs-human and completed Fleet work"));
+).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
+
+const reassignCommand = Command.make(
+	"reassign",
+	{
+		board,
+		config,
+		id: Argument.string("id"),
+		question: Argument.string("decision-id"),
+		to: Argument.choice("owner", ["maintainer", "orchestrator", "automation"]),
+	},
+	Effect.fn("WorkFleetCli.reassign")(function* (input) {
+		const { reassignWork } = yield* Effect.promise(() => import("#host/reassignWork.ts"));
+		const { value } = yield* reassignWork(yield* host(input.board, input.config), input.id, input.question, input.to);
+		yield* Console.log(`${value.workId} ${value.stage} (waiting on ${value.attentionOwner})`);
+	}),
+).pipe(Command.withDescription("Reassign the exact waiting decision to its next actor"));
 
 const nameThreadsCommand = Command.make(
 	"name-threads",
@@ -74,7 +90,16 @@ const nameThreadsCommand = Command.make(
 
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
-	Command.withSubcommands([runCommand, dispatchCommand, continueCommand, statusCommand, waitCommand, watchCommand, nameThreadsCommand]),
+	Command.withSubcommands([
+		runCommand,
+		dispatchCommand,
+		continueCommand,
+		statusCommand,
+		reassignCommand,
+		waitCommand,
+		watchCommand,
+		nameThreadsCommand,
+	]),
 );
 
 const main = Command.run(cli, { version: "0.0.0" }).pipe(

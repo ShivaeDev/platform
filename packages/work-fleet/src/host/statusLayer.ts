@@ -2,6 +2,7 @@ import { Clock, Console, Effect, FileSystem, Layer, Ref, Semaphore } from "effec
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { Health, HealthPublication } from "#engine/health.ts";
+import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
 
@@ -28,12 +29,12 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 						const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
 						yield* writeHealth(root, realRoot, {
 							observedAt: yield* Clock.currentTimeMillis,
-							version: 1,
+							version: 2,
 							...healthConfig,
 							...state,
-							needsHuman: records.filter(({ value }) => value.stage === "needs-human").length,
 							queued: records.filter(({ value }) => value.stage === "prepared").length,
 							running: records.filter(({ value }) => executing(value)).length,
+							waiting: waitingCounts(records.map(({ value }) => value)),
 						});
 					}
 				}),
@@ -52,10 +53,16 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 					dispatch: (workId) => after(fleet.dispatch(workId)),
 					list: () => after(fleet.list()),
 					prepare: (input) => after(fleet.prepare(input)),
+					reassign: (workId, decisionId, attentionOwner) => after(fleet.reassign(workId, decisionId, attentionOwner)),
 					reconcile: (workId) => after(fleet.reconcile(workId)),
 					resolve: (workId, decisionId, responseId) => after(fleet.resolve(workId, decisionId, responseId)),
 				}),
 			);
 		}),
 	);
+}
+
+function waitingCounts(records: Parameters<typeof views>[0]) {
+	const { waiting } = views(records);
+	return { automation: waiting.automation.length, maintainer: waiting.maintainer.length, orchestrator: waiting.orchestrator.length };
 }

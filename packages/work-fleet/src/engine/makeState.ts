@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
@@ -37,7 +38,7 @@ export const makeState = Effect.gen(function* () {
 		return store.compareAndSet(
 			value.workId,
 			stored.version,
-			value,
+			{ ...value, attentionOwner: waitingOwner(value) },
 			admission === undefined
 				? undefined
 				: {
@@ -55,15 +56,25 @@ export const makeState = Effect.gen(function* () {
 		reason: string,
 		recommendation: string,
 		worker?: SessionReceipt,
+		attentionOwner: AttentionOwner = "orchestrator",
 	) {
 		const value: Decision = {
+			attentionOwner,
 			id: `${stored.value.workId}.${stored.version}`,
 			links: stored.value.result?.kind === "change" ? [stored.value.result.pr] : [],
 			reason,
 			recommendation,
 			...(worker === undefined ? {} : { worker }),
 		};
-		const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: value, decisionPublished: false, stage: "needs-human" });
+		const updated = yield* save(stored, {
+			...stored.value,
+			attentionOwner,
+			blocker: undefined,
+			decision: value,
+			decisionPublished: false,
+			launchRetry: undefined,
+			stage: "needs-human",
+		});
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
