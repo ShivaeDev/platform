@@ -3,15 +3,23 @@ import { visit as visitElements } from "unist-util-visit";
 import { fileUrl } from "#files/url.ts";
 import { attachmentHref } from "#path/attachment.ts";
 
-export function documentLinks(file: string) {
+export function resolveDocumentLink(href: string, file: string): string {
+	if (href.startsWith("#") || href.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.exec(href) !== null) {
+		return href;
+	}
+	const target = new URL(href, `http://work-board.local${fileUrl(file)}`);
+	const resolved = target.pathname + target.search + target.hash;
+	return attachmentHref(resolved) ?? resolved;
+}
+
+export function documentLinks(file: string, targets: Readonly<Record<string, string>> = {}) {
 	function resolve(element: Element) {
 		const attribute = element.tagName === "img" ? "src" : "href";
 		const href = element.properties[attribute];
 		if (typeof href !== "string" || href.startsWith("#") || href.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.exec(href) !== null) {
 			return;
 		}
-		const target = new URL(href, `http://work-board.local${fileUrl(file)}`);
-		const resolved = target.pathname + target.search + target.hash;
+		const resolved = (Object.hasOwn(targets, href) ? targets[href] : undefined) ?? resolveDocumentLink(href, file);
 		const image = attachmentHref(resolved);
 		element.properties[attribute] = image ?? resolved;
 		if (element.tagName === "img" && image) {
