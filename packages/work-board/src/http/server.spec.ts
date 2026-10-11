@@ -43,7 +43,7 @@ describe("pages", () => {
 
 	it("shows any other markdown file as a document and answers 404 for a missing one", async () => {
 		expect(await (await get("/notes/log.md")).text()).toContain(
-			'<article class="doc"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
+			'<header class="item-introduction"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
 		);
 		expect((await get("/notes/missing.md")).status).toBe(404);
 	});
@@ -53,7 +53,7 @@ describe("pages", () => {
 		board = await startBoard(notes.root);
 		const html = await (await get("/")).text();
 		expect(html).toContain(
-			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
 		);
 		expect(html).not.toContain('class="counts"');
 	});
@@ -104,7 +104,7 @@ describe("pages", () => {
 			expect(await response.text()).not.toContain("Outside the folder");
 		}
 		expect(await (await get("/notes/alias.md")).text()).toContain(
-			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
 		);
 	});
 
@@ -127,7 +127,7 @@ describe("pages", () => {
 		const html = await response.text();
 		expect(html).not.toContain("Outside the folder");
 		expect(html).toContain(
-			'<article class="doc"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
+			'<header class="item-introduction"><h1 id="heading-plan" tabindex="-1">Plan<a aria-label="Link to Plan" class="heading-anchor" href="#heading-plan"></a></h1>',
 		);
 	});
 
@@ -136,7 +136,7 @@ describe("pages", () => {
 		const html = await (await get("/")).text();
 		expect(html).toContain('<a href="/notes/c%23%20%26%20more%3F.md">c# &amp; more?</a>');
 		expect(await (await get("/notes/c%23%20%26%20more%3F.md")).text()).toContain(
-			'<article class="doc"><h1 id="heading-sharp" tabindex="-1">Sharp<a aria-label="Link to Sharp" class="heading-anchor" href="#heading-sharp"></a></h1>',
+			'<header class="item-introduction"><h1 id="heading-sharp" tabindex="-1">Sharp<a aria-label="Link to Sharp" class="heading-anchor" href="#heading-sharp"></a></h1>',
 		);
 	});
 

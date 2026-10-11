@@ -9,6 +9,7 @@ import { metadataParse } from "#metadata/parse.ts";
 import { boardHtml } from "#page/board.ts";
 import { documentHtml } from "#page/document.ts";
 import { escapeHtml } from "#page/escape.ts";
+import { itemIntroduction } from "#page/itemIntroduction.ts";
 import { metadataHtml } from "#page/metadata.ts";
 import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
@@ -55,7 +56,7 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 			snapshot.unavailable,
 			options.home ?? (yield* changes.files)[0]?.path,
 		);
-		const metadata = metadataHtml(parsed, file.path, model);
+		const metadata = metadataHtml(parsed, file.path, model, file.path === options.home);
 		if (snapshot.unavailable.length === 0 && parsed.fields.id && model.ids.get(parsed.fields.id)?.length === 1) {
 			identity = parsed.fields.id;
 		}
@@ -65,7 +66,7 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 		const html =
 			file.path === options.home
 				? yield* boardHtml(boardOf(parsed.body), file.path, file.modified, metadata)
-				: yield* documentHtml(parsed.body, file, metadata);
+				: yield* documentHtml(parsed.body, file, metadata, itemIntroduction(parsed));
 		const service = options.responses;
 		const question = service && identity && authoredQuestion({ file: file.path, parsed });
 		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, service, options.writable === true) : "";
