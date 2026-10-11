@@ -3,9 +3,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { markdownBoard } from "#board/markdown.ts";
+import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
@@ -77,7 +80,14 @@ export function withHost<A, E, R>(
 			return use({
 				configFile,
 				host,
-				parts: { main: mainSource, provider: provider.transport },
+				parts: {
+					board: Layer.merge(
+						markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
+						Layer.succeed(ReportInspection)({ check: () => Effect.void }),
+					),
+					main: mainSource,
+					provider: provider.transport,
+				},
 				provider,
 				write: (file, source) => writeFileSync(join(boardDir, file), source),
 			});

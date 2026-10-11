@@ -19,7 +19,7 @@ const OUTPUT = "  # Findings\n\nWhole report, including whitespace.\n";
 const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixture, body: string) {
 	yield* dispatchWork(fixture.host, "research", fixture.parts);
 	const [observation] = fixture.provider.observations.values();
-	expect(observation?.output).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+	expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR");
 	for (const [id, current] of fixture.provider.observations) {
 		fixture.provider.observations.set(id, { ...current, execution: "completed", output: body });
 	}

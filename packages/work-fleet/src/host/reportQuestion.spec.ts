@@ -23,7 +23,7 @@ test("report questions continue read-only research and record the final answer t
 				const resumed = yield* fleet.reconcile("one");
 				const attempt = resumed.value.attempts.at(-1);
 				expect(attempt?.prompt).toContain("Use **PostgreSQL**");
-				expect(attempt?.prompt).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+				expect(attempt?.prompt).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR");
 				const receipt = attempt?.receipt;
 				if (receipt === undefined) {
 					return yield* Effect.die(new Error("Expected the report answer turn receipt"));

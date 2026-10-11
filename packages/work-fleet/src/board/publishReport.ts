@@ -4,6 +4,7 @@ import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDocument } from "#board/documents.ts";
+import { reportIdentity } from "#board/reportIdentity.ts";
 import { BoardFailure, type BoardWork } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
@@ -22,8 +23,7 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 		) {
 			return yield* Effect.fail(new BoardFailure({ message: "Report needs nonempty completed output and the exact current Board context." }));
 		}
-		const provenance = { ...observation.receipt, workRevision: work.revision };
-		const itemId = `fleet-report.${revisionOf(JSON.stringify({ workId: work.workId, ...provenance }))}`;
+		const { provenance, itemId } = reportIdentity(work, observation.receipt);
 		const metadata = { id: itemId, kind: "result", relationships: [{ kind: "informs", target: work.workId }] };
 		const content = `---\n${JSON.stringify(metadata)}\n---\n# Fleet report\n\n## Worker receipt\n\n\`\`\`json\n${JSON.stringify(provenance)}\n\`\`\`\n\n## Report\n\n${observation.output}`;
 		yield* publish(root, realRoot, itemId, content).pipe(
