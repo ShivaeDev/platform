@@ -75,6 +75,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
