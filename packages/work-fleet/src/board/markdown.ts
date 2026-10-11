@@ -66,7 +66,7 @@ export function markdownBoard(root: string) {
 					return yield* publish(work, input);
 				}),
 				get,
-				readDecision: decisionReading(realRoot, documents, get),
+				readDecision: decisionReading(documents),
 				report: publishReport(root, realRoot, documents),
 			});
 		}),

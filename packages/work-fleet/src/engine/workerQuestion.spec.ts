@@ -77,7 +77,7 @@ test("competing answers and changed Board context do not continue a worker", () 
 			yield* fs.writeFileString(path.join(root, "one.md"), `${source}\nChanged scope.\n`);
 			const stale = yield* fleet.reconcile("one");
 			expect(stale.value.stage).toBe("needs-human");
-			expect(stale.value.blocker).toContain("Board work changed");
+			expect(stale.value.blocker).toContain("Several Board answers compete");
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 		}),
 	));

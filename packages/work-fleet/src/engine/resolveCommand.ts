@@ -1,18 +1,18 @@
 import { Effect } from "effect";
-import { authorizeResolution } from "#engine/authorizeResolution.ts";
+import { applyResolution } from "#engine/applyResolution.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
-import { continueWorker } from "#engine/continueWorker.ts";
+import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { readResolution } from "#engine/readResolution.ts";
-import { executing, type FleetRecord } from "#model.ts";
+import type { FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 export function resolveCommand(state: EngineState) {
-	const { board, policy, load, save } = state;
+	const { board, policy, load } = state;
 	return Effect.fn("Fleet.resolve")(
 		function* (workId: string, decisionId: string, responseId: string) {
 			const stored = yield* load(workId);
 			if (hasResponse(stored.value, decisionId, responseId)) {
-				return yield* closeDecisions(state)(stored);
+				return yield* ensurePublication(state)(stored).pipe(Effect.flatMap(closeDecisions(state)));
 			}
 			if (stored.value.decision?.id !== decisionId) {
 				return yield* Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" }));
@@ -29,42 +29,11 @@ export function resolveCommand(state: EngineState) {
 				type: response.response.type,
 			};
 			const responses = [...(stored.value.responses ?? []), receipt];
-			if (action === undefined) {
-				const blocker =
-					response.response.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
-				return yield* save(stored, { ...stored.value, blocker, responses });
-			}
-			if (action === "continue") {
-				return yield* continueWorker(state)(stored, responses, response.body).pipe(Effect.flatMap(closeDecisions(state)));
-			}
-			yield* authorizeResolution(state, stored.value, action);
-			const stage = resolutionStage(stored.value, action);
-			const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage });
-			return yield* closeDecisions(state)(updated);
+			return yield* applyResolution(state)(stored, responses, action, response.body, responseId);
 		},
 		(effect) =>
 			effect.pipe(Effect.catchTag("StorageConflict", () => Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" })))),
 	);
-}
-
-function resolutionStage(record: FleetRecord, action: "retry" | "release"): FleetRecord["stage"] {
-	if (action === "release") {
-		return "released";
-	}
-	if (record.deliverable === "report" && !executing(record)) {
-		const latest = record.attempts.at(-1);
-		return latest?.status === "completed" && latest.output?.trim() ? "adopting" : "prepared";
-	}
-	if (record.attempts.at(-1)?.role === "reviewer") {
-		return "reviewing";
-	}
-	if (executing(record)) {
-		return "executing";
-	}
-	if (record.result !== undefined) {
-		return "reviewing";
-	}
-	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
 }
 
 function hasResponse(record: FleetRecord, decisionId: string, responseId: string) {

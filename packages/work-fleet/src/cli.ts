@@ -45,6 +45,18 @@ const continueCommand = Command.make(
 	Command.withDescription("Continue terminal needs-human or completed work on its existing worker thread; read the message from stdin if omitted"),
 );
 
+const releaseCommand = Command.make(
+	"release",
+	{ board, config, workIds: Argument.string("id").pipe(Argument.variadic({ min: 1 })) },
+	Effect.fn("WorkFleetCli.release")(function* (input) {
+		const { releaseWork } = yield* Effect.promise(() => import("#host/releaseWork.ts"));
+		const released = yield* releaseWork(yield* host(input.board, input.config), input.workIds);
+		for (const { value } of released) {
+			yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+		}
+	}),
+).pipe(Command.withDescription("Safely release terminal needs-human items and record their closing Board responses"));
+
 const statusCommand = Command.make(
 	"status",
 	{
@@ -94,6 +106,7 @@ const cli = Command.make("work-fleet").pipe(
 		runCommand,
 		dispatchCommand,
 		continueCommand,
+		releaseCommand,
 		statusCommand,
 		reassignCommand,
 		waitCommand,
