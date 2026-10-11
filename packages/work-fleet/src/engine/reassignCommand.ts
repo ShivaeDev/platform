@@ -16,7 +16,7 @@ export function reassignCommand(state: EngineState) {
 		if (previous?.published === undefined) {
 			return yield* Effect.fail(new FleetFailure({ message: "Publish the current decision before reassignment", reason: "stale" }));
 		}
-		if (stored.value.attentionOwner === attentionOwner) {
+		if (stored.value.attentionOwner === attentionOwner && previous.attentionOwner === attentionOwner) {
 			return yield* closeDecisions(state)(stored);
 		}
 		const decision = { ...previous, attentionOwner, id: `${workId}.${stored.version}`, published: undefined };

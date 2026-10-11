@@ -20,7 +20,8 @@ export function ensurePublication({ board, save }: EngineState) {
 				}),
 			);
 		}
-		const published = yield* board.decision(stored.value.workId, decision, work);
+		const original = { ...decision, attentionOwner: decision.attentionOwner ?? ("maintainer" as const) };
+		const published = yield* board.decision(stored.value.workId, original, work);
 		if (published.workId !== work.workId || published.workRevision !== work.revision || published.request !== decision.id) {
 			return yield* Effect.fail(
 				new FleetFailure({
@@ -29,6 +30,6 @@ export function ensurePublication({ board, save }: EngineState) {
 				}),
 			);
 		}
-		return yield* save(stored, { ...stored.value, decision: { ...decision, published }, decisionPublished: true });
+		return yield* save(stored, { ...stored.value, decision: { ...original, published }, decisionPublished: true });
 	});
 }

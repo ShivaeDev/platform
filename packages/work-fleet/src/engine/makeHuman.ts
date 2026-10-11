@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { ensureDecisionOwner } from "#engine/ensureDecisionOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
@@ -8,7 +9,7 @@ import type { Versioned } from "#storage/model.ts";
 
 export function makeHuman(state: EngineState) {
 	return Effect.fn("Fleet.makeHuman")(function* (input: Versioned<FleetRecord>) {
-		let stored = input;
+		let stored = yield* ensureDecisionOwner(state)(input);
 		const decision = stored.value.decision;
 		if (stored.value.stage !== "needs-human" || decision === undefined) {
 			return stored;

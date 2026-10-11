@@ -7,6 +7,7 @@ import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguratio
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
+import { boardWork } from "#test/boardWork.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
@@ -24,6 +25,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
+	readonly replaceRecord: (value: FleetRecord) => Effect.Effect<void, unknown>;
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
 		effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
@@ -31,22 +33,6 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly reviews: readonly string[];
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly work: (id: string) => BoardWork;
-}
-function boardWork(
-	id: string,
-	approved: Readonly<Record<string, string>>,
-	revisions: ReadonlyMap<string, string> = new Map(),
-	dependencies: ReadonlyMap<string, readonly string[]> = new Map(),
-): BoardWork {
-	const revision = revisions.get(id) ?? `board-${id}`;
-	return {
-		approved: approved[id] === revision,
-		context: `Work ${id}: ${revisions.get(id) ?? `board-${id}`}`,
-		dependsOn: dependencies.get(id) ?? (id === "dependent" ? ["one"] : []),
-		revision: revisions.get(id) ?? `board-${id}`,
-		sourcePath: `board/${id}.md`,
-		workId: id,
-	};
 }
 export function withEngine<A, E, TBoardError = never>(
 	options: EngineOptions,
@@ -102,6 +88,13 @@ export function withEngine<A, E, TBoardError = never>(
 				yield* foreign("foreign-pr");
 			}
 			const journal = yield* SessionJournal.pipe(Effect.provide(fleetSessionJournal.pipe(Layer.provide(base))));
+			const replaceRecord = Effect.fn("FleetFixture.replaceRecord")(function* (value: FleetRecord) {
+				const stored = yield* store.load(value.workId);
+				if (stored === undefined) {
+					return yield* Effect.die("Missing fixture record");
+				}
+				yield* store.compareAndSet(value.workId, stored.version, value);
+			});
 			const fixture: EngineFixture<TBoardError> = {
 				...provider,
 				acknowledgementAttempts: scripted.acknowledgementAttempts,
@@ -120,6 +113,7 @@ export function withEngine<A, E, TBoardError = never>(
 				foreign,
 				foreignReservations: store.foreignReservations,
 				merged,
+				replaceRecord,
 				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
 				reviews,

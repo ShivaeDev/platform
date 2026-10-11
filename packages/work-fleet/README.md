@@ -107,7 +107,7 @@ Reassign the exact current question with `fleet.reassign(workId, decisionId, att
 work-fleet reassign sample-task sample-decision maintainer --board ./notes
 ```
 
-Reassignment publishes a new question for the assigned owner and acknowledges the old question as superseded, preserving both reviewed sources. Answers to the old question cannot continue the worker. Reconciliation retries publication and acknowledgement after failure or restart. Owner labels do not grant runtime approval or delivery authority.
+Reassignment publishes a new question for the assigned owner and acknowledges the old question as superseded, preserving both reviewed sources. Answers to the old question cannot continue the worker. Reconciliation retries publication and acknowledgement after failure or restart. Existing unowned decisions recover their original publication before publishing a replacement for the assigned owner. Owner labels do not grant runtime approval or delivery authority.
 
 ### Answer a worker question
 
