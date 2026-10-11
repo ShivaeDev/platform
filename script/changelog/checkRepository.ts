@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { assertPackageChange } from "./assertPackageChange.ts";
 import { attempt } from "./attempt.ts";
@@ -31,7 +31,9 @@ function basePackage(root: string, base: string, name: string, paths: readonly s
 
 export const checkRepository = Effect.fn("Changelog.checkRepository")(function* (root: string, reference = "origin/main") {
 	const fs = yield* FileSystem.FileSystem;
-	const base = yield* attempt(() => git(root, ["merge-base", "HEAD", reference]).trim());
+	const mergePath = yield* attempt(() => resolve(root, git(root, ["rev-parse", "--git-path", "MERGE_HEAD"]).trim()));
+	const merging = (yield* fs.exists(mergePath)) ? (yield* fs.readFileString(mergePath)).trim().split("\n") : [];
+	const base = yield* attempt(() => git(root, ["merge-base", reference, "HEAD", ...merging]).trim());
 	const paths = yield* attempt(() => git(root, ["ls-tree", "-r", "--name-only", base, "packages"]).trim().split("\n"));
 	const names = yield* fs.readDirectory(join(root, "packages"));
 	yield* Effect.forEach(names, (name) =>

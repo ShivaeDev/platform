@@ -99,3 +99,32 @@ it("requires each PR to add a new fragment instead of editing or deleting anothe
 		fixture.remove();
 	}
 });
+
+it("validates resolved changelog migrations against main during the merge commit hook", async () => {
+	const fixture = repository();
+	try {
+		fixture.write("CHANGELOG.md", "# Changelog\n\n## Unreleased\n\n### Fixed\n\n- Retry queries.\n");
+		fixture.commit();
+		fixture.git("switch", "-c", "migration");
+		const initial = migrateUnreleased(fixture.read("CHANGELOG.md"));
+		assert.ok(initial);
+		fixture.write("CHANGELOG.md", initial.changelog);
+		fixture.write("changes/previous.md", initial.fragment);
+		fixture.commit();
+		fixture.git("switch", "main");
+		fixture.write("CHANGELOG.md", `${fixture.read("CHANGELOG.md")}- Preserve drafts.\n`);
+		fixture.commit();
+		fixture.git("switch", "migration");
+		const merge = spawnSync("git", ["merge", "main", "--no-edit"], { cwd: fixture.root, encoding: "utf8" });
+		assert.equal(merge.status, 1);
+		const current = migrateUnreleased(fixture.git("show", "main:packages/sample/CHANGELOG.md"));
+		assert.ok(current);
+		fixture.write("CHANGELOG.md", current.changelog);
+		fixture.write("changes/previous.md", current.fragment);
+		await check(fixture.root, "main");
+		fixture.write("changes/previous.md", initial.fragment);
+		await assert.rejects(() => check(fixture.root, "main"), /changes only in a release/u);
+	} finally {
+		fixture.remove();
+	}
+});
