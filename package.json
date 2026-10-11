@@ -17,6 +17,7 @@
 		"hooks": "node --conditions=source packages/quality/src/cli.ts hooks install",
 		"lint": "node --conditions=source script/lint.ts && pnpm changelog:check && pnpm lint:quality",
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
+		"quality:commit": "node --conditions=source script/lint.ts && pnpm changelog:check",
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
 		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && pnpm db:setup",

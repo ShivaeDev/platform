@@ -119,7 +119,7 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 	});
 
 	it("runs from the folder of a config below the repository root", () => {
-		const repository = hookRepository({ folder: "app", preCommit: '{ run: ["test -f quality.config.ts"] }' });
+		const repository = hookRepository({ folder: "app", scripts: { "quality:commit": "test -f quality.config.ts" } });
 
 		quality(join(repository.root, "app"), "hooks", "install");
 

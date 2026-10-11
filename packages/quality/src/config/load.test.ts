@@ -5,7 +5,7 @@ import { afterEach, expect } from "vitest";
 import { loadConfig } from "#config/load.ts";
 import { builtInRules } from "#rules/built-in.ts";
 import { it } from "#test/it.ts";
-import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
+import { config, linkMissingFile, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
 
@@ -33,8 +33,28 @@ it.layer(NodeFileSystem.layer)("config loading", (it) => {
 		expect((yield* loadConfig(root, "tools/quality.config.ts")).root).toBe(join(root, "tools"));
 	});
 
-	it.effect("fails when there is no config", function* () {
-		expect(yield* failureOf(seedTree([]))).toContain("no config at");
+	it.effect("uses every default when there is no config", function* () {
+		const root = seedTree([]);
+		const loaded = yield* loadConfig(root, undefined);
+		expect(loaded).toMatchObject({
+			baseline: "quality/baseline.jsonl",
+			exclude: [],
+			file: join(root, "quality.config.ts"),
+			registry: "quality/registry.json",
+			root,
+			sources: ["."],
+		});
+		expect(loaded.active.map((rule) => [rule.id, rule.level])).toEqual(builtInRules.map((rule) => [rule.id, "error"]));
+	});
+
+	it.effect("fails when an explicit config path is missing", function* () {
+		expect(yield* failureOf(seedTree([]), "tools/missing.ts")).toContain("Check the --config path");
+	});
+
+	it.effect("fails for a dangling config symlink instead of using defaults", function* () {
+		const root = seedTree([]);
+		linkMissingFile(root, "quality.config.ts");
+		expect(yield* failureOf(root)).toContain("cannot load");
 	});
 
 	it.effect("fails when the config has no default export", function* () {
