@@ -1,8 +1,9 @@
-import { useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
+import { RegistryContext, useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
 import { Cause, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import type * as Atom from "effect/unstable/reactivity/Atom";
-import { useEffect } from "react";
+import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { useContext, useEffect, useState } from "react";
 import { useSessionRecheck } from "./session-boundary.ts";
 
 export interface ResultState<A, E> {
@@ -13,8 +14,7 @@ export interface ResultState<A, E> {
 	readonly result: AsyncResult.AsyncResult<A, E>;
 }
 
-function state<A, E>(result: AsyncResult.AsyncResult<A, E>): ResultState<A, E> {
-	const data = AsyncResult.value(result);
+function state<A, E>(result: AsyncResult.AsyncResult<A, E>, data = AsyncResult.value(result)): ResultState<A, E> {
 	return {
 		cause: AsyncResult.cause(result),
 		data,
@@ -40,10 +40,34 @@ export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly refresh: () => void;
 }
 
-export const useQuery = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>): QueryState<A, E> => {
+export interface QueryOptions {
+	readonly keepPreviousData?: boolean;
+}
+
+interface HeldQuery<A, E> {
+	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
+	readonly data: Option.Option<A>;
+	readonly dataAtom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
+	readonly keepPreviousData: boolean;
+	readonly registry: AtomRegistry.AtomRegistry;
+	readonly result: AsyncResult.AsyncResult<A, E>;
+}
+
+export const useQuery = <A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, options: QueryOptions = {}): QueryState<A, E> => {
 	const result = useAtomValue(atom);
+	const registry = useContext(RegistryContext);
+	const keepPreviousData = options.keepPreviousData === true;
+	const nativeData = AsyncResult.value(result);
+	const [held, hold] = useState<HeldQuery<A, E>>(() => ({ atom, data: nativeData, dataAtom: atom, keepPreviousData, registry, result }));
+	const previous = held.registry === registry && (held.dataAtom === atom || keepPreviousData) ? held.data : Option.none<A>();
+	const data = Option.orElse(nativeData, () => previous);
+	const dataAtom = Option.isSome(nativeData) || Option.isNone(previous) ? atom : held.dataAtom;
+	// Render state keeps abandoned React renders from changing the committed screen's retained value.
+	if (held.atom !== atom || held.registry !== registry || held.result !== result || held.keepPreviousData !== keepPreviousData) {
+		hold({ atom, data, dataAtom, keepPreviousData, registry, result });
+	}
 	useRecheckOnUnauthorized(result);
-	return { ...state(result), refresh: useAtomRefresh(atom) };
+	return { ...state(result, data), refresh: useAtomRefresh(atom) };
 };
 
 export interface ActionState<Input, A, E> extends ResultState<A, E> {

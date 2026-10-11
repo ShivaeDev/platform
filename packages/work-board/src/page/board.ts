@@ -21,7 +21,13 @@ const section = Effect.fn("WorkBoard.section")(function* ({ heading, items, note
 	return `<section>${title}${note}${rendered.join("")}</section>`;
 });
 
-export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (board: Board, fallbackTitle: string, modified: number, metadata = "") {
+export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (
+	board: Board,
+	fallbackTitle: string,
+	modified: number,
+	metadata = "",
+	questionActions?: ReadonlyMap<string, string>,
+) {
 	let fragments = 0;
 	const headings = documentHeadings();
 	const render: Render = (fragment) => {
@@ -30,6 +36,7 @@ export const boardHtml = Effect.fn("WorkBoard.boardHtml")(function* (board: Boar
 			file: fallbackTitle,
 			headings,
 			idPrefix: `part-${fragments}-`,
+			...(questionActions ? { questionActions } : {}),
 		});
 	};
 	const title = board.title === "" ? `<h1>${escapeHtml(fallbackTitle)}</h1>` : yield* render(board.title);
