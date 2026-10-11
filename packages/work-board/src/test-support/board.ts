@@ -46,9 +46,10 @@ export async function startBoard(
 	wrap: FileSystemWrapper = (fs) => fs,
 	responses = false,
 	sources?: Sources,
+	maintainer?: string,
 ): Promise<RunningBoard> {
 	const board = Layer.provide(
-		boardLayer({ home, responses, root }),
+		boardLayer({ home, maintainer, responses, root }),
 		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
 	);
 	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));

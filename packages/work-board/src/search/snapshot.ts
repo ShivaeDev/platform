@@ -11,6 +11,7 @@ import { updateEntries } from "./updateEntries.ts";
 export interface Snapshot {
 	readonly documents: readonly MetadataDocument[];
 	readonly entries: readonly Entry[];
+	readonly maintainer?: string;
 	readonly model: ReturnType<typeof metadataModel>;
 	readonly modified: ReadonlyMap<string, number>;
 	readonly revision: number;
@@ -31,7 +32,12 @@ function shouldRead(
 	);
 }
 
-export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (root: string, home: string | undefined, changes: Changes) {
+export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
+	root: string,
+	home: string | undefined,
+	changes: Changes,
+	maintainer = "maintainer",
+) {
 	const cached = yield* Ref.make<Snapshot | undefined>(undefined);
 	const semaphore = yield* Semaphore.make(1);
 	let records = new Map<string, IndexedDocument>();
@@ -67,7 +73,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
 		const enriched = enrich(next, model);
 		const modified = new Map(files.map((file) => [file.path, file.modified]));
-		const snapshot = { documents, entries: enriched, model, modified, revision, unavailable };
+		const snapshot = { documents, entries: enriched, maintainer, model, modified, revision, unavailable };
 		records = next;
 		listed = new Map(files.map((file) => [file.path, file]));
 		yield* Ref.set(cached, snapshot);

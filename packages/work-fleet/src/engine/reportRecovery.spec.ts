@@ -2,15 +2,17 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
+import { reportBoard as attachmentReportBoard } from "#host/reportBoard.ts";
+import { BoardFailure } from "#policy.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { answerReport, lostReportReceipt, reportBoard } from "#test/report.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 function reportFiles(root: string) {
-	return readdirSync(join(root, "responses")).filter((file) => file.startsWith("fleet-report."));
+	return readdirSync(join(root, "responses")).filter((file) => file.startsWith("fleet-report.") && file.endsWith(".md"));
 }
 
 const reconcileReport = Fleet.pipe(Effect.flatMap((fleet) => fleet.reconcile("one")));
@@ -47,10 +49,22 @@ describe("report publication recovery", () => {
 				publication.board,
 			);
 		}).pipe(Effect.provide(NodeServices.layer)));
-	test("retries a lost publication receipt after restart without another result or worker", () =>
+	test("retries a lost publication receipt after restart with unavailable retrieval and no changed bytes, result or worker", () =>
 		Effect.gen(function* () {
 			const root = yield* reportBoard;
 			const publication = lostReportReceipt(root);
+			let available = true;
+			let collections = 0;
+			const collector = attachmentReportBoard(
+				root,
+				() => Effect.succeed(false),
+				() => {
+					collections += 1;
+					return available
+						? Effect.succeed({ files: [{ bytes: new TextEncoder().encode("Original bytes."), path: "evidence.txt" }], unavailable: [] })
+						: Effect.fail(new BoardFailure({ message: "Retrieval became unavailable" }));
+				},
+			).pipe(Layer.provide(publication.board));
 			return yield* withEngine(
 				{ resultUnavailable: true },
 				(fixture) =>
@@ -73,6 +87,7 @@ describe("report publication recovery", () => {
 							return yield* Effect.die(new Error("Report publication failure needs a Board decision"));
 						}
 						answerReport(root, decision, "retry");
+						available = false;
 						const completed = yield* fixture.restart(reconcileReport);
 						expect({ blocker: completed.value.blocker, decision: completed.value.decision?.reason, stage: completed.value.stage }).toEqual({
 							blocker: undefined,
@@ -80,6 +95,7 @@ describe("report publication recovery", () => {
 							stage: "completed",
 						});
 						expect(publication.count()).toBe(2);
+						expect(collections).toBe(1);
 						yield* fleet.reconcile("one");
 						expect(publication.count()).toBe(2);
 						expect(fixture.launched).toHaveLength(1);
@@ -88,7 +104,7 @@ describe("report publication recovery", () => {
 						expect(reportFiles(root)).toEqual([resultFile]);
 						expect(readFileSync(join(root, "responses", resultFile ?? "missing"), "utf8")).toBe(bytes);
 					}),
-				publication.board,
+				collector,
 			);
 		}).pipe(Effect.provide(NodeServices.layer)));
 });

@@ -1,7 +1,4 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { tmpdir } from "node:os";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect } from "@effect/vitest";
@@ -9,17 +6,26 @@ import { Effect, Layer } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 import type { BoardReport } from "#board/schema.ts";
 import { reportBoard } from "#host/reportBoard.ts";
-import { reportDiffFiles } from "#host/reportDiff.ts";
 import { makeReportPublication } from "#host/reportPublication.ts";
 import { FleetFailure } from "#policy.ts";
-import { codexTaskDiff } from "#providers/codexTaskDiff.ts";
-import type { SessionReceipt } from "#session/schema.ts";
+import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
+import { REPORT_ATTACHMENT_DIRECTORY } from "#reportAttachments.ts";
+import { codexServer, type Handshake, requestCursor, WireRejection, type WireRequest } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, syntheticToken } from "#test/codexCloud.ts";
 
 export const TEXT_FILE = "Evidence from the workspace.\n";
 export const BINARY_FILE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 255, 128, 0]);
-export const REPORT_FILES = { "capture.png": BINARY_FILE, "findings.txt": new TextEncoder().encode(TEXT_FILE) };
+export const REPORT_FILES = {
+	"capture.png.base64": new TextEncoder().encode(Buffer.from(BINARY_FILE).toString("base64")),
+	"findings.txt": new TextEncoder().encode(TEXT_FILE),
+};
 
+export function addedAttachment(path: string, diff: string) {
+	return { changes: [{ diff, kind: { type: "add" }, path: `${REPORT_ATTACHMENT_DIRECTORY}${path}` }], id: `add-${path}`, type: "fileChange" };
+}
+export function attachmentItems() {
+	return Object.entries(REPORT_FILES).map(([name, bytes]) => addedAttachment(name, new TextDecoder().decode(bytes)));
+}
 export function expectReportAttachments(root: string, report: BoardReport, attachments: boolean, output: string) {
 	const content = readFileSync(join(root, report.sourcePath), "utf8");
 	expect(content).toContain(output);
@@ -39,62 +45,34 @@ export function expectReportAttachments(root: string, report: BoardReport, attac
 	}
 }
 
-export function attachmentDiff(files: Readonly<Record<string, Uint8Array>> = REPORT_FILES) {
-	const folder = mkdtempSync(join(tmpdir(), "report-diff-"));
-	try {
-		return Object.entries(files)
-			.map(([name, bytes]) => {
-				writeFileSync(join(folder, name), bytes);
-				const result = spawnSync("git", ["diff", "--no-index", "--binary", "--", "/dev/null", name], { cwd: folder, encoding: "utf8" });
-				if (result.status !== 1) {
-					throw new Error("Could not create the synthetic attachment diff");
-				}
-				return result.stdout;
-			})
-			.join("");
-	} finally {
-		rmSync(folder, { force: true, recursive: true });
-	}
-}
-
-export const taskDownload = Effect.fn("ReportStory.taskDownload")(function* (diff: string) {
+export const turnDownload = Effect.fn("ReportStory.turnDownload")(function* (items: readonly unknown[], reject = false) {
 	const token = syntheticToken("report", FUTURE_EXPIRY);
 	const authFile = yield* authFolder(token);
-	const requests: { readonly path: string; readonly authenticated: boolean; readonly accountSelected: boolean }[] = [];
-	let receipt: SessionReceipt = { sessionId: "synthetic-task", turnId: "synthetic-turn" };
-	const server = createServer((request, response) => {
-		requests.push({
-			accountSelected: request.headers["chatgpt-account-id"] === "synthetic-account",
-			authenticated: request.headers.authorization === `Bearer ${token}`,
-			path: request.url ?? "",
-		});
-		response.setHeader("Content-Type", "application/json");
-		response.end(
-			JSON.stringify({
-				"current_assistant_turn": { id: receipt.turnId, "output_items": diff ? [{ diff, type: "output_diff" }] : [] },
-				"current_diff_task_turn": null,
-			}),
-		);
-	});
-	yield* Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)));
-	yield* Effect.addFinalizer(() => Effect.promise(() => new Promise<void>((resolve) => server.close(() => resolve()))));
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		return yield* Effect.die(new Error("No synthetic task backend address"));
-	}
-	const read = codexTaskDiff({ authFile }, 5000, `http://127.0.0.1:${address.port}/backend-api/`);
+	const requests: WireRequest[] = [];
+	const handshakes: Handshake[] = [];
+	const fixture = yield* codexServer((request) => {
+		requests.push(request);
+		if (request.method === "thread/items/list") {
+			if (reject) {
+				return new WireRejection("Synthetic attachment retrieval unavailable");
+			}
+			const start = Number(requestCursor(request) ?? 0);
+			const end = start + 100;
+			return { data: items.slice(start, end).map((item) => ({ item })), nextCursor: end < items.length ? String(end) : null };
+		}
+		return {};
+	}, handshakes);
+	const read = codexReportAttachments({ authFile, endpoint: fixture.endpoint }, 5000);
 	return {
+		authenticated: () => handshakes.length > 0 && handshakes.every((handshake) => handshake.protocols.includes(`openai-bearer.${token}`)),
 		read,
 		requests,
-		setReceipt: (value: SessionReceipt) => {
-			receipt = value;
-		},
 	};
 });
 
 export function attachmentBoard(
 	root: string,
-	download: Effect.Success<ReturnType<typeof taskDownload>>,
+	download: Effect.Success<ReturnType<typeof turnDownload>>,
 	published: "branch" | "pr" | "none" = "none",
 ) {
 	const requests: string[] = [];
@@ -112,13 +90,9 @@ export function attachmentBoard(
 		}
 		return Effect.fail(new FleetFailure({ message: "Unexpected GitHub read", reason: "integration" }));
 	});
-	const board = reportBoard(
-		root,
-		(work) => check("example/project", `synthetic/${work.workId}`),
-		(receipt) => {
-			download.setReceipt(receipt);
-			return Effect.scoped(download.read(receipt).pipe(Effect.flatMap(reportDiffFiles)));
-		},
-	).pipe(Layer.provide(markdownBoard(root)), Layer.provide(NodeServices.layer));
+	const board = reportBoard(root, (work) => check("example/project", `synthetic/${work.workId}`), download.read).pipe(
+		Layer.provide(markdownBoard(root)),
+		Layer.provide(NodeServices.layer),
+	);
 	return { board, requests };
 }
