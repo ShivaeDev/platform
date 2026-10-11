@@ -90,7 +90,7 @@ const reviseInvoiceLine = Effect.gen(function* () {
 });
 ```
 
-`insert` returns an `InvoiceLine` with the generated ID and decoded amount. The update supplies the model's required fields, the by-ID read reaches the saved row, and the final query returns an empty list after deletion. These methods come from native `SqlModel.makeRepository`; `findMany` is the added query.
+`insert` returns an `InvoiceLine` with the generated ID and decoded amount. The update supplies the model's required fields, the by-ID read reaches the saved row, and the final query returns an empty list after deletion. Without a version column, these methods come from native `SqlModel.makeRepository`; `findMany` is the added query.
 
 For lists, choose the fields the caller needs:
 
@@ -112,6 +112,40 @@ The filters are equality conditions joined together. A null filter matches SQL `
 `select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one field and `asc` or `desc`; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates, range filters or other queries outside this shape.
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
+
+### Optimistic concurrency
+
+Declare a numeric version field in the model's select and update variants, leave it out of insert, and select it with `versionColumn`:
+
+```ts
+class Document extends Model.Class<Document>("Document")({
+  id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+  name: Schema.String,
+  lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+}) {}
+
+const makeDocuments = makeRepository(Document, {
+  tableName: "documents",
+  idColumn: "id",
+  spanPrefix: "Document",
+  versionColumn: "lockVersion",
+});
+
+const reviseDocument = Effect.gen(function* () {
+  const documents = yield* makeDocuments;
+  const original = yield* documents.insert({ name: "Draft" });
+  const saved = yield* documents.update({ ...original, name: "Published" });
+  yield* documents.delete(saved.id, saved.lockVersion);
+});
+```
+
+The application creates the integer version column; no database default is required. `insert` and `insertVoid` initialize it to `0`. The version field must encode and decode numbers without codec services, be required in updates, and differ from the primary key.
+
+`update` and `updateVoid` treat the input's version as the version the caller read. Their SQL statement matches both ID and expected version and increments the stored version by one. `update` returns the decoded model with the new version. `delete(id, expectedVersion)` matches both values before removing the row; it requires the expected version for a versioned repository.
+
+A stale version or missing row fails with `OptimisticConcurrencyError` in the error channel for `update`, `updateVoid` and `delete`. Import it from `@shivaedev/effect-sql/repository.ts`; its fields are `tableName`, `id` and `expectedVersion`. No separate existence check is needed. Two concurrent writers using the same read version produce one successful update and one conflict, and the losing write leaves the winner's data intact.
+
+These writes use SQL `RETURNING`. [PostgreSQL tests](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/src/postgresConcurrency.spec.ts) prove initial versions, returned versions, competing writers, stale and missing-row conflicts, deletion and the void write methods. Repositories without `versionColumn` retain native CRUD signatures and behavior.
 
 ### Transactions and invalidation
 
@@ -187,8 +221,9 @@ Import the module that defines the name; there is no root entry.
 
 | Module | Export | Input or role |
 | --- | --- | --- |
-| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, `idColumn`, `spanPrefix`; requires native `SqlClient`. |
+| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, `idColumn`, `spanPrefix`, optional `versionColumn`; requires native `SqlClient`. |
 | `@shivaedev/effect-sql/repository.ts` | `FindMany` | Query options derived from the model's fields. |
+| `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/effect-sql/transact.ts` | `TransactOptions` | The typed SQL-error mapper. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
@@ -238,7 +273,7 @@ The application's startup runs migrations and keeps its database scope alive for
 
 ### Errors and storage limits
 
-Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. Native `findById` adds `NoSuchElementError` for a missing row, while native `update` defects if it returns no row. Commit failures can also be native defects; `onSqlError` maps the typed error channel, not those defects.
+Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. Native `findById` adds `NoSuchElementError` for a missing row, while unversioned native `update` defects if it returns no row. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. Commit failures can also be native defects; `onSqlError` maps the typed error channel, not those defects.
 
 Map a known constraint at the operation that understands it, after the transaction has rolled back:
 

@@ -1,32 +1,62 @@
-import { Effect, Schema, SchemaIssue } from "effect";
+import { Data, Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/unstable/schema";
 import { SqlClient, SqlModel } from "effect/unstable/sql";
 import type { SqlError } from "effect/unstable/sql/SqlError";
+import { type IdColumn, makeVersionedWrites, type NativeRepository, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
 
-type Key<S extends Model.Any> = Extract<keyof S["fields"] & keyof Row<S>, string>;
-type Row<S extends Model.Any> = Schema.Struct.Type<S["fields"]>;
+export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConcurrencyError")<{
+	readonly tableName: string;
+	readonly id: unknown;
+	readonly expectedVersion: number;
+}> {}
 
-export interface FindMany<S extends Model.Any, K extends Key<S>> {
+type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
+type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
+
+export interface FindMany<TModel extends Model.Any, TKey extends Key<TModel>> {
 	readonly limit?: number;
 	readonly orderBy?: {
-		readonly field: Key<S>;
+		readonly field: Key<TModel>;
 		readonly direction: "asc" | "desc";
 	};
-	readonly select?: readonly [K, ...K[]];
-	readonly where?: { readonly [F in keyof Row<S>]?: Row<S>[F] | undefined };
+	readonly select?: readonly [TKey, ...TKey[]];
+	readonly where?: { readonly [TField in keyof Row<TModel>]?: Row<TModel>[TField] | undefined };
 }
 
 const Limit = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 
-export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] & keyof S["update"]["Type"] & keyof S["fields"]>(
-	model: S,
-	options: {
-		readonly tableName: string;
-		readonly idColumn: Id;
-		readonly spanPrefix: string;
-	},
-) =>
-	Effect.gen(function* () {
+interface RepositoryOptions<TId> {
+	readonly idColumn: TId;
+	readonly spanPrefix: string;
+	readonly tableName: string;
+}
+interface Queries<TModel extends Model.Any> {
+	findMany: <TKey extends Key<TModel> = Key<TModel>>(
+		query?: FindMany<TModel, TKey>,
+	) => Effect.Effect<
+		Pick<Row<TModel>, TKey>[],
+		SqlError | Schema.SchemaError,
+		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
+	>;
+}
+
+export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
+	model: TModel,
+	options: RepositoryOptions<TId> & { readonly versionColumn: VersionColumn<TModel, TId> },
+): Effect.Effect<
+	Omit<NativeRepository<TModel, TId>, keyof VersionedWrites<TModel, TId>> & VersionedWrites<TModel, TId> & Queries<TModel>,
+	never,
+	SqlClient.SqlClient
+>;
+export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
+	model: TModel,
+	options: RepositoryOptions<TId> & { readonly versionColumn?: never },
+): Effect.Effect<NativeRepository<TModel, TId> & Queries<TModel>, never, SqlClient.SqlClient>;
+export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
+	model: TModel,
+	options: RepositoryOptions<TId> & { readonly versionColumn?: string },
+): Effect.Effect<unknown, never, SqlClient.SqlClient> {
+	return Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const crud = yield* SqlModel.makeRepository(model, options);
 		function fieldAt(key: string) {
@@ -41,7 +71,7 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 				(encoded) => (encoded === null ? sql`${sql(key)} is null` : sql`${sql(key)} = ${encoded}`),
 			);
 		}
-		function orderClause(orderBy: FindMany<S, Key<S>>["orderBy"]) {
+		function orderClause(orderBy: FindMany<TModel, Key<TModel>>["orderBy"]) {
 			return orderBy === undefined
 				? Effect.succeed(sql``)
 				: Effect.as(fieldAt(orderBy.field), sql`order by ${sql(orderBy.field)} ${sql.literal(orderBy.direction === "desc" ? "desc" : "asc")}`);
@@ -49,11 +79,15 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 		function limitClause(limit: number | undefined) {
 			return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
 		}
-		function findMany<K extends Key<S> = Key<S>>(
-			query?: FindMany<S, K>,
-		): Effect.Effect<Pick<Row<S>, K>[], SqlError | Schema.SchemaError, S["fields"][Key<S>]["EncodingServices"] | S["fields"][K]["DecodingServices"]>;
+		function findMany<TKey extends Key<TModel> = Key<TModel>>(
+			query?: FindMany<TModel, TKey>,
+		): Effect.Effect<
+			Pick<Row<TModel>, TKey>[],
+			SqlError | Schema.SchemaError,
+			TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
+		>;
 		// Object.fromEntries erases the selected key-to-schema correspondence, so the typed overload restates it.
-		function findMany(query: FindMany<S, Key<S>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
+		function findMany(query: FindMany<TModel, Key<TModel>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
 			return Effect.gen(function* () {
 				const keys = query.select ?? Object.keys(model.fields);
 				const fields = Object.fromEntries(yield* Effect.forEach(keys, (key) => Effect.map(fieldAt(key), (field) => [key, field] as const)));
@@ -68,5 +102,16 @@ export const makeRepository = <S extends Model.Any, Id extends keyof S["Type"] &
 				return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(fields)))(rows);
 			}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
 		}
-		return { ...crud, findMany };
+		return options.versionColumn === undefined
+			? { ...crud, findMany }
+			: {
+					...crud,
+					...makeVersionedWrites(model, sql, {
+						...options,
+						conflict: (id, expectedVersion) => new OptimisticConcurrencyError({ expectedVersion, id, tableName: options.tableName }),
+						versionColumn: options.versionColumn,
+					}),
+					findMany,
+				};
 	});
+}
