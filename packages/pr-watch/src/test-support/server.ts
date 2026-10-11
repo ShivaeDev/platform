@@ -36,20 +36,43 @@ export function pull(number = 1): PullFixture {
 export async function startServer() {
 	const directory = await mkdtemp(join(tmpdir(), "pr-watch-"));
 	const routes = new Map<string, Reply>();
+	const queueEntries = new Map<number, { autoMergeRequest: { enabledAt: string } | null; mergeQueueEntry: { id: string } | null; state: string }>();
 	const requests: {
 		path: string;
+		method: string | undefined;
+		body: unknown;
 		etag: string | undefined;
 		status: number;
 		authorization: string | undefined;
 	}[] = [];
-	const server = createServer((request, response) => {
+	function defaultReply(path: string, body: { variables: { number: number } } | undefined): Reply {
+		if (!path.endsWith("/graphql") || body === undefined) {
+			return { body: {}, status: 404 };
+		}
+		return { body: { data: { repository: { pullRequest: queueEntries.get(body.variables.number) ?? null } } } };
+	}
+	const server = createServer(async (request, response) => {
+		const chunks: Uint8Array[] = [];
+		for await (const chunk of request) {
+			chunks.push(chunk);
+		}
+		const text = Buffer.concat(chunks).toString();
+		const body = text === "" ? undefined : JSON.parse(text);
 		const path = request.url ?? "";
-		const reply = routes.get(path) ?? { body: {}, status: 404 };
+		const route = path === "/api/graphql" ? "/graphql" : path.replace(/^\/api\/v3/u, "");
+		const reply = routes.get(route) ?? defaultReply(path, body);
 		const etag = `"${JSON.stringify([reply.body, reply.headers?.link])
 			.replaceAll('"', "")
 			.replaceAll(/[^\x20-\x7e]/gu, "")}"`;
 		const status = reply.status ?? (request.headers["if-none-match"] === etag ? 304 : 200);
-		requests.push({ authorization: request.headers.authorization, etag: request.headers["if-none-match"], path, status });
+		requests.push({
+			authorization: request.headers.authorization,
+			body,
+			etag: request.headers["if-none-match"],
+			method: request.method,
+			path,
+			status,
+		});
 		response.writeHead(status, { "content-type": "application/json", etag, ...reply.headers });
 		response.end(status === 304 ? undefined : JSON.stringify(reply.body));
 	});
@@ -73,7 +96,13 @@ export async function startServer() {
 		return routes.set(`/repos/acme/project${path}`, reply);
 	}
 	function setPull(number: number, changes: Partial<ReturnType<typeof pull>> = {}) {
-		set(`/pulls/${number}`, { body: { ...pull(number), ...changes } });
+		const pr = { ...pull(number), ...changes };
+		set(`/pulls/${number}`, { body: pr });
+		queueEntries.set(number, {
+			autoMergeRequest: pr.auto_merge === null ? null : { enabledAt: "2026-01-01T00:00:00Z" },
+			mergeQueueEntry: null,
+			state: pr.merged ? "MERGED" : pr.state.toUpperCase(),
+		});
 		set(`/commits/sha${number}/check-runs?per_page=100&filter=latest`, { body: { "check_runs": [] } });
 		set(`/commits/sha${number}/status`, { body: { state: "success" } });
 	}
@@ -89,6 +118,13 @@ export async function startServer() {
 		options,
 		requests,
 		set,
+		setGraphql: (reply: Reply) => routes.set("/graphql", reply),
 		setPull,
+		setQueue: (number: number, autoMerge: boolean, queued: boolean) =>
+			queueEntries.set(number, {
+				autoMergeRequest: autoMerge ? { enabledAt: "2026-01-01T00:00:00Z" } : null,
+				mergeQueueEntry: queued ? { id: `entry-${number}` } : null,
+				state: "OPEN",
+			}),
 	};
 }

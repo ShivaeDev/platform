@@ -16,7 +16,7 @@ for (const threadNamePrefix of [undefined, "Automation: "]) {
 				const sessions = yield* SessionService;
 				expect(yield* sessions.start(input)).toEqual(receipt);
 				expect(requests.find((request) => request.method === "thread/name/set")?.params).toEqual({
-					name: `${threadNamePrefix ?? "Fleet: "}${receipt.sessionId}`,
+					name: `${threadNamePrefix ?? "Fleet: "}synthetic-work: Synthetic work`,
 					threadId: receipt.sessionId,
 				});
 				expect(persisted).toEqual([receipt.sessionId, "name requested"]);

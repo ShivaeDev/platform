@@ -6,7 +6,8 @@ import { validateReceipt } from "#session/validateReceipt.ts";
 export class SessionTransport extends Context.Service<
 	SessionTransport,
 	{
-		readonly nameSession?: (sessionId: string) => Effect.Effect<void, SessionFailure>;
+		readonly nameSession?: (sessionId: string, name: string) => Effect.Effect<void, SessionFailure>;
+		readonly readSessionName?: (sessionId: string) => Effect.Effect<string | undefined, SessionFailure>;
 		readonly archive?: (sessionId: string) => Effect.Effect<void, SessionFailure>;
 		readonly startSession: (input: StartSession) => Effect.Effect<string, SessionFailure>;
 		readonly startTurn: (input: ContinueSession) => Effect.Effect<SessionReceipt, SessionFailure>;
@@ -19,6 +20,7 @@ export class SessionTransport extends Context.Service<
 export class SessionJournal extends Context.Service<
 	SessionJournal,
 	{
+		readonly sessionName?: (operationId: string) => Effect.Effect<string, SessionFailure>;
 		readonly acknowledgeSession: (operationId: string, sessionId: string) => Effect.Effect<void, SessionFailure>;
 		readonly acknowledgeTurn: (operationId: string, receipt: SessionReceipt) => Effect.Effect<void, SessionFailure>;
 	}
@@ -62,7 +64,12 @@ export const SessionService = defineService({
 				Effect.gen(function* () {
 					const sessionId = yield* restore(transport.startSession(input));
 					yield* journal.acknowledgeSession(input.operationId, sessionId);
-					yield* restore(transport.nameSession?.(sessionId) ?? Effect.void).pipe(
+					const name = transport.nameSession;
+					yield* restore(
+						name === undefined || journal.sessionName === undefined
+							? Effect.void
+							: journal.sessionName(input.operationId).pipe(Effect.flatMap((title) => name(sessionId, title))),
+					).pipe(
 						Effect.catch((cause) =>
 							Effect.logWarning("Fleet session naming failed; starting the turn", Cause.fail(cause)).pipe(Effect.annotateLogs({ sessionId })),
 						),

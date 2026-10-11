@@ -4,10 +4,12 @@ import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
+import type { FleetRecord } from "#model.ts";
+import type { Versioned } from "#storage/model.ts";
 
-const dispatchPrepared = Effect.gen(function* () {
+const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
 	const fleet = yield* Fleet;
-	const prepared = (yield* fleet.list())
+	const prepared = records
 		.filter(({ value }) => value.stage === "prepared")
 		.sort((left, right) => (right.value.launchRetry?.retryAt ?? 0) - (left.value.launchRetry?.retryAt ?? 0));
 	const dispatched: Result.Result<Effect.Success<ReturnType<typeof fleet.dispatch>>, Effect.Error<ReturnType<typeof fleet.dispatch>>>[] = [];
@@ -20,26 +22,35 @@ const dispatchPrepared = Effect.gen(function* () {
 	}
 	return dispatched;
 });
-const activeWork = Effect.gen(function* () {
-	const fleet = yield* Fleet;
-	return (yield* fleet.list()).filter(
+
+function activeRecords(records: readonly Versioned<FleetRecord>[]) {
+	return records.filter(
 		({ value }) =>
 			!["completed", "released", "prepared"].includes(value.stage)
 			|| pendingAcknowledgements(value).length > 0
 			|| pendingSessionCleanup(value).length > 0,
 	);
+}
+
+const dispatchPrepared = Effect.gen(function* () {
+	const fleet = yield* Fleet;
+	return yield* dispatchRecords(yield* fleet.list());
+});
+const activeWork = Effect.gen(function* () {
+	const fleet = yield* Fleet;
+	return activeRecords(yield* fleet.list());
 });
 export const cycle = inBoardReadPass(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
+		const records = yield* fleet.list();
+		const active = activeRecords(records).filter(({ value }) => value.stage !== "prepared");
 		const result = yield* Effect.all(
 			{
-				dispatched: dispatchPrepared,
-				reconciled: activeWork.pipe(
-					Effect.flatMap((active) =>
-						Effect.forEach(active, ({ value }) => fleet.reconcile(value.workId).pipe(Effect.result), { concurrency: "unbounded" }),
-					),
-				),
+				dispatched: dispatchRecords(records),
+				reconciled: Effect.forEach(active, ({ value }) => fleet.reconcile(value.workId).pipe(Effect.result), {
+					concurrency: "unbounded",
+				}),
 			},
 			{ concurrency: "unbounded" },
 		);

@@ -8,7 +8,11 @@ export interface CodexLogin {
 	readonly authFile?: string | undefined;
 	readonly refreshCommand?: { readonly command: string; readonly args: readonly string[] } | undefined;
 }
-const AuthFile = Schema.Struct({ tokens: Schema.Struct({ accessToken: Schema.String }).pipe(Schema.encodeKeys({ accessToken: "access_token" })) });
+const AuthFile = Schema.Struct({
+	tokens: Schema.Struct({ accessToken: Schema.String, accountId: Schema.optional(Schema.NullOr(Schema.String)) }).pipe(
+		Schema.encodeKeys({ accessToken: "access_token", accountId: "account_id" }),
+	),
+});
 const Claims = Schema.Struct({ exp: Schema.Finite });
 const RefreshReply = Schema.Struct({ error: Schema.optional(Schema.Unknown), id: Schema.Literal(2) });
 // A token that expires within this window could lapse during the handshake.
@@ -38,7 +42,7 @@ const readToken = Effect.fn("CodexLogin.readToken")(function* (authFile: string)
 		try: () => Buffer.from(auth.tokens.accessToken.split(".")[1] ?? "", "base64url").toString("utf8"),
 	});
 	const claims = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Claims))(payload).pipe(Effect.mapError(unreadable));
-	return { expiresAt: claims.exp * 1000, token: Redacted.make(auth.tokens.accessToken) };
+	return { accountId: auth.tokens.accountId ?? undefined, expiresAt: claims.exp * 1000, token: Redacted.make(auth.tokens.accessToken) };
 });
 // The Codex CLI owns the login file and its refresh-token rotation; Fleet only asks it to refresh.
 const refreshLogin = Effect.fn("CodexLogin.refreshLogin")(function* (command: NonNullable<CodexLogin["refreshCommand"]>) {
@@ -60,11 +64,11 @@ const refreshLogin = Effect.fn("CodexLogin.refreshLogin")(function* (command: No
 		return yield* Effect.fail(failure("unavailable", "Codex CLI could not refresh the login; sign in with the Codex CLI"));
 	}
 });
-export const codexAccessToken = Effect.fn("CodexLogin.codexAccessToken")(function* (login: CodexLogin, timeoutMs: number) {
+export const codexCredentials = Effect.fn("CodexLogin.codexCredentials")(function* (login: CodexLogin, timeoutMs: number) {
 	const authFile = yield* authFilePath(login);
 	const current = yield* readToken(authFile);
 	if (current.expiresAt - EXPIRY_SKEW_MS > (yield* Clock.currentTimeMillis)) {
-		return current.token;
+		return current;
 	}
 	yield* refreshLogin(login.refreshCommand ?? { args: ["app-server", "--listen", "stdio://"], command: "codex" }).pipe(
 		Effect.timeout(`${timeoutMs} millis`),
@@ -74,5 +78,9 @@ export const codexAccessToken = Effect.fn("CodexLogin.codexAccessToken")(functio
 	if (refreshed.expiresAt - EXPIRY_SKEW_MS <= (yield* Clock.currentTimeMillis)) {
 		return yield* Effect.fail(failure("unavailable", "Codex login is expired; sign in with the Codex CLI"));
 	}
-	return refreshed.token;
+	return refreshed;
 });
+
+export const codexAccessToken = Effect.fn("CodexLogin.codexAccessToken")((login: CodexLogin, timeoutMs: number) =>
+	codexCredentials(login, timeoutMs).pipe(Effect.map((credentials) => credentials.token)),
+);

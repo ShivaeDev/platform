@@ -76,6 +76,7 @@ The launch fields are strings. Omitted fields inherit the host settings; without
 | `work-fleet status <work-id> --board <board-dir> --json` | Filters to one item and prints the views as JSON. |
 | `work-fleet wait <work-id> --board <board-dir> --timeout <seconds>` | Polls stored state until an outcome or timeout. |
 | `work-fleet watch [work-ids...] --board <board-dir>` | Follows several items in one process and reports each outcome once. |
+| `work-fleet name-threads --board <board-dir>` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
 
 Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `run` active to reconcile worker progress; `wait` only observes PostgreSQL. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
 
@@ -117,7 +118,7 @@ Record a nonempty answer through Board's response page or response API. Reconcil
 
 ### Return a research report
 
-Declare `fleet-deliverable: report` on an approved task to request read-only research. Report worker prompts forbid changes, commits, pushes, branches and PRs, and ask for the whole report in the final message. Omit the field to keep the PR workflow.
+Declare `fleet-deliverable: report` on an approved task to request research. Report workers leave repository sources unchanged and return the whole report in the final message. They may create new uncommitted attachment files such as screenshots, but must never commit, push, create branches or open PRs. Omit the field to keep the PR workflow.
 
 ```markdown
 ---
@@ -131,13 +132,19 @@ fleet-deliverable: report
 
 After a completed worker turn, Fleet publishes an ordinary `kind: result` item under `responses/fleet-report.<digest>.md`, with an `informs` relationship to the task. The result preserves the whole final output and records the exact session, turn and task revision in its worker receipt. The Markdown gateway uses Board's durable publisher; custom gateways implement `BoardGateway.report` with the same immutable, idempotent boundary. A publication retry reuses the same identity and bytes, including after a lost acknowledgement.
 
+The CLI host downloads new regular files from the completed Cloud task's backend diff into `responses/fleet-report.<digest>.attachments/` beside the result, with links in the report. Text and Git binary patches are supported; edits to existing files, symlinks, unsafe paths, unavailable downloads or mismatched turns need a human. Existing attachment bytes are never replaced. Markdown attachments receive a `.attachment` suffix so Board does not index them as authored items. Collection accepts exactly one mode line per section, for a new `100644` or `100755` file. After applying the diff in a temporary folder, it checks each attachment with `lstat`, checks its resolved path stays inside that folder and opens it without following a symlink. Diff text is limited to 8 MiB, the streamed task response to 16 MiB, attachment count to 64 and total attachment bytes to 32 MiB. Exceeding a limit needs a human with the limit named, before any report or attachment is written to Board. Collection never stages, commits or publishes the diff.
+
+After a terminal report turn, the host checks the configured GitHub remote for the exact `<branchPrefix><workId>` ref and all PRs opened from that branch, including closed PRs. A published branch or PR makes the work Needs human with the reason `Report worker published to GitHub`; Fleet never deletes the branch. Unavailable remote evidence also blocks completion. The host rechecks before result publication on retry. Custom headless runtimes provide their report inspection and collection boundaries; the Markdown gateway alone publishes report text.
+
 Successful publication records the report in the current Board read pass and completes the Fleet attempt without PR adoption, independent review, checks or delivery. Empty or whitespace-only output, or a complete report document over Board’s 256 KiB UTF-8 context limit, creates a human decision with a concrete reason instead of a result. The size check includes metadata and the worker receipt. `wait` and the status views expose the same terminal states and result path. A retry after a publication failure republishes the existing completed attempt; a retry after empty output prepares another worker attempt. Oversized output remains blocked until a human resolves it; scheduler passes do not repeat publication. `src/board/publishReport.test.ts` and `src/host/reportSize.spec.ts` cover the size boundary, immediate visibility and durable human decision. These prompts direct worker behavior; runtime policy still owns execution authority.
 
 ### Cloud provider
 
 The hosted Codex transport sends the configured environment and launch fields, then reads the final answer from a terminal turn. It authenticates from a Codex login file and can run a configured refresh command for an expired login. Failed refresh remains unavailable. These boundaries are tested with a synthetic WebSocket backend in `src/providers/codexCloud.test.ts`.
 
-Cloud host configuration accepts `cloud.threadNamePrefix` (default `Fleet: `), `cloud.projectId` for an existing project, and `cloud.archiveThreads` (default `true`). Names combine the prefix with the provider thread ID. Fleet persists the session acknowledgement before naming it. Naming is best-effort: a rejected or failed request logs a warning with the session ID and cause, then Fleet starts the turn. Project assignment is sent with `thread/start`.
+Cloud host configuration accepts `cloud.threadNamePrefix` (default `Fleet: `), `cloud.projectId` for an existing project, and `cloud.archiveThreads` (default `true`). Names use `<prefix><work-id>: <title>` from the prepared Board context's first heading. Titles have normalized whitespace and at most 80 Unicode characters, with an ellipsis when trimmed; a missing heading falls back to the work ID. Separate reviewer and repair threads add `(review)` or `(repair)` after the work ID. A repair that continues the worker thread retains its name. The Fleet session journal resolves names from persisted operation intents, so review integrations that start through the same session service receive reviewer names automatically.
+
+Fleet persists the session acknowledgement before naming it. Naming is best-effort: a rejected or failed request logs a warning with the session ID and cause, then Fleet starts the turn. Project assignment is sent with `thread/start`. `work-fleet name-threads` reads all stored Fleet records, including archived cycles and acknowledged sessions without turns, and renames threads whose current names differ from their Fleet names. It reports each rename to stdout and each read or rename failure to stderr, then continues other sessions. Shared threads are visited once and retain their original role and context. Repeating the command skips successful names and retries failures. `src/engine/threadNames.test.ts`, `src/providers/cloudMetadataFlow.spec.ts` and `src/host/cloudThreadNamesFlow.spec.ts` cover formatting, startup ordering, best-effort failures and backfill idempotence with real PostgreSQL and a synthetic Cloud backend.
 
 Restart the host with the same SQL namespace. An attempt intent commits before `thread/start`, its session acknowledgement commits before `turn/start`, and its turn acknowledgement commits before observation. SIGKILL tests against real PostgreSQL and a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. These tests prove host persistence and Cloud adapter wire behavior; they do not prove live hosted execution.
 
@@ -148,6 +155,14 @@ Fleet cleans up worker, repair and reviewer threads after accepted completion or
 The adapter sends `thread/archive` and `thread/name/set`; grouping uses `thread/start.projectId`. The generated experimental app-server protocol also declares `thread/metadata/update.projectId` and `thread/list.projectId`, but Fleet does not call those methods. PostgreSQL regressions prove the cleanup lifecycle, and a synthetic WebSocket backend verifies the host configuration and wire requests. These fixtures do not prove hosted acceptance or removal from the ChatGPT and Codex sidebars.
 
 Cloud worker instructions include startup waiting, the configured environment script, fetching current main, repository checks and one pull request for human review. Workers watch CI after every push, repair failures on the same branch, merge current main when behind and state the exact head's CI result before the marker line. They ask for a final `FLEET_PR: <url>` or `FLEET_PR: none` line. The parser reads the last marker line; missing or malformed reports yield no result. `src/prompt/worker.test.ts` covers the instructions and parser. A report line is not proof of an adopted result or accepted delivery.
+
+### Adopt a worker result
+
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
+
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet retains that head and the report as evidence, and passes the result through independent review and required checks. Main movement does not invalidate the report; a changed task revision prevents adoption. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
+
+`src/host/githubResult.test.ts`, `src/host/githubResultFailures.spec.ts` and `src/engine/resultAdoption.spec.ts` cover these adoption boundaries.
 
 ### Independent review
 

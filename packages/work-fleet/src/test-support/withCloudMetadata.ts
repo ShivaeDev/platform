@@ -47,6 +47,7 @@ export function withCloudMetadata<A, E>(
 						persisted.push(sessionId);
 					}),
 				acknowledgeTurn: () => Effect.void,
+				sessionName: () => Effect.succeed("synthetic-work: Synthetic work"),
 			});
 			return yield* use(requests, persisted).pipe(Effect.provide(SessionService.layer.pipe(Layer.provide([provider, journal]))));
 		}),
