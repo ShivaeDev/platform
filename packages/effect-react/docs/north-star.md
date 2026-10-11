@@ -13,6 +13,7 @@ React components read state in the words they render: data, failure, pending and
 Good client state has these properties:
 
 - Useful data can stay on screen during refresh and after a refresh failure. Showing retained data does not hide the failed result.
+- Query identity changes reset displayed data by default. Applications can opt into `keepPreviousData` for payload transitions; displayed data still clears when the registry owner changes.
 - A draft belongs to one query identity and one session generation. Changing either must not transfer edits into a different record or person's screen.
 - A refresh, a normalized save result and a create reset respect edits made after the operation began. Untouched fields can adopt new server values without replacing newer input.
 - Failure types reach the component. A field rejection names its field; another failure remains available for application-owned wording.
