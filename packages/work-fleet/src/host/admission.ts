@@ -68,6 +68,9 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	record: FleetRecord | undefined,
 	approval: Approval,
 ) {
+	if (record?.stage === "prepared" && record.launchRetry !== undefined) {
+		return;
+	}
 	const fleet = yield* Fleet;
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
