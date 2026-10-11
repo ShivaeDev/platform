@@ -6,12 +6,14 @@ import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { promisify } from "node:util";
 import { Effect, Layer } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
+import { NodeFileSystem } from "@effect/platform-node";
 import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
 import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";
 import { StateFile } from "@shivaedev/pr-watch/StateFile.ts";
 import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
 
-const layer = Watcher.layer.pipe(Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))));
+const layer = Watcher.layer.pipe(Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))), Layer.provide(Layer.mergeAll(NodeFileSystem.layer, FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }))))));
 assert.equal(await Effect.runPromise(Effect.map(Watcher, (watcher) => typeof watcher.poll).pipe(Effect.provide(layer))), "function");
 const directory = await mkdtemp(join(tmpdir(), "pr-watch-consumer-"));
 let closed = false;

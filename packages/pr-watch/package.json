@@ -54,6 +54,8 @@
 		"@shivaedev/effect-service": "workspace:*"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
@@ -64,6 +66,8 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"effect": "catalog:"
 	},
 	"engines": {
