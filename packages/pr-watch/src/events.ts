@@ -6,8 +6,9 @@ function stuck(pr: Snapshot): boolean {
 function openEvents(before: Snapshot, after: Snapshot): readonly string[] {
 	const transitions: readonly (readonly [boolean, string])[] = [
 		[!before.dirty && after.dirty, "conflict"],
+		[!before.queued && after.queued, "queued"],
 		[before.queued && !after.queued, "dequeued"],
-		[before.autoMerge && !after.autoMerge, "auto-merge-off"],
+		[(before.autoMerge || before.queued) && !after.autoMerge && !after.queued, "auto-merge-off"],
 		[!before.failed && after.failed, "checks-failed"],
 		[!stuck(before) && stuck(after), "stuck"],
 	];
@@ -17,7 +18,7 @@ export function events(before: Snapshot | undefined, after: Snapshot): readonly 
 	if (before === undefined && !stuck(after)) {
 		return [];
 	}
-	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false, queued: false };
+	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false };
 	const found: string[] = [];
 	if (!baseline.merged && after.merged) {
 		found.push("merged");
