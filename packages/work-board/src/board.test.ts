@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
@@ -30,15 +31,15 @@ describe("embedding", () => {
 	});
 
 	it("serves the React bundle and theme beside the native client without changing the page", async () => {
-		for (const [path, type, content] of [
-			["react.js", "javascript", "data-board-react-root"],
-			["react.css", "text/css", "--background:"],
-			["native.js", "javascript", "work-board.subscribe"],
+		for (const [path, type] of [
+			["react.js", "javascript"],
+			["react.css", "text/css"],
+			["native.js", "javascript"],
 		]) {
 			const response = await board.handler(new Request(`http://localhost/_board/${path}`, { headers: { host: "localhost" } }));
 			expect(response.status).toBe(200);
 			expect(response.headers.get("content-type")).toContain(type);
-			expect(await response.text()).toContain(content);
+			expect(await response.text()).toBe(readFileSync(new URL(`../assets/${path}`, import.meta.url), "utf8"));
 		}
 		const page = await board.handler(new Request("http://localhost/", { headers: { host: "localhost" } }));
 		const html = await page.text();
