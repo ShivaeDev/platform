@@ -62,7 +62,7 @@ function applyChange(state: Replay, change: Change, name: string | undefined, ta
 function replayChange(state: Replay, change: Change) {
 	const name = attachmentName(change.path);
 	const moved = change.kind.type === "update" ? change.kind.movePath : undefined;
-	const target = moved == null ? name : attachmentName(moved);
+	const target = moved === null || moved === undefined ? name : attachmentName(moved);
 	if (name === undefined && target === undefined) {
 		return;
 	}
