@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
-import type { Form } from "@shivaedev/effect-form/shape.ts";
+import type { FieldFailure, Form } from "@shivaedev/effect-form/shape.ts";
 import { useField, useSubmit } from "@shivaedev/effect-form/react.ts";
 const schema = Schema.Struct({ count: Schema.NumberFromString });
 const form = make(schema, {
@@ -33,3 +33,38 @@ function Consumer() {
   return null;
 }
 void Consumer;
+
+function failureField(failure: FieldFailure): string {
+  return failure.path;
+}
+void failureField;
+
+make(Schema.Struct({ answers: Schema.Array(Schema.Struct({ count: Schema.NumberFromString, id: Schema.String })) }), {
+  arrayKeys: {
+    answers: (answer) => {
+      const count: string = answer.count;
+      void count;
+      // @ts-expect-error Key selectors receive encoded array elements.
+      const decoded: number = answer.count;
+      void decoded;
+      return answer.id;
+    },
+  },
+  initialValues: { answers: [] },
+  onSubmit: (_values, submitter) => {
+    // @ts-expect-error Rejection paths must begin with a schema field.
+    submitter.fail(["missing", 0], "Rejected");
+    return submitter.fail(["answers", 0, "count"], "Rejected");
+  },
+  runtime: Atom.runtime(Layer.empty),
+});
+
+make(schema, {
+  arrayKeys: {
+    // @ts-expect-error A scalar field cannot have an array key selector.
+    count: () => "key",
+  },
+  initialValues: { count: "1" },
+  onSubmit: Effect.succeed,
+  runtime: Atom.runtime(Layer.empty),
+});
