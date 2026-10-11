@@ -23,12 +23,16 @@ const REPORT_INSTRUCTIONS = [
 ].join("\n");
 
 // Codex Cloud cannot run startup steps; without this block workers spend minutes probing a provisioning sandbox.
-export function cloudStartup({ sharedEnvironment }: CloudStartup) {
+export function cloudStartup({ sharedEnvironment }: CloudStartup, access?: "read-only") {
 	return [
 		"Cloud startup:",
 		"- Your workspace may still be provisioning when this message arrives. If the cloud-environment runtime skill offers wait_for_environment, call it and wait calmly until the environment is ready; this usually takes about 90 seconds. Do not explore the snapshot or retry commands while waiting. Your instructions below stay valid.",
 		`- Source ${sharedEnvironment} at the start of EVERY independent shell command when it exists. The pinned Node, pnpm and Bun, the proxy, CA trust, caches and database settings come from it.`,
-		"- Request escalation (require_escalated) from the FIRST network-dependent command, such as git fetch or dependency installation, instead of waiting for it to fail.",
+		...(access === "read-only"
+			? []
+			: [
+					"- Request escalation (require_escalated) from the FIRST network-dependent command, such as git fetch or dependency installation, instead of waiting for it to fail.",
+				]),
 	].join("\n");
 }
 

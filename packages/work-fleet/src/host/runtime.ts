@@ -8,6 +8,7 @@ import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { MainSource } from "#host/mainSource.ts";
+import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
 import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -28,9 +29,7 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),
-			reconcileReview: () => unconfigured("Review reconciliation"),
 			result: () => unconfigured("Worker result adoption"),
-			review: () => unconfigured("Independent review"),
 		});
 	}),
 );
@@ -50,6 +49,7 @@ export function hostPolicy(host: FleetHost) {
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
 				refreshQuota: hostQuota(host, now),
+				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
 			});
 		}),
 	);
@@ -70,7 +70,9 @@ export function fleetHostLayer<TProvider, TMain>(
 	},
 ) {
 	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provide(hostSql(host)));
-	const sessions = SessionService.layer.pipe(Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), parts.provider]));
+	const sessions = SessionService.layer.pipe(
+		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
+	);
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(

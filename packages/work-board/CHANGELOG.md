@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add a sidebar Diagnostics view with live native reads of Codex app-server usage windows, one-minute shared GitHub REST/GraphQL limit reads, and optional versioned Fleet health snapshots. Each source reports missing configuration and failures independently; Fleet freshness, concurrency, queues, human blockers and scheduler/capacity observations remain visible.
+
 - Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
 
 ### Fixed

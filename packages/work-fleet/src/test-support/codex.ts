@@ -58,7 +58,9 @@ function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
 	if (message.id === undefined || result === undefined) {
 		return undefined;
 	}
-	return result instanceof WireRejection ? { error: { code: -32_602, message: result.message }, id: message.id } : { id: message.id, result };
+	return result instanceof WireRejection
+		? { error: { code: -32_602, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
+		: { id: message.id, result };
 }
 function offeredProtocols(header: string | undefined) {
 	return (header ?? "")
@@ -68,8 +70,10 @@ function offeredProtocols(header: string | undefined) {
 }
 export class WireRejection {
 	readonly message: string;
-	constructor(message: string) {
+	readonly data: unknown;
+	constructor(message: string, data?: unknown) {
 		this.message = message;
+		this.data = data;
 	}
 }
 export interface Handshake {
