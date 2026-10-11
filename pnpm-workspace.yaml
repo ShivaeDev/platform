@@ -79,7 +79,11 @@ trustPolicy: no-downgrade
 # releases carry. Remove this once an attested Prisma release ships.
 trustPolicyExclude:
   - prisma@7.10.0
-trustLockfile: false
+# Re-verifying every lockfile entry costs pnpm about 1 GB more memory, which
+# pushes Renovate's lockfile updates past the 3 GB of the Mend-hosted runner.
+# Newly resolved versions are still verified; CI and publish re-verify every
+# entry with `--trust-lockfile=false`.
+trustLockfile: true
 blockExoticSubdeps: true
 strictDepBuilds: true
 allowBuilds:
