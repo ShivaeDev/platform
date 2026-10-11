@@ -20,5 +20,12 @@ export const fullIndex = Effect.fn("Test.fullIndex")(function* (root: string, ho
 		}
 	}
 	const model = metadataModel(documents, unavailable, home ?? files[0]?.path);
-	return { documents, entries: metadataEntries(entries, documents, model), model, revision: 0, unavailable };
+	return {
+		documents,
+		entries: metadataEntries(entries, documents, model),
+		model,
+		modified: new Map(files.map((file) => [file.path, file.modified])),
+		revision: 0,
+		unavailable,
+	};
 });

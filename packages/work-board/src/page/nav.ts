@@ -26,7 +26,7 @@ function branch(path: string): Folder {
 	return { active: false, count: 0, files: [], folders: new Map(), path };
 }
 
-function contents(folder: Folder, current: string): string {
+function contents(folder: Folder, current: string, count?: string): string {
 	const files = folder.files.map((file) => `<li>${link(file, current)}</li>`).join("");
 	const folders = [...folder.folders]
 		.sort(([left], [right]) => left.localeCompare(right))
@@ -35,10 +35,10 @@ function contents(folder: Folder, current: string): string {
 			return `<li class="file-folder"><details data-key="folder:${escapeHtml(child.path)}"${open}><summary>${escapeHtml(name)}/ (${child.count})</summary>${contents(child, current)}</details></li>`;
 		})
 		.join("");
-	return `<ul>${files}${folders}</ul>`;
+	return `<ul${count === undefined ? "" : ` data-inbox-count="${count}"`}>${files}${folders}</ul>`;
 }
 
-function fileTree(files: readonly MarkdownFile[], current: string, home: string | undefined): string {
+function fileTree(files: readonly MarkdownFile[], current: string, home: string | undefined, count: string): string {
 	const root = branch("");
 	const ordered = [
 		...files.filter((file) => file.path === home),
@@ -59,7 +59,7 @@ function fileTree(files: readonly MarkdownFile[], current: string, home: string 
 		}
 		parent.files.push(file);
 	}
-	return contents(root, current);
+	return contents(root, current, count);
 }
 
 function fleetGroup(records: readonly MarkdownFile[], current: string): string {
@@ -74,7 +74,7 @@ export function navHtml(files: readonly MarkdownFile[], current: string, home: s
 	const records = files.filter((file) => generated.has(file.path));
 	const visible = files.filter((file) => !generated.has(file.path));
 	const count = inboxCount(snapshot);
-	return `<a id="inbox-open" class="inbox-link" href="/_board/inbox">Inbox <span id="inbox-count" class="inbox-count" aria-label="${count} waiting">${count}</span></a>${fileTree(visible, current, home)}${fleetGroup(records, current)}`;
+	return `${fileTree(visible, current, home, count)}${fleetGroup(records, current)}`;
 }
 
 export function inboxCount(snapshot?: Snapshot): string {

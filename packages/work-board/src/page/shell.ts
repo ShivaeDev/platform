@@ -29,6 +29,7 @@ export function shell(
 		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
 		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar"><a class="brand" href="/">work board<span>Local workspace</span></a>',
+		`<a id="inbox-open" class="inbox-link" href="/_board/inbox"${view === "inbox" ? ' aria-current="page"' : ""}>Inbox <span id="inbox-count" class="inbox-count" aria-label="${inboxCount(snapshot)} waiting">${inboxCount(snapshot)}</span></a>`,
 		`<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a><h2 class="nav-heading">Project files</h2>`,
 		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
 		'<div class="page"><header class="bar"><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true">Files</button>',
