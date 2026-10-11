@@ -3,7 +3,7 @@ import { Cause, type Context, Effect, Exit, Layer, Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import * as TestConsole from "effect/testing/TestConsole";
 import { type AnyTestLayer, buildTestLayer } from "./any-test-layer.ts";
-import type { EffectClock, EffectTest, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
+import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
 
 const fixtureName = "__effectTestContext";
 
@@ -79,13 +79,11 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 	const fixtureIt = makeFixtureIt(options.layer);
 	const defaultClock = options.clock ?? "test";
 
-	function run<A>(
-		body: (harness: THarness, context: TestContext) => Generator<Effect.Effect<unknown, unknown, Provided | Scope.Scope>, A, never>,
-		context: EffectFixture<Provided>,
-	): Effect.Effect<A, unknown, Scope.Scope> {
+	function run<A>(body: EffectTestBody<THarness, Provided, A>, context: EffectFixture<Provided>): Effect.Effect<A, unknown, Scope.Scope> {
 		const ready: Effect.Effect<A, unknown, Provided | Scope.Scope> = Effect.gen(function* () {
 			const harness = yield* options.makeHarness(context);
-			return yield* Effect.gen(() => body(harness, context));
+			const result = body(harness, context);
+			return yield* Effect.isEffect(result) ? result : Effect.gen(() => result);
 		});
 		const wrapped = options.around?.(ready) ?? ready;
 		return wrapped.pipe(Effect.provide(context[fixtureName]));
@@ -116,7 +114,7 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 			<TItem>(cases: readonly TItem[]) =>
 			<A, TEff extends Effect.Effect<unknown, unknown, Provided | Scope.Scope>>(
 				name: string,
-				body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
+				body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never> | Effect.Effect<A, unknown, Provided | Scope.Scope>,
 				testOptions?: number | EffectTestOptions,
 			) => {
 				const split = splitOptions(testOptions);

@@ -198,7 +198,7 @@ Choose where the project keeps its readable source.
 
 `options` is optional and accepts up to 32 entries with unique nonblank labels and descriptions. `recommended` names an option label. The item page presents buttons, marks the recommendation without selecting it, and accepts another answer as free text. Omit `options` for a text-only question. Use frontmatter options or a Markdown question packet on a question, rather than both.
 
-Start with `--responses` to enable saving. Preview and record the answer on the item page with a local author label. The browser remembers that label for the workspace. Author, response kind and superseding controls sit in a collapsed details section; option questions show a choice and one answer box by default. Closed questions and invalid options keep recorded answers readable, with a clear message when another answer is unavailable. The existing publisher captures the reviewed source as a `kind: question` record in `responses/`, then writes a `kind: response` that links to that capture. Its `question.item` links back to the authored question. An `answer` removes the authored question from the Inbox for those exact source bytes and path; clarification and deferral keep it waiting. An edited question needs another answer. The original source file stays unchanged, and the answer does not establish acceptance or start an agent.
+Start with `--responses` to enable saving. Preview and record the answer on the item page with a local author label. The browser remembers that label for the workspace. The required author label stays visible; response kind and superseding controls sit in a collapsed details section; option questions show a choice and one answer box by default. Closed questions and invalid options keep recorded answers readable, with a clear message when another answer is unavailable. The existing publisher captures the reviewed source as a `kind: question` record in `responses/`, then writes a `kind: response` that links to that capture. Its `question.item` links back to the authored question. An `answer` removes the authored question from the Inbox for those exact source bytes and path; clarification and deferral keep it waiting. An edited question needs another answer. The original source file stays unchanged, and the answer does not establish acceptance or start an agent.
 
 #### Record a human response
 
@@ -206,7 +206,7 @@ Start with `--responses` to enable saving. Preview and record the answer on the 
 work-board ./project-notes --responses
 ```
 
-Explicit opt-in enables writes. Open question packets offer **Answer these questions** beside each question, leading to the response form. Static options are reading text. For other requests, open the request in **Work details and source**, choose **Respond to this request**, inspect the exact source and reviewed SHA-256, enter a local author label, then preview and record the Markdown. **Answer** may say no; **Ask back / clarify** and **Not now** are separate reply kinds. Author labels provide local attribution, not authentication.
+Explicit opt-in enables writes. Open question packets offer **Answer these questions** once per packet, leading to the response form. Static options are reading text. For other requests, open the request in **Work details and source**, choose **Respond to this request**, inspect the exact source and reviewed SHA-256, enter a local author label, then preview and record the Markdown. **Answer** may say no; **Ask back / clarify** and **Not now** are separate reply kinds. Author labels provide local attribution, not authentication.
 
 Registration captures one question generation in `responses/`; submission creates an independent response file there. Original source bytes stay unchanged. Source edits or moves require a fresh review/preview; historical replies still identify the old context. Same-identity/content retries reconcile, conflicting contributions are rejected, and uncertain publication is reported explicitly.
 
@@ -294,12 +294,13 @@ Import the module that defines a name. The package has no root entry; its manife
 | `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
-| `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
+| `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
 | `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
 | `browser/navigation/schema.ts` | `Navigation`, `NavigationFolder`, `NavigationFile`: native navigation result schemas/types |
-| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
+| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
+| `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
 | `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
@@ -456,11 +457,11 @@ export async function readReturnedResult(url: string, item: string) {
 
 Pass a uniquely identified result, such as `result.keyboard`. Its declared review request still uses `responses.question`, `registerQuestion` and `recordResponse`, or the normal browser response controls; there is no separate acceptance writer.
 
-`ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`, `Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication may already have produced a file; inspect the saved identity/content before retrying.
+RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `NotFound` for missing context, `PreconditionFailed` for stale review, `Conflict` for incompatible content, `BadRequest` for unsupported input and `ServiceUnavailable` for unavailable reads. Unexpected handler failures become `InternalServerError` with a redacted public message and a server-only trace cause. These errors need no login middleware. `PublicationUncertain` means publication may already have produced a file; inspect the saved identity/content before retrying. `Unanswered` is the wait client’s deadline error.
 
 #### Render a source query in React
 
-Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities return `ReadFailed`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
+Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
 Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The existing Board page still uses server rendering; hosts decide when to mount the React view.
 

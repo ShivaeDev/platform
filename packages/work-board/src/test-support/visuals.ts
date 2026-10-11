@@ -1,11 +1,12 @@
 import { symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Effect } from "effect";
 import { folder, startBoard } from "./board.ts";
 import type { OpenPage } from "./browser.ts";
 
 export const SCREENSHOT = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8V8AAAAASUVORK5CYII=", "base64");
 
-export async function visualWorkspace() {
+export const visualWorkspace = Effect.fn("Test.visualWorkspace")(function* () {
 	const notes = folder({
 		"nested/home.md":
 			"# Visual review\n\n![First screenshot](../shots/first%20%26%20review.png)\n\n![Second screenshot](../shots/second.png)\n\n![Missing screenshot](../shots/missing%ZZ.png)\n\n```mermaid\ngraph TD; A-->B\n```\n\n[Open reference](../shots/second.png)\n\n[Result](result.md)\n\nReading context.\n",
@@ -19,7 +20,13 @@ export async function visualWorkspace() {
 	const outside = folder({ "outside.png": "private" });
 	writeFileSync(join(notes.root, "shots/first & review.png"), SCREENSHOT);
 	writeFileSync(join(notes.root, "shots/second.png"), SCREENSHOT);
-	const board = await startBoard(notes.root, "nested/home.md");
+	yield* Effect.addFinalizer(() =>
+		Effect.sync(() => {
+			notes.remove();
+			outside.remove();
+		}),
+	);
+	const board = yield* startBoard(notes.root, "nested/home.md");
 	return {
 		board,
 		get: (path: string) => fetch(`${board.url}${path}`),
@@ -29,13 +36,8 @@ export async function visualWorkspace() {
 		},
 		oversize: () => truncateSync(join(notes.root, "shots/second.png"), 16 * 1024 * 1024 + 1),
 		replaceImage: () => writeFileSync(join(notes.root, "shots/second.png"), Buffer.concat([SCREENSHOT, Buffer.from("Updated")])),
-		stop: async () => {
-			await board.stop();
-			notes.remove();
-			outside.remove();
-		},
 	};
-}
+});
 
 export function diagramDownloads(page: OpenPage) {
 	const url = page.window.URL;

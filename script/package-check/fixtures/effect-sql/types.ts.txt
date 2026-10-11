@@ -1,12 +1,18 @@
 import { Effect, Schema } from "effect"
 import { Model } from "effect/unstable/schema"
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts"
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts"
+import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts"
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
   id: Schema.Number,
   name: Schema.String,
   amount: Schema.NumberFromString,
+}) {}
+
+class Document extends Model.Class<Document>("Document")({
+  id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+  name: Schema.String,
+  lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
 }) {}
 
 const program = Effect.gen(function* () {
@@ -26,5 +32,17 @@ const program = Effect.gen(function* () {
   lines.findMany({ select: [] })
   const saved: string = yield* Effect.as(invalidateOnCommit({ invoiceLines: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
   void saved
+  const documents = yield* makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "lockVersion" })
+  const original = yield* documents.insert({ name: "Draft" })
+  const updated: Document = yield* documents.update({ ...original, name: "Published" })
+  yield* documents.delete(updated.id, updated.lockVersion)
+  const handled: Document | OptimisticConcurrencyError = yield* documents.update(original).pipe(Effect.catchTag("OptimisticConcurrencyError", error => Effect.succeed(error)))
+  void handled
+  // @ts-expect-error Versioned deletion requires the version read.
+  documents.delete(original.id)
+  // @ts-expect-error Versioned updates require the version read.
+  documents.update({ id: original.id, name: "Stale" })
+  // @ts-expect-error The version column must be numeric and absent from insert.
+  makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "name" })
 })
 void program
