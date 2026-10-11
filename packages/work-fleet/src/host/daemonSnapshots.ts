@@ -1,32 +1,23 @@
-import { Effect, PubSub } from "effect";
+import { Effect, Schedule, Stream } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import type { FleetHost } from "#host/config.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
-import { type Snapshot, snapshotStream } from "#host/snapshotStream.ts";
+import { snapshotStream } from "#host/snapshotStream.ts";
 import { FleetFailure } from "#policy.ts";
 
 export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function* (host: FleetHost) {
 	const sql = yield* SqlClient.SqlClient;
 	const read = readWaitStates(host).pipe(
 		Effect.provideService(SqlClient.SqlClient, sql),
-		Effect.mapError(() => new FleetFailure({ message: "Fleet daemon could not read work states", reason: "integration" })),
+		Effect.retry({ schedule: Schedule.spaced("500 millis"), times: 19 }),
+		Effect.mapError(
+			() => new FleetFailure({ message: "Fleet daemon could not read work states after 20 consecutive attempts", reason: "integration" }),
+		),
 	);
-	const events = yield* PubSub.sliding<Snapshot>(1);
-	let previous = "";
-	yield* Effect.gen(function* () {
-		while (true) {
-			const next = yield* read.pipe(Effect.result);
-			if (next._tag === "Failure") {
-				yield* PubSub.publish(events, Effect.fail(next.failure));
-			} else {
-				const encoded = JSON.stringify(next.success);
-				if (encoded !== previous) {
-					previous = encoded;
-					yield* PubSub.publish(events, Effect.succeed(next.success));
-				}
-			}
-			yield* Effect.sleep("500 millis");
-		}
-	}).pipe(Effect.forkScoped);
-	return (ids: readonly string[]) => snapshotStream(events, read, ids);
+	const snapshots = yield* Stream.tick("500 millis").pipe(
+		Stream.mapEffect(() => read),
+		Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
+		Stream.share({ capacity: 1, replay: 1, strategy: "sliding" }),
+	);
+	return (ids: readonly string[]) => snapshotStream(snapshots, ids);
 });
