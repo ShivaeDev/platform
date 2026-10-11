@@ -60,22 +60,24 @@ function columnSchema(kind: string) {
 	return Schema.String;
 }
 
-export function recordModel(schema: Schema.Top = FleetRecord) {
+const rowFields = {
+	"admission_order": Model.Field({ select: Schema.NumberFromString, update: Schema.NumberFromString }),
+	attentionOwner: Schema.NullOr(Schema.String),
+	blocker: Schema.NullOr(Schema.String),
+	checks: Schema.NullOr(Schema.String),
+	decision: Schema.NullOr(Schema.String),
+	outcome: Schema.NullOr(Schema.String),
+	stage: Schema.NullOr(Schema.String),
+	version: Model.Field({ select: Schema.Number, update: Schema.Number }),
+	"work_id": Schema.String,
+};
+class FleetRow extends Model.Class<FleetRow>("FleetRow")(rowFields) {}
+
+export function recordModel(schema: Schema.Top = FleetRecord): typeof FleetRow {
 	const fields = Object.fromEntries(Object.entries(recordColumns(schema)).map(([name, kind]) => [name, Schema.NullOr(columnSchema(kind))]));
 	// Explicit summary fields retain typed projections while the remaining fields come from the record schema.
-	class FleetRow extends Model.Class<FleetRow>("FleetRow")({
-		attentionOwner: Schema.NullOr(Schema.String),
-		blocker: Schema.NullOr(Schema.String),
-		checks: Schema.NullOr(Schema.String),
-		decision: Schema.NullOr(Schema.String),
-		outcome: Schema.NullOr(Schema.String),
-		stage: Schema.NullOr(Schema.String),
-		...fields,
-		"admission_order": Model.Field({ select: Schema.NumberFromString, update: Schema.NumberFromString }),
-		version: Model.Field({ select: Schema.Number, update: Schema.Number }),
-		"work_id": Schema.String,
-	}) {}
-	return FleetRow;
+	class RecordRow extends Model.Class<RecordRow>("FleetRow")({ ...rowFields, ...fields }) {}
+	return RecordRow;
 }
 
 export const ForeignReservation = Schema.Struct({
