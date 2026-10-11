@@ -184,7 +184,7 @@ When the sources hold no module at all, the graph-building rules stop the run in
 
 #### Manifest dependencies
 
-`imports/manifest` discovers named workspace members from `pnpm-workspace.yaml` or the root manifest's `workspaces`, with no package scope convention or fence configuration. Each import of another member must appear in the importing member's `dependencies`, `peerDependencies` or `optionalDependencies`. The workspace root uses its own manifest for code outside a member. Self-imports and packages outside the workspace do not need a workspace declaration under this rule.
+`imports/manifest` discovers named workspace members from `pnpm-workspace.yaml` or the root manifest's `workspaces`, with no package scope convention or fence configuration. It discovers manifests across the repository, independently of `sources`, skipping files ignored by git and `node_modules`. Selecting only a member's `src` folder still checks its imports of members outside that selection against its own manifest. Each import of another member must appear in the importing member's `dependencies`, `peerDependencies` or `optionalDependencies`. The workspace root uses its own manifest for code outside a member. Self-imports and packages outside the workspace do not need a workspace declaration under this rule.
 
 Tests and files under `test-support/` may also use `devDependencies`. Tooling means files under a `script/`, `scripts/` or `tooling/` folder directly below the importing package's root, or a config file directly at that root, named `config.ts`, `vitest.config.ts` or another `*.config.*` with a JavaScript or TypeScript extension. A folder or config file nested under `src/` still counts as shipped code.
 
