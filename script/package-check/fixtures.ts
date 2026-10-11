@@ -20,9 +20,9 @@ export const writeFixtures = (root: string, pkg: Package, consumer: string, sele
 			for (const name of importedPackages(source)) {
 				imports.add(name);
 			}
-			ts.preProcessFile(source).importedFiles.forEach(({ fileName }) => {
+			for (const { fileName } of ts.preProcessFile(source).importedFiles) {
 				references.add(fileName);
-			});
+			}
 		}
 		for (const name of yield* copyFixtureFiles(root, pkg, consumer, references)) {
 			imports.add(name);

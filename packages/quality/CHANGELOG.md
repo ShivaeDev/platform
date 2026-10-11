@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Make inventory path sorting explicitly follow UTF-16 code-unit order, preserving file and source order for overlapping sources, case, numeric suffixes and Unicode paths. Load the package's Vitest configuration through its existing `#vitest.ts` alias.
 - Align the package's agent guidance, README, north star, roadmap and topic references around one opinionated policy with minimal repository setup. Keep the accepted warning, off and consumer Biome-override APIs visible as implementation gaps rather than recommended adoption choices.
 - Explain the repository gate through a human introduction, an agent mental model and complete config, local-rule and boundary examples. Add package guidance, a north star and a roadmap, and move the detailed rule, naming, debt and shared-tooling references under `docs/`.
 - Publish `docs/` alongside the README; keep agent instructions outside the package tarball.
