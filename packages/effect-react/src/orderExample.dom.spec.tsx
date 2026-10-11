@@ -3,11 +3,13 @@ import { Deferred, Effect, Result } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 import { startOrderServer } from "#test/order-example/http-test.ts";
+import { eventually, expectNoReactWarnings } from "#test/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 
 async function mountEditor(url: string, token?: string, id = 1) {
 	window.location.href = url;
@@ -61,13 +63,6 @@ async function mountEditor(url: string, token?: string, id = 1) {
 			return Effect.runPromise(AtomRegistry.getResult(independent, result)).finally(() => independent.dispose());
 		},
 	};
-}
-
-function eventually(assert: () => void) {
-	return vi.waitFor(async () => {
-		await act(async (): Promise<void> => undefined);
-		assert();
-	});
 }
 
 function sessions() {

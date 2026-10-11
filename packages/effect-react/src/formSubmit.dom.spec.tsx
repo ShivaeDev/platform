@@ -4,12 +4,14 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
 import { type Create, useCreate } from "#create.ts";
 import { type Editor, useEditor } from "#editor.ts";
+import { eventually, expectNoReactWarnings } from "#test/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
@@ -60,7 +62,7 @@ async function creating() {
 
 it("a create submitted through the form's own API records the result and resets the form", async () => {
 	const { names, current } = await creating();
-	current().create.form.change("name", "Desk lamps ");
+	await act(async () => current().create.form.change("name", "Desk lamps "));
 	await act(async () => current().submit.run());
 	expect(Option.getOrNull(current().create.created)).toEqual({ id: 1, name: "Desk lamps" });
 	expect(current().create.form.values.value).toEqual({ name: "" });
@@ -70,9 +72,9 @@ it("a create submitted through the form's own API records the result and resets 
 
 it("a form-API create after an earlier save() compares against its own submission", async () => {
 	const { registry, current } = await creating();
-	current().create.form.change("name", "Desk lamps");
+	await act(async () => current().create.form.change("name", "Desk lamps"));
 	await act(async () => current().create.save());
-	current().create.form.change("name", "Office chairs");
+	await act(async () => current().create.form.change("name", "Office chairs"));
 	await act(async () => registry.set(current().create.form.submit, undefined));
 	expect(Option.getOrNull(current().create.created)).toEqual({ id: 2, name: "Office chairs" });
 	expect(current().create.form.values.value).toEqual({ name: "" });
@@ -109,7 +111,7 @@ it("an edit typed while an async schema decodes the submission survives the crea
 	await act(async () => current().save());
 	await act(async () => current().form.change("name", "Desk lamps and chairs"));
 	await act(async () => decoding.resolve());
-	await vi.waitFor(() => expect(Option.getOrNull(current().created)).toEqual({ id: 1, name: "Desk lamps" }));
+	await eventually(() => expect(Option.getOrNull(current().created)).toEqual({ id: 1, name: "Desk lamps" }));
 	expect(current().form.values.value).toEqual({ name: "Desk lamps and chairs" });
 });
 
@@ -127,7 +129,7 @@ it("an edit submitted through the form's own API receives the normalized saved r
 	if (form === undefined) {
 		throw new Error("Editor form did not load");
 	}
-	form.change("name", "toner");
+	await act(async () => form.change("name", "toner"));
 	await act(async () => registry.set(form.submit, undefined));
 	expect(form.values.value).toEqual({ name: "TONER" });
 	expect(registry.get(form.dirty)).toBe(false);

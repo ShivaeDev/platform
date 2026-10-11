@@ -7,17 +7,12 @@ import { expect, it, vi } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { activityRegistry } from "#test/activityRegistry.ts";
 import { startOrderServer } from "#test/order-example/http-test.ts";
+import { eventually, expectNoReactWarnings } from "#test/react.ts";
 import { sessions, shell } from "#test/session.ts";
 import { DraftProbe, type RegistryHolder, ReplayProbe, TrackedProbe } from "#test/sessionProbes.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-
-function eventually(assert: () => void) {
-	return vi.waitFor(async () => {
-		await act(async (): Promise<void> => undefined);
-		assert();
-	});
-}
+expectNoReactWarnings();
 
 it("each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one", async () => {
 	const server = await startOrderServer({ sessions: sessions() });

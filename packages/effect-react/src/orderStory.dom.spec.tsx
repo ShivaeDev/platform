@@ -3,6 +3,9 @@ import { app, realPostgres } from "#test/order-example/application.ts";
 import { localApp, localOrder } from "#test/order-example/localApplication.ts";
 import { hasPostgres } from "#test/order-example/postgres.ts";
 import { aliceHasOrder, orderEditorIsOpen, orderListIsOpen } from "#test/order-example/traits.ts";
+import { expectNoReactWarnings } from "#test/react.ts";
+
+expectNoReactWarnings();
 
 app.it(
 	"a save commits, a rejected write rolls back, and Bob cannot read Alice's order",

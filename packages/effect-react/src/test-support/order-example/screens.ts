@@ -4,7 +4,8 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
+import { eventually } from "#test/react.ts";
 import { type Application, orderId } from "./applicationEngine.ts";
 import { makeOrderEditor } from "./frontend.tsx";
 
@@ -64,17 +65,11 @@ function input(engine: Application) {
 
 function observe(engine: Application, label: string, read: () => unknown, expected: unknown) {
 	return Effect.promise(() =>
-		vi.waitFor(
-			async () => {
-				await act(async () => {
-					await new Promise<void>((resolve) => setTimeout(resolve, 10));
-				});
-				const value = read();
-				engine.observations[label] = value;
-				expect(value, label).toEqual(expected);
-			},
-			{ interval: 10, timeout: 3000 },
-		),
+		eventually(() => {
+			const value = read();
+			engine.observations[label] = value;
+			expect(value, label).toEqual(expected);
+		}),
 	);
 }
 
@@ -91,17 +86,28 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 	return {
 		editQuantity: (value: string) => {
 			tell(`Alice enters quantity ${value}`);
-			return Effect.promise(async () =>
-				act(() => {
+			return Effect.promise(async () => {
+				await act(async () => {
 					const element = input(engine);
 					Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element, value);
 					element.dispatchEvent(new Event("input", { bubbles: true }));
 					element.dispatchEvent(new Event("change", { bubbles: true }));
-				}),
-			);
+					await Promise.resolve();
+				});
+			});
 		},
 		formIsReady: () => observe(engine, "quantity", () => input(engine).value, "3"),
-		formIsSaved: () => observe(engine, "status", () => getContainer(engine, "editor").querySelector('[role="status"]')?.textContent, "Saved"),
+		formIsSaved: () =>
+			observe(
+				engine,
+				"status",
+				() => {
+					const container = getContainer(engine, "editor");
+					expect(container.querySelector<HTMLButtonElement>("button")?.disabled, "the saved order's query finished refreshing").toBe(false);
+					return container.querySelector('[role="status"]')?.textContent;
+				},
+				"Saved",
+			),
 		formShowsError: (message: string) =>
 			observe(engine, "form error", () => getContainer(engine, "editor").querySelector('[role="alert"]')?.textContent, message),
 		listShows: (text: string) => observe(engine, "list", () => getContainer(engine, "list").querySelector("li")?.textContent, text),
