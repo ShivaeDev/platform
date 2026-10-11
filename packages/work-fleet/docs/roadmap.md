@@ -8,21 +8,21 @@
 - Worker instructions include Cloud startup waiting, current-main checkout, repository checks and one human-review pull request. The report parser recognizes a URL or explicit no-change marker. `src/prompt/worker.test.ts` covers these instructions and parsing.
 - The Effect core stores preparation, attempts, receipts, review/check evidence, decisions and accepted outcomes in PostgreSQL. Native RPC and derived views, revision-bound completion, repair, dependency acceptance, renewal and recovery are exercised by the engine tests. Overlapping scopes can dispatch concurrently; admission tests cover capacity, quota and backlog separately.
 - Managed Board decisions retain exact question/context receipts. Current guided retry/release responses resolve idempotently in SQL, and immutable Board request receipts acknowledge applied or superseded decisions. HTTP and renewal tests cover publication recovery and stale or ambiguous responses.
+- The command host reads GitHub check runs and commit statuses for the adopted PR's exact SHA through `gh`. Pending checks keep validation open and failures reach repair. `src/host/githubChecks.test.ts` and `src/engine/validation.spec.ts` cover these transitions with synthetic GitHub responses.
 - The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
 ## Open for the command host
 
 - Result adoption: verify and attach the actual pull request or evidenced no-change result. A worker report marker alone is insufficient.
 - Independent review and repair: wire the core's exact-head review and reconciliation boundary to a real reviewer.
-- Required checks: connect current repository requirements and validation of the exact head.
 - Authorized delivery: supply trusted authorization, delivery observation and normal merge under branch requirements.
 - Board view: present Fleet execution attachments and decisions in the Board interface.
 
-The command host's default integrations do not supply result adoption, review, checks or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
+The command host's default integrations read GitHub checks but do not supply result adoption, review or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
 
 ## Validation boundary
 
-Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Cloud and local provider tests use synthetic WebSocket servers. Packed consumers exercise the package exports and command help.
+Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Synthetic paginated GitHub responses cover green, red, pending and newer-push checks; they do not prove live GitHub authentication or branch requirements. Cloud and local provider tests use synthetic WebSocket servers. Packed consumers exercise the package exports and command help.
 
 Live Cloud computation, actual pull request adoption, independent review, required checks and authorized delivery still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 

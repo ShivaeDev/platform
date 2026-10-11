@@ -15,6 +15,9 @@ export function makeValidate({ integrations, save }: EngineState) {
 		if (stored.value.stage === "validating") {
 			const checks = yield* integrations.checks(work, result);
 			stored = yield* save(stored, { ...stored.value, blocker: undefined, checks });
+			if (checks.head === head && checks.pending && !checks.passed) {
+				return stored;
+			}
 			if (checks.head === head && checks.evidence.length > 0 && !checks.passed && checks.repairPrompt?.trim()) {
 				return yield* save(stored, { ...stored.value, blocker: undefined, stage: "repairing" });
 			}

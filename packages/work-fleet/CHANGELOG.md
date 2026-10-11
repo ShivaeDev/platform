@@ -5,6 +5,8 @@
 - Document the command, host configuration, approval and launch overrides, wait exit
   codes and tested Cloud provider boundary; list open command-host integrations in
   the roadmap.
+- Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
+  pending checks in validation and send failed check names and links to repair.
 
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
