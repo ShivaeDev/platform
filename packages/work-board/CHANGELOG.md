@@ -4,6 +4,8 @@
 
 ### Added
 
+- Read optional `areas` frontmatter as an array of nonempty code-area labels for Fleet scheduling; retain invalid values with metadata diagnostics.
+
 - Add a sidebar and top-bar Inbox with a live count for human-owned open next actions, open questions and Fleet work waiting on a person. Overview links to an Inbox summary; Work cards/tables show Waiting on you without changing recorded status columns. Missing and duplicated IDs remain visible with source links, and ages beyond 48 hours use days. Group Fleet decision sources and their question/response records under a collapsed sidebar section.
 - Standalone `kind: question` items accept optional label/description options and a recommended label. Their item pages support option buttons and free-text answers through the opted-in response publisher. An answer removes the question from the Inbox for its exact reviewed source; edits require a new answer and original source bytes stay unchanged. Closed or invalid questions keep readable answer history. Option buttons use equal widths and spacing; the answer form remembers the local author and puts response details behind a toggle.
 

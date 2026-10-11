@@ -31,7 +31,16 @@ export function makeLaunch(state: EngineState) {
 		};
 		const intent = yield* save(
 			stored,
-			{ ...stored.value, attempts: [...stored.value.attempts, attempt], blocker: undefined, stage: "executing" },
+			{
+				...stored.value,
+				admissionReady: true,
+				attempts: [...stored.value.attempts, attempt],
+				blocker: undefined,
+				mergeAreasReleased: undefined,
+				mergeReadyAt: undefined,
+				mergeReadyHead: undefined,
+				stage: "executing",
+			},
 			{ quota, role },
 		);
 		const original = stored.value.attempts.find((previous) => previous.role === "worker" && previous.receipt !== undefined)?.receipt;
