@@ -15,8 +15,8 @@ describe("renewal retains unresolved decision publication", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
 				expect((yield* fleet.reconcile("one")).value.decisionPublished).toBe(false);
+				fixture.approveWork("one", "board-one-next");
 
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.stage).toBe("prepared");

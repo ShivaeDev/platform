@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { validateReview } from "#completion.ts";
+import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
@@ -17,14 +18,12 @@ export function makeReview(state: EngineState) {
 		if (result === undefined || stored.value.stage !== "reviewing") {
 			return stored;
 		}
-		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(
-				stored,
-				"Board context changed during review",
-				"Approve and prepare the current task and criteria",
-				undefined,
-				"maintainer",
-			);
+		yield* authorizeBrief(work);
+		if (
+			briefChanged(stored.value, work)
+			&& !stored.value.attempts.some((attempt) => attempt.role === "reviewer" && ["submitting", "accepted", "running"].includes(attempt.status))
+		) {
+			return yield* continueChangedBrief(state)(stored, work);
 		}
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
@@ -33,6 +32,11 @@ export function makeReview(state: EngineState) {
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
+		}
+		const currentWork = yield* state.board.get(work.workId);
+		yield* authorizeBrief(currentWork);
+		if (briefChanged(stored.value, currentWork)) {
+			return yield* continueChangedBrief(state)(stored, currentWork);
 		}
 		if (observation.execution !== "completed") {
 			return yield* decision(stored, `Reviewer turn ${observation.execution}`, "Inspect terminal reviewer evidence before retrying");

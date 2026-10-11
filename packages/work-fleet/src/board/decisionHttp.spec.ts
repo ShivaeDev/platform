@@ -55,7 +55,7 @@ it.effect("opens an answerable linked Board decision over real HTTP and records 
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });
 
-it.effect("keeps clarify and not-now explicit and requires supersession before choosing competing answers", function* () {
+it.effect("keeps clarify and not-now explicit and selects the newest answer from the same author", function* () {
 	const root = yield* boardFolder("withDependency");
 	yield* Effect.gen(function* () {
 		const board = yield* BoardGateway;
@@ -112,7 +112,7 @@ it.effect("keeps clarify and not-now explicit and requires supersession before c
 				}),
 			),
 		);
-		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Ambiguous", responseIds: [answer.id, resolved.id] });
+		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: resolved });
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });
 
