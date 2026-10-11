@@ -4,6 +4,28 @@ import { effectApp } from "#test/services.ts";
 import { Watcher } from "#Watcher.ts";
 
 const refs = [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }];
+effectApp.each([true, false])("entering the queue emits queued when auto-merge was $item", function* (autoMerge, h) {
+	h.setPull(1, { "auto_merge": autoMerge ? { "merge_method": "squash" } : null });
+	yield* h.cycle;
+	h.setPull(1, { "auto_merge": null });
+	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
+	expect((yield* h.cycle).prs["1"]).toMatchObject({ autoMerge: false, queued: true });
+	expect(h.lines.map((line) => JSON.parse(line))).toEqual([{ branch: "feature-1", event: "queued", number: 1, title: "Change 1" }]);
+	yield* h.cycle;
+	yield* h.restart;
+	expect(h.lines).toHaveLength(1);
+	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
+	yield* h.cycle;
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["queued", "dequeued", "auto-merge-off"]);
+	yield* h.restart;
+	expect(h.lines).toHaveLength(3);
+});
+effectApp("startup establishes queued membership without emitting an entry", function* (h) {
+	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
+	h.setPull(1, { mergeable: false, "mergeable_state": "dirty" });
+	yield* h.cycle;
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["conflict", "stuck"]);
+});
 effectApp("a queue rebuild retains membership until the PR confirms a drop", function* (h) {
 	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: refs });
 	yield* h.cycle;
@@ -35,10 +57,10 @@ effectApp("the PR queue entry prevents a false drop even when auto-merge is disa
 	h.setPull(1, { "auto_merge": null });
 	h.setQueue(1, false, true);
 	expect((yield* h.cycle).prs["1"]?.queued).toBe(true);
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["auto-merge-off"]);
+	expect(h.lines).toEqual([]);
 	h.setQueue(1, false, false);
 	yield* h.cycle;
-	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["auto-merge-off", "dequeued"]);
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["dequeued", "auto-merge-off"]);
 });
 effectApp.each([
 	{ body: {}, status: 500 },
