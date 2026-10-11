@@ -8,6 +8,7 @@ import { checkAreas, requeue } from "#scheduling/areas.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
+import { attentionStorage } from "#test/attentionStorage.ts";
 import { boardWork } from "#test/boardWork.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
@@ -29,12 +30,14 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
 	readonly merged: readonly string[];
+	readonly replaceRecord: (value: FleetRecord) => Effect.Effect<void, unknown>;
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
 		effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
 	) => Effect.Effect<TResult, TFailure | TBoardError>;
 	readonly reviews: readonly string[];
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
+	readonly upgradeAttention: Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
 }
 export function withEngine<A, E, TBoardError = never>(
@@ -44,7 +47,7 @@ export function withEngine<A, E, TBoardError = never>(
 ) {
 	return withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
-			const store = yield* makePostgresFleetStore(FleetRecord, {
+			const originalStore = yield* makePostgresFleetStore(FleetRecord, {
 				admission: checkAreas,
 				backlog,
 				executing,
@@ -52,6 +55,7 @@ export function withEngine<A, E, TBoardError = never>(
 				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
+			const { replaceRecord, store, upgradeAttention } = yield* attentionStorage(originalStore, namespace, options.writeGate);
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
@@ -108,6 +112,7 @@ export function withEngine<A, E, TBoardError = never>(
 				foreign,
 				foreignReservations: store.foreignReservations,
 				merged,
+				replaceRecord,
 				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
 				reviews,
@@ -118,6 +123,7 @@ export function withEngine<A, E, TBoardError = never>(
 						unavailable.delete(workId);
 					}
 				},
+				upgradeAttention,
 				work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));

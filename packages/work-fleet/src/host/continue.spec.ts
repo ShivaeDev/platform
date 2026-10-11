@@ -80,7 +80,10 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				expect(run).toEqual({ code: 0, stdout: "one executing" });
 				expect(errors).toBe("");
 				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");
-				expect(JSON.parse(readFileSync(join(fixture.host.boardDir, "fleet/health.json"), "utf8"))).toMatchObject({ needsHuman: 0, running: 1 });
+				expect(JSON.parse(readFileSync(join(fixture.host.boardDir, "fleet/health.json"), "utf8"))).toMatchObject({
+					running: 1,
+					waiting: { automation: 0, maintainer: 0, orchestrator: 0 },
+				});
 				expect(requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
 					input: [{ text: message, type: "text" }],
 					threadId: first.value.attempts[0]?.receipt?.sessionId,
@@ -88,7 +91,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				expect(requests.filter((request) => request.method === "turn/start")).toHaveLength(1);
 				expect(requests.filter((request) => request.method === "thread/start")).toHaveLength(0);
 				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
-				expect(status.needsHuman).toEqual([]);
+				expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 				expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
 				const waiting = yield* Effect.promise(() => cliProcess(["wait", "one", ...flags, "--interval", "0.05", "--timeout", "0.3"]));
 				expect(waiting.code).toBe(4);

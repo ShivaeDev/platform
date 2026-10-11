@@ -13,6 +13,33 @@ const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 const result = { head: "reviewed-head", kind: "change", paths: ["src/one.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
 const open = { headRefOid: result.head, mergeCommit: null, mergedAt: null, state: "OPEN", url: result.pr };
 
+for (const owner of ["orchestrator", "automation"] as const) {
+	test(`delivery observation failures wait on ${owner}`, () =>
+		withEngine(
+			{
+				deliveryQuery: () =>
+					Effect.fail(
+						new FleetFailure({ attentionOwner: owner === "automation" ? owner : undefined, message: "Delivery unavailable", reason: "integration" }),
+					),
+			},
+			(fixture) =>
+				Effect.gen(function* () {
+					const fleet = yield* Fleet;
+					yield* prepareWork("one");
+					yield* fleet.dispatch("one");
+					finishWorkers(fixture);
+					const waiting = yield* fleet.reconcile("one");
+					expect(waiting.value.attentionOwner).toBe(owner);
+					expect(waiting.value.decision?.attentionOwner).toBe(owner);
+					yield* fixture.restart(
+						Effect.gen(function* () {
+							expect((yield* (yield* Fleet).get("one")).value.attentionOwner).toBe(owner);
+						}),
+					);
+				}),
+		));
+}
+
 for (const state of ["OPEN", "CLOSED"] as const) {
 	test(`transient delivery failure preserves the ${state} PR's Board decision across restart`, () => {
 		let unavailable = false;

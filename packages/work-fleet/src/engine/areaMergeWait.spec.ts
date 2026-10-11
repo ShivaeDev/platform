@@ -21,7 +21,13 @@ test("the default merge wait frees areas after thirty minutes and continues obse
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value).toMatchObject({ mergeReadyAt: 100, mergeReadyHead: "head-one-0", stage: "needs-human" });
+				expect((yield* fleet.reconcile("one")).value).toMatchObject({
+					attentionOwner: "maintainer",
+					decision: { attentionOwner: "maintainer" },
+					mergeReadyAt: 100,
+					mergeReadyHead: "head-one-0",
+					stage: "needs-human",
+				});
 				now += 1_800_000 - 1;
 				yield* fleet.reconcile("one");
 				expect((yield* fleet.get("one")).value.mergeReadyAt).toBe(100);
@@ -32,7 +38,11 @@ test("the default merge wait frees areas after thirty minutes and continues obse
 					Effect.gen(function* () {
 						const restarted = yield* Fleet;
 						expect((yield* restarted.dispatch("two")).value.stage).toBe("executing");
-						expect((yield* restarted.get("one")).value.stage).toBe("needs-human");
+						expect((yield* restarted.get("one")).value).toMatchObject({
+							attentionOwner: "maintainer",
+							decision: { attentionOwner: "maintainer" },
+							stage: "needs-human",
+						});
 						merged = true;
 						expect((yield* restarted.reconcile("one")).value).toMatchObject({ outcome: { revision: "merged" }, stage: "completed" });
 					}),

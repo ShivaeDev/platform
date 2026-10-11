@@ -22,6 +22,7 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("persists exact worker and re
 			expect(worker.value.attempts[0]).toMatchObject({ prompt: "Implement one", settings });
 			finishWorkers(fixture);
 			const reviewing = yield* fleet.reconcile("one");
+			expect(reviewing.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			const reviewer = reviewing.value.attempts.at(-1);
 			expect(reviewer?.settings).toEqual({});
 			expect(reviewer?.prompt).toBe(fixture.starts.at(-1)?.prompt);

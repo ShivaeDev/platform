@@ -21,7 +21,9 @@ function line(view: View) {
 export function renderStatus(current: typeof FleetViews.Type): string {
 	const sections: readonly [string, readonly View[]][] = [
 		["Active", current.active],
-		["Needs human", current.needsHuman],
+		["Waiting on maintainer", current.waiting.maintainer],
+		["Waiting on orchestrator", current.waiting.orchestrator],
+		["Waiting on automation", current.waiting.automation],
 		["Completed", current.completed],
 	];
 	return sections.map(([title, items]) => [`${title} (${items.length})`, ...items.map(line)].join("\n")).join("\n");

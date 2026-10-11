@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
-import { Deferred, Effect, Fiber } from "effect";
+import { Deferred, Effect, Fiber, FileSystem } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
-import { prepareWork } from "#test/engine.ts";
+import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
@@ -53,7 +53,33 @@ test("a recorded worker answer cannot continue without fresh available quota", (
 			const blocked = yield* fleet.reconcile("one");
 			expect(blocked.value.stage).toBe("needs-human");
 			expect(blocked.value.blocker).toBe("Fresh available provider quota is required");
+			expect(blocked.value.attentionOwner).toBe("automation");
 			expect(blocked.value.responses ?? []).toHaveLength(0);
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
+		}),
+	));
+
+test("a recorded answer waits on automation while capacity is occupied and is adopted when capacity returns", () =>
+	withFleetBoard({ concurrency: 1 }, (fixture, root) =>
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			const { decision } = yield* askWorker(fixture);
+			const fs = yield* FileSystem.FileSystem;
+			yield* fs.writeFileString(`${root}/two.md`, "---\nid: two\nkind: task\nfleet: approved\n---\n# Other work\n");
+			yield* prepareWork("two");
+			yield* fleet.dispatch("two");
+			const answer = yield* answerWorker(root, decision);
+			const blocked = (yield* fleet.reconcile("one")).value;
+			expect(blocked.attentionOwner).toBe("automation");
+			expect(blocked.blocker).toBe("execution capacity is occupied (limit 1)");
+			expect(blocked.responses ?? []).toHaveLength(0);
+			finishWorkers(fixture);
+			yield* fleet.reconcile("two");
+			const continued = (yield* fleet.reconcile("one")).value;
+			expect(continued.stage).toBe("executing");
+			expect(continued.responses).toMatchObject([{ responseId: answer.id }]);
+			expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
 		}),
 	));

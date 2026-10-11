@@ -28,8 +28,8 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			expect(overview).toContain(`data-attention-item="${published.itemId}" data-request="${published.request}"`);
 			expect(overview).toContain("one");
 			expect(yield* Effect.promise(() => waitProcess(fixture.configFile, "one"))).toEqual({
-				code: WAIT_EXIT.needsHuman,
-				stdout: `one needs-human: ${QUESTION}`,
+				code: WAIT_EXIT.waitingDecision,
+				stdout: `one needs-human (waiting on orchestrator): ${QUESTION}`,
 			});
 			const answer = yield* answerWorker(fixture.host.boardDir, decision);
 			const resumed = yield* Effect.gen(function* () {

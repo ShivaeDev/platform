@@ -8,7 +8,13 @@ import type { Versioned } from "#storage/model.ts";
 export function refreshReviewResult({ integrations, save, board, decision }: EngineState) {
 	return Effect.fn("Fleet.refreshReviewResult")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult) {
 		if ((yield* board.get(work.workId)).revision !== stored.value.boardRevision) {
-			return yield* decision(stored, "Board context changed during review", "Approve and prepare the current task and criteria");
+			return yield* decision(
+				stored,
+				"Board context changed during review",
+				"Approve and prepare the current task and criteria",
+				undefined,
+				"maintainer",
+			);
 		}
 		const worker = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
 		if (worker?.receipt === undefined) {

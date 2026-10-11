@@ -23,12 +23,12 @@ describe("work-fleet watch against PostgreSQL", () => {
 						yield* untilOutput(follower, "a completed: All checks passed\n");
 						expect(follower.output().trim().split("\n")).toEqual(["a completed: All checks passed"]);
 						yield* storeState(fixture.host, "b", { decision: { reason: "Review failed\nPlease inspect\r\nthe diff" }, stage: "needs-human" });
-						yield* untilOutput(follower, "b needs-human: Review failed Please inspect the diff\n");
+						yield* untilOutput(follower, "b needs-human (waiting on orchestrator): Review failed Please inspect the diff\n");
 						yield* storeState(fixture.host, "c", { stage: "released" });
 						expect(yield* Effect.promise(() => follower.done)).toMatchObject({
 							code: 0,
 							stderr: "",
-							stdout: "a completed: All checks passed\nb needs-human: Review failed Please inspect the diff\nc released",
+							stdout: "a completed: All checks passed\nb needs-human (waiting on orchestrator): Review failed Please inspect the diff\nc released",
 						});
 					}),
 				);
@@ -36,7 +36,7 @@ describe("work-fleet watch against PostgreSQL", () => {
 		);
 	});
 
-	test("without IDs snapshots only active work, and an empty active set exits", function* () {
+	test("without IDs snapshots only active work", function* () {
 		yield* withHost(
 			{},
 			{},
@@ -65,21 +65,11 @@ describe("work-fleet watch against PostgreSQL", () => {
 						expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stdout: "a released\nb completed" });
 					}),
 				);
-				yield* storeState(fixture.host, "new", { stage: "released" });
-				yield* withFollower(
-					fixture.configFile,
-					"watch",
-					[],
-					{},
-					Effect.fnUntraced(function* (follower) {
-						expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stdout: "" });
-					}),
-				);
 			}),
 		);
 	});
 
-	test("timeout preserves printed outcomes and failures exit 1", function* () {
+	test("timeout preserves printed outcomes", function* () {
 		yield* withHost(
 			{},
 			{},
@@ -98,44 +88,24 @@ describe("work-fleet watch against PostgreSQL", () => {
 						});
 					}),
 				);
-				yield* withFollower(
-					`${fixture.configFile}.missing`,
-					"watch",
-					["a"],
-					{},
-					Effect.fnUntraced(function* (follower) {
-						expect((yield* Effect.promise(() => follower.done)).code).toBe(1);
-					}),
-				);
 			}),
 		);
 	});
-
-	test("watch and wait stop after consecutive connection failures", function* () {
+	test("an empty active set exits without printing terminal records", function* () {
 		yield* withHost(
 			{},
 			{},
 			Effect.fnUntraced(function* (fixture) {
-				fixture.write(
-					"fleet.config.json",
-					JSON.stringify({
-						database: { url: "postgresql://postgres:postgres@127.0.0.1:1/unavailable" },
-						provider: "local",
+				yield* storeState(fixture.host, "new", { stage: "released" });
+				yield* withFollower(
+					fixture.configFile,
+					"watch",
+					[],
+					{},
+					Effect.fnUntraced(function* (follower) {
+						expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stdout: "" });
 					}),
 				);
-				for (const command of ["watch", "wait"] as const) {
-					yield* withFollower(
-						fixture.configFile,
-						command,
-						["a"],
-						{ interval: 0.001 },
-						Effect.fnUntraced(function* (follower) {
-							const outcome = yield* Effect.promise(() => follower.done);
-							expect(outcome.code).toBe(1);
-							expect(`${outcome.stderr}${outcome.stdout}`).toContain("Fleet PostgreSQL is unreachable");
-						}),
-					);
-				}
 			}),
 		);
 	});

@@ -1,5 +1,6 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 export interface EngineOptions {
@@ -43,5 +44,6 @@ export interface EngineOptions {
 	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
+	readonly writeGate?: (value: FleetRecord) => Effect.Effect<void>;
 	readonly wrongHead?: "review" | "checks";
 }
