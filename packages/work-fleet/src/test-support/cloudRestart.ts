@@ -6,13 +6,26 @@ import type { WireRequest } from "#test/codex.ts";
 import { cloudThread } from "#test/codexCloud.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
 
-export type Boundary = "before-thread" | "after-thread" | "before-turn" | "after-turn" | "acknowledged-turn";
+export type Boundary =
+	| "before-thread"
+	| "after-thread"
+	| "changed-context"
+	| "revoked-approval"
+	| "before-turn-request"
+	| "before-turn"
+	| "after-turn"
+	| "late-turn"
+	| "retry"
+	| "acknowledged-turn";
 export function restartBackend(boundary: Boundary) {
 	const requests: WireRequest[] = [];
 	let sessions = 0;
 	let turns = 0;
 	let operationId: unknown;
 	let reached = false;
+	let scans = 0;
+	let retry = false;
+	let acknowledge: ((value: unknown) => void) | undefined;
 	function threadStart() {
 		reached = boundary === "before-thread" || boundary === "after-thread";
 		if (boundary === "before-thread") {
@@ -23,25 +36,42 @@ export function restartBackend(boundary: Boundary) {
 	}
 	function turnStart(request: WireRequest) {
 		reached = true;
-		if (boundary === "before-turn") {
+		operationId = Schema.decodeUnknownSync(Schema.Struct({ clientUserMessageId: Schema.String }))(request.params).clientUserMessageId;
+		if ((boundary === "before-turn" || boundary === "retry") && !retry && requests.filter(({ method }) => method === "turn/start").length === 1) {
 			return undefined;
 		}
+		if (boundary === "late-turn") {
+			return new Promise((resolve) => {
+				acknowledge = resolve;
+			});
+		}
 		turns += 1;
-		operationId = Schema.decodeUnknownSync(Schema.Struct({ clientUserMessageId: Schema.String }))(request.params).clientUserMessageId;
 		return boundary === "after-turn" ? undefined : { turn: { id: "synthetic-turn" } };
 	}
 	function turnList() {
+		scans += 1;
+		if (boundary === "late-turn" && scans === 3) {
+			turns += 1;
+			acknowledge?.({ turn: { id: "synthetic-turn" } });
+		}
 		const data =
 			turns === 0 ? [] : [{ id: "synthetic-turn", items: [{ clientId: operationId, id: "input", type: "userMessage" }], status: "inProgress" }];
 		return { data, nextCursor: null };
 	}
 	return {
+		allowRetry() {
+			retry = true;
+		},
 		handle(request: WireRequest) {
 			requests.push(request);
 			switch (request.method) {
 				case "thread/start":
 					return threadStart();
 				case "thread/read":
+					if (["before-turn-request", "changed-context", "revoked-approval"].includes(boundary) && !reached) {
+						reached = true;
+						return undefined;
+					}
 					return cloudThread();
 				case "turn/start":
 					return turnStart(request);

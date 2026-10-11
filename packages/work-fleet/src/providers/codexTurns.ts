@@ -34,8 +34,10 @@ export function codexTurns(rpc: CodexRequest) {
 	const operationTurn = Effect.fn("Codex.operationTurn")(function* (sessionId: string, operationId: string) {
 		let cursor: string | null = null;
 		const matching: string[] = [];
+		let empty = true;
 		do {
 			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, true);
+			empty = empty && page.data.length === 0;
 			matching.push(
 				...page.data.filter((turn) => turn.items.some((item) => item.type === "userMessage" && item.clientId === operationId)).map((turn) => turn.id),
 			);
@@ -45,7 +47,7 @@ export function codexTurns(rpc: CodexRequest) {
 			cursor = page.nextCursor;
 		} while (cursor !== null);
 		const [turnId] = matching;
-		if (turnId === undefined) {
+		if (turnId === undefined && !empty) {
 			return yield* Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
 		}
 		return turnId;
