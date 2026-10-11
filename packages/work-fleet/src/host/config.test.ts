@@ -12,6 +12,24 @@ describe("work-fleet host configuration", () => {
 		expect(host).toMatchObject({ backlog: 100, concurrency: 100, launch: {}, namespace: "work_fleet", quota: "codex" });
 	});
 
+	it.effect("loads Cloud, worker, database and launch settings from the board file", function* () {
+		const config = {
+			cloud: { cwd: "<workspace-path>", environmentId: "<environment-config-id>" },
+			database: { url: "<postgresql-url>" },
+			launch: { effort: "<reasoning-effort>", model: "<model>", serviceTier: "<service-tier>" },
+			provider: "cloud",
+			worker: { branchPrefix: "<branch-prefix>", sharedEnvironment: "<environment-script-path>" },
+		};
+		const host = yield* loadHost(hostBoard(JSON.stringify(config))).pipe(Effect.provide(NodeServices.layer));
+		expect(host).toMatchObject({
+			cloud: config.cloud,
+			databaseUrl: config.database.url,
+			launch: config.launch,
+			provider: "cloud",
+			worker: config.worker,
+		});
+	});
+
 	it.effect("--config overrides the board file", function* () {
 		const override = join(hostBoard('{ "provider": "local", "concurrency": 7, "namespace": "fleet_override" }'), "fleet.config.json");
 		const host = yield* loadHost(hostBoard('{ "provider": "cloud" }'), override).pipe(Effect.provide(NodeServices.layer));
