@@ -1,0 +1,69 @@
+import { vi } from "@effect/vitest";
+import { Effect } from "effect";
+import pg from "pg";
+import type { FleetHost } from "#host/config.ts";
+import { type HostFixture, storeState, withHost } from "#test/fleetHost.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
+
+export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (host: FleetHost) {
+	const queries = vi.spyOn(pg.Client.prototype, "query");
+	const control = new pg.Pool({ connectionString: host.databaseUrl });
+	let broken = false;
+	function rename(from: string, to: string) {
+		return Effect.promise(() => control.query(`alter table "${host.namespace}_records" rename column ${from} to ${to}`));
+	}
+	yield* Effect.addFinalizer(() =>
+		Effect.gen(function* () {
+			if (broken) {
+				yield* rename("unavailable_payload", "payload");
+			}
+			yield* Effect.promise(() => control.end());
+			queries.mockRestore();
+		}),
+	);
+	return {
+		breakReads: rename("payload", "unavailable_payload").pipe(
+			Effect.tap(() =>
+				Effect.sync(() => {
+					broken = true;
+				}),
+			),
+		),
+		count: () =>
+			queries.mock.calls.filter(
+				([query]) => typeof query === "string" && query.includes("jsonb_strip_nulls") && query.includes(`${host.namespace}_records`),
+			).length,
+		restoreReads: rename("unavailable_payload", "payload").pipe(
+			Effect.tap(() =>
+				Effect.sync(() => {
+					broken = false;
+				}),
+			),
+		),
+	};
+});
+
+export const untilReads = Effect.fn("SnapshotTest.untilReads")(function* (reads: { readonly count: () => number }, count: number) {
+	for (let attempt = 0; attempt < 1000; attempt += 1) {
+		if (reads.count() >= count) {
+			return;
+		}
+		yield* Effect.sleep("10 millis");
+	}
+	return yield* Effect.die(new Error(`Expected ${count} snapshot reads, got ${reads.count()}`));
+});
+
+export function withSnapshotDaemon<A, E, R>(
+	use: (fixture: HostFixture, port: number, reads: Effect.Success<ReturnType<typeof snapshotReads>>) => Effect.Effect<A, E, R>,
+) {
+	return withHost({}, {}, (fixture) =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				yield* storeState(fixture.host, "one", { stage: "executing" });
+				yield* storeState(fixture.host, "marker", { stage: "released" });
+				const reads = yield* snapshotReads(fixture.host);
+				return yield* withReadDaemon(fixture.host, (port) => use(fixture, port, reads), fixture.parts);
+			}),
+		),
+	);
+}
