@@ -39,6 +39,10 @@ describe("GitHub worker result adoption", () => {
 		);
 		const result = yield* integrations.result(work, completed(NO_CHANGE));
 		expect(result.kind).toBe("no-change");
+		expect(yield* integrations.checks(work, result).pipe(Effect.flip)).toMatchObject({
+			message: "GitHub checks need an adopted pull request",
+			reason: "integration",
+		});
 		expect(yield* integrations.review(work, result, "review-operation").pipe(Effect.flip)).toMatchObject({ reason: "integration" });
 	});
 

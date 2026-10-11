@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import { Effect, Schema } from "effect";
 import { FleetFailure } from "#policy.ts";
 
@@ -23,21 +22,6 @@ export const FilePages = Schema.Array(
 export const Repository = Schema.Struct({ nameWithOwner: Schema.String });
 
 export type GithubRead = (args: readonly string[]) => Effect.Effect<string, FleetFailure>;
-
-export function githubRead(cwd: string): GithubRead {
-	return (args) =>
-		Effect.callback<string, FleetFailure>((resume) => {
-			const controller = new AbortController();
-			execFile("gh", [...args], { cwd, maxBuffer: 16 * 1024 * 1024, signal: controller.signal, timeout: 60_000 }, (error, stdout) => {
-				resume(
-					error === null
-						? Effect.succeed(stdout)
-						: Effect.fail(new FleetFailure({ message: `GitHub observation failed: ${error.message}`, reason: "integration" })),
-				);
-			});
-			return Effect.sync(() => controller.abort());
-		});
-}
 
 export function githubJson<TSchema extends Schema.Top>(schema: TSchema, read: GithubRead, args: readonly string[]) {
 	return read(args).pipe(

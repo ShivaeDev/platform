@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+- Share the scoped GitHub CLI reader between worker-result adoption and required checks.
 - Select GitHub worker-result adoption in host configuration. Require a final PR marker and exact reported head, record the observed PR number and paginated changed paths, and reject closed PRs or revision movement. Reported no-change still requires independent review and validation.
+- Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
+  pending checks in validation and send failed check names and links to repair.
 
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`

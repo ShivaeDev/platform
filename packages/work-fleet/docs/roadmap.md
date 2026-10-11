@@ -38,6 +38,8 @@ relevant or uncertain changes require preparation again for the affected work.
 
 The host can select GitHub result adoption with `result: "github"`. Synthetic GitHub responses prove strict final-report parsing, exact reported-head checks, open PR identity, paginated paths and observation-race rejection. PostgreSQL fixtures persist the adopted PR number, head and paths, route failed adoption to a human decision, and require terminal independent review and checks before accepting a reported no-change result. Live GitHub adoption remains pilot evidence.
 
+The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
+
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
 response recording, native Fleet RPC and the actual admission/completion paths.
 Provider execution and delivery in those fixtures are synthetic. These tests prove

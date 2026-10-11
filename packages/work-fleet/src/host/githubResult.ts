@@ -1,12 +1,18 @@
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import type { FleetHost } from "#host/config.ts";
-import { FilePages, type GithubRead, githubJson, githubRead, PullRequest, Repository } from "#host/github.ts";
+import { FilePages, type GithubRead, githubJson, PullRequest, Repository } from "#host/github.ts";
+import { githubRead } from "#host/githubRead.ts";
 import type { MainSource } from "#host/mainSource.ts";
 import { resultReport } from "#host/resultReport.ts";
 import { type BoardWork, FleetFailure, type WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
-export function githubResult(host: FleetHost, main: MainSource["Service"], read: GithubRead = githubRead(main.repositoryRoot)) {
+export function githubResult(
+	host: FleetHost,
+	main: MainSource["Service"],
+	read: GithubRead = (args) => githubRead(args, main.repositoryRoot).pipe(Effect.provide(NodeServices.layer)),
+) {
 	return Effect.fn("FleetHost.githubResult")(function* (
 		_work: BoardWork,
 		observation: SessionObservation,
