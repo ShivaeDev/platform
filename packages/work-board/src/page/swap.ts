@@ -1,5 +1,5 @@
 export const swap = `
-const containers = new Set(["DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "MAIN", "NAV", "FORM", "SELECT", "LABEL", "ASIDE"]);
+const containers = new Set(["DIV", "SECTION", "ARTICLE", "HEADER", "FOOTER", "MAIN", "NAV", "FORM", "SELECT", "LABEL", "ASIDE", "DETAILS"]);
 
 const structural = (element) => [...element.childNodes].every((node) => node.nodeType === 1 || node.textContent.trim() === "");
 
@@ -44,7 +44,12 @@ const signature = (element) => {
   return pristine.get(element);
 };
 
-const normalizedShell = (element) => { const copy = element.cloneNode(false); copy.removeAttribute("data-live-change"); return copy.outerHTML; };
+const normalizedShell = (element) => {
+  const copy = element.cloneNode(false);
+  copy.removeAttribute("data-live-change");
+  if (copy.tagName === "DETAILS") copy.removeAttribute("open");
+  return copy.outerHTML;
+};
 
 const sameShell = (old, next) =>
   old.tagName === next.tagName && containers.has(old.tagName) && normalizedShell(old) === normalizedShell(next);

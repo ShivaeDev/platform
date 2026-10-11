@@ -1,6 +1,7 @@
 import { inboxStyle } from "#attention/inboxHtml.ts";
 import { attentionStyle } from "#attention/style.ts";
 import { diagnosticsStyle } from "#diagnostics/style.ts";
+import { itemStyles } from "#page/itemStyles.ts";
 import { metadataStyles } from "#page/metadata.ts";
 import { readingStyles } from "#page/readingStyles.ts";
 import { searchStyles } from "#page/searchDialog.ts";
@@ -105,6 +106,7 @@ export const style =
 	+ readingStyles()
 	+ searchStyles
 	+ metadataStyles
+	+ itemStyles()
 	+ workStyle()
 	+ attentionStyle()
 	+ visualStyles
