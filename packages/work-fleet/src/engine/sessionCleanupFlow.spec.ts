@@ -4,6 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
+import { captureLogs } from "#test/captureLogs.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
@@ -86,8 +87,9 @@ describe("Fleet session cleanup", () => {
 				expect(fixture.archived).toHaveLength(2);
 			}),
 		));
-	test("archive failure preserves completion and retries after a host restart without repeating delivery", () =>
-		withEngine({ archiveFailure: true }, (fixture) =>
+	test("archive failure warns and preserves completion and retries after a host restart without repeating delivery", () => {
+		const logs = captureLogs();
+		return withEngine({ archiveFailure: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
@@ -96,13 +98,22 @@ describe("Fleet session cleanup", () => {
 				const completed = yield* fleet.reconcile("one");
 				expect(completed.value.stage).toBe("completed");
 				expect(pendingSessionCleanup(completed.value)).toHaveLength(1);
+				expect(logs.entries).toEqual([
+					{
+						annotations: { sessionId: pendingSessionCleanup(completed.value)[0] },
+						cause: expect.stringContaining("Archive temporarily unavailable"),
+						level: "Warn",
+						message: ["Fleet session cleanup failed; reconciliation will retry"],
+					},
+				]);
 				expect(fixture.archived).toHaveLength(1);
 				yield* fixture.restart(cycle);
 				expect(pendingSessionCleanup((yield* fleet.get("one")).value)).toEqual([]);
 				expect(fixture.archived).toHaveLength(2);
 				expect(fixture.merged).toHaveLength(1);
 			}),
-		));
+		).pipe(Effect.provide(logs.layer));
+	});
 	test("cleans up a retained session whose first turn was rejected on release", () =>
 		withEngine({ rejectTurn: true }, (fixture) =>
 			Effect.gen(function* () {

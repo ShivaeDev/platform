@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
 import { type Attempt, allAttempts, type FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -25,7 +25,9 @@ export function cleanupSessions({ sessions, load, save }: EngineState) {
 		for (const id of pendingSessionCleanup(stored.value)) {
 			const result = yield* sessions.archive(id).pipe(Effect.result);
 			if (result._tag === "Failure") {
-				yield* Effect.logWarning("Fleet session cleanup failed; reconciliation will retry");
+				yield* Effect.logWarning("Fleet session cleanup failed; reconciliation will retry", Cause.fail(result.failure)).pipe(
+					Effect.annotateLogs({ sessionId: id }),
+				);
 				continue;
 			}
 			stored = yield* load(input.value.workId);

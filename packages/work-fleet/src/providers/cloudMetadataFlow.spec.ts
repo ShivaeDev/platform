@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { SessionService } from "#session/service.ts";
+import { captureLogs } from "#test/captureLogs.ts";
 import { SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { receipt } from "#test/session.ts";
 import { withCloudMetadata } from "#test/withCloudMetadata.ts";
@@ -42,13 +43,24 @@ it.live("retains threads when archiving is turned off in host config", () =>
 	),
 );
 
-it.live("retains the acknowledged session without starting a turn when naming fails", () =>
-	withCloudMetadata({ rejectName: true }, (requests, persisted) =>
-		Effect.gen(function* () {
-			const sessions = yield* SessionService;
-			expect((yield* sessions.start(input).pipe(Effect.flip)).reason).toBe("rejected");
-			expect(persisted).toEqual([receipt.sessionId, "name requested"]);
-			expect(requests.map((request) => request.method)).not.toContain("turn/start");
-		}),
-	),
-);
+for (const nameFailure of ["rejected", "timeout"] as const) {
+	it.live(`starts the turn after naming is ${nameFailure} and warns with the session and cause`, () => {
+		const logs = captureLogs();
+		return withCloudMetadata({ nameFailure, requestTimeoutMs: 1000 }, (requests, persisted) =>
+			Effect.gen(function* () {
+				const sessions = yield* SessionService;
+				expect(yield* sessions.start(input)).toEqual(receipt);
+				expect(persisted).toEqual([receipt.sessionId, "name requested"]);
+				expect(requests.filter((request) => request.method === "turn/start")).toHaveLength(1);
+				expect(logs.entries.filter((entry) => entry.level === "Warn")).toEqual([
+					{
+						annotations: { sessionId: receipt.sessionId },
+						cause: expect.stringContaining(nameFailure === "rejected" ? "Name rejected" : "Codex request timed out"),
+						level: "Warn",
+						message: ["Fleet session naming failed; starting the turn"],
+					},
+				]);
+			}),
+		).pipe(Effect.provide(logs.layer));
+	});
+}

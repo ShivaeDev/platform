@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { Cause, Context, Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { ContinueSession, ReconcileSession, SessionFailure, SessionObservation, SessionReceipt, StartSession } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
@@ -62,7 +62,11 @@ export const SessionService = defineService({
 				Effect.gen(function* () {
 					const sessionId = yield* restore(transport.startSession(input));
 					yield* journal.acknowledgeSession(input.operationId, sessionId);
-					yield* restore(transport.nameSession?.(sessionId) ?? Effect.void);
+					yield* restore(transport.nameSession?.(sessionId) ?? Effect.void).pipe(
+						Effect.catch((cause) =>
+							Effect.logWarning("Fleet session naming failed; starting the turn", Cause.fail(cause)).pipe(Effect.annotateLogs({ sessionId })),
+						),
+					);
 					const receipt = yield* restore(
 						transport.startTurn({
 							operationId: input.operationId,

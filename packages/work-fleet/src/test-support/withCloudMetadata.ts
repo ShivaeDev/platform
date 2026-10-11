@@ -8,7 +8,7 @@ import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETI
 import { receipt } from "#test/session.ts";
 
 export function withCloudMetadata<A, E>(
-	options: Partial<CodexCloudConfiguration> & { readonly rejectName?: boolean },
+	options: Partial<CodexCloudConfiguration> & { readonly nameFailure?: "rejected" | "timeout" },
 	use: (requests: readonly WireRequest[], persisted: readonly string[]) => Effect.Effect<A, E, typeof SessionService.Identifier>,
 ) {
 	return Effect.scoped(
@@ -22,7 +22,10 @@ export function withCloudMetadata<A, E>(
 						return { thread: { id: receipt.sessionId } };
 					case "thread/name/set":
 						persisted.push("name requested");
-						return options.rejectName ? new WireRejection("Name rejected") : {};
+						if (options.nameFailure === "timeout") {
+							return undefined;
+						}
+						return options.nameFailure === "rejected" ? new WireRejection("Name rejected") : {};
 					case "thread/read":
 						return cloudThread();
 					case "turn/start":
