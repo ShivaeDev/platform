@@ -5,8 +5,8 @@ import { GitHub } from "./GitHub.ts";
 import type { Options, Snapshot, State, WatchError } from "./model.ts";
 import { StateFile } from "./StateFile.ts";
 
-function activeNumbers(options: Options, discovered: readonly number[], state: State) {
-	return [...new Set([...options.numbers, ...discovered, ...Object.keys(state.prs).map(Number)])].filter((number) => {
+function activeNumbers(options: Options, state: State) {
+	return [...new Set([...options.numbers, ...(state.openNumbers ?? []), ...Object.keys(state.prs).map(Number)])].filter((number) => {
 		const saved = state.prs[String(number)];
 		return saved === undefined || (saved.state === "open" && !saved.merged);
 	});
@@ -20,10 +20,19 @@ export const Watcher = defineService({
 		function commit(state: State, snapshot: Snapshot, options: Options, emit: (line: string) => Effect.Effect<void, WatchError>) {
 			return Effect.uninterruptible(
 				Effect.gen(function* () {
-					for (const line of events(state.prs[String(snapshot.number)], snapshot)) {
+					const before = state.prs[String(snapshot.number)];
+					const baseline =
+						before === undefined && snapshot.state === "closed" && state.openNumbers?.includes(snapshot.number)
+							? { ...snapshot, merged: false, state: "open" as const }
+							: before;
+					for (const line of events(baseline, snapshot)) {
 						yield* emit(line);
 					}
-					const next = { ...state, prs: { ...state.prs, [String(snapshot.number)]: snapshot } };
+					const next = {
+						...state,
+						openNumbers: (state.openNumbers ?? []).filter((number) => number !== snapshot.number),
+						prs: { ...state.prs, [String(snapshot.number)]: snapshot },
+					};
 					yield* file.save(options.stateFile, next);
 					return next;
 				}),
@@ -38,9 +47,14 @@ export const Watcher = defineService({
 		function targets(options: Options, state: State) {
 			return Effect.gen(function* () {
 				const discovered = options.fleet ? yield* github.discover(options) : [];
-				const numbers = activeNumbers(options, discovered, state);
+				const openNumbers = [...new Set([...(state.openNumbers ?? []), ...discovered])].filter((number) => state.prs[String(number)] === undefined);
+				const next = openNumbers.length === (state.openNumbers?.length ?? 0) ? state : { ...state, openNumbers };
+				if (next !== state) {
+					yield* Effect.uninterruptible(file.save(options.stateFile, next));
+				}
+				const numbers = activeNumbers(options, next);
 				const queue = numbers.length > 0 ? yield* github.queue(options) : new Set<number>();
-				return { numbers, queue };
+				return { numbers, queue, state: next };
 			});
 		}
 		return {
@@ -54,7 +68,9 @@ export const Watcher = defineService({
 			) =>
 				Effect.gen(function* () {
 					let state: State = { ...previous, prs: { ...previous.prs } };
-					const { numbers, queue } = yield* targets(options, state);
+					const targetsForRound = yield* targets(options, state);
+					const { numbers, queue } = targetsForRound;
+					state = targetsForRound.state;
 					let failure: WatchError | undefined;
 					for (const number of numbers) {
 						const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));

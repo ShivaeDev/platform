@@ -40,6 +40,17 @@ effectApp("once fails on request failure and help prints the CLI usage", functio
 	yield* program(["--help"], "", h.emit, h.diagnostic);
 	expect(h.lines[0]).toContain("pr-watch --repo OWNER/REPO");
 });
+effectApp("continuous fleet polling reloads discovered open PRs after a failed first snapshot", function* (h) {
+	h.setPull(1, { mergeable: null, "mergeable_state": "unknown" });
+	const running = yield* Effect.forkChild(program([...args(h), "--fleet", "--interval", "1"], "token", h.emit, h.diagnostic));
+	yield* until(() => h.diagnostics.length > 0);
+	h.setPull(1, { merged: true, state: "closed" });
+	h.set("/pulls?state=open&per_page=100", { body: [] });
+	yield* until(() => h.lines.length === 1);
+	yield* Fiber.interrupt(running);
+	yield* h.restart;
+	expect(h.lines.map((line) => JSON.parse(line))).toEqual([{ branch: "feature-1", event: "merged", number: 1, title: "Change 1" }]);
+});
 effectApp("graceful interruption waits for output and snapshot replacement", function* (h) {
 	const state = yield* h.cycle;
 	h.setPull(1, { merged: true, state: "closed" });

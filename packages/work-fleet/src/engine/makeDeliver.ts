@@ -3,6 +3,8 @@ import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
+import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
+import { MovedPrHead } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { ChangeResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -37,6 +39,20 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	const observed = yield* integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed)) {
+		if (
+			observed.failure instanceof MovedPrHead
+			&& !executing(record)
+			&& record.review?.verdict === "approved"
+			&& record.review.head === result.head
+		) {
+			const work = yield* state.board.get(record.workId);
+			current = yield* invalidateMergeReadiness(state, stored);
+			return yield* refreshReviewResult(state)(current, work, result, observed.failure.head).pipe(
+				Effect.catchTag("FleetFailure", (error) =>
+					waitingDecision(error.message, "Inspect the current PR result before retrying or releasing this work"),
+				),
+			);
+		}
 		if (observed.failure.reason === "integration" && record.decision !== undefined) {
 			return stored;
 		}

@@ -89,7 +89,7 @@ test("a human merge of a changed head cannot reuse the old review and checks", (
 			observation = { ...merged, headRefOid: "unreviewed-head" };
 			const blocked = yield* fleet.reconcile("one");
 			expect(blocked.value.stage).toBe("needs-human");
-			expect(blocked.value.decision?.reason).toContain("differs from the reviewed head");
+			expect(blocked.value.decision?.reason).toBe("Current PR result does not match the observed delivery head");
 			expect(blocked.value.outcome).toBeUndefined();
 			expect(backlog(blocked.value)).toBe(true);
 		}),
