@@ -2,12 +2,7 @@
 
 ## Unreleased
 
-- Continue terminal needs-human or completed work on its existing worker thread with
-  `work-fleet continue <id> <message>` or a message on stdin. Persist each message
-  and attempt before submission, preserve the prior cycle in history, and reconcile
-  lost acknowledgements without replay. Status and wait follow the continued turn
-  and result; running and released work cannot be continued.
-
+- Follow multiple items with `work-fleet watch [ids...]`, emitting one line per completed, needs-human or released item. With no IDs, follow the active items at startup. Watch and wait read only summary fields in one PostgreSQL query per poll; wait retains its exit codes.
 - Generate `fleet/status.md` from the CLI host's Fleet views, with Active, Needs human and Done heading columns, task and adopted PR links, and live Work Board updates. Preserve authored sources and retry failed publication without changing execution outcomes.
 - Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
@@ -24,6 +19,7 @@
   `FLEET_PR:` report line.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
+- Continue terminal needs-human or completed work on its existing worker thread with `work-fleet continue <id> <message>` or a message on stdin. Persist each message and attempt before submission, preserve the prior cycle in history, and reconcile lost acknowledgements without replay. Status and wait follow the continued turn and result; running and released work cannot be continued.
 
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
   transactional reservations, session/turn receipts and native command/query contracts.
@@ -40,3 +36,6 @@
 - Acknowledge applied or superseded managed Board requests after SQL commits, using
   immutable qualified receipts and persisted publication markers; retry pending
   acknowledgement without repeating actions or rewriting reviewed source.
+- Wait for observed Cloud fanout launch and restart recovery progress, failing after 20 seconds without progress rather than limiting all 100 attempts to one wall-clock budget.
+- Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
+- Test host restarts with real PostgreSQL and a synthetic Cloud WebSocket server: SIGKILL before and after thread/turn mutations does not replay submissions, and 100 lost turn acknowledgements recover the existing sessions.
