@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Schema } from "effect";
-import { boardDocuments } from "#board/documents.ts";
+import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { Fleet } from "#fleet.ts";
@@ -100,7 +100,9 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 	const board = yield* BoardGateway;
 	yield* (yield* MainSource).refresh;
 	const records = new Map((yield* fleet.list()).map(({ value }) => [value.workId, value]));
-	const failures: string[] = [];
+	const fs = yield* FileSystem.FileSystem;
+	const snapshot = yield* boardSnapshot(host.boardDir, yield* fs.realPath(host.boardDir));
+	const failures = Array.from(snapshot.problems.values(), (problem) => problem.message);
 	for (const workId of yield* approvedWorkIds(host)) {
 		const admitted = yield* board.get(workId).pipe(
 			Effect.flatMap((work) => prepareApproved(host, work, records.get(workId), "board")),
