@@ -52,15 +52,24 @@ function nextFrame(buffered: Buffer) {
 	}
 	return { body, consumed: offset + 4 + length, opcode };
 }
-function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
+async function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
 	const message = Schema.decodeUnknownSync(WireRequest)(JSON.parse(body.toString()));
-	const result = handle(message);
+	const result = await handle(message);
 	if (message.id === undefined || result === undefined) {
 		return undefined;
 	}
 	return result instanceof WireRejection
 		? { error: { code: -32_602, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
 		: { id: message.id, result };
+}
+function sendReply(socket: Duplex, handle: (request: WireRequest) => unknown, body: Buffer) {
+	respond(handle, body)
+		.then((reply) => {
+			if (reply !== undefined && !socket.destroyed) {
+				socket.write(frame(reply));
+			}
+		})
+		.catch(() => socket.destroy());
 }
 function offeredProtocols(header: string | undefined) {
 	return (header ?? "")
@@ -105,10 +114,7 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 							return;
 						}
 						buffered = buffered.subarray(parsed.consumed);
-						const reply = respond(handle, parsed.body);
-						if (reply !== undefined) {
-							socket.write(frame(reply));
-						}
+						sendReply(socket, handle, parsed.body);
 					}
 				});
 			});

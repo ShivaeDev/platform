@@ -83,6 +83,7 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 		const adapter = codexAdapter(rpc, {
 			beforeTurn: verifyEnvironment,
 			provisioning: "unknown",
+			recoveryGraceMs: 5000,
 			threadStart: (input) => threadStart(config, input),
 		});
 		return {

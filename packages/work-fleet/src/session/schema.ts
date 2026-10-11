@@ -47,6 +47,13 @@ export const ContinueSession = Schema.Struct({
 export type ContinueSession = typeof ContinueSession.Type;
 export const ReconcileSession = Schema.Struct({
 	operationId: Schema.String,
+	resume: Schema.optional(
+		Schema.Struct({
+			access: ContinueSession.fields.access,
+			prompt: ContinueSession.fields.prompt,
+			settings: ContinueSession.fields.settings,
+		}),
+	),
 	sessionId: Schema.optional(Schema.String),
 	turnId: Schema.optional(Schema.String),
 });
