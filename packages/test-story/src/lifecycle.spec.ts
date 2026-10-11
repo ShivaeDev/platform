@@ -1,40 +1,48 @@
 import { Clock, Effect } from "effect";
-import { expect } from "vitest";
+import { afterAll, expect } from "vitest";
 import { storyKit } from "#storyKit.ts";
 
-const events: string[] = [];
+// Vitest retries `.fails` stories in the merge queue, so every attempt records its own events.
+const attempts: string[][] = [];
+let events: string[] = [];
+function record(event: string) {
+	const current = events;
+	current.push(event);
+	return Effect.addFinalizer(() => Effect.sync(() => current.push(`${event} closed`)));
+}
 const kit = storyKit({
 	after: {
 		*built() {
-			events.push("after");
-			yield* Effect.addFinalizer(() => Effect.sync(() => events.push("after closed")));
+			yield* record("after");
 		},
 	},
 	around: (effect) =>
 		Effect.gen(function* () {
-			events.push("enter");
-			return yield* effect;
-		}).pipe(Effect.ensuring(Effect.sync(() => events.push("exit")))),
+			const current: string[] = [];
+			events = current;
+			attempts.push(current);
+			current.push("enter");
+			return yield* effect.pipe(Effect.ensuring(Effect.sync(() => current.push("exit"))));
+		}),
 	clock: "live",
 	*create() {
-		events.push("create");
-		return yield* Effect.acquireRelease(Effect.succeed({}), () => Effect.sync(() => events.push("engine closed")));
+		yield* record("engine");
+		return {};
 	},
 	name: "lifetime",
 	stages: ["built"],
 	verbs: () => ({}),
 });
 const resource = kit.trait("built", "a scoped resource is acquired", function* () {
-	events.push("trait");
-	yield* Effect.addFinalizer(() => Effect.sync(() => events.push("trait closed")));
+	yield* record("trait");
 });
 kit.it.fails("closes resources after a failed story", [resource], function* () {
 	events.push("body");
 	expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
 	yield* Effect.fail("intentional failure");
 });
-kit.it("wraps creation, seeding and body and closes scoped resources", [], function* () {
-	expect(events.slice(0, 9)).toEqual(["enter", "create", "trait", "after", "body", "exit", "after closed", "trait closed", "engine closed"]);
+kit.it("wraps creation, seeding and body and closes scoped resources", [resource], function* () {
+	events.push("body");
 	expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
 });
 kit.it(
@@ -45,3 +53,10 @@ kit.it(
 	},
 	{ clock: "test" },
 );
+afterAll(() => {
+	const scoped = attempts.filter((attempt) => attempt.includes("body"));
+	expect(scoped.length).toBeGreaterThanOrEqual(2);
+	for (const attempt of scoped) {
+		expect(attempt).toEqual(["enter", "engine", "trait", "after", "body", "exit", "after closed", "trait closed", "engine closed"]);
+	}
+});
