@@ -6,7 +6,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
-import { reportPrompt } from "#prompt/worker.ts";
+import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
 	const { store, board, policy, sessions, load, save, decision } = state;
@@ -25,7 +25,8 @@ export function makeLaunch(state: EngineState) {
 			sessionId,
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
-		const workerPrompt = retryPrompt ?? (stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt);
+		const workerPrompt =
+			retryPrompt ?? withWorkerGuidance(stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt, policy.workerGuidance);
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
 			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope", undefined, "maintainer");

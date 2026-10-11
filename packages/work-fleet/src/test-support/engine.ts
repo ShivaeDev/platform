@@ -3,7 +3,7 @@ import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
-import { BoardFailure, type BoardGateway, type BoardWork, FleetPolicy } from "#policy.ts";
+import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
 import { checkAreas, requeue } from "#scheduling/areas.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
@@ -34,6 +34,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
 		effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
+		configure?: (policy: FleetConfiguration) => FleetConfiguration,
 	) => Effect.Effect<TResult, TFailure | TBoardError>;
 	readonly reviews: readonly string[];
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
@@ -72,15 +73,12 @@ export function withEngine<A, E, TBoardError = never>(
 					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
 					: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses)),
 			);
-			const base = Layer.mergeAll(
-				Layer.succeed(FleetRepository)(store),
-				boardOverride ?? scripted.layer,
-				Layer.succeed(FleetPolicy)(policy),
-				provider.transport,
-			);
+			const base = Layer.mergeAll(Layer.succeed(FleetRepository)(store), boardOverride ?? scripted.layer, provider.transport);
 			const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
 			const integrations = engineIntegrations(options, merged);
-			const fleetLayer = Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations)));
+			function fleetLayer(configuration = policy) {
+				return Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations, Layer.succeed(FleetPolicy)(configuration))));
+			}
 			function foreign(owner: string) {
 				return store.reserveForeign(owner, { backlog: true, executing: false });
 			}
@@ -114,8 +112,10 @@ export function withEngine<A, E, TBoardError = never>(
 				merged,
 				replaceRecord,
 				respond: scripted.respond,
-				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) =>
-					effect.pipe(Effect.provide(Layer.fresh(fleetLayer))),
+				restart: <TResult, TFailure>(
+					effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
+					configure?: (policy: FleetConfiguration) => FleetConfiguration,
+				) => effect.pipe(Effect.provide(Layer.fresh(fleetLayer(configure?.(policy) ?? policy)))),
 				reviews,
 				unavailableWork: (workId: string, value: boolean) => {
 					if (value) {
@@ -127,7 +127,7 @@ export function withEngine<A, E, TBoardError = never>(
 				upgradeAttention,
 				work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
 			};
-			return yield* use(fixture).pipe(Effect.provide(fleetLayer));
+			return yield* use(fixture).pipe(Effect.provide(fleetLayer()));
 		}),
 	);
 }

@@ -12,6 +12,7 @@ it("collects human-owned next actions, open questions, needs-human work and mana
 	expect(html.match(/>Waiting on you</gu)).toHaveLength(1);
 	expect(html).toContain("Casey: Review the keyboard evidence");
 	expect(html).toContain("A question needs your answer");
+	expect(html).toContain('href="/_board/respond?item=question.storage&amp;request=answer"');
 	expect(html).toContain("Fleet needs a person: Confirm the deployment target");
 	expect(html).toContain("Managed decision: Delivery needs approval");
 	expect(html).toContain('data-modified="3000"');
