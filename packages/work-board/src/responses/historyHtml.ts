@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { QuestionPreview, RecordedResponse } from "#browser/responses/schema.ts";
 import { escapeHtml } from "#page/escape.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 
 export const historyHtml = Effect.fn("WorkBoard.historyHtml")(function* (

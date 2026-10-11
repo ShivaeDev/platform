@@ -1,8 +1,9 @@
 import { renameSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { changesUntil, type EventStream, type Folder, folder, type RunningBoard, startBoard, subscribe } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
+import { changesUntil, type EventStream, rpcSearch, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
 
 let workspace: Folder;
 let reference: Folder;
@@ -34,9 +35,11 @@ function get(path: string) {
 }
 
 async function ready(events: EventStream) {
-	let event = await events.next();
-	while (!event.startsWith("event: ready")) {
-		event = await events.next();
+	for (;;) {
+		await events.next();
+		if ((await rpcWatcher(board)).watching) {
+			return;
+		}
 	}
 }
 
@@ -63,7 +66,7 @@ it("reads linked reference Markdown with logical links, search, aliases and cycl
 	]) {
 		expect((await get(path)).status).toBe(404);
 	}
-	const search = await (await get("/_board/search?q=Reference%20passage")).text();
+	const search = JSON.stringify(await rpcSearch(board, "Reference passage"));
 	expect(search).toContain("reference/guide/start.md");
 	expect(search).toContain("second-reference/guide/start.md");
 });
@@ -82,12 +85,12 @@ it("watches external edits, additions, renames and removals using workspace-rela
 	const events = await subscribe(board);
 	try {
 		await ready(events);
-		await get("/_board/search?q=Reference%20passage");
+		await rpcSearch(board, "Reference passage");
 		reference.write("guide/start.md", "# Reference guide\n\nUpdated linked passage.\n");
 		await changesUntil(events, "reference/guide/start.md");
 		expect(await (await get("/reference/guide/start.md")).text()).toContain("Updated linked passage");
-		expect(await (await get("/_board/search?q=Updated%20linked%20passage")).text()).toContain("reference/guide/start.md");
-		expect((await (await get("/_board/search?q=Reference%20passage")).json()).total).toBe(0);
+		expect(JSON.stringify(await rpcSearch(board, "Updated linked passage"))).toContain("reference/guide/start.md");
+		expect((await rpcSearch(board, "Reference passage")).total).toBe(0);
 		reference.write("guide/added.md", "# Added reference\n");
 		await changesUntil(events, "reference/guide/added.md");
 		expect((await get("/reference/guide/added.md")).status).toBe(200);
@@ -119,7 +122,7 @@ it("discovers newly linked folders and retargeted links without restarting the s
 		expect((await get("/reference/guide/next.md")).status).toBe(404);
 		replacement.write("guide/start.md", "# Retargeted live reference\n");
 		await changesUntil(events, "reference/guide/start.md");
-		expect(await (await get("/_board/search?q=Retargeted%20live%20reference")).text()).toContain("reference/guide/start.md");
+		expect(JSON.stringify(await rpcSearch(board, "Retargeted live reference"))).toContain("reference/guide/start.md");
 	} finally {
 		events.close();
 	}
@@ -131,7 +134,7 @@ it("keeps escaping file links outside an explicitly included reference directory
 	board = await startBoard(workspace.root, "plan.md");
 	expect((await get("/reference/guide/leak.md")).status).toBe(404);
 	expect(await (await get("/")).text()).not.toContain("leak.md");
-	expect((await (await get("/_board/search?q=Replacement%20guide")).json()).total).toBe(0);
+	expect((await rpcSearch(board, "Replacement guide")).total).toBe(0);
 });
 
 it("discloses a failed linked watch and catches up its index after recovery", async () => {
@@ -141,17 +144,17 @@ it("discloses a failed linked watch and catches up its index after recovery", as
 	const events = await subscribe(board);
 	try {
 		await ready(events);
-		await get("/_board/search?q=Reference%20passage");
+		await rpcSearch(board, "Reference passage");
 		fault.fail();
-		let event = await events.next();
-		while (!event.startsWith("event: down")) {
-			event = await events.next();
+		await events.next();
+		while ((await rpcWatcher(board)).watching) {
+			await events.next();
 		}
 		reference.write("guide/start.md", "# Updated while watching unavailable\n");
-		expect((await (await get("/_board/search?q=watching%20unavailable")).json()).total).toBeGreaterThan(0);
+		expect((await rpcSearch(board, "watching unavailable")).total).toBeGreaterThan(0);
 		fault.heal();
 		await ready(events);
-		expect((await (await get("/_board/search?q=Reference%20passage")).json()).total).toBe(0);
+		expect((await rpcSearch(board, "Reference passage")).total).toBe(0);
 	} finally {
 		events.close();
 	}

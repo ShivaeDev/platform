@@ -10,7 +10,7 @@ The reading, response, handoff and result-review implementation has these capabi
 | --- | --- | --- |
 | [01](delivery/wave1.md#01-a-real-workspace-shell) | Workspace shell, theme/density/sidebar preferences | `src/page/shell.test.ts`, `src/page/client.dom.test.ts`, `src/page/sidebarScript.dom.test.ts` |
 | [02](delivery/wave1.md#02-document-locations-and-reading-state) | Passage links, reading navigation, favorites and recents | `src/render/documentHeadings.test.ts`, `src/page/navigationScript.dom.test.ts` |
-| [03](delivery/wave1.md#03-find-work-from-anywhere) | Local deterministic search and command dialog | `src/search/entries.test.ts`, `src/http/search.test.ts`, `src/page/searchRequests.dom.spec.ts` |
+| [03](delivery/wave1.md#03-find-work-from-anywhere) | Local deterministic search and command dialog | `src/search/entries.test.ts`, `src/http/search.spec.ts`, `src/page/searchRequests.dom.spec.ts` |
 | [04](delivery/wave1.md#04-optional-identity-and-a-rebuildable-index) | Optional identity, metadata and rebuildable reference index | `src/metadata/parse.test.ts`, `src/metadata/model.test.ts`, `src/http/identity.test.ts` |
 | [05](delivery/wave1.md#05-one-body-of-work-several-views) | Shared board/table projections, URL state and named local views | `src/http/work.test.ts`, `src/http/tableViews.spec.ts`, `src/page/savedViews.dom.spec.ts` |
 | [06](delivery/wave1.md#06-follow-the-reasoning-and-the-evidence) | Relationships, source backlinks and recorded criterion claims | `src/http/reasoning.spec.ts`, `src/page/reasoning.dom.spec.ts` |
