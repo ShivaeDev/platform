@@ -1,4 +1,5 @@
 import { afterEach, expect, it } from "vitest";
+import { legacyPage } from "#browser/react/legacyPage.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { expectTitleInFirstScreen } from "#test/expectTitleInFirstScreen.ts";
@@ -96,8 +97,7 @@ it("shows unknown authored values, moves a top-level title before preamble and k
 	expect(page.document.querySelector(".item-summary")?.textContent).toBe("Status (source): Not recordedNext action: Not recorded");
 	expect(page.document.querySelector(".doc > p")?.textContent).toBe("A preamble remains readable.");
 	expect(page.document.querySelector(".doc h2:last-child")?.id).toBe("heading-unknown-status-2");
-	const plain = document.createElement("div");
-	plain.innerHTML = (await rawGet(board, "/plain.md")).body;
+	const plain = legacyPage((await rawGet(board, "/plain.md")).body);
 	expect(plain.querySelector(".item-introduction h1")?.textContent).toBe("plain.md");
 	expect(plain.querySelector(".item-summary")).toBeNull();
 	expect(plain.querySelector(".doc")?.textContent).toBe("An ordinary note without a heading.");

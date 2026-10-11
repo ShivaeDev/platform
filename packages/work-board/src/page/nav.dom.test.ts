@@ -1,6 +1,7 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
+import { legacyPage } from "#browser/react/legacyPage.ts";
 import { type Folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import type { OpenPage } from "#test/browser.ts";
 import { openLive, waitFor } from "#test/live.ts";
@@ -60,8 +61,7 @@ it("serves a native reference tree and preserves parent and child state through 
 	board = await startBoard(notes.root, "root.md");
 	const response = await rawGet(board, "/packages/form/README.md");
 	expect(response.status).toBe(200);
-	const html = document.createElement("div");
-	html.innerHTML = response.body;
+	const html = legacyPage(response.body);
 	expect([...html.querySelectorAll("#sidebar > [id]")].map((element) => element.id)).toEqual([
 		"primary-navigation",
 		"library-open",
@@ -110,5 +110,5 @@ it("serves a native reference tree and preserves parent and child state through 
 	await waitFor(() => expect(page.window.location.pathname).toBe("/packages/changes/guide.md"));
 	await waitFor(() => expect(folderAt("packages").open).toBe(true));
 	expect(folderAt("packages/changes").open).toBe(true);
-	expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/packages/changes/guide.md");
+	await waitFor(() => expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/packages/changes/guide.md"));
 });

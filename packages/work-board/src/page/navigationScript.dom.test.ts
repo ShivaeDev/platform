@@ -1,10 +1,12 @@
 import { realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ReadFailed } from "#rpc/contract.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
 import { FILES, settle, waitFor } from "#test/live.ts";
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
+import { rpcCall, rpcFailure } from "#test/rpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -128,10 +130,11 @@ describe("document navigation", () => {
 	it.each([undefined, 503, "network"] as const)("ignores an old page refresh after newer navigation (%s)", async (failWith) => {
 		await open();
 		const response = held();
+		const reads = page.pageRequests.count;
 		page.pageRequests.gate = response.gate;
 		page.pageRequests.failWith = failWith;
 		page.streams[0]?.emit("change");
-		await waitFor(() => expect(page.pageRequests.count).toBe(2));
+		await waitFor(() => expect(page.pageRequests.count).toBe(reads + 1));
 		click('#files a[href="/flow.md"]');
 		await settle();
 		await waitFor(() => expect(title()).toBe("Flow"));
@@ -186,4 +189,41 @@ it("keeps favorites usable across document navigation when browser storage is bl
 	await waitFor(() => expect(title()).toBe("Flow"));
 	expect(page.document.querySelector('#reading-library a[href="/plan.md"]')?.textContent).toBe("Plan");
 	expect(page.document.querySelector(".library-status")?.textContent).toContain("this page only");
+});
+
+it("retains reading history when the selected file is opened again", async () => {
+	page = await openPage(board, "/plan.md", (window) => {
+		window.history.replaceState({ workBoard: { id: "selected-file" } }, "");
+	});
+	page.document.querySelector("article details")?.setAttribute("open", "");
+	click('#files a[href="/plan.md"]');
+	await settle();
+	expect(page.window.history.state).toMatchObject({ workBoard: { id: "selected-file" } });
+	click('#files a[href="/flow.md"]');
+	await waitFor(() => expect(title()).toBe("Flow"));
+	page.window.history.back();
+	await waitFor(() => expect(title()).toBe("Plan"));
+	expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true);
+});
+
+it("retries the same route after a navigation request fails", async () => {
+	let fail = false;
+	page = await openPage(board, "/plan.md", (window) => {
+		const fetch = window.fetch.bind(window);
+		window.fetch = async (input, init) => {
+			const call = await rpcCall(window, input, init);
+			if (fail && call?.tag === "work-board.page" && JSON.stringify(call.payload).includes(JSON.stringify("/flow.md"))) {
+				return rpcFailure(window, call, new ReadFailed({ operation: "page", status: 503 }));
+			}
+			return fetch(input, init);
+		};
+	});
+	fail = true;
+	click('#files a[href="/flow.md"]');
+	await waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toContain("Could not open"));
+	expect(title()).toBe("Plan");
+	fail = false;
+	click('#files a[href="/flow.md"]');
+	await waitFor(() => expect(title()).toBe("Flow"));
+	expect(page.document.getElementById("navigation-status")?.textContent).toBe("");
 });

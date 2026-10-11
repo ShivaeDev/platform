@@ -15,10 +15,14 @@ afterEach(async () => {
 	await board?.stop();
 	notes?.remove();
 });
-async function open(kind: "handoff" | "response") {
+async function open(kind: "handoff" | "response", beforeScripts?: Parameters<typeof openPage>[2]) {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
 	board = await startBoard(notes.root, undefined, undefined, true);
-	page = await openPage(board, kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction");
+	page = await openPage(
+		board,
+		kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction",
+		beforeScripts,
+	);
 	await waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false));
 }
 function click(id: string) {
@@ -48,21 +52,22 @@ it("shows Schema field messages for handoff direction and clears them when corre
 });
 
 it("saves the captured response while retaining and resubmitting input typed during the command", async () => {
-	await open("response");
+	const gate = held();
+	let reached = false;
+	await open("response", (window) => {
+		const fetch = window.fetch.bind(window);
+		window.fetch = async (input, init) => {
+			const call = await rpcCall(window, input, init);
+			if (call?.tag === "work-board.recordResponse" && !reached) {
+				reached = true;
+				await gate.gate;
+			}
+			return fetch(input, init);
+		};
+	});
 	enterField(page, "author", "reviewer");
 	const body = enterField(page, "body", "First reviewed response");
 	click("response-preview");
-	const gate = held();
-	const fetch = page.window.fetch.bind(page.window);
-	let reached = false;
-	page.window.fetch = async (input, init) => {
-		const call = await rpcCall(page.window, input, init);
-		if (call?.tag === "work-board.recordResponse" && !reached) {
-			reached = true;
-			await gate.gate;
-		}
-		return fetch(input, init);
-	};
 	submit("response");
 	try {
 		await waitFor(() => expect(reached).toBe(true));

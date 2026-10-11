@@ -1,4 +1,5 @@
 import { afterEach, expect, it } from "vitest";
+import { legacyPage } from "#browser/react/legacyPage.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { capturedQuestionnaire, questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
@@ -32,7 +33,7 @@ it("starts each open packet with a primary action that opens its existing answer
 		expect(action?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
 		const response = await rawGet(board, action?.getAttribute("href") ?? "");
 		expect(response.status).toBe(200);
-		const form = new page.window.DOMParser().parseFromString(response.body, "text/html");
+		const form = legacyPage(response.body);
 		expect(form.querySelector('#response-form input[type="radio"]')).not.toBeNull();
 		expect(form.querySelector('#response-form input[type="checkbox"]')).not.toBeNull();
 	}

@@ -1,3 +1,4 @@
+import { Clock, Effect } from "effect";
 import { Browser, type BrowserWindow, type IFetchInterceptor } from "happy-dom";
 import { type RunningBoard, rawGet } from "./board.ts";
 import type { RpcStream } from "./RpcStream.ts";
@@ -82,7 +83,7 @@ function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: 
 export async function openPage(
 	board: RunningBoard,
 	path = "/",
-	beforeScripts: (window: BrowserWindow) => void | Promise<void> = async (): Promise<void> => undefined,
+	beforeScripts: (window: BrowserWindow, mermaid: MermaidControl) => void | Promise<void> = async (): Promise<void> => undefined,
 ): Promise<OpenPage> {
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
@@ -100,8 +101,22 @@ export async function openPage(
 	Object.assign(window, { mermaidStub: mermaid });
 	page.url = `${board.url}${path}`;
 	const html = (await rawGet(board, path)).body;
-	await beforeScripts(window);
+	await beforeScripts(window, mermaid);
 	page.content = html;
+	const deadline = Effect.runSync(Clock.currentTimeMillis) + 5000;
+	while (
+		!(
+			window.document.documentElement.dataset.boardReady
+			&& window.document.getElementById("doc")
+			&& window.document.querySelector("#files [data-inbox-count]")
+		)
+	) {
+		if (Effect.runSync(Clock.currentTimeMillis) >= deadline) {
+			throw new Error("The React shell did not initialize");
+		}
+		await new Promise<void>((resolve) => setTimeout(resolve, 10));
+	}
+
 	async function close() {
 		window.dispatchEvent(new window.Event("pagehide"));
 		for (const stream of streams) {

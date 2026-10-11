@@ -1,10 +1,12 @@
-import { Effect, FileSystem, Layer, Path, PubSub, Ref } from "effect";
+import { Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
+import { HttpServerRequest } from "effect/unstable/http";
 import type { Change, Changes } from "#files/changes.ts";
 import { HandoffsService } from "#handoffs/Service.ts";
+import { page } from "#http/page.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { ResponseConfig, Responses } from "#responses/service.ts";
-import { ReadFailed } from "#rpc/contract.ts";
 import { handlers } from "#rpc/handlers.ts";
 import { entriesOf } from "#search/entries.ts";
 import { metadataEntries } from "#search/metadataEntries.ts";
@@ -35,11 +37,46 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 				watching: yield* Ref.make(false),
 			};
 			const options = { changes, enabled: false, index: Effect.succeed(snapshot), root: "/board" };
+			const services = yield* Layer.build(
+				Layer.merge(Responses.layer, HandoffsService.layer).pipe(Layer.provide(Layer.succeed(ResponseConfig, options))),
+			);
+			const context = Context.merge(yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>(), services);
 			return yield* handlers({
 				...options,
 				home,
-				page: () => Effect.fail(new ReadFailed({ operation: "page", status: 404 })),
-			}).pipe(Effect.provide(Layer.merge(Responses.layer, HandoffsService.layer).pipe(Layer.provide(Layer.succeed(ResponseConfig, options)))));
+				page: (url) =>
+					page(
+						{ home, root: "/board" },
+						changes,
+						options.index,
+					)(HttpServerRequest.fromWeb(new Request(`http://127.0.0.1${url}`))).pipe(Effect.provideContext(context)),
+			}).pipe(Effect.provideContext(context));
 		}),
-	).pipe(Layer.provide([FileSystem.layerNoop({}), Path.layer]));
+	).pipe(
+		Layer.provide([
+			FileSystem.layerNoop({
+				readFileString: (path) => Effect.succeed(files[path.slice("/board/".length)] ?? ""),
+				realPath: (path) => Effect.succeed(path),
+				stat: () =>
+					Effect.succeed({
+						atime: Option.none(),
+						birthtime: Option.none(),
+						blksize: Option.none(),
+						blocks: Option.none(),
+						dev: 0,
+						gid: Option.none(),
+						ino: Option.none(),
+						mode: 0,
+						mtime: Option.none(),
+						nlink: Option.none(),
+						rdev: Option.none(),
+						size: FileSystem.Size(0),
+						type: "Directory",
+						uid: Option.none(),
+					}),
+			}),
+			Path.layer,
+			Highlighter.layer,
+		]),
+	);
 }

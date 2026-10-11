@@ -46,9 +46,10 @@ describe("diagrams", () => {
 	});
 
 	it("reserves space and hides a diagram's source until it is drawn", async () => {
-		page = await openPage(board, "/flow.md");
 		const drawing = held();
-		page.mermaid.gate = drawing.gate;
+		page = await openPage(board, "/flow.md", (_window, mermaid) => {
+			mermaid.gate = drawing.gate;
+		});
 		await waitFor(() => expect(page.mermaid.calls).toHaveLength(1));
 		expect(figure()?.getAttribute("data-state")).toBe("pending");
 		expect(sourceDisplay()).toBe("none");
@@ -145,9 +146,10 @@ describe("diagrams", () => {
 	});
 
 	it("never lets a drawing for the previous colour scheme replace one for the current scheme", async () => {
-		page = await openPage(board, "/flow.md");
 		const light = held();
-		page.mermaid.gate = light.gate;
+		page = await openPage(board, "/flow.md", (_window, mermaid) => {
+			mermaid.gate = light.gate;
+		});
 		await waitFor(() => expect(page.mermaid.calls).toHaveLength(1));
 		const darkDrawing = held();
 		page.mermaid.gate = darkDrawing.gate;

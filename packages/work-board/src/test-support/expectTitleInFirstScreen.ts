@@ -21,7 +21,7 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 	const layout = element(".document-layout");
 	const introduction = element(".item-introduction");
 	const title = element(".item-introduction h1");
-	expect([...element(".page").children]).toEqual([element(".bar"), element(".preferences"), main]);
+	expect([...element(".page").children]).toEqual([element(".bar"), element(".preferences"), element("[data-legacy-main]")]);
 	expect(main.firstElementChild).toBe(layout);
 	expect(layout.firstElementChild).toBe(introduction);
 	expect(introduction.firstElementChild).toBe(title);
