@@ -80,6 +80,10 @@ export function reportPrompt(task: string): string {
 	return task.endsWith(REPORT_INSTRUCTIONS) ? task : [task, "", QUESTION_INSTRUCTIONS, "", REPORT_INSTRUCTIONS].join("\n");
 }
 
+export function withWorkerGuidance(prompt: string, guidance?: string): string {
+	return guidance === undefined ? prompt : [prompt, "", "Repository worker guidance:", guidance].join("\n");
+}
+
 export function reportedPullRequest(output: string) {
 	const lines = output
 		.trim()

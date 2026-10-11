@@ -8,11 +8,11 @@ import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
+import { hostGuidance } from "#host/guidance.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { hostReviewerGuidance } from "#host/reviewerGuidance.ts";
 import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
@@ -45,7 +45,8 @@ export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
 		Effect.gen(function* () {
 			const clock = yield* Clock.Clock;
-			const reviewerGuidance = yield* hostReviewerGuidance(host);
+			const reviewerGuidance = yield* hostGuidance(host, "reviewer");
+			const workerGuidance = yield* hostGuidance(host, "worker");
 			function now() {
 				return clock.currentTimeMillisUnsafe();
 			}
@@ -60,6 +61,7 @@ export function hostPolicy(host: FleetHost) {
 				refreshQuota: hostQuota(host, now),
 				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
 				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
+				...(workerGuidance === undefined ? {} : { workerGuidance }),
 			});
 		}),
 	);
