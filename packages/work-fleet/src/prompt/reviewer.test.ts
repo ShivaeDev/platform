@@ -27,9 +27,10 @@ describe("reviewer prompt and verdict", () => {
 		expect(prompt).toContain("always end with a verdict");
 		expect(prompt).toContain("Passing required checks at that exact head are the CI evidence");
 		expect(prompt).toContain("Include the passing checks and the access limitation in your evidence list");
-		expect(prompt).toContain("read .github/workflows/ci.yml at the reviewed head");
-		expect(prompt).toContain("PLATFORM_EFFECT_*_TEST_DATABASE_URL");
-		expect(prompt).toContain("script/test.ts and script/lib/postgres-test-environment.ts");
+		expect(prompt).not.toContain("pnpm db:setup");
+		expect(prompt).not.toContain("PLATFORM_EFFECT_");
+		expect(prompt).not.toContain("script/lib/postgres-test-environment.ts");
+		expect(prompt).not.toContain(".github/workflows/ci.yml");
 		expect(prompt).not.toContain("end without a verdict");
 		expect(prompt).not.toContain("Request escalation (require_escalated)");
 	});

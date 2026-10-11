@@ -128,10 +128,10 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		choices: <K extends Name<F>>(name: K) => choicesOf<Encoded<F>[K]>(offered.get(name)),
 		dirty: editing.dirty,
 		error,
-		errorAt: (path) => {
+		errorAt: Atom.family((path: readonly [Name<F>, ...PropertyKey[]]) => {
 			const message = schemaErrors.at(path);
 			return Atom.readable((get) => (get(status.touched)[path[0]] === true || get(status.submitted) ? get(message) : undefined));
-		},
+		}),
 		field: <K extends Name<F>>(name: K) => fieldOf<Encoded<F>[K]>(refFor(name)),
 		receive: editing.receive,
 		revert: editing.revert,
