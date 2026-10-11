@@ -7,7 +7,7 @@ export interface Backlink {
 	readonly line?: number;
 }
 
-function references(document: MetadataDocument, model: MetadataModel) {
+export function referencesFrom(document: MetadataDocument, model: MetadataModel) {
 	const { fields, lines } = document.parsed;
 	return [
 		...(fields.handoff ? [{ kind: "agent handoff", line: lines.handoff, target: referenceFile(fields.handoff.item, model) }] : []),
@@ -45,7 +45,7 @@ export function backlinksOf(file: string, model: MetadataModel): readonly Backli
 	return model.documents.flatMap((document) =>
 		document.file === file
 			? []
-			: references(document, model)
+			: referencesFrom(document, model)
 					.filter((reference) => reference.target === file)
 					.map((reference) => ({ file: document.file, kind: reference.kind, ...(reference.line === undefined ? {} : { line: reference.line }) })),
 	);

@@ -12,6 +12,9 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
 		stored = yield* closeDecisions(state)(stored);
+		if (stored.value.stage === "needs-human") {
+			stored = yield* makeDeliver(state)(stored);
+		}
 		stored = yield* makeHuman(state)(stored);
 		if (["completed", "released", "prepared", "needs-human"].includes(stored.value.stage)) {
 			return stored;
@@ -27,6 +30,6 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		if (stored.value.stage === "repairing") {
 			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? "Fix required checks");
 		}
-		return yield* makeDeliver(state)(stored, work).pipe(Effect.flatMap(closeDecisions(state)));
+		return yield* makeDeliver(state)(stored).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }
