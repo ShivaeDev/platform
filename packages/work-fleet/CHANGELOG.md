@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Keep queue-full launch rejections queued with durable exponential backoff from 30 seconds up to five minutes. Stop scheduler dispatch for the pass and show the last rejection time while waiting for provider capacity.
+- Check complete report bytes, including attachment links, before writing attachment files, so oversized reports leave no attachment folder. Name launching threads with one record lookup using the work ID retained from session acknowledgement.
 - Name Cloud threads from their Board work ID and first heading, with bounded titles and reviewer or separate repair labels. Add best-effort `work-fleet name-threads` backfill with per-session results and idempotent repeat runs.
 - Select dispatch and reconciliation candidates from one scheduler-cycle snapshot, so a new launch cannot race with reconciliation of its receipt.
 - End each scheduler Board read pass before sleeping; late reconciliation reads current Board context instead of reusing the pre-sleep snapshot.
