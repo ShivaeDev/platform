@@ -597,17 +597,14 @@
 {"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/adapters/fs.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":7}
-{"path":"script/lint/adapters/fs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"script/lint/adapters/fs.ts","rule":"biome/plugin","count":4}
 {"path":"script/lint/adapters/ignore-scope.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"script/lint/adapters/ignore-scope.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/adapters/json.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"script/lint/adapters/json.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"script/lint/adapters/json.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/adapters/report.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"script/lint/adapters/report.ts","rule":"biome/plugin","count":1}
 {"path":"script/lint/adapters/run.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"script/lint/adapters/run.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"script/lint/adapters/run.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/inventory.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"script/lint/inventory.ts","rule":"biome/plugin","count":1}
