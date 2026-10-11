@@ -10,7 +10,7 @@ import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
 import type { HandoffsService } from "#handoffs/Service.ts";
-import { ASSETS, checkNativeAsset, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
+import { ASSET_HANDLERS, checkNativeAsset, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
 import { changesPage } from "#http/changesPage.ts";
 import { identity } from "#http/identity.ts";
@@ -18,7 +18,6 @@ import { inbox } from "#http/inbox.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { readPage } from "#http/readPage.ts";
-import { respond } from "#http/respond.ts";
 import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
@@ -86,11 +85,10 @@ function routes(options: BoardOptions) {
 			yield* serve("/_board/work", workPage);
 			yield* serve("/_board/overview", overviewPage);
 			yield* serve("/_board/changes", historyPage);
-			for (const [route, body, contentType] of ASSETS) {
-				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
+			for (const [route, asset] of ASSET_HANDLERS) {
+				yield* serve(route, asset);
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			yield* serve(NATIVE_ROUTE, nativeAsset);
 			const replyPage = responsePage(changes, home, options.responses === true, index);
 			yield* serve("/_board/respond", replyPage);
 			const handoff = handoffPage(changes, home, options.responses === true, index);
