@@ -1,10 +1,10 @@
 import { afterEach, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
-import { type OpenPage, openPage } from "#test/browser.ts";
+import type { OpenPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
 import { silentWatch } from "#test/faults.ts";
-import { waitFor } from "#test/live.ts";
+import { openLive, waitFor } from "#test/live.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -18,7 +18,7 @@ afterEach(async () => {
 it("retains the response draft and exposes the precise real HTTP rejection when source changes after preview", async () => {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
 	board = await startBoard(notes.root, undefined, silentWatch, true);
-	page = await openPage(board, "/_board/respond?item=item.edge&request=direction");
+	page = await openLive(board, "/_board/respond?item=item.edge&request=direction");
 	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
 	enterField(page, "author", "reviewer");
 	const body = enterField(page, "body", "Retain these conditions.");
@@ -36,7 +36,7 @@ it("retains the response draft and exposes the precise real HTTP rejection when 
 it("retains handoff direction and requires a fresh preview when source changes after preview", async () => {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
 	board = await startBoard(notes.root, undefined, undefined, true);
-	page = await openPage(board, "/_board/handoff?item=item.edge");
+	page = await openLive(board, "/_board/handoff?item=item.edge");
 	await waitFor(() => expect(page.document.getElementById("handoff-preview")?.hasAttribute("disabled")).toBe(false));
 	enterField(page, "recipient", "agent-local");
 	enterField(page, "goal", "Retain this direction.");
