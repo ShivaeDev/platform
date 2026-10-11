@@ -10,6 +10,7 @@ import { codexServer } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { hostProcess } from "#test/hostProcess.ts";
+import { retryInterrupted } from "#test/retryInterrupted.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const expected = {
@@ -17,7 +18,12 @@ const expected = {
 	"after-thread": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
 	"after-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
 	"before-thread": { recoverable: false, sessions: 0, turnRequests: 0, turns: 0 },
-	"before-turn": { recoverable: false, sessions: 1, turnRequests: 1, turns: 0 },
+	"before-turn": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
+	"before-turn-request": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
+	"changed-context": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
+	"late-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
+	"retry": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
+	"revoked-approval": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
 };
 
 function cannotRenew(fixture: HostFixture, record: FleetRecord) {
@@ -45,8 +51,18 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(before.attempts).toHaveLength(1);
 	expect(["submitting", "accepted", "running"]).toContain(before.attempts[0]?.status);
 	yield* first.kill;
-	const restarted = yield* hostProcess(fixture.configFile);
+	if (boundary === "changed-context") {
+		fixture.write("work.md", task("synthetic-work", "approved", "Changed scope"));
+	}
+	if (boundary === "revoked-approval") {
+		fixture.write("work.md", task("synthetic-work"));
+	}
 	const { recoverable } = expected[boundary];
+	if (boundary === "retry") {
+		yield* retryInterrupted(fixture);
+		backend.allowRetry();
+	}
+	const restarted = yield* hostProcess(fixture.configFile);
 	yield* restarted.until(() =>
 		hostRecord(fixture).pipe(Effect.map((record) => (recoverable ? record.attempts[0]?.status === "running" : record.stage === "needs-human"))),
 	);
@@ -55,14 +71,22 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(after.attempts).toHaveLength(1);
 	expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
 	if (!recoverable) {
+		expect(after).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 		expect(after.attempts[0]?.status).toBe("submitting");
 		yield* cannotRenew(fixture, after);
+	}
+	if (recoverable) {
+		expect(after.attempts[0]?.receipt).toEqual({ sessionId: "synthetic-session", turnId: "synthetic-turn" });
+	}
+	if (boundary === "retry") {
+		expect(after.decision).toBeUndefined();
+		expect(after.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
 	}
 	expect(backend.sessions).toBe(expected[boundary].sessions);
 	expect(backend.turns).toBe(expected[boundary].turns);
 	expect(backend.requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
 	expect(backend.requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
-	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(expected[boundary].turnRequests > 0);
+	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(before.attempts[0]?.sessionId !== undefined);
 });
 
 function restartStory(boundary: Boundary) {
@@ -86,7 +110,18 @@ function restartStory(boundary: Boundary) {
 
 describe("Cloud host restarts against PostgreSQL", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
-	for (const boundary of ["before-thread", "after-thread", "before-turn", "after-turn", "acknowledged-turn"] as const) {
-		test(`SIGKILL at ${boundary} never replays either provider mutation`, () => restartStory(boundary), 40_000);
+	for (const boundary of [
+		"before-thread",
+		"after-thread",
+		"before-turn-request",
+		"changed-context",
+		"revoked-approval",
+		"before-turn",
+		"after-turn",
+		"late-turn",
+		"retry",
+		"acknowledged-turn",
+	] as const) {
+		test(`SIGKILL at ${boundary} recovers known threads without a second thread or accepted turn`, () => restartStory(boundary), 40_000);
 	}
 });

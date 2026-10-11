@@ -1,12 +1,14 @@
 import { Effect, Option } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
+import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import type { FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
-export function makeObserve({ sessions, load, save, decision, board, reportInspection }: EngineState) {
+export function makeObserve(state: EngineState) {
+	const { sessions, load, save, decision, board, reportInspection } = state;
 	return Effect.fn("Fleet.makeObserve")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
 		if (stored.value.stage !== "executing") {
@@ -16,12 +18,7 @@ export function makeObserve({ sessions, load, save, decision, board, reportInspe
 		if (latest === undefined) {
 			return yield* Effect.fail(new FleetFailure({ message: "Execution lacks an intent", reason: "invalid" }));
 		}
-		const receipt =
-			latest.receipt
-			?? (yield* sessions.reconcile({
-				operationId: latest.operationId,
-				...(latest.sessionId === undefined ? {} : { sessionId: latest.sessionId }),
-			}));
+		const receipt = latest.receipt ?? (yield* reconcileAttempt(state)(stored, latest));
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
 		yield* validateReceipt(observation.receipt, receipt);

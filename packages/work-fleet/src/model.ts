@@ -13,6 +13,7 @@ export const Attempt = Schema.Struct({
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
 	sessionCleanupComplete: Schema.optional(Schema.Boolean),
 	sessionId: Schema.optional(Schema.String),
+	settings: Schema.optional(LaunchSettings),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submittedAt: Schema.Number,
 });
