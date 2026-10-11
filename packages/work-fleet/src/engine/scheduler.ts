@@ -51,7 +51,8 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 						.pipe(Effect.ignore, Effect.ensuring(Effect.sync(() => running.delete(value.workId))), Effect.forkScoped);
 				}
 				yield* dispatchPrepared;
+				yield* Effect.sleep(interval);
 			}),
-		).pipe(Effect.andThen(Effect.sleep(interval))),
+		),
 	);
 });
