@@ -10,7 +10,7 @@ A repository should not have to debate every lint rule, copy tool settings or de
 quality lint
 ```
 
-Built-in rules default to `error`, so an uncovered finding fails the gate and tells the author what to repair. An existing repository can record its debt in a baseline while keeping the checks strict: new findings above a file's recorded count fail, and fixing debt passes. You get one consistent standard without making every repository design it.
+Built-in rules run at `error`, so an uncovered finding fails the gate and tells the author what to repair. An existing repository can record its debt in a baseline while keeping the checks strict: new findings above a file's recorded count fail, and fixing debt passes. You get one consistent standard without making every repository design it.
 
 ## Using it
 
@@ -18,7 +18,7 @@ Built-in rules default to `error`, so an uncovered finding fails the gate and te
 
 Adopt Quality's policy as a whole. Quality owns the shared rules, their defaults and the tool rules and fixes it deliberately disables internally. A repository supplies facts about its code and architecture; it does not need to choose a rule catalogue or warning levels.
 
-A **rule** checks a repository and returns **findings**, each naming a file and what to change. Built-in rules run at `error` when their settings are omitted. A finding normally counts once; a limit rule counts how far the file exceeds its limit. Use the defaults and keep checks strict. The accepted configuration surface is wider than this adoption model; its severity and override behavior is described under [limits](#configuration-limits).
+A **rule** checks a repository and returns **findings**, each naming a file and what to change. Built-in and local rules always run at `error`. A finding normally counts once; a limit rule counts how far the file exceeds its limit. Use the defaults and keep checks strict. The config rejects warning levels, disabled rules, raised thresholds and inventory exclusions.
 
 Two files explain findings the repository deliberately keeps:
 
@@ -155,12 +155,11 @@ Import names from their defining module; there is no root entry. The package's `
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `sources` | `["."]` | Directories or files the source rules check, relative to the repository root. |
-| `exclude` | `[]` | Paths outside the inventory, in `.gitignore` syntax. |
 | `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions. |
 | `baseline` | `quality/baseline.jsonl` | Counts of existing findings. |
 | `registry` | `quality/registry.json` | Permanent exceptions with reasons. |
 | `local` | `[]` | Exposed extension API for rules made with `defineRule`; not required for adoption. |
-| `rules` | Every rule at `error` | Options by rule id, such as import boundaries. The API also accepts a level or `{ level, options }`; see configuration limits. |
+| `rules` | Every rule at `error` | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
 
 #### Local rules
 
@@ -215,10 +214,10 @@ For Vitest, install `vitest` and `happy-dom` when the repository has DOM tests, 
 import { testProjects } from "@shivaedev/quality/vitest.ts";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({ test: testProjects({ exclude: ["e2e/**"] }) });
+export default defineConfig({ test: testProjects() });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The `exclude` globs keep another runner's suites out of all three projects.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The helper takes no options and rejects suite exclusions.
 
 #### PostgreSQL URL gate
 
@@ -254,11 +253,11 @@ Vitest otherwise drops tags from an inline project's extended config. A project'
 
 #### Configuration limits
 
-The public config accepts `warn` and `off` in `rules`, as a string or an object's `level`. An uncovered warning reports without failing, and an off rule does not run or validate its options. The CLI also accepts `--warnings summary|all`. These are accepted behaviors, not the recommended adoption path: omit levels and use the baseline for existing debt. The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/roadmap.md) owns the work to align this API with the whole-policy direction.
+All built-in and local rules run at `error`. Config settings cannot disable a rule or downgrade it to a warning. Record existing debt in the baseline instead. Source and test line limits can only be lowered from 150 and 300, and the comment limit from 2; custom test-file patterns and inventory exclusions are rejected.
 
-The consumer Biome-declaration API likewise allows a repository to weaken a tool check with a matching reason and scope. Biome findings below `error` are omitted from the gate. Keep the shared configuration rather than using these declarations to demote checks. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#declared-biome-overrides) describes what validation accepts; Quality's internally shipped exceptions are distinct from consumer choices.
+Consumer Biome declarations require a reason and matching scope. An individual lint rule or assist action can be excepted only for explicit files; whole checks, rule groups and blanket scopes are rejected. `files/includes` declarations keep `**` and list named directory exclusions, such as generated test clients. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#declared-biome-overrides) describes the matching and stale-declaration checks. Quality's shipped exceptions remain part of its internal policy.
 
-Numeric rule limits and local-rule APIs are also exposed. They are not setup requirements. Use the shared defaults; repository-specific inputs such as source locations and fences supply information the policy needs.
+Local-rule APIs supplement the shared policy. They are not setup requirements. Use the shared defaults; repository-specific inputs such as source locations and fences supply information the policy needs.
 
 - The gate checks static source policy. A successful import graph, fence example or test naming check does not prove an application's HTTP, database or browser behavior.
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.

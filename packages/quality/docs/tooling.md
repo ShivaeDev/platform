@@ -34,7 +34,7 @@ The preset keeps the following rules at `error` with their fixes off so the auth
 
 `noSkippedTests` has no automatic fix because enabling a skipped test can change which setup and bodies run; the author must repair the test or remove a claim it cannot prove.
 
-The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error` is not reported; declaring a consumer warning therefore removes that finding from the gate. This accepted behavior is a policy gap, not an adoption technique; see [configuration limits](../README.md#configuration-limits). The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
+The `biome` rule runs `biome check` with the repository's config and reports each finding as `biome/<category>`, such as `biome/lint/style/useBlockStatements`, `biome/assist/source/useSortedKeys`, `biome/format` or `biome/plugin`, so Biome's findings go through the baseline like any other rule's. `quality baseline write --rule biome` takes in every Biome category at once. A finding below `error` is not reported; a consumer exception for an individual rule therefore needs an explicit file scope and a reason. Whole-check, group and blanket-scope declarations are rejected; see [configuration limits](../README.md#configuration-limits). The rule also asks for a root `biome.json` or `biome.jsonc` that extends the preset, and it takes no registry exceptions. A Biome config that Biome cannot load stops the run with Biome's message.
 
 `quality fix` sorts the discovered manifests, then runs `biome check --write --unsafe`, with the two skipped fixes above. It then runs Biome's formatter, because a lint fix can leave code unformatted. One fix can make room for another, so it repeats both passes until a round rewrites nothing, at most five rounds. When files still change in the fifth round, it names the changed text files it can discover and exits 2; when those files are outside its inventory, the error gives a verbose Biome command to name them. An unsafe fix can change behavior, such as `==` becoming `===`, so review what it changed.
 
@@ -57,7 +57,7 @@ export default defineConfig({ test: testProjects() });
 
 Type tests (`*.typecheck.test.ts`, `*.typecheck.spec.ts` and `typecheck.test.ts`) are in no project: the compiler checks them. A test that is too slow for every run goes into the slow project instead of being skipped.
 
-A folder that another runner owns, such as a Playwright suite of `.spec.ts` files, is left out with `testProjects({ exclude: ["e2e/**"] })`; the globs are added to every project's `exclude`.
+`testProjects()` takes no options. Every conventionally named suite runs in its project regardless of its folder; exclusion options are rejected.
 
 ### Inherited tags
 
