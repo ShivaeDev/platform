@@ -7,6 +7,7 @@ export function diagnosticsStyle(): string {
 .diagnostics-card h2 { margin: 0; }
 .diagnostics-status { font-size: .85rem; border: 1px solid var(--border); border-radius: 1rem; padding: .2rem .6rem; }
 .diagnostics-card[data-state=attention], .diagnostics-card[data-state=error] { border-color: var(--link); }
+.diagnostics-card[data-state=stale] .diagnostics-metrics strong { opacity: .55; }
 .diagnostics-freshness { font-size: .85rem; color: var(--muted); }
 .diagnostics-windows { list-style: none; padding: 0; }
 .diagnostics-windows li + li, .diagnostics-metrics > div + div { border-top: 1px solid var(--border); padding-top: .75rem; margin-top: .75rem; }

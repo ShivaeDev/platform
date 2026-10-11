@@ -34,9 +34,7 @@ export const cycle = inBoardReadPass(
 			},
 			{ concurrency: "unbounded" },
 		);
-		if (yield* schedulerPassed) {
-			yield* fleet.list().pipe(Effect.catch((error) => Effect.logWarning("Fleet health publication failed", error)));
-		}
+		yield* schedulerPassed;
 		return result;
 	}),
 );
@@ -60,9 +58,7 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 						.pipe(Effect.ignore, Effect.ensuring(Effect.sync(() => running.delete(value.workId))), Effect.forkScoped);
 				}
 				yield* dispatchPrepared;
-				if (yield* schedulerPassed) {
-					yield* fleet.list().pipe(Effect.catch((error) => Effect.logWarning("Fleet health publication failed", error)));
-				}
+				yield* schedulerPassed;
 				yield* Effect.sleep(interval);
 			}),
 		),
