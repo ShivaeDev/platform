@@ -151,14 +151,11 @@
 {"path":"packages/effect-prisma/src/internal/sqlite-pragmas.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/sqlite-pragmas.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/internal/testing.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-prisma/src/internal/testing.ts","rule":"biome/lint/style/useNamingConvention","count":4}
 {"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"biome/lint/suspicious/useAwait","count":4}
 {"path":"packages/effect-prisma/src/internal/transaction.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/internal/transaction.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/effect-prisma/src/internal/transaction.ts","rule":"biome/lint/style/useNamingConvention","count":11}
 {"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"biome/lint/suspicious/useAwait","count":2}
 {"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-prisma/src/relation.ts","rule":"biome/lint/style/useNamingConvention","count":42}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"biome/lint/style/useNamingConvention","count":31}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/relation/include.ts","rule":"biome/lint/style/useNamingConvention","count":44}
