@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Make the handoff source-change DOM regression wait for refreshed source, then assert retained direction, disabled submission and the required fresh preview.
+
 - Keep same-origin assets and unrecognized routes in browser navigation instead of intercepting them as reader pages. Preserve native returned-result navigation.
 
 ### Changed

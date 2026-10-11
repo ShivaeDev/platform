@@ -20,7 +20,7 @@ export function validateReview(record: FleetRecord, review: Review, head: string
 		: Effect.fail(new FleetFailure({ message: "Independent review must bind evidence to the actual head", reason: "invalid" }));
 }
 export function validateChecks(checks: Checks, head: string) {
-	return checks.head === head && checks.passed && checks.evidence.length > 0
+	return checks.head === head && checks.passed && !checks.pending && checks.evidence.length > 0
 		? Effect.void
 		: Effect.fail(new FleetFailure({ message: "Required validation has not passed for the actual head", reason: "invalid" }));
 }
