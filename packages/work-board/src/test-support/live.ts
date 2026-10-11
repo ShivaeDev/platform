@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import type { RunningBoard } from "./board.ts";
 import { type OpenPage, openPage } from "./browser.ts";
@@ -17,11 +18,17 @@ export const PLAN = [
 	"A closing line.",
 	"",
 ].join("\n");
+
 export const BOARD = "# Board\n\n## To do\n\n### `docs` Write the intro\n";
+
 export const DIAGRAM = "```mermaid\ngraph TD; A-->B\n```";
+
 export const WITH_DIAGRAM = `# Flow\n\nBefore.\n\n${DIAGRAM}\n\nAfter.\n`;
+
 export const STEPS = (text: string) => `<details>\n<summary>Steps</summary>\n\n${text}\n\n</details>`;
+
 export const MIXED = `# Mixed\n\nBefore.\n\n${STEPS("Inside.")}\n\n${DIAGRAM}\n\nAfter.\n`;
+
 export const TWINS = `# Twins\n\n${STEPS("First.")}\n\n${STEPS("Second.")}\n`;
 
 export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": MIXED, "plan.md": PLAN, "twins.md": TWINS };
@@ -34,13 +41,13 @@ export function settle() {
 	return new Promise((resolve) => setTimeout(resolve, 300));
 }
 
-export async function openLive(board: RunningBoard, path: string, beforeScripts?: () => Promise<void>): Promise<OpenPage> {
-	const page = await openPage(board, path, beforeScripts);
-	await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
-	await waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1));
-	await new Promise((resolve) => setTimeout(resolve, 20));
+export const openLive = Effect.fn("Test.openLive")(function* (board: RunningBoard, path: string, beforeScripts?: Parameters<typeof openPage>[2]) {
+	const page = yield* openPage(board, path, beforeScripts);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
+	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
+	yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 20)));
 	return page;
-}
+});
 
 export function paragraphOf(page: OpenPage, text: string) {
 	return [...page.document.querySelectorAll("#doc p")].find((element) => element.textContent === text);

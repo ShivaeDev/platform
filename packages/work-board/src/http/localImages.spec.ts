@@ -1,32 +1,34 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { Effect, Layer } from "effect";
+import { expect } from "vitest";
+import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { rawGet } from "#test/board.ts";
 import { subscribe } from "#test/nativeRpc.ts";
 import { SCREENSHOT, visualWorkspace } from "#test/visuals.ts";
 
-let workspace: Awaited<ReturnType<typeof visualWorkspace>>;
-beforeEach(async () => {
-	workspace = await visualWorkspace();
-});
-afterEach(async () => {
-	await workspace.stop();
+let workspace: Effect.Success<ReturnType<typeof visualWorkspace>>;
+
+const setupBoard = Effect.gen(function* () {
+	workspace = yield* visualWorkspace();
 });
 
-it("renders source-relative local images at a nested home alias and serves exact bytes with safe media headers", async () => {
-	const html = await (await workspace.get("/")).text();
+const { effectApp } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupBoard });
+
+effectApp("renders source-relative local images at a nested home alias and serves exact bytes with safe media headers", function* () {
+	const html = yield* Effect.promise(async () => (await workspace.get("/")).text());
 	expect(html).toContain('src="/_board/attachment/shots/first%20%26%20review.png"');
 	expect(html).toContain('alt="First screenshot"');
-	const image = await workspace.get("/_board/attachment/shots/first%20%26%20review.png");
+	const image = yield* Effect.promise(() => workspace.get("/_board/attachment/shots/first%20%26%20review.png"));
 	expect(image.status).toBe(200);
 	expect(image.headers.get("content-type")).toBe("image/png");
 	expect(image.headers.get("cache-control")).toBe("no-store");
 	expect(image.headers.get("x-content-type-options")).toBe("nosniff");
-	expect(Buffer.from(await image.arrayBuffer())).toEqual(SCREENSHOT);
-	const result = await (await workspace.get("/nested/result.md")).text();
+	expect(Buffer.from(yield* Effect.promise(() => image.arrayBuffer()))).toEqual(SCREENSHOT);
+	const result = yield* Effect.promise(async () => (await workspace.get("/nested/result.md")).text());
 	expect(result).toContain('href="/_board/attachment/shots/first%20%26%20review.png"');
 	expect(result).toContain("Recorded evidence");
 });
 
-it("refuses traversal, malformed paths, unsupported types and escaping file or directory links", async () => {
+effectApp("refuses traversal, malformed paths, unsupported types and escaping file or directory links", function* () {
 	workspace.outsideLinks();
 	for (const path of [
 		"shots/leak.png",
@@ -40,21 +42,21 @@ it("refuses traversal, malformed paths, unsupported types and escaping file or d
 		"node_modules/image.png",
 		"shots/a.constructor",
 	]) {
-		const response = await rawGet(workspace.board, `/_board/attachment/${path}`);
+		const response = yield* rawGet(workspace.board, `/_board/attachment/${path}`);
 		expect(response.status).toBe(404);
 		expect(response.body).not.toContain("private");
 	}
-	expect((await rawGet(workspace.board, "/_board/attachment/shots/second.png", "outside.example")).status).toBe(403);
+	expect((yield* rawGet(workspace.board, "/_board/attachment/shots/second.png", "outside.example")).status).toBe(403);
 });
 
-it("bounds image reads and reports image edits through the existing watcher", async () => {
-	const events = await subscribe(workspace.board);
-	await events.next();
+effectApp("bounds image reads and reports image edits through the existing watcher", function* () {
+	const events = yield* subscribe(workspace.board);
+	yield* events.next();
 	workspace.replaceImage();
-	expect(await events.next()).toEqual({ _tag: "Resync" });
-	events.close();
+	expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	yield* events.close();
 	workspace.oversize();
-	const response = await workspace.get("/_board/attachment/shots/second.png");
+	const response = yield* Effect.promise(() => workspace.get("/_board/attachment/shots/second.png"));
 	expect(response.status).toBe(413);
-	expect(await response.text()).toContain("16 MiB");
+	expect(yield* Effect.promise(() => response.text())).toContain("16 MiB");
 });

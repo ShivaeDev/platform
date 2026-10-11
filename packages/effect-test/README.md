@@ -98,7 +98,7 @@ class Token extends Context.Service<Token, string>()("test/Token") {}
 const { effectApp } = makeEffectIt({
   around: (effect) => Effect.withSpan(effect, "test.token"),
   layer: Layer.succeed(Token, "from-layer"),
-  makeHarness: () => Token.asEffect(),
+  makeHarness: () => Effect.service(Token),
 });
 
 effectApp("reads the harness", function* (token) {
@@ -142,7 +142,7 @@ effectApp.each(["alpha", "beta"])("checks %s", function* (item, harness, context
 });
 ```
 
-This uses the token fixture from the first example. Case and harness types are inferred. The fixture tester takes generator bodies; the ordinary `it.effect` and `it.live` testers also accept an Effect-returning function.
+This uses the token fixture from the first example. Case and harness types are inferred. The fixture tester, `it.effect` and `it.live` accept generator bodies and Effect-returning functions. A synchronous DOM fixture test can return `Effect.sync(() => expect(harness.token).toBe("from-layer"))`; the harness, services and per-test Scope are the same for both body forms.
 
 ### Choosing which clock runs the test
 
@@ -210,9 +210,9 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-test/vitest.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
 | `@shivaedev/effect-test/eventually.ts` | `eventually(effect, options?)` and `EventuallyOptions`. |
 | `@shivaedev/effect-test/any-test-layer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
-| `@shivaedev/effect-test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
+| `@shivaedev/effect-test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
 
-`effectApp(name, body, options?)` takes `(harness, context)`. Its `each(cases)` takes `(item, harness, context)`. Options are a timeout in milliseconds or Vitest test options with an optional `clock`.
+`effectApp(name, body, options?)` takes a generator or Effect-returning body with `(harness, context)`. Its `each(cases)` takes `(item, harness, context)`. Options are a timeout in milliseconds or Vitest test options with an optional `clock`.
 
 `it.effect` and `it.live` take `(name, body, options?)`; options are a timeout or Vitest test options. A regular body takes the context; an `each` body takes the case. These testers and `effectApp` expose `each`, `fails`, `only`, `runIf`, `skip` and `skipIf`.
 

@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { Effect, Layer } from "effect";
+import { afterEach, expect } from "vitest";
+import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
@@ -6,23 +8,28 @@ import { waitFor } from "#test/live.ts";
 let notes: Folder;
 let board: RunningBoard;
 let page: OpenPage;
-beforeEach(async () => {
+
+const setupBoard = Effect.gen(function* () {
 	notes = folder({ "note.md": "# Plan\n\n## Evidence\n\nKnown phrase.\n\n## Evidence\n\nSecond phrase." });
-	board = await startBoard(notes.root);
-	page = await openPage(board);
-	await waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false));
+	board = yield* startBoard(notes.root);
+	page = yield* openPage(board);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
 });
-afterEach(async () => {
-	await page.close();
-	await board.stop();
+
+const { effectApp } = makeEffectIt({ clock: "live", layer: Layer.empty, makeHarness: () => setupBoard });
+
+afterEach(() => {
 	notes.remove();
 });
+
 function input() {
 	return page.document.querySelector("#search-query");
 }
+
 function click(selector: string) {
 	page.document.querySelector(selector)?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
 }
+
 function query(text: string) {
 	const field = input();
 	if (!(field instanceof page.window.HTMLInputElement)) {
@@ -31,27 +38,30 @@ function query(text: string) {
 	field.value = text;
 	field.dispatchEvent(new page.window.Event("input"));
 }
+
 function key(name: string, ctrlKey = false) {
 	input()?.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, ctrlKey, key: name }));
 }
 
-it("opens with keyboard, chooses a typed passage, and navigates to its duplicate heading", async () => {
+effectApp("opens with keyboard, chooses a typed passage, and navigates to its duplicate heading", function* () {
 	const opener = page.document.getElementById("search-open");
 	if (opener instanceof page.window.HTMLElement) {
 		opener.focus();
 	}
 	key("k", true);
-	await waitFor(() => expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(true));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(true)));
 	expect(page.document.activeElement?.id).toBe("search-query");
 	query("second phrase");
-	await waitFor(() => expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/note.md#heading-evidence-2"));
+	yield* Effect.promise(() =>
+		waitFor(() => expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/note.md#heading-evidence-2")),
+	);
 	expect(page.document.querySelector("#search-results small")?.textContent).toContain("passage");
 	key("Enter");
-	await waitFor(() => expect(page.window.location.hash).toBe("#heading-evidence-2"));
+	yield* Effect.promise(() => waitFor(() => expect(page.window.location.hash).toBe("#heading-evidence-2")));
 	expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(false);
 });
 
-it("moves between commands, closes with focus restored, and re-searches on file changes", async () => {
+effectApp("moves between commands, closes with focus restored, and re-searches on file changes", function* () {
 	const opener = page.document.getElementById("search-open");
 	if (opener instanceof page.window.HTMLElement) {
 		opener.focus();
@@ -62,13 +72,13 @@ it("moves between commands, closes with focus restored, and re-searches on file 
 	expect(input()?.getAttribute("aria-activedescendant")).toBe("search-result-1");
 	key("Enter");
 	expect(page.document.documentElement.dataset.sidebar).toBe("closed");
-	await waitFor(() => expect(page.document.activeElement?.id).toBe("search-open"));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("search-open")));
 	click("#search-open");
 	query("new phrase");
-	await waitFor(() => expect(page.document.getElementById("search-status")?.textContent).toBe("No document matches."));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-status")?.textContent).toBe("No document matches.")));
 	notes.write("note.md", "# Plan\n\nNew phrase.");
-	await waitFor(() => expect(page.document.querySelector("#search-results p")?.textContent).toBe("New phrase."));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-results p")?.textContent).toBe("New phrase.")));
 	key("Escape");
 	expect(page.document.querySelector("#search-dialog")?.hasAttribute("open")).toBe(false);
-	await waitFor(() => expect(page.document.activeElement?.id).toBe("search-open"));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("search-open")));
 });
