@@ -24,8 +24,16 @@ describe("typed result adoption failures", () => {
 			expect(fixture.requests).toHaveLength(0);
 		});
 	}
-	for (const before of [{ state: "closed" }, { merged: true }, { base: { ref: "other", sha: BASE } }, { number: 8 }]) {
-		it.effect(`rejects a closed, merged, wrong-base or wrong-identity PR: ${JSON.stringify(before)}`, function* () {
+	for (const before of [
+		{ state: "closed" },
+		{ merged: true },
+		{ base: { ref: "other", sha: BASE } },
+		{ number: 8 },
+		{ base: { ref: "other", sha: BASE }, merged: true, state: "closed" },
+		{ merged: true, number: 8, state: "closed" },
+		{ "html_url": `${PR}0`, merged: true, state: "closed" },
+	]) {
+		it.effect(`rejects an unmerged closure, inconsistent merge, wrong-base or wrong-identity PR: ${JSON.stringify(before)}`, function* () {
 			expect(yield* resultFixture({ before }).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ reason: "invalid" });
 		});
 	}
