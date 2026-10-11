@@ -2,12 +2,14 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
+import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { HOST, serveBoard } from "./serve.ts";
 
 const VERSION = "0.11.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;
+	readonly fleetPort: number;
 	readonly maintainer: string;
 	readonly port: number;
 	readonly responses: boolean;
@@ -16,6 +18,7 @@ const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	const path = yield* Path.Path;
 	return yield* Layer.launch(
 		serveBoard({
+			fleetPort: input.fleetPort,
 			home: Option.getOrUndefined(input.home),
 			maintainer: input.maintainer,
 			port: input.port,
@@ -29,6 +32,7 @@ const workBoard = Command.make(
 	"work-board",
 	{
 		dir: Argument.directory("dir", { mustExist: true }).pipe(Argument.withDescription("The folder of markdown files to serve")),
+		fleetPort: Flag.integer("fleet-port").pipe(Flag.withDefault(DAEMON_PORT), Flag.withDescription("Fleet daemon port for Diagnostics at 127.0.0.1")),
 		home: Flag.string("home").pipe(Flag.optional, Flag.withDescription("The file shown as a board at /, relative to the folder")),
 		maintainer: Flag.string("maintainer").pipe(
 			Flag.withDefault("maintainer"),

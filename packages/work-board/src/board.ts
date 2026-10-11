@@ -1,14 +1,13 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
-import { codexLimits } from "#diagnostics/codexLimits.ts";
-import { fleetHealth } from "#diagnostics/fleetHealth.ts";
-import { githubLimits } from "#diagnostics/githubLimits.ts";
+import { boardServices } from "#boardServices.ts";
+import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
 import { Diagnostics, DiagnosticsSources } from "#diagnostics/source.ts";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
-import { HandoffsService } from "#handoffs/Service.ts";
+import type { HandoffsService } from "#handoffs/Service.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
 import { changesPage } from "#http/changesPage.ts";
@@ -25,19 +24,20 @@ import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { Highlighter } from "#render/Highlighter.ts";
 import { responsePage } from "#responses/page.ts";
-import { ResponseConfig, Responses } from "#responses/service.ts";
+import type { Responses } from "#responses/service.ts";
 import { resultPage } from "#results/page.ts";
 import { server } from "#rpc/server.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
 
 export interface BoardOptions {
+	readonly fleetPort?: number;
 	readonly home?: string | undefined;
 	readonly maintainer?: string | undefined;
 	readonly responses?: boolean;
 	readonly root: string;
 }
 
-type Services = Highlighter | Responses | HandoffsService | FileSystem.FileSystem | Path.Path;
+type Services = Highlighter | Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
 
 function routes(options: BoardOptions) {
@@ -50,16 +50,11 @@ function routes(options: BoardOptions) {
 				Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 			);
 			const index = yield* searchSnapshot(options.root, home, changes, options.maintainer);
+			const provided = yield* Effect.serviceOption(DiagnosticsSources);
 			const services = yield* Layer.build(
-				Layer.merge(Responses.layer, HandoffsService.layer).pipe(
-					Layer.provide(
-						Layer.succeed(ResponseConfig, {
-							changes,
-							enabled: options.responses === true,
-							index: Effect.provideContext(index, platform),
-							root: options.root,
-						}),
-					),
+				boardServices(
+					{ changes, enabled: options.responses === true, index: Effect.provideContext(index, platform), root: options.root },
+					provided._tag === "Some" ? { _tag: "Sources", sources: provided.value } : { _tag: "Read", read: daemonDiagnostics(options.fleetPort) },
 				),
 			);
 			const context = Context.merge(platform, services);
@@ -71,11 +66,8 @@ function routes(options: BoardOptions) {
 				);
 			}
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
-			const provided = yield* Effect.serviceOption(DiagnosticsSources);
-			const sources = provided._tag === "Some" ? provided.value : { codex: codexLimits(), fleet: fleetHealth(options.root), github: githubLimits() };
-			const diagnosticContext = yield* Layer.build(Diagnostics.layer.pipe(Layer.provide(Layer.succeed(DiagnosticsSources, sources))));
 			const healthPage = diagnosticsPage(
-				Effect.flatMap(Diagnostics, (service) => service.read()).pipe(Effect.provideContext(diagnosticContext)),
+				Effect.flatMap(Diagnostics, (service) => service.read()).pipe(Effect.provideContext(context)),
 				changes,
 				home,
 				index,

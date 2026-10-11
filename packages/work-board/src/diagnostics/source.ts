@@ -50,11 +50,19 @@ export const diagnostics = Effect.fn("WorkBoard.diagnostics")(function* (sources
 	);
 });
 
+type DiagnosticsInput =
+	| { readonly _tag: "Sources"; readonly sources: Sources }
+	| { readonly _tag: "Read"; readonly read: Effect.Success<ReturnType<typeof diagnostics>> };
+
+export class DiagnosticsConfig extends Context.Service<DiagnosticsConfig, DiagnosticsInput>()("WorkBoard/DiagnosticsConfig") {}
+
 export const Diagnostics = defineService({
 	id: "WorkBoard/Diagnostics",
 	initialize: Effect.gen(function* () {
-		return yield* diagnostics(yield* DiagnosticsSources);
+		const input = yield* DiagnosticsConfig;
+		return input._tag === "Sources" ? yield* diagnostics(input.sources) : input.read;
 	}),
 	methods: (read) => ({ read: () => read }),
-	requires: [DiagnosticsSources],
+	requires: [DiagnosticsConfig],
 });
+export type Diagnostics = typeof Diagnostics.Identifier;

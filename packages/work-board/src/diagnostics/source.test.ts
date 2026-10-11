@@ -1,10 +1,10 @@
 import { Clock, Deferred, Effect, Fiber, Layer } from "effect";
 import { expect, it } from "vitest";
 import { syntheticSources } from "#test/diagnostics.ts";
-import { Diagnostics, DiagnosticsSources, SourceFailure, type Sources } from "./source.ts";
+import { Diagnostics, DiagnosticsConfig, SourceFailure, type Sources } from "./source.ts";
 
 const diagnostics = Effect.fn("Test.diagnostics")(function* (sources: Sources) {
-	const context = yield* Layer.build(Diagnostics.layer.pipe(Layer.provide(Layer.succeed(DiagnosticsSources, sources))));
+	const context = yield* Layer.build(Diagnostics.layer.pipe(Layer.provide(Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources }))));
 	return Effect.flatMap(Diagnostics, (service) => service.read()).pipe(Effect.provideContext(context));
 });
 
