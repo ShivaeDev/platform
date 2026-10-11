@@ -42,7 +42,11 @@ test("overlapping areas serialize concurrent dispatch and completion admits the 
 			);
 			expect(fixture.launched).toHaveLength(1);
 			yield* fleet.dispatch("two").pipe(Effect.result);
-			expect((yield* fleet.get("two")).value).toMatchObject({ blocker: "waiting for area fleet/host held by one", stage: "prepared" });
+			expect((yield* fleet.get("two")).value).toMatchObject({
+				attentionOwner: "automation",
+				blocker: "waiting for area fleet/host held by one",
+				stage: "prepared",
+			});
 			finishWorkers(fixture);
 			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 			const next = yield* fleet.dispatch("two");

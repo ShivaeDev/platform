@@ -36,6 +36,7 @@ test("delivery changes after the merge wait do not reclaim freed areas", () => {
 				const previous = yield* fleet.reconcile("one");
 				expect(previous.value.mergeAreasReleased).toBe(true);
 				expect(previous.value.decision?.reason).toBe("PR closed without merging");
+				expect(previous.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 				changed = false;
 				finishWorkers(fixture);
 				const current = yield* fleet.reconcile("two");

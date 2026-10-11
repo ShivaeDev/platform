@@ -84,6 +84,7 @@ test("a rejected continued turn preserves its thread for the next manual instruc
 			fixture.rejectNextTurn();
 			const rejected = yield* fleet.continue("one", "Rejected instruction");
 			expect(rejected.value.stage).toBe("needs-human");
+			expect(rejected.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			expect(rejected.value.attempts[0]?.status).toBe("failed");
 			const retried = yield* fleet.continue("one", "Accepted instruction");
 			expect(retried.value.stage).toBe("executing");

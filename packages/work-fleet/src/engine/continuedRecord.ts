@@ -5,6 +5,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 	return {
 		...record,
 		attempts: [],
+		attentionOwner: undefined,
 		blocker: undefined,
 		checks: undefined,
 		decision: undefined,
@@ -17,5 +18,6 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		result: record.result?.kind === "change" && record.outcome === undefined ? record.result : undefined,
 		resultObservations: [],
 		review: undefined,
+		supersededDecisions: undefined,
 	};
 }

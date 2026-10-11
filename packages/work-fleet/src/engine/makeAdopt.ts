@@ -12,7 +12,13 @@ export function makeAdopt(state: EngineState) {
 		let stored = input;
 		if (stored.value.stage === "adopting") {
 			if (work.revision !== stored.value.boardRevision) {
-				return yield* decision(stored, "Board context changed while work ran", "Approve the current Board scope before adopting this result");
+				return yield* decision(
+					stored,
+					"Board context changed while work ran",
+					"Approve the current Board scope before adopting this result",
+					undefined,
+					"maintainer",
+				);
 			}
 			if (stored.value.deliverable === "report") {
 				return yield* completeReport(state)(stored, work);

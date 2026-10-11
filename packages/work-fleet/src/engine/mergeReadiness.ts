@@ -30,6 +30,8 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 		ready,
 		"Reviewed PR is ready to merge",
 		"Merge the reviewed, green PR; Fleet will observe delivery without submitting a merge",
+		undefined,
+		"maintainer",
 	);
 });
 

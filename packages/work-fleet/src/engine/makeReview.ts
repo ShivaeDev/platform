@@ -18,7 +18,13 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(stored, "Board context changed during review", "Approve and prepare the current task and criteria");
+			return yield* decision(
+				stored,
+				"Board context changed during review",
+				"Approve and prepare the current task and criteria",
+				undefined,
+				"maintainer",
+			);
 		}
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);

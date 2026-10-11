@@ -2,6 +2,7 @@ import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Random from "effect/Random";
+import { waitingOwner } from "#attention.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import * as Outcome from "#host/waitOutcome.ts";
 
@@ -32,7 +33,10 @@ function poll(options: WaitOptions): Effect.Effect<Poll> {
 		Effect.map(([state]) =>
 			state === undefined
 				? {}
-				: { last: state.blocker === undefined ? state.stage : `${state.stage}: ${state.blocker}`, outcome: settled(options.workId, state) },
+				: {
+						last: `${state.stage}${waitingOwner(state) === undefined ? "" : ` (waiting on ${waitingOwner(state)})`}${state.blocker === undefined ? "" : `: ${state.blocker}`}`,
+						outcome: settled(options.workId, state),
+					},
 		),
 		Effect.catch((error) => Effect.succeed({ failure: error.message })),
 	);

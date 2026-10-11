@@ -29,6 +29,7 @@ describe("report launch backpressure", () => {
 						const fleet = yield* Fleet;
 						yield* cycle;
 						const queued = (yield* fleet.get("one")).value;
+						expect(queued.attentionOwner).toBe("automation");
 						expect(queued).toMatchObject({ deliverable: "report", stage: "prepared" });
 						reject = false;
 						now = 30_099;

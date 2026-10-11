@@ -9,7 +9,7 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
 for (const type of ["clarify", "not_now"] as const) {
-	test(`native Needs human query shows ${type} response blockers while retaining its decision`, () =>
+	test(`native Maintainer waiting query shows ${type} response blockers while retaining its decision`, () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.scoped(
 				Effect.gen(function* () {
@@ -21,7 +21,7 @@ for (const type of ["clarify", "not_now"] as const) {
 					const decisionId = denied.decision?.id ?? "missing";
 					const responseId = fixture.respond(decisionId, "retry", type);
 					yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
-					const item = (yield* client("fleet.views", undefined)).needsHuman[0];
+					const item = (yield* client("fleet.views", undefined)).waiting.maintainer[0];
 					expect(item?.stage).toBe("needs-human");
 					expect(item?.blocker).toBe(
 						type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`,
@@ -33,14 +33,14 @@ for (const type of ["clarify", "not_now"] as const) {
 		));
 }
 
-test("native Active query exposes backlog admission blockers with the prepared stage", () =>
+test("native Automation waiting query exposes backlog admission blockers with the prepared stage", () =>
 	withEngine({ backlog: 1, foreignBacklog: true }, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" }).pipe(Effect.result);
-				const item = (yield* client("fleet.views", undefined)).active[0];
+				const item = (yield* client("fleet.views", undefined)).waiting.automation[0];
 				expect(item?.stage).toBe("prepared");
 				expect(item?.blocker).toBe("backlog capacity is occupied (limit 1)");
 				expect(item?.sessions).toEqual([]);
@@ -48,7 +48,7 @@ test("native Active query exposes backlog admission blockers with the prepared s
 		),
 	));
 
-test("native Active query exposes the exact quota admission blocker", () =>
+test("native Automation waiting query exposes the exact quota admission blocker", () =>
 	withEngine({ unknownQuota: true }, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -56,13 +56,13 @@ test("native Active query exposes the exact quota admission blocker", () =>
 				const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" }).pipe(Effect.result);
 				const result = yield* client("fleet.views", undefined);
-				expect(result.active[0]?.stage).toBe("prepared");
-				expect(result.active[0]?.blocker).toBe("Fresh available provider quota is required");
+				expect(result.waiting.automation[0]?.stage).toBe("prepared");
+				expect(result.waiting.automation[0]?.blocker).toBe("Fresh available provider quota is required");
 			}),
 		),
 	));
 
-test("native Active query preserves dependency blockers without preventing unrelated dispatch", () =>
+test("native Orchestrator waiting query preserves dependency blockers without preventing unrelated dispatch", () =>
 	withEngine({}, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -72,7 +72,9 @@ test("native Active query preserves dependency blockers without preventing unrel
 				yield* client("fleet.dispatch", { workId: "dependent" }).pipe(Effect.result);
 				yield* client("fleet.dispatch", { workId: "two" });
 				const result = yield* client("fleet.views", undefined);
-				expect(result.active.find((item) => item.workId === "dependent")?.blocker).toContain("accepted outcome for current Board revision board-one");
+				expect(result.waiting.orchestrator.find((item) => item.workId === "dependent")?.blocker).toContain(
+					"accepted outcome for current Board revision board-one",
+				);
 				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("executing");
 			}),
 		),
@@ -87,7 +89,7 @@ test("native Active query clears capacity blockers after successful replacement 
 				const client = yield* RpcTest.makeClient(FleetContract, { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" });
 				yield* client("fleet.dispatch", { workId: "two" }).pipe(Effect.result);
-				expect((yield* client("fleet.views", undefined)).active.find((item) => item.workId === "two")?.blocker).toContain(
+				expect((yield* client("fleet.views", undefined)).waiting.automation.find((item) => item.workId === "two")?.blocker).toContain(
 					"execution capacity is occupied (limit 1)",
 				);
 				finishWorkers(fixture);
@@ -101,7 +103,7 @@ test("native Active query clears capacity blockers after successful replacement 
 		),
 	));
 
-test("native Needs human query prioritizes its concrete decision over previous admission failure", () =>
+test("native Maintainer waiting query prioritizes its concrete decision over previous admission failure", () =>
 	withEngine({}, (fixture) =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -110,7 +112,7 @@ test("native Needs human query prioritizes its concrete decision over previous a
 				yield* client("fleet.dispatch", { workId: "dependent" }).pipe(Effect.result);
 				fixture.editWork("dependent", "changed-context");
 				yield* client("fleet.dispatch", { workId: "dependent" });
-				const item = (yield* client("fleet.views", undefined)).needsHuman[0];
+				const item = (yield* client("fleet.views", undefined)).waiting.maintainer[0];
 				expect(item?.stage).toBe("needs-human");
 				expect(item?.blocker).toBe("Board context changed after preparation");
 				expect(item?.decision?.reason).toBe(item?.blocker);

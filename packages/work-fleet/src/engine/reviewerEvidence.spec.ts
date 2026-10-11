@@ -87,7 +87,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);
 			}),
 		));
-	test("a second malformed reply needs a human after restart without another follow-up", () =>
+	test("a second malformed reply waits on the orchestrator after restart without another follow-up", () =>
 		withEngine({ reviewRunning: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -101,6 +101,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				expect(receipt.sessionId).toBe(original.sessionId);
 				const invalid = yield* fixture.restart(fleet.reconcile("one"));
 				expect(invalid.value.stage).toBe("needs-human");
+				expect(invalid.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 				expect(invalid.value.decision?.reason).toContain("malformed");
 				expect(invalid.value.review).toBeUndefined();
 				expect(invalid.value.outcome).toBeUndefined();

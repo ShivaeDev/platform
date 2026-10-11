@@ -36,9 +36,11 @@ describe("Fleet launch backpressure", () => {
 						expect(executing(queued)).toBe(false);
 						expect(fixture.decisions).toEqual([]);
 						const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
-						expect(status).toContain("Active (1)");
+						expect(status).toContain("Active (0)");
+						expect(status).toContain("Waiting on automation (1)");
 						expect(status).toContain("Waiting for provider capacity; last rejection 1970-01-01T00:00:00.100Z");
-						expect(status).toContain("Needs human (0)");
+						expect(status).toContain("Waiting on maintainer (0)");
+						expect(status).toContain("Waiting on orchestrator (0)");
 						reject = false;
 						now = 30_099;
 						yield* fixture.restart(cycle);
@@ -125,7 +127,7 @@ describe("Fleet launch backpressure", () => {
 				yield* fixture.restart(cycle);
 				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 				const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
-				expect(status).toContain("Needs human (1)");
+				expect(status).toContain("Waiting on maintainer (1)");
 				expect(status).toContain("Board context changed after preparation");
 				expect(status).not.toContain("Waiting for provider capacity");
 				expect(fixture.launched).toHaveLength(1);

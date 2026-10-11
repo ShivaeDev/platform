@@ -33,6 +33,7 @@ describe("continuation launch backpressure", () => {
 						const sessionId = stopped.attempts[0]?.receipt?.sessionId;
 						reject = true;
 						const queued = (yield* fleet.continue("one", "Check another case")).value;
+						expect(queued.attentionOwner).toBe("automation");
 						expect(queued.stage).toBe("repairing");
 						expect(queued.launchRetry?.retryAt).toBe(30_100);
 						expect(queued.history).toHaveLength(1);
@@ -47,6 +48,7 @@ describe("continuation launch backpressure", () => {
 						const accepted = (yield* fleet.get("one")).value;
 						expect(accepted.stage).toBe("executing");
 						expect(accepted.launchRetry).toBeUndefined();
+						expect(accepted.attentionOwner).toBeUndefined();
 						expect(accepted.attempts.at(-1)).toMatchObject({
 							prompt: "Check another case",
 							receipt: { sessionId },

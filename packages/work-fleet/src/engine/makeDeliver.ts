@@ -1,4 +1,5 @@
 import { Effect, Result } from "effect";
+import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
@@ -31,8 +32,8 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	const { integrations, save, decision } = state;
 	const record = stored.value;
 	let current = stored;
-	function needsHuman(reason: string, recommendation: string) {
-		return record.decision?.reason === reason ? Effect.succeed(current) : decision(current, reason, recommendation);
+	function waitingDecision(reason: string, recommendation: string, attentionOwner: AttentionOwner = "orchestrator") {
+		return record.decision?.reason === reason ? Effect.succeed(current) : decision(current, reason, recommendation, undefined, attentionOwner);
 	}
 	const observed = yield* integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed)) {
@@ -40,7 +41,11 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 			return stored;
 		}
 		current = yield* invalidateMergeReadiness(state, stored);
-		return yield* needsHuman(observed.failure.message, "Inspect the adopted PR and its delivery evidence before retrying or releasing this work");
+		return yield* waitingDecision(
+			observed.failure.message,
+			"Inspect the adopted PR and its delivery evidence before retrying or releasing this work",
+			observed.failure.attentionOwner,
+		);
 	}
 	if (executing(record) || record.review?.verdict !== "approved" || record.checks?.passed !== true) {
 		return stored;
@@ -55,5 +60,5 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 		return yield* save(stored, { ...record, blocker: undefined, outcome: delivery, stage: "completed" });
 	}
 	current = yield* invalidateMergeReadiness(state, stored);
-	return yield* needsHuman("Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
+	return yield* waitingDecision("Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
 });

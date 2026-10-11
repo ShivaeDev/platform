@@ -7,6 +7,7 @@ import { makeAdvance } from "#engine/makeAdvance.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import { makeState } from "#engine/makeState.ts";
 import { prepareCommand } from "#engine/prepareCommand.ts";
+import { reassignCommand } from "#engine/reassignCommand.ts";
 import { reconcileCommand } from "#engine/reconcileCommand.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
@@ -35,6 +36,7 @@ export const Fleet = defineService({
 		get: (workId: string) => state.load(workId),
 		list: () => state.store.list(),
 		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state)), Effect.flatMap(cleanupSessions(state))),
+		reassign: reassignCommand(state),
 		reconcile: (workId: string) => reconcileCommand(state, state.advance)(workId).pipe(Effect.flatMap(cleanupSessions(state))),
 		resolve: (workId: string, decisionId: string, responseId: string) =>
 			resolveCommand(state)(workId, decisionId, responseId).pipe(Effect.flatMap(cleanupSessions(state))),
