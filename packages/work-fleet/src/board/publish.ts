@@ -37,13 +37,17 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision): strin
 		kind: "decision",
 		relationships: [{ kind: "relates_to", target: work.workId }],
 	};
-	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(input.reason)}\n\n## Recommendation\n\n${quoted(input.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n::::question{id="fleet-action" select="one"}\n### How should Fleet proceed?\n\n:::option{id="retry"}\nRetry after the blocker is resolved under trusted runtime policy.\n:::\n\n:::option{id="release"}\nSafely release this work's ownership if execution and delivery permit it.\n:::\n::::\n\n## Reviewed Board work\n\n${quoted(work.context)}\n`;
+	const answer =
+		input.worker === undefined
+			? `::::question{id="fleet-action" select="one"}\n### How should Fleet proceed?\n\n:::option{id="retry"}\nRetry after the blocker is resolved under trusted runtime policy.\n:::\n\n:::option{id="release"}\nSafely release this work's ownership if execution and delivery permit it.\n:::\n::::`
+			: "Record your answer below to continue the worker in its existing thread.";
+	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(input.reason)}\n\n## Recommendation\n\n${quoted(input.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${answer}\n\n## Reviewed Board work\n\n${quoted(work.context)}\n`;
 }
 
 export function publishBoard(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
 	return Effect.fn("FleetBoard.decision")(function* (work: BoardWork, input: Decision): Effect.fn.Return<BoardDecision, BoardFailure> {
 		const workSourcePath = relative(realRoot, work.sourcePath);
-		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links]))}`;
+		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links, ...(input.worker === undefined ? [] : [input.worker])]))}`;
 		const context = decisionSource(itemId, work, input);
 		if (new TextEncoder().encode(context).length > 256 * 1024 || metadataParse(context).diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));

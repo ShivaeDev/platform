@@ -18,9 +18,9 @@ export interface Session {
 	readonly violations: readonly Violation[];
 }
 
-const setup = <Value, Requirements>(
-	effect: Effect.Effect<Value, FilesystemFailure, Requirements>,
-): Effect.Effect<Value, SetupFailure, Requirements> => Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
+const setup = <TValue, TRequirements>(
+	effect: Effect.Effect<TValue, FilesystemFailure, TRequirements>,
+): Effect.Effect<TValue, SetupFailure, TRequirements> => Effect.mapError(effect, (failure) => new SetupFailure({ message: failure.message }));
 
 export const scan = (config: ResolvedConfig): Effect.Effect<Pick<Session, "inventory" | "violations">, SetupFailure, FileSystem.FileSystem> =>
 	Effect.gen(function* () {

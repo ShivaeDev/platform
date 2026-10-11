@@ -22,11 +22,11 @@ export const configuredTimeout = (client: object): number | undefined =>
 
 const wallClock = Clock.Clock.defaultValue();
 
-export const expiring = <X, E, R>(
-	body: Effect.Effect<X, E, R>,
+export const expiring = <TX, E, R>(
+	body: Effect.Effect<TX, E, R>,
 	timeout: number | undefined,
 	Expiry: Context.Reference<Expire>,
-): Effect.Effect<X, E | TransactionExpired, R> =>
+): Effect.Effect<TX, E | TransactionExpired, R> =>
 	Effect.gen(function* () {
 		const outer = yield* Expiry;
 		const expired = yield* Deferred.make<never, TransactionExpired>();
