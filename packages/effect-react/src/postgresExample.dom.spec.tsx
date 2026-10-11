@@ -4,7 +4,7 @@ import { Rejected } from "#test/postgres-example/contract.ts";
 import { app, realPostgres } from "#test/postgres-example/integration.ts";
 import { makeClient } from "#test/postgres-example/makeClient.ts";
 import { call } from "#test/postgres-example/view.tsx";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 
