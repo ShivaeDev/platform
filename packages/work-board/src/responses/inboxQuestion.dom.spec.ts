@@ -46,6 +46,12 @@ async function answer() {
 it("records a recommended option from the item page and updates the live Inbox badge", async () => {
 	await open();
 	expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
+	const clear = page.document.querySelector("[data-clear-choices]");
+	if (!(clear instanceof page.window.HTMLButtonElement)) {
+		throw new Error("Missing Clear selection control");
+	}
+	expect(clear.nextElementSibling?.tagName).toBe("LABEL");
+	expect(page.window.getComputedStyle(clear).marginBottom).toBe("16px");
 	page.document.querySelector('[data-choice="option-1"]')?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 	expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-pressed")).toBe("true");
 	const response = await answer();

@@ -7,11 +7,13 @@ import { captureReading, reportMissingPassage, restoreReading } from "/_board/re
 import { refreshLibrary } from "/_board/library.js";
 
 export const syncInbox = () => {
-  const count = document.getElementById("inbox-count");
-  const topbarCount = document.getElementById("inbox-topbar-count");
-  if (count && topbarCount) {
-    topbarCount.textContent = count.textContent;
-    topbarCount.setAttribute("aria-label", count.getAttribute("aria-label"));
+  const count = document.querySelector("#files [data-inbox-count]")?.dataset.inboxCount;
+  if (count !== undefined) for (const id of ["inbox-count", "inbox-topbar-count"]) {
+    const badge = document.getElementById(id);
+    if (badge) {
+      badge.textContent = count;
+      badge.setAttribute("aria-label", count + " waiting");
+    }
   }
   for (const id of ["inbox-open", "inbox-topbar"]) document.getElementById(id)?.setAttribute("aria-current", document.getElementById("doc").dataset.view === "inbox" ? "page" : "false");
 };

@@ -60,6 +60,7 @@ export function inboxSnapshot(files: Readonly<Record<string, string>> = inboxFix
 					?.slice(2) ?? document.file,
 		})),
 		model: metadataModel(documents, unavailable),
+		modified: new Map(documents.map((document) => [document.file, document.modified])),
 		revision: 1,
 		unavailable,
 	};

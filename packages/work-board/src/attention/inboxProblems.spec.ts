@@ -44,6 +44,6 @@ it("shows days beyond 48 hours without JavaScript and withholds the count when i
 	const snapshot = inboxSnapshot(inboxFixture());
 	expect(inboxHtml(snapshot, false, 3 * 24 * 60 * 60 * 1000)).toContain("updated 3d ago");
 	for (const unavailable of [undefined, inboxSnapshot(inboxFixture(), ["unreadable.md"])]) {
-		expect(navHtml([], "", undefined, unavailable)).toContain('aria-label="? waiting">?</span>');
+		expect(navHtml([], "", undefined, unavailable)).toContain('data-inbox-count="?"');
 	}
 });

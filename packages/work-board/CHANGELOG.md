@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- Inbox ages and order follow current file modification times, including content-preserving touches and index restarts, while unchanged document identities stay reused. Place the sidebar Inbox above recent files and Getting started, and space Clear selection above the answer label.
+
 - Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.
 
 - Mark stale Fleet snapshots and dim their counts while displaying the publisher’s observation time. Label Codex windows by duration, show local and relative resets, explain unsupported snapshot versions and API-key account limits, and make Diagnostics available in the header.
