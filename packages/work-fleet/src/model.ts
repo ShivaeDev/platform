@@ -5,6 +5,7 @@ import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
+	prompt: Schema.optional(Schema.String),
 	receipt: Schema.optional(SessionReceipt),
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
 	sessionId: Schema.optional(Schema.String),

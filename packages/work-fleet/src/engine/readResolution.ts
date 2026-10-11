@@ -24,6 +24,12 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	if (response.response.type !== "answer") {
 		return { action: undefined, published, response };
 	}
+	if (decision.worker !== undefined) {
+		if (response.body.trim().length === 0) {
+			return yield* Effect.fail(new FleetFailure({ message: "Record a nonempty answer for the worker", reason: "invalid" }));
+		}
+		return { action: "continue", published, response } as const;
+	}
 	const answers = response.response.answers?.filter((answer) => answer.prompt === "fleet-action") ?? [];
 	const selected = answers[0]?.selected;
 	const action = selected?.[0];
