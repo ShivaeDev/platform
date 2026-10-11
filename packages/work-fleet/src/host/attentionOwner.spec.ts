@@ -8,7 +8,7 @@ import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
-import { fleetCli } from "#test/fleetCli.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 import { storeState, task, waitProcess, withHost } from "#test/fleetHost.ts";
 import { statusRecord } from "#test/status.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
@@ -26,12 +26,12 @@ test("CLI status groups all owners and wait names each owner without changing ex
 					stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker`,
 				});
 			}
-			const text = yield* Effect.promise(() => fleetCli(fixture.configFile, ["status"]));
+			const text = yield* Effect.promise(() => cliProcess(["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
 			expect(text.code).toBe(0);
 			for (const owner of ["maintainer", "orchestrator", "automation"]) {
 				expect(text.stdout).toContain(`Waiting on ${owner} (1)\n  ${owner}  needs-human`);
 			}
-			const json = yield* Effect.promise(() => fleetCli(fixture.configFile, ["status", "--json"]));
+			const json = yield* Effect.promise(() => cliProcess(["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
 			expect(json.code).toBe(0);
 			expect(JSON.parse(json.stdout)).toMatchObject({
 				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
@@ -54,8 +54,10 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			const old = yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 			const oldSource = readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8");
 			expect(oldSource).toContain('"response_from":["orchestrator"]');
-			const changed = yield* Effect.promise(() => fleetCli(fixture.configFile, ["reassign", "one", old.decision.id, "maintainer"]));
-			expect(changed).toEqual({ code: 0, stderr: "", stdout: "one needs-human (waiting on maintainer)" });
+			const changed = yield* Effect.promise(() =>
+				cliProcess(["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile]),
+			);
+			expect(changed).toEqual({ code: 0, stdout: "one needs-human (waiting on maintainer)" });
 			const current = yield* Effect.gen(function* () {
 				return (yield* (yield* Fleet).get("one")).value;
 			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
