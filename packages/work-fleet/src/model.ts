@@ -16,6 +16,7 @@ export const Attempt = Schema.Struct({
 	settings: Schema.optional(LaunchSettings),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submittedAt: Schema.Number,
+	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {

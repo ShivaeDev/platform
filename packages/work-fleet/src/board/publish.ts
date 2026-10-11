@@ -3,6 +3,7 @@ import { Clock, Effect } from "effect";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { questionFrom, questionId, questionMarkdown, revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { decisionAnswer } from "#board/decisionAnswer.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecision } from "#board/schema.ts";
@@ -38,10 +39,7 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision): strin
 		kind: "decision",
 		relationships: [{ kind: "relates_to", target: work.workId }],
 	};
-	const answer =
-		input.worker === undefined
-			? `::::question{id="fleet-action" select="one"}\n### How should Fleet proceed?\n\n:::option{id="retry"}\nRetry after the blocker is resolved under trusted runtime policy.\n:::\n\n:::option{id="release"}\nSafely release this work's ownership if execution and delivery permit it.\n:::\n::::`
-			: "Record your answer below to continue the worker in its existing thread.";
+	const answer = decisionAnswer(input);
 	return `---\n${JSON.stringify(metadata)}\n---\n# Fleet decision for ${work.workId}\n\n## Decision\n\n${quoted(input.reason)}\n\n## Recommendation\n\n${quoted(input.recommendation)}\n\n## Relevant links\n\n${input.links.map(linked).join("\n\n")}\n\n${answer}\n\n## Reviewed Board work\n\n${quoted(work.context)}\n`;
 }
 
