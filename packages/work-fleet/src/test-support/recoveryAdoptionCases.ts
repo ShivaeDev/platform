@@ -21,7 +21,7 @@ const faults: readonly AdoptionFault[] = [
 		before: { head: { sha: MOVED }, merged: true, state: "closed" },
 		reason: "Merged PR head differs from the reported head; inspect delivery before accepting this work",
 	},
-	{ before: { base: { ref: "main", sha: MOVED } }, reason: "PR base or changed paths moved during observation" },
+	{ before: { "changed_files": 2 }, reason: "PR changed paths moved during observation" },
 	{ files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
 	{ invalidJson: true, reason: "GitHub observation failed or returned invalid data" },
 	{ files: [[{ filename: "src/outside.ts" }]], reason: "Result needs evidence and known reserved scope" },
