@@ -161,7 +161,6 @@
 {"path":"packages/effect-prisma/src/relation.ts","rule":"biome/lint/style/useNamingConvention","count":42}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"biome/lint/style/useNamingConvention","count":31}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/relation/include.ts","rule":"biome/lint/style/useNamingConvention","count":44}
 {"path":"packages/effect-prisma/src/relation/include.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/relation/prisma-methods.ts","rule":"biome/lint/style/useNamingConvention","count":45}
 {"path":"packages/effect-prisma/src/relation/prisma-methods.ts","rule":"files/named-after-export","count":1}

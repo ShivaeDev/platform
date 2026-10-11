@@ -2,18 +2,18 @@ import type { DefaultModelRow, Collection as PrismaCollection, RelationNames } f
 import type { Relation, RelationQuery } from "#relation.ts";
 import type { AnyPostgresContract, IncludedRelationValue, IsToManyRelation, RelatedModelNameOf } from "./include-metadata.ts";
 
-type Simplify<Value> = { [Key in keyof Value]: Value[Key] };
+type Simplify<TValue> = { [TKey in keyof TValue]: TValue[TKey] };
 
-type QueryValue<Query> = Query extends RelationQuery<infer Value, infer _Contract, infer _Model, infer _DatabaseId> ? Value : never;
+type QueryValue<TQuery> = TQuery extends RelationQuery<infer TValue, infer _Contract, infer _Model, infer _DatabaseId> ? TValue : never;
 
-type AcceptRelatedQuery<Query, Contract extends AnyPostgresContract, Model extends string, DatabaseId> = [Query] extends [
-	RelationQuery<infer _Value, infer QueryContract, infer QueryModel, infer QueryDatabaseId>,
+type AcceptRelatedQuery<TQuery, TContract extends AnyPostgresContract, TModel extends string, TDatabaseId> = [TQuery] extends [
+	RelationQuery<infer _Value, infer TQueryContract, infer TQueryModel, infer TQueryDatabaseId>,
 ]
-	? [QueryContract] extends [Contract]
-		? [Contract] extends [QueryContract]
-			? [QueryDatabaseId] extends [DatabaseId]
-				? [DatabaseId] extends [QueryDatabaseId]
-					? QueryModel extends Model
+	? [TQueryContract] extends [TContract]
+		? [TContract] extends [TQueryContract]
+			? [TQueryDatabaseId] extends [TDatabaseId]
+				? [TDatabaseId] extends [TQueryDatabaseId]
+					? TQueryModel extends TModel
 						? unknown
 						: never
 					: never
@@ -22,63 +22,63 @@ type AcceptRelatedQuery<Query, Contract extends AnyPostgresContract, Model exten
 		: never
 	: never;
 
-type IncludedQueryValue<Query, Contract extends AnyPostgresContract, Model extends string, RelationName extends string> =
-	QueryValue<Query> extends ReadonlyArray<infer Row> ? IncludedRelationValue<Contract, Model, RelationName, Row> : QueryValue<Query>;
+type IncludedQueryValue<TQuery, TContract extends AnyPostgresContract, TModel extends string, TRelationName extends string> =
+	QueryValue<TQuery> extends ReadonlyArray<infer TRow> ? IncludedRelationValue<TContract, TModel, TRelationName, TRow> : QueryValue<TQuery>;
 
-type QueryShapeValue<Shape extends Readonly<Record<string, unknown>>> = {
-	readonly [Key in keyof Shape]: QueryValue<Shape[Key]>;
+type QueryShapeValue<TShape extends Readonly<Record<string, unknown>>> = {
+	readonly [TKey in keyof TShape]: QueryValue<TShape[TKey]>;
 };
 
 type AcceptRelatedQueryShape<
-	Shape extends Readonly<Record<string, unknown>>,
-	Contract extends AnyPostgresContract,
-	Model extends string,
-	DatabaseId,
+	TShape extends Readonly<Record<string, unknown>>,
+	TContract extends AnyPostgresContract,
+	TModel extends string,
+	TDatabaseId,
 > = {
-	readonly [Key in keyof Shape]: Shape[Key] & AcceptRelatedQuery<Shape[Key], Contract, Model, DatabaseId>;
+	readonly [TKey in keyof TShape]: TShape[TKey] & AcceptRelatedQuery<TShape[TKey], TContract, TModel, TDatabaseId>;
 };
 
-type WithIncludedRelation<Collection, Contract extends AnyPostgresContract, Model extends string, RelationName extends string, Value> =
-	Collection extends PrismaCollection<Contract, Model, infer Row, infer State>
-		? PrismaCollection<Contract, Model, Simplify<Row & { readonly [Key in RelationName]: Value }>, State>
+type WithIncludedRelation<TCollection, TContract extends AnyPostgresContract, TModel extends string, TRelationName extends string, TValue> =
+	TCollection extends PrismaCollection<TContract, TModel, infer TRow, infer TState>
+		? PrismaCollection<TContract, TModel, Simplify<TRow & { readonly [TKey in TRelationName]: TValue }>, TState>
 		: never;
 
-interface IncludeOverloads<Collection, Contract extends AnyPostgresContract, Model extends string, DatabaseId> {
-	<RelationName extends RelationNames<Contract, Model>>(
-		relationName: RelationName,
+interface IncludeOverloads<TCollection, TContract extends AnyPostgresContract, TModel extends string, TDatabaseId> {
+	<TRelationName extends RelationNames<TContract, TModel>>(
+		relationName: TRelationName,
 	): Relation<
 		WithIncludedRelation<
-			Collection,
-			Contract,
-			Model,
-			RelationName,
-			IncludedRelationValue<Contract, Model, RelationName, DefaultModelRow<Contract, RelatedModelNameOf<Contract, Model, RelationName>>>
+			TCollection,
+			TContract,
+			TModel,
+			TRelationName,
+			IncludedRelationValue<TContract, TModel, TRelationName, DefaultModelRow<TContract, RelatedModelNameOf<TContract, TModel, TRelationName>>>
 		>,
-		Contract,
-		Model,
-		DatabaseId
+		TContract,
+		TModel,
+		TDatabaseId
 	>;
-	<RelationName extends RelationNames<Contract, Model>, Query>(
-		relationName: RelationName,
-		query: Query & AcceptRelatedQuery<Query, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>,
+	<TRelationName extends RelationNames<TContract, TModel>, TQuery>(
+		relationName: TRelationName,
+		query: TQuery & AcceptRelatedQuery<TQuery, TContract, RelatedModelNameOf<TContract, TModel, TRelationName>, TDatabaseId>,
 	): Relation<
-		WithIncludedRelation<Collection, Contract, Model, RelationName, IncludedQueryValue<Query, Contract, Model, RelationName>>,
-		Contract,
-		Model,
-		DatabaseId
+		WithIncludedRelation<TCollection, TContract, TModel, TRelationName, IncludedQueryValue<TQuery, TContract, TModel, TRelationName>>,
+		TContract,
+		TModel,
+		TDatabaseId
 	>;
-	<RelationName extends RelationNames<Contract, Model>, Shape extends Readonly<Record<string, unknown>>>(
-		relationName: RelationName,
-		shape: IsToManyRelation<Contract, Model, RelationName> extends true
-			? keyof Shape extends never
+	<TRelationName extends RelationNames<TContract, TModel>, TShape extends Readonly<Record<string, unknown>>>(
+		relationName: TRelationName,
+		shape: IsToManyRelation<TContract, TModel, TRelationName> extends true
+			? keyof TShape extends never
 				? never
-				: Shape & AcceptRelatedQueryShape<Shape, Contract, RelatedModelNameOf<Contract, Model, RelationName>, DatabaseId>
+				: TShape & AcceptRelatedQueryShape<TShape, TContract, RelatedModelNameOf<TContract, TModel, TRelationName>, TDatabaseId>
 			: never,
-	): Relation<WithIncludedRelation<Collection, Contract, Model, RelationName, QueryShapeValue<Shape>>, Contract, Model, DatabaseId>;
+	): Relation<WithIncludedRelation<TCollection, TContract, TModel, TRelationName, QueryShapeValue<TShape>>, TContract, TModel, TDatabaseId>;
 }
 
-export type IncludeMethod<Collection, Contract, Model extends string, DatabaseId> = Contract extends AnyPostgresContract
-	? Collection extends PrismaCollection<Contract, Model, infer _Row, infer _State>
-		? { include: IncludeOverloads<Collection, Contract, Model, DatabaseId> }
+export type IncludeMethod<TCollection, TContract, TModel extends string, TDatabaseId> = TContract extends AnyPostgresContract
+	? TCollection extends PrismaCollection<TContract, TModel, infer _Row, infer _State>
+		? { include: IncludeOverloads<TCollection, TContract, TModel, TDatabaseId> }
 		: Record<never, never>
 	: Record<never, never>;
