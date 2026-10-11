@@ -19,13 +19,13 @@ describe("work-fleet status process against PostgreSQL", () => {
 				expect(text.stdout).toContain("Active (2)");
 				expect(text.stdout).toContain("  a  executing");
 				expect(text.stdout).toContain("  b  executing");
-				expect(text.stdout).toContain("Needs human (0)\nCompleted (0)");
+				expect(text.stdout).toContain("Waiting on maintainer (0)\nWaiting on orchestrator (0)\nWaiting on automation (0)\nCompleted (0)");
 				const json = yield* Effect.promise(() => cliProcess(["status", "a", "--board", fixture.host.boardDir, "--json"]));
 				expect(json.code).toBe(0);
 				expect(JSON.parse(json.stdout)).toEqual({
 					active: [expect.objectContaining({ stage: "executing", workId: "a" })],
 					completed: [],
-					needsHuman: [],
+					waiting: { automation: [], maintainer: [], orchestrator: [] },
 				});
 			}),
 		);

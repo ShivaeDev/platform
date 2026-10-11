@@ -25,6 +25,8 @@ test("green work never submits a merge and a restarted scheduler accepts the hum
 			finishWorkers(fixture);
 			const ready = yield* fleet.reconcile("one");
 			expect(ready.value.stage).toBe("needs-human");
+			expect(ready.value.attentionOwner).toBe("maintainer");
+			expect(ready.value.decision?.attentionOwner).toBe("maintainer");
 			expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 			expect(ready.value.review?.head).toBe(result.head);
 			expect(ready.value.checks).toMatchObject({ head: result.head, passed: true });
@@ -38,7 +40,8 @@ test("green work never submits a merge and a restarted scheduler accepts the hum
 			expect(accepted.value.outcome).toEqual({ head: result.head, revision: "merged-revision", url: result.pr });
 			expect(backlog(accepted.value)).toBe(false);
 			const completedViews = views((yield* fleet.list()).map(({ value }) => value));
-			expect(completedViews.needsHuman).toEqual([]);
+			expect(completedViews.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
+			expect(accepted.value.attentionOwner).toBeUndefined();
 			expect(completedViews.completed[0]?.blocker).toBeUndefined();
 			expect(completedViews.completed[0]?.decision).toBeUndefined();
 			expect(accepted.value.decision?.published).toBeDefined();

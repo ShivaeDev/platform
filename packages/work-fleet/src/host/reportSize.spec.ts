@@ -20,6 +20,8 @@ it.live.skipIf(storageDatabaseUrl === undefined)("an oversized report needs a hu
 				return yield* (yield* Fleet).reconcile("research");
 			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 			expect(first.value.stage).toBe("needs-human");
+			expect(first.value.attentionOwner).toBe("orchestrator");
+			expect(first.value.decision?.attentionOwner).toBe("orchestrator");
 			expect(first.value.decision?.reason).toContain("256 KiB context limit");
 			expect(first.value.decisionPublished).toBe(true);
 			expect(first.value.report).toBeUndefined();

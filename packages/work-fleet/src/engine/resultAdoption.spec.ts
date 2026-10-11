@@ -104,6 +104,8 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 					finishReport(fixture, scenario.output);
 					const blocked = yield* fleet.reconcile("one");
 					expect(blocked.value.stage).toBe("needs-human");
+					expect(blocked.value.attentionOwner).toBe("orchestrator");
+					expect(blocked.value.decision?.attentionOwner).toBe("orchestrator");
 					expect(blocked.value.result).toBeUndefined();
 					expect(fixture.reviews).toHaveLength(0);
 					expect(fixture.merged).toHaveLength(0);

@@ -37,6 +37,7 @@ for (const retry of [false, true]) {
 						const worker = reviewing.value.attempts[0];
 						if (retry) {
 							expect(reviewing.value.stage).toBe("needs-human");
+							expect(reviewing.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 							expect(reviewing.value.decision?.reason).toBe("Reported PR must be open and target the configured repository branch");
 							expect(reviewing.value.result).toBeUndefined();
 							expect(fixture.launched).toHaveLength(1);

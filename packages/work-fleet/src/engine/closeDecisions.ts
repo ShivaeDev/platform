@@ -16,8 +16,8 @@ export function closeDecisions(state: EngineState) {
 				continue;
 			}
 			const previous = stored.value.history ?? [];
-			const current = pending.cycle === previous.length ? marked(stored.value, pending.response) : stored.value;
-			const history = previous.map((cycle, index) => (index === pending.cycle ? marked(cycle, pending.response) : cycle));
+			const current = pending.cycle === previous.length ? marked(stored.value, pending.response, pending.superseded) : stored.value;
+			const history = previous.map((cycle, index) => (index === pending.cycle ? marked(cycle, pending.response, pending.superseded) : cycle));
 			stored = yield* state.save(stored, { ...current, history });
 		}
 		if (failures.length > 0) {
@@ -30,7 +30,15 @@ export function closeDecisions(state: EngineState) {
 	});
 }
 
-function marked<T extends FleetRecord | FleetCycleSnapshot>(cycle: T, responseIndex: number | undefined): T {
+function marked<T extends FleetRecord | FleetCycleSnapshot>(cycle: T, responseIndex: number | undefined, supersededIndex?: number): T {
+	if (supersededIndex !== undefined) {
+		return {
+			...cycle,
+			supersededDecisions: cycle.supersededDecisions?.map((receipt, index) =>
+				index === supersededIndex ? { ...receipt, boardAcknowledged: true } : receipt,
+			),
+		};
+	}
 	return responseIndex === undefined
 		? { ...cycle, decisionAcknowledged: true }
 		: {

@@ -38,7 +38,7 @@ export function makeObserve(state: EngineState) {
 		}
 		const question = reportedQuestion(observation.output);
 		if (question !== undefined) {
-			return yield* decision(stored, question, "Record an answer to continue this worker thread", receipt);
+			return yield* decision(stored, question.question, "Record an answer to continue this worker thread", receipt, question.attentionOwner);
 		}
 		stored = yield* save(stored, { ...stored.value, stage: "adopting" });
 		return stored;

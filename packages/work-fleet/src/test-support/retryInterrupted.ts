@@ -17,6 +17,7 @@ export const retryInterrupted = Effect.fn("CloudRestart.retryInterrupted")(funct
 		expect(stored.value.attempts[0]).toMatchObject({ sessionId: "synthetic-session", status: "submitting" });
 		expect(stored.value.attempts[0]?.receipt).toBeUndefined();
 		const decision = {
+			attentionOwner: "maintainer" as const,
 			id: `${stored.value.workId}.${stored.version}`,
 			links: [],
 			reason: "No matching accepted turn is observable; absence does not authorize replay",
@@ -27,6 +28,7 @@ export const retryInterrupted = Effect.fn("CloudRestart.retryInterrupted")(funct
 		yield* store.compareAndSet(stored.value.workId, stored.version, {
 			...stored.value,
 			attempts,
+			attentionOwner: "maintainer",
 			decision: { ...decision, published: publication },
 			decisionPublished: true,
 			stage: "needs-human",

@@ -44,6 +44,8 @@ describe("workerPrompt", () => {
 		expect(prompt).toContain("exactly ONE pull request");
 		expect(prompt).toContain("Do not merge it");
 		expect(prompt).toContain(`\`${QUESTION_MARKER} <question>\``);
+		expect(prompt).toContain("Questions go to the orchestrator by default");
+		expect(prompt).toContain("`FLEET_MAINTAINER_QUESTION: <question>`");
 		expect(prompt).toContain("continues this same thread with the recorded answer");
 		expect(prompt).toContain(`\`${PULL_REQUEST_MARKER} <url>\``);
 		expect(prompt).toContain("`FLEET_HEAD: <sha>`");
@@ -114,10 +116,23 @@ describe("reportedPullRequest", () => {
 });
 
 describe("reportedQuestion", () => {
+	it("requires an explicit maintainer marker and retains the question context", () => {
+		expect(reportedQuestion("FLEET_QUESTION: Ask the maintainer for approval.")).toEqual({
+			attentionOwner: "orchestrator",
+			question: "Ask the maintainer for approval.",
+		});
+		expect(reportedQuestion("FLEET_MAINTAINER_QUESTION: Approve this API?\n\nChoose A or B.")).toEqual({
+			attentionOwner: "maintainer",
+			question: "Approve this API?\n\nChoose A or B.",
+		});
+		expect(reportedQuestion("Example: FLEET_MAINTAINER_QUESTION: text")).toBeUndefined();
+		expect(reportedQuestion("FLEET_MAINTAINER_QUESTION: ")).toBeUndefined();
+	});
 	it("preserves multiline question context and ignores ordinary reports and empty markers", () => {
-		expect(reportedQuestion("I need a decision.\nFLEET_QUESTION: Which storage should I use?\n\n- PostgreSQL\n- SQLite")).toBe(
-			"Which storage should I use?\n\n- PostgreSQL\n- SQLite",
-		);
+		expect(reportedQuestion("I need a decision.\nFLEET_QUESTION: Which storage should I use?\n\n- PostgreSQL\n- SQLite")).toEqual({
+			attentionOwner: "orchestrator",
+			question: "Which storage should I use?\n\n- PostgreSQL\n- SQLite",
+		});
 		expect(reportedQuestion("Question?\nFLEET_PR: none")).toBeUndefined();
 		expect(reportedQuestion("FLEET_QUESTION:  ")).toBeUndefined();
 		expect(reportedQuestion("Example: FLEET_QUESTION: text")).toBeUndefined();

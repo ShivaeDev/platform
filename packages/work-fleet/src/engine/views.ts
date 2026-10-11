@@ -1,8 +1,10 @@
+import { waitingOwner } from "#attention.ts";
 import type { FleetRecord, FleetViews } from "#model.ts";
 export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	const items = records
-		.filter((record) => record.stage !== "released")
+		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
+			attentionOwner: waitingOwner(record),
 			blocker:
 				record.launchRetry === undefined
 					? (record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason))
@@ -15,8 +17,12 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			workId: record.workId,
 		}));
 	return {
-		active: items.filter((item) => !["completed", "needs-human"].includes(item.stage)),
-		completed: items.filter((item) => item.stage === "completed"),
-		needsHuman: items.filter((item) => item.stage === "needs-human"),
+		active: items.filter((item) => item.stage !== "completed" && item.attentionOwner === undefined),
+		completed: items.filter((item) => item.stage === "completed" && item.attentionOwner === undefined),
+		waiting: {
+			automation: items.filter((item) => item.attentionOwner === "automation"),
+			maintainer: items.filter((item) => item.attentionOwner === "maintainer"),
+			orchestrator: items.filter((item) => item.attentionOwner === "orchestrator"),
+		},
 	};
 }

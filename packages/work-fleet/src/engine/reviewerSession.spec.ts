@@ -64,6 +64,7 @@ describe("independent reviewer sessions", () => {
 					finishWorkers(fixture);
 					const failed = yield* fleet.reconcile("one");
 					expect(failed.value.stage).toBe("needs-human");
+					expect(failed.value.attentionOwner).toBe("orchestrator");
 					expect(failed.value.attempts.at(-1)?.status).toBe(reviewExecution);
 					expect(failed.value.review).toBeUndefined();
 					expect(failed.value.outcome).toBeUndefined();

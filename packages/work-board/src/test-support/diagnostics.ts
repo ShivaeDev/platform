@@ -6,12 +6,12 @@ export const health: FleetHealth = {
 	concurrency: 8,
 	lastCapacityRejection: { at: 1_799_999_990_000, cause: "Provider is at capacity" },
 	lastSchedulerPass: 1_800_000_000_000,
-	needsHuman: 2,
 	observedAt: 1_800_000_000_000,
 	queued: 5,
 	running: 3,
 	staleAfterMs: 60_000,
-	version: 1,
+	version: 2,
+	waiting: { automation: 1, maintainer: 2, orchestrator: 3 },
 };
 export const codexResponse = {
 	ordinaryUsageAllowed: true,

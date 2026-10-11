@@ -90,6 +90,6 @@
 		"checkVersion": true,
 		"expectedFiles": {},
 		"files": {},
-		"output": "Show active, needs-human and completed Fleet work"
+		"output": "Show active and completed Fleet work, and waiting work grouped by owner"
 	}
 }

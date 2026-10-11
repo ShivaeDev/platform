@@ -31,9 +31,9 @@ it("reads the shared versioned snapshot and distinguishes missing from invalid F
 it("explains an unsupported version before validating its unknown shape", () =>
 	Effect.runPromise(
 		Effect.gen(function* () {
-			expect(yield* fleetHealth(notes(JSON.stringify({ version: 2 })).root).pipe(Effect.flip)).toMatchObject({
+			expect(yield* fleetHealth(notes(JSON.stringify({ version: 3 })).root).pipe(Effect.flip)).toMatchObject({
 				kind: "error",
-				message: "Fleet health snapshot version 2 is not supported by this Board",
+				message: "Fleet health snapshot version 3 is not supported by this Board",
 			});
 		}),
 	));

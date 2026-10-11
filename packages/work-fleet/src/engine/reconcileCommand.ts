@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { failureMessage } from "#engine/failureMessage.ts";
+import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { FleetFailure } from "#policy.ts";
@@ -19,9 +20,15 @@ export function reconcileCommand({ load, save, decision }: EngineState, advance:
 						|| error instanceof StorageCapacity
 						|| (error instanceof FleetFailure && error.reason === "denied" && error.message.includes("quota"))
 					) {
-						return yield* save(current, { ...current.value, blocker: failureMessage(error) });
+						return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
 					}
-					return yield* decision(current, failureMessage(error), "Inspect this specific integration failure and retry the existing work");
+					return yield* decision(
+						current,
+						failureMessage(error),
+						"Inspect this specific integration failure and retry the existing work",
+						undefined,
+						error instanceof FleetFailure ? error.attentionOwner : undefined,
+					);
 				}),
 			),
 		);

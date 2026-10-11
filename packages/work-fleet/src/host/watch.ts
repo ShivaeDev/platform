@@ -1,6 +1,7 @@
 import * as Clock from "effect/Clock";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
+import { waitingOwner } from "#attention.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import type { WaitOptions } from "#host/wait.ts";
 import { settled, WAIT_EXIT } from "#host/waitOutcome.ts";
@@ -11,7 +12,8 @@ export interface WatchOptions extends Omit<WaitOptions, "workId"> {
 
 const report = Effect.fn("FleetWatch.report")(function* (states: Effect.Success<ReturnType<typeof readWaitStates>>, pending?: Set<string>) {
 	const remaining = pending ?? new Set(states.map((state) => state.workId));
-	for (const state of states) {
+	const order = ["maintainer", "orchestrator", "automation", undefined];
+	for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
 		const outcome = settled(state.workId, state);
 		if (outcome !== undefined && remaining.delete(state.workId)) {
 			yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));

@@ -18,8 +18,22 @@ it("links Diagnostics from the sidebar and renders all three sources through nor
 	const response = await rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
 	expect(response.body).toContain('id="diagnostics-open" href="/_board/diagnostics" aria-current="page"');
-	for (const text of ["24% used", "63% used", "4321 / 5000", "3210 / 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
+	for (const text of [
+		"24% used",
+		"63% used",
+		"4321 / 5000",
+		"3210 / 5000",
+		"3 / 8",
+		"Provider is at capacity",
+		"Last scheduler pass",
+		"Waiting on maintainer",
+		"Waiting on orchestrator",
+		"Waiting on automation",
+	]) {
 		expect(response.body).toContain(text);
+	}
+	for (const [owner, count] of Object.entries(health.waiting)) {
+		expect(response.body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
 	}
 	expect(response.body).toContain('data-view="diagnostics"');
 	expect((await rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
@@ -52,7 +66,7 @@ it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex win
 		fleet: {
 			observedAt: health.observedAt,
 			state: "ready",
-			value: { ...health, lastCapacityRejection: null, lastSchedulerPass: null, needsHuman: 0 },
+			value: { ...health, lastCapacityRejection: null, lastSchedulerPass: null, waiting: { automation: 0, maintainer: 0, orchestrator: 0 } },
 		},
 		github: {
 			observedAt: health.observedAt,

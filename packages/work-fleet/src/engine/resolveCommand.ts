@@ -10,36 +10,40 @@ import { type DecisionResponse, FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 export function resolveCommand(state: EngineState) {
 	const { board, policy, load, save } = state;
-	return Effect.fn("Fleet.resolve")(function* (workId: string, decisionId: string, responseId: string) {
-		const stored = yield* load(workId);
-		if (hasResponse(stored.value, decisionId, responseId)) {
-			return yield* closeDecisions(state)(stored);
-		}
-		if (stored.value.decision?.id !== decisionId) {
-			return yield* Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" }));
-		}
-		const { action, published, response } = yield* readResolution(board, stored.value.decision, responseId);
-		const receipt = {
-			...(action === undefined ? {} : { action }),
-			decisionId,
-			processedAt: policy.now(),
-			published,
-			questionId: published.questionId,
-			questionRevision: published.revision,
-			responseId,
-			type: response.response.type,
-		};
-		const responses = [...(stored.value.responses ?? []), receipt];
-		if (action === undefined) {
-			const blocker =
-				response.response.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
-			return yield* save(stored, { ...stored.value, blocker, responses });
-		}
-		if (action === "continue") {
-			return yield* continueWorker(state)(stored, responses, response.body).pipe(Effect.flatMap(closeDecisions(state)));
-		}
-		return yield* retryOrRelease(state)(stored, action, responses).pipe(Effect.flatMap(closeDecisions(state)));
-	});
+	return Effect.fn("Fleet.resolve")(
+		function* (workId: string, decisionId: string, responseId: string) {
+			const stored = yield* load(workId);
+			if (hasResponse(stored.value, decisionId, responseId)) {
+				return yield* closeDecisions(state)(stored);
+			}
+			if (stored.value.decision?.id !== decisionId) {
+				return yield* Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" }));
+			}
+			const { action, published, response } = yield* readResolution(board, stored.value.decision, responseId);
+			const receipt = {
+				...(action === undefined ? {} : { action }),
+				decisionId,
+				processedAt: policy.now(),
+				published,
+				questionId: published.questionId,
+				questionRevision: published.revision,
+				responseId,
+				type: response.response.type,
+			};
+			const responses = [...(stored.value.responses ?? []), receipt];
+			if (action === undefined) {
+				const blocker =
+					response.response.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
+				return yield* save(stored, { ...stored.value, blocker, responses });
+			}
+			if (action === "continue") {
+				return yield* continueWorker(state)(stored, responses, response.body).pipe(Effect.flatMap(closeDecisions(state)));
+			}
+			return yield* retryOrRelease(state)(stored, action, responses).pipe(Effect.flatMap(closeDecisions(state)));
+		},
+		(effect) =>
+			effect.pipe(Effect.catchTag("StorageConflict", () => Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" })))),
+	);
 }
 
 function retryOrRelease(state: EngineState) {

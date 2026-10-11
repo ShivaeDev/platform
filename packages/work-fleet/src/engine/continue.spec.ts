@@ -28,6 +28,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 						finishWorkers(fixture);
 						const stopped = yield* client("fleet.reconcile", { workId: "one" });
 						expect(stopped.stage).toBe("needs-human");
+						expect(stopped).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 						const continued = yield* client("fleet.continue", { message: "Fix the remaining criterion", workId: "one" });
 						expect(continued.stage).toBe("executing");
 						expect(continued.attempts[0]).toMatchObject({
@@ -40,7 +41,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 						expect(continued.outcome).toBeUndefined();
 						expect(settled("one", continued)).toBeUndefined();
 						const active = yield* client("fleet.views", undefined);
-						expect(active.needsHuman).toEqual([]);
+						expect(active.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 						expect(active.active[0]?.blocker).toBeUndefined();
 						finishWorkers(fixture);
 						const completed = yield* client("fleet.reconcile", { workId: "one" });
