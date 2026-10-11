@@ -1,6 +1,6 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
-import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading } from "#board/schema.ts";
+import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading, type BoardReport } from "#board/schema.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
@@ -8,6 +8,7 @@ import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const BoardWork = Schema.Struct({
 	approved: Schema.Boolean,
 	context: Schema.String,
+	deliverable: Schema.optional(Schema.Literal("report")),
 	dependsOn: Schema.Array(Schema.String),
 	revision: Schema.String,
 	sourcePath: Schema.String,
@@ -54,6 +55,7 @@ export class BoardGateway extends Context.Service<
 		readonly get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>;
 		readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;
 		readonly readDecision: (decision: BoardDecision) => Effect.Effect<BoardDecisionReading, BoardFailure>;
+		readonly report: (work: BoardWork, observation: SessionObservation) => Effect.Effect<BoardReport, BoardFailure>;
 	}
 >()("@shivaedev/work-fleet/BoardGateway") {}
 export const ChangeResult = Schema.Struct({

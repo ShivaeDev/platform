@@ -7,7 +7,7 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			attentionOwner: waitingOwner(record),
 			blocker: record.blocker ?? record.decision?.reason,
 			decision: record.decision,
-			links: record.result?.kind === "change" ? [record.result.pr] : [],
+			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,
 			sessions: record.attempts.flatMap((attempt) => (attempt.receipt === undefined ? [] : [attempt.receipt])),
 			stage: record.stage,

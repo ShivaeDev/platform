@@ -1,6 +1,16 @@
 import { Schema } from "effect";
 import { RequestReceipt } from "@shivaedev/work-board/attention/RequestReceipt.ts";
 import { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
+import { SessionReceipt } from "#session/schema.ts";
+
+export const BoardReport = Schema.Struct({
+	itemId: Schema.String,
+	receipt: SessionReceipt,
+	revision: Schema.String,
+	sourcePath: Schema.String,
+	workRevision: Schema.String,
+});
+export type BoardReport = typeof BoardReport.Type;
 
 export const BoardDecision = Schema.Struct({
 	itemId: Schema.String,

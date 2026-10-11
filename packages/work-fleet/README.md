@@ -113,6 +113,24 @@ Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTIO
 
 Record a nonempty answer through Board's response page or response API. Reconciliation continues the exact worker thread with the answer body under current approval, quota and capacity policy. The response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection. Clarification, deferral, changed context and competing answers keep the work blocked. Answer text supplies task input and does not grant delivery authority.
 
+### Return a research report
+
+Declare `fleet-deliverable: report` on an approved task to request read-only research. Report worker prompts forbid changes, commits, pushes, branches and PRs, and ask for the whole report in the final message. Omit the field to keep the PR workflow.
+
+```markdown
+---
+id: research.example
+kind: task
+fleet: approved
+fleet-deliverable: report
+---
+# Compare the available approaches
+```
+
+After a completed worker turn, Fleet publishes an ordinary `kind: result` item under `responses/fleet-report.<digest>.md`, with an `informs` relationship to the task. The result preserves the whole final output and records the exact session, turn and task revision in its worker receipt. The Markdown gateway uses Board's durable publisher; custom gateways implement `BoardGateway.report` with the same immutable, idempotent boundary. A publication retry reuses the same identity and bytes, including after a lost acknowledgement.
+
+Successful publication completes the Fleet attempt without PR adoption, independent review, checks or delivery. Empty or whitespace-only output creates a human decision instead of a result. `wait` and the status views expose the same terminal states and result path. A retry after a publication failure republishes the existing completed attempt; a retry after empty output prepares another worker attempt. These prompts direct worker behavior; runtime policy still owns execution authority.
+
 ### Answer the current Board decision
 
 Fleet publishes an ordinary Board decision and stores its exact `BoardDecision`

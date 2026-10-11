@@ -1,11 +1,13 @@
 import { Effect } from "effect";
 import { validateResult } from "#completion.ts";
+import { completeReport } from "#engine/completeReport.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import { FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
-export function makeAdopt({ integrations, save, decision }: EngineState) {
+export function makeAdopt(state: EngineState) {
+	const { integrations, save, decision } = state;
 	return Effect.fn("Fleet.makeAdopt")(function* (input: Versioned<FleetRecord>, work: BoardWork) {
 		let stored = input;
 		if (stored.value.stage === "adopting") {
@@ -17,6 +19,9 @@ export function makeAdopt({ integrations, save, decision }: EngineState) {
 					undefined,
 					"maintainer",
 				);
+			}
+			if (stored.value.deliverable === "report") {
+				return yield* completeReport(state)(stored, work);
 			}
 			const latest = stored.value.attempts.at(-1);
 			if (latest?.receipt === undefined) {

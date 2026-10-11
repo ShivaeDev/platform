@@ -3,7 +3,8 @@ import type { Diagnostic, ParsedMetadata } from "@shivaedev/work-board/metadata/
 
 const APPROVAL = "fleet";
 const LAUNCH = "fleet-launch";
-const FIELDS: ReadonlySet<string | undefined> = new Set([APPROVAL, LAUNCH]);
+const DELIVERABLE = "fleet-deliverable";
+const FIELDS: ReadonlySet<string | undefined> = new Set([APPROVAL, LAUNCH, DELIVERABLE]);
 
 // Board core reports addon fields as unknown; Fleet owns these and interprets them itself.
 export function boardDiagnostics(parsed: ParsedMetadata): readonly Diagnostic[] {
@@ -26,4 +27,8 @@ export function fleetApproved(parsed: ParsedMetadata): boolean {
 
 export function fleetLaunch(parsed: ParsedMetadata): unknown {
 	return fleetField(parsed, LAUNCH);
+}
+
+export function fleetDeliverable(parsed: ParsedMetadata): unknown {
+	return fleetField(parsed, DELIVERABLE);
 }
