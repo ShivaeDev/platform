@@ -19,14 +19,16 @@ const override = (includes: readonly string[], linter: unknown) => ({ overrides:
 describe("suppressions/biome-overrides finds", () => {
 	it("a rule turned off at the top level, at its line, scoped to the whole repository", async () => {
 		const config = '{\n\t"linter": {\n\t\t"rules": {\n\t\t\t"complexity": { "useLiteralKeys": "off" }\n\t\t}\n\t}\n}\n';
-		expect(await check({ "biome.json": config })).toEqual(['biome.json:4 Weakens "lint/complexity/useLiteralKeys" for "**" without a declaration.']);
+		expect(await check({ "biome.json": config })).toEqual([
+			'biome.json:4 Weakens "lint/complexity/useLiteralKeys" for "**" without a declaration. Repair the code and remove the weakening setting.',
+		]);
 	});
 
 	it("a rule turned off or down in an override, scoped to its includes", async () => {
 		const config = override(["src/a.ts", "src/b.ts"], { rules: { suspicious: { noExplicitAny: "warn", noThenProperty: { level: "info" } } } });
 		expect(await check({ "biome.json": JSON.stringify(config) })).toEqual([
-			'biome.json:1 Weakens "lint/suspicious/noExplicitAny" for "src/a.ts", "src/b.ts" without a declaration.',
-			'biome.json:1 Weakens "lint/suspicious/noThenProperty" for "src/a.ts", "src/b.ts" without a declaration.',
+			'biome.json:1 Weakens "lint/suspicious/noExplicitAny" for "src/a.ts", "src/b.ts" without a declaration. Repair the code and remove the weakening setting.',
+			'biome.json:1 Weakens "lint/suspicious/noThenProperty" for "src/a.ts", "src/b.ts" without a declaration. Repair the code and remove the weakening setting.',
 		]);
 	});
 
@@ -56,7 +58,9 @@ describe("suppressions/biome-overrides finds", () => {
 		["a linter narrowed to some files", { linter: { includes: ["src/**"] } }, 'Weakens "lint/includes" for "src/**"'],
 		["files kept from the formatter", { formatter: { includes: ["**", "!*.md"] } }, 'Weakens "format/includes" for "**", "!*.md"'],
 	])("%s, as the whole list", async (_, config, message) => {
-		expect(await check({ "biome.json": JSON.stringify(config) })).toEqual([`biome.json:1 ${message} without a declaration.`]);
+		expect(await check({ "biome.json": JSON.stringify(config) })).toEqual([
+			`biome.json:1 ${message} without a declaration. Repair the code and remove the weakening setting.`,
+		]);
 	});
 
 	it("no narrowing in a list that keeps every file", async () => {
@@ -80,9 +84,9 @@ describe("suppressions/biome-overrides finds", () => {
 				'// web\n{ "extends": "//", "linter": { "rules": { "a11y": "off" } }, "overrides": [{ "includes": ["!src/**"], "formatter": { "enabled": false } }] }',
 		};
 		expect(await check(texts, undefined, ["packages/web/biome.jsonc", "packages/web/src/a.ts"])).toEqual([
-			'biome.base.json:1 Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" without a declaration.',
-			'packages/web/biome.jsonc:2 Weakens "lint/a11y" for "packages/web/**" without a declaration.',
-			'packages/web/biome.jsonc:2 Weakens "format" for "!packages/web/src/**" without a declaration.',
+			'biome.base.json:1 Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" without a declaration. Repair the code and remove the weakening setting.',
+			'packages/web/biome.jsonc:2 Weakens "lint/a11y" for "packages/web/**" without a declaration. Repair the code and remove the weakening setting.',
+			'packages/web/biome.jsonc:2 Weakens "format" for "!packages/web/src/**" without a declaration. Repair the code and remove the weakening setting.',
 		]);
 	});
 
@@ -106,7 +110,7 @@ describe("suppressions/biome-overrides declarations", () => {
 
 	it("leave a weakening uncovered when the scope differs, and report the declaration that matches nothing", async () => {
 		expect(await check({ "biome.json": config }, declared(["src/vitest.ts"]))).toEqual([
-			'biome.json:1 Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts", "src/fixtures.ts" without a declaration.',
+			'biome.json:1 Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts", "src/fixtures.ts" without a declaration. Repair the code and remove the weakening setting.',
 			'biome.json Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens. Remove the declaration.',
 		]);
 	});

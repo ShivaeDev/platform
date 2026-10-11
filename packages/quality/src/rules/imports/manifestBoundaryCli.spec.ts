@@ -16,6 +16,23 @@ it("enables manifest boundaries by default on the CLI without import configurati
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
 }, 30_000);
 
+it("checks manifest dependencies and test-code boundaries on the same resolved import", () => {
+	const root = manifestTree(
+		[
+			config('{ sources: ["modules"] }'),
+			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.ts" },
+			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.test.ts" },
+			{ content: "export const fixture = 1;", path: "modules/kit/src/test-support/fixture.ts" },
+		],
+		{ declaration: "devDependencies", linked: true },
+	);
+	const result = quality(root, "lint");
+	expect(result.status).toBe(1);
+	expect(result.stdout).toContain("error imports/manifest (1)");
+	expect(result.stdout).toContain("error imports/no-test-code (1)");
+	expect(result.stdout).toContain('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".');
+}, 30_000);
+
 it.each([
 	{ linked: false, sources: ["modules/app/src", "modules/kit/src"], workspace: "npm" },
 	{ linked: false, sources: ["modules/app/src", "modules/kit/src"], workspace: "pnpm" },

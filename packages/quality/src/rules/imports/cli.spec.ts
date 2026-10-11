@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality } from "#test/cli.ts";
 import { importTree } from "#test/imports.ts";
-import { linkPackage, removeSeededTrees } from "#test/tree.ts";
+import { config, linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const cliTimeout = 60_000;
 
@@ -37,6 +37,23 @@ describe("the imports rules on the command line", { timeout: cliTimeout }, () =>
 		const result = quality(root, "lint");
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("the import graph covers no modules");
+		expect(result.stderr).toContain("Point `sources` at the TypeScript or JavaScript code.");
+		expect(result.stderr).not.toContain("turn the imports rules off");
+	});
+
+	it("rejects production imports of tests by default and asks for shared production code", () => {
+		const root = seedTree([
+			config('{ sources: ["src"], rules: { biome: "off" } }'),
+			{ content: 'import "./app.test.ts";\nimport "./test-support/fixture.ts";', path: "src/app.ts" },
+			{ content: 'import "./test-support/fixture.ts";', path: "src/app.test.ts" },
+			{ content: "export const fixture = 1;", path: "src/test-support/fixture.ts" },
+		]);
+		const result = quality(root, "lint");
+		expect(result.status).toBe(1);
+		expect(result.stdout).toContain("imports/no-test-code");
+		expect(result.stdout).toContain('src/app.ts:1  Imports test code through "./app.test.ts".');
+		expect(result.stdout).toContain('src/app.ts:2  Imports test code through "./test-support/fixture.ts".');
+		expect(result.stdout).toContain("Move the shared code into a production module and import it from both production and tests.");
 	});
 
 	it("take a registry exception for one fence in one file, and fail on one that exempts nothing", () => {
