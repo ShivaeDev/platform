@@ -48,7 +48,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		}
 		return missing;
 	}
-	const transport = Layer.succeed(SessionTransport)({
+	const service: typeof SessionTransport.Service = {
 		archive: (sessionId) =>
 			Effect.gen(function* () {
 				if (options.archiveFailure && !archiveFailed) {
@@ -114,7 +114,8 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				}
 				return receipt;
 			}),
-	});
+	};
+	const transport = Layer.succeed(SessionTransport)(options.decorateTransport?.(service) ?? service);
 	return {
 		archived,
 		failedObservations,
