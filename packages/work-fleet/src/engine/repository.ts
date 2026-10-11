@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
@@ -23,6 +24,7 @@ export function postgresFleetRepository(namespace?: string) {
 export const fleetSessionJournal = Layer.effect(SessionJournal)(
 	Effect.gen(function* () {
 		const store = yield* FleetRepository;
+		const namingWork = new Map<string, string>();
 		function acknowledge(
 			operationId: string,
 			sessionId: string,
@@ -61,6 +63,7 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 				}
 				const attempts = stored.value.attempts.map((attempt) => acknowledgedAttempt(attempt, operationId, sessionId, receipt));
 				yield* store.compareAndSet(stored.value.workId, stored.version, { ...stored.value, attempts });
+				rememberNamingWork(namingWork, stored.value, operationId, sessionId, receipt);
 			}).pipe(
 				Effect.mapError((error) =>
 					error instanceof SessionFailure
@@ -78,9 +81,38 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 					readonly turnId: string;
 				},
 			) => acknowledge(operationId, receipt.sessionId, receipt),
+			sessionName: (operationId: string) =>
+				Effect.gen(function* () {
+					const workId = namingWork.get(operationId);
+					namingWork.delete(operationId);
+					const stored = workId === undefined ? undefined : yield* store.load(workId);
+					return yield* operationThreadName(stored?.value, operationId);
+				}).pipe(Effect.mapError((error) => new SessionFailure({ message: error.message, reason: "persistence" }))),
 		};
 	}),
 );
+
+function rememberNamingWork(work: Map<string, string>, record: FleetRecord, operationId: string, sessionId: string, receipt?: SessionReceipt) {
+	const continued = allAttempts(record).some((attempt) => attempt.operationId !== operationId && attempt.sessionId === sessionId);
+	if (receipt === undefined && !continued) {
+		work.set(operationId, record.workId);
+	} else {
+		work.delete(operationId);
+	}
+}
+
+function operationThreadName(record: FleetRecord | undefined, operationId: string) {
+	const matches =
+		record === undefined
+			? []
+			: record.attempts
+					.filter((attempt) => attempt.operationId === operationId)
+					.map((attempt) => threadName(record.workId, record.boardContext, attempt.role));
+	const [name] = matches;
+	return matches.length === 1 && name !== undefined
+		? Effect.succeed(name)
+		: Effect.fail(new SessionFailure({ message: "Submission intent is missing or ambiguous", reason: "persistence" }));
+}
 
 function acknowledgedAttempt(attempt: Attempt, operationId: string, sessionId: string, receipt?: SessionReceipt): Attempt {
 	if (attempt.operationId !== operationId) {

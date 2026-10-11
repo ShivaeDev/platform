@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Continue work waiting on a human merge on its existing worker thread, retaining the reviewed head in history and PR ownership until the new result is adopted.
+
+- Check complete report bytes, including attachment links, before writing attachment files, so oversized reports leave no attachment folder. Name launching threads with one record lookup using the work ID retained from session acknowledgement.
+- Name Cloud threads from their Board work ID and first heading, with bounded titles and reviewer or separate repair labels. Add best-effort `work-fleet name-threads` backfill with per-session results and idempotent repeat runs.
+- Select dispatch and reconciliation candidates from one scheduler-cycle snapshot, so a new launch cannot race with reconciliation of its receipt.
+- End each scheduler Board read pass before sleeping; late reconciliation reads current Board context instead of reusing the pre-sleep snapshot.
+- Check the complete report’s UTF-8 size against Board’s 256 KiB context limit before publication. Oversized reports need a human with a concrete reason, and successful reports are visible in the current read pass.
+- Allow reviewer shell network reads for PR diffs and exact-head CI through `gh`, retaining read-only filesystem access, no escalation and instructions prohibiting network writes.
+- Breaking: remove the unused `authorize` and `merge` hooks from `FleetIntegrations` and the obsolete `deliverySubmitted` field from Fleet records and archived cycles.
+- Breaking: `hostIntegrations` now takes a `FleetHost` and returns its integration Layer. It selects result adoption while retaining GitHub checks and human delivery observation.
+- Accept surrounding whitespace and backtick-wrapped values in the final worker head and PR markers. Preserve no-change evidence when main moves; adopting it still requires the task revision to match the revision dispatched.
+- Reject ambiguous attachment modes and non-regular or escaping reconstructed paths before reading files. Limit report diff text to 8 MiB, task downloads to 16 MiB, attachment count to 64 and total attachment bytes to 32 MiB; rejected reports need a human with the failed limit named.
+- Download new uncommitted report files from the completed Cloud task diff beside the Board result, including text and Git binary patches. Reject report workers that publish their branch or open a PR on GitHub, without deleting public evidence. Unavailable downloads or remote checks need a human.
 - Publish structured provider capacity codes without raw upstream text and refresh health after each scheduler pass.
 
 - Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.
@@ -16,7 +29,7 @@
 - Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
-- Replace host review callbacks with independent reviewer sessions using host model settings. Reviewers receive the task and exact PR head with read-only execution, no shell network and no escalation.
+- Replace host review callbacks with independent reviewer sessions using host model settings. Reviewers receive the task and exact PR head with read-only execution, shell network reads and no escalation.
 - Record completed machine-readable reviewer verdicts with evidence and findings
   against the exact revision. Reconcile lost responses and require fresh review
   after the PR head moves.
@@ -31,6 +44,7 @@
 - Approve Board work with `fleet: approved` frontmatter on the exact revision read.
 - Launch Codex Cloud workers through a hosted provider with model, reasoning effort
   and service tier from host config, overridable per item, and read their final output.
+- Select GitHub worker-result adoption in host configuration. Require a final PR marker and exact reported head, record the observed PR number and paginated changed paths, and reject closed PRs or revision movement. Reported no-change still requires independent review and validation.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
 - Continue terminal needs-human or completed work on its existing worker thread with `work-fleet continue <id> <message>` or a message on stdin. Persist each message and attempt before submission, preserve the prior cycle in history, and reconcile lost acknowledgements without replay. Status and wait follow the continued turn and result; running and released work cannot be continued.

@@ -28,7 +28,7 @@ test("manual continuation archives a completed report and adopts the continued r
 				expect(continued.value.history?.[0]?.report).toEqual(original.value.report);
 				const attempt = continued.value.attempts[0];
 				expect(attempt?.prompt).toContain("Check the remaining evidence");
-				expect(attempt?.prompt).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+				expect(attempt?.prompt).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR");
 				const receipt = attempt?.receipt;
 				if (receipt === undefined) {
 					return yield* Effect.die(new Error("Expected a continued report receipt"));

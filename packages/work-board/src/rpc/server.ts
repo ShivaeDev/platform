@@ -34,9 +34,9 @@ export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handof
 				return historyResponse(baseline, now, snapshot);
 			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "history", status: 500 })))),
 		"work-board.navigation": () =>
-			Effect.map(changes.files, (files) => navHtml(files, "", home)).pipe(
-				Effect.catch(() => Effect.fail(new ReadFailed({ operation: "navigation", status: 500 }))),
-			),
+			Effect.gen(function* () {
+				return navHtml(yield* changes.files, "", home, yield* index);
+			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "navigation", status: 500 })))),
 		"work-board.page": ({ url }) =>
 			page(url).pipe(
 				Effect.flatMap((response) => {

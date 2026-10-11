@@ -14,9 +14,6 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (!["needs-human", "completed"].includes(stored.value.stage) || executing(stored.value)) {
 			return yield* Effect.fail(new FleetFailure({ message: "Continue requires terminal needs-human or completed work", reason: "denied" }));
 		}
-		if (stored.value.deliverySubmitted && stored.value.outcome === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Reconcile the submitted delivery before continuing", reason: "denied" }));
-		}
 		const latest = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
 		const sessionId = latest?.receipt?.sessionId ?? latest?.sessionId;
 		const worker = allAttempts(stored.value).findLast((attempt) => attempt.role !== "reviewer" && attempt.receipt?.sessionId === sessionId);

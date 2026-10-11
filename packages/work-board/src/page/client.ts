@@ -6,7 +6,7 @@ import "/_board/preferences.js";
 import "/_board/search.js";
 import { tick } from "/_board/ages.js";
 import { renderDiagrams } from "/_board/diagrams.js";
-import { applyPage } from "/_board/page-state.js";
+import { applyNavigation, applyPage } from "/_board/page-state.js";
 import "/_board/navigation.js";
 import { remember, swap } from "/_board/swap.js";
 import { refreshLibrary } from "/_board/library.js";
@@ -61,15 +61,7 @@ native.registry.subscribe(native.api.navigation.query(), (value) => {
   if (value._tag === "Failure") navFailure = "navigation refresh failed";
   if (value._tag === "Success" && !value.waiting) {
     navFailure = "";
-    const files = document.getElementById("files");
-    const next = files.cloneNode(false);
-    next.innerHTML = value.value;
-    const current = document.getElementById("doc").dataset.file;
-    for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
-    swap(files, next);
-    refreshLibrary();
-    tick();
-    document.dispatchEvent(new Event("board-index-change"));
+    applyNavigation(value.value);
   }
   show();
 }, { immediate: true });

@@ -10,7 +10,6 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		decision: undefined,
 		decisionAcknowledged: undefined,
 		decisionPublished: undefined,
-		deliverySubmitted: false,
 		history: [...(record.history ?? []), { ...cycle, archivedAt }],
 		outcome: undefined,
 		report: undefined,

@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
-import type { BoardFailure, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
+import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
 import type { LaunchSettings, SessionObservation } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
@@ -29,7 +29,7 @@ export interface EngineOptions {
 	readonly quota?: number;
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
-	readonly resultQuery?: (observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
+	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
 	readonly reviewExecution?: "failed" | "interrupted";
 	readonly reviewFailure?: boolean;

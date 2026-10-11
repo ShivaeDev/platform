@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { originalWork } from "#engine/originalWork.ts";
+import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardGateway, type Decision, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -12,6 +13,7 @@ export const makeState = Effect.gen(function* () {
 	const policy = yield* FleetPolicy;
 	const integrations = yield* FleetIntegrations;
 	const sessions = yield* SessionService;
+	const reportInspection = yield* Effect.serviceOption(ReportInspection);
 	function load(workId: string) {
 		return store
 			.load(workId)
@@ -63,6 +65,6 @@ export const makeState = Effect.gen(function* () {
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
-	return { board, decision, integrations, load, policy, save, sessions, store };
+	return { board, decision, integrations, load, policy, reportInspection, save, sessions, store };
 });
 export type EngineState = Effect.Success<typeof makeState>;

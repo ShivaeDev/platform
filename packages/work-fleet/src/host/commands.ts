@@ -1,5 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect, Layer } from "effect";
+import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
@@ -9,10 +10,11 @@ import { gitMainSource, type MainSource } from "#host/mainSource.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
 import { statusLayer } from "#host/statusLayer.ts";
-import type { FleetIntegrations, FleetPolicy } from "#policy.ts";
+import type { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { SessionTransport } from "#session/service.ts";
 
 export interface HostParts {
+	readonly board?: Layer.Layer<BoardGateway | ReportInspection, unknown, MainSource>;
 	readonly integrations?: Layer.Layer<FleetIntegrations, unknown, MainSource>;
 	readonly main: Layer.Layer<MainSource, unknown>;
 	readonly policy?: Layer.Layer<FleetPolicy>;

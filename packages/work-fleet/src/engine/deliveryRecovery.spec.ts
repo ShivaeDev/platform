@@ -17,7 +17,6 @@ describe("Fleet delivery ownership", () => {
 				finishWorkers(fixture);
 				const ambiguous = yield* fleet.reconcile("one");
 				expect(ambiguous.value.stage).toBe("needs-human");
-				expect(ambiguous.value.deliverySubmitted).toBe(false);
 				expect(ambiguous.value.decision?.reason).toContain("observation unavailable");
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 				expect(fixture.merged).toHaveLength(1);

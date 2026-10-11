@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { run } from "#engine/scheduler.ts";
+import { cycle, run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
@@ -14,6 +14,35 @@ const awaitStage = Effect.fn("Fleet.awaitStage")(function* (workId: string, stag
 });
 describe("Fleet autonomous scheduling", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	test("a cycle reconciles existing work without also reconciling its new dispatch", () =>
+		withEngine({}, (fixture) =>
+			Effect.gen(function* () {
+				yield* prepareWork("one");
+				yield* prepareWork("two");
+				const fleet = yield* Fleet;
+				yield* fleet.dispatch("two");
+				const dispatched = yield* Deferred.make<void>();
+				const reconciled: string[] = [];
+				let reads = 0;
+				const list = Effect.gen(function* () {
+					reads += 1;
+					if (reads > 1) {
+						yield* Deferred.await(dispatched);
+					}
+					return yield* fleet.list();
+				});
+				const concurrent = Fleet.of({
+					...fleet,
+					dispatch: (id) => fleet.dispatch(id).pipe(Effect.tap(() => Deferred.succeed(dispatched, undefined))),
+					list: () => list,
+					reconcile: (id) => Effect.sync(() => reconciled.push(id)).pipe(Effect.andThen(fleet.reconcile(id))),
+				});
+				yield* cycle.pipe(Effect.provideService(Fleet, concurrent));
+				expect(reconciled).toEqual(["two"]);
+				expect((yield* fleet.get("one")).value.stage).toBe("executing");
+				expect(fixture.launched).toHaveLength(2);
+			}),
+		));
 	test("terminal reviewer frees capacity for replacement while validation remains suspended", function* () {
 		const entered = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();

@@ -15,7 +15,7 @@ import { healthLayer } from "./healthLayer.ts";
 import { statusLayer } from "./statusLayer.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
-test("publishes an idle scheduler pass without an extra list request", () =>
+test("publishes an idle scheduler pass from one snapshot without an extra list request", () =>
 	withFleetBoard({}, (_fixture, root) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -29,7 +29,7 @@ test("publishes an idle scheduler pass without an extra list request", () =>
 						}).pipe(Effect.andThen(fleet.list())),
 				}),
 			);
-			expect(reads).toBe(2);
+			expect(reads).toBe(1);
 			expect((yield* fleetHealth(root)).lastSchedulerPass).toBeGreaterThan(0);
 		}).pipe(
 			Effect.provide(

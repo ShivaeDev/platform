@@ -68,8 +68,17 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const message = "Fix the checks.\nKeep the existing PR.\n";
 				const flags = ["--board", fixture.host.boardDir, "--config", fixture.configFile];
 				const args = ["continue", "one", ...(input === "argument" ? [message] : []), ...flags];
-				const run = yield* Effect.promise(() => cliProcess(args, input === "stdin" ? message : ""));
-				expect(run).toEqual({ code: 0, stderr: "", stdout: "one executing" });
+				let errors = "";
+				const run = yield* Effect.promise(() =>
+					cliProcess(args, {
+						onError: (text) => {
+							errors += text;
+						},
+						stdin: input === "stdin" ? message : "",
+					}),
+				);
+				expect(run).toEqual({ code: 0, stdout: "one executing" });
+				expect(errors).toBe("");
 				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");
 				expect(JSON.parse(readFileSync(join(fixture.host.boardDir, "fleet/health.json"), "utf8"))).toMatchObject({ needsHuman: 0, running: 1 });
 				expect(requests.find((request) => request.method === "turn/start")?.params).toMatchObject({

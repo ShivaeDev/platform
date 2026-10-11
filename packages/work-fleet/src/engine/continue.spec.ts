@@ -17,7 +17,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 		withEngine(
 			{
 				checksFailure: true,
-				resultQuery: (observation) => Effect.succeed({ evidence: [observation.output], head: "current-main", kind: "no-change" }),
+				resultQuery: (_board, observation) => Effect.succeed({ evidence: [observation.output], head: "current-main", kind: "no-change" }),
 			},
 			(fixture) =>
 				Effect.scoped(
