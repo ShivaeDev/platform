@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, Path } from "effect";
+import { Effect, FileSystem, Layer, Path, PlatformError } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 
 export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: number) {
@@ -7,17 +7,30 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 	const path = yield* Path.Path;
 	const root = yield* fs.makeTempDirectoryScoped({ prefix: "fleet-reads-" });
 	const reads = new Map<string, number>();
+	const unreadable = new Set<string>();
 	let scans = 0;
 	const tracked: FileSystem.FileSystem = {
 		...fs,
 		readDirectory: (folder) =>
 			Effect.sync(() => {
 				scans += 1;
-			}).pipe(Effect.andThen(fs.readDirectory(folder))),
+			}).pipe(
+				Effect.andThen(() =>
+					unreadable.has(".")
+						? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readDirectory", module: "FileSystem" }))
+						: fs.readDirectory(folder),
+				),
+			),
 		readFileString: (file, options) =>
 			Effect.sync(() => {
 				reads.set(file, (reads.get(file) ?? 0) + 1);
-			}).pipe(Effect.andThen(fs.readFileString(file, options))),
+			}).pipe(
+				Effect.andThen(() =>
+					unreadable.has(path.relative(root, file))
+						? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
+						: fs.readFileString(file, options),
+				),
+			),
 	};
 	function source(id: string, approved = true, body = "Useful work.") {
 		return `---\nid: ${id}\nkind: task\nfleet: ${approved ? "approved" : "draft"}\n---\n# ${id}\n\n${body}\n`;
@@ -37,6 +50,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 		scans: () => scans,
 		services,
 		source,
+		unreadable,
 		write,
 	};
 }, Effect.provide(NodeServices.layer));

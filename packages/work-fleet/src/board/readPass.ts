@@ -9,14 +9,17 @@ export class BoardSnapshot {
 	documents: readonly BoardDocument[];
 	model: ReturnType<typeof metadataModel>;
 	files: ReadonlyMap<string, BoardDocument>;
+	readonly problems: Map<string, BoardFailure>;
 
-	constructor(documents: readonly BoardDocument[]) {
+	constructor(documents: readonly BoardDocument[], problems: Map<string, BoardFailure> = new Map()) {
+		this.problems = problems;
 		this.documents = documents;
 		this.model = metadataModel(documents);
 		this.files = new Map(documents.map((document) => [document.file, document]));
 	}
 
 	record(document: BoardDocument) {
+		this.problems.delete(document.file);
 		this.documents = [...this.documents.filter((entry) => entry.file !== document.file), document];
 		this.model = metadataModel(this.documents);
 		this.files = new Map(this.documents.map((entry) => [entry.file, entry]));
