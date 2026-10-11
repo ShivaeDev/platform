@@ -1,5 +1,6 @@
 import { constants } from "node:fs";
 import { mkdir, open, realpath } from "node:fs/promises";
+import process from "node:process";
 import { Effect } from "effect";
 import { ResponseFailed } from "#browser/responses/schema.ts";
 import { directoryPath, publicationFailure, validateDirectory } from "./publicationDirectory.ts";

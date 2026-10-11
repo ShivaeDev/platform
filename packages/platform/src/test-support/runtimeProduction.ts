@@ -1,3 +1,4 @@
+import process from "node:process";
 import { Layer } from "effect";
 import { makePlatformRuntime } from "#runtime/make.ts";
 

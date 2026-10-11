@@ -1,4 +1,5 @@
 import { type FileHandle, lstat, realpath } from "node:fs/promises";
+import process from "node:process";
 import { ResponseFailed } from "#browser/responses/schema.ts";
 
 export function directoryPath(directory: FileHandle, expected: string): string {

@@ -1,3 +1,4 @@
+import process from "node:process";
 import { Effect } from "effect";
 import { expect, it } from "vitest";
 import { codexResponse, githubResponse } from "#test/diagnostics.ts";

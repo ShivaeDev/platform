@@ -1,3 +1,4 @@
+import process from "node:process";
 import * as Effect from "effect/Effect";
 import { agentRequest } from "./agent.ts";
 import { flags } from "./flags.ts";
