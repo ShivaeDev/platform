@@ -9,28 +9,35 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 describe("independent reviewer sessions", () => {
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 	test("launches asynchronously with host settings and accepts only a completed verdict", () =>
-		withEngine({ launch: { effort: "high", model: "host-model", serviceTier: "priority" }, reviewRunning: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const reviewing = yield* fleet.reconcile("one");
-				const attempt = reviewing.value.attempts.at(-1);
-				expect(reviewing.value.stage).toBe("reviewing");
-				expect(reviewing.value.review).toBeUndefined();
-				expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", status: "running" });
-				const start = fixture.starts.at(-1);
-				expect(start).toMatchObject({ access: "read-only", settings: { effort: "high", model: "host-model", serviceTier: "priority" } });
-				expect(start?.prompt).toContain(fixture.work("one").context);
-				expect(start?.prompt).toContain("https://example.invalid/pr/one");
-				expect(start?.prompt).not.toContain("Implement one");
-				finishWorkers(fixture);
-				const completed = yield* fixture.restart(fleet.reconcile("one"));
-				expect(completed.value.stage).toBe("completed");
-				expect(completed.value.review).toMatchObject({ head: "head-one-0", receipt: attempt?.receipt, verdict: "approved" });
-				expect(fixture.launched).toHaveLength(2);
-			}),
+		withEngine(
+			{
+				launch: { effort: "high", model: "host-model", serviceTier: "priority" },
+				reviewerGuidance: "Inspect synthetic database checks.",
+				reviewRunning: true,
+			},
+			(fixture) =>
+				Effect.gen(function* () {
+					yield* prepareWork("one");
+					const fleet = yield* Fleet;
+					yield* fleet.dispatch("one");
+					finishWorkers(fixture);
+					const reviewing = yield* fleet.reconcile("one");
+					const attempt = reviewing.value.attempts.at(-1);
+					expect(reviewing.value.stage).toBe("reviewing");
+					expect(reviewing.value.review).toBeUndefined();
+					expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", status: "running" });
+					const start = fixture.starts.at(-1);
+					expect(start).toMatchObject({ access: "read-only", settings: { effort: "high", model: "host-model", serviceTier: "priority" } });
+					expect(start?.prompt).toContain(fixture.work("one").context);
+					expect(start?.prompt).toContain("https://example.invalid/pr/one");
+					expect(start?.prompt).toContain("Inspect synthetic database checks.");
+					expect(start?.prompt).not.toContain("Implement one");
+					finishWorkers(fixture);
+					const completed = yield* fixture.restart(fleet.reconcile("one"));
+					expect(completed.value.stage).toBe("completed");
+					expect(completed.value.review).toMatchObject({ head: "head-one-0", receipt: attempt?.receipt, verdict: "approved" });
+					expect(fixture.launched).toHaveLength(2);
+				}),
 		));
 	test("recovers a lost reviewer turn response by its durable session without another launch", () =>
 		withEngine({ lostReviewAcknowledgement: true }, (fixture) =>

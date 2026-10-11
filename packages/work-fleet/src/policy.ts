@@ -90,6 +90,7 @@ export interface FleetConfiguration {
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetFailure>;
+	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
 }
 export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration>()("@shivaedev/work-fleet/FleetPolicy") {}
