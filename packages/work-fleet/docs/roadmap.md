@@ -1,74 +1,37 @@
 # Work Fleet roadmap
 
-## Implemented slice
+## Built
 
-Approved report tasks use `fleet-deliverable: report`. The worker returns its whole report in the final message; Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery. Empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status and wait; a lost-publication regression recovers the existing attempt after restart without a duplicate result or worker. Provider execution in these regressions is synthetic.
+- The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait` for one item or `watch` for several. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags, wait process exit codes and watch outcomes.
+- The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns for Work Board. Renderer, filesystem and PostgreSQL scheduler tests cover card grouping, links, unsafe Markdown inputs, authored-content and symlink boundaries, and publication retry.
+- Board frontmatter uses `fleet: approved` and per-field `fleet-launch` overrides. Host launch defaults and task overrides reach worker sessions and turns; repair retains the settings. Frontmatter, host and launch-setting tests cover these boundaries.
+- The Codex Cloud provider sends the configured environment and launch settings, confirms the environment before a turn and rejects work prepared for a different workspace, reads final output, and refreshes expired login files through a configured command. `src/providers/codexCloud.test.ts` covers these requests and failures with a synthetic WebSocket backend.
+- Worker instructions include Cloud startup waiting, current-main checkout, repository checks and one human-review pull request. The report parser recognizes a URL or explicit no-change marker. `src/prompt/worker.test.ts` covers these instructions and parsing.
+- The Effect core stores preparation, attempts, receipts, review/check evidence, decisions and accepted outcomes in PostgreSQL. Native RPC and derived views, revision-bound completion, repair, dependency acceptance, renewal and recovery are exercised by the engine tests. Overlapping scopes can dispatch concurrently; admission tests cover capacity, quota and backlog separately.
+- Managed Board decisions retain exact question/context receipts. Current guided retry/release responses resolve idempotently in SQL, and immutable Board request receipts acknowledge applied or superseded decisions. HTTP and renewal tests cover publication recovery and stale or ambiguous responses.
+- Completed worker and repair turns that report the explicit `FLEET_QUESTION:` marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread; concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. The worker-question and continuation tests cover these boundaries.
+- The command host reads GitHub check runs and commit statuses for the adopted PR's exact SHA through `gh`. Pending checks keep validation open and failures reach repair. `src/host/githubChecks.test.ts` and `src/engine/validation.spec.ts` cover these transitions with synthetic GitHub responses.
+- Approved tasks with `fleet-deliverable: report` return the whole report in the worker's final message. Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery; empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status, wait and lost-publication recovery without a duplicate result or worker.
+- The CLI host downloads new text and binary attachments from the completed Cloud task diff beside the Board result, and rejects report turns that publish the worker branch or open a PR without deleting public evidence. Authenticated synthetic HTTP, paginated GitHub and real PostgreSQL regressions cover attachment retrieval, reports without files and publication rejection, including worker questions after context changes. Filesystem tests cover immutable retries, symlink boundaries and Markdown attachments outside Board’s source index. Live hosted task identity compatibility and retrieval remain unverified.
+- The Cloud adapter and headless host commit each attempt intent before `thread/start`, the session acknowledgement before `turn/start` and the turn acknowledgement before observation. PostgreSQL SIGKILL tests with a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it stays blocked with ownership retained.
+- The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
-The CLI host collects new uncommitted text and binary files from the exact Cloud task turn's backend diff and saves them beside the Board result. Terminal report turns and publication retries check the configured GitHub remote; the exact worker branch or an opened PR blocks completion without deleting public evidence. PostgreSQL host regressions use an authenticated synthetic task HTTP backend and paginated synthetic GitHub responses to cover attachments, no attachments, branch and PR rejection, and worker questions after publication. Filesystem regressions cover immutable retries and symlink boundaries. These fixtures do not establish live Cloud task identity compatibility or GitHub authentication; live hosted attachment retrieval remains part of the pilot.
+## Open for the command host
 
-The headless addon reads stable Board identities and dependencies. Ordinary
-PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns,
-review/check evidence, decisions and accepted outcomes. Completion is attached to
-the Board ID in SQL; Fleet does not rewrite the authored task status in Markdown.
+- Result adoption: verify and attach the actual pull request or evidenced no-change result. A worker report marker alone is insufficient.
+- Independent review and repair: wire the core's exact-head review and reconciliation boundary to a real reviewer.
+- Authorized delivery: supply trusted authorization, delivery observation and normal merge under branch requirements.
+- Board view: present Fleet execution attachments and decisions in the Board interface.
 
-The core provides prepare/dispatch/reconcile, native RPC commands and derived
-Active, Completed and Needs human queries. Independent review, repair and validation
-precede trusted delivery or evidenced no-change. Scope, execution capacity, quota
-and delivery backlog remain separate. Recovery retains ambiguous operations and
-accepted ownership instead of relaunching blindly. Renewal keeps the same Board ID
-and archives prior context, attempts, responses and evidence after confirming terminal
-execution and resolving existing result ownership. Current dependency revisions
-need fresh accepted outcomes; criterion-specific references remain unsupported.
-
-Completed worker and repair turns that report the explicit question marker publish ordinary Board questions. A current answer commits a response receipt and continuation intent together, then continues the same worker thread. Concurrent resolution, restart and lost acknowledgements reconcile the existing operation without repeated submission. Open questions return the CLI's needs-human exit code. Unmarked prose is not classified as a question.
-
-Published decisions retain exact Board question/context receipts. Reconciliation
-consumes current guided retry/release responses and records idempotent SQL
-acknowledgements. Native resolution names the work, decision and response IDs.
-Clarification, deferral, stale context and competing unsuperseded answers remain
-concrete human blockers. Response labels and bodies cannot grant runtime authority.
-Applied responses retain the exact published decision and Board acknowledgement
-marker in SQL. After SQL resolution commits, the Markdown gateway publishes a
-qualified immutable request receipt, allowing Board's native attention to acknowledge
-the managed request without modifying its reviewed source. Failed publication retries
-without repeating the action. Renewal recovers the exact decision publication receipt
-from stored original context before archival; missing context blocks renewal.
-archived open decisions retain pending acknowledgement state and receive superseded
-acknowledgements. Clarification and deferral stay open.
-
-Preparation compatibility uses authoritative ancestry and complete relevant context.
-Unrelated changes refresh preparation while preserving original validation evidence;
-relevant or uncertain changes require preparation again for the affected work.
+The command host's default integrations read GitHub checks but do not supply result adoption, review or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
 
 ## Validation boundary
 
-The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns. Renderer tests cover card grouping, links and unsafe Markdown inputs; filesystem tests cover unchanged writes, authored content and symlink boundaries. PostgreSQL scheduler tests cover completion, human intervention, suspended validation and publication retry, including invalidation of a mounted native Board page over real HTTP. These fixtures use synthetic provider and delivery integrations; they do not establish a live Cloud worker or physical-browser acceptance.
+Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Synthetic paginated GitHub responses cover green, red, pending and newer-push checks; they do not prove live GitHub authentication or branch requirements. Cloud and local provider tests use synthetic WebSocket servers. Status board tests include invalidation of a mounted native Board page over real HTTP; they do not establish physical-browser acceptance. Packed consumers exercise the package exports and command help.
 
-The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
+Live Cloud computation, actual pull request adoption, independent review, required checks and authorized delivery still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 
-Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
-response recording, native Fleet RPC and the actual admission/completion paths.
-Provider execution and delivery in those fixtures are synthetic. These tests prove
-the core decisions and recovery behavior, not Cloud execution or live merges.
-The experimental local Codex adapter is based on the installed CLI's generated
-protocol and a real app-server connection. Two read-only local turns were accepted
-and their exact receipts recovered after reconnecting without another launch. Both
-ended in provider authentication failure; the actual quota read also failed with
-401. This proves receipt/recovery behavior, not successful computation, Fleet
-admission under fresh quota, automatic replacement or delivery.
+## Maintainer decisions
 
-## Personal pilot follow-up
-
-- Configure working provider access, authoritative quota and trusted delivery policy.
-- Run at least two disjoint Board items through the headless host.
-- One independently reviewed, validated routine outcome progressing automatically.
-- Replacement timing and occupancy observations after confirmed terminal execution.
-- Restart adoption without a duplicate launch using exact accepted receipts.
-- Normal authorized delivery under actual branch requirements.
-- A verified modern hosted Cloud transport/configuration if hosted execution is wanted.
-
-The maintainer will verify this live loop in a personal pilot after the environment's
-checks. Missing credentials and hosted capabilities remain concrete pilot blockers;
-synthetic fixtures do not supply live proof. The Cloud WebSocket adapter and headless host have PostgreSQL SIGKILL coverage around thread and turn mutations, including recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it remains blocked with ownership retained. Provider lookup for that case and live hosted restart evidence remain pending.
-The addon is private at version 0.0.0 until the maintainer chooses a release; packed
-consumer validation still covers its archive. No existing package version changes.
+- Release and public distribution: the package remains private at version `0.0.0`.
+- Live pilot: validate disjoint work, replacement timing, restart recovery and normal delivery once the open host integrations are connected. Provider lookup for an unacknowledged thread and live hosted restart evidence remain pending.

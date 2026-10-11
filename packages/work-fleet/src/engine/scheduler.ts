@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
+import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
 
 const dispatchPrepared = Effect.gen(function* () {
@@ -12,7 +13,10 @@ const dispatchPrepared = Effect.gen(function* () {
 const activeWork = Effect.gen(function* () {
 	const fleet = yield* Fleet;
 	return (yield* fleet.list()).filter(
-		({ value }) => !["completed", "released", "prepared"].includes(value.stage) || pendingAcknowledgements(value).length > 0,
+		({ value }) =>
+			!["completed", "released", "prepared"].includes(value.stage)
+			|| pendingAcknowledgements(value).length > 0
+			|| pendingSessionCleanup(value).length > 0,
 	);
 });
 export const cycle = inBoardReadPass(

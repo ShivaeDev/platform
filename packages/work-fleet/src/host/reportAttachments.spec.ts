@@ -33,6 +33,7 @@ describe("Report attachments", () => {
 					}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
 					const result = yield* complete;
 					expect(result.value.stage).toBe("completed");
+					expect(fixture.provider.archived).toEqual([observation.receipt.sessionId]);
 					const report = result.value.report;
 					if (report === undefined) {
 						return yield* Effect.die(new Error(result.value.decision?.reason ?? "No report result"));
@@ -74,6 +75,7 @@ describe("Report attachments", () => {
 						expect(result.value.decision?.reason).toBe(PUBLISHED_REPORT);
 						expect(result.value.decision?.worker).toBeUndefined();
 						expect(result.value.report).toBeUndefined();
+						expect(fixture.provider.archived).toEqual([]);
 						expect(download.requests).toEqual([]);
 						expect(collector.requests).toHaveLength(2);
 						expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
