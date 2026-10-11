@@ -149,7 +149,19 @@ Custom Board gateways must implement the same durable acknowledgement boundary.
 decision resolution and the three derived views through native Effect RPC.
 The host supplies transport and authentication. Detailed records remain available
 through the native `Get` query or `Fleet.list`; completion resides in SQL attachments to the Board ID. The
-addon does not rewrite authored task status or maintain competing status files.
+addon does not rewrite authored task status.
+
+### Read the generated heading board
+
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Needs human and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+
+After the first scheduler cycle creates the file, select it as Work Board's home:
+
+```sh
+work-board ./notes --home fleet/status.md
+```
+
+The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services.
 
 ### Start a small personal pilot
 
