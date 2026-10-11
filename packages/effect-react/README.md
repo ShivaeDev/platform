@@ -297,11 +297,99 @@ const query = Atom.swr(atom, {
 | `resume-signal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
 | `save-state.ts` | `useSaveState`; `SaveState`. |
 | `field-rejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
+| `testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
 | `submission.ts` | `submission`; `Submission`, `SubmissionConfig`. |
 
 Import the defining `.ts` module, such as `@shivaedev/effect-react/editor.ts`. There is no root import. `SessionBoundaryProps` supplies `session`, `identify`, `connect`, `recheck`, a client-to-children function and optional `signedOut`; `useSessionRecheck()` reads that boundary's callback.
 
 `Editor` exposes `query`, optional `form` and `SaveState`; `Create` exposes `form`, `created` and `SaveState`. `SaveState` has `save`, `saving`, `dirty`, `failure` and `revert`. Prefer the two complete hooks when binding a form to a command. The lower-level form modules expose the same composition pieces: `submission` makes a form and its submission snapshot reader, `rejecting` maps save failures through a submitter, and `useSaveState` observes submission and invokes a success callback.
+
+### Render tests in happy-dom
+
+Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. Install effect-contract for the example's query and command declarations, and the testing peers and environment in your app's dev dependencies:
+
+```sh
+pnpm add @shivaedev/effect-contract
+pnpm add -D vitest happy-dom react-dom@19.2.8 @types/react-dom
+```
+
+Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
+
+```tsx
+import { Effect, Option, Ref, Schema } from "effect";
+import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
+import { RpcTest } from "effect/unstable/rpc";
+import { act, createElement } from "react";
+import { expect, it } from "vitest";
+import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { collection } from "@shivaedev/effect-contract/keys.ts";
+import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
+
+const notes = collection("notes", Schema.Number);
+const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
+const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
+const Notes = contract("notes", { commands: [Add], queries: [List] });
+
+const handlers = Notes.toLayer(
+	Effect.gen(function* () {
+		const stored = yield* Ref.make<readonly string[]>([]);
+		return Notes.of({
+			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
+			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
+		});
+	}),
+);
+class Client extends AtomRpc.Service<Client>()("test/Notes", {
+	group: Notes,
+	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+	protocol: handlers,
+}) {}
+const api = bind(Notes, Client);
+const add = Client.runtime.fn(api.add.run);
+function NotesView() {
+	const list = useQuery(api.list.query());
+	const action = useAction(add);
+	return createElement(
+		"section",
+		null,
+		createElement("output", null, Option.getOrElse(list.data, () => []).join(", ")),
+		createElement(
+			"button",
+			{
+				disabled: list.pending || action.pending,
+				onClick: () => action.dispatch({ title: "Morning walk" }),
+				type: "button",
+			},
+			"Add",
+		),
+	);
+}
+
+it("renders a query and refetches it after a command through a test RPC layer", async () => {
+	const view = await render(createElement(NotesView));
+	try {
+		await eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
+		expect(view.container.querySelector("output")?.textContent).toBe("");
+		await act(async () => view.container.querySelector("button")?.click());
+		await eventually(() => {
+			expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
+			expect(view.container.querySelector("button")?.disabled).toBe(false);
+		});
+	} finally {
+		await view.unmount();
+	}
+});
+```
+
+`render(node)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+
+The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs. This test proves rendered query data and command-triggered invalidation in happy-dom, without an HTTP server or a physical browser. The generic `effect-test` package has no React dependency.
 
 ### Testing a feature through its stack
 

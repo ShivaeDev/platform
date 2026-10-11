@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 import { makeOrderEditor } from "#test/order-example/frontend.tsx";
 import { startOrderServer } from "#test/order-example/http-test.ts";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
