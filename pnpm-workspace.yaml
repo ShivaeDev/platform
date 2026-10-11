@@ -20,7 +20,7 @@ catalog:
   tailwind-merge: 3.7.0
   class-variance-authority: 0.7.1
   lucide-react: 1.48.0
-  "@biomejs/biome": 2.5.14
+  "@biomejs/biome": 2.5.15
   "@effect/vitest": 4.0.0-rc.112
   "@effect/atom-react": 4.0.0-rc.112
   "@effect/platform-node": 4.0.0-rc.112
