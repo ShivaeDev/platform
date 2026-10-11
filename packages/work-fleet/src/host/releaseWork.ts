@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { watchChanges } from "@shivaedev/work-board/files/changes.ts";
-import { responseService } from "@shivaedev/work-board/responses/service.ts";
+import { ResponseConfig, Responses } from "@shivaedev/work-board/responses/service.ts";
 import { searchSnapshot } from "@shivaedev/work-board/search/snapshot.ts";
 import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
@@ -15,25 +15,23 @@ export function releaseWork(host: FleetHost, workIds: readonly string[], parts: 
 }
 
 export function releaseItems(host: FleetHost, workIds: readonly string[]) {
-	return withDecisionResponses(host, (responses) => Effect.forEach(workIds, releaseItem(host.boardDir, responses)));
+	return withDecisionResponses(host, Effect.forEach(workIds, releaseItem(host.boardDir)));
 }
 
-export function withDecisionResponses<A, E, R>(
-	host: FleetHost,
-	use: (responses: Effect.Success<ReturnType<typeof responseService>>) => Effect.Effect<A, E, R>,
-) {
+export function withDecisionResponses<A, E, R>(host: FleetHost, effect: Effect.Effect<A, E, R>) {
 	return Effect.scoped(
 		Effect.gen(function* () {
 			const changes = yield* watchChanges(host.boardDir);
 			const read = yield* searchSnapshot(host.boardDir, undefined, changes);
 			const index = read.pipe(Effect.provide(NodeServices.layer));
-			const responses = yield* responseService({ changes, enabled: true, index, root: host.boardDir });
-			return yield* use(responses);
+			return yield* effect.pipe(
+				Effect.provide(Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { changes, enabled: true, index, root: host.boardDir })))),
+			);
 		}),
 	);
 }
 
-function releaseItem(root: string, responses: Effect.Success<ReturnType<typeof responseService>>) {
+function releaseItem(root: string) {
 	return Effect.fn("FleetHost.releaseItem")(function* (workId: string) {
 		const fleet = yield* Fleet;
 		let stored = yield* fleet.get(workId);
@@ -50,7 +48,7 @@ function releaseItem(root: string, responses: Effect.Success<ReturnType<typeof r
 		if (decision?.published === undefined) {
 			return yield* Effect.fail(new FleetFailure({ message: "Publish the waiting decision before release", reason: "stale" }));
 		}
-		const responseId = yield* recordDecisionResponse(root, responses, { ...decision, published: decision.published }, "release");
+		const responseId = yield* recordDecisionResponse(root, { ...decision, published: decision.published }, "release");
 		return yield* fleet.resolve(workId, decision.id, responseId);
 	});
 }

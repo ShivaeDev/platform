@@ -6,7 +6,7 @@ import { afterEach, expect, it } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
-import { expectNoReactWarnings, eventually as settle } from "#test/react.ts";
+import { expectNoReactWarnings, eventually as settle } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

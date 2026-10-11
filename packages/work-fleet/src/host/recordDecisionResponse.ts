@@ -2,16 +2,16 @@ import { Clock, Effect, FileSystem } from "effect";
 import { makeResponse } from "@shivaedev/work-board/responses/make.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
-import type { responseService } from "@shivaedev/work-board/responses/service.ts";
+import { Responses } from "@shivaedev/work-board/responses/service.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardGateway, type Decision, FleetFailure } from "#policy.ts";
 
 export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* (
 	root: string,
-	responses: Effect.Success<ReturnType<typeof responseService>>,
 	decision: Decision & { readonly published: BoardDecision },
 	action: "retry" | "release",
 ) {
+	const responses = yield* Responses;
 	const board = yield* BoardGateway;
 	const published = decision.published;
 	const reading = yield* board.readDecision(published);

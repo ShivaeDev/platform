@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect, it, vi } from "vitest";
 import { metadataParse } from "#metadata/parse.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { documentData, mountDocument, settledDocument } from "#test/documentRendering.ts";
 import { documentSource } from "#test/documentSource.ts";

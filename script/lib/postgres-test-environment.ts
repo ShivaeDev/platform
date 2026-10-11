@@ -19,5 +19,6 @@ export const postgresTestEnvironment = Effect.gen(function* () {
 		"PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL": select("PG_BOSS"),
 		"PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL": select("PRISMA"),
 		"PLATFORM_EFFECT_SQL_TEST_DATABASE_URL": select("SQL"),
+		"PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL": select("TEST_SQL"),
 	});
 });
