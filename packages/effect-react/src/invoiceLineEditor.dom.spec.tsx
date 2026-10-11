@@ -2,12 +2,14 @@ import { RegistryContext } from "@effect/atom-react";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { SessionBoundary } from "#session-boundary.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { makeInvoiceLineViews } from "#test/invoice-line-editor/frontend.ts";
+import { expectNoReactWarnings, eventually as settle } from "#test/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
@@ -50,13 +52,6 @@ function mount() {
 	};
 }
 
-function settle(assert: () => void) {
-	return vi.waitFor(async () => {
-		await act(async (): Promise<void> => undefined);
-		assert();
-	});
-}
-
 async function editing(id = 1) {
 	const server = makeInvoiceLineServer([stapler, notebook]);
 	const { InvoiceLineEditor } = makeInvoiceLineViews(server);
@@ -81,7 +76,7 @@ async function editing(id = 1) {
 	await show(id);
 	expect(view.text()).toContain("Loading");
 	expect(view.value("name")).toBeUndefined();
-	release();
+	await act(async () => release());
 	await settle(() => expect(view.value("name")).toBe("Stapler"));
 	return { registry: () => registry, server, show, view };
 }
@@ -118,7 +113,7 @@ it("save shows server normalization, keeps edits made while saving and ignores a
 	await settle(() => expect(view.status()).toBe("Saving"));
 	await view.type("quantity", "160");
 	await view.click("Save");
-	release();
+	await act(async () => release());
 	await settle(() => expect(view.value("name")).toBe("Blue stapler"));
 	expect(view.value("quantity")).toBe("160");
 	expect(view.status()).toBe("Unsaved");
@@ -170,7 +165,7 @@ it("create resets to its initial values after success, keeping fields edited dur
 	await view.click("Save");
 	await settle(() => expect(view.status()).toBe("Saving"));
 	await view.type("name", "Folder");
-	release();
+	await act(async () => release());
 	await settle(() => expect(view.text()).toContain("Created 2: Pencil"));
 	expect(view.value("name")).toBe("Folder");
 	expect(view.value("quantity")).toBe("");

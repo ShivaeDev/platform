@@ -3,7 +3,10 @@ import { expect } from "vitest";
 import { Rejected } from "#test/postgres-example/contract.ts";
 import { app, realPostgres } from "#test/postgres-example/integration.ts";
 import { makeClient } from "#test/postgres-example/makeClient.ts";
-import { call, eventually } from "#test/postgres-example/view.tsx";
+import { call } from "#test/postgres-example/view.tsx";
+import { eventually, expectNoReactWarnings } from "#test/react.ts";
+
+expectNoReactWarnings();
 
 app.it(
 	"an authenticated PostgreSQL commit reaches another client's query and open editor over live HTTP",
@@ -38,9 +41,12 @@ app.it(
 		yield* Effect.promise(() =>
 			eventually(() => {
 				expect(reader.container.querySelector("output")?.textContent).toBe("Office chairs / 450");
+				expect(writer.container.querySelector("output")?.textContent).toBe("Office chairs / 450");
 				expect(reader.input("name").value).toBe("Office chairs");
 				expect(reader.input("quantity").value).toBe("450");
 				expect(writer.container.querySelector('[role="status"]')?.textContent).toBe("Saved");
+				expect(writer.registry.get(writer.query).waiting).toBe(false);
+				expect(reader.registry.get(reader.query).waiting).toBe(false);
 			}),
 		);
 		expect(yield* Effect.promise(server.read)).toEqual([{ name: "Office chairs", quantity: 450 }]);
@@ -53,9 +59,13 @@ app.it(
 		yield* Effect.promise(() =>
 			eventually(() => {
 				expect(reader.container.querySelector("output")?.textContent).toBe("Remote update / 900");
+				expect(writer.container.querySelector("output")?.textContent).toBe("Remote update / 900");
 				expect(reader.input("name").value).toBe("Unsaved local name");
 				expect(reader.input("quantity").value).toBe("900");
 				expect(reader.container.querySelector('[role="status"]')?.textContent).toBe("Unsaved changes");
+				expect(writer.container.querySelector('[role="status"]')?.textContent).toBe("Saved");
+				expect(writer.registry.get(writer.query).waiting).toBe(false);
+				expect(reader.registry.get(reader.query).waiting).toBe(false);
 			}),
 		);
 		yield* Effect.promise(() => reader.click("Revert"));
