@@ -63,7 +63,6 @@
 {"path":"packages/effect-form/src/react.ts","rule":"biome/lint/style/useNamingConvention","count":9}
 {"path":"packages/effect-form/src/refs.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-form/src/refs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
-{"path":"packages/effect-form/src/shape.ts","rule":"biome/lint/style/useNamingConvention","count":16}
 {"path":"packages/effect-form/src/status.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/status.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-pg-boss/src/definition.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}

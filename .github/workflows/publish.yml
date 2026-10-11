@@ -36,7 +36,7 @@ jobs:
         with:
           node-version-file: false
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --trust-lockfile=false
       - name: Validate collected release notes
         run: pnpm run changelog:release --check
         env:
@@ -73,7 +73,7 @@ jobs:
           node-version-file: false
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --trust-lockfile=false
 
       - name: Validate collected release notes
         run: pnpm run changelog:release --check

@@ -27,17 +27,17 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			expect(yield* fleet.dispatch("two").pipe(Effect.flip)).toMatchObject({ _tag: "StorageCapacity", kind: "execution", limit: 1 });
 			yield* TestClock.adjust("5 minutes");
 			yield* Fiber.join(continuing);
-			yield* Effect.gen(function* () {
+			const blocked = yield* Effect.gen(function* () {
 				while (true) {
 					const current = (yield* fleet.get("one")).value;
-					if (current.stage === "needs-human" && current.decision?.published !== undefined) {
-						break;
+					if (current.stage === "needs-human" && current.decisionPublished) {
+						return current;
 					}
 					yield* Effect.yieldNow;
 				}
 			});
-			const blocked = (yield* fleet.get("one")).value;
 			expect(blocked.attentionOwner).toBe("orchestrator");
+			expect(blocked.decision?.published).toBeDefined();
 			expect(blocked.decision?.reason).toContain("active-turn wait deadline reached");
 			expect(blocked.attempts).toHaveLength(1);
 			expect(blocked.attempts[0]?.status).toBe("failed");
