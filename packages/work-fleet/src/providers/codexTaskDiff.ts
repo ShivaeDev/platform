@@ -1,6 +1,9 @@
 import { Effect, Redacted, Schema } from "effect";
+import { FleetFailure } from "#policy.ts";
 import { type CodexLogin, codexCredentials } from "#providers/codexLogin.ts";
 import { failure } from "#providers/codexRpc.ts";
+import { readTaskResponse } from "#providers/readTaskResponse.ts";
+import { REPORT_LIMITS, reportLimit } from "#reportLimits.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 
 const Turn = Schema.Struct({
@@ -35,9 +38,14 @@ export function makeCodexTaskDiff<R, E>(read: (path: string) => Effect.Effect<un
 			const diffs = (turn.outputItems ?? [])
 				.filter((item) => item.type === "output_diff" || item.type === "pr")
 				.map((item) => item.diff ?? item.outputDiff?.diff ?? "");
+			if (diffs.reduce((total, diff) => total + Buffer.byteLength(diff, "utf8"), Math.max(0, diffs.length - 1)) > REPORT_LIMITS.diffBytes) {
+				return yield* Effect.fail(reportLimit("diffBytes"));
+			}
 			return diffs.join("\n");
 		},
-		Effect.mapError(() => failure("unavailable", "Cloud task attachments are unavailable or do not match the completed turn")),
+		Effect.mapError((error) =>
+			error instanceof FleetFailure ? error : failure("unavailable", "Cloud task attachments are unavailable or do not match the completed turn"),
+		),
 	);
 }
 
@@ -46,7 +54,7 @@ export function codexTaskDiff(login: CodexLogin, timeoutMs: number, endpoint = "
 		Effect.gen(function* () {
 			const credentials = yield* codexCredentials(login, timeoutMs);
 			return yield* Effect.tryPromise({
-				catch: () => failure("unavailable", "Cloud task download failed"),
+				catch: (error) => (error instanceof FleetFailure ? error : failure("unavailable", "Cloud task download failed")),
 				try: async (signal) => {
 					const response = await fetch(new URL(path, endpoint), {
 						headers: {
@@ -60,7 +68,7 @@ export function codexTaskDiff(login: CodexLogin, timeoutMs: number, endpoint = "
 					if (!response.ok) {
 						throw new Error("Cloud task download failed");
 					}
-					return response.json();
+					return readTaskResponse(response);
 				},
 			}).pipe(Effect.timeout(`${timeoutMs} millis`));
 		}),

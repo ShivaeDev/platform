@@ -39,7 +39,7 @@ export function expectReportAttachments(root: string, report: BoardReport, attac
 	}
 }
 
-export function attachmentDiff(files = REPORT_FILES) {
+export function attachmentDiff(files: Readonly<Record<string, Uint8Array>> = REPORT_FILES) {
 	const folder = mkdtempSync(join(tmpdir(), "report-diff-"));
 	try {
 		return Object.entries(files)

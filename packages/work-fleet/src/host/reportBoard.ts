@@ -10,9 +10,18 @@ import { type ReportFile, reportDiffFiles } from "#host/reportDiff.ts";
 import { reportPublication, reportRepository } from "#host/reportPublication.ts";
 import { BoardFailure, BoardGateway, type BoardWork, FleetFailure } from "#policy.ts";
 import { codexTaskDiff } from "#providers/codexTaskDiff.ts";
-import type { SessionObservation, SessionReceipt } from "#session/schema.ts";
+import { SessionFailure, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
 
 export const PUBLISHED_REPORT = "Report worker published to GitHub";
+
+function attachmentFailure(error: unknown) {
+	if (error instanceof BoardFailure) {
+		return error;
+	}
+	const message =
+		error instanceof FleetFailure || error instanceof SessionFailure ? error.message : "Cloud report attachments could not be downloaded";
+	return new BoardFailure({ message });
+}
 
 export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileError>(
 	root: string,
@@ -30,16 +39,11 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 					Effect.flatMap((published) => (published ? Effect.fail(new FleetFailure({ message: PUBLISHED_REPORT, reason: "invalid" })) : Effect.void)),
 				);
 			}
-			const report = Effect.fn("Fleet.report")(
-				function* (work: BoardWork, observation: SessionObservation) {
-					const attachments = yield* files(observation.receipt).pipe(Effect.provide(services));
-					const suffix = yield* reportFiles(root, reportIdentity(work, observation.receipt).itemId, attachments);
-					return yield* board.report(work, { ...observation, output: observation.output + suffix });
-				},
-				Effect.mapError((error) =>
-					error instanceof BoardFailure ? error : new BoardFailure({ message: "Cloud report attachments could not be downloaded" }),
-				),
-			);
+			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
+				const attachments = yield* files(observation.receipt).pipe(Effect.provide(services));
+				const suffix = yield* reportFiles(root, reportIdentity(work, observation.receipt).itemId, attachments);
+				return yield* board.report(work, { ...observation, output: observation.output + suffix });
+			}, Effect.mapError(attachmentFailure));
 			return Layer.merge(Layer.succeed(ReportInspection)({ check: inspect }), Layer.succeed(BoardGateway)({ ...board, report }));
 		}),
 	);
