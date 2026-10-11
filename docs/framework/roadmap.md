@@ -8,6 +8,11 @@ checkbox. The [design guide](./README.md) explains how the paths fit.
 
 ## Built: composed boundary fixtures
 
+- [x] The reference order feature joins migrated PostgreSQL, a declared service,
+  authenticated native HTTP RPC, atoms and an editor. Commit-bound live HTTP
+  hints refresh a second client, while rollback publishes nothing.
+  [Composition and evidence](./composed-example.md).
+
 - [x] A rendered native feature connects an actual SQLite repository, native RPC,
   AtomRpc and React. Successful actions refresh the list; rejected actions leave
   persisted and rendered data intact.

@@ -62,6 +62,7 @@
 		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

@@ -328,3 +328,5 @@ Query, action, session and resume modules do not require effect-form. The packag
 - DOM tests and an injected resume source do not prove real-browser or mobile lifecycle behavior. The real HTTP order fixture proves its local composition, not a deployed host's auth, cancellation or rendering policy.
 
 The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
+
+The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication.

@@ -27,3 +27,9 @@ make(fields, {
 	onSubmit: () => Secret,
 	runtime,
 });
+
+const nested = make(fields, { initialValues: { name: "" }, onSubmit: Effect.succeed, runtime });
+const message: Atom.Atom<string | undefined> = nested.errorAt(["name"]);
+void message;
+// @ts-expect-error Nested feedback must begin with a top-level schema field.
+nested.errorAt(["missing", 0]);
