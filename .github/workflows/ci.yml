@@ -165,11 +165,7 @@ jobs:
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
-          --retry=${{ github.event_name == 'merge_group' && 2 || 0 }}
-          --reporter=default --reporter=json --reporter=junit
-          --outputFile.json=${{ github.workspace }}/.ci/tests.json
-          --outputFile.junit=${{ github.workspace }}/.ci/tests.junit.xml
+          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
@@ -180,6 +176,8 @@ jobs:
           name: test-timings-${{ matrix.shard }}
           path: |
             .ci/tests.json
+            .ci/tests.*.json
+            .ci/tests*.junit.xml
             .ci/vite/vitest/**/results.json
           include-hidden-files: true
           retention-days: 14

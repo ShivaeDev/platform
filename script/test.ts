@@ -10,9 +10,13 @@ const program = Effect.gen(function* () {
 	const nodeOptions = yield* Config.string("NODE_OPTIONS").pipe(Config.withDefault(""));
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
-	const command = workspace
+	const ciShard = workspace && args.includes("--ci-shard");
+	let command = workspace
 		? ["exec", "vitest", "run", "--config", `${process.cwd()}/script/test/vitest.config.ts`, "--configLoader", "native"]
 		: ["--recursive", "--workspace-concurrency=1", "--if-present", "test"];
+	if (ciShard) {
+		command = ["node", "--conditions=source", "script/ci/testShard.ts"];
+	}
 	if (workspace) {
 		const prepared = yield* spawner.exitCode(
 			ChildProcess.make("pnpm", ["--recursive", "--workspace-concurrency=1", "--if-present", "test:prepare"], {
@@ -28,7 +32,14 @@ const program = Effect.gen(function* () {
 	process.exitCode = yield* spawner.exitCode(
 		ChildProcess.make(
 			"node",
-			["--conditions=source", "packages/heavy-lock/src/cli.ts", "--", "pnpm", ...command, ...args.filter((arg) => arg !== "--workspace")],
+			[
+				"--conditions=source",
+				"packages/heavy-lock/src/cli.ts",
+				"--",
+				"pnpm",
+				...command,
+				...args.filter((arg) => !["--workspace", "--ci-shard"].includes(arg)),
+			],
 			{
 				env: workspace ? { ...env, "NODE_OPTIONS": `${nodeOptions} --conditions=source` } : env,
 				extendEnv: true,

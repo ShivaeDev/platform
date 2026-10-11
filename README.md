@@ -101,6 +101,10 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
 
+CI runs each workspace test shard once with Vitest retries disabled. Pull requests and pushes have no reruns. In the merge queue, a test failure selects only the failed files from the Vitest JSON report and runs them once more in a new Vitest process, without sharding that subset. Tests that already passed are excluded by their Vitest test IDs, including passing tests in a failed file. Unhandled process errors cannot be recovered by a test rerun. The shard fails if the fresh rerun fails, and recovered tests appear as flaky in the job summary.
+
+The final JSON and JUnit reports retain the whole shard, with each test's final result and the sum of its attempt durations. Raw first-attempt and rerun reports remain in the timing artifact. The timing summary adds both file execution durations; it excludes process startup between attempts. The rerun uses a separate Vitest cache so the original shard's timing cache stays intact. Vitest merges coverage from both attempts into the full shard's LCOV report, so passing files keep their coverage and rerun coverage contributes without replacing them. The orchestration tests include a fixture whose first failure poisons module state, verify that only a fresh process recovers it, and check that passing tests run once and reports retain the full shard.
+
 ### Heavy runs
 
 `build`, `typecheck`, `test` and `test:package`, and so every step of `ready`,
