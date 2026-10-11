@@ -1,9 +1,8 @@
 import { Schema } from "effect";
-import { Rpc } from "effect/unstable/rpc";
 import { contract } from "#contract.ts";
 import { collection } from "#keys.ts";
 import { LiveHint } from "#live.ts";
-import { query } from "#operation.ts";
+import { query, stream } from "#operation.ts";
 
 export const documents = collection("documents", Schema.String);
 export const workspace = collection("workspace", Schema.String);
@@ -17,6 +16,5 @@ export const Get = query("get", {
 	success: Document,
 });
 export const List = query("list", { reads: () => [documents.list, workspace.list], success: Schema.Array(Document) });
-export const Documents = contract("documents", { queries: [Get, List] });
-export const Subscribe = Rpc.make("subscribe", { error: Unavailable, stream: true, success: LiveHint });
-export const LiveDocuments = Documents.add(Subscribe);
+export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { Unavailable }, success: LiveHint });
+export const Documents = contract("documents", { queries: [Get, List], streams: [Subscribe] });

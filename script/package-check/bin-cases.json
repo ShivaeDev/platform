@@ -79,7 +79,9 @@
 			"/_board/ages.js": "tick",
 			"/_board/client.js": "",
 			"/_board/mermaid/mermaid.esm.min.mjs": "",
-			"/_board/native.js": "work-board.subscribe",
+			"/_board/native.js": " as session",
+			"/_board/react.css": "--background:",
+			"/_board/react.js": "data-board-react-root",
 			"/_board/style.css": "",
 			"/_board/visual-viewport.js": "inspectDiagram",
 			"/_board/visuals.js": "inspectImage"

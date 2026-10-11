@@ -6,3 +6,4 @@
 ### Fixed
 
 - Use Platform’s `rpcBoundary` for handler failures: callers receive a redacted declared rejection while the original cause stays in the server trace without being sent to the client.
+- The bound contract subscription declares `InternalServerError` and uses the shared request tracing and redacted handler boundary.

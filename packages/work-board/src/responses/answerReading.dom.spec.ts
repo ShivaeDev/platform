@@ -22,7 +22,9 @@ it("starts each open packet with a primary action that opens its existing answer
 	await open();
 	const questions = [...page.document.querySelectorAll(".questionnaire-question")];
 	expect(questions).toHaveLength(2);
-	for (const question of questions) {
+	expect(page.document.querySelectorAll(".questionnaire-answer")).toHaveLength(1);
+	expect(questions[1]?.querySelector(".questionnaire-answer")).toBeNull();
+	for (const question of questions.slice(0, 1)) {
 		const action = question.firstElementChild?.querySelector("a");
 		expect(action?.textContent).toBe("Answer these questions");
 		expect(action?.classList.contains("questionnaire-answer")).toBe(true);
