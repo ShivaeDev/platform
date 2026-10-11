@@ -1,12 +1,18 @@
 import { describe, expect, it } from "@effect/vitest";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { boardDiagnostics, fleetApproved, fleetLaunch } from "#board/fleetField.ts";
+import { boardDiagnostics, fleetApproved, fleetDeliverable, fleetLaunch } from "#board/fleetField.ts";
 
 function parsed(fleet?: string) {
 	return metadataParse(`---\nid: one\nkind: task\n${fleet === undefined ? "" : `fleet: ${fleet}\n`}---\n# One\n`);
 }
 
 describe("Fleet frontmatter field", () => {
+	it("reads report deliverables as Fleet metadata while omitted fields retain the default", () => {
+		const report = metadataParse("---\nid: one\nkind: task\nfleet-deliverable: report\n---\n");
+		expect(boardDiagnostics(report)).toEqual([]);
+		expect(fleetDeliverable(report)).toBe("report");
+		expect(fleetDeliverable(parsed())).toBeUndefined();
+	});
 	it("approves only the exact value approved", () => {
 		expect(fleetApproved(parsed("approved"))).toBe(true);
 		expect(fleetApproved(parsed('"approved"'))).toBe(true);

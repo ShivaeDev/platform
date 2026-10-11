@@ -33,6 +33,7 @@ function launchPrompt(host: FleetHost, work: BoardWork): string {
 	return host.provider === "cloud" && host.worker !== undefined
 		? workerPrompt({
 				branch: `${host.worker.branchPrefix}${work.workId}`,
+				deliverable: work.deliverable,
 				sharedEnvironment: host.worker.sharedEnvironment,
 				task: work.context,
 				workId: work.workId,

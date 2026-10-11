@@ -3,11 +3,23 @@ export interface CloudStartup {
 }
 export interface WorkerPrompt extends CloudStartup {
 	readonly branch: string;
+	readonly deliverable?: "report" | undefined;
 	readonly task: string;
 	readonly workId: string;
 }
 export const QUESTION_MARKER = "FLEET_QUESTION:";
 export const PULL_REQUEST_MARKER = "FLEET_PR:";
+const QUESTION_INSTRUCTIONS = [
+	"When you need a decision:",
+	`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
+	"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
+].join("\n");
+const REPORT_INSTRUCTIONS = [
+	"Report deliverable:",
+	"- Change nothing, commit nothing, push nothing, and open no PR. Do not create a branch or launch other workers.",
+	"- Read the root and package AGENTS.md and use read-only research to answer the approved task.",
+	"- Return the whole report as your final message, with evidence for each acceptance criterion and any remaining uncertainty.",
+].join("\n");
 
 // Codex Cloud cannot run startup steps; without this block workers spend minutes probing a provisioning sandbox.
 export function cloudStartup({ sharedEnvironment }: CloudStartup) {
@@ -20,6 +32,9 @@ export function cloudStartup({ sharedEnvironment }: CloudStartup) {
 }
 
 export function workerPrompt(input: WorkerPrompt) {
+	if (input.deliverable === "report") {
+		return [`Work Board task: ${input.workId}`, "", cloudStartup(input), "", reportPrompt(input.task.trim())].join("\n");
+	}
 	return [
 		`Work Board task: ${input.workId}`,
 		"",
@@ -37,15 +52,17 @@ export function workerPrompt(input: WorkerPrompt) {
 		"- Open exactly ONE pull request for human review. Do not merge it and do not launch other workers.",
 		"- Keep Board IDs, environment IDs, prompts and other private identifiers out of source, docs and pull request metadata.",
 		"",
-		"When you need a decision:",
-		`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
-		"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
+		QUESTION_INSTRUCTIONS,
 		"",
 		"Final report:",
 		"- The pull request URL, its head SHA and base, the changed paths and the exact commands you ran with their results.",
 		"- A short result against each acceptance criterion, separating proven behavior from anything still pending.",
 		`- End with one line \`${PULL_REQUEST_MARKER} <url>\` naming the pull request, or \`${PULL_REQUEST_MARKER} none\` when no change was needed.`,
 	].join("\n");
+}
+
+export function reportPrompt(task: string): string {
+	return task.endsWith(REPORT_INSTRUCTIONS) ? task : [task, "", QUESTION_INSTRUCTIONS, "", REPORT_INSTRUCTIONS].join("\n");
 }
 
 export function reportedPullRequest(output: string) {

@@ -2,6 +2,8 @@
 
 ## Implemented slice
 
+Approved report tasks use `fleet-deliverable: report`. The worker returns its whole report in the final message; Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery. Empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status and wait; a lost-publication regression recovers the existing attempt after restart without a duplicate result or worker. Provider execution in these regressions is synthetic.
+
 The headless addon reads stable Board identities and dependencies. Ordinary
 PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns,
 review/check evidence, decisions and accepted outcomes. Completion is attached to
