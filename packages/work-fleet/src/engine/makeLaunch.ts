@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
+import { authorizeBrief, briefChanged, briefUpdate, refreshedBrief } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -9,13 +10,18 @@ import type { DecisionResponse } from "#policy.ts";
 import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
-	const { store, board, policy, sessions, load, save, decision } = state;
+	const { store, board, policy, sessions, load, save } = state;
 	return Effect.fn("Fleet.launch")(function* (
-		stored: Versioned<FleetRecord>,
+		input: Versioned<FleetRecord>,
 		role: "worker" | "repair",
 		prompt: string,
 		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
 	) {
+		let stored = input;
+		const work = yield* board.get(stored.value.workId);
+		const currentPrompt = briefChanged(stored.value, work) ? `${prompt}\n\n${briefUpdate(stored.value, work)}` : prompt;
+		yield* authorizeBrief(work);
+		stored = { ...stored, value: refreshedBrief(stored.value, work) };
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
@@ -26,11 +32,7 @@ export function makeLaunch(state: EngineState) {
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
 		const workerPrompt =
-			retryPrompt ?? withWorkerGuidance(stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt, policy.workerGuidance);
-		const work = yield* board.get(stored.value.workId);
-		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope", undefined, "maintainer");
-		}
+			retryPrompt ?? withWorkerGuidance(stored.value.deliverable === "report" ? reportPrompt(currentPrompt) : currentPrompt, policy.workerGuidance);
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,

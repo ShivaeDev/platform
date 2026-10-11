@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
+import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
@@ -17,13 +18,34 @@ export function makeDeliver(state: EngineState) {
 		if (!["delivering", "needs-human"].includes(record.stage) || result === undefined) {
 			return stored;
 		}
+		if (deliveryPending(record)) {
+			return stored;
+		}
+		const work = yield* state.board.get(record.workId);
+		const denied = yield* authorizeBrief(work).pipe(
+			Effect.catch((error) =>
+				record.decision === undefined
+					? state.decision(stored, error.message, "Restore approval for work that is still needed, or release it", undefined, "maintainer")
+					: save(stored, { ...record, blocker: error.message, mergeReadyAt: undefined, mergeReadyHead: undefined }),
+			),
+		);
+		if (denied !== undefined) {
+			return denied;
+		}
+		if (briefChanged(record, work)) {
+			return yield* continueChangedBrief(state)(stored, work);
+		}
 		if (result.kind === "no-change") {
-			return record.stage === "delivering" && !executing(record)
+			return record.stage === "delivering"
 				? yield* save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
 				: stored;
 		}
 		return yield* observeDelivery(state, yield* expireMergeAreas(state, stored), result);
 	});
+}
+
+function deliveryPending(record: FleetRecord): boolean {
+	return executing(record) || record.decision?.worker !== undefined || (record.decision !== undefined && record.decision.published === undefined);
 }
 
 const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
@@ -49,7 +71,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 			current = yield* invalidateMergeReadiness(state, stored);
 			return yield* refreshReviewResult(state)(current, work, result, observed.failure.head).pipe(
 				Effect.catchTag("FleetFailure", (error) =>
-					waitingDecision(error.message, "Inspect the current PR result before retrying or releasing this work"),
+					waitingDecision(error.message, "Inspect the current PR result before retrying or releasing this work", error.attentionOwner),
 				),
 			);
 		}

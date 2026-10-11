@@ -2,6 +2,7 @@ import { Effect, FileSystem, Schema } from "effect";
 import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
+import { briefChanged } from "#engine/boardBrief.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
@@ -55,16 +56,12 @@ const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork)
 
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
 	return (
-		record.stage === "prepared"
-		&& record.attempts.length === 0
-		&& record.boardRevision === work.revision
-		&& record.preparation.baseRevision !== main.revision
+		record.stage === "prepared" && record.attempts.length === 0 && !briefChanged(record, work) && record.preparation.baseRevision !== main.revision
 	);
 }
 
 export type Approval = "board" | "explicit";
 
-// The scheduler admits each approved revision once; only an explicit dispatch re-approves edited work.
 export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* (
 	host: FleetHost,
 	work: BoardWork,
@@ -74,7 +71,10 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const fleet = yield* Fleet;
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
-	const reapproved = approval === "explicit" && record !== undefined && record.boardRevision !== work.revision;
+	const reapproved =
+		record !== undefined
+		&& ((record.stage === "prepared" && briefChanged(record, work))
+			|| (approval === "explicit" && (record.stage === "released" || briefChanged(record, work))));
 	if (record !== undefined && !reapproved && !stalePreparation(record, work, snapshot)) {
 		return;
 	}

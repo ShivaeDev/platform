@@ -71,7 +71,7 @@ describe("work-fleet host against PostgreSQL", () => {
 		);
 	}, 40_000);
 
-	test("dispatch denies unapproved work and explicitly re-approves an edited revision", function* () {
+	test("dispatch denies unapproved work and launches the current approved brief", function* () {
 		const files = { "a.md": task("a", "approved", "First revision."), "b.md": task("b") };
 		yield* withHost(files, {}, (fixture) =>
 			Effect.gen(function* () {
@@ -84,7 +84,7 @@ describe("work-fleet host against PostgreSQL", () => {
 
 				fixture.write("a.md", task("a", "approved", "Second revision."));
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-				expect((yield* record(fixture.host, "a", fixture.parts)).boardRevision).toBe(first.boardRevision);
+				expect((yield* record(fixture.host, "a", fixture.parts)).boardRevision).not.toBe(first.boardRevision);
 				expect(fixture.provider.launched).toHaveLength(0);
 
 				const { value } = yield* dispatchWork(fixture.host, "a", fixture.parts);
