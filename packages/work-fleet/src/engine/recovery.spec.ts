@@ -95,7 +95,7 @@ describe("Fleet recovery", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const reviewing = yield* fleet.reconcile("one");
-				const receipt = reviewing.value.review?.receipt;
+				const receipt = reviewing.value.attempts.at(-1)?.receipt;
 				fixture.failedObservations.add(receipt?.turnId ?? "missing");
 				const failed = yield* fleet.reconcile("one");
 				expect(failed.value.stage).toBe("needs-human");

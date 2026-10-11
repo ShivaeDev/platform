@@ -69,6 +69,7 @@ export const SessionService = defineService({
 					);
 					const receipt = yield* restore(
 						transport.startTurn({
+							...(input.access === undefined ? {} : { access: input.access }),
 							operationId: input.operationId,
 							prompt: input.prompt,
 							sessionId,
