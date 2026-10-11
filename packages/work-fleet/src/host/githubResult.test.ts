@@ -20,6 +20,19 @@ describe("GitHub worker result adoption", () => {
 		]);
 	});
 
+	for (const before of [{ merged: true, state: "closed" }, {}]) {
+		it.effect(`adopts a matching merged PR before or during path observation: ${JSON.stringify(before)}`, function* () {
+			const fixture = resultFixture({ after: { merged: true, state: "closed" }, before });
+			expect(yield* fixture.adopt(work, completed())).toEqual({
+				head: HEAD,
+				kind: "change",
+				paths: ["src/one.ts", "src/two.ts"],
+				pr: PR,
+				prNumber: 7,
+			});
+		});
+	}
+
 	for (const wrap of ["", "`"]) {
 		it.effect(`accepts final markers with whitespace and ${wrap === "" ? "plain" : "backtick-wrapped"} values`, function* () {
 			const output = `Done.\r\n \tFLEET_HEAD:  ${wrap}${HEAD}${wrap} \t\r\n \tFLEET_PR:  ${wrap}${PR}${wrap} \t\r\n`;

@@ -57,7 +57,10 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 	if (executing(record)) {
 		return "executing";
 	}
-	return record.result === undefined ? "prepared" : "reviewing";
+	if (record.result !== undefined) {
+		return "reviewing";
+	}
+	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
 }
 
 function hasResponse(record: FleetRecord, decisionId: string, responseId: string) {
