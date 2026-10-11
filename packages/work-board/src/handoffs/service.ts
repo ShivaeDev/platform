@@ -1,19 +1,29 @@
 import { join } from "node:path";
-import { Clock, Effect, FileSystem, Semaphore } from "effect";
-import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
-import { ResponseFailed } from "#browser/responses/schema.ts";
+import { Clock, Effect, FileSystem, type Path, Semaphore } from "effect";
+import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import type { Handoff, HandoffInput, HandoffPreview } from "#browser/handoffs/schema.ts";
 import { markdownPath } from "#files/markdownPath.ts";
 import { handoffFrom, handoffMarkdown, handoffPrompt, matchesHandoff } from "#handoffs/records.ts";
 import { handoffSource } from "#handoffs/source.ts";
 import { publish } from "#responses/publish.ts";
 import { revisionOf } from "#responses/records.ts";
 import type { ResponseOptions } from "#responses/service.ts";
+import type { ResponseRejection } from "#rpc/rejections.ts";
 
-export const handoffService = Effect.fn("WorkBoard.handoffService")(function* (options: ResponseOptions) {
+interface HandoffService {
+	locate: (item: string) => Effect.Effect<HandoffPreview, ResponseRejection, FileSystem.FileSystem | Path.Path>;
+	prepare: (input: HandoffInput) => Effect.Effect<Handoff, ResponseRejection, FileSystem.FileSystem | Path.Path>;
+	read: (item: string) => Effect.Effect<{ records: Handoff[]; unknown: string[] }, ServiceUnavailable>;
+}
+
+export const handoffService = Effect.fn("WorkBoard.handoffService")(function* (
+	options: ResponseOptions,
+): Effect.fn.Return<HandoffService, never, FileSystem.FileSystem> {
 	const fs = yield* FileSystem.FileSystem;
 	const lock = yield* Semaphore.make(1);
 	const snapshot = options.index.pipe(
-		Effect.catch(() => Effect.fail(new ResponseFailed({ code: "Unavailable", message: "The workspace could not be indexed." }))),
+		rpcBoundary(ServiceUnavailable, { message: "The workspace could not be indexed.", unexpected: (message) => new ServiceUnavailable({ message }) }),
 	);
 	const locate = handoffSource(options.root, options.changes.realRoot, snapshot, fs);
 	const read = Effect.fn("WorkBoard.read")(function* (item: string) {
@@ -35,17 +45,18 @@ export const handoffService = Effect.fn("WorkBoard.handoffService")(function* (o
 	});
 	const reconcile = Effect.fn("WorkBoard.reconcile")(function* (record: Handoff | undefined, input: HandoffInput) {
 		if (!record || record.file !== `handoffs/${input.id}.md` || !matchesHandoff(record, input) || revisionOf(record.context) !== input.revision) {
-			return yield* Effect.fail(
-				new ResponseFailed({ code: "Conflict", message: "This handoff identity moved, is duplicated or records different direction." }),
-			);
+			return yield* Effect.fail(new Conflict({ message: "This handoff identity moved, is duplicated or records different direction." }));
 		}
 		const path = yield* markdownPath(options.root, options.changes.realRoot, record.file);
 		if (!path) {
-			return yield* Effect.fail(new ResponseFailed({ code: "Missing", message: "The prepared handoff moved or disappeared." }));
+			return yield* Effect.fail(new NotFound({ message: "The prepared handoff moved or disappeared." }));
 		}
-		const raw = yield* fs
-			.readFileString(path)
-			.pipe(Effect.catch(() => Effect.fail(new ResponseFailed({ code: "Unavailable", message: "The handoff could not be reconciled." }))));
+		const raw = yield* fs.readFileString(path).pipe(
+			rpcBoundary(ServiceUnavailable, {
+				message: "The handoff could not be reconciled.",
+				unexpected: (message) => new ServiceUnavailable({ message }),
+			}),
+		);
 		yield* publish(options.root, options.changes.realRoot, record.id, raw, "handoffs");
 		return record;
 	});
@@ -54,9 +65,7 @@ export const handoffService = Effect.fn("WorkBoard.handoffService")(function* (o
 		return lock.withPermit(
 			Effect.gen(function* () {
 				if (!options.enabled) {
-					return yield* Effect.fail(
-						new ResponseFailed({ code: "Disabled", message: "Restart with --responses to enable local response/handoff writes." }),
-					);
+					return yield* Effect.fail(new Forbidden({ message: "Restart with --responses to enable local response/handoff writes." }));
 				}
 				const data = yield* snapshot;
 				const existing = data.model.ids.get(input.id);
@@ -66,9 +75,7 @@ export const handoffService = Effect.fn("WorkBoard.handoffService")(function* (o
 				}
 				const current = yield* locate(input.item);
 				if (current.reviewedRevision !== input.revision || current.source !== input.source) {
-					return yield* Effect.fail(
-						new ResponseFailed({ code: "Stale", message: "The source changed or moved. Keep your draft and review it again." }),
-					);
+					return yield* Effect.fail(new PreconditionFailed({ message: "The source changed or moved. Keep your draft and review it again." }));
 				}
 				const file = `handoffs/${input.id}.md`;
 				const record: Handoff = {

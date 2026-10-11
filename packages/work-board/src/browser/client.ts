@@ -11,7 +11,8 @@ import { type Bound, bind } from "@shivaedev/effect-contract/bind.ts";
 import type { Contract } from "@shivaedev/effect-contract/contract.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { type ResumeOptions, resumeSignal } from "@shivaedev/effect-contract/resume.ts";
-import { type ReadFailed, workContract, workRpcs } from "#rpc/contract.ts";
+import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { workspace } from "#rpc/keys.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -30,7 +31,7 @@ export interface BrowserClient {
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly responses: BoundContract<typeof responseContract>;
 	readonly run: <A, E>(effect: Effect.Effect<A, E, Reader>, signal?: AbortSignal) => Promise<A>;
-	readonly updates: ReturnType<typeof live<Reader, ReadFailed | RpcClientError, never>>;
+	readonly updates: ReturnType<typeof live<Reader, InternalServerError | RpcClientError, never>>;
 }
 
 export function browserClient(url: string, options: ResumeOptions = {}): BrowserClient {

@@ -168,7 +168,7 @@ export const Rename = Rpc.make("Rename", {
 });
 ```
 
-A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. `rejectedField` reads either that instance or tagged JSON:
+A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. `rejectedField` reads either that instance or tagged JSON:
 
 ```ts
 import { rejectedField } from "@shivaedev/platform/errors/rejected-field.ts";
@@ -182,6 +182,27 @@ const field = rejectedField(
 `field` is `Option.some({ field: "name", message: "Name is taken" })`. Any value with string `_tag`, `field` and `message` qualifies, including an application's own tagged error. An untagged object, a missing field or a non-string field yields `Option.none()`.
 
 For tRPC, use these classes with the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc). The composed HTTP boundary carries rejection data and maps statuses, including `TooManyRequests` as 429 and `AuthUnavailable` as 503.
+
+### Handling unexpected failures
+
+At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
+
+```ts
+import { Schema } from "effect";
+import { Conflict, InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+
+const Rejection = Schema.Union([Conflict, InternalServerError]);
+const expose = rpcBoundary(Rejection, {
+  unexpected: (message) => new InternalServerError({ message }),
+});
+
+export const save = storageSave.pipe(expose);
+```
+
+`storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so an RPC server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
+
+The native HTTP RPC fixture in `src/rpc-server/unauthenticatedRejections.spec.ts` proves decoded taxonomy types, redacted fallback messages and the original server trace cause without session middleware. Work Board's `src/rpc/rejectionTypes.spec.ts` proves its adoption through real loopback HTTP.
 
 ### Request diagnostics
 
@@ -328,10 +349,11 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
-| `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
+| `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. |
 | `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `MaybeAuthenticated`: native RPC middleware declarations. |
+| `rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`; `RpcBoundaryOptions<Error>`: declared failures pass through, unexpected failures become one declared rejection. |
 | `rpc-server/session.ts` | `authenticatedLayer(policy)`, `maybeAuthenticatedLayer(policy)`, `resolveSession(policy, headers, rpc)`; `SessionShape`, `SessionProvider<Session>`, `SessionPolicy<Session>`. |
 | `rpc-server/adapters/better-auth-sessions.ts` | `betterAuthSessions(getSession)`; `GetSession<Session>` is a Promise lookup returning `Session \| null`. |
 | `rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`, `originRequest(headers, rpc)`; `OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`. |

@@ -29,7 +29,7 @@ export function responsePage(
 		}
 		return yield* Effect.gen(function* () {
 			const question = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
-			yield* service.read(question.id).pipe(Effect.catch((error) => (error.code === "Missing" ? Effect.void : Effect.fail(error))));
+			yield* service.read(question.id).pipe(Effect.catch((error) => (error._tag === "NotFound" ? Effect.void : Effect.fail(error))));
 			const records = yield* service.history(question);
 			return layout(yield* composerHtml(question, records, enabled));
 		}).pipe(Effect.catch((error) => Effect.succeed(layout(`<h1>Response unavailable</h1><p>${escapeHtml(error.message)}</p>`, 409))));

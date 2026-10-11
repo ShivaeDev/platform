@@ -1,6 +1,8 @@
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts"
+import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts"
 import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http/subscription-signal.ts"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts"
-import { Context, Layer } from "effect"
+import { Cause, Context, Effect, Layer } from "effect"
 
 class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}
 
@@ -19,4 +21,16 @@ subscription.dispose()
 
 if (application !== "application" || request !== "request" || !subscription.signal.aborted) {
 	throw new Error("The packed effect-only entries misbehaved")
+}
+
+const original = new Error("private storage failure")
+const expose = rpcBoundary(InternalServerError, { unexpected: (message) => new InternalServerError({ message }) })
+const failure: InternalServerError = await Effect.runPromise(Effect.flip(expose(Effect.fail(original))))
+if (failure.message !== "Internal server error" || !Cause.isCause(failure.cause) || Cause.squash(failure.cause) !== original) {
+  throw new Error("The packed RPC boundary lost its public rejection or server cause")
+}
+const unavailable = new ServiceUnavailable({ message: "Storage is unavailable" })
+const declared = rpcBoundary(ServiceUnavailable, { unexpected: (message) => new ServiceUnavailable({ message }) })
+if (await Effect.runPromise(Effect.flip(declared(Effect.fail(unavailable)))) !== unavailable) {
+  throw new Error("The packed RPC boundary replaced a declared rejection")
 }

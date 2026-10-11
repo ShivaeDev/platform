@@ -3,7 +3,7 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, ManagedRuntime } from "effect";
+import { Effect, FileSystem, Layer, ManagedRuntime, Tracer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { boardLayer } from "#board.ts";
 import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
@@ -47,12 +47,18 @@ export async function startBoard(
 	responses = false,
 	sources?: Sources,
 	maintainer?: string,
+	tracer?: Tracer.Tracer,
 ): Promise<RunningBoard> {
 	const board = Layer.provide(
 		boardLayer({ home, maintainer, responses, root }),
 		sources === undefined ? wrapped(wrap) : Layer.merge(wrapped(wrap), Layer.succeed(DiagnosticsSources)(sources)),
 	);
-	const runtime = ManagedRuntime.make(HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0))));
+	const runtime = ManagedRuntime.make(
+		HttpRouter.serve(board, { disableLogger: true }).pipe(
+			Layer.provideMerge(listenOn(0)),
+			Layer.provideMerge(tracer ? Layer.succeed(Tracer.Tracer, tracer) : Layer.empty),
+		),
+	);
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("the board did not listen on TCP");

@@ -18,3 +18,7 @@ export class PreconditionFailed extends Schema.TaggedError<PreconditionFailed>()
 export class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequests", described) {}
 
 export class AuthUnavailable extends Schema.TaggedError<AuthUnavailable>()("AuthUnavailable", described) {}
+
+export class InternalServerError extends Schema.TaggedError<InternalServerError>()("InternalServerError", described) {}
+
+export class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", described) {}

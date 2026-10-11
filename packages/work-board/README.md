@@ -292,10 +292,11 @@ Import the module that defines a name. The package has no root entry; its manife
 | `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
-| `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
+| `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
-| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
+| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
+| `rpc/rejections.ts` | `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
 | `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
@@ -450,7 +451,7 @@ export async function readReturnedResult(url: string, item: string) {
 
 Pass a uniquely identified result, such as `result.keyboard`. Its declared review request still uses `responses.question`, `registerQuestion` and `recordResponse`, or the normal browser response controls; there is no separate acceptance writer.
 
-`ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`, `Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication may already have produced a file; inspect the saved identity/content before retrying.
+RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `NotFound` for missing context, `PreconditionFailed` for stale review, `Conflict` for incompatible content, `BadRequest` for unsupported input and `ServiceUnavailable` for unavailable reads. Unexpected handler failures become `InternalServerError` with a redacted public message and a server-only trace cause. These errors need no login middleware. `PublicationUncertain` means publication may already have produced a file; inspect the saved identity/content before retrying. `Unanswered` is the wait client’s deadline error.
 
 #### CLI reference
 
