@@ -3,8 +3,8 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	const items = records
 		.filter((record) => record.stage !== "released")
 		.map((record) => ({
-			blocker: record.blocker ?? record.decision?.reason,
-			decision: record.decision,
+			blocker: record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason),
+			decision: record.stage === "completed" ? undefined : record.decision,
 			links: record.result?.kind === "change" ? [record.result.pr] : [],
 			outcome: record.outcome,
 			sessions: record.attempts.flatMap((attempt) => (attempt.receipt === undefined ? [] : [attempt.receipt])),
