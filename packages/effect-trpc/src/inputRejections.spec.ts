@@ -64,7 +64,12 @@ describe("input validation failures cross as BadRequest field rejections", () =>
 
 		expect(invalidBody).toContain('"invalidInput":true');
 		expect(raisedBody).not.toContain("invalidInput");
-		expect(Object.keys(Option.getOrThrow(rejectionOf(invalid))).sort()).toEqual(["_tag", "field", "invalidInput", "message"]);
+		expect(Object.keys(Option.getOrThrow(rejectionOf(invalid))).sort((left, right) => left.localeCompare(right))).toEqual([
+			"_tag",
+			"field",
+			"invalidInput",
+			"message",
+		]);
 		expect(Option.map(rejectionOf(invalid), ({ invalidInput }) => invalidInput)).toEqual(Option.some(true));
 		expect(rejectionOf(raised)).toEqual(Option.some({ _tag: "BadRequest", field: "name", message: "Name is taken" }));
 		expect(Option.map(rejectionOf(raised), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));

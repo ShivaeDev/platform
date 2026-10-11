@@ -493,7 +493,6 @@
 {"path":"packages/quality/src/rules/suppressions/stylesheet-comments.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/rules/syntax.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rules/syntax.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/quality/src/standard-schema.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/standard-schema.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/quality/src/standard-schema.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/test-support/alias-tree.ts","rule":"files/named-after-export","count":1}
