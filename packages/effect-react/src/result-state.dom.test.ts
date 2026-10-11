@@ -1,13 +1,12 @@
-import { RegistryContext } from "@effect/atom-react";
 import { Deferred, Effect, Exit, Option } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { useAction, useQuery } from "#result-state.ts";
+import { expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0).reverse()) {
@@ -16,18 +15,8 @@ afterEach(async () => {
 });
 
 async function mount(Component: () => React.ReactNode) {
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
-	const registry = AtomRegistry.make();
-	cleanups.push(async () => {
-		await act(async () => root.unmount());
-		registry.dispose();
-		container.remove();
-	});
-	await act(async () => {
-		root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component)));
-	});
+	const { container, unmount } = await render(createElement(Component));
+	cleanups.push(unmount);
 	return container;
 }
 
@@ -131,13 +120,7 @@ it("action renders ordinary success values and typed failures", async () => {
 it("changing query identity does not retain data from the previous query", async () => {
 	const first = Atom.make(Effect.succeed("account A"));
 	const next = Atom.make(Effect.never);
-	const registry = AtomRegistry.make();
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	cleanups.push(async () => {
-		await act(async () => root.unmount());
-		registry.dispose();
-	});
+
 	function Component({ atom }: { readonly atom: typeof first }) {
 		const state = useQuery(atom);
 		return createElement(
@@ -146,12 +129,11 @@ it("changing query identity does not retain data from the previous query", async
 			Option.getOrElse(state.data, () => "loading"),
 		);
 	}
-	async function render(atom: typeof first) {
-		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component, { atom }))));
-	}
-	await render(first);
+	const view = await render(createElement(Component, { atom: first }));
+	cleanups.push(view.unmount);
+	const { container } = view;
 	expect(container.textContent).toBe("account A");
-	await render(next);
+	await view.render(createElement(Component, { atom: next }));
 	expect(container.textContent).toBe("loading");
 });
 
