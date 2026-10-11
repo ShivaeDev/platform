@@ -28,6 +28,8 @@ usable without this addon. `markdownBoard(root)` reads Board's existing Markdown
 model and publishes ordinary durable questions through its existing publisher.
 It does not launch copied Markdown handoffs or interpret receipts as completion.
 
+Each scheduler pass shares one Board read and identity index across admission, dispatch and reconciliation. The next pass reads changed, added and removed files again. Approval and decisions remain bound to the exact source revision read. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
+
 Provide `BoardGateway`, `FleetRepository`, `FleetPolicy`, `FleetIntegrations` and
 `SessionService` to `Fleet.layer`. Use one SQL namespace per Board workspace.
 `postgresFleetRepository(namespace?)` creates

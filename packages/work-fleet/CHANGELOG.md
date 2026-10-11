@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Read and index Board Markdown once per scheduler pass, share that snapshot across admission and item lookups, and refresh it on the next pass. Approval remains bound to the exact source revision read.
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a

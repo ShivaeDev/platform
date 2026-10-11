@@ -4,6 +4,7 @@ import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { questionFrom, questionId, questionMarkdown, revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDocument } from "#board/documents.ts";
+import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardFailure, type BoardWork, type Decision } from "#policy.ts";
 
@@ -45,7 +46,8 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		const workSourcePath = relative(realRoot, work.sourcePath);
 		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links]))}`;
 		const context = decisionSource(itemId, work, input);
-		if (new TextEncoder().encode(context).length > 256 * 1024 || metadataParse(context).diagnostics.length > 0) {
+		const parsed = metadataParse(context);
+		if (new TextEncoder().encode(context).length > 256 * 1024 || parsed.diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
 		}
 		const sourcePath = `responses/${itemId}.md`;
@@ -64,6 +66,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		yield* publish(root, realRoot, itemId, context).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Fleet decision source could not be recorded on Board." })),
 		);
+		yield* recordBoardSource(realRoot, sourcePath, context, parsed);
 		const all = yield* documents;
 		if (all.some((document) => questionFrom(document)?.id === id)) {
 			return receipt;
@@ -82,9 +85,11 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 				source: sourcePath,
 			},
 		};
-		yield* publish(root, realRoot, id, questionMarkdown(question)).pipe(
+		const questionSource = questionMarkdown(question);
+		yield* publish(root, realRoot, id, questionSource).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Fleet decision question could not be registered on Board." })),
 		);
+		yield* recordBoardSource(realRoot, `responses/${id}.md`, questionSource);
 		return receipt;
 	});
 }
