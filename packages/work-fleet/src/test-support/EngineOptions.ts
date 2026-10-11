@@ -21,7 +21,6 @@ export interface EngineOptions {
 	readonly lostAcknowledgement?: boolean;
 	readonly lostContinuationAcknowledgement?: boolean;
 	readonly lostReviewAcknowledgement?: boolean;
-	readonly lostReviewContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
 	readonly operationCollision?: boolean;

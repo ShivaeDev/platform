@@ -52,6 +52,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 					expect(attempt?.prompt).toContain("Your previous reply did not contain a parseable verdict");
 					expect(attempt?.prompt).toContain('"verdict":"approve"');
 					expect(attempt?.settings).toEqual({ effort: "high", model: "host-model" });
+					expect(fixture.reviews).toEqual(["head-one-0", "head-one-0"]);
 					expect(followUp.value.attempts.at(-2)?.output).toBe(malformed);
 					const receipt = yield* reviewerReply(fixture, followUp, approval);
 					const completed = yield* fixture.restart(fleet.reconcile("one"));
@@ -63,7 +64,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			));
 	}
 	test("reconciles a lost follow-up acknowledgement on the same thread after restart", () =>
-		withEngine({ lostReviewContinuationAcknowledgement: true, reviewRunning: true }, (fixture) =>
+		withEngine({ reviewRunning: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
@@ -71,6 +72,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				finishWorkers(fixture);
 				const reviewing = yield* fleet.reconcile("one");
 				const original = yield* reviewerReply(fixture, reviewing, "No verdict");
+				fixture.loseAcknowledgement();
 				const lost = yield* fleet.reconcile("one");
 				const intent = lost.value.attempts.at(-1);
 				expect(intent).toMatchObject({ sessionId: original.sessionId, status: "submitting" });

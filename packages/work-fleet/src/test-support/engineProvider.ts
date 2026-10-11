@@ -33,11 +33,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	let rejectNext = false;
 	function consumeLostAcknowledgement(readOnly: boolean) {
 		const reviewerLost = readOnly && reviewLost;
-		const missing =
-			lost
-			|| reviewerLost
-			|| (options.lostContinuationAcknowledgement && turns === 2)
-			|| (readOnly && options.lostReviewContinuationAcknowledgement && turns === 3);
+		const missing = lost || reviewerLost || (options.lostContinuationAcknowledgement && turns === 2);
 		lost = false;
 		if (reviewerLost) {
 			reviewLost = false;
