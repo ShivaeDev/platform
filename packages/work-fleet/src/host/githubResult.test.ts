@@ -1,0 +1,54 @@
+import { describe, expect } from "@effect/vitest";
+import { Effect, Layer } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
+import { resolveHost } from "#host/config.ts";
+import { MainSource } from "#host/mainSource.ts";
+import { hostIntegrations } from "#host/runtime.ts";
+import { FleetIntegrations } from "#policy.ts";
+import { completed, HEAD, NO_CHANGE, PR, resultFixture, work } from "#test/githubResult.ts";
+
+describe("GitHub worker result adoption", () => {
+	it.effect("adopts the observed PR number, exact reported head and all paginated changed paths", function* () {
+		const fixture = resultFixture();
+		const result = yield* fixture.adopt(work, completed());
+		expect(result).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts", "src/two.ts"], pr: PR, prNumber: 7 });
+		expect(fixture.requests).toEqual([
+			["repo", "view", "--json", "nameWithOwner"],
+			["api", "repos/example/repository/pulls/7"],
+			["api", "repos/example/repository/pulls/7/files?per_page=100", "--paginate", "--slurp"],
+			["api", "repos/example/repository/pulls/7"],
+		]);
+	});
+
+	it.effect("records both paths of a rename", function* () {
+		const fixture = resultFixture({ files: [[{ filename: "src/one.ts", "previous_filename": "src/old.ts" }, { filename: "src/two.ts" }]] });
+		expect(yield* fixture.adopt(work, completed())).toMatchObject({ paths: ["src/old.ts", "src/one.ts", "src/two.ts"] });
+	});
+
+	it.effect("uses freshly observed main for a no-change claim and retains worker evidence", function* () {
+		const fixture = resultFixture();
+		expect(yield* fixture.adopt(work, completed(NO_CHANGE))).toEqual({ evidence: [NO_CHANGE], head: HEAD, kind: "no-change" });
+		expect(fixture.refreshes()).toBe(1);
+		expect(fixture.requests).toHaveLength(0);
+	});
+
+	it.effect("host configuration selects adoption while independent review remains required", function* () {
+		const fixture = resultFixture();
+		const integrations = yield* FleetIntegrations.pipe(
+			Effect.provide(hostIntegrations(fixture.host).pipe(Layer.provide(Layer.succeed(MainSource)(fixture.main)))),
+		);
+		const result = yield* integrations.result(work, completed(NO_CHANGE));
+		expect(result.kind).toBe("no-change");
+		expect(yield* integrations.review(work, result, "review-operation").pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	});
+
+	it.effect("leaves adoption unconfigured unless selected", function* () {
+		const fixture = resultFixture();
+		const integrations = yield* FleetIntegrations.pipe(
+			Effect.provide(
+				hostIntegrations(resolveHost("/synthetic/board", { provider: "local" })).pipe(Layer.provide(Layer.succeed(MainSource)(fixture.main))),
+			),
+		);
+		expect(yield* integrations.result(work, completed()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	});
+});

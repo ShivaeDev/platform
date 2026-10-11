@@ -145,6 +145,10 @@ addon does not rewrite authored task status or maintain competing status files.
 
 ### Start a small personal pilot
 
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The report includes one `FLEET_HEAD: <sha>` line with the full head SHA and ends with one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
+
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. The host refreshes main and requires the same SHA, retains the report as evidence, and passes that result through independent review and required checks. Result adoption supplies no review or delivery authority; configure those integrations separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
+
 The smallest host is an Effect program with the composed Fleet Layer above; it can
 run headlessly. The package supplies no provider login, hosting-specific merge
 command or account reset. Configure these runtime boundaries before dispatch:
@@ -154,7 +158,7 @@ command or account reset. Configure these runtime boundaries before dispatch:
 2. Supply a verified `SessionTransport` with working provider access. If using the
    local adapter, connect it to an independently owned local app-server; its lifetime
    must survive the host's observing scopes.
-3. Implement current source observations, exact result/PR adoption, independent
+3. Configure current source observations, exact result/PR adoption, independent
    review, required checks and normal authorized delivery in `FleetIntegrations`.
    Authentication belongs to the host when exposing `FleetContract`.
 4. Prepare two disjoint Board items, inspect their attached scopes and run `cycle`

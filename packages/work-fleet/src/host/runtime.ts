@@ -5,6 +5,7 @@ import { markdownBoard } from "#board/markdown.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
+import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostQuota } from "#host/quota.ts";
 import { FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -16,22 +17,23 @@ function unconfigured(what: string) {
 	);
 }
 
-// Result adoption, review, checks and delivery stay explicit gaps until the host wires them.
-export const hostIntegrations = Layer.effect(FleetIntegrations)(
-	Effect.gen(function* () {
-		const main = yield* MainSource;
-		return FleetIntegrations.of({
-			authorize: () => Effect.succeed(false),
-			checks: () => unconfigured("Required checks"),
-			delivery: () => unconfigured("Delivery observation"),
-			main: main.observe,
-			merge: () => unconfigured("Merge"),
-			reconcileReview: () => unconfigured("Review reconciliation"),
-			result: () => unconfigured("Worker result adoption"),
-			review: () => unconfigured("Independent review"),
-		});
-	}),
-);
+export function hostIntegrations(host: FleetHost) {
+	return Layer.effect(FleetIntegrations)(
+		Effect.gen(function* () {
+			const main = yield* MainSource;
+			return FleetIntegrations.of({
+				authorize: () => Effect.succeed(false),
+				checks: () => unconfigured("Required checks"),
+				delivery: () => unconfigured("Delivery observation"),
+				main: main.observe,
+				merge: () => unconfigured("Merge"),
+				reconcileReview: () => unconfigured("Review reconciliation"),
+				result: host.result === "github" ? githubResult(host, main) : () => unconfigured("Worker result adoption"),
+				review: () => unconfigured("Independent review"),
+			});
+		}),
+	);
+}
 
 export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
@@ -69,7 +71,7 @@ export function fleetHostLayer<TProvider, TMain>(
 	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provide(hostSql(host)));
 	const sessions = SessionService.layer.pipe(Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), parts.provider]));
 	const board = markdownBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer));
-	const integrations = (parts.integrations ?? hostIntegrations).pipe(Layer.provide(parts.main));
+	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
 	);

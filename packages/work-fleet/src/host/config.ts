@@ -27,6 +27,7 @@ export const HostConfig = Schema.Struct({
 	provider: Schema.Literals(["local", "cloud"]),
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
+	result: Schema.optional(Schema.Literal("github")),
 	worker: Schema.optional(Schema.Struct({ branchPrefix: Text, sharedEnvironment: Text })),
 });
 export type HostConfig = typeof HostConfig.Type;
@@ -47,6 +48,7 @@ export interface FleetHost {
 	readonly provider: HostConfig["provider"];
 	readonly quota: NonNullable<HostConfig["quota"]>;
 	readonly repository: NonNullable<HostConfig["repository"]>;
+	readonly result?: HostConfig["result"];
 	readonly worker: HostConfig["worker"];
 }
 
@@ -65,6 +67,7 @@ export function resolveHost(boardDir: string, config: HostConfig): FleetHost {
 		provider: config.provider,
 		quota: config.quota ?? "codex",
 		repository: config.repository ?? { branch: "main", remote: "origin" },
+		result: config.result,
 		worker: config.worker,
 	};
 }

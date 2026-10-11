@@ -17,6 +17,12 @@ describe("work-fleet host configuration", () => {
 		const host = yield* loadHost(hostBoard('{ "provider": "cloud" }'), override).pipe(Effect.provide(NodeServices.layer));
 		expect(host).toMatchObject({ concurrency: 7, namespace: "fleet_override", provider: "local" });
 	});
+	it.effect("selects GitHub result adoption explicitly", function* () {
+		const host = yield* loadHost(hostBoard('{ "provider": "local", "result": "github" }')).pipe(Effect.provide(NodeServices.layer));
+		expect(host.result).toBe("github");
+		const invalid = yield* loadHost(hostBoard('{ "provider": "local", "result": "unknown" }')).pipe(Effect.flip, Effect.provide(NodeServices.layer));
+		expect(invalid.message).toMatch(/is invalid: /u);
+	});
 
 	it.effect("a missing or invalid file is a host failure", function* () {
 		const missing = yield* loadHost(hostBoard()).pipe(Effect.flip, Effect.provide(NodeServices.layer));

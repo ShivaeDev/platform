@@ -52,6 +52,7 @@ export const ChangeResult = Schema.Struct({
 	kind: Schema.Literal("change"),
 	paths: Schema.Array(Schema.String),
 	pr: Schema.String,
+	prNumber: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
 });
 export const NoChangeResult = Schema.Struct({ evidence: Schema.Array(Schema.String), head: Schema.String, kind: Schema.Literal("no-change") });
 export const WorkResult = Schema.Union([ChangeResult, NoChangeResult]);
