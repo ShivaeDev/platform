@@ -3,7 +3,6 @@ import { fence } from "#imports/fences/dsl.ts";
 import { anyOf, anything, external, files, folders, modules, packages, scopes, workspace } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { findingsIn, importTree } from "#test/imports.ts";
-import { checkRule } from "#test/inputs.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -14,8 +13,9 @@ const examples = {
 } as const;
 
 describe("fence configuration boundaries", () => {
-	it("has no fences to check when neither declarations nor source modules are supplied", async () => {
-		expect(await checkRule(importFences, { fences: [] }, {})).toEqual([]);
+	it("rejects an empty import graph even when no fences are configured", async () => {
+		const root = seedTree([{ content: '{"name":"demo"}', path: "package.json" }]);
+		await expect(findingsIn(importFences, { fences: [] }, root)).rejects.toThrow("the import graph covers no modules");
 	});
 
 	it.each([

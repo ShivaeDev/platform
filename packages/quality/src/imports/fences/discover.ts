@@ -6,7 +6,7 @@ import type { RuleInputs } from "#rule.ts";
 import { decodeDeclarations } from "./declarations.ts";
 import type { Fence } from "./model.ts";
 
-export const BOUNDARY_FILE = "quality.fences.config.ts";
+const BOUNDARY_FILE = "quality.fences.config.ts";
 
 async function loadBoundary(inputs: RuleInputs, directory: string): Promise<readonly Fence[]> {
 	const file = posix.join(directory, BOUNDARY_FILE);

@@ -114,7 +114,7 @@ A module link opens its source. Type and value declarations with the same name a
 | --- | --- |
 | [imports/fences/check.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/check.ts) | `checkFences` |
 | [imports/fences/declarations.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/declarations.ts) | `Declarations`, `decodeDeclarations` |
-| [imports/fences/discover.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/discover.ts) | `BOUNDARY_FILE`, `discoverFences` |
+| [imports/fences/discover.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/discover.ts) | `discoverFences` |
 | [imports/fences/dsl.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/dsl.ts) | `fence` |
 | [imports/fences/evaluate.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/evaluate.ts) | `FenceGraph`, `Evaluate`, `CompiledFence`, `compileFence` |
 | [imports/fences/match.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/imports/fences/match.ts) | `PolicyScope`, `Matcher`, `Compiler`, `trimmed`, `holdsFiles`, `packageNamed`, `compile` |
