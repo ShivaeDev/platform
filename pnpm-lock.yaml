@@ -1167,6 +1167,9 @@ importers:
       '@shivaedev/effect-sql':
         specifier: workspace:*
         version: link:../effect-sql
+      '@shivaedev/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@shivaedev/work-board':
         specifier: workspace:*
         version: link:../work-board

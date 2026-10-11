@@ -9,11 +9,21 @@ function diagnose(effect: Effect.Effect<void, unknown>, message: () => string) {
 	);
 }
 
-export function hostProcess(configFile: string) {
+export function hostProcess(configFile: string, daemon = false) {
 	return Effect.acquireRelease(
 		Effect.sync(() => {
-			const child = spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile], {
-				stdio: ["ignore", "ignore", "pipe"],
+			const child = spawn(
+				process.execPath,
+				["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile, ...(daemon ? ["daemon"] : [])],
+				{
+					stdio: ["ignore", "pipe", "pipe"],
+				},
+			);
+			let url: string | undefined;
+			let output = "";
+			child.stdout.on("data", (chunk: Buffer) => {
+				output = `${output}${chunk.toString()}`.slice(-8192);
+				url = output.match(/http:\/\/127\.0\.0\.1:\d+(?=\s)/u)?.[0] ?? url;
 			});
 			let errors = "";
 			let status = "running";
@@ -52,6 +62,9 @@ export function hostProcess(configFile: string) {
 						until(() => Effect.suspend(() => (status === "running" ? condition() : Effect.die(new Error(`Host ${status}`))))),
 						message,
 					),
+				get url() {
+					return url;
+				},
 			};
 		}),
 		(child) => child.close,
