@@ -8,6 +8,7 @@ import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, ForeignReservationRow, recordColumns, recordInput, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
+import { operationEntries } from "#storage/operationEntries.ts";
 import { recordValue, recordValues } from "#storage/recordValue.ts";
 
 export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetStore")(function* <
@@ -26,6 +27,8 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 	const model = recordModel(schema);
 	const rows = yield* makeRepository(model, { idColumn: "work_id", spanPrefix: "FleetRow", tableName: records, versionColumn: "version" });
 	const reservations = yield* makeRepository(ForeignReservationRow, { idColumn: "owner", spanPrefix: "FleetForeign", tableName: foreign });
+	const encodeRecord = Schema.encodeEffect(JsonRecord);
+	const decodeInsert = Schema.decodeUnknownEffect(model.insert);
 	const decodeRecord = Schema.decodeUnknownEffect(schema);
 	const decodeRecords = Schema.decodeUnknownEffect(Schema.Array(schema));
 	function decode(row: { readonly "work_id": string; readonly version: number }) {
@@ -58,7 +61,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		entry: { readonly order: bigint; readonly stored: Versioned<TSchema["Type"]> } | undefined,
 	) {
 		const requeue = entry !== undefined && options.requeue?.(record, entry.stored.value) === true;
-		const input = yield* Schema.decodeUnknownEffect(model.insert)({ ...recordInput(encoded, columns), "work_id": workId });
+		const input = yield* decodeInsert({ ...recordInput(encoded, columns), "work_id": workId });
 		if (entry === undefined) {
 			yield* rows.insertVoid(input);
 		} else {
@@ -73,7 +76,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		record: TSchema["Type"],
 		limits: AdmissionLimits = {},
 	) {
-		const encoded = yield* Schema.encodeEffect(JsonRecord)(record);
+		const encoded = yield* encodeRecord(record);
 		if (record.workId !== workId) {
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}
@@ -111,6 +114,10 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,
+		operationEntries: (operationId: string) =>
+			rows
+				.findMany({ select: ["work_id", "version", "attempts", "history"] })
+				.pipe(Effect.flatMap((entries) => operationEntries(entries, operationId))),
 		releaseForeign: (owner: string) =>
 			sql.withTransaction(
 				Effect.gen(function* () {

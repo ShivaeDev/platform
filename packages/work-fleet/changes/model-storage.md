@@ -8,6 +8,8 @@
 - Add `recordValue(row, columns)` and `recordValues(rows, columns)` to decode storage fields before record-schema validation, and `Fleet.hasLaunchRetry()` (also available on the store) to query queued retry presence through a repository projection. Add `admissionReads(options, record, previous, limits)`, `FleetStoreOptions.admissionNeedsRecords(record, previous, limits)` and `needsAreaRecords(...)` so applications can omit unused admission snapshots while retaining locked capacity and quota checks.
 - Add `publishAfterBoardPass(publication)` to coalesce status publication within a Board read pass and publish when it ends, including a failed pass. Calls outside a pass publish immediately.
 
+- Add the store’s `operationEntries(operationId)` projection and `operationEntries(rows, operationId)` / `operationRecord(store, operationId)` helpers to bind receipt acknowledgment to a unique current or archived operation and its record version. Custom repositories can retain the existing full-record lookup.
+
 ### Fixed
 
-- Avoid repeated full-record decoding and status publication within scheduler passes. Task discovery skips the generated Fleet status view and retains authored work at the same path. The real-PostgreSQL scheduler test admits and launches 100 tasks within five seconds with one metadata parse per task.
+- Avoid unchanged preparation writes, repeated full-record decoding and status publication within scheduler passes. Task discovery skips the generated Fleet status view and retains authored work at the same path. The real-PostgreSQL scheduler test admits and launches 100 tasks within five seconds with one metadata parse per task.

@@ -63,10 +63,12 @@ function columnSchema(kind: string) {
 
 const rowFields = {
 	"admission_order": Model.Field({ select: Schema.BigIntFromString, update: Schema.BigIntFromString }),
+	attempts: Schema.NullOr(Schema.String),
 	attentionOwner: Schema.NullOr(Schema.String),
 	blocker: Schema.NullOr(Schema.String),
 	checks: Schema.NullOr(Schema.String),
 	decision: Schema.NullOr(Schema.String),
+	history: Schema.NullOr(Schema.String),
 	launchRetry: Schema.NullOr(Schema.String),
 	outcome: Schema.NullOr(Schema.String),
 	stage: Schema.NullOr(Schema.String),
