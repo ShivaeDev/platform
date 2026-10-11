@@ -1,8 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
-import { codexLimits } from "#diagnostics/codexLimits.ts";
-import { fleetHealth } from "#diagnostics/fleetHealth.ts";
-import { githubLimits } from "#diagnostics/githubLimits.ts";
+import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
 import { DiagnosticsSources, diagnostics } from "#diagnostics/source.ts";
 import { watchChanges } from "#files/changes.ts";
@@ -33,6 +31,7 @@ import { server } from "#rpc/server.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
 
 export interface BoardOptions {
+	readonly fleetPort?: number;
 	readonly home?: string | undefined;
 	readonly maintainer?: string | undefined;
 	readonly responses?: boolean;
@@ -60,8 +59,8 @@ function routes(options: BoardOptions) {
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes, options.maintainer);
 			const provided = yield* Effect.serviceOption(DiagnosticsSources);
-			const sources = provided._tag === "Some" ? provided.value : { codex: codexLimits(), fleet: fleetHealth(options.root), github: githubLimits() };
-			const healthPage = diagnosticsPage(yield* diagnostics(sources), changes, home, index);
+			const read = provided._tag === "Some" ? yield* diagnostics(provided.value) : daemonDiagnostics(options.fleetPort);
+			const healthPage = diagnosticsPage(read, changes, home, index);
 			yield* serve("/_board/diagnostics", () => healthPage);
 			yield* serve("/_board/search", search(index));
 			const inboxPage = inbox(index, changes, home);
