@@ -43,9 +43,7 @@ it("preserves the typed page read error when a real source file becomes unreadab
 	chmodSync(join(notes.root, "note.md"), 0o000);
 	try {
 		await expect(client.read(client.api.page.query({ url: "/note.md" }))).rejects.toMatchObject({
-			_tag: "ReadFailed",
-			operation: "page",
-			status: 500,
+			_tag: "InternalServerError",
 		});
 	} finally {
 		chmodSync(join(notes.root, "note.md"), 0o644);

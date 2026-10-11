@@ -1,7 +1,9 @@
+import { Schema } from "effect";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
-import { ResponseFailed, type WaitReading } from "#browser/responses/schema.ts";
+import type { WaitReading } from "#browser/responses/schema.ts";
+import { ResponseRejection, Unanswered } from "#rpc/rejections.ts";
 
 function resultFor(reading: WaitReading) {
 	if (reading.response) {
@@ -9,8 +11,7 @@ function resultFor(reading: WaitReading) {
 	}
 	if (reading.expired) {
 		return Effect.fail(
-			new ResponseFailed({
-				code: "Unanswered",
+			new Unanswered({
 				message:
 					"The human left this unanswered for 48 hours. Check in with them; they may have forgotten or want to postpone. The request and late replies remain available.",
 			}),
@@ -19,12 +20,12 @@ function resultFor(reading: WaitReading) {
 	return Effect.succeed(undefined);
 }
 
-function retryable(error: ResponseFailed | RpcClientError) {
-	return error._tag !== "ResponseFailed" || error.code === "Unavailable";
+function retryable(error: ResponseRejection | RpcClientError) {
+	return !Schema.is(ResponseRejection)(error) || error._tag === "ServiceUnavailable" || error._tag === "InternalServerError";
 }
 
 export const waitForResponse = Effect.fn("WorkBoard.waitForResponse")(function* (
-	read: () => Effect.Effect<WaitReading, ResponseFailed | RpcClientError>,
+	read: () => Effect.Effect<WaitReading, ResponseRejection | RpcClientError>,
 	diagnostic: (text: string) => void,
 ) {
 	let known: WaitReading | undefined;

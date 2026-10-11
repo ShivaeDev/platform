@@ -14,7 +14,7 @@ it("refuses publication when an external process moves the already-open write di
 	try {
 		renameSync(join(notes.root, "responses"), join(notes.root, "moved"));
 		await expect(publishIn(target, notes.root, notes.root, "response.edge", "New feedback")).rejects.toMatchObject({
-			code: "Conflict",
+			_tag: "Conflict",
 			message: "The write boundary changed.",
 		});
 		expect(await readdir(join(notes.root, "moved"))).toEqual(["existing.md"]);

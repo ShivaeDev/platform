@@ -1,0 +1,55 @@
+import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { Model } from "effect/unstable/schema";
+import type { SqlError } from "effect/unstable/sql/SqlError";
+import { expectTypeOf, it } from "vitest";
+import { makeRepository, type OptimisticConcurrencyError } from "#repository.ts";
+
+class Prefix extends Context.Service<Prefix, string>()("versioned/Prefix") {}
+const Name = Schema.String.pipe(
+	Schema.decodeTo(Schema.String, {
+		decode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
+		encode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
+	}),
+);
+class Document extends Model.Class<Document>("Document")({
+	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	lockVersion: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	name: Name,
+}) {}
+
+const program = Effect.gen(function* () {
+	const options = { idColumn: "id", spanPrefix: "Document", tableName: "documents" } as const;
+	const documents = yield* makeRepository(Document, { ...options, versionColumn: "lockVersion" });
+	const input = { id: 1, lockVersion: 0, name: "draft" };
+	expectTypeOf<Effect.Error<ReturnType<typeof documents.update>>>().toEqualTypeOf<SqlError | Schema.SchemaError | OptimisticConcurrencyError>();
+	expectTypeOf<Effect.Success<ReturnType<typeof documents.update>>>().toEqualTypeOf<Document>();
+	expectTypeOf<Effect.Services<ReturnType<typeof documents.update>>>().toEqualTypeOf<Prefix>();
+	expectTypeOf<Effect.Services<ReturnType<typeof documents.updateVoid>>>().toEqualTypeOf<Prefix>();
+	expectTypeOf<Effect.Services<ReturnType<typeof documents.insert>>>().toEqualTypeOf<Prefix>();
+	expectTypeOf<Effect.Services<ReturnType<typeof documents.insertVoid>>>().toEqualTypeOf<Prefix>();
+	documents.update(input);
+	documents.delete(1, 0);
+	// @ts-expect-error Versioned delete requires the version that was read.
+	documents.delete(1);
+	// @ts-expect-error Expected versions are numbers.
+	documents.delete(1, "0");
+	// @ts-expect-error Versioned update requires the version that was read.
+	documents.update({ id: 1, name: "draft" });
+	// @ts-expect-error Insert versions are initialized by the repository.
+	documents.insert({ lockVersion: 5, name: "draft" });
+	// @ts-expect-error The version column must be a generated numeric model field.
+	makeRepository(Document, { ...options, versionColumn: "name" });
+	// @ts-expect-error The primary key cannot be the version column.
+	makeRepository(Document, { ...options, versionColumn: "id" });
+	// @ts-expect-error Unknown columns are rejected.
+	makeRepository(Document, { ...options, versionColumn: "missing" });
+	const plain = yield* makeRepository(Document, options);
+	plain.delete(1);
+	// @ts-expect-error Unversioned delete retains its one-argument signature.
+	plain.delete(1, 0);
+	expectTypeOf<Effect.Error<ReturnType<typeof plain.update>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+});
+
+it("repository type contracts compile", () => {
+	expectTypeOf(program).toBeObject();
+});
