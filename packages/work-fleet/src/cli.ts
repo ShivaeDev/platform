@@ -48,9 +48,18 @@ const statusCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Show active, needs-human and completed Fleet work"));
 
+const nameThreadsCommand = Command.make(
+	"name-threads",
+	{ board, config },
+	Effect.fn("WorkFleetCli.nameThreads")(function* (input) {
+		const { nameThreads } = yield* Effect.promise(() => import("#host/nameThreads.ts"));
+		yield* nameThreads(yield* host(input.board, input.config));
+	}),
+).pipe(Command.withDescription("Name existing Fleet Cloud threads after their Board work, best-effort"));
+
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
-	Command.withSubcommands([runCommand, dispatchCommand, statusCommand, waitCommand, watchCommand]),
+	Command.withSubcommands([runCommand, dispatchCommand, statusCommand, waitCommand, watchCommand, nameThreadsCommand]),
 );
 
 const main = Command.run(cli, { version: "0.0.0" }).pipe(

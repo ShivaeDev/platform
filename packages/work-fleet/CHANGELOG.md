@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Name Cloud threads from their Board work ID and first heading, with bounded titles and reviewer or separate repair labels. Add best-effort `work-fleet name-threads` backfill with per-session results and idempotent repeat runs.
+- Select dispatch and reconciliation candidates from one scheduler-cycle snapshot, so a new launch cannot race with reconciliation of its receipt.
 - End each scheduler Board read pass before sleeping; late reconciliation reads current Board context instead of reusing the pre-sleep snapshot.
 - Check the complete report’s UTF-8 size against Board’s 256 KiB context limit before publication. Oversized reports need a human with a concrete reason, and successful reports are visible in the current read pass.
 - Allow reviewer shell network reads for PR diffs and exact-head CI through `gh`, retaining read-only filesystem access, no escalation and instructions prohibiting network writes.
