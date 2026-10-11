@@ -55,6 +55,10 @@ Name the two H2 sections in words that fit the package; the split is what matter
 
 `north-star.md` is the long form of the `AGENTS.md` north star: the problem in full, the ideals, the trade-offs, and what the package deliberately leaves out. `roadmap.md` lists what is built, what is next and the open questions. Docs state the current truth; history lives in git and the changelog.
 
+## Change fragments and releases
+
+For a consumer-visible change, add one new `packages/<name>/changes/<short-name>.md` file per pull request, using `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings with Markdown bullet entries. Choose a short filename unique to the PR; do not edit `CHANGELOG.md` or add an Unreleased section. Internal docs, tests, tooling and refactors need no fragment. For an approved release, follow [the release steps](../../../docs/releases.md): bump the version, run `pnpm run changelog:release <name>`, and commit the generated changelog and deleted fragments.
+
 ## Checklist
 
 - [ ] `AGENTS.md` is a short north star, with `CLAUDE.md` symlinked to it.

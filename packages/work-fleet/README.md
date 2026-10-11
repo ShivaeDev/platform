@@ -108,6 +108,18 @@ The CLI host also atomically publishes `fleet/health.json`, using Board's versio
 
 A composed runtime enables health publication with `statusLayer(boardRoot, { concurrency, staleAfterMs })`, provides `healthLayer(boardRoot)` from `@shivaedev/work-fleet/host/healthLayer.ts`, and wraps its provider with `providerHealth` from `@shivaedev/work-fleet/host/providerHealth.ts`. Capacity comes only from structured `rateLimitExceeded`, `flexUnavailable` or `serverOverloaded` errors; unclassified rejection text is not treated as capacity. A repeatedly observed terminal turn does not refresh the same rejection's timestamp.
 
+### Continue a worker with new instructions
+
+Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal Needs human or Completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work is refused. Work waiting on a human merge can continue on the same worker thread; its reviewed head stays in history and its PR ownership remains until the new result is adopted.
+
+```sh
+work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
+printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --board .work
+work-fleet wait work-id --board .work
+```
+
+The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet run` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output follows the first-launch adoption path, including report publication or PR review, validation and delivery, and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
+
 ### Answer a worker question
 
 Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
@@ -166,11 +178,11 @@ A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet re
 
 ### Independent review
 
-After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited and missing access ends without an accepted verdict.
+After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited. When the exact-head diff and check results are readable, the prompt requires a verdict. Passing required checks at that head are CI evidence even when job logs or artifacts are unavailable; reviewers record that limitation in their evidence. To assess PostgreSQL test setup without logs, reviewers inspect the workflow and its database environment configuration at the same head.
 
-The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns and malformed verdicts produce a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
+The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns produce a human decision. A malformed completed verdict gets one automatic follow-up on the same read-only reviewer thread requesting the required format. Fleet persists that attempt before submission and reconciles its receipt after restart; a second malformed reply produces a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
 
-`src/engine/reviewerSession.spec.ts`, `src/engine/recovery.spec.ts`, `src/prompt/reviewer.test.ts` and `src/providers/readOnly.spec.ts` cover these boundaries with real PostgreSQL and synthetic providers; they do not prove live Cloud review.
+`src/engine/reviewerSession.spec.ts`, `src/engine/reviewerEvidence.spec.ts`, `src/engine/recovery.spec.ts`, `src/prompt/reviewer.test.ts` and `src/providers/readOnly.spec.ts` cover these boundaries with real PostgreSQL and synthetic providers; they do not prove live Cloud review.
 
 ### Required checks
 

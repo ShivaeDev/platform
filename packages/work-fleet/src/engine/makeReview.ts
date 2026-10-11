@@ -2,10 +2,11 @@ import { Effect } from "effect";
 import { validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
+import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
-import type { FleetRecord } from "#model.ts";
-import type { BoardWork } from "#policy.ts";
-import { readReviewerVerdict } from "#prompt/reviewer.ts";
+import type { Attempt, FleetRecord } from "#model.ts";
+import type { BoardWork, Review, WorkResult } from "#policy.ts";
+import type { SessionObservation } from "#session/schema.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function makeReview(state: EngineState) {
@@ -22,11 +23,7 @@ export function makeReview(state: EngineState) {
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
-		const attempts = stored.value.attempts.map((attempt) =>
-			attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
-				? { ...attempt, output: observation.output, status: observation.execution }
-				: attempt,
-		);
+		const attempts = recordObservation(stored.value.attempts, observation);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
@@ -34,13 +31,32 @@ export function makeReview(state: EngineState) {
 		if (observation.execution !== "completed") {
 			return yield* decision(stored, `Reviewer turn ${observation.execution}`, "Inspect terminal reviewer evidence before retrying");
 		}
-		const review = yield* readReviewerVerdict(observation.output, receipt);
-		yield* validateReview(stored.value, review, result.head);
-		stored = yield* save(stored, { ...stored.value, review });
-		stored = yield* refreshReviewResult(state)(stored, work, result);
-		if (stored.value.result?.head !== review.head || stored.value.stage !== "reviewing") {
-			return stored;
+		const review = yield* readOrContinueReview(state)(stored, work, result, receipt, observation.output);
+		if (review === undefined) {
+			return yield* load(stored.value.workId);
 		}
-		return yield* save(stored, { ...stored.value, stage: review.verdict === "changes" ? "repairing" : "validating" });
+		return yield* finishReview(state)(stored, work, result, review);
+	});
+}
+
+function recordObservation(attempts: readonly Attempt[], observation: SessionObservation): readonly Attempt[] {
+	const { receipt } = observation;
+	return attempts.map((attempt) =>
+		attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
+			? { ...attempt, output: observation.output, status: observation.execution }
+			: attempt,
+	);
+}
+
+function finishReview(state: EngineState) {
+	const { save } = state;
+	return Effect.fn("Fleet.finishReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult, review: Review) {
+		yield* validateReview(stored.value, review, result.head);
+		const reviewed = yield* save(stored, { ...stored.value, review });
+		const refreshed = yield* refreshReviewResult(state)(reviewed, work, result);
+		if (refreshed.value.result?.head !== review.head || refreshed.value.stage !== "reviewing") {
+			return refreshed;
+		}
+		return yield* save(refreshed, { ...refreshed.value, stage: review.verdict === "changes" ? "repairing" : "validating" });
 	});
 }
