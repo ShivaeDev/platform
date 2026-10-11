@@ -90,6 +90,10 @@ component_management:
       name: "@shivaedev/platform"
       paths:
         - "packages/platform/src/**"
+    - component_id: pr-watch
+      name: "@shivaedev/pr-watch"
+      paths:
+        - "packages/pr-watch/src/**"
     - component_id: quality
       name: "@shivaedev/quality"
       paths:

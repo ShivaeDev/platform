@@ -1,0 +1,92 @@
+import { describe, expect } from "@effect/vitest";
+import { Effect } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
+import { Fleet } from "#fleet.ts";
+import { hostLayer } from "#host/commands.ts";
+import { hostProvider } from "#host/providers.ts";
+import type { FleetRecord } from "#model.ts";
+import { type Boundary, hostRecord, restartBackend } from "#test/cloudRestart.ts";
+import { codexServer } from "#test/codex.ts";
+import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { hostProcess } from "#test/hostProcess.ts";
+import { storageDatabaseUrl } from "#test/storage.ts";
+
+const expected = {
+	"acknowledged-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
+	"after-thread": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
+	"after-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
+	"before-thread": { recoverable: false, sessions: 0, turnRequests: 0, turns: 0 },
+	"before-turn": { recoverable: false, sessions: 1, turnRequests: 1, turns: 0 },
+};
+
+function cannotRenew(fixture: HostFixture, record: FleetRecord) {
+	const layer = hostLayer(fixture.host, { ...fixture.parts, provider: hostProvider(fixture.host) });
+	return Effect.gen(function* () {
+		const fleet = yield* Fleet;
+		const denied = yield* fleet
+			.prepare({ cwd: record.cwd, preparation: record.preparation, prompt: record.prompt, workId: record.workId })
+			.pipe(Effect.result);
+		expect(denied._tag).toBe("Failure");
+	}).pipe(Effect.provide(layer));
+}
+
+const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
+	fixture: HostFixture,
+	backend: ReturnType<typeof restartBackend>,
+	boundary: Boundary,
+) {
+	const first = yield* hostProcess(fixture.configFile);
+	yield* first.until(() => Effect.succeed(backend.reached));
+	if (boundary === "acknowledged-turn") {
+		yield* first.until(() => hostRecord(fixture).pipe(Effect.map((record) => record.attempts[0]?.receipt !== undefined)));
+	}
+	const before = yield* hostRecord(fixture);
+	expect(before.attempts).toHaveLength(1);
+	expect(["submitting", "accepted", "running"]).toContain(before.attempts[0]?.status);
+	yield* first.kill;
+	const restarted = yield* hostProcess(fixture.configFile);
+	const { recoverable } = expected[boundary];
+	yield* restarted.until(() =>
+		hostRecord(fixture).pipe(Effect.map((record) => (recoverable ? record.attempts[0]?.status === "running" : record.stage === "needs-human"))),
+	);
+	yield* restarted.kill;
+	const after = yield* hostRecord(fixture);
+	expect(after.attempts).toHaveLength(1);
+	expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
+	if (!recoverable) {
+		expect(after.attempts[0]?.status).toBe("submitting");
+		yield* cannotRenew(fixture, after);
+	}
+	expect(backend.sessions).toBe(expected[boundary].sessions);
+	expect(backend.turns).toBe(expected[boundary].turns);
+	expect(backend.requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
+	expect(backend.requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
+	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(expected[boundary].turnRequests > 0);
+});
+
+function restartStory(boundary: Boundary) {
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const backend = restartBackend(boundary);
+			const server = yield* codexServer(backend.handle);
+			const authFile = yield* authFolder(syntheticToken("current", FUTURE_EXPIRY));
+			return yield* withHost(
+				{ "work.md": task("synthetic-work", "approved") },
+				{
+					cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: server.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, requestTimeoutMs: 60_000 },
+					provider: "cloud",
+					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
+				},
+				(fixture) => interruptHost(fixture, backend, boundary).pipe(Effect.scoped),
+			);
+		}),
+	);
+}
+
+describe("Cloud host restarts against PostgreSQL", () => {
+	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	for (const boundary of ["before-thread", "after-thread", "before-turn", "after-turn", "acknowledged-turn"] as const) {
+		test(`SIGKILL at ${boundary} never replays either provider mutation`, () => restartStory(boundary), 40_000);
+	}
+});

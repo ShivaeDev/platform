@@ -1,10 +1,11 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
-import type { BoardFailure, Checks, FleetFailure, WorkResult } from "#policy.ts";
+import type { BoardFailure, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
 import type { LaunchSettings, SessionFailure } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+	readonly archiveFailure?: boolean;
 	readonly backlog?: number;
 	readonly checkRepair?: boolean;
 	readonly checksFailure?: boolean;
@@ -13,11 +14,13 @@ export interface EngineOptions {
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
 	readonly deliveryFailure?: boolean;
+	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
 	readonly denyDelivery?: boolean;
 	readonly foreignBacklog?: boolean;
 	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
 	readonly lostContinuationAcknowledgement?: boolean;
+	readonly lostReviewAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
 	readonly now?: () => number;
@@ -29,11 +32,13 @@ export interface EngineOptions {
 	readonly repairs?: boolean;
 	readonly resultQuery?: () => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
+	readonly reviewExecution?: "failed" | "interrupted";
 	readonly reviewFailure?: boolean;
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
 	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
+	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly wrongHead?: "review" | "checks";
 }

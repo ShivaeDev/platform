@@ -1,9 +1,10 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { ThreadResponse, TurnResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
 import { echoedSettings, settingsParams } from "#providers/codexSettings.ts";
 import { type CodexRequest, codexTurns } from "#providers/codexTurns.ts";
 import type { ContinueSession, ReconcileSession, SessionFailure, SessionObservation, SessionReceipt, StartSession } from "#session/schema.ts";
+import { ProviderCapacity } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 
 export interface CodexDialect {
@@ -28,7 +29,9 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 			}
 			const turn = yield* findTurn(receipt.sessionId, receipt.turnId);
 			const output = turn.status === "inProgress" ? "" : yield* readOutput(receipt);
+			const capacity = Schema.decodeUnknownOption(ProviderCapacity)(turn.error?.codexErrorInfo);
 			const observation: SessionObservation = {
+				...(capacity._tag === "Some" && turn.status === "failed" ? { capacity: capacity.value } : {}),
 				execution: turn.status === "inProgress" ? "running" : turn.status,
 				output,
 				provisioning: dialect.provisioning,
@@ -55,7 +58,9 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 		startSession: Effect.fn("Codex.startSession")(function* (input) {
 			const result = yield* rpc("thread/start", dialect.threadStart(input), true).pipe(Effect.flatMap((value) => decode(ThreadResponse, value)));
 			dialect.sessionStarted?.(result.thread.id);
-			yield* echoedSettings(input.settings, result);
+			yield* echoedSettings(input.settings, result).pipe(
+				Effect.mapError((error) => failure("ambiguous", `${error.message}; retain the started session reservation`)),
+			);
 			return result.thread.id;
 		}),
 		startTurn: Effect.fn("Codex.startTurn")(function* (input: ContinueSession) {

@@ -24,6 +24,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly editWork: (workId: string, revision: string) => void;
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
+	readonly markLegacyDeliverySubmitted: (workId: string) => Effect.Effect<void, unknown>;
 	readonly merged: readonly string[];
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
@@ -62,13 +63,13 @@ export function withEngine<A, E, TBoardError = never>(
 				namespace,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
-			const provider = engineProvider(options);
+			const reviews: string[] = [];
+			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
 			const dependencies = new Map<string, readonly string[]>();
 			const unavailable = new Set<string>();
 			const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 			const decisions: string[] = [];
-			const reviews: string[] = [];
 			const merged: string[] = [];
 			const policy = enginePolicy(options);
 			const scripted = scriptedBoard(options, decisions, (id) =>
@@ -83,7 +84,7 @@ export function withEngine<A, E, TBoardError = never>(
 				provider.transport,
 			);
 			const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
-			const integrations = engineIntegrations(options, provider, reviews, merged).pipe(Layer.provide(session));
+			const integrations = engineIntegrations(options, merged);
 			const fleetLayer = Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations)));
 			function foreign(owner: string) {
 				return store.reserveForeign(owner, { backlog: true, executing: false });
@@ -109,6 +110,14 @@ export function withEngine<A, E, TBoardError = never>(
 				},
 				foreign,
 				foreignReservations: store.foreignReservations,
+				markLegacyDeliverySubmitted: (workId) =>
+					Effect.gen(function* () {
+						const stored = yield* store.load(workId);
+						if (stored === undefined) {
+							return yield* Effect.die("Missing legacy work");
+						}
+						yield* store.compareAndSet(workId, stored.version, { ...stored.value, deliverySubmitted: true });
+					}),
 				merged,
 				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),

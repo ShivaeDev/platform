@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
+import type { Duplex } from "node:stream";
 import { Effect, Layer, Schema } from "effect";
 import { CodexLocalConfig, codexLocalLayer } from "#providers/codexLocal.ts";
 
@@ -57,7 +58,9 @@ function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
 	if (message.id === undefined || result === undefined) {
 		return undefined;
 	}
-	return result instanceof WireRejection ? { error: { code: -32_602, message: result.message }, id: message.id } : { id: message.id, result };
+	return result instanceof WireRejection
+		? { error: { code: -32_602, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
+		: { id: message.id, result };
 }
 function offeredProtocols(header: string | undefined) {
 	return (header ?? "")
@@ -67,8 +70,10 @@ function offeredProtocols(header: string | undefined) {
 }
 export class WireRejection {
 	readonly message: string;
-	constructor(message: string) {
+	readonly data: unknown;
+	constructor(message: string, data?: unknown) {
 		this.message = message;
+		this.data = data;
 	}
 }
 export interface Handshake {
@@ -79,7 +84,11 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 	return Effect.acquireRelease(
 		Effect.tryPromise(async () => {
 			const server = createServer();
+			const sockets = new Set<Duplex>();
 			server.on("upgrade", (request, socket) => {
+				sockets.add(socket);
+				socket.on("close", () => sockets.delete(socket));
+				socket.on("end", () => socket.destroy());
 				const accept = createHash("sha1").update(`${request.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
 				const protocols = offeredProtocols(request.headers["sec-websocket-protocol"]);
 				handshakes.push({ protocols });
@@ -108,8 +117,17 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 			if (address === null || typeof address === "string") {
 				throw new Error("No synthetic server address");
 			}
-			return { endpoint: `ws://127.0.0.1:${address.port}`, server };
+			return { endpoint: `ws://127.0.0.1:${address.port}`, server, sockets };
 		}),
-		({ server }) => Effect.promise(() => new Promise<void>((resolve) => server.close(() => resolve()))),
+		({ server, sockets }) =>
+			Effect.promise(
+				() =>
+					new Promise<void>((resolve) => {
+						for (const socket of sockets) {
+							socket.destroy();
+						}
+						server.close(() => resolve());
+					}),
+			),
 	);
 }

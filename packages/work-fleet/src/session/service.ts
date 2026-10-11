@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { Cause, Context, Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { ContinueSession, ReconcileSession, SessionFailure, SessionObservation, SessionReceipt, StartSession } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
@@ -6,6 +6,8 @@ import { validateReceipt } from "#session/validateReceipt.ts";
 export class SessionTransport extends Context.Service<
 	SessionTransport,
 	{
+		readonly nameSession?: (sessionId: string) => Effect.Effect<void, SessionFailure>;
+		readonly archive?: (sessionId: string) => Effect.Effect<void, SessionFailure>;
 		readonly startSession: (input: StartSession) => Effect.Effect<string, SessionFailure>;
 		readonly startTurn: (input: ContinueSession) => Effect.Effect<SessionReceipt, SessionFailure>;
 		readonly observe: (receipt: SessionReceipt) => Effect.Effect<SessionObservation, SessionFailure>;
@@ -28,6 +30,7 @@ export const SessionService = defineService({
 		return { journal: yield* SessionJournal, transport: yield* SessionTransport };
 	}),
 	methods: ({ transport, journal }) => ({
+		archive: (sessionId: string) => transport.archive?.(sessionId) ?? Effect.void,
 		continue: (input: ContinueSession) =>
 			Effect.uninterruptibleMask((restore) =>
 				Effect.gen(function* () {
@@ -59,8 +62,14 @@ export const SessionService = defineService({
 				Effect.gen(function* () {
 					const sessionId = yield* restore(transport.startSession(input));
 					yield* journal.acknowledgeSession(input.operationId, sessionId);
+					yield* restore(transport.nameSession?.(sessionId) ?? Effect.void).pipe(
+						Effect.catch((cause) =>
+							Effect.logWarning("Fleet session naming failed; starting the turn", Cause.fail(cause)).pipe(Effect.annotateLogs({ sessionId })),
+						),
+					);
 					const receipt = yield* restore(
 						transport.startTurn({
+							...(input.access === undefined ? {} : { access: input.access }),
 							operationId: input.operationId,
 							prompt: input.prompt,
 							sessionId,

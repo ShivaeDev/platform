@@ -1,0 +1,26 @@
+import { dirname } from "node:path";
+import { NodeServices } from "@effect/platform-node";
+import { Effect, Layer } from "effect";
+import { productionParts, runFleet } from "#host/commands.ts";
+import { loadHost } from "#host/config.ts";
+import { MainSource, unchanged } from "#host/mainSource.ts";
+import { MAIN } from "#test/fleetHost.ts";
+
+const configFile = process.argv[2];
+if (configFile === undefined) {
+	throw new Error("A synthetic host config is required");
+}
+await Effect.runPromise(
+	Effect.gen(function* () {
+		const host = yield* loadHost(dirname(configFile), configFile);
+		return yield* runFleet(host, {
+			...productionParts(host),
+			main: Layer.succeed(MainSource)({
+				current: Effect.succeed(MAIN),
+				observe: (preparation) => Effect.succeed(unchanged(preparation.baseRevision, MAIN)),
+				refresh: Effect.succeed(MAIN),
+				repositoryRoot: "/synthetic-repository",
+			}),
+		});
+	}).pipe(Effect.provide(NodeServices.layer)),
+);

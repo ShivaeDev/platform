@@ -94,8 +94,8 @@ it.live("refuses a thread whose echoed settings differ instead of running with p
 			const error = yield* Effect.gen(function* () {
 				return yield* (yield* SessionTransport).startSession(start).pipe(Effect.flip);
 			}).pipe(Effect.provide(cloudConfiguration(fixture.endpoint, authFile)));
-			expect(error.reason).toBe("rejected");
-			expect(error.message).toBe("Codex started the thread with service tier unset instead of priority");
+			expect(error.reason).toBe("ambiguous");
+			expect(error.message).toBe("Codex started the thread with service tier unset instead of priority; retain the started session reservation");
 			expect(requests.map((request) => request.method)).not.toContain("turn/start");
 		}),
 	),

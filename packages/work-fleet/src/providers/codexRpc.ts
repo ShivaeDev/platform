@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { capacity } from "#providers/capacity.ts";
 import { Envelope } from "#providers/codexProtocol.ts";
 import { SessionFailure } from "#session/schema.ts";
 
@@ -69,7 +70,11 @@ function openSocket(endpoint: CodexEndpoint) {
 				}
 				const pending = connection.pending.get(envelope.id);
 				connection.pending.delete(envelope.id);
-				pending?.(envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(failure("rejected", rejection(envelope.error))));
+				pending?.(
+					envelope.error === undefined
+						? Effect.succeed(envelope.result)
+						: Effect.fail(new SessionFailure({ capacity: capacity(envelope.error), message: rejection(envelope.error), reason: "rejected" })),
+				);
 			} catch {
 				failPending(connection, failure("protocol", "Codex returned an invalid protocol envelope"));
 			}

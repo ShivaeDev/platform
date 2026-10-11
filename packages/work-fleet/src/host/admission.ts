@@ -1,7 +1,7 @@
 import { Effect, FileSystem, Schema } from "effect";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
+import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
@@ -33,6 +33,7 @@ function launchPrompt(host: FleetHost, work: BoardWork): string {
 	return host.provider === "cloud" && host.worker !== undefined
 		? workerPrompt({
 				branch: `${host.worker.branchPrefix}${work.workId}`,
+				deliverable: work.deliverable,
 				sharedEnvironment: host.worker.sharedEnvironment,
 				task: work.context,
 				workId: work.workId,
@@ -40,9 +41,9 @@ function launchPrompt(host: FleetHost, work: BoardWork): string {
 		: work.context;
 }
 
-function taskLaunch(work: BoardWork) {
-	const override = fleetLaunch(metadataParse(work.context));
-	return override === undefined
+const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork) {
+	const override = fleetLaunch(yield* workMetadata(work));
+	return yield* override === undefined
 		? Effect.succeed(undefined)
 		: Schema.decodeUnknownEffect(LaunchSettings)(override).pipe(
 				Effect.mapError(
@@ -50,7 +51,7 @@ function taskLaunch(work: BoardWork) {
 						new FleetFailure({ message: `${work.workId} has an invalid fleet-launch; use model, effort and serviceTier strings`, reason: "invalid" }),
 				),
 			);
-}
+});
 
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
 	return (
@@ -110,7 +111,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 		}
 	}
 	return failures;
-});
+}, inBoardReadPass);
 
 export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function* (host: FleetHost, workId: string) {
 	const fleet = yield* Fleet;
@@ -122,4 +123,4 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	const existing = (yield* fleet.list()).find(({ value }) => value.workId === workId)?.value;
 	yield* prepareApproved(host, work, existing, "explicit");
 	return yield* fleet.dispatch(workId);
-});
+}, inBoardReadPass);

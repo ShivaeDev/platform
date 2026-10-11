@@ -74,3 +74,24 @@ it("updates every conflicting stable-ID projection when a duplicate is added or 
 	expect(affected(before, after, [duplicate.file])).toEqual(expect.arrayContaining([identities.item("same"), documents.item(first.file)]));
 	expect(affected(after, before, [duplicate.file])).toEqual(expect.arrayContaining([identities.item("same"), documents.item(first.file)]));
 });
+
+it("invalidates managed request sources when receipts or globally malformed response history change", () => {
+	const request = document(
+		"request.md",
+		task(
+			"request",
+			"kind: decision\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n",
+		),
+	);
+	const receipt = document(
+		"receipt.md",
+		task(
+			"receipt",
+			`kind: result\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n`,
+		),
+	);
+	const invalid = document("responses/invalid.md", "---\nkind: response\n---\n# Invalid");
+	const before = metadataModel([request]);
+	expect(affected(before, metadataModel([request, receipt]), [receipt.file])).toContainEqual(documents.item(request.file));
+	expect(affected(before, metadataModel([request, invalid]), [invalid.file])).toContainEqual(documents.item(request.file));
+});

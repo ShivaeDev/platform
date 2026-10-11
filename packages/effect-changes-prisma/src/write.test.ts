@@ -8,12 +8,12 @@ interface Row {
 	readonly ownerId: string;
 }
 
-interface Delegate<Name extends string, Scalars> {
-	readonly [key: symbol]: { readonly types: { readonly payload: { readonly name: Name; readonly scalars: Scalars } } };
+interface Delegate<TName extends string, TScalars> {
+	readonly [key: symbol]: { readonly types: { readonly payload: { readonly name: TName; readonly scalars: TScalars } } };
 }
 
 interface Client {
-	$transaction: <X>(run: (tx: Client) => Promise<X>) => Promise<X>;
+	$transaction: <TX>(run: (tx: Client) => Promise<TX>) => Promise<TX>;
 	readonly auditNote: Delegate<"AuditNote", { readonly id: string }>;
 	readonly invoice: Delegate<"Invoice", { readonly ownerId: string }>;
 	readonly membership: Delegate<"Membership", Row>;

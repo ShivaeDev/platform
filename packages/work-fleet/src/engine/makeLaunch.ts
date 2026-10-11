@@ -4,6 +4,7 @@ import { capacityRetry } from "#engine/capacityRetry.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
+import { reportPrompt } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
 	const { store, board, policy, sessions, load, save, decision } = state;
@@ -11,6 +12,7 @@ export function makeLaunch(state: EngineState) {
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
+		const workerPrompt = stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt;
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
 			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope");
@@ -32,8 +34,8 @@ export function makeLaunch(state: EngineState) {
 		const settings = { ...policy.launch, ...stored.value.launch };
 		const submitted =
 			role === "repair" && original !== undefined
-				? sessions.continue({ operationId: attempt.operationId, prompt, sessionId: original.sessionId, settings })
-				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt, settings });
+				? sessions.continue({ operationId: attempt.operationId, prompt: workerPrompt, sessionId: original.sessionId, settings })
+				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt: workerPrompt, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
 				capacityRetry(state, stored.value, attempt.operationId, error).pipe(

@@ -26,7 +26,7 @@ afterEach(() => {
 	}
 });
 
-function failureText<Value, Error, Requirements>(effect: Effect.Effect<Value, Error, Requirements>): Effect.Effect<string, never, Requirements> {
+function failureText<Value, TError, Requirements>(effect: Effect.Effect<Value, TError, Requirements>): Effect.Effect<string, never, Requirements> {
 	return Effect.map(Effect.exit(effect), (exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "(it succeeded)"));
 }
 
@@ -88,6 +88,39 @@ it.layer(NodeFileSystem.layer)("inventory", (it) => {
 	it.effect("walks only the configured sources, which may name single files", function* () {
 		const inventory = yield* collectInventory(repository(), scope({ sources: ["src", "scripts/tool.ts", "src"] }));
 		expect(inventory.files).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
+	});
+
+	it.effect("orders paths by UTF-16 code units and keeps overlapping sources unique", function* () {
+		const paths = [
+			"src/\uE000.ts",
+			"src/😀.ts",
+			"src/𐀀.ts",
+			"src/é.ts",
+			"src/e\u0301.ts",
+			"src/aa.ts",
+			"src/a2.ts",
+			"src/a10.ts",
+			"src/a.ts",
+			"src/Z.ts",
+			"src/A.ts",
+		];
+		const root = seedTree(paths.map((path) => ({ content: path, path })));
+		const inventory = yield* collectInventory(root, scope({ sources: ["src", "src/a.ts", "src"] }));
+		const expected = [
+			"src/A.ts",
+			"src/Z.ts",
+			"src/a.ts",
+			"src/a10.ts",
+			"src/a2.ts",
+			"src/aa.ts",
+			"src/e\u0301.ts",
+			"src/é.ts",
+			"src/𐀀.ts",
+			"src/😀.ts",
+			"src/\uE000.ts",
+		];
+		expect(inventory.files).toEqual(expected);
+		expect(inventory.sources).toEqual(expected.map((path) => ({ lines: [path], path, text: path })));
 	});
 
 	it.effect("leaves out excluded paths, written in .gitignore syntax", function* () {

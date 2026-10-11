@@ -7,12 +7,15 @@ import { SessionTransport } from "#session/service.ts";
 
 export const CODEX_CLOUD_ENDPOINT = "wss://codex-cloud-backend.chatgpt.com/";
 export const CodexCloudConfiguration = Schema.Struct({
+	archiveThreads: Schema.optional(Schema.Boolean),
 	authFile: Schema.optional(Schema.String),
 	cwd: Schema.String.check(Schema.isNonEmpty()),
 	endpoint: Schema.optional(Schema.String),
 	environmentId: Schema.String.check(Schema.isNonEmpty()),
+	projectId: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
 	refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Schema.String })),
 	requestTimeoutMs: Schema.Finite.check(Schema.isGreaterThan(0)),
+	threadNamePrefix: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
 	writableRoots: Schema.optional(Schema.Array(Schema.String)),
 });
 export type CodexCloudConfiguration = typeof CodexCloudConfiguration.Type;
@@ -30,7 +33,8 @@ const CloudThread = Schema.Struct({
 function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 	return {
 		config: {
-			"sandbox_mode": "workspace-write",
+			"sandbox_mode": input.access === "read-only" ? "read-only" : "workspace-write",
+			...(input.access === "read-only" ? { "approval_policy": "never" } : {}),
 			...(input.settings?.effort === undefined ? {} : { "model_reasoning_effort": input.settings.effort }),
 		},
 		deferredEnvironment: true,
@@ -39,6 +43,7 @@ function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 		pluginsMcp: { productSku: "codex" },
 		serviceName: "codex_cloud",
 		threadSource: "user",
+		...(config.projectId === undefined ? {} : { projectId: config.projectId }),
 		...(input.settings?.model === undefined ? {} : { model: input.settings.model }),
 		...(input.settings?.serviceTier === undefined ? {} : { serviceTier: input.settings.serviceTier }),
 	};
@@ -71,7 +76,9 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 			) {
 				return yield* Effect.fail(failure("protocol", "Codex Cloud did not confirm the configured environment and cwd; retain the session"));
 			}
-			return { approvalPolicy: "on-request", approvalsReviewer: "auto_review", sandboxPolicy };
+			return input.access === "read-only"
+				? { approvalPolicy: "never", sandboxPolicy: { networkAccess: false, type: "readOnly" } }
+				: { approvalPolicy: "on-request", approvalsReviewer: "auto_review", sandboxPolicy };
 		});
 		const adapter = codexAdapter(rpc, {
 			beforeTurn: verifyEnvironment,
@@ -80,6 +87,10 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 		});
 		return {
 			...adapter,
+			archive: (sessionId: string) =>
+				config.archiveThreads === false ? Effect.void : rpc("thread/archive", { threadId: sessionId }, true).pipe(Effect.asVoid),
+			nameSession: (sessionId: string) =>
+				rpc("thread/name/set", { name: `${config.threadNamePrefix ?? "Fleet: "}${sessionId}`, threadId: sessionId }, true).pipe(Effect.asVoid),
 			startSession: (input: StartSession) =>
 				input.cwd === config.cwd
 					? adapter.startSession(input)

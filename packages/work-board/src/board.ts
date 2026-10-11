@@ -1,5 +1,10 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
+import { codexLimits } from "#diagnostics/codexLimits.ts";
+import { fleetHealth } from "#diagnostics/fleetHealth.ts";
+import { githubLimits } from "#diagnostics/githubLimits.ts";
+import { diagnosticsPage } from "#diagnostics/page.ts";
+import { DiagnosticsSources, diagnostics } from "#diagnostics/source.ts";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
@@ -12,6 +17,7 @@ import { identity } from "#http/identity.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
+import { readPage } from "#http/readPage.ts";
 import { respond } from "#http/respond.ts";
 import { sameOrigin } from "#http/sameOrigin.ts";
 import { search } from "#http/search.ts";
@@ -51,6 +57,10 @@ function routes(options: BoardOptions) {
 			yield* serve("/events", events(changes));
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
+			const provided = yield* Effect.serviceOption(DiagnosticsSources);
+			const sources = provided._tag === "Some" ? provided.value : { codex: codexLimits(), fleet: fleetHealth(options.root), github: githubLimits() };
+			const healthPage = diagnosticsPage(yield* diagnostics(sources), changes, home);
+			yield* serve("/_board/diagnostics", () => healthPage);
 			yield* serve("/_board/search", search(index));
 			const startPage = start(changes, home);
 			yield* serve("/_board/start", startPage);
@@ -87,38 +97,27 @@ function routes(options: BoardOptions) {
 			const pages = page({ home, root: options.root }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
-			function readPage(url: string) {
-				const request = HttpServerRequest.fromWeb(new Request(`http://127.0.0.1${url}`));
-				const pathname = new URL(url, "http://127.0.0.1").pathname;
-				let selected: ReturnType<typeof pages>;
-				switch (pathname) {
-					case "/_board/result":
-						selected = result(request);
-						break;
-					case "/_board/handoff":
-						selected = handoff(request);
-						break;
-					case "/_board/respond":
-						selected = replyPage(request);
-						break;
-					case "/_board/start":
-						selected = startPage();
-						break;
-					case "/_board/work":
-						selected = workPage(request);
-						break;
-					case "/_board/overview":
-						selected = overviewPage();
-						break;
-					case "/_board/changes":
-						selected = historyPage();
-						break;
-					default:
-						selected = pathname.startsWith("/_board/item/") ? items(request) : pages(request);
-				}
-				return Effect.provideContext(selected, context);
-			}
-			const rpc = yield* server({ changes, handoffs, home, index: Effect.provideContext(index, context), page: readPage, responses });
+			const reading = readPage(
+				{
+					"/_board/changes": () => historyPage(),
+					"/_board/diagnostics": () => healthPage,
+					"/_board/handoff": handoff,
+					"/_board/overview": () => overviewPage(),
+					"/_board/respond": replyPage,
+					"/_board/result": result,
+					"/_board/start": () => startPage(),
+					"/_board/work": workPage,
+				},
+				(request) => (new URL(request.url, "http://127.0.0.1").pathname.startsWith("/_board/item/") ? items(request) : pages(request)),
+			);
+			const rpc = yield* server({
+				changes,
+				handoffs,
+				home,
+				index: Effect.provideContext(index, context),
+				page: (url) => Effect.provideContext(reading(url), context),
+				responses,
+			});
 			yield* serve(
 				"/_board/rpc",
 				(request) =>

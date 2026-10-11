@@ -5,6 +5,14 @@ import { SessionService } from "#session/service.ts";
 import { receipt, sessionHarness } from "#test/session.ts";
 
 describe("single session service", () => {
+	it.effect("retains a session when its transport has no archive capability", function* () {
+		const events: string[] = [];
+		yield* Effect.gen(function* () {
+			yield* (yield* SessionService).archive(receipt.sessionId);
+		}).pipe(Effect.provide(sessionHarness(events)));
+		expect(events).toEqual([]);
+	});
+
 	it.effect("persists each exact acknowledgement before the next mutation and keeps provisioning separate", function* () {
 		const events: string[] = [];
 		const result = yield* Effect.gen(function* () {

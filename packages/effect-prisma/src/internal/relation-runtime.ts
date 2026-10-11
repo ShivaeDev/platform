@@ -8,10 +8,10 @@ import { setRelationPlan } from "./relation-plan.ts";
 import { evaluateResult } from "./relation-result.ts";
 import { makeRelationStream } from "./relation-stream.ts";
 
-interface RelationRuntime<Models extends object, Contract extends AnyPostgresContract> {
-	readonly executor: DatabaseExecutor<Models, Contract>;
+interface RelationRuntime<TModels extends object, TContract extends AnyPostgresContract> {
+	readonly executor: DatabaseExecutor<TModels, TContract>;
 	readonly recipe: RelationRecipe;
-	readonly resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>, PrismaError>;
+	readonly resolveExecutor: Effect.Effect<DatabaseExecutor<TModels, TContract>, PrismaError>;
 	readonly terminal?: PropertyKey;
 }
 
@@ -112,22 +112,22 @@ function makeRelationProxy(runtime: AnyRelationRuntime): object {
 }
 
 // The proxy replays every Relation call onto the Prisma collection for `model`, so it has that collection's Relation surface.
-function asRelation<Collection, Model extends string>(proxy: object): Relation<Collection, undefined, Model>;
+function asRelation<TCollection, TModel extends string>(proxy: object): Relation<TCollection, undefined, TModel>;
 function asRelation(proxy: object): unknown {
 	return proxy;
 }
 
 export const makeModelRelation = <
-	Collection,
-	Models extends object,
-	ExecutorContract extends AnyPostgresContract = AnyPostgresContract,
-	Model extends string = string,
+	TCollection,
+	TModels extends object,
+	TExecutorContract extends AnyPostgresContract = AnyPostgresContract,
+	TModel extends string = string,
 >(
-	executor: DatabaseExecutor<Models, ExecutorContract>,
-	model: Model,
-	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, ExecutorContract>, PrismaError> = Effect.succeed(executor),
-): Relation<Collection, undefined, Model> =>
-	asRelation<Collection, Model>(
+	executor: DatabaseExecutor<TModels, TExecutorContract>,
+	model: TModel,
+	resolveExecutor: Effect.Effect<DatabaseExecutor<TModels, TExecutorContract>, PrismaError> = Effect.succeed(executor),
+): Relation<TCollection, undefined, TModel> =>
+	asRelation<TCollection, TModel>(
 		makeRelationProxy({
 			executor,
 			recipe: rootRecipe(model),
