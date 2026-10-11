@@ -45,13 +45,18 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 				const original = stored.value.attempts.find((attempt) => attempt.operationId === operationId);
 				if (
 					original === undefined
+					|| (original.role === "reviewer"
+						&& allAttempts(stored.value).some((attempt) => attempt.role !== "reviewer" && attempt.sessionId === sessionId))
 					|| (original.sessionId !== undefined && original.sessionId !== sessionId)
 					|| (receipt !== undefined
 						&& original.receipt !== undefined
 						&& (original.receipt.sessionId !== receipt.sessionId || original.receipt.turnId !== receipt.turnId))
 				) {
 					return yield* Effect.fail(
-						new SessionFailure({ message: "Submission acknowledgement conflicts with the persisted exact receipt", reason: "persistence" }),
+						new SessionFailure({
+							message: "Independent review or submission acknowledgement conflicts with the persisted exact receipt",
+							reason: "persistence",
+						}),
 					);
 				}
 				const attempts = stored.value.attempts.map((attempt) => acknowledgedAttempt(attempt, operationId, sessionId, receipt));
