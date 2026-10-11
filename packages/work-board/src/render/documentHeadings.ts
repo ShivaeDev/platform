@@ -8,11 +8,17 @@ export interface Heading {
 	readonly title: string;
 }
 
-export function documentHeadings() {
+export function documentHeadings(titleFirst = false) {
 	const entries: Heading[] = [];
 	const used = new Set<string>();
 	function plugin() {
 		return function transform(tree: Root) {
+			if (titleFirst) {
+				const index = tree.children.findIndex((node) => node.type === "element" && node.tagName === "h1");
+				if (index > 0) {
+					tree.children.unshift(...tree.children.splice(index, 1));
+				}
+			}
 			visitElements(tree, "element", (element) => {
 				if (!["h1", "h2", "h3", "h4", "h5", "h6"].includes(element.tagName)) {
 					return;
