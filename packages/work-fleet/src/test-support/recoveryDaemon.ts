@@ -15,10 +15,10 @@ import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";
 import { answerReport } from "#test/report.ts";
 
-function schedulerReady(root: string) {
+function schedulerReady(root: string, previous: number | null) {
 	return until(() =>
 		fleetHealth(root).pipe(
-			Effect.map((health) => health.lastSchedulerPass !== null),
+			Effect.map((health) => health.lastSchedulerPass !== null && health.lastSchedulerPass !== previous),
 			Effect.provide(NodeServices.layer),
 		),
 	);
@@ -37,8 +37,9 @@ function serveRecovery<A, E>(
 ) {
 	return Effect.scoped(
 		Effect.gen(function* () {
+			const previous = yield* fleetHealth(host.boardDir).pipe(Effect.option, Effect.provide(NodeServices.layer));
 			const context = yield* Layer.build(Layer.fresh(daemonLayer(host, parts, 0)));
-			yield* schedulerReady(host.boardDir);
+			yield* schedulerReady(host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
 			const url = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);
 			return yield* use(yield* daemonClient(url));
 		}),
