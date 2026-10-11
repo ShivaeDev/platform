@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Layer, Path, Schema } from "effect";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
+import { briefRevision } from "#board/briefRevision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments, boundSnapshot, snapshotDocument } from "#board/documents.ts";
 import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
@@ -34,7 +34,7 @@ export function markdownBoard(root: string) {
 					dependsOn: (found.parsed.fields.relationships ?? [])
 						.filter((relation) => relation.kind === "depends_on")
 						.map((relation) => relation.target),
-					revision: revisionOf(found.source),
+					revision: briefRevision(found.parsed),
 					sourcePath: path.join(realRoot, found.file),
 					workId,
 				};
@@ -48,7 +48,7 @@ export function markdownBoard(root: string) {
 					const relativeSource = path.relative(realRoot, work.sourcePath);
 					if (
 						work.workId !== workId
-						|| work.revision !== revisionOf(work.context)
+						|| work.revision !== briefRevision(parsed)
 						|| parsed.fields.id !== workId
 						|| boardDiagnostics(parsed).length > 0
 						|| relativeSource === "."

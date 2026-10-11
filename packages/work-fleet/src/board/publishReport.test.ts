@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
@@ -23,7 +24,7 @@ it.effect("publishes a report into the current snapshot without rescanning and r
 				const published = yield* board.report(work, input);
 				const result = yield* board.get(published.itemId);
 				expect(result.context.endsWith(input.output)).toBe(true);
-				expect(result.revision).toBe(published.revision);
+				expect(revisionOf(result.context)).toBe(published.revision);
 				expect(result.sourcePath).toBe(join(fixture.root, published.sourcePath));
 				expect(yield* board.report(work, input)).toEqual(published);
 				return published;
@@ -31,7 +32,7 @@ it.effect("publishes a report into the current snapshot without rescanning and r
 		);
 		expect(fixture.scans()).toBe(1);
 		expect([...fixture.reads.values()]).toEqual([1]);
-		expect((yield* withBoardReadPass(board.get(report.itemId))).revision).toBe(report.revision);
+		expect(revisionOf((yield* withBoardReadPass(board.get(report.itemId))).context)).toBe(report.revision);
 		expect(fixture.scans()).toBe(3);
 	}).pipe(Effect.provide(fixture.board));
 });
@@ -56,4 +57,18 @@ it.effect("checks complete UTF-8 bytes including receipt overhead before publish
 			expect(readdirSync(join(fixture.root, "responses"))).toHaveLength(2);
 		}),
 	).pipe(Effect.provide(fixture.board));
+});
+
+it.effect("publishes the original report after bookkeeping edits while rejecting changed briefs and forged identities", function* () {
+	const fixture = yield* boardReads(1);
+	yield* Effect.gen(function* () {
+		const board = yield* BoardGateway;
+		const original = yield* board.get("item.0");
+		yield* fixture.write("0.md", original.context.replace("id: item.0", "id: item.0\nstatus: done\nnext_action: Work completed."));
+		expect((yield* board.report(original, observation("Complete findings."))).workRevision).toBe(original.revision);
+		const forged = { ...original, context: original.context.replace("id: item.0", "id: other") };
+		expect((yield* Effect.result(board.report(forged, observation("Forged report.", "forged"))))._tag).toBe("Failure");
+		yield* fixture.write("0.md", `${original.context}\nChanged scope.\n`);
+		expect((yield* Effect.result(board.report(original, observation("Stale report.", "stale"))))._tag).toBe("Failure");
+	}).pipe(Effect.provide(fixture.board));
 });

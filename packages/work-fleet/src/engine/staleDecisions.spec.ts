@@ -1,7 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttp, boardHttpFiles, boardInbox, boardOverview } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -76,8 +77,8 @@ test("concurrent stale retries publish one current question, close the stale que
 			);
 			const replacement = (yield* fleet.get("one")).value;
 			expect(replacement.stage).toBe("needs-human");
-			expect(replacement.boardRevision).toBe(revisionOf(source));
-			expect(replacement.decision?.published?.workRevision).toBe(revisionOf(currentSource));
+			expect(replacement.boardRevision).toBe(briefRevision(metadataParse(source)));
+			expect(replacement.decision?.published?.workRevision).toBe(briefRevision(metadataParse(currentSource)));
 			expect(replacement.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
 			const currentDecision = replacement.decision;
 			const current = currentDecision?.published;
