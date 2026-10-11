@@ -32,7 +32,7 @@ export function hostLayer(host: FleetHost, parts: HostParts) {
 	);
 }
 
-export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {
+export function hostScheduler(host: FleetHost) {
 	let reported = new Set<string>();
 	const admission = admitApproved(host).pipe(
 		Effect.catch((error) => Effect.succeed([`admission: ${error.message}`])),
@@ -45,9 +45,11 @@ export function runFleet(host: FleetHost, parts: HostParts = productionParts(hos
 			}),
 		),
 	);
-	return Effect.scoped(run(`${host.interval} seconds`, admission.pipe(Effect.provide(NodeServices.layer)))).pipe(
-		Effect.provide(hostLayer(host, parts)),
-	);
+	return run(`${host.interval} seconds`, admission);
+}
+
+export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {
+	return Effect.scoped(hostScheduler(host)).pipe(Effect.provide(hostLayer(host, parts)));
 }
 
 export function dispatchWork(host: FleetHost, workId: string, parts: HostParts = productionParts(host)) {

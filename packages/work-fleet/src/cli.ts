@@ -11,14 +11,14 @@ import * as Flag from "effect/unstable/cli/Flag";
 import { board, config, host } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
-const runCommand = Command.make(
-	"run",
-	{ board: Argument.directory("board-dir"), config },
-	Effect.fn("WorkFleetCli.run")(function* (input) {
-		const { runFleet } = yield* Effect.promise(() => import("#host/commands.ts"));
-		yield* runFleet(yield* host(input.board, input.config));
+const serveCommand = Command.make(
+	"serve",
+	{ board: Argument.directory("board-dir"), config, port: Flag.integer("port").pipe(Flag.withDefault(3457)) },
+	Effect.fn("WorkFleetCli.serve")(function* (input) {
+		const { serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
+		yield* serveFleet(yield* host(input.board, input.config), undefined, input.port);
 	}),
-).pipe(Command.withDescription("Admit approved Board work, dispatch it and reconcile running work until interrupted"));
+).pipe(Command.withDescription("Serve the local Fleet HTTP RPC daemon and schedule approved Board work"));
 
 const dispatchCommand = Command.make(
 	"dispatch",
@@ -103,7 +103,7 @@ const nameThreadsCommand = Command.make(
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
 	Command.withSubcommands([
-		runCommand,
+		serveCommand,
 		dispatchCommand,
 		continueCommand,
 		releaseCommand,
