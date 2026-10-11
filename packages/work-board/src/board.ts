@@ -14,6 +14,7 @@ import { attachment } from "#http/attachment.ts";
 import { events } from "#http/events.ts";
 import { changesPage, history } from "#http/history.ts";
 import { identity } from "#http/identity.ts";
+import { inbox } from "#http/inbox.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
@@ -59,16 +60,18 @@ function routes(options: BoardOptions) {
 			const index = yield* searchSnapshot(options.root, home, changes);
 			const provided = yield* Effect.serviceOption(DiagnosticsSources);
 			const sources = provided._tag === "Some" ? provided.value : { codex: codexLimits(), fleet: fleetHealth(options.root), github: githubLimits() };
-			const healthPage = diagnosticsPage(yield* diagnostics(sources), changes, home);
+			const healthPage = diagnosticsPage(yield* diagnostics(sources), changes, home, index);
 			yield* serve("/_board/diagnostics", () => healthPage);
 			yield* serve("/_board/search", search(index));
-			const startPage = start(changes, home);
+			const inboxPage = inbox(index, changes, home);
+			yield* serve("/_board/inbox", inboxPage);
+			const startPage = start(changes, home, index);
 			yield* serve("/_board/start", startPage);
 			const workPage = work(index, changes, home);
 			const result = resultPage(index, changes, home);
 			yield* serve("/_board/result", result);
 			const overviewPage = overview(index, changes, home);
-			const historyPage = changesPage(changes, home);
+			const historyPage = changesPage(changes, home, index);
 			yield* serve("/_board/work", workPage);
 			yield* serve("/_board/overview", overviewPage);
 			yield* serve("/_board/changes", historyPage);
@@ -84,7 +87,7 @@ function routes(options: BoardOptions) {
 				index: Effect.provideContext(index, context),
 				root: options.root,
 			});
-			const replyPage = responsePage(responses, changes, home, options.responses === true);
+			const replyPage = responsePage(responses, changes, home, options.responses === true, index);
 			yield* serve("/_board/respond", replyPage);
 			const handoffs = yield* handoffService({
 				changes,
@@ -92,9 +95,9 @@ function routes(options: BoardOptions) {
 				index: Effect.provideContext(index, context),
 				root: options.root,
 			});
-			const handoff = handoffPage(handoffs, changes, home, options.responses === true);
+			const handoff = handoffPage(handoffs, changes, home, options.responses === true, index);
 			yield* serve("/_board/handoff", handoff);
-			const pages = page({ home, root: options.root }, changes, index);
+			const pages = page({ home, responses, root: options.root, writable: options.responses === true }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
 			const reading = readPage(
@@ -102,6 +105,7 @@ function routes(options: BoardOptions) {
 					"/_board/changes": () => historyPage(),
 					"/_board/diagnostics": () => healthPage,
 					"/_board/handoff": handoff,
+					"/_board/inbox": () => inboxPage(),
 					"/_board/overview": () => overviewPage(),
 					"/_board/respond": replyPage,
 					"/_board/result": result,
@@ -135,5 +139,6 @@ function routes(options: BoardOptions) {
 type BoardError = HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
 type BoardServices = FileSystem.FileSystem | HttpRouter.HttpRouter | Path.Path | HttpRouter.Request<"Error", PlatformError.PlatformError>;
 
-export const boardLayer = (options: BoardOptions): Layer.Layer<never, BoardError, BoardServices> =>
-	routes(options).pipe(Layer.provide(Highlighter.layer));
+export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError, BoardServices> {
+	return routes(options).pipe(Layer.provide(Highlighter.layer));
+}

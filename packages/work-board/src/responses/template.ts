@@ -5,6 +5,7 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { metadataParse } from "#metadata/parse.ts";
+import { optionPrompt } from "./optionPrompt.ts";
 import { templateLinks } from "./templateLinks.ts";
 import { isContainer, promptFrom, sliceNode } from "./templateNodes.ts";
 
@@ -68,5 +69,16 @@ export function questionTemplate(context: string, request: string, file?: string
 	if (prompts.length > 32 || new Set(prompts.map((prompt) => prompt.id)).size !== prompts.length) {
 		throw new Error("Use at most 32 questions with unique IDs per attention request.");
 	}
-	return { context: plain.join("\n\n"), prompts };
+	return withOptions(context, { context: plain.join("\n\n"), prompts });
+}
+
+function withOptions(context: string, template: Template): Template {
+	const choice = optionPrompt(metadataParse(context).fields);
+	if (!choice) {
+		return template;
+	}
+	if (template.prompts.length > 0) {
+		throw new Error("Use frontmatter options or Markdown question directives, rather than both.");
+	}
+	return { ...template, prompts: [choice] };
 }

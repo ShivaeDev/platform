@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Option } from "effect";
 import type { HttpServerRequest } from "effect/unstable/http";
+import { authoredQuestion } from "#attention/inbox.ts";
 import type { Changes } from "#files/changes.ts";
 import type { MarkdownFile } from "#files/list.ts";
 import { markdownPath } from "#files/markdownPath.ts";
@@ -13,12 +14,16 @@ import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
 import { startHtml } from "#page/startHtml.ts";
 import { boardOf } from "#render/board.ts";
+import { authoredQuestionHtml } from "#responses/authoredQuestionHtml.ts";
+import type { responseService } from "#responses/service.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
 
 export interface PageOptions {
 	readonly home: string | undefined;
+	readonly responses?: Effect.Success<ReturnType<typeof responseService>>;
 	readonly root: string;
+	readonly writable?: boolean;
 }
 
 function requestedPath(url: string): string {
@@ -61,15 +66,19 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 			file.path === options.home
 				? yield* boardHtml(boardOf(parsed.body), file.path, file.modified, metadata)
 				: yield* documentHtml(parsed.body, file, metadata);
-		return Option.some({ html, identity });
+		const service = options.responses;
+		const question = service && identity && authoredQuestion({ file: file.path, parsed });
+		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, service, options.writable === true) : "";
+		return Option.some({ html: html + answer, identity });
 	});
 	return Effect.fn("WorkBoard.page")(function* (request: HttpServerRequest.HttpServerRequest, resolved?: string, expectedIdentity?: string) {
 		const files = yield* changes.files;
 		const requested = resolved ?? (requestedPath(request.url) || options.home || files[0]?.path || "");
 		const file = files.find((candidate) => candidate.path === requested);
-		const nav = navHtml(files, requested, options.home);
+		const snapshot = yield* index;
+		const nav = navHtml(files, requested, options.home, snapshot);
 		function layout(content: string, identity?: string) {
-			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity);
+			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity, false, snapshot);
 		}
 		function missing() {
 			return respond(
