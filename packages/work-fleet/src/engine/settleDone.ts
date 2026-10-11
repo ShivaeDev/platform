@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { authorizeResolution } from "#engine/authorizeResolution.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { observeDoneExecution } from "#engine/observeDoneExecution.ts";
+import { reserveReleasedResult } from "#engine/reserveReleasedResult.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
@@ -18,7 +18,7 @@ export function settleDone(state: EngineState) {
 		if (executing(stored.value)) {
 			return stored;
 		}
-		yield* authorizeResolution(state, stored.value, "release");
+		yield* reserveReleasedResult(state, stored.value);
 		const published = stored.value.decision?.published;
 		stored = yield* state.save(stored, {
 			...stored.value,
