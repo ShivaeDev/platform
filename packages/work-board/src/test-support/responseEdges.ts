@@ -1,13 +1,16 @@
+import { Effect } from "effect";
 import { browserClient } from "#browser/client.ts";
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
 import { questionId, revisionOf } from "#responses/records.ts";
 import { type FileSystemWrapper, folder, startBoard } from "#test/board.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 
-export async function responseWorkspace(source = questionnaireSource, wrap?: FileSystemWrapper) {
+export const responseWorkspace = Effect.fn("Test.responseWorkspace")(function* (source = questionnaireSource, wrap?: FileSystemWrapper) {
 	const notes = folder({ "proposal.md": source, "task.md": "# Affected work" });
-	const board = await startBoard(notes.root, undefined, wrap, true);
+	yield* Effect.addFinalizer(() => Effect.sync(() => notes.remove()));
+	const board = yield* startBoard(notes.root, undefined, wrap, true);
 	const client = browserClient(board.url);
+	yield* Effect.addFinalizer(() => Effect.sync(() => client.registry.dispose()));
 	return {
 		board,
 		client,
@@ -18,13 +21,8 @@ export async function responseWorkspace(source = questionnaireSource, wrap?: Fil
 				client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision }),
 			);
 		},
-		stop: async () => {
-			client.registry.dispose();
-			await board.stop();
-			notes.remove();
-		},
 	};
-}
+});
 
 export function largeQuestion(question: Question): Question {
 	const context = `${question.context}\n${"x".repeat(256 * 1024)}`;

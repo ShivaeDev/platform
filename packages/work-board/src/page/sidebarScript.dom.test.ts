@@ -1,4 +1,6 @@
-import { afterEach, expect, it } from "vitest";
+import { Effect } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
@@ -7,22 +9,21 @@ import { workspaceFixture } from "#test/workspaceFixture.ts";
 let notes: Folder;
 let board: RunningBoard;
 let page: OpenPage;
-afterEach(async () => {
-	await page?.close();
-	await board?.stop();
+
+afterEach(() => {
 	notes?.remove();
 });
 
-async function open(width: number) {
+const open = Effect.fn("Test.open")(function* (width: number) {
 	notes = folder(workspaceFixture());
-	board = await startBoard(notes.root, "board.md");
-	page = await openPage(board, "/notes/topic-1.md", (window) => {
+	board = yield* startBoard(notes.root, "board.md");
+	page = yield* openPage(board, "/notes/topic-1.md", (window) => {
 		window.innerWidth = width;
 		window.innerHeight = 1000;
 	});
-	await waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live"));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
 	page.window.dispatchEvent(new page.window.Event("resize"));
-}
+});
 
 function element(id: string) {
 	const found = page.document.getElementById(id);
@@ -40,15 +41,15 @@ function click(selector: string) {
 	found.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
 }
 
-it.each([1440, 390])("keeps primary rows and the tree independent of five visits at %ipx", async (width) => {
-	await open(width);
+it.live.each([1440, 390])("keeps primary rows and the tree independent of five visits at %ipx", function* (width) {
+	yield* open(width);
 	const navigation = element("primary-navigation");
 	const rows = [...navigation.children];
 	expect(rows.map((row) => row.id)).toEqual(["home-open", "inbox-open", "overview-open", "work-open", "changes-open", "diagnostics-open"]);
 	const files = element("files");
 	for (let index = 2; index <= 6; index += 1) {
 		click(`#files a[href="/notes/topic-${index}.md"]`);
-		await waitFor(() => expect(element("doc").dataset.file).toBe(`notes/topic-${index}.md`));
+		yield* Effect.promise(() => waitFor(() => expect(element("doc").dataset.file).toBe(`notes/topic-${index}.md`)));
 		expect([...navigation.children]).toEqual(rows);
 		expect(element("files")).toBe(files);
 		expect(files.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(`/notes/topic-${index}.md`);
@@ -67,8 +68,8 @@ it.each([1440, 390])("keeps primary rows and the tree independent of five visits
 	expect(page.document.activeElement).toBe(element("library-open"));
 });
 
-it("dismisses the narrow drawer with Escape or outside tap and restores focus without changing desktop preferences", async () => {
-	await open(390);
+it.live("dismisses the narrow drawer with Escape or outside tap and restores focus without changing desktop preferences", function* () {
+	yield* open(390);
 	const sidebar = element("sidebar");
 	const opener = element("sidebar-toggle");
 	expect(sidebar.hidden).toBe(true);
@@ -91,15 +92,15 @@ it("dismisses the narrow drawer with Escape or outside tap and restores focus wi
 	}
 	page.window.innerWidth = 1440;
 	page.window.dispatchEvent(new page.window.Event("resize"));
-	await waitFor(() => expect(sidebar.hidden).toBe(false));
+	yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(false)));
 	expect(sidebar.hasAttribute("aria-modal")).toBe(false);
 	page.window.innerWidth = 390;
 	page.window.dispatchEvent(new page.window.Event("resize"));
-	await waitFor(() => expect(sidebar.hidden).toBe(true));
+	yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(true)));
 });
 
-it("scrolls the project tree to reveal the selected file after navigation", async () => {
-	await open(1440);
+it.live("scrolls the project tree to reveal the selected file after navigation", function* () {
+	yield* open(1440);
 	const files = element("files");
 	function rect(top: number, bottom: number) {
 		return new page.window.DOMRect(0, top, 240, bottom - top);
@@ -108,6 +109,6 @@ it("scrolls the project tree to reveal the selected file after navigation", asyn
 	page.window.HTMLAnchorElement.prototype.getBoundingClientRect = () => rect(400 - files.scrollTop, 420 - files.scrollTop);
 	files.scrollTop = 0;
 	click('#files a[href="/notes/topic-6.md"]');
-	await waitFor(() => expect(element("doc").dataset.file).toBe("notes/topic-6.md"));
-	await waitFor(() => expect(files.scrollTop).toBe(320));
+	yield* Effect.promise(() => waitFor(() => expect(element("doc").dataset.file).toBe("notes/topic-6.md")));
+	yield* Effect.promise(() => waitFor(() => expect(files.scrollTop).toBe(320)));
 });
