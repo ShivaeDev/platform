@@ -6,38 +6,38 @@ import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc/adapter.ts";
 import type { EffectCallerFactory } from "@shivaedev/effect-trpc/testing/caller.ts";
 import type { CallerOptions, CallerResult, TrpcHarnessTest, TrpcHarnessTester } from "@shivaedev/effect-trpc/testing/types.ts";
 
-export type PlatformHarness<Database extends AnyDatabase, Options, Caller, Extension> = Readonly<{
-	db: DatabaseService<Database>;
-	trpc: EffectCallerFactory<Options, Caller>;
+export type PlatformHarness<TDatabase extends AnyDatabase, TOptions, TCaller, TExtension> = Readonly<{
+	db: DatabaseService<TDatabase>;
+	trpc: EffectCallerFactory<TOptions, TCaller>;
 }> &
 	Readonly<{
-		promise: <Value>(evaluate: () => Promise<Value>) => Effect.Effect<Value, unknown>;
+		promise: <TValue>(evaluate: () => Promise<TValue>) => Effect.Effect<TValue, unknown>;
 	}> &
-	Omit<Extension, "db" | "promise" | "trpc">;
+	Omit<TExtension, "db" | "promise" | "trpc">;
 
-export type PlatformTest<Harness, Provided> = TrpcHarnessTest<Harness, Provided>;
+export type PlatformTest<THarness, TProvided> = TrpcHarnessTest<THarness, TProvided>;
 
-export type PlatformTester<Harness, Provided> = TrpcHarnessTester<Harness, Provided>;
+export type PlatformTester<THarness, TProvided> = TrpcHarnessTester<THarness, TProvided>;
 
-export type PlatformIt<Harness, Provided> = Vitest.Methods & {
-	readonly effectApp: PlatformTester<Harness, Provided>;
+export type PlatformIt<THarness, TProvided> = Vitest.Methods & {
+	readonly effectApp: PlatformTester<THarness, TProvided>;
 };
 
 export interface MakePlatformItOptions<
-	Database extends AnyDatabase,
-	CreateCaller extends (...arguments_: never[]) => object,
-	Provided,
-	LayerError,
-	Extension,
+	TDatabase extends AnyDatabase,
+	TCreateCaller extends (...arguments_: never[]) => object,
+	TProvided,
+	TLayerError,
+	TExtension,
 > {
 	readonly adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">;
-	readonly createCaller: CreateCaller;
+	readonly createCaller: TCreateCaller;
 	readonly extend?: (
 		base: Readonly<{
-			db: DatabaseService<Database>;
-			trpc: EffectCallerFactory<CallerOptions<NoInfer<CreateCaller>>, CallerResult<NoInfer<CreateCaller>>>;
+			db: DatabaseService<TDatabase>;
+			trpc: EffectCallerFactory<CallerOptions<NoInfer<TCreateCaller>>, CallerResult<NoInfer<TCreateCaller>>>;
 		}>,
 		context: TestContext,
-	) => Effect.Effect<Extension, unknown, Provided | Effect.Services<Database>>;
-	readonly layer: Layer.Layer<Provided, LayerError>;
+	) => Effect.Effect<TExtension, unknown, TProvided | Effect.Services<TDatabase>>;
+	readonly layer: Layer.Layer<TProvided, TLayerError>;
 }

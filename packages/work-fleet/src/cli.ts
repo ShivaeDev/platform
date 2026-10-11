@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, Option } from "effect";
-import { Argument, CliError, Command, Flag } from "effect/unstable/cli";
-import { loadHost } from "#host/config.ts";
-
-const board = Flag.directory("board").pipe(Flag.withDefault(".work"), Flag.withDescription("Board folder holding fleet.config.json"));
-const config = Flag.file("config").pipe(Flag.optional, Flag.withDescription("Host configuration instead of <board>/fleet.config.json"));
-
-function host(folder: string, file: Option.Option<string>) {
-	return loadHost(folder, Option.getOrUndefined(file));
-}
+import * as Console from "effect/Console";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Argument from "effect/unstable/cli/Argument";
+import * as CliError from "effect/unstable/cli/CliError";
+import * as Command from "effect/unstable/cli/Command";
+import * as Flag from "effect/unstable/cli/Flag";
+import { board, config, host } from "#host/cliOptions.ts";
+import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
 const runCommand = Command.make(
 	"run",
@@ -49,38 +48,9 @@ const statusCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Show active, needs-human and completed Fleet work"));
 
-// The orchestrator runs about a hundred waits at once, so wait loads neither the Fleet runtime nor a pooled client.
-const waitCommand = Command.make(
-	"wait",
-	{
-		board,
-		config,
-		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between PostgreSQL reads")),
-		timeout: Flag.float("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
-		workId: Argument.string("id"),
-	},
-	Effect.fn("WorkFleetCli.wait")(function* (input) {
-		const { waitFor } = yield* Effect.promise(() => import("#host/wait.ts"));
-		const settings = yield* host(input.board, input.config);
-		const outcome = yield* waitFor({
-			databaseUrl: settings.databaseUrl,
-			intervalMs: input.interval * 1000,
-			namespace: settings.namespace,
-			workId: input.workId,
-			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
-		});
-		yield* Console.log(outcome.summary);
-		process.exitCode = outcome.code;
-	}),
-).pipe(
-	Command.withDescription(
-		"Block until the work completes (exit 0), needs a human (2) or is released (3); 4 on --timeout, 1 on errors. Read-only against PostgreSQL",
-	),
-);
-
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
-	Command.withSubcommands([runCommand, dispatchCommand, statusCommand, waitCommand]),
+	Command.withSubcommands([runCommand, dispatchCommand, statusCommand, waitCommand, watchCommand]),
 );
 
 const main = Command.run(cli, { version: "0.0.0" }).pipe(

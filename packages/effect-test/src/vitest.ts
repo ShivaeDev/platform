@@ -7,11 +7,11 @@ import type { EffectClock, EffectTest, EffectTester, EffectTestOptions, MakeEffe
 
 const fixtureName = "__effectTestContext";
 
-type EffectFixture<Provided> = TestContext & {
-	readonly [fixtureName]: Context.Context<Provided>;
+type EffectFixture<TProvided> = TestContext & {
+	readonly [fixtureName]: Context.Context<TProvided>;
 };
 
-type FixtureTest<Provided> = (name: string, options: TestOptions, body: (context: EffectFixture<Provided>) => Promise<unknown>) => void;
+type FixtureTest<TProvided> = (name: string, options: TestOptions, body: (context: EffectFixture<TProvided>) => Promise<unknown>) => void;
 
 const TestClockEnvironment = Layer.mergeAll(TestConsole.layer, TestClock.layer());
 const LiveClockEnvironment = TestConsole.layer;
@@ -20,10 +20,10 @@ function environmentFor(clock: EffectClock) {
 	return clock === "live" ? LiveClockEnvironment : TestClockEnvironment;
 }
 
-function restoreContext<Provided>(
-	fixture: Context.Context<Provided>,
-	context: Omit<EffectFixture<Provided>, typeof fixtureName>,
-): EffectFixture<Provided> {
+function restoreContext<TProvided>(
+	fixture: Context.Context<TProvided>,
+	context: Omit<EffectFixture<TProvided>, typeof fixtureName>,
+): EffectFixture<TProvided> {
 	return {
 		...context,
 		[fixtureName]: fixture,
@@ -72,15 +72,15 @@ function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
 	});
 }
 
-export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
-	options: MakeEffectItOptions<Harness, TestLayer>,
-): MakeEffectItResult<Harness, Layer.Success<TestLayer>> => {
-	type Provided = Layer.Success<TestLayer>;
+export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
+	options: MakeEffectItOptions<THarness, TTestLayer>,
+): MakeEffectItResult<THarness, Layer.Success<TTestLayer>> => {
+	type Provided = Layer.Success<TTestLayer>;
 	const fixtureIt = makeFixtureIt(options.layer);
 	const defaultClock = options.clock ?? "test";
 
 	function run<A>(
-		body: (harness: Harness, context: TestContext) => Generator<Effect.Effect<unknown, unknown, Provided>, A, never>,
+		body: (harness: THarness, context: TestContext) => Generator<Effect.Effect<unknown, unknown, Provided>, A, never>,
 		context: EffectFixture<Provided>,
 	): Effect.Effect<A, unknown, Scope.Scope> {
 		const ready: Effect.Effect<A, unknown, Provided> = Effect.gen(function* () {
@@ -91,7 +91,7 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 		return wrapped.pipe(Effect.provide(context[fixtureName]));
 	}
 
-	function register(current: FixtureTest<Provided>): EffectTest<Harness, Provided> {
+	function register(current: FixtureTest<Provided>): EffectTest<THarness, Provided> {
 		return (name, body, testOptions) => {
 			const split = splitOptions(testOptions);
 			const clock = split.clock ?? defaultClock;
@@ -111,12 +111,12 @@ export const makeEffectIt = <Harness, TestLayer extends AnyTestLayer>(
 		};
 	}
 
-	const effectApp: EffectTester<Harness, Provided> = Object.assign(register(fixtureIt), {
+	const effectApp: EffectTester<THarness, Provided> = Object.assign(register(fixtureIt), {
 		each:
-			<Item>(cases: readonly Item[]) =>
-			<A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
+			<TItem>(cases: readonly TItem[]) =>
+			<A, TEff extends Effect.Effect<unknown, unknown, Provided>>(
 				name: string,
-				body: (item: Item, harness: Harness, context: TestContext) => Generator<Eff, A, never>,
+				body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 				testOptions?: number | EffectTestOptions,
 			) => {
 				const split = splitOptions(testOptions);

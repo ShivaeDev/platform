@@ -47,7 +47,7 @@ export function quietOnClosedPipe(stream: EventEmitter): void {
 
 const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
 
-export const runMain = <Value, Error>(program: Effect.Effect<Value, Error, FileSystem.FileSystem | Git>): void => {
+export const runMain = <TValue, TError>(program: Effect.Effect<TValue, TError, FileSystem.FileSystem | Git>): void => {
 	quietOnClosedPipe(process.stdout);
 	quietOnClosedPipe(process.stderr);
 	const explained = Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
