@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
 import { FleetFailure } from "#policy.ts";
 
@@ -24,12 +25,17 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	if (response.response.type !== "answer") {
 		return { action: undefined, published, response };
 	}
-	if (decision.worker !== undefined) {
+	if (decision.worker !== undefined && !releaseSelected(response)) {
 		if (response.body.trim().length === 0) {
 			return yield* Effect.fail(new FleetFailure({ message: "Record a nonempty answer for the worker", reason: "invalid" }));
 		}
 		return { action: "continue", published, response } as const;
 	}
+	const action = yield* guidedAction(response);
+	return { action, published, response } as const;
+});
+
+const guidedAction = Effect.fn("Fleet.guidedAction")(function* (response: RecordedResponse) {
 	const answers = response.response.answers?.filter((answer) => answer.prompt === "fleet-action") ?? [];
 	const selected = answers[0]?.selected;
 	const action = selected?.[0];
@@ -38,5 +44,9 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 			new FleetFailure({ message: "Choose one guided Fleet retry or release action; free text cannot authorize it", reason: "invalid" }),
 		);
 	}
-	return { action, published, response } as const;
+	return action;
 });
+
+function releaseSelected(response: RecordedResponse) {
+	return response.response.answers?.some((answer) => answer.prompt === "fleet-action" && answer.selected.includes("release")) ?? false;
+}

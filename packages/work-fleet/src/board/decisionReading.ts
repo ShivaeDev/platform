@@ -1,4 +1,3 @@
-import { relative } from "node:path";
 import { Effect } from "effect";
 import type { Reading } from "@shivaedev/work-board/browser/responses/schema.ts";
 import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
@@ -6,7 +5,7 @@ import { readResponses } from "@shivaedev/work-board/responses/read.ts";
 import { questionId, revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
-import { BoardFailure, type BoardWork } from "#policy.ts";
+import { BoardFailure } from "#policy.ts";
 
 function currentResponse(reading: Reading): BoardDecisionReading {
 	const superseded = new Set(reading.responses.flatMap((response) => (response.response.supersedes ? [response.response.supersedes] : [])));
@@ -20,16 +19,8 @@ function currentResponse(reading: Reading): BoardDecisionReading {
 	return { _tag: "Response", response: current[0] };
 }
 
-export function decisionReading(
-	realRoot: string,
-	documents: Effect.Effect<readonly BoardDocument[], BoardFailure>,
-	get: (id: string) => Effect.Effect<BoardWork, BoardFailure>,
-) {
+export function decisionReading(documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
 	return Effect.fn("FleetBoard.readDecision")(function* (receipt: BoardDecision): Effect.fn.Return<BoardDecisionReading, BoardFailure> {
-		const work = yield* get(receipt.workId);
-		if (work.revision !== receipt.workRevision || relative(realRoot, work.sourcePath) !== receipt.workSourcePath) {
-			return { _tag: "Stale", reason: "Board work changed or moved since this decision was published." };
-		}
 		const all = yield* documents;
 		const model = metadataModel(all);
 		const matches = model.ids.get(receipt.itemId);

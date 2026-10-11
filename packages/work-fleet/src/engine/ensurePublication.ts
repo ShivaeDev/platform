@@ -11,7 +11,7 @@ export function ensurePublication({ board, save }: EngineState) {
 		if (decision === undefined || decision.published !== undefined) {
 			return stored;
 		}
-		const work = originalWork(stored.value);
+		const work = decision.publicationWork ?? originalWork(stored.value);
 		if (work === undefined) {
 			return yield* Effect.fail(
 				new FleetFailure({
