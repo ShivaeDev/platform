@@ -1,5 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
 import { HttpServerRequest } from "effect/unstable/http";
+import { readDocument } from "#document/read.ts";
 import type { Change, Changes } from "#files/changes.ts";
 import { HandoffsService } from "#handoffs/Service.ts";
 import { page } from "#http/page.ts";
@@ -43,6 +44,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 			const context = Context.merge(yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>(), services);
 			return yield* handlers({
 				...options,
+				document: (url) => readDocument({ ...options, home, writable: false })(url).pipe(Effect.provideContext(context)),
 				home,
 				page: (url) =>
 					page(
