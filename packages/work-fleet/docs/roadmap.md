@@ -36,6 +36,8 @@ relevant or uncertain changes require preparation again for the affected work.
 
 ## Validation boundary
 
+The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns. Renderer tests cover card grouping, links and unsafe Markdown inputs; filesystem tests cover unchanged writes, authored content and symlink boundaries. PostgreSQL scheduler tests cover completion, human intervention, suspended validation and publication retry, including invalidation of a mounted native Board page over real HTTP. These fixtures use synthetic provider and delivery integrations; they do not establish a live Cloud worker or physical-browser acceptance.
+
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
 response recording, native Fleet RPC and the actual admission/completion paths.
 Provider execution and delivery in those fixtures are synthetic. These tests prove
