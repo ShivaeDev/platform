@@ -1,10 +1,11 @@
 import { Clock, Effect, Ref } from "effect";
 import { HttpIncomingMessage, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
-import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { InternalServerError, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
+import type { Document } from "#browser/document/schema.ts";
 import type { Changes } from "#files/changes.ts";
 import type { handoffService } from "#handoffs/service.ts";
 import { MAX_BYTES } from "#history/limits.ts";
@@ -16,10 +17,11 @@ import { searchMatch } from "#search/match.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { workRpcs } from "./contract.ts";
 import { hints } from "./hints.ts";
-import { ResponseRejection } from "./rejections.ts";
+import { DocumentRejection, ResponseRejection } from "./rejections.ts";
 
 export interface ServerOptions {
 	readonly changes: Changes;
+	readonly document?: (url: string) => Effect.Effect<Document, unknown>;
 	readonly handoffs: Effect.Success<ReturnType<typeof handoffService>>;
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
@@ -28,11 +30,14 @@ export interface ServerOptions {
 }
 
 const readBoundary = rpcBoundary(InternalServerError, { unexpected: (message) => new InternalServerError({ message }) });
+const documentBoundary = rpcBoundary(DocumentRejection, { unexpected: (message) => new InternalServerError({ message }) });
 const responseBoundary = rpcBoundary(ResponseRejection, { unexpected: (message) => new InternalServerError({ message }) });
 
-export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handoffs, home, index, page, responses }: ServerOptions) {
+export const server = Effect.fn("WorkBoard.server")(function* ({ changes, document, handoffs, home, index, page, responses }: ServerOptions) {
 	const handlers = workRpcs.toLayer({
 		"work-board.awaitResponse": (input) => Effect.suspend(() => responses.awaitResponse(input)).pipe(responseBoundary),
+		"work-board.document": ({ url }) =>
+			Effect.suspend(() => (document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." })))).pipe(documentBoundary),
 		"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
 		"work-board.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),
 		"work-board.history": ({ action, baseline }) =>

@@ -1,6 +1,7 @@
 ### Breaking
 
 - Replace `ReadFailed` and `ResponseFailed.code` RPC rejections with Platform taxonomy classes. Response and handoff contracts declare `NotFound`, `PreconditionFailed`, `Forbidden`, `Conflict`, `BadRequest`, `ServiceUnavailable` and `InternalServerError`; publication uncertainty and wait deadlines use `PublicationUncertain` and `Unanswered` from `rpc/rejections.ts`, alongside the `ResponseRejection` schema/type and `responseRejections`.
+- The document contract declares `NotFound`, `Conflict`, `ServiceUnavailable` and `InternalServerError` through the `documentRejections` object and `DocumentRejection` schema exported by `rpc/rejections.ts`.
 
 ### Fixed
 

@@ -62,18 +62,28 @@ it("Board redacts a handler defect into a declared rejection while the server sp
 	}
 	expect(rejection.cause).toBeUndefined();
 	expect(JSON.stringify(rejection)).not.toContain("private-value");
+	const documentRejection = await client.run(client.api.document.run({ url: "/note.md" })).catch((error: unknown) => error);
+	expect(documentRejection).toBeInstanceOf(InternalServerError);
+	expect(documentRejection).toMatchObject({ message: "Internal server error" });
+	if (!(documentRejection instanceof InternalServerError)) {
+		throw new Error("Expected a declared document rejection");
+	}
+	expect(documentRejection.cause).toBeUndefined();
+	expect(JSON.stringify(documentRejection)).not.toContain("private-value");
 	const failures = spans
-		.filter((span) => span.name === "RpcServer.work-board.page")
+		.filter((span) => ["RpcServer.work-board.page", "RpcServer.work-board.document"].includes(span.name))
 		.flatMap((span) => {
 			if (span.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
 				return [];
 			}
 			return span.status.exit.cause.reasons.filter(Cause.isFailReason).map((reason) => reason.error);
 		});
-	const traced = failures.find((failure) => failure instanceof InternalServerError);
-	expect(traced).toBeInstanceOf(InternalServerError);
-	if (!(traced instanceof InternalServerError && Cause.isCause(traced.cause))) {
-		throw new Error("Expected the server rejection to retain its Effect cause");
+	expect(failures).toHaveLength(2);
+	for (const traced of failures) {
+		expect(traced).toBeInstanceOf(InternalServerError);
+		if (!(traced instanceof InternalServerError && Cause.isCause(traced.cause))) {
+			throw new Error("Expected the server rejection to retain its Effect cause");
+		}
+		expect(Cause.squash(traced.cause)).toBe(original);
 	}
-	expect(Cause.squash(traced.cause)).toBe(original);
 });
