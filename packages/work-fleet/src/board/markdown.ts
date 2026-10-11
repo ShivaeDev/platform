@@ -2,7 +2,7 @@ import { Effect, FileSystem, Layer, Path, Schema } from "effect";
 import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
-import { boundDocuments, boundSnapshot } from "#board/documents.ts";
+import { boundDocuments, boundSnapshot, snapshotDocument } from "#board/documents.ts";
 import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
@@ -20,12 +20,7 @@ export function markdownBoard(root: string) {
 			const documents = boundDocuments(root, realRoot, fs, path);
 			const snapshot = boundSnapshot(root, realRoot, fs, path);
 			const get = Effect.fn("FleetBoard.get")(function* (workId: string) {
-				const current = yield* snapshot;
-				const matches = current.model.ids.get(workId);
-				const found = matches?.length === 1 ? current.files.get(matches[0]?.file ?? "") : undefined;
-				if (!found) {
-					return yield* Effect.fail(new BoardFailure({ message: `Board identity is missing or ambiguous: ${workId}` }));
-				}
+				const found = yield* snapshotDocument(yield* snapshot, workId);
 				const deliverable = fleetDeliverable(found.parsed);
 				if (deliverable !== undefined && deliverable !== "report") {
 					return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-deliverable; use report or omit the field for pull requests." }));
