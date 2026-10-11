@@ -398,7 +398,7 @@ export async function registerReviewedQuestion(url: string, revision: string) {
 
 Call this function with a revision whose source/context you have reviewed and a server started with `--responses`. `api` binds reading operations; `responses` binds question and response operations. `read` resolves a query atom, `run` executes a query Effect, and `mutate` executes a command with its invalidation service. `handoffs` binds source/history queries and the preparation command. The client also exposes `registry` and `updates`; dispose the registry when its owner ends.
 
-`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. The server sidebar and browser updates render this same data.
+`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. The React sidebar renders this query through `effect-react`, marks the selected file and retains the tree while a route change loads its next query.
 
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
@@ -463,7 +463,7 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The existing Board page still uses server rendering; hosts decide when to mount the React view.
+Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router; its `LegacyMain` host displays the existing server-rendered pages. Hosts can mount `DocumentView` directly from source-query data.
 
 #### CLI reference
 

@@ -41,7 +41,7 @@ button, select { padding: 6px 10px; border: 1px solid var(--border); border-radi
 .separator { color: var(--muted); }
 .live { color: var(--muted); font: 12px/1.9 var(--mono); }
 .live[data-state="down"], .live[data-state="stale"] { color: var(--danger); }
-.preferences { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px var(--space) 0; color: var(--muted); font-size: 12px; }
+.preferences { border: 0; margin: 0; min-width: 0; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px var(--space) 0; color: var(--muted); font-size: 12px; }
 .preference { display: flex; gap: 8px; align-items: center; }
 #preference-status:empty { display: none; }
 #doc { padding: var(--space) var(--space) 64px; min-width: 0; }

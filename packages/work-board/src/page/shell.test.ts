@@ -14,7 +14,11 @@ afterEach(() => {
 it.live("serves a large workspace with board and document layouts and escaped file location", function* () {
 	notes = folder(workspaceFixture());
 	board = yield* startBoard(notes.root, "board.md");
-	const home = yield* Effect.promise(async () => (await fetch(board.url)).text());
+	const html = yield* Effect.promise(async () => (await fetch(board.url)).text());
+	const home = /<template id="board-legacy-page">(?<content>[\s\S]*?)<\/template>/u.exec(html)?.groups?.content ?? "";
+	expect(html).toContain(
+		`<noscript data-board-fallback><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style>${home}</noscript>`,
+	);
 	expect(home).toContain('class="board-view"');
 	expect(home.match(/class="item"/gu)).toHaveLength(100);
 	expect(home.match(/class="age short"/gu)).toHaveLength(50);
