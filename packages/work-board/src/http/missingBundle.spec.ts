@@ -10,6 +10,15 @@ it("explains a missing browser bundle once at startup and in every failed bundle
 	try {
 		expect(board.logged.filter(({ level }) => level === "Warn")).toEqual([{ level: "Warn", message: [message] }]);
 		expect((await fetch(board.url)).status).toBe(200);
+		for (const [asset, type, content] of [
+			["react.js", "text/javascript", "data-board-react-root"],
+			["react.css", "text/css", "--background:"],
+		]) {
+			const response = await fetch(`${board.url}/_board/${asset}`);
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toBe(type);
+			expect(await response.text()).toContain(content);
+		}
 		for (let request = 0; request < 2; request += 1) {
 			const response = await fetch(`${board.url}/_board/native.js`);
 			expect(response.status).toBe(500);
