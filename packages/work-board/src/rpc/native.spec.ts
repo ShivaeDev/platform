@@ -33,6 +33,15 @@ it("reads SSR documents, stable item URLs, navigation, search and explicit histo
 	expect(seen.snapshot).toContain("Read this.");
 	expect((await fetch(`${board.url}/note.md`)).status).toBe(200);
 	expect((await fetch(`${board.url}/_board/native.js`)).headers.get("content-type")).toContain("javascript");
+	for (const [asset, type] of [
+		["react.js", "text/javascript"],
+		["react.css", "text/css"],
+	]) {
+		const response = await fetch(`${board.url}/_board/${asset}`);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toBe(type);
+		expect(await response.text()).not.toBe("");
+	}
 });
 it("retains unrelated mounted reads while reconciling dependent pages and navigation after source changes", async () => {
 	await open();
