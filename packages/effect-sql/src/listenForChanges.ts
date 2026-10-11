@@ -1,52 +1,74 @@
-import { Deferred, Effect, Stream } from "effect";
+import { Deferred, type Duration, Effect, type Exit, Scope, Stream } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { decodeKeys } from "./notifyPayload.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
+
+function closeListener(scope: Scope.Closeable, outcome: Exit.Exit<unknown, unknown>, timeout: Duration.Input) {
+	return Effect.suspend(() => {
+		function bounded(finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void>) {
+			return (exit: Exit.Exit<unknown, unknown>) => finalizer(exit).pipe(Effect.interruptible, Effect.timeoutOption(timeout), Effect.asVoid);
+		}
+		// Bound each finalizer so a stalled UNLISTEN cannot prevent the native connection release that follows it.
+		if (scope.state._tag === "Open") {
+			const state = scope.state;
+			if (state.finalizer !== undefined) {
+				state.finalizer = bounded(state.finalizer);
+			}
+			if (state.finalizers !== undefined) {
+				for (const [key, finalizer] of state.finalizers) {
+					state.finalizers.set(key, bounded(finalizer));
+				}
+			}
+		}
+		return Scope.closeUnsafe(scope, outcome) ?? Effect.void;
+	});
+}
 
 export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(function* (options: PostgresChangesOptions) {
 	const ready = yield* Deferred.make<void>();
 	const reactivity = yield* Reactivity.Reactivity;
 	const { client, channel, resync } = options;
+	const timeout = options.heartbeatTimeout ?? "10 seconds";
 	const attempt = Effect.scoped(
 		Effect.gen(function* () {
+			const scope = yield* Effect.acquireRelease(Scope.make(), (listenerScope, exit) => closeListener(listenerScope, exit, timeout));
 			const token = JSON.stringify({ heartbeat: crypto.randomUUID() });
 			let ack = yield* Deferred.make<void>();
-			const listening = client.listen(channel).pipe(
-				Stream.runForEach((payload) => {
-					if (payload === token) {
-						return Effect.asVoid(Deferred.succeed(ack, undefined));
-					}
-					if (!payload.startsWith("[")) {
-						return Effect.void;
-					}
-					return decodeKeys(payload).pipe(
-						Effect.flatMap((keys) => Effect.sync(() => reactivity.invalidateUnsafe(keys))),
-						Effect.catchCause(() => resync),
-					);
-				}),
-			);
+			function receive(payload: string) {
+				if (payload === token) {
+					return Effect.asVoid(Deferred.succeed(ack, undefined));
+				}
+				if (!payload.startsWith("[")) {
+					return Effect.void;
+				}
+				return decodeKeys(payload).pipe(
+					Effect.flatMap((keys) => Effect.sync(() => reactivity.invalidateUnsafe(keys))),
+					Effect.catchCause(() => resync),
+				);
+			}
+			const listening = Effect.gen(function* () {
+				const pull = yield* Stream.toPull(client.listen(channel)).pipe(Scope.provide(scope));
+				yield* Effect.forever(Effect.flatMap(pull, (payloads) => Effect.forEach(payloads, receive, { discard: true })));
+			});
 			const send = Effect.asVoid(client`select pg_notify(${channel}, ${token})`);
 			const monitor = Effect.gen(function* () {
-				yield* Effect.raceFirst(Deferred.await(ack), Effect.forever(Effect.andThen(send, Effect.sleep("50 millis")))).pipe(
-					Effect.timeout(options.heartbeatTimeout ?? "10 seconds"),
-				);
+				yield* Effect.raceFirst(Deferred.await(ack), Effect.forever(Effect.andThen(send, Effect.sleep("50 millis")))).pipe(Effect.timeout(timeout));
 				yield* resync;
 				yield* Deferred.succeed(ready, undefined);
 				yield* Effect.forever(
 					Effect.gen(function* () {
 						yield* Effect.sleep(options.heartbeatInterval ?? "5 seconds");
 						ack = yield* Deferred.make<void>();
-						yield* Effect.andThen(send, Deferred.await(ack)).pipe(Effect.timeout(options.heartbeatTimeout ?? "10 seconds"));
+						yield* Effect.andThen(send, Deferred.await(ack)).pipe(Effect.timeout(timeout));
 					}),
 				);
 			});
-			yield* Effect.raceFirst(listening, monitor);
+			yield* Effect.raceFirst(listening, monitor).pipe(Effect.onExit(() => resync));
 		}),
 	);
 	yield* Effect.forever(
 		attempt.pipe(
-			Effect.andThen(resync),
-			Effect.catchCause((cause) => Effect.andThen(resync, Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams", cause))),
+			Effect.catchCause((cause) => Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams", cause)),
 			Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second")),
 		),
 	).pipe(Effect.forkScoped);
