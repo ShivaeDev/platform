@@ -297,6 +297,7 @@ Import the module that defines a name. The package has no root entry; its manife
 | `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
+| `browser/navigation/schema.ts` | `Navigation`, `NavigationFolder`, `NavigationFile`: native navigation result schemas/types |
 | `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
 | `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
@@ -394,6 +395,8 @@ export async function registerReviewedQuestion(url: string, revision: string) {
 ```
 
 Call this function with a revision whose source/context you have reviewed and a server started with `--responses`. `api` binds reading operations; `responses` binds question and response operations. `read` resolves a query atom, `run` executes a query Effect, and `mutate` executes a command with its invalidation service. `handoffs` binds source/history queries and the preparation command. The client also exposes `registry` and `updates`; dispose the registry when its owner ends.
+
+`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. The server sidebar and browser updates render this same data.
 
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 

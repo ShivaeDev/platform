@@ -6,7 +6,7 @@ import type { handoffService } from "#handoffs/service.ts";
 import { MAX_BYTES } from "#history/limits.ts";
 import { historyResponse } from "#history/response.ts";
 import { HEADERS } from "#http/respond.ts";
-import { navHtml } from "#page/nav.ts";
+import { navigationData } from "#navigation/model.ts";
 import type { responseService } from "#responses/service.ts";
 import { searchMatch } from "#search/match.ts";
 import type { Snapshot } from "#search/snapshot.ts";
@@ -33,9 +33,9 @@ export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handof
 				const snapshot = action === "check" ? undefined : yield* index;
 				return historyResponse(baseline, now, snapshot);
 			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "history", status: 500 })))),
-		"work-board.navigation": () =>
+		"work-board.navigation": ({ current }) =>
 			Effect.gen(function* () {
-				return navHtml(yield* changes.files, "", home, yield* index);
+				return navigationData(yield* changes.files, current, home, yield* index);
 			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "navigation", status: 500 })))),
 		"work-board.page": ({ url }) =>
 			page(url).pipe(
