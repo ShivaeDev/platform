@@ -80,6 +80,8 @@
 			"/_board/client.js": "",
 			"/_board/mermaid/mermaid.esm.min.mjs": "",
 			"/_board/native.js": "/* @shivaedev/work-board native browser bundle */",
+			"/_board/react.css": "--background:",
+			"/_board/react.js": "data-board-react-root",
 			"/_board/style.css": "",
 			"/_board/visual-viewport.js": "inspectDiagram",
 			"/_board/visuals.js": "inspectImage"
