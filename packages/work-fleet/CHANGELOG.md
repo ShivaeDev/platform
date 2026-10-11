@@ -4,6 +4,7 @@
 
 - Share the scoped GitHub CLI reader between worker-result adoption and required checks.
 - Select GitHub worker-result adoption in host configuration. Require a final PR marker and exact reported head, record the observed PR number and paginated changed paths, and reject closed PRs or revision movement. Reported no-change still requires independent review and validation.
+- Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
 

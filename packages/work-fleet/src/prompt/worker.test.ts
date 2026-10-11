@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { PULL_REQUEST_MARKER, reportedPullRequest, workerPrompt } from "#prompt/worker.ts";
+import { PULL_REQUEST_MARKER, QUESTION_MARKER, reportedPullRequest, reportedQuestion, workerPrompt } from "#prompt/worker.ts";
 
 const prompt = workerPrompt({
 	branch: "synthetic/sidebar-tree",
@@ -22,6 +22,8 @@ describe("workerPrompt", () => {
 		expect(prompt).toContain("`pnpm ready`");
 		expect(prompt).toContain("exactly ONE pull request");
 		expect(prompt).toContain("Do not merge it");
+		expect(prompt).toContain(`\`${QUESTION_MARKER} <question>\``);
+		expect(prompt).toContain("continues this same thread with the recorded answer");
 		expect(prompt).toContain(`\`${PULL_REQUEST_MARKER} <url>\``);
 		expect(prompt).toContain("`FLEET_HEAD: <sha>`");
 	});
@@ -52,4 +54,15 @@ describe("reportedPullRequest", () => {
 			expect(reportedPullRequest(`${PULL_REQUEST_MARKER} ${value}`)).toBeUndefined();
 		});
 	}
+});
+
+describe("reportedQuestion", () => {
+	it("preserves multiline question context and ignores ordinary reports and empty markers", () => {
+		expect(reportedQuestion("I need a decision.\nFLEET_QUESTION: Which storage should I use?\n\n- PostgreSQL\n- SQLite")).toBe(
+			"Which storage should I use?\n\n- PostgreSQL\n- SQLite",
+		);
+		expect(reportedQuestion("Question?\nFLEET_PR: none")).toBeUndefined();
+		expect(reportedQuestion("FLEET_QUESTION:  ")).toBeUndefined();
+		expect(reportedQuestion("Example: FLEET_QUESTION: text")).toBeUndefined();
+	});
 });
