@@ -30,10 +30,12 @@ export function makeLaunch(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
+		const settings = { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
 			role,
+			settings,
 			...(sessionId === undefined ? {} : { sessionId }),
 			status: "submitting",
 			submittedAt: policy.now(),
@@ -44,7 +46,6 @@ export function makeLaunch(state: EngineState) {
 			{ ...record, attempts: [...record.attempts, attempt], blocker: undefined, stage: "executing" },
 			{ quota, role },
 		);
-		const settings = { ...policy.launch, ...stored.value.launch };
 		const submitted =
 			sessionId === undefined
 				? sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt: workerPrompt, settings })
