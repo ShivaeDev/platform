@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { authorizeResolution } from "#engine/authorizeResolution.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { readResolution } from "#engine/readResolution.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -9,8 +10,7 @@ export function resolveCommand(state: EngineState) {
 	const { board, policy, load, save } = state;
 	return Effect.fn("Fleet.resolve")(function* (workId: string, decisionId: string, responseId: string) {
 		const stored = yield* load(workId);
-		const prior = [...(stored.value.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(stored.value.responses ?? [])];
-		if (prior.some((previous) => previous.decisionId === decisionId && previous.responseId === responseId)) {
+		if (hasResponse(stored.value, decisionId, responseId)) {
 			return yield* closeDecisions(state)(stored);
 		}
 		if (stored.value.decision?.id !== decisionId) {
@@ -32,6 +32,9 @@ export function resolveCommand(state: EngineState) {
 			const blocker =
 				response.response.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
 			return yield* save(stored, { ...stored.value, blocker, responses });
+		}
+		if (action === "continue") {
+			return yield* continueWorker(state)(stored, responses, response.body).pipe(Effect.flatMap(closeDecisions(state)));
 		}
 		yield* authorizeResolution(state, stored.value, action);
 		const stage = resolutionStage(stored.value, action);
@@ -57,4 +60,9 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 		return "delivering";
 	}
 	return record.result === undefined ? "prepared" : "reviewing";
+}
+
+function hasResponse(record: FleetRecord, decisionId: string, responseId: string) {
+	const prior = [...(record.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(record.responses ?? [])];
+	return prior.some((previous) => previous.decisionId === decisionId && previous.responseId === responseId);
 }

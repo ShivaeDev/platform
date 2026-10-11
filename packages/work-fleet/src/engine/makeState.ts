@@ -3,6 +3,7 @@ import { originalWork } from "#engine/originalWork.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardGateway, type Decision, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
 import type { Versioned } from "#storage/model.ts";
 export const makeState = Effect.gen(function* () {
@@ -45,12 +46,18 @@ export const makeState = Effect.gen(function* () {
 					},
 		);
 	}
-	const decision = Effect.fn("Fleet.decision")(function* (stored: Versioned<FleetRecord>, reason: string, recommendation: string) {
+	const decision = Effect.fn("Fleet.decision")(function* (
+		stored: Versioned<FleetRecord>,
+		reason: string,
+		recommendation: string,
+		worker?: SessionReceipt,
+	) {
 		const value: Decision = {
 			id: `${stored.value.workId}.${stored.version}`,
 			links: stored.value.result?.kind === "change" ? [stored.value.result.pr] : [],
 			reason,
 			recommendation,
+			...(worker === undefined ? {} : { worker }),
 		};
 		const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: value, decisionPublished: false, stage: "needs-human" });
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));

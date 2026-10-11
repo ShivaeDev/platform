@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
 
