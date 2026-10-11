@@ -37,6 +37,7 @@ function continueReview(state: EngineState) {
 		const prompt = [
 			reviewerPrompt({
 				result,
+				...(policy.reviewerGuidance === undefined ? {} : { reviewerGuidance: policy.reviewerGuidance }),
 				...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
 				task: work.context,
 			}),

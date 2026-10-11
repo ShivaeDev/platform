@@ -36,6 +36,7 @@ export interface EngineOptions {
 	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
 	readonly reviewExecution?: "failed" | "interrupted";
+	readonly reviewerGuidance?: string;
 	readonly reviewFailure?: boolean;
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;

@@ -12,6 +12,7 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
+import { hostReviewerGuidance } from "#host/reviewerGuidance.ts";
 import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
@@ -44,6 +45,7 @@ export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
 		Effect.gen(function* () {
 			const clock = yield* Clock.Clock;
+			const reviewerGuidance = yield* hostReviewerGuidance(host);
 			function now() {
 				return clock.currentTimeMillisUnsafe();
 			}
@@ -56,6 +58,7 @@ export function hostPolicy(host: FleetHost) {
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
 				refreshQuota: hostQuota(host, now),
+				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
 				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
 			});
 		}),
