@@ -24,10 +24,3 @@ export function responseFields(form: HTMLFormElement) {
 	}
 	return { author, body, clear, preview, previewButton, status, submit, supersedes, type };
 }
-
-export function requestAuthor(form: HTMLFormElement, status: HTMLElement, author: HTMLInputElement) {
-	if (!author.value.trim()) {
-		form.querySelector("details[data-key=response-details]")?.setAttribute("open", "");
-		status.textContent = "Add your local author label in response details.";
-	}
-}
