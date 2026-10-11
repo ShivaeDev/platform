@@ -7,12 +7,15 @@ import { SessionTransport } from "#session/service.ts";
 
 export const CODEX_CLOUD_ENDPOINT = "wss://codex-cloud-backend.chatgpt.com/";
 export const CodexCloudConfiguration = Schema.Struct({
+	archiveThreads: Schema.optional(Schema.Boolean),
 	authFile: Schema.optional(Schema.String),
 	cwd: Schema.String.check(Schema.isNonEmpty()),
 	endpoint: Schema.optional(Schema.String),
 	environmentId: Schema.String.check(Schema.isNonEmpty()),
+	projectId: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
 	refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Schema.String })),
 	requestTimeoutMs: Schema.Finite.check(Schema.isGreaterThan(0)),
+	threadNamePrefix: Schema.optional(Schema.String.check(Schema.isNonEmpty())),
 	writableRoots: Schema.optional(Schema.Array(Schema.String)),
 });
 export type CodexCloudConfiguration = typeof CodexCloudConfiguration.Type;
@@ -39,6 +42,7 @@ function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 		pluginsMcp: { productSku: "codex" },
 		serviceName: "codex_cloud",
 		threadSource: "user",
+		...(config.projectId === undefined ? {} : { projectId: config.projectId }),
 		...(input.settings?.model === undefined ? {} : { model: input.settings.model }),
 		...(input.settings?.serviceTier === undefined ? {} : { serviceTier: input.settings.serviceTier }),
 	};
@@ -80,6 +84,10 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 		});
 		return {
 			...adapter,
+			archive: (sessionId: string) =>
+				config.archiveThreads === false ? Effect.void : rpc("thread/archive", { threadId: sessionId }, true).pipe(Effect.asVoid),
+			nameSession: (sessionId: string) =>
+				rpc("thread/name/set", { name: `${config.threadNamePrefix ?? "Fleet: "}${sessionId}`, threadId: sessionId }, true).pipe(Effect.asVoid),
 			startSession: (input: StartSession) =>
 				input.cwd === config.cwd
 					? adapter.startSession(input)

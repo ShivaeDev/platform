@@ -31,7 +31,7 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 			expect(renewed.value.boardRevision).toBe(revisionOf(nextSource));
 			expect(renewed.value.attempts).toEqual([]);
 			expect(renewed.value.result).toBeUndefined();
-			expect(renewed.value.history?.[0]?.attempts).toEqual(blocked.value.attempts);
+			expect(renewed.value.history?.[0]?.attempts).toEqual(blocked.value.attempts.map((attempt) => ({ ...attempt, sessionCleanupComplete: true })));
 			expect(renewed.value.history?.[0]?.boardContext).toBe(source);
 			expect(renewed.value.history?.[0]?.decision?.published).toEqual(published);
 			expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
