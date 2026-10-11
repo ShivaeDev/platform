@@ -1,12 +1,12 @@
 import { type Layer as EffectLayer, Layer } from "effect";
 
-export interface EffectProcedureRequestServices<Context, Requirements, Error = never> {
-	readonly layer: (context: Context) => EffectLayer.Layer<Requirements, Error>;
+export interface EffectProcedureRequestServices<Context, Requirements, TError = never> {
+	readonly layer: (context: Context) => EffectLayer.Layer<Requirements, TError>;
 }
 
-export const makeRequestServices = <Context, Requirements, Error = never>(
-	layer: (context: Context) => EffectLayer.Layer<Requirements, Error>,
-): EffectProcedureRequestServices<Context, Requirements, Error> => ({ layer });
+export const makeRequestServices = <Context, Requirements, TError = never>(
+	layer: (context: Context) => EffectLayer.Layer<Requirements, TError>,
+): EffectProcedureRequestServices<Context, Requirements, TError> => ({ layer });
 
 export const extendRequestServices = <
 	BaseContext,

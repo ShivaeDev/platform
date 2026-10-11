@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { BASE, completed, HEAD, MOVED, NO_CHANGE, PR, REPORT, resultFixture, work } from "#test/githubResult.ts";
+import { BASE, completed, HEAD, MOVED, PR, REPORT, resultFixture, work } from "#test/githubResult.ts";
 
 describe("typed result adoption failures", () => {
 	for (const output of [
@@ -13,6 +13,10 @@ describe("typed result adoption failures", () => {
 		`FLEET_HEAD: ${HEAD}\n${REPORT}`,
 		`${REPORT}\nFLEET_PR: none`,
 		`${REPORT}\nextra text`,
+		`FLEET_HEAD: ${HEAD}\nextra text\nFLEET_PR: ${PR}`,
+		`FLEET_HEAD: ${HEAD}\nFLEET_PR: ${PR}\n \tFLEET_PR: none`,
+		` \tFLEET_HEAD: ${HEAD}\n${REPORT}`,
+		`FLEET_HEAD: \`${HEAD}\nFLEET_PR: ${PR}`,
 	]) {
 		it.effect(`rejects missing, malformed or ambiguous report lines: ${output}`, function* () {
 			const fixture = resultFixture();
@@ -56,9 +60,6 @@ describe("typed result adoption failures", () => {
 			expect(yield* resultFixture(options).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
 		});
 	}
-	it.effect("rejects no-change if main moved after the report", function* () {
-		expect(yield* resultFixture({ mainHead: MOVED }).adopt(work, completed(NO_CHANGE)).pipe(Effect.flip)).toMatchObject({ reason: "stale" });
-	});
 	it.effect("does not adopt a running worker", function* () {
 		const fixture = resultFixture();
 		expect(yield* fixture.adopt(work, { ...completed(), execution: "running" }).pipe(Effect.flip)).toMatchObject({ reason: "invalid" });

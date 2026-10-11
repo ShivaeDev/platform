@@ -80,6 +80,15 @@ describe("reportedPullRequest", () => {
 		});
 		expect(reportedPullRequest(`Done.\r\n${PULL_REQUEST_MARKER} none\r\n`)).toEqual({ kind: "none" });
 	});
+	for (const wrap of ["", "`"]) {
+		it(`tolerates whitespace and ${wrap === "" ? "plain" : "backtick-wrapped"} values`, () => {
+			expect(reportedPullRequest(`Done.\n \tFLEET_PR:  ${wrap}https://github.com/example/repository/pull/1${wrap} \t\n`)).toEqual({
+				kind: "url",
+				url: "https://github.com/example/repository/pull/1",
+			});
+			expect(reportedPullRequest(`Done.\n \tFLEET_PR:  ${wrap}none${wrap} \t\n`)).toEqual({ kind: "none" });
+		});
+	}
 	it("returns nothing for a missing or malformed marker", () => {
 		expect(reportedPullRequest("PR: https://example.test/pull/1")).toBeUndefined();
 		expect(reportedPullRequest(`${PULL_REQUEST_MARKER} soon`)).toBeUndefined();
@@ -90,7 +99,8 @@ describe("reportedPullRequest", () => {
 		"https://github.com/example/repository/pull/0",
 		"https://github.com/example/repository/pull/1?extra=true",
 		"https://github.com/example/repository/pull/1#extra",
-		"`none`",
+		"`none",
+		"none`",
 		"none\nMore text",
 		"none\nFLEET_PR: none",
 	]) {

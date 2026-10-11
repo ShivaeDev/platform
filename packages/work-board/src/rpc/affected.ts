@@ -1,6 +1,8 @@
 import type { Key } from "@shivaedev/effect-contract/keys.ts";
-import { backlinksOf } from "#metadata/backlinks.ts";
+import { referencesFrom } from "#metadata/backlinks.ts";
 import type { MetadataModel } from "#metadata/model.ts";
+import { referencesOf } from "#metadata/referencesOf.ts";
+import { malformedResponse } from "#responses/records.ts";
 import { documents, identities, index, navigation } from "./keys.ts";
 
 function uncertain(previous: MetadataModel, current: MetadataModel, paths: readonly string[]) {
@@ -41,10 +43,19 @@ function linkedFiles(models: readonly MetadataModel[], paths: readonly string[])
 	}
 	for (const model of models) {
 		connectIdentities(model, connect);
+		const managed = model.documents.filter((document) => document.parsed.fields.attention?.some((request) => request.managed));
 		for (const document of model.documents) {
-			for (const link of backlinksOf(document.file, model)) {
-				connect(document.file, link.file);
-				connect(link.file, document.file);
+			const uncertainReceipt = document.parsed.diagnostics.some(
+				(problem) => problem.field === "request_receipt" || problem.field === "requestReceipt",
+			);
+			const targets = [
+				...referencesFrom(document, model).flatMap((link) => (link.target === undefined ? [] : [link.target])),
+				...referencesOf(document).flatMap((reference) => (model.ids.get(reference.target.split("#")[0] ?? "") ?? []).map((target) => target.file)),
+				...(malformedResponse(document) || uncertainReceipt ? managed.map((source) => source.file) : []),
+			];
+			for (const target of targets) {
+				connect(document.file, target);
+				connect(target, document.file);
 			}
 		}
 	}

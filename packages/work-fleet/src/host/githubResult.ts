@@ -22,10 +22,6 @@ export function githubResult(
 		}
 		const report = yield* resultReport(observation.output);
 		if (report.pr.kind === "none") {
-			const current = yield* main.refresh;
-			if (current.revision !== report.head) {
-				return yield* new FleetFailure({ message: "Main moved after the no-change report", reason: "stale" });
-			}
 			return { evidence: [observation.output], head: report.head, kind: "no-change" };
 		}
 		return yield* adoptPullRequest(host, read, report.head, report.pr.url);

@@ -7,10 +7,21 @@ export const resultReport = Effect.fn("FleetHost.resultReport")(function* (outpu
 	if (pr === undefined) {
 		return yield* new FleetFailure({ message: "Worker report needs one final FLEET_PR line containing a GitHub PR URL or none", reason: "invalid" });
 	}
-	const heads = output.split(/\r?\n/u).filter((line) => line.startsWith("FLEET_HEAD:"));
-	const head = heads[0]?.slice("FLEET_HEAD:".length).trim();
-	if (heads.length !== 1 || head === undefined || /^[a-f\d]{40}$/u.exec(head) === null) {
-		return yield* new FleetFailure({ message: "Worker report needs one FLEET_HEAD line containing the exact full head SHA", reason: "invalid" });
+	const lines = output
+		.trim()
+		.split(/\r?\n/u)
+		.map((line) => line.trim());
+	const heads = lines.filter((line) => line.startsWith("FLEET_HEAD:"));
+	const head = heads[0]
+		?.slice("FLEET_HEAD:".length)
+		.trim()
+		.replace(/^`(?<value>[^`]*)`$/u, "$<value>")
+		.trim();
+	if (heads.length !== 1 || heads[0] !== lines.at(-2) || head === undefined || /^[a-f\d]{40}$/u.exec(head) === null) {
+		return yield* new FleetFailure({
+			message: "Worker report needs one FLEET_HEAD line with the exact full head SHA immediately before the final PR line",
+			reason: "invalid",
+		});
 	}
 	return { head, pr };
 });

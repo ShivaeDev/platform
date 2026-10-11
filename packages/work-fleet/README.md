@@ -12,7 +12,7 @@ work-fleet run <board-dir>
 
 ## Use the command
 
-Board owns authored work and its revision. Fleet stores preparation, attempts and outcomes against that identity in PostgreSQL. A terminal worker turn is execution evidence; accepted completion also needs result adoption, independent review, checks and authorized delivery or validated no-change. The core tests exercise those completion paths with synthetic integrations.
+Board owns authored work and its revision. Fleet stores preparation, attempts and outcomes against that identity in PostgreSQL. A terminal worker turn is execution evidence; accepted completion also needs result adoption, independent review, checks and an observed human merge of the reviewed head, or validated no-change. The core tests exercise those completion paths with synthetic integrations.
 
 ### Configure the host
 
@@ -131,17 +131,23 @@ Successful publication completes the Fleet attempt without PR adoption, independ
 
 The hosted Codex transport sends the configured environment and launch fields, then reads the final answer from a terminal turn. It authenticates from a Codex login file and can run a configured refresh command for an expired login. Failed refresh remains unavailable. These boundaries are tested with a synthetic WebSocket backend in `src/providers/codexCloud.test.ts`.
 
+Cloud host configuration accepts `cloud.threadNamePrefix` (default `Fleet: `), `cloud.projectId` for an existing project, and `cloud.archiveThreads` (default `true`). Names combine the prefix with the provider thread ID. Fleet persists the session acknowledgement before naming it. Naming is best-effort: a rejected or failed request logs a warning with the session ID and cause, then Fleet starts the turn. Project assignment is sent with `thread/start`.
+
 Restart the host with the same SQL namespace. An attempt intent commits before `thread/start`, its session acknowledgement commits before `turn/start`, and its turn acknowledgement commits before observation. SIGKILL tests against real PostgreSQL and a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. These tests prove host persistence and Cloud adapter wire behavior; they do not prove live hosted execution.
 
 If the session ID is known, reconciliation searches the provider's turn pages for the persisted operation ID and adopts the exact existing receipt. No observable match does not authorize replay. If the thread acknowledgement itself was lost, the current protocol cannot locate that thread by operation ID: Fleet retains the attempt and reservation and raises a human blocker. A retry continues reconciliation; it cannot authorize another launch for the unresolved attempt. Provider unavailability after session acknowledgement and a mismatched setting after thread creation also retain unresolved ownership.
+
+Fleet cleans up worker, repair and reviewer threads after accepted completion or explicit safe release, and after renewal makes a prior conversation unusable for further repair. Terminal provider turns alone do not trigger cleanup: review, checks and human retry can still require the conversation. Cleanup deduplicates shared repair threads, includes acknowledged sessions without a turn, and persists completion markers. Archive failures leave the Fleet outcome accepted; scheduler reconciliation retries pending cleanup, including after restart or renewal, without repeating delivery. `cloud.archiveThreads: false` retains sessions and settles cleanup for that cycle. Transports without an archive capability also retain their sessions.
+
+The adapter sends `thread/archive` and `thread/name/set`; grouping uses `thread/start.projectId`. The generated experimental app-server protocol also declares `thread/metadata/update.projectId` and `thread/list.projectId`, but Fleet does not call those methods. PostgreSQL regressions prove the cleanup lifecycle, and a synthetic WebSocket backend verifies the host configuration and wire requests. These fixtures do not prove hosted acceptance or removal from the ChatGPT and Codex sidebars.
 
 Cloud worker instructions include startup waiting, the configured environment script, fetching current main, repository checks and one pull request for human review. Workers watch CI after every push, repair failures on the same branch, merge current main when behind and state the exact head's CI result before the marker line. They ask for a final `FLEET_PR: <url>` or `FLEET_PR: none` line. The parser reads the last marker line; missing or malformed reports yield no result. `src/prompt/worker.test.ts` covers the instructions and parser. A report line is not proof of an adopted result or accepted delivery.
 
 ### Adopt a worker result
 
-Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The report includes one `FLEET_HEAD: <sha>` line with the full head SHA and ends with one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
 
-A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. The host refreshes main and requires the same SHA, retains the report as evidence, and passes that result through independent review and required checks. Result adoption supplies no review or delivery authority; configure those integrations separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet retains that head and the report as evidence, and passes the result through independent review and required checks. Main movement does not invalidate the report; a changed task revision prevents adoption. Result adoption supplies no review authority; configure that integration separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
 
 `src/host/githubResult.test.ts`, `src/host/githubResultFailures.spec.ts` and `src/engine/resultAdoption.spec.ts` cover these adoption boundaries.
 
@@ -150,6 +156,10 @@ A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. The host
 The command host reads GitHub check runs and commit statuses through an authenticated `gh` CLI for the adopted PR's exact commit SHA, including all pages. Pending or absent checks keep work in validation; failed checks send their names and links to the repair worker. A newer push does not replace the adopted head's evidence. Every observed check must succeed, be neutral or be skipped; this does not establish branch protection or merge authority. `src/host/githubChecks.test.ts` and `src/engine/validation.spec.ts` cover these rules with synthetic GitHub responses and real PostgreSQL.
 
 For built capabilities and open host integrations, see the [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md).
+
+### Human delivery
+
+Fleet never submits a merge. Reviewed, green PRs wait in Needs human as ready to merge. Reconciliation keeps observing the adopted PR through `gh pr view` with the host's existing CLI authentication, accepts only a merge of the reviewed head and records the PR head and merge commit. A PR closed without merging stays in Needs human with that fact, as does a PR whose head moved after review. A temporary observation failure preserves the current Board decision and ownership until GitHub evidence is available again. `src/host/githubDelivery.test.ts`, `src/engine/humanDelivery.spec.ts` and `src/engine/deliveryObservation.spec.ts` cover these rules with synthetic GitHub responses and real PostgreSQL.
 
 ## Compose the Effect core
 
@@ -166,6 +176,6 @@ yield* fleet.prepare({ workId, preparation, prompt, cwd });
 yield* cycle;
 ```
 
-Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, independent review, required checks and authorized delivery. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
+Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, independent review, required checks and delivery observation. Fleet does not call the `authorize` and `merge` callbacks, which remain in the integration contract for compatibility. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current Board revisions. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` covers those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.

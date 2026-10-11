@@ -12,12 +12,15 @@ export const HostConfig = Schema.Struct({
 	backlog: Schema.optional(Positive),
 	cloud: Schema.optional(
 		Schema.Struct({
+			archiveThreads: Schema.optional(Schema.Boolean),
 			authFile: Schema.optional(Text),
 			cwd: Text,
 			endpoint: Schema.optional(Text),
 			environmentId: Text,
+			projectId: Schema.optional(Text),
 			refreshCommand: Schema.optional(Schema.Struct({ args: Schema.Array(Schema.String), command: Text })),
 			requestTimeoutMs: Schema.optional(Positive),
+			threadNamePrefix: Schema.optional(Text),
 			writableRoots: Schema.optional(Schema.Array(Text)),
 		}),
 	),

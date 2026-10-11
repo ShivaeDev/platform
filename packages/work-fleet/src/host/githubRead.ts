@@ -6,7 +6,7 @@ export const githubRead = Effect.fn("Fleet.githubRead")(function* (args: readonl
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	return yield* Effect.scoped(
 		Effect.gen(function* () {
-			const process = yield* spawner.spawn(ChildProcess.make("gh", args, { cwd }));
+			const process = yield* spawner.spawn(ChildProcess.make("gh", args, cwd === undefined ? {} : { cwd }));
 			const output = yield* process.stdout.pipe(Stream.decodeText, Stream.mkString);
 			if ((yield* process.exitCode) !== 0) {
 				return yield* new FleetFailure({ message: "GitHub request failed", reason: "integration" });
@@ -16,7 +16,7 @@ export const githubRead = Effect.fn("Fleet.githubRead")(function* (args: readonl
 	).pipe(
 		Effect.timeout("60 seconds"),
 		Effect.mapError(
-			() => new FleetFailure({ message: "GitHub could not be read; check gh authentication and repository access", reason: "integration" }),
+			() => new FleetFailure({ message: "GitHub evidence could not be read; check gh authentication and repository access", reason: "integration" }),
 		),
 	);
 });

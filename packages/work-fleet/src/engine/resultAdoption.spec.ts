@@ -59,6 +59,37 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 		);
 	});
 
+	for (const changedTask of [false, true]) {
+		test(`no-change after main moves ${changedTask ? "rejects an edited task" : "completes for the same task revision"}`, () => {
+			const github = resultFixture({ mainHead: MOVED });
+			return withEngine({ resultQuery: github.adopt }, (fixture) =>
+				Effect.gen(function* () {
+					yield* prepareWork("one");
+					const fleet = yield* Fleet;
+					yield* fleet.dispatch("one");
+					finishReport(fixture, NO_CHANGE);
+					if (changedTask) {
+						fixture.editWork("one", "board-one-next");
+						fixture.approveWork("one", "board-one-next");
+					}
+					const reconciled = yield* fleet.reconcile("one");
+					if (changedTask) {
+						expect(reconciled.value.stage).toBe("needs-human");
+						expect(reconciled.value.decision?.reason).toBe("Board context changed while work ran");
+						expect(reconciled.value.result).toBeUndefined();
+						expect(fixture.reviews).toHaveLength(0);
+					} else {
+						expect(reconciled.value.stage).toBe("completed");
+						expect(reconciled.value.result).toEqual({ evidence: [NO_CHANGE], head: HEAD, kind: "no-change" });
+						expect(reconciled.value.checks?.head).toBe(HEAD);
+						expect(reconciled.value.outcome).toMatchObject({ evidence: [NO_CHANGE] });
+					}
+					expect(fixture.merged).toHaveLength(0);
+				}),
+			);
+		});
+	}
+
 	for (const scenario of [
 		{ options: {}, output: "Missing final PR line" },
 		{ options: { before: { state: "closed" } }, output: REPORT },

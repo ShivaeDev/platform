@@ -71,12 +71,19 @@ export function reportPrompt(task: string): string {
 }
 
 export function reportedPullRequest(output: string) {
-	const lines = output.trim().split(/\r?\n/u);
+	const lines = output
+		.trim()
+		.split(/\r?\n/u)
+		.map((line) => line.trim());
 	const markers = lines.filter((line) => line.startsWith(PULL_REQUEST_MARKER));
 	if (markers.length !== 1 || markers[0] !== lines.at(-1)) {
 		return undefined;
 	}
-	const value = markers[0]?.slice(PULL_REQUEST_MARKER.length).trim();
+	const value = markers[0]
+		?.slice(PULL_REQUEST_MARKER.length)
+		.trim()
+		.replace(/^`(?<value>[^`]*)`$/u, "$<value>")
+		.trim();
 	if (value === "none") {
 		return { kind: "none" } as const;
 	}

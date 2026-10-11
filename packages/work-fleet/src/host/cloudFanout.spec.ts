@@ -5,10 +5,10 @@ import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import { cloudFanout } from "#test/cloudFanout.ts";
-import { hostProcess, until } from "#test/cloudRestart.ts";
 import { codexServer } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { hostProcess } from "#test/hostProcess.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 function records(fixture: HostFixture) {
@@ -19,7 +19,7 @@ function records(fixture: HostFixture) {
 
 const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostFixture, backend: ReturnType<typeof cloudFanout>) {
 	const first = yield* hostProcess(fixture.configFile);
-	yield* until(() =>
+	yield* first.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => ({
 				done: backend.operations.size === 100,
@@ -36,7 +36,7 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 	).toBe(true);
 	yield* first.kill;
 	const restarted = yield* hostProcess(fixture.configFile);
-	yield* until(() =>
+	yield* restarted.until(() =>
 		records(fixture).pipe(
 			Effect.map((stored) => {
 				const running = stored.filter(({ value }) => value.attempts[0]?.status === "running").length;
@@ -75,7 +75,7 @@ function fanoutStory() {
 					provider: "cloud",
 					worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" },
 				},
-				(fixture) => killFanout(fixture, backend),
+				(fixture) => killFanout(fixture, backend).pipe(Effect.scoped),
 			);
 		}),
 	);

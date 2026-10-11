@@ -6,6 +6,7 @@ import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
+import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostQuota } from "#host/quota.ts";
@@ -25,7 +26,7 @@ export function hostIntegrations(host: FleetHost) {
 			return FleetIntegrations.of({
 				authorize: () => Effect.succeed(false),
 				checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
-				delivery: () => unconfigured("Delivery observation"),
+				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,
 				merge: () => unconfigured("Merge"),
 				reconcileReview: () => unconfigured("Review reconciliation"),
