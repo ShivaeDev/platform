@@ -4,6 +4,7 @@ import type { AdmissionLimits } from "#storage/model.ts";
 
 export interface FleetStoreOptions<A> {
 	readonly admission?: (record: A, previous: A | undefined, records: readonly A[], limits: AdmissionLimits) => Effect.Effect<void, StorageAdmission>;
+	readonly admissionNeedsRecords?: (record: A, previous: A | undefined, limits: AdmissionLimits) => boolean;
 	readonly backlog?: (record: A) => boolean;
 	readonly executing?: (record: A) => boolean;
 	readonly namespace?: string;

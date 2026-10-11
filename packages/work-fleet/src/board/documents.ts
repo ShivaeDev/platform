@@ -5,6 +5,7 @@ import type { MetadataDocument } from "@shivaedev/work-board/metadata/model.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { boardDiagnostics } from "#board/fleetField.ts";
 import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";
+import { STATUS_MARKER } from "#board/statusMarkdown.ts";
 import { BoardFailure } from "#policy.ts";
 
 export type BoardDocument = MetadataDocument & { readonly source: string };
@@ -37,6 +38,9 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 		const source = yield* fs
 			.readFileString(real)
 			.pipe(Effect.mapError((error) => new BoardFailure({ message: `Board source could not be read: ${file} (${error.message})` })));
+		if (file === "fleet/status.md" && source.startsWith(`${STATUS_MARKER}\n`)) {
+			return undefined;
+		}
 		const parsed = metadataParse(source);
 		const diagnostics = boardDiagnostics(parsed);
 		if (diagnostics.length > 0) {

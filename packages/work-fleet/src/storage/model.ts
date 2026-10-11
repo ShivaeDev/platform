@@ -1,6 +1,7 @@
 import { Effect, Schema, SchemaAST } from "effect";
 import { Model } from "effect/unstable/schema";
 import { FleetRecord } from "#model.ts";
+import { recordValue } from "#storage/recordValue.ts";
 export interface Versioned<A> {
 	readonly value: A;
 	readonly version: number;
@@ -66,6 +67,7 @@ const rowFields = {
 	blocker: Schema.NullOr(Schema.String),
 	checks: Schema.NullOr(Schema.String),
 	decision: Schema.NullOr(Schema.String),
+	launchRetry: Schema.NullOr(Schema.String),
 	outcome: Schema.NullOr(Schema.String),
 	stage: Schema.NullOr(Schema.String),
 	version: Model.Field({ select: Schema.Number, update: Schema.Number }),
@@ -101,19 +103,9 @@ export function recordInput(value: string, columns: ReturnType<typeof recordColu
 	);
 }
 
-export const recordJson = Effect.fn("FleetRow.recordJson")(function* (row: object, columns: ReturnType<typeof recordColumns>) {
-	const values = Object.fromEntries(Object.entries(row));
-	const fields = yield* Effect.forEach(Object.entries(columns), ([name, kind]) => {
-		const value = values[name];
-		if (value === null || value === undefined) {
-			return Effect.succeed([]);
-		}
-		return kind === "json"
-			? Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(value).pipe(Effect.map((decoded) => [[name, decoded]]))
-			: Effect.succeed([[name, value]]);
-	});
-	return JSON.stringify({ ...Object.fromEntries(fields.flat()), workId: values.work_id });
-});
+export function recordJson(row: object, columns: ReturnType<typeof recordColumns>) {
+	return recordValue(row, columns).pipe(Effect.map(JSON.stringify));
+}
 
 export interface StoredRow {
 	readonly value: string;
