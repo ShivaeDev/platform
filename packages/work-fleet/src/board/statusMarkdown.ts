@@ -28,7 +28,9 @@ export function statusMarkdown(records: readonly FleetRecord[]): string {
 		...(
 			[
 				["Active", current.active],
-				["Needs human", current.needsHuman],
+				["Waiting on maintainer", current.waiting.maintainer],
+				["Waiting on orchestrator", current.waiting.orchestrator],
+				["Waiting on automation", current.waiting.automation],
 				["Done", current.completed],
 			] as const
 		).flatMap(([heading, items]) => [`## ${heading}`, ...items.map(card)]),

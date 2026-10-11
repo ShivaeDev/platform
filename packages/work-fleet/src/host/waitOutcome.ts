@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { AttentionOwner, waitingOwner } from "#attention.ts";
 
 export const WAIT_EXIT = { completed: 0, error: 1, needsHuman: 2, released: 3, timeout: 4 } as const;
 
@@ -8,8 +9,10 @@ export interface WaitOutcome {
 }
 
 export const WaitState = Schema.Struct({
+	attentionOwner: Schema.optional(AttentionOwner),
 	blocker: Schema.optional(Schema.String),
-	decision: Schema.optional(Schema.Struct({ reason: Schema.String })),
+	checks: Schema.optional(Schema.Struct({ pending: Schema.optional(Schema.Boolean) })),
+	decision: Schema.optional(Schema.Struct({ attentionOwner: Schema.optional(AttentionOwner), reason: Schema.String })),
 	outcome: Schema.optional(Schema.Struct({ evidence: Schema.optional(Schema.Array(Schema.String)), url: Schema.optional(Schema.String) })),
 	stage: Schema.String,
 });
@@ -23,7 +26,7 @@ export function settled(workId: string, state: WaitState): WaitOutcome | undefin
 	if (state.stage === "needs-human") {
 		return {
 			code: WAIT_EXIT.needsHuman,
-			summary: `${workId} needs-human: ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
+			summary: `${workId} needs-human (waiting on ${waitingOwner(state)}): ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
 		};
 	}
 	if (state.stage === "released") {

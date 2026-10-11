@@ -10,7 +10,13 @@ export function makeAdopt({ integrations, save, decision }: EngineState) {
 		let stored = input;
 		if (stored.value.stage === "adopting") {
 			if (work.revision !== stored.value.boardRevision) {
-				return yield* decision(stored, "Board context changed while work ran", "Approve the current Board scope before adopting this result");
+				return yield* decision(
+					stored,
+					"Board context changed while work ran",
+					"Approve the current Board scope before adopting this result",
+					undefined,
+					"maintainer",
+				);
 			}
 			const latest = stored.value.attempts.at(-1);
 			if (latest?.receipt === undefined) {

@@ -8,8 +8,7 @@ handoffs.
 ## Keep approved work moving
 
 A single cycle observes current attempts and admits independent prepared work.
-Exceptions appear as concrete Board questions. Active, Completed and Needs human
-are derived from the same execution attachments.
+Exceptions appear as concrete Board questions. Active, Completed and waiting groups for the maintainer, orchestrator and automation are derived from the same execution attachments.
 
 ```ts
 const fleet = yield* Fleet;
@@ -96,9 +95,21 @@ terminal adopted PR transfers its actual paths into a foreign reservation until
 the runtime observes that the PR no longer owns them. Ambiguous submitted
 delivery cannot be released.
 
+### Identify who must act
+
+Waiting records and views carry `attentionOwner`: `maintainer` for scope or delivery approval, `orchestrator` for routine worker questions, result inspection and retry, and `automation` for missing host integrations, occupied capacity or pending checks. `FleetViews.waiting` contains separate `maintainer`, `orchestrator` and `automation` arrays. The former `needsHuman` list is removed. Items with an admission blocker also appear in waiting groups while retaining their stage. `work-fleet status`, its JSON output and the generated Board views use these groups; wait and watch summaries name the owner while retaining their exit codes.
+
+Reassign the exact current question with `fleet.reassign(workId, decisionId, attentionOwner)`, the native `Reassign` RPC command, or the CLI:
+
+```sh
+work-fleet reassign sample-task sample-decision maintainer --board ./notes
+```
+
+Reassignment publishes a new question for the assigned owner and acknowledges the old question as superseded, preserving both reviewed sources. Answers to the old question cannot continue the worker. Reconciliation retries publication and acknowledgement after failure or restart. Owner labels do not grant runtime approval or delivery authority.
+
 ### Answer a worker question
 
-Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
+Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in `needs-human`, waiting on the orchestrator by default. Only `FLEET_MAINTAINER_QUESTION: <question>` escalates a worker question to the maintainer; mentioning the maintainer in ordinary question text does not escalate it. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
 
 Record a nonempty answer through Board's response page or response API. Reconciliation continues the exact worker thread with the answer body under current approval, quota and capacity policy. The response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection. Clarification, deferral, changed context and competing answers keep the work blocked. Answer text supplies task input and does not grant delivery authority.
 
@@ -122,11 +133,11 @@ yield* fleet.resolve(workId, decisionId, responseId);
 ```
 
 The native `Resolve` payload has the same three IDs. A repeated acknowledgement
-does not repeat the action. `clarify` and `not_now` keep work in Needs human with
+does not repeat the action. `clarify` and `not_now` keep work waiting on its assigned owner with
 the current blocker. Replacing an answer, clarification or deferral requires
 explicit Board supersession. Fleet does not pick among competing responses or
 infer an action from the newest body. Decisions
-remain usable while the scheduler runs, and the three views prefer current blockers.
+remain usable while the scheduler runs, and the views prefer current blockers.
 
 After the resolution commits in SQL, `BoardGateway.acknowledgeDecision` receives a
 `BoardDecisionAcknowledgement`. The Markdown adapter records an immutable Board
@@ -146,14 +157,14 @@ answers use disposition `applied`; clarification and deferral leave the request 
 Custom Board gateways must implement the same durable acknowledgement boundary.
 
 `FleetContract` and `fleetHandlers` expose preparation, dispatch, reconciliation,
-decision resolution and the three derived views through native Effect RPC.
+decision resolution, reassignment and the derived views through native Effect RPC.
 The host supplies transport and authentication. Detailed records remain available
 through the native `Get` query or `Fleet.list`; completion resides in SQL attachments to the Board ID. The
 addon does not rewrite authored task status.
 
 ### Read the generated heading board
 
-The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Needs human and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
+The CLI host writes `fleet/status.md` inside the Board folder. It derives Active, Waiting on maintainer, Waiting on orchestrator, Waiting on automation and Done columns from the same Fleet views, with one card per current unreleased item. Cards link to the task's Board identity and its adopted PR when available. The file contains execution stages and blockers, not worker prompts, session receipts or authored task status.
 
 After the first scheduler cycle creates the file, select it as Work Board's home:
 
@@ -161,7 +172,7 @@ After the first scheduler cycle creates the file, select it as Work Board's home
 work-board ./notes --home fleet/status.md
 ```
 
-The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services.
+The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation, resolution and reassignment. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services.
 
 ### Start a small personal pilot
 

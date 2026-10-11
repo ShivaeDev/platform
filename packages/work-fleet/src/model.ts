@@ -1,5 +1,6 @@
 import { Schema } from "effect";
-import { Checks, Decision, DecisionResponse, Delivery, Review, WorkResult } from "#policy.ts";
+import { AttentionOwner } from "#attention.ts";
+import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
@@ -15,6 +16,7 @@ export const Attempt = Schema.Struct({
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
 	attempts: Schema.Array(Attempt),
+	attentionOwner: Schema.optional(AttentionOwner),
 	blocker: Schema.optional(Schema.String),
 	boardContext: Schema.optional(Schema.String),
 	boardRevision: Schema.String,
@@ -45,6 +47,7 @@ const cycleFields = {
 		"needs-human",
 		"released",
 	]),
+	supersededDecisions: Schema.optional(Schema.Array(SupersededDecision)),
 };
 export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Schema.Number });
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
@@ -57,6 +60,7 @@ export function backlog(record: FleetRecord): boolean {
 	return record.result?.kind === "change" && record.stage !== "completed" && record.stage !== "released";
 }
 export const FleetView = Schema.Struct({
+	attentionOwner: Schema.optional(AttentionOwner),
 	blocker: Schema.optional(Schema.String),
 	decision: Schema.optional(Decision),
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
@@ -66,7 +70,15 @@ export const FleetView = Schema.Struct({
 	stage: FleetRecord.fields.stage,
 	workId: Schema.String,
 });
-export const FleetViews = Schema.Struct({ active: Schema.Array(FleetView), completed: Schema.Array(FleetView), needsHuman: Schema.Array(FleetView) });
+export const FleetViews = Schema.Struct({
+	active: Schema.Array(FleetView),
+	completed: Schema.Array(FleetView),
+	waiting: Schema.Struct({
+		automation: Schema.Array(FleetView),
+		maintainer: Schema.Array(FleetView),
+		orchestrator: Schema.Array(FleetView),
+	}),
+});
 
 export function allAttempts(record: FleetRecord): readonly Attempt[] {
 	return [...(record.history ?? []).flatMap((cycle) => cycle.attempts), ...record.attempts];

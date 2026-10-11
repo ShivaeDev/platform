@@ -1,0 +1,20 @@
+import { Schema } from "effect";
+
+export const AttentionOwner = Schema.Literals(["maintainer", "orchestrator", "automation"]);
+export type AttentionOwner = typeof AttentionOwner.Type;
+
+export function waitingOwner(record: {
+	readonly attentionOwner?: AttentionOwner | undefined;
+	readonly blocker?: string | undefined;
+	readonly checks?: { readonly pending?: boolean | undefined } | undefined;
+	readonly decision?: { readonly attentionOwner?: AttentionOwner | undefined } | undefined;
+	readonly stage: string;
+}): AttentionOwner | undefined {
+	if (record.stage === "needs-human") {
+		return record.attentionOwner ?? record.decision?.attentionOwner ?? "orchestrator";
+	}
+	if (record.blocker !== undefined) {
+		return record.attentionOwner ?? "orchestrator";
+	}
+	return record.stage === "validating" && record.checks?.pending ? "automation" : undefined;
+}

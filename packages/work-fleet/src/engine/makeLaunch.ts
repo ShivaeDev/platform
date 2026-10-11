@@ -9,7 +9,7 @@ export function makeLaunch(state: EngineState) {
 	return Effect.fn("Fleet.launch")(function* (stored: Versioned<FleetRecord>, role: "worker" | "repair", prompt: string) {
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope");
+			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope", undefined, "maintainer");
 		}
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(

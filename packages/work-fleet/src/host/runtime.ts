@@ -13,7 +13,11 @@ import { SessionService, type SessionTransport } from "#session/service.ts";
 
 function unconfigured(what: string) {
 	return Effect.fail(
-		new FleetFailure({ message: `${what} is not configured in this Fleet host; inspect the worker session`, reason: "integration" }),
+		new FleetFailure({
+			attentionOwner: "automation",
+			message: `${what} is not configured in this Fleet host; inspect the worker session`,
+			reason: "integration",
+		}),
 	);
 }
 
@@ -21,8 +25,9 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 	Effect.gen(function* () {
 		const main = yield* MainSource;
 		return FleetIntegrations.of({
-			authorize: () => Effect.succeed(false),
-			checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
+			authorize: () => unconfigured("Delivery authorization"),
+			checks: (_work, result) =>
+				result.kind === "no-change" ? unconfigured("No-change validation") : githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 			delivery: () => unconfigured("Delivery observation"),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),

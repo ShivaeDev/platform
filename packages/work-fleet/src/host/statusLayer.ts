@@ -30,6 +30,7 @@ export function statusLayer(root: string) {
 				dispatch: (workId) => after(fleet.dispatch(workId)),
 				list: () => after(fleet.list()),
 				prepare: (input) => after(fleet.prepare(input)),
+				reassign: (workId, decisionId, attentionOwner) => after(fleet.reassign(workId, decisionId, attentionOwner)),
 				reconcile: (workId) => after(fleet.reconcile(workId)),
 				resolve: (workId, decisionId, responseId) => after(fleet.resolve(workId, decisionId, responseId)),
 			});

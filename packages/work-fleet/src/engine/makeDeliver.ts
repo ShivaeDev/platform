@@ -14,7 +14,7 @@ export function makeDeliver({ integrations, save, decision }: EngineState) {
 			return yield* save(stored, { ...stored.value, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" });
 		}
 		if (!(yield* integrations.authorize(work, result))) {
-			return yield* decision(stored, "Runtime policy denies delivery", "Approve delivery scope in trusted runtime policy");
+			return yield* decision(stored, "Runtime policy denies delivery", "Approve delivery scope in trusted runtime policy", undefined, "maintainer");
 		}
 		const head = result.head;
 		const accepted = yield* integrations.delivery(result);

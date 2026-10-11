@@ -23,12 +23,12 @@ describe("work-fleet watch against PostgreSQL", () => {
 						yield* untilOutput(follower, "a completed: All checks passed\n");
 						expect(follower.output().trim().split("\n")).toEqual(["a completed: All checks passed"]);
 						yield* storeState(fixture.host, "b", { decision: { reason: "Review failed\nPlease inspect\r\nthe diff" }, stage: "needs-human" });
-						yield* untilOutput(follower, "b needs-human: Review failed Please inspect the diff\n");
+						yield* untilOutput(follower, "b needs-human (waiting on orchestrator): Review failed Please inspect the diff\n");
 						yield* storeState(fixture.host, "c", { stage: "released" });
 						expect(yield* Effect.promise(() => follower.done)).toMatchObject({
 							code: 0,
 							stderr: "",
-							stdout: "a completed: All checks passed\nb needs-human: Review failed Please inspect the diff\nc released",
+							stdout: "a completed: All checks passed\nb needs-human (waiting on orchestrator): Review failed Please inspect the diff\nc released",
 						});
 					}),
 				);

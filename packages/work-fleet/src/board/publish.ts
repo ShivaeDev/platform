@@ -28,7 +28,7 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision): strin
 				kind: "decision",
 				managed: true,
 				reason: input.reason,
-				"response_from": ["maintainer"],
+				"response_from": [input.attentionOwner ?? "orchestrator"],
 				state: "open",
 				unblocks: [work.workId],
 			},

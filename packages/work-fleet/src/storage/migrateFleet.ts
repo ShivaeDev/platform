@@ -11,6 +11,13 @@ export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (name
 				yield* sql`create table ${sql(`${namespace}_foreign_reservations`)} (owner text primary key, paths jsonb not null, executing boolean not null, backlog boolean not null)`;
 			}),
 			"2_occupancy_only_foreign_reservations": sql`alter table ${sql(`${namespace}_foreign_reservations`)} drop column paths`,
+			"3_attention_owner": sql`update ${sql(`${namespace}_records`)} set version = version + 1,
+				payload = jsonb_set(payload, '{attentionOwner}',
+					case when payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'
+						then '"automation"'::jsonb else '"orchestrator"'::jsonb end)
+				where payload->>'attentionOwner' is null and
+					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or
+					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,
 		}),
 		lockTimeout: "5 seconds",
 		table: `${namespace}_migrations`,

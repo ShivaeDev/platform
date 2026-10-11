@@ -38,7 +38,7 @@ function record(host: FleetHost, workId: string, parts: Parameters<typeof hostLa
 describe("work-fleet host against PostgreSQL", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
 
-	test("run launches each approved Board revision once and wait reports the human decision", function* () {
+	test("run launches each approved Board revision once and wait reports the automation blocker", function* () {
 		const files = { "a.md": task("a", "approved"), "b.md": task("b"), "c.md": task("c", "draft") };
 		yield* withHost(files, {}, (fixture) =>
 			Effect.gen(function* () {
@@ -57,12 +57,12 @@ describe("work-fleet host against PostgreSQL", () => {
 				});
 				yield* Fiber.interrupt(runner);
 				expect(outcome.code).toBe(WAIT_EXIT.needsHuman);
-				expect(outcome.summary).toMatch(/^a needs-human: /u);
+				expect(outcome.summary).toMatch(/^a needs-human \(waiting on automation\): /u);
 				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
 				expect(status).toContain("Active (0)");
-				expect(status).toContain("Needs human (1)\n  a  needs-human");
+				expect(status).toContain("Waiting on automation (1)\n  a  needs-human");
 				const board = readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8");
-				expect(board).toContain("## Needs human\n\n### a");
+				expect(board).toContain("## Waiting on automation\n\n### a");
 				expect(board).toContain("Stage: needs-human");
 				expect(readFileSync(join(fixture.host.boardDir, "a.md"), "utf8")).toBe(files["a.md"]);
 			}),

@@ -1,4 +1,5 @@
 import { Context, type Effect, Schema } from "effect";
+import { AttentionOwner } from "#attention.ts";
 import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading } from "#board/schema.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -14,6 +15,7 @@ export const BoardWork = Schema.Struct({
 });
 export type BoardWork = typeof BoardWork.Type;
 export const Decision = Schema.Struct({
+	attentionOwner: Schema.optional(AttentionOwner),
 	id: Schema.String,
 	links: Schema.Array(Schema.String),
 	published: Schema.optional(BoardDecision),
@@ -22,6 +24,11 @@ export const Decision = Schema.Struct({
 	worker: Schema.optional(SessionReceipt),
 });
 export type Decision = typeof Decision.Type;
+export const SupersededDecision = Schema.Struct({
+	boardAcknowledged: Schema.optional(Schema.Boolean),
+	published: BoardDecision,
+	supersededAt: Schema.Number,
+});
 export const DecisionResponse = Schema.Struct({
 	action: Schema.optional(Schema.Literals(["retry", "release", "continue"])),
 	boardAcknowledged: Schema.optional(Schema.Boolean),
@@ -35,6 +42,7 @@ export const DecisionResponse = Schema.Struct({
 });
 export type DecisionResponse = typeof DecisionResponse.Type;
 export class FleetFailure extends Schema.TaggedError<FleetFailure>()("FleetFailure", {
+	attentionOwner: Schema.optional(AttentionOwner),
 	message: Schema.String,
 	reason: Schema.Literals(["missing", "stale", "denied", "integration", "invalid"]),
 }) {}
