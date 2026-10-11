@@ -1,65 +1,32 @@
 # Work Fleet roadmap
 
-## Implemented slice
+## Built
 
-The headless addon reads stable Board identities and dependencies. Ordinary
-PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns,
-review/check evidence, decisions and accepted outcomes. Completion is attached to
-the Board ID in SQL; Fleet does not rewrite the authored task status in Markdown.
+- The `work-fleet` command loads `fleet.config.json`, schedules approved Board work with `run`, explicitly dispatches an item, reports stored views with `status`, and observes outcomes with `wait`. Host tests cover admission and revision approval against PostgreSQL; CLI tests cover status flags and wait process exit codes.
+- Board frontmatter uses `fleet: approved` and per-field `fleet-launch` overrides. Host launch defaults and task overrides reach worker sessions and turns; repair retains the settings. Frontmatter, host and launch-setting tests cover these boundaries.
+- The Codex Cloud provider sends the configured environment and launch settings, confirms the environment before a turn and rejects work prepared for a different workspace, reads final output, and refreshes expired login files through a configured command. `src/providers/codexCloud.test.ts` covers these requests and failures with a synthetic WebSocket backend.
+- Worker instructions include Cloud startup waiting, current-main checkout, repository checks and one human-review pull request. The report parser recognizes a URL or explicit no-change marker. `src/prompt/worker.test.ts` covers these instructions and parsing.
+- The Effect core stores preparation, attempts, receipts, review/check evidence, decisions and accepted outcomes in PostgreSQL. Native RPC and derived views, revision-bound completion, repair, dependency acceptance, renewal and recovery are exercised by the engine tests. Overlapping scopes can dispatch concurrently; admission tests cover capacity, quota and backlog separately.
+- Managed Board decisions retain exact question/context receipts. Current guided retry/release responses resolve idempotently in SQL, and immutable Board request receipts acknowledge applied or superseded decisions. HTTP and renewal tests cover publication recovery and stale or ambiguous responses.
+- The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
-The core provides prepare/dispatch/reconcile, native RPC commands and derived
-Active, Completed and Needs human queries. Independent review, repair and validation
-precede trusted delivery or evidenced no-change. Scope, execution capacity, quota
-and delivery backlog remain separate. Recovery retains ambiguous operations and
-accepted ownership instead of relaunching blindly. Renewal keeps the same Board ID
-and archives prior context, attempts, responses and evidence after confirming terminal
-execution and resolving existing result ownership. Current dependency revisions
-need fresh accepted outcomes; criterion-specific references remain unsupported.
+## Open for the command host
 
-Published decisions retain exact Board question/context receipts. Reconciliation
-consumes current guided retry/release responses and records idempotent SQL
-acknowledgements. Native resolution names the work, decision and response IDs.
-Clarification, deferral, stale context and competing unsuperseded answers remain
-concrete human blockers. Response labels and bodies cannot grant runtime authority.
-Applied responses retain the exact published decision and Board acknowledgement
-marker in SQL. After SQL resolution commits, the Markdown gateway publishes a
-qualified immutable request receipt, allowing Board's native attention to acknowledge
-the managed request without modifying its reviewed source. Failed publication retries
-without repeating the action. Renewal recovers the exact decision publication receipt
-from stored original context before archival; missing context blocks renewal.
-archived open decisions retain pending acknowledgement state and receive superseded
-acknowledgements. Clarification and deferral stay open.
+- Result adoption: verify and attach the actual pull request or evidenced no-change result. A worker report marker alone is insufficient.
+- Independent review and repair: wire the core's exact-head review and reconciliation boundary to a real reviewer.
+- Required checks: connect current repository requirements and validation of the exact head.
+- Authorized delivery: supply trusted authorization, delivery observation and normal merge under branch requirements.
+- Board view: present Fleet execution attachments and decisions in the Board interface.
 
-Preparation compatibility uses authoritative ancestry and complete relevant context.
-Unrelated changes refresh preparation while preserving original validation evidence;
-relevant or uncertain changes require preparation again for the affected work.
+The command host's default integrations do not supply result adoption, review, checks or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
 
 ## Validation boundary
 
-Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
-response recording, native Fleet RPC and the actual admission/completion paths.
-Provider execution and delivery in those fixtures are synthetic. These tests prove
-the core decisions and recovery behavior, not Cloud execution or live merges.
-The experimental local Codex adapter is based on the installed CLI's generated
-protocol and a real app-server connection. Two read-only local turns were accepted
-and their exact receipts recovered after reconnecting without another launch. Both
-ended in provider authentication failure; the actual quota read also failed with
-401. This proves receipt/recovery behavior, not successful computation, Fleet
-admission under fresh quota, automatic replacement or delivery.
+Real PostgreSQL tests cover durable storage, host admission, status reads, wait process behavior and engine transitions. Board HTTP tests exercise response and acknowledgement publication. Cloud and local provider tests use synthetic WebSocket servers. Packed consumers exercise the package exports and command help.
 
-## Personal pilot follow-up
+Live Cloud computation, actual pull request adoption, independent review, required checks and authorized delivery still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 
-- Configure working provider access, authoritative quota and trusted delivery policy.
-- Run at least two disjoint Board items through the headless host.
-- One independently reviewed, validated routine outcome progressing automatically.
-- Replacement timing and occupancy observations after confirmed terminal execution.
-- Restart adoption without a duplicate launch using exact accepted receipts.
-- Normal authorized delivery under actual branch requirements.
-- A verified modern hosted Cloud transport/configuration if hosted execution is wanted.
+## Maintainer decisions
 
-The maintainer will verify this live loop in a personal pilot after the environment's
-checks. Missing credentials and hosted capabilities remain concrete pilot blockers;
-synthetic fixtures do not supply live proof. A modern hosted transport remains a
-separate verified integration, not an inferred local CLI capability.
-The addon is private at version 0.0.0 until the maintainer chooses a release; packed
-consumer validation still covers its archive. No existing package version changes.
+- Release and public distribution: the package remains private at version `0.0.0`.
+- Live pilot: validate disjoint work, replacement timing, restart recovery and normal delivery once the open host integrations are connected.

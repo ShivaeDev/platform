@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Document the command, host configuration, approval and launch overrides, wait exit
+  codes and tested Cloud provider boundary; list open command-host integrations in
+  the roadmap.
+
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a
