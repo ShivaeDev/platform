@@ -8,11 +8,13 @@ import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { useAction, useQuery } from "#result-state.ts";
+import { eventually, expectNoReactWarnings } from "#test/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 
 class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({
@@ -110,8 +112,7 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 		return JSON.parse(container.querySelector("output")?.textContent ?? "null");
 	}
 	const settled = async (titles: string[], error = false) =>
-		vi.waitFor(async () => {
-			await act(async (): Promise<void> => undefined);
+		eventually(() => {
 			expect(snapshot()).toEqual({
 				error,
 				loading: false,

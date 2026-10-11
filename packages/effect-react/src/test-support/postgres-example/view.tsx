@@ -5,8 +5,9 @@ import type * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { vi } from "vitest";
+import { expect } from "vitest";
 import type { AtomServices } from "#field-rejection.ts";
+import { eventually } from "#test/react.ts";
 import { makeClient } from "./makeClient.ts";
 import { OrderEditor } from "./OrderEditor.tsx";
 
@@ -24,13 +25,29 @@ export async function mountView(url: string, token = "alice-session") {
 	try {
 		await Effect.runPromise(AtomRegistry.getResult(registry, client.query));
 	} catch (error) {
+		releaseQuery();
 		registry.dispose();
 		throw error;
 	}
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
-	await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(OrderEditor, { client }))));
+	async function close() {
+		await act(async () => root.unmount());
+		releaseQuery();
+		registry.dispose();
+		container.remove();
+	}
+	try {
+		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(OrderEditor, { client }))));
+		await eventually(() => {
+			expect(registry.get(client.status).connection).toBe("live");
+			expect(registry.get(client.query).waiting).toBe(false);
+		});
+	} catch (error) {
+		await close();
+		throw error;
+	}
 	function input(name: string) {
 		const found = container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
 		if (!found) {
@@ -48,12 +65,7 @@ export async function mountView(url: string, token = "alice-session") {
 				}
 				button.click();
 			}),
-		close: async () => {
-			await act(async () => root.unmount());
-			releaseQuery();
-			registry.dispose();
-			container.remove();
-		},
+		close,
 		container,
 		edit: (name: string, value: string) =>
 			interact(() => {
@@ -64,13 +76,6 @@ export async function mountView(url: string, token = "alice-session") {
 		input,
 		registry,
 	};
-}
-
-export function eventually(assert: () => void) {
-	return vi.waitFor(async () => {
-		await act(async (): Promise<void> => undefined);
-		assert();
-	});
 }
 
 export function call<A, E, R, TRuntimeError>(
