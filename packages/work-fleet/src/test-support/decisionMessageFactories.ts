@@ -1,6 +1,12 @@
 import ts from "typescript";
 
+const cached = new WeakMap<ts.SourceFile, ReadonlyMap<string, readonly number[]>>();
+
 export function decisionMessageFactories(tree: ts.SourceFile) {
+	const existing = cached.get(tree);
+	if (existing !== undefined) {
+		return existing;
+	}
 	const factories = new Map<string, number[]>();
 	function visit(node: ts.Node) {
 		if (ts.isFunctionDeclaration(node) && node.name !== undefined && node.body !== undefined) {
@@ -9,6 +15,7 @@ export function decisionMessageFactories(tree: ts.SourceFile) {
 		ts.forEachChild(node, visit);
 	}
 	visit(tree);
+	cached.set(tree, factories);
 	return factories;
 }
 

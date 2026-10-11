@@ -44,25 +44,25 @@ describe("every published Fleet decision has a recovery", () => {
 			).filter((reason) => !reasons.has(reason)),
 		).toEqual(["New integration reason"]);
 	});
-	it("a new literal in an existing production failure producer requires a matrix row", () => {
-		const reasons = new Set(scenarios.flatMap((scenario) => (typeof scenario.reason === "string" ? [scenario.reason] : [])));
-		for (const [file, original] of [
-			["host/runtime.ts", "No-change validation is not configured in this Fleet host; inspect the worker session"],
-			["host/quota.ts", "Codex rate limits returned an unknown shape"],
-			["engine/repository.ts", "Submission intent was not persisted"],
-			["engine/failureMessage.ts", "The integration is unavailable; inspect runtime diagnostics"],
-			["board/publishReport.ts", "The worker report could not be recorded on Board; retry the same completed attempt."],
-			["board/reportPayload.ts", "Saved report publication payload is invalid; retain the completed attempt"],
-			["board/reportPayloadFile.ts", "Report publication payload could not be recovered or persisted; retry the same completed attempt"],
-			["board/reportFiles.ts", "Report attachments could not be recorded beside the result; retry the same completed attempt"],
-		] as const) {
+	for (const [file, original] of [
+		["host/runtime.ts", "No-change validation is not configured in this Fleet host; inspect the worker session"],
+		["host/quota.ts", "Codex rate limits returned an unknown shape"],
+		["engine/repository.ts", "Submission intent was not persisted"],
+		["engine/failureMessage.ts", "The integration is unavailable; inspect runtime diagnostics"],
+		["board/publishReport.ts", "The worker report could not be recorded on Board; retry the same completed attempt."],
+		["board/reportPayload.ts", "Saved report publication payload is invalid; retain the completed attempt"],
+		["board/reportPayloadFile.ts", "Report publication payload could not be recovered or persisted; retry the same completed attempt"],
+		["board/reportFiles.ts", "Report attachments could not be recorded beside the result; retry the same completed attempt"],
+	] as const) {
+		it(`a new literal in ${file} requires a matrix row`, () => {
+			const reasons = new Set(scenarios.flatMap((scenario) => (typeof scenario.reason === "string" ? [scenario.reason] : [])));
 			const source = readFileSync(join(root, file), "utf8");
 			const mutated = source.replace(original, "New production failure reason");
 			expect(mutated).not.toBe(source);
 			expect(sourceDecisionSites(file, mutated)).toEqual(sourceDecisionSites(file, source));
 			expect(decisionReasons(root, { [file]: mutated }).filter((reason) => !reasons.has(reason))).toEqual(["New production failure reason"]);
-		}
-	});
+		});
+	}
 	it("a newly referenced Board producer requires a matrix row", () => {
 		const file = "board/publishReport.ts";
 		const source = readFileSync(join(root, file), "utf8");
