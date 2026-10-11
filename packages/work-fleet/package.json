@@ -55,6 +55,7 @@
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
+		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/work-board": "workspace:*",
 		"pg": "catalog:",
 		"yaml": "catalog:"

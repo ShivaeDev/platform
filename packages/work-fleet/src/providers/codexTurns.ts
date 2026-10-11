@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { type Item, ItemsResponse, TurnsResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
+import { makeWaitUntilIdle } from "#providers/makeWaitUntilIdle.ts";
 import { reportLimit } from "#reportLimits.ts";
 import type { SessionFailure, SessionReceipt } from "#session/schema.ts";
 
@@ -42,6 +43,7 @@ export function codexTurns(rpc: CodexRequest) {
 		} while (cursor !== null);
 		return yield* Effect.fail(failure("ambiguous", "The acknowledged Codex turn is not observable"));
 	});
+	const waitUntilIdle = makeWaitUntilIdle((sessionId, cursor) => turns(sessionId, cursor, false));
 	const operationTurn = Effect.fn("Codex.operationTurn")(function* (sessionId: string, operationId: string) {
 		let cursor: string | null = null;
 		const matching: string[] = [];
@@ -92,5 +94,5 @@ export function codexTurns(rpc: CodexRequest) {
 	function readOutput(receipt: SessionReceipt) {
 		return readItems(receipt).pipe(Effect.map(finalOutput));
 	}
-	return { findTurn, operationTurn, readItems, readOutput };
+	return { findTurn, operationTurn, readItems, readOutput, waitUntilIdle };
 }

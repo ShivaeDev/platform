@@ -14,6 +14,7 @@ import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETI
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { daemonCli } from "#test/readDaemon.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
@@ -93,7 +94,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const status = yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host)));
 				expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 				expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
-				const waiting = yield* Effect.promise(() => cliProcess(["wait", "one", ...flags, "--interval", "0.05", "--timeout", "0.3"]));
+				const waiting = yield* daemonCli(fixture.host, ["wait", "one", ...flags, "--interval", "0.05", "--timeout", "0.3"]);
 				expect(waiting.code).toBe(4);
 				expect(waiting.stdout).toBe("one still executing: wait timed out");
 				terminal = true;
@@ -102,7 +103,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				}).pipe(Effect.provide(hostLayer(fixture.host, { ...fixture.parts, provider: hostProvider(fixture.host) })));
 				expect(completed.value.attempts[0]?.output).toBe("Repaired result");
 				expect(completed.value.history?.[0]?.attempts[0]?.output).not.toBe("Repaired result");
-				expect((yield* Effect.promise(() => cliProcess(["wait", "one", ...flags]))).code).toBe(2);
+				expect((yield* daemonCli(fixture.host, ["wait", "one", ...flags])).code).toBe(2);
 			}),
 	);
 });

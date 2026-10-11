@@ -10,6 +10,7 @@ import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { type HostFixture, withHost } from "#test/fleetHost.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 import { answerReport } from "#test/report.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
@@ -34,13 +35,14 @@ const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixtur
 });
 
 const terminalViews = Effect.fn("ReportTest.terminalViews")(function* (fixture: HostFixture, code: number, section: string) {
-	const outcome = yield* waitFor({
-		databaseUrl: fixture.host.databaseUrl,
-		intervalMs: 10,
-		namespace: fixture.host.namespace,
-		timeoutMs: 1000,
-		workId: "research",
-	});
+	const outcome = yield* withReadDaemon(fixture.host, (port) =>
+		waitFor({
+			intervalMs: 10,
+			port,
+			timeoutMs: 1000,
+			workId: "research",
+		}),
+	);
 	expect(outcome.code).toBe(code);
 	const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(readOnlySql(fixture.host))));
 	expect(status).toContain(section);

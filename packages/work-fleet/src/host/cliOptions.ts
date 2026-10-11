@@ -8,3 +8,5 @@ export const config = Flag.file("config").pipe(Flag.optional, Flag.withDescripti
 export function host(folder: string, file: Option.Option<string>) {
 	return loadHost(folder, Option.getOrUndefined(file));
 }
+
+export const port = Flag.integer("port").pipe(Flag.withDefault(3457), Flag.withDescription("Local Fleet daemon port"));

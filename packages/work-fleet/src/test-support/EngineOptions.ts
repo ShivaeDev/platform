@@ -3,6 +3,7 @@ import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
+import type { SessionTransport } from "#session/service.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementGate?: Effect.Effect<void>;
@@ -16,6 +17,7 @@ export interface EngineOptions {
 	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
+	readonly decorateTransport?: (transport: typeof SessionTransport.Service) => typeof SessionTransport.Service;
 	readonly deliveryFailure?: boolean;
 	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
 	readonly denyDelivery?: boolean;

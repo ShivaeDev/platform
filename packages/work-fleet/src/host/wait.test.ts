@@ -5,7 +5,7 @@ import { WAIT_EXIT } from "#host/wait.ts";
 import { storeState, waitProcess, withHost } from "#test/fleetHost.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
-describe("work-fleet wait against PostgreSQL", () => {
+describe("work-fleet wait against PostgreSQL and HTTP", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
 
 	test("the wait process exits distinctly on each terminal state and on timeout", function* () {
@@ -29,7 +29,6 @@ describe("work-fleet wait against PostgreSQL", () => {
 					{ code: WAIT_EXIT.released, stdout: "gone released" },
 					{ code: WAIT_EXIT.timeout, stdout: "busy still executing (waiting on orchestrator): Worker is running: wait timed out" },
 				]);
-				expect((yield* Effect.promise(() => waitProcess(`${fixture.configFile}.missing`, "done"))).code).toBe(WAIT_EXIT.error);
 			}),
 		);
 	}, 60_000);

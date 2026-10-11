@@ -7,7 +7,7 @@ Work Fleet launches approved Work Board items and keeps execution receipts in Po
 Approve an item in Board, then let Fleet admit it and observe its worker. Waiting views name who must act: the maintainer, the orchestrator or automation. The host tests exercise this loop without launching an external worker.
 
 ```sh
-work-fleet run <board-dir>
+work-fleet serve <board-dir>
 ```
 
 ## Use the command
@@ -62,6 +62,14 @@ Missing or invalid configuration fails. Configuration and Cloud request tests ar
 
 Scheduler dispatch submits prepared items in sequence and stops the pass after a definite request-queue-full rejection. Worker and repair launches wait up to one second for acknowledgement after persisting their intent; missing replies retain execution ownership while the pass continues dispatching. The provider request continues in the service scope so late replies are persisted, and reconciliation waits for that request to finish before recovering the operation. Explicit caller interruption still cancels the submission. Rejected work stays prepared, releases execution capacity and retries on later passes with durable exponential backoff from 30 seconds up to five minutes. The waiting item is tried before the rest of the prepared backlog, so provider capacity backoff also pauses that backlog. `work-fleet status` shows waiting for provider capacity with the last rejection time and next retry time. Other definite rejections still require a human decision; ambiguous submissions retain their existing ownership for reconciliation. A retry after an explicitly rejected first turn reuses the acknowledged thread. PostgreSQL tests with synthetic providers in `src/engine/launchPacing.spec.ts`, `src/engine/launchBackpressure.spec.ts` and `src/engine/workerContinuation.spec.ts` cover acknowledgement pacing, late replies, recovery, interruption, capacity backoff and thread reuse.
 
+### Start the local daemon
+
+`work-fleet serve <board-dir>` binds to `127.0.0.1:3457`; `--port <port>` selects another port. The daemon composes `Fleet.layer`, the host and scheduler once for its lifetime. Its HTTP clients share one PostgreSQL pool, bounded by `database.maxConnections` (20 by default), and one provider connection set. Work Board runs independently.
+
+Native Effect HTTP RPC uses NDJSON at `/_fleet/rpc`. Import `DaemonContract` from `@shivaedev/work-fleet/host/daemonContract.ts` and provide `RpcClient.layerProtocolHttp` with `RpcSerialization.layerNdjson` and an HTTP client. The contract exposes Fleet's existing prepare, dispatch, continue, reconcile, resolve, reassign, get and views operations, plus `daemon.dispatch` for explicit Board preparation and dispatch, `daemon.status` for filtered views and the `daemon.follow` snapshot stream. Platform's `RequestTracing` supplies a request id for each call, preserving valid `x-request-id` values. Only loopback Host values and missing or same-origin transport Origin headers are accepted; requests must use `application/ndjson`.
+
+Compose `daemonLayer(host, parts, port)` in a scoped host, or launch it with `serveFleet(host, parts, port)`, both from `@shivaedev/work-fleet/host/daemon.ts`. The listener starts before scheduling. Closing the scope stops scheduling and HTTP, then closes the provider services and pool. Restart recovery reuses saved launch intents and acknowledged threads; an unacknowledged thread retains uncertain ownership for human inspection. The PostgreSQL and real HTTP tests in `src/host/daemon.test.ts` cover a completed item, concurrent clients, pool/provider lifetime and request ids. `src/host/cloudRestart.spec.ts` kills and restarts the daemon at launch boundaries against a synthetic Cloud backend without creating a second thread or accepted turn. These tests do not launch live Cloud workers.
+
 ### Approve work and override launch settings
 
 Set the exact `fleet: approved` value in the item's frontmatter. Missing approval or `fleet: draft` does not approve it. The optional `fleet-launch` object overrides host `launch` settings per field:
@@ -105,31 +113,31 @@ A `depends_on` relationship waits on the orchestrator for an accepted Fleet outc
 
 | Command | Behavior |
 |---|---|
-| `work-fleet run <board-dir>` | Admits approved work, dispatches prepared items and reconciles running work. |
-| `work-fleet dispatch <work-id> --board <board-dir>` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
-| `work-fleet status --board <board-dir>` | Prints Active, owner-grouped waiting and Completed views from stored records. |
-| `work-fleet status <work-id> --board <board-dir> --json` | Filters to one item and prints the views as JSON. |
+| `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches prepared items and reconciles running work. |
+| `work-fleet dispatch <work-id> [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
+| `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records. |
+| `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
 | `work-fleet release <work-id>... --board <board-dir>` | Releases terminal needs-human items and records closing responses on their Board decisions. |
 | `work-fleet reassign <work-id> <decision-id> <owner> --board <board-dir>` | Reassigns the exact current question to maintainer, orchestrator or automation. |
-| `work-fleet wait <work-id> --board <board-dir> --timeout <seconds>` | Polls stored state until an outcome or timeout. |
-| `work-fleet watch [work-ids...] --board <board-dir>` | Follows several items in one process and reports each outcome once. |
+| `work-fleet wait <work-id> --timeout <seconds> [--port <port>]` | Subscribes to daemon snapshots until an outcome or timeout. |
+| `work-fleet watch [work-ids...] [--port <port>]` | Follows several items in one process and reports each outcome once. |
 | `work-fleet name-threads --board <board-dir>` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
 
-Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `run` active to reconcile worker progress; `wait` only observes PostgreSQL. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
+Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. `status`, `dispatch`, `wait` and `watch` connect to its loopback port (3457 by default) over RPC and open no PostgreSQL connection. Their retained `--board` and `--config` flags do not select a host; the running daemon owns its Board and configuration. Without a daemon, they exit 1 with the address and a command to start it. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
 
 `wait` prints a summary and exits with these codes:
 
 | Code | Meaning |
 |---|---|
 | `0` | Completed. |
-| `1` | Error, including missing configuration. |
+| `1` | Error, including an unavailable daemon. |
 | `2` | Waiting on the named owner. |
 | `3` | Released. |
 | `4` | The requested timeout expired. |
 
-`--interval <seconds>` controls the time between reads. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout, missing configuration and delayed creation against PostgreSQL.
+`--interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout and delayed creation against PostgreSQL over HTTP. `src/host/watchFailures.spec.ts` covers each command's missing-daemon message.
 
-`watch` prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. Each poll uses one PostgreSQL query for summary fields, without loading execution history or the Fleet runtime. `--interval <seconds>` defaults to 15; `--timeout <seconds>` exits 4 and writes a timeout message to stderr. Read failures retry up to 20 consecutive polls before exit 1. `src/host/watch.test.ts` and `src/host/readWaitStates.test.ts` exercise these rules against PostgreSQL.
+`watch` prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. `wait` and `watch` each use one scoped RPC subscription. The daemon subscribes before the initial snapshot and shares one summary publisher across followers, reading compact fields through its existing pool every half second. A reconnect gets a fresh snapshot of the original selected set; printed outcomes remain deduplicated. Connection loss retries up to 20 consecutive attempts before exit 1. `--timeout <seconds>` exits 4 and writes a timeout message to stderr. `src/host/watch.test.ts`, `src/host/daemonClients.spec.ts` and `src/host/snapshotStream.test.ts` cover output, HTTP restart resync and a change during the initial snapshot.
 
 ### Read the generated heading board
 
@@ -181,7 +189,11 @@ printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --bo
 work-fleet wait work-id --board .work
 ```
 
-The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet run` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output follows the first-launch adoption path, including report publication or PR review, validation and delivery, and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
+The command persists the message and thread identity before submission and returns the item to Active. Keep `work-fleet serve` observing the Board: `wait` only reads PostgreSQL. A lost acknowledgement retains the attempt for reconciliation without replay. The prior cycle remains in history, including its decision and result; reconciliation supersedes the prior open decision. The new turn's output follows the first-launch adoption path, including report publication or PR review, validation and delivery, and replaces the prior current result. `Fleet.continue(workId, message)` and the native `Continue` command expose the same path to composed hosts.
+
+A failed worker or repair attempt without a receipt is never adopted. Review refresh ignores that attempt and uses the preceding worker receipt for the retained result, including a prior cycle with the same Board revision and result identity. Retrying the failed follow-up starts a fresh independent review before validation and delivery. `src/engine/failedFollowup.spec.ts` covers a completed repair, rejected receiptless follow-up, restart, retry, fresh review and observed delivery against real PostgreSQL with a synthetic provider.
+
+When Codex rejects a turn with `turn already active for thread`, Fleet polls the thread until its active turn finishes, then submits the same saved operation, prompt and settings. Polling starts immediately, with delays doubling from two seconds to a maximum of thirty seconds. The attempt stays submitting with its execution ownership while waiting. The wait has a five-minute deadline across busy rejections and permits at most three resubmissions; reaching either bound follows the definite-rejection path, marks the receiptless attempt failed, requests an orchestrator decision and releases execution capacity. `src/engine/activeTurn.spec.ts` covers waiting across paginated turn observations, continuation and delivery; `src/engine/activeTurnDeadline.spec.ts` covers backoff, a hung active turn reaching the deadline, the durable decision and capacity release after restart. Both use real PostgreSQL with a synthetic provider. `src/providers/activeTurn.spec.ts` covers the resubmission cap through the Codex wire protocol.
 
 ### Answer a worker question
 

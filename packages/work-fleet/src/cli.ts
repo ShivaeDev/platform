@@ -8,24 +8,26 @@ import * as Argument from "effect/unstable/cli/Argument";
 import * as CliError from "effect/unstable/cli/CliError";
 import * as Command from "effect/unstable/cli/Command";
 import * as Flag from "effect/unstable/cli/Flag";
-import { board, config, host } from "#host/cliOptions.ts";
+import { board, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
-const runCommand = Command.make(
-	"run",
-	{ board: Argument.directory("board-dir"), config },
-	Effect.fn("WorkFleetCli.run")(function* (input) {
-		const { runFleet } = yield* Effect.promise(() => import("#host/commands.ts"));
-		yield* runFleet(yield* host(input.board, input.config));
+const serveCommand = Command.make(
+	"serve",
+	{ board: Argument.directory("board-dir"), config, port },
+	Effect.fn("WorkFleetCli.serve")(function* (input) {
+		const { serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
+		yield* serveFleet(yield* host(input.board, input.config), undefined, input.port);
 	}),
-).pipe(Command.withDescription("Admit approved Board work, dispatch it and reconcile running work until interrupted"));
+).pipe(Command.withDescription("Serve the local Fleet HTTP RPC daemon and schedule approved Board work"));
 
 const dispatchCommand = Command.make(
 	"dispatch",
-	{ board, config, workId: Argument.string("id") },
+	{ board, config, port, workId: Argument.string("id") },
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
-		const { dispatchWork } = yield* Effect.promise(() => import("#host/commands.ts"));
-		const { value } = yield* dispatchWork(yield* host(input.board, input.config), input.workId);
+		const { daemonClient, daemonError } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
+		const value = yield* Effect.scoped(
+			daemonClient(input.port).pipe(Effect.flatMap((client) => client("daemon.dispatch", { workId: input.workId }))),
+		).pipe(Effect.mapError((error) => daemonError(error, input.port)));
 		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
@@ -63,14 +65,17 @@ const statusCommand = Command.make(
 		board,
 		config,
 		json: Flag.boolean("json").pipe(Flag.withDefault(false), Flag.withDescription("Print the views as JSON")),
+		port,
 		workId: Argument.string("id").pipe(Argument.optional),
 	},
 	Effect.fn("WorkFleetCli.status")(function* (input) {
-		const [{ fleetStatus, renderStatus }, { readOnlySql }] = yield* Effect.promise(() =>
-			Promise.all([import("#host/status.ts"), import("#host/readOnlySql.ts")]),
+		const [{ daemonClient, daemonError }, { renderStatus }] = yield* Effect.promise(() =>
+			Promise.all([import("#host/daemonClient.ts"), import("#host/renderStatus.ts")]),
 		);
-		const settings = yield* host(input.board, input.config);
-		const current = yield* fleetStatus(settings, Option.getOrUndefined(input.workId)).pipe(Effect.provide(readOnlySql(settings)));
+		const workId = Option.getOrUndefined(input.workId);
+		const current = yield* Effect.scoped(
+			daemonClient(input.port).pipe(Effect.flatMap((client) => client("daemon.status", workId === undefined ? {} : { workId }))),
+		).pipe(Effect.mapError((error) => daemonError(error, input.port)));
 		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current));
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
@@ -103,7 +108,7 @@ const nameThreadsCommand = Command.make(
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
 	Command.withSubcommands([
-		runCommand,
+		serveCommand,
 		dispatchCommand,
 		continueCommand,
 		releaseCommand,
