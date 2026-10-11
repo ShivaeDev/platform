@@ -21,6 +21,9 @@ describe("reviewer prompt and verdict", () => {
 		expect(prompt).toContain("https://example.invalid/pr/1");
 		expect(prompt).toContain("Source /synthetic/env.sh");
 		expect(prompt).toContain("Do not edit, commit, push, merge");
+		expect(prompt).toContain("gh pr diff");
+		expect(prompt).toContain("gh api --method GET");
+		expect(prompt).toContain("Network writes are prohibited");
 		expect(prompt).not.toContain("Request escalation (require_escalated)");
 	});
 	it.effect("records approval and concrete changes with the exact receipt", function* () {

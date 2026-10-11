@@ -63,8 +63,7 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 				if (yield* schedulerPassed) {
 					yield* fleet.list().pipe(Effect.catch((error) => Effect.logWarning("Fleet health publication failed", error)));
 				}
-				yield* Effect.sleep(interval);
 			}),
-		),
+		).pipe(Effect.andThen(Effect.sleep(interval))),
 	);
 });

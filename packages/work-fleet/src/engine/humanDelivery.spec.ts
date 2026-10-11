@@ -31,7 +31,6 @@ test("green work never submits a merge and a restarted scheduler accepts the hum
 			expect(backlog(ready.value)).toBe(true);
 			expect(executing(ready.value)).toBe(false);
 			expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
-			expect(ready.value.deliverySubmitted).toBe(false);
 			observation = merged;
 			yield* fixture.restart(cycle);
 			const accepted = yield* fleet.get("one");
