@@ -44,7 +44,7 @@ export function decisionReading(
 		) {
 			return { _tag: "Stale", reason: "The exact open decision request is unavailable." };
 		}
-		const snapshot = Effect.succeed({ documents: all, entries: [], model, revision: 0, unavailable: [] });
+		const snapshot = Effect.succeed({ documents: all, entries: [], model, modified: new Map<string, number>(), revision: 0, unavailable: [] });
 		const reading = yield* readResponses(snapshot)(receipt.questionId).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Fleet decision response history is incomplete or ambiguous." })),
 		);
