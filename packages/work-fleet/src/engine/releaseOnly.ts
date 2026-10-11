@@ -10,6 +10,8 @@ const explanations: Readonly<Record<string, string>> = {
 		"Retry cannot validate a malformed adopted result; release and prepare with a valid PR identity and commit SHA.",
 	"incomplete-context": "Retry cannot reconstruct missing preparation context; release and prepare with complete context.",
 	"incomplete-observation": "Retry cannot establish preparation compatibility; release and prepare with a complete main observation.",
+	"Multiple Codex turns match one operation; retain reservation":
+		"Retry cannot select one result from duplicate accepted turns; release only after every matching turn is confirmed terminal.",
 	"No-change validation is not configured in this Fleet host; inspect the worker session":
 		"Retry cannot validate a no-change result in this host; release and prepare work in a runtime with configured no-change checks.",
 	"not-ancestor": "Retry cannot rebase preparation onto unrelated main history; release and prepare against current main.",

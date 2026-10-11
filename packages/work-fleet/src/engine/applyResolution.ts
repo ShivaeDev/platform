@@ -5,6 +5,7 @@ import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { refreshDecision } from "#engine/refreshDecision.ts";
 import { releaseExecution } from "#engine/releaseExecution.ts";
+import { retireUnacknowledged } from "#engine/retireUnacknowledged.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -45,8 +46,14 @@ function retryOrRelease(state: EngineState) {
 		action: "retry" | "release",
 		responses: readonly DecisionResponse[],
 	) {
-		const current = action === "release" && executing(stored.value) ? yield* releaseExecution(state, stored) : stored;
-		yield* authorizeResolution(state, current.value, action);
+		if (action === "retry") {
+			yield* authorizeResolution(state, stored.value, action);
+		}
+		const fenced = yield* retireUnacknowledged(state, stored);
+		const current = action === "release" && executing(fenced.value) ? yield* releaseExecution(state, fenced) : fenced;
+		if (action === "release") {
+			yield* authorizeResolution(state, current.value, action);
+		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
 			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.reason ?? "") : undefined;
