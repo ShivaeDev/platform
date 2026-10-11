@@ -42,10 +42,10 @@ export function timed<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	});
 }
 
-export function harnessed<X, E>(changes: Changes, body: Effect.Effect<X, E>) {
+export function harnessed<TX, E>(changes: Changes, body: Effect.Effect<TX, E>) {
 	return Effect.gen(function* () {
 		const context = yield* Effect.context<never>();
-		const exits: Exit.Exit<X, E | TransactionExpired | PrismaError>[] = [];
+		const exits: Exit.Exit<TX, E | TransactionExpired | PrismaError>[] = [];
 		async function run(tx: HarnessTx) {
 			exits.push(await Effect.runPromiseExitWith(context)(changes.transaction(body).pipe(Effect.provideService(changes.Client, tx))));
 		}

@@ -73,8 +73,8 @@ function nearestConfig(root: string, file: string): string | undefined {
 	return undefined;
 }
 
-function memo<Value>(compute: (key: string) => Value): (key: string) => Value {
-	const known = new Map<string, Value>();
+function memo<TValue>(compute: (key: string) => TValue): (key: string) => TValue {
+	const known = new Map<string, TValue>();
 	return (key) => {
 		const value = known.get(key) ?? compute(key);
 		known.set(key, value);

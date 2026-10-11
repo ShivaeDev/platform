@@ -9,38 +9,38 @@ export type EffectTestOptions = TestOptions & {
 	readonly clock?: EffectClock;
 };
 
-export type EffectTest<Harness, Provided> = <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
+export type EffectTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unknown, unknown, TProvided>>(
 	name: string,
-	body: (harness: Harness, context: TestContext) => Generator<Eff, A, never>,
+	body: (harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 	options?: number | EffectTestOptions,
 ) => void;
 
-export interface EffectTester<Harness, Provided> extends EffectTest<Harness, Provided> {
-	readonly each: <Item>(
-		cases: readonly Item[],
-	) => <A, Eff extends Effect.Effect<unknown, unknown, Provided>>(
+export interface EffectTester<THarness, TProvided> extends EffectTest<THarness, TProvided> {
+	readonly each: <TItem>(
+		cases: readonly TItem[],
+	) => <A, TEff extends Effect.Effect<unknown, unknown, TProvided>>(
 		name: string,
-		body: (item: Item, harness: Harness, context: TestContext) => Generator<Eff, A, never>,
+		body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
 		options?: number | EffectTestOptions,
 	) => void;
-	readonly fails: EffectTest<Harness, Provided>;
-	readonly only: EffectTest<Harness, Provided>;
-	readonly runIf: (condition: unknown) => EffectTest<Harness, Provided>;
-	readonly skip: EffectTest<Harness, Provided>;
-	readonly skipIf: (condition: unknown) => EffectTest<Harness, Provided>;
+	readonly fails: EffectTest<THarness, TProvided>;
+	readonly only: EffectTest<THarness, TProvided>;
+	readonly runIf: (condition: unknown) => EffectTest<THarness, TProvided>;
+	readonly skip: EffectTest<THarness, TProvided>;
+	readonly skipIf: (condition: unknown) => EffectTest<THarness, TProvided>;
 }
 
-export interface MakeEffectItOptions<Harness, TestLayer extends AnyTestLayer> {
+export interface MakeEffectItOptions<THarness, TTestLayer extends AnyTestLayer> {
 	readonly around?:
-		| (<A, E>(effect: Effect.Effect<A, E, Layer.Success<TestLayer>>) => Effect.Effect<A, unknown, Layer.Success<TestLayer>>)
+		| (<A, E>(effect: Effect.Effect<A, E, Layer.Success<TTestLayer>>) => Effect.Effect<A, unknown, Layer.Success<TTestLayer>>)
 		| undefined;
 	readonly clock?: EffectClock | undefined;
-	readonly layer: TestLayer;
-	readonly makeHarness: (context: TestContext) => Effect.Effect<Harness, unknown, Layer.Success<TestLayer>>;
+	readonly layer: TTestLayer;
+	readonly makeHarness: (context: TestContext) => Effect.Effect<THarness, unknown, Layer.Success<TTestLayer>>;
 }
 
-export interface MakeEffectItResult<Harness, Provided> {
-	readonly effectApp: EffectTester<Harness, Provided>;
+export interface MakeEffectItResult<THarness, TProvided> {
+	readonly effectApp: EffectTester<THarness, TProvided>;
 }
 
 export interface EffectItTest<R, TArgs extends readonly unknown[] = [context: TestContext]> {

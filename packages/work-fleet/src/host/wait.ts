@@ -1,21 +1,15 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Duration, Effect, Random, Redacted, Schema } from "effect";
-import { recordPayloads } from "#host/readOnlySql.ts";
+import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Random from "effect/Random";
+import { readWaitStates } from "#host/readWaitStates.ts";
+import * as Outcome from "#host/waitOutcome.ts";
 
-export const WAIT_EXIT = { completed: 0, error: 1, needsHuman: 2, released: 3, timeout: 4 } as const;
-
-export interface WaitOutcome {
-	readonly code: (typeof WAIT_EXIT)[keyof typeof WAIT_EXIT];
-	readonly summary: string;
-}
-
-export const WaitState = Schema.Struct({
-	blocker: Schema.optional(Schema.String),
-	decision: Schema.optional(Schema.Struct({ reason: Schema.String })),
-	outcome: Schema.optional(Schema.Struct({ evidence: Schema.optional(Schema.Array(Schema.String)), url: Schema.optional(Schema.String) })),
-	stage: Schema.String,
-});
+export const WAIT_EXIT = Outcome.WAIT_EXIT;
+export const WaitState = Outcome.WaitState;
 export type WaitState = typeof WaitState.Type;
+export const settled = Outcome.settled;
+export type WaitOutcome = Outcome.WaitOutcome;
 
 export interface WaitOptions {
 	readonly databaseUrl: string;
@@ -27,40 +21,6 @@ export interface WaitOptions {
 
 const UNREACHABLE_POLLS = 20;
 
-export function settled(workId: string, state: WaitState): WaitOutcome | undefined {
-	if (state.stage === "completed") {
-		const outcome = state.outcome?.url ?? state.outcome?.evidence?.join("; ");
-		return { code: WAIT_EXIT.completed, summary: `${workId} completed${outcome ? `: ${outcome}` : ""}` };
-	}
-	if (state.stage === "needs-human") {
-		return {
-			code: WAIT_EXIT.needsHuman,
-			summary: `${workId} needs-human: ${state.decision?.reason ?? state.blocker ?? "a Board decision is pending"}`,
-		};
-	}
-	if (state.stage === "released") {
-		return { code: WAIT_EXIT.released, summary: `${workId} released` };
-	}
-	return undefined;
-}
-
-// A pool per poll: a hundred idle waiters hold no PostgreSQL connection slot between reads.
-function readState(options: WaitOptions) {
-	return recordPayloads(options.namespace, options.workId).pipe(
-		Effect.flatMap(([payload]) =>
-			payload === undefined ? Effect.succeed(undefined) : Schema.decodeUnknownEffect(Schema.fromJsonString(WaitState))(payload),
-		),
-		Effect.provide(
-			PgClient.layer({
-				applicationName: "work-fleet-wait",
-				connectTimeout: "10 seconds",
-				maxConnections: 1,
-				url: Redacted.make(options.databaseUrl),
-			}),
-		),
-	);
-}
-
 interface Poll {
 	readonly failure?: string;
 	readonly last?: string;
@@ -68,8 +28,8 @@ interface Poll {
 }
 
 function poll(options: WaitOptions): Effect.Effect<Poll> {
-	return readState(options).pipe(
-		Effect.map((state) =>
+	return readWaitStates(options, [options.workId]).pipe(
+		Effect.map(([state]) =>
 			state === undefined
 				? {}
 				: { last: state.blocker === undefined ? state.stage : `${state.stage}: ${state.blocker}`, outcome: settled(options.workId, state) },

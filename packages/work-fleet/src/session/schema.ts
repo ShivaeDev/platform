@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export const SessionReceipt = Schema.Struct({ sessionId: Schema.String, turnId: Schema.String });
 export type SessionReceipt = typeof SessionReceipt.Type;
