@@ -31,10 +31,14 @@ it("reports uncertainty after publication fails directory synchronization and sa
 	const target = await open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY);
 	try {
 		const fault = vi.spyOn(target, "sync").mockRejectedValueOnce(new Error("disk synchronization failed"));
-		await expect(publishIn(target, notes.root, notes.root, "response.a", "Recorded feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		await expect(publishIn(target, notes.root, notes.root, "response.a", "Recorded feedback")).rejects.toMatchObject({
+			_tag: "PublicationUncertain",
+		});
 		expect(await readFile(join(notes.root, "responses/response.a.md"), "utf8")).toBe("Recorded feedback");
 		fault.mockRejectedValueOnce(new Error("reconciliation synchronization failed"));
-		await expect(publishIn(target, notes.root, notes.root, "response.a", "Recorded feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		await expect(publishIn(target, notes.root, notes.root, "response.a", "Recorded feedback")).rejects.toMatchObject({
+			_tag: "PublicationUncertain",
+		});
 		fault.mockRestore();
 		await publishIn(target, notes.root, notes.root, "response.a", "Recorded feedback");
 		expect(await readdir(join(notes.root, "responses"))).toEqual(["response.a.md"]);
@@ -76,9 +80,11 @@ it("rejects a replaced directory before publication and reports uncertainty afte
 			await rename(join(notes.root, "responses"), join(notes.root, "retained"));
 			outsideResponseDirectory(notes.root, outside.root);
 		});
-		await expect(publishIn(target, notes.root, notes.root, "response.boundary", "Retained feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		await expect(publishIn(target, notes.root, notes.root, "response.boundary", "Retained feedback")).rejects.toMatchObject({
+			_tag: "PublicationUncertain",
+		});
 		expect(await readFile(join(notes.root, "retained/response.boundary.md"), "utf8")).toBe("Retained feedback");
-		await expect(publishIn(target, notes.root, notes.root, "response.other", "Other feedback")).rejects.toMatchObject({ code: "Conflict" });
+		await expect(publishIn(target, notes.root, notes.root, "response.other", "Other feedback")).rejects.toMatchObject({ _tag: "Conflict" });
 		expect(await readdir(outside.root)).toEqual([]);
 	} finally {
 		await target.close();
@@ -101,7 +107,9 @@ it("reports a boundary change detected during cleanup as uncertain without clean
 			}
 			return stat();
 		});
-		await expect(publishIn(target, notes.root, notes.root, "response.cleanup", "Retained feedback")).rejects.toMatchObject({ code: "Uncertain" });
+		await expect(publishIn(target, notes.root, notes.root, "response.cleanup", "Retained feedback")).rejects.toMatchObject({
+			_tag: "PublicationUncertain",
+		});
 		expect(await readFile(join(notes.root, "retained/response.cleanup.md"), "utf8")).toBe("Retained feedback");
 		expect(await readdir(outside.root)).toEqual([]);
 	} finally {

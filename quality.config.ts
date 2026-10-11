@@ -66,6 +66,7 @@ const BROWSER_FILES = [
 	"packages/work-board/src/rpc/responseContract.ts",
 	"packages/work-board/src/rpc/handoffContract.ts",
 	"packages/work-board/src/rpc/keys.ts",
+	"packages/work-board/src/rpc/rejections.ts",
 	"packages/work-board/src/rpc/pageKeys.ts",
 	"packages/work-board/src/history/schema.ts",
 ];

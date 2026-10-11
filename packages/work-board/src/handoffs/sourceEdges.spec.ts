@@ -11,7 +11,7 @@ it("rejects a registered question as a handoff project item with the exact sourc
 	workspace = await responseWorkspace();
 	const question = await workspace.register();
 	await expect(workspace.client.run(workspace.client.handoffs.handoffSource.run({ item: question.id }))).rejects.toMatchObject({
-		code: "Stale",
+		_tag: "PreconditionFailed",
 		message: "Choose a current project item for this handoff.",
 	});
 });
@@ -24,7 +24,7 @@ it("reports an indexed handoff source losing read permission before the live wat
 	await read();
 	chmodSync(join(workspace.notes.root, "proposal.md"), 0o000);
 	try {
-		await expect(read()).rejects.toMatchObject({ code: "Unavailable", message: "The handoff source could not be read." });
+		await expect(read()).rejects.toMatchObject({ _tag: "ServiceUnavailable", message: "The handoff source could not be read." });
 	} finally {
 		chmodSync(join(workspace.notes.root, "proposal.md"), 0o644);
 	}
