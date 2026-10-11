@@ -47,7 +47,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js",
+		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --banner:js='/* @shivaedev/work-board native browser bundle */' --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",
