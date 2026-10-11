@@ -241,7 +241,7 @@ The returned form exposes:
 | `change(name, value)` | Write encoded input through the form's editing operation |
 | `blur(name)` | Field blur operation, supplied as `useField(...).onBlur` |
 | `error(name)` | Atom of `string \| undefined` |
-| `errorAt([name, ...path])` | Atom of nested Schema feedback; visibility follows the top-level field |
+| `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |
 | `choices(name)` | Encoded choices or `undefined` |
 | `dirty` | Atom of `boolean` |
 | `receive(values)` | Merge received encoded values |
@@ -249,7 +249,7 @@ The returned form exposes:
 | `submit` | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>` |
 | `submitting` | Atom of `boolean` for submission waiting state |
 
-`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains `path` and `message`; `Invalid` contains `messages`, a `FieldMessages` record.
+`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
 `useField(form, name)` returns `name`, `value`, `error`, `choices`, `onChange(value)` and `onBlur()`. `useSubmit(form)` returns `result`, `run()` and `submitting`. `useDirty(form)` returns a boolean.
 
