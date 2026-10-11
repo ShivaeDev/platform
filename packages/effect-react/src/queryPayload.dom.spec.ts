@@ -2,7 +2,7 @@ import { Exit } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { expect, it, onTestFinished } from "vitest";
 import { finishQuery, queryRequests, queryView } from "#test/queryView.ts";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
