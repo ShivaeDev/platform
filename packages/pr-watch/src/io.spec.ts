@@ -1,5 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, PlatformError } from "effect";
+import { Deferred, Effect, Fiber, FileSystem, Layer, PlatformError } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, HttpClientRequest } from "effect/unstable/http";
 import { expect } from "vitest";
 import { GitHub } from "#GitHub.ts";
@@ -46,6 +46,35 @@ effectApp("injected FileSystem and HttpClient own the synthetic-server observati
 	expect(urls.every((url) => url.startsWith(h.options.apiUrl))).toBe(true);
 	expect(JSON.parse(yield* fs.readFileString(h.options.stateFile)).prs["1"].merged).toBe(true);
 	expect((yield* fs.stat(h.options.stateFile)).mode & 0o777).toBe(0o600);
+});
+effectApp("graceful interruption waits for discovered open numbers to reach the state file", function* (h) {
+	h.options.fleet = true;
+	h.options.numbers = [];
+	const fs = yield* FileSystem.FileSystem.pipe(Effect.provide(NodeFileSystem.layer));
+	const client = yield* HttpClient.HttpClient.pipe(Effect.provide(FetchHttpClient.layer));
+	const started = yield* Deferred.make<void>();
+	const finish = yield* Deferred.make<void>();
+	const paused = FileSystem.makeNoop({
+		...fs,
+		rename: (from, to) =>
+			Effect.gen(function* () {
+				yield* Deferred.succeed(started, undefined);
+				yield* Deferred.await(finish);
+				yield* fs.rename(from, to);
+			}),
+	});
+	const running = yield* Effect.forkChild(h.cycle.pipe(Effect.provide(services(paused, client))));
+	yield* Deferred.await(started);
+	const stopping = yield* Effect.forkChild(Fiber.interrupt(running));
+	yield* Effect.yieldNow;
+	yield* Deferred.succeed(finish, undefined);
+	yield* Fiber.join(stopping);
+	expect(JSON.parse(yield* fs.readFileString(h.options.stateFile))).toMatchObject({ openNumbers: [1], prs: {} });
+	h.setPull(1, { merged: true, state: "closed" });
+	h.set("/pulls?state=open&per_page=100", { body: [] });
+	yield* h.restart;
+	yield* h.restart;
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["merged"]);
 });
 effectApp.each(["read", "write", "rename"])("native $item failures stay typed and preserve the last saved snapshot", function* (operation, h) {
 	yield* h.cycle;
