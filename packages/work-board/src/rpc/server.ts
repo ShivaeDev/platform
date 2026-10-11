@@ -2,6 +2,7 @@ import { Clock, Effect, Ref } from "effect";
 import { HttpIncomingMessage, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
+import type { Document } from "#browser/document/schema.ts";
 import type { Changes } from "#files/changes.ts";
 import type { handoffService } from "#handoffs/service.ts";
 import { MAX_BYTES } from "#history/limits.ts";
@@ -16,6 +17,7 @@ import { hints } from "./hints.ts";
 
 export interface ServerOptions {
 	readonly changes: Changes;
+	readonly document?: (url: string) => Effect.Effect<Document, unknown>;
 	readonly handoffs: Effect.Success<ReturnType<typeof handoffService>>;
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
@@ -23,9 +25,13 @@ export interface ServerOptions {
 	readonly responses: Effect.Success<ReturnType<typeof responseService>>;
 }
 
-export const server = Effect.fn("WorkBoard.server")(function* ({ changes, handoffs, home, index, page, responses }: ServerOptions) {
+export const server = Effect.fn("WorkBoard.server")(function* ({ changes, document, handoffs, home, index, page, responses }: ServerOptions) {
 	const handlers = workRpcs.toLayer({
 		"work-board.awaitResponse": responses.awaitResponse,
+		"work-board.document": ({ url }) =>
+			(document ? document(url) : Effect.fail(new ReadFailed({ operation: "document", status: 404 }))).pipe(
+				Effect.catch((error) => Effect.fail(error instanceof ReadFailed ? error : new ReadFailed({ operation: "document", status: 500 }))),
+			),
 		"work-board.handoffSource": ({ item }) => handoffs.locate(item),
 		"work-board.handoffs": ({ item }) => handoffs.read(item),
 		"work-board.history": ({ action, baseline }) =>
