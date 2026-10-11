@@ -1,7 +1,7 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetRecord } from "#model.ts";
-import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
+import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, FleetFailure, WorkResult } from "#policy.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
@@ -37,6 +37,7 @@ export interface EngineOptions {
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
 	readonly quota?: number;
+	readonly refreshQuota?: FleetConfiguration["refreshQuota"];
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
 	readonly reportPublicationQuery?: (work: BoardWork) => Effect.Effect<boolean, FleetFailure>;

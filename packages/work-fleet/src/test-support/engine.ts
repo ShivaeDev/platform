@@ -37,6 +37,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 		configure?: (policy: FleetConfiguration) => FleetConfiguration,
 	) => Effect.Effect<TResult, TFailure | TBoardError>;
 	readonly reviews: readonly string[];
+	readonly sessionName: (operationId: string) => Effect.Effect<string, unknown>;
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly upgradeAttention: Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
@@ -117,6 +118,7 @@ export function withEngine<A, E, TBoardError = never>(
 					configure?: (policy: FleetConfiguration) => FleetConfiguration,
 				) => effect.pipe(Effect.provide(Layer.fresh(fleetLayer(configure?.(policy) ?? policy)))),
 				reviews,
+				sessionName: (operationId) => journal.sessionName?.(operationId) ?? Effect.die("Missing journal naming implementation"),
 				unavailableWork: (workId: string, value: boolean) => {
 					if (value) {
 						unavailable.add(workId);
