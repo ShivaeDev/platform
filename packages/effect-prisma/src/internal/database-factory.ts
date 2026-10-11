@@ -15,26 +15,26 @@ import { releaseTestTransaction } from "./transaction.ts";
 
 let activeTransactionReferenceSequence = 0;
 
-export const makeSqlDatabase = <const Contract extends AnySqlContract, const Identifier extends string, Options>(
-	identifier: DatabaseIdentifierLiteral<Identifier>,
-	acquireExecutor: (options: Options) => Effect.Effect<DatabaseExecutor<DefaultModels<Contract>, Contract>, PrismaError>,
-): SqlDatabase<Contract, Identifier, Options> => {
+export const makeSqlDatabase = <const TContract extends AnySqlContract, const TIdentifier extends string, TOptions>(
+	identifier: DatabaseIdentifierLiteral<TIdentifier>,
+	acquireExecutor: (options: TOptions) => Effect.Effect<DatabaseExecutor<DefaultModels<TContract>, TContract>, PrismaError>,
+): SqlDatabase<TContract, TIdentifier, TOptions> => {
 	if (identifier.startsWith(internalContextIdentifierPrefix)) {
 		throw new TypeError("Database identifier uses a reserved internal namespace");
 	}
-	type Models = DefaultModels<Contract>;
-	type DatabaseId = DatabaseIdentifier<Contract, Identifier>;
+	type Models = DefaultModels<TContract>;
+	type DatabaseId = DatabaseIdentifier<TContract, TIdentifier>;
 
-	const Service = Context.Service<DatabaseId, DatabaseService<Contract, Identifier>>(identifier);
-	const scope: FacadeScope<Contract, Identifier> = {
-		activeTransaction: Context.Reference<ActiveTransaction<Contract, Identifier> | undefined>(
+	const Service = Context.Service<DatabaseId, DatabaseService<TContract, TIdentifier>>(identifier);
+	const scope: FacadeScope<TContract, TIdentifier> = {
+		activeTransaction: Context.Reference<ActiveTransaction<TContract, TIdentifier> | undefined>(
 			`${internalContextIdentifierPrefix}ActiveTransaction/${activeTransactionReferenceSequence++}`,
 			{ defaultValue: () => undefined },
 		),
 		executors: new WeakMap(),
 		service: Service,
 	};
-	function executorOf(facade: DatabaseService<Contract, Identifier>): Effect.Effect<DatabaseExecutor<Models, Contract>> {
+	function executorOf(facade: DatabaseService<TContract, TIdentifier>): Effect.Effect<DatabaseExecutor<Models, TContract>> {
 		const executor = scope.executors.get(facade);
 		return executor === undefined
 			? Effect.die(new TypeError("The database service was not created by its database Layer"))
@@ -50,7 +50,7 @@ export const makeSqlDatabase = <const Contract extends AnySqlContract, const Ide
 			),
 		);
 
-	const layer = (layerOptions: Options): Layer.Layer<DatabaseId, PrismaError> => {
+	const layer = (layerOptions: TOptions): Layer.Layer<DatabaseId, PrismaError> => {
 		const acquire = Effect.acquireRelease(
 			Effect.suspend(() => acquireExecutor(layerOptions)),
 			(executor) => {
