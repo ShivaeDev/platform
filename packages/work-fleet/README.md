@@ -39,7 +39,9 @@ There are no personal numeric defaults. Unknown or expired quota blocks admissio
 Foreign reservations record actual scope and separate occupancy/backlog flags;
 release them only after an authoritative observation permits it.
 
-`FleetIntegrations` supplies current main observations, adoption of the actual PR or no-change result, independent review, required checks and observations of human delivery. Fleet never submits a merge. Reviewed, green PRs wait in Needs human as ready to merge; reconciliation keeps observing the adopted PR and accepts only a merge of the reviewed head. A closed unmerged PR stays in Needs human with that fact. Review and checks acknowledge the exact head. Review receipts must differ from worker sessions. Review implementations using a provider must use the same durable session journal and reconcile the existing review operation after a lost response. Required checks belong to the runtime and must enforce actual branch requirements without bypass. The existing `authorize` and `merge` callbacks remain in the integration contract for compatibility and are not called by Fleet.
+`FleetIntegrations` supplies current main observations, adoption of the actual PR or no-change result, independent review, required checks and observations of human delivery. Fleet never submits a merge. Reviewed, green PRs wait in Needs human as ready to merge; reconciliation keeps observing the adopted PR and accepts only a merge of the reviewed head. A closed unmerged PR stays in Needs human with that fact. A temporary observation failure preserves the current Board decision and ownership until GitHub evidence is available again. Review and checks acknowledge the exact head. Review receipts must differ from worker sessions. Review implementations using a provider must use the same durable session journal and reconcile the existing review operation after a lost response. Required checks belong to the runtime and must enforce actual branch requirements without bypass. The existing `authorize` and `merge` callbacks remain in the integration contract for compatibility and are not called by Fleet.
+
+The host reads GitHub check runs and commit statuses through an authenticated `gh` CLI for the adopted PR's exact commit SHA, including all pages. Pending or absent checks keep work in validation; failed checks send their names and links to the repair worker. A newer push does not replace the adopted head's evidence. The host requires all observed checks to succeed, be neutral or be skipped; this does not establish branch protection or merge authority. No-change validation still needs a runtime integration.
 
 ```ts
 import { Layer } from "effect";
@@ -136,7 +138,7 @@ addon does not rewrite authored task status or maintain competing status files.
 
 ### Start a small personal pilot
 
-The smallest host is an Effect program with the composed Fleet Layer above; it can run headlessly. The default host observes the adopted GitHub PR through `gh pr view`, using the host’s existing CLI authentication. It records the PR head and merge commit after a human merge. Result adoption, independent review and required checks still need host integrations. Configure these runtime boundaries before dispatch:
+The smallest host is an Effect program with the composed Fleet Layer above; it can run headlessly. The default host observes the adopted GitHub PR through `gh pr view`, using the host’s existing CLI authentication. It records the PR head and merge commit after a human merge. Result adoption, independent review and no-change validation still need host integrations. Configure these runtime boundaries before dispatch:
 
 1. Use one Board root and durable SQL namespace. Record exact approved Board
    revisions in runtime policy, with current provider quota observations.
@@ -144,7 +146,7 @@ The smallest host is an Effect program with the composed Fleet Layer above; it c
    local adapter, connect it to an independently owned local app-server; its lifetime
    must survive the host's observing scopes.
 3. Implement current source observations, exact result/PR adoption, independent
-   review, required checks and delivery observation in `FleetIntegrations`.
+   review and no-change validation in `FleetIntegrations`; verify the host’s GitHub checks and delivery observation.
    Authentication belongs to the host when exposing `FleetContract`.
 4. Prepare two disjoint Board items, inspect their attached scopes and run `cycle`
    before keeping `run(interval)` active. Answer any concrete Board decision while

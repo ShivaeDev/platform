@@ -33,6 +33,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	const observed = yield* integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed)) {
+		if (observed.failure.reason === "integration" && record.decision !== undefined) {
+			return stored;
+		}
 		return yield* needsHuman(observed.failure.message, "Inspect the adopted PR and its delivery evidence before retrying or releasing this work");
 	}
 	if (executing(record) || record.review?.verdict !== "approved" || record.checks?.passed !== true) {

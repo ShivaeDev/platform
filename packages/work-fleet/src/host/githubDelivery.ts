@@ -1,5 +1,6 @@
-import { execFile } from "node:child_process";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
+import { githubRead } from "#host/githubRead.ts";
 import { type ChangeResult, FleetFailure } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
@@ -10,30 +11,16 @@ const PullRequest = Schema.Struct({
 	url: Schema.NonEmptyString,
 });
 
-function failure(message: string) {
-	return new FleetFailure({ message, reason: "integration" });
+function failure(message: string, reason: "integration" | "invalid" = "invalid") {
+	return new FleetFailure({ message, reason });
 }
 
 function readPullRequest(cwd: string, pr: string) {
-	return Effect.callback<unknown, FleetFailure>((resume) => {
-		const child = execFile(
-			"gh",
-			["pr", "view", pr, "--json", "url,state,headRefOid,mergedAt,mergeCommit"],
-			{ cwd, timeout: 30_000 },
-			(error, stdout) => {
-				if (error !== null) {
-					resume(Effect.fail(failure("PR delivery observation failed; check GitHub CLI access")));
-					return;
-				}
-				resume(
-					Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(stdout).pipe(
-						Effect.mapError(() => failure("PR delivery observation returned invalid JSON")),
-					),
-				);
-			},
-		);
-		return Effect.sync(() => child.kill());
-	});
+	return githubRead(["pr", "view", pr, "--json", "url,state,headRefOid,mergedAt,mergeCommit"], cwd).pipe(
+		Effect.provide(NodeServices.layer),
+		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))),
+		Effect.mapError(() => failure("PR delivery observation failed; check GitHub CLI access and response", "integration")),
+	);
 }
 
 export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetFailure> = readPullRequest) {
@@ -42,7 +29,7 @@ export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => E
 			return yield* failure("Delivery requires the adopted GitHub PR URL");
 		}
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
-			Effect.mapError(() => failure("PR delivery observation returned an unknown shape")),
+			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),
 		);
 		if (pr.url !== result.pr) {
 			return yield* failure("Delivery observation differs from the adopted PR");

@@ -33,20 +33,23 @@ it("retains the response draft and exposes the precise real HTTP rejection when 
 	expect(body.value).toBe("Retain these conditions.");
 });
 
-it("retains handoff direction and exposes the precise real HTTP rejection when source changes after preview", async () => {
+it("retains handoff direction and requires a fresh preview when source changes after preview", async () => {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
-	board = await startBoard(notes.root, undefined, silentWatch, true);
+	board = await startBoard(notes.root, undefined, undefined, true);
 	page = await openPage(board, "/_board/handoff?item=item.edge");
 	await waitFor(() => expect(page.document.getElementById("handoff-preview")?.hasAttribute("disabled")).toBe(false));
 	enterField(page, "recipient", "agent-local");
-	const goal = enterField(page, "goal", "Retain this direction.");
+	enterField(page, "goal", "Retain this direction.");
 	page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 	notes.write("item.md", `${EDGE_ATTENTION_SOURCE}Changed context.\n`);
-	page.document.getElementById("handoff-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
-	await waitFor(() => expect(page.document.getElementById("handoff-status")?.textContent).toContain("Rejected:"));
+	await waitFor(() => expect(page.document.querySelector(".response-context")?.textContent).toContain("Changed context."));
+	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(true);
 	expect(page.document.getElementById("handoff-status")?.textContent).toBe(
-		"Rejected: ResponseFailed: The source changed or moved. Keep your draft and review it again.. Draft retained; preview and retry.",
+		"Source changed since this draft. Your text is retained; review the new source and preview to bind it to this revision.",
 	);
-	expect(goal.value).toBe("Retain this direction.");
+	expect(page.document.querySelector('[name="goal"]')).toHaveProperty("value", "Retain this direction.");
+	expect(page.document.querySelector('[name="recipient"]')).toHaveProperty("value", "agent-local");
+	page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
+	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 });

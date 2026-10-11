@@ -5,6 +5,7 @@ import { markdownBoard } from "#board/markdown.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
+import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostQuota } from "#host/quota.ts";
@@ -22,7 +23,7 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 		const main = yield* MainSource;
 		return FleetIntegrations.of({
 			authorize: () => Effect.succeed(false),
-			checks: () => unconfigured("Required checks"),
+			checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),

@@ -5,7 +5,10 @@
 - Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
 - Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
 - Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.
+- Preserve the current Board decision and ownership when GitHub delivery observation is temporarily unavailable.
 - Hide resolved delivery decisions in completed views while retaining the original decision in detailed records.
+- Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
+  pending checks in validation and send failed check names and links to repair.
 
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`

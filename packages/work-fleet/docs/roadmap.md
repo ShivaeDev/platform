@@ -27,9 +27,11 @@ Preparation compatibility uses authoritative ancestry and complete relevant cont
 Unrelated changes refresh preparation while preserving original validation evidence;
 relevant or uncertain changes require preparation again for the affected work.
 
-Reviewed, green PRs wait in Needs human as ready to merge. Fleet never submits a merge. Reconciliation continues observing the adopted PR while it waits, accepts only the reviewed head with a merge revision, and records a closed unmerged PR as a human blocker. The default host uses the GitHub CLI for this observation; result adoption, independent review and required checks remain injected integrations.
+Reviewed, green PRs wait in Needs human as ready to merge. Fleet never submits a merge. Reconciliation continues observing the adopted PR while it waits, accepts only the reviewed head with a merge revision, and records a closed unmerged PR as a human blocker. The default host uses the GitHub CLI for this observation; result adoption, independent review and no-change validation remain injected integrations. Transient observation failures preserve the current Board decision and ownership across restart until fresh evidence can be read.
 
 ## Validation boundary
+
+The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
 
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
 response recording, native Fleet RPC and the actual admission/completion paths.
