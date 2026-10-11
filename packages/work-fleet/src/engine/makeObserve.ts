@@ -18,6 +18,9 @@ export function makeObserve(state: EngineState) {
 		if (latest === undefined) {
 			return yield* Effect.fail(new FleetFailure({ message: "Execution lacks an intent", reason: "invalid" }));
 		}
+		if (state.launching.has(latest.operationId)) {
+			return stored;
+		}
 		const receipt = latest.receipt ?? (yield* reconcileAttempt(state)(stored, latest));
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
