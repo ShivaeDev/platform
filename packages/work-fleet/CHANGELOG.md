@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Follow multiple items with `work-fleet watch [ids...]`, emitting one line per completed, needs-human or released item. With no IDs, follow the active items at startup. Watch and wait read only summary fields in one PostgreSQL query per poll; wait retains its exit codes.
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a
