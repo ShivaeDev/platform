@@ -4,6 +4,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
 import { draft } from "./draft.ts";
 import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./messages.ts";
+import { pathMessageAt } from "./paths.ts";
 import { fromRef, propertyRef } from "./refs.ts";
 import {
 	type Config,
@@ -21,6 +22,7 @@ import {
 	type Submitter,
 } from "./shape.ts";
 import { statusOf } from "./status.ts";
+import { trackRejections } from "./trackRejections.ts";
 
 export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, config: Config<F, A, E, R, ER>): Form<F, A, E, ER> => {
 	const { initialValues, onSubmit, runtime } = config;
@@ -31,6 +33,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 	const editing = draft(initialValues);
 	const { values } = editing;
 	const status = statusOf();
+	const noted = trackRejections(holder(values), config.arrayKeys, status);
 	const held = new Map<string, AtomRef.AtomRef<unknown>>();
 	function refFor(name: string): AtomRef.AtomRef<unknown> {
 		const known = held.get(name);
@@ -93,17 +96,8 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		}),
 	);
 
-	function noted(submitted: Encoded<F>) {
-		return (cause: E | FieldFailure): Effect.Effect<void> =>
-			Effect.sync(() => {
-				if (cause instanceof FieldFailure && Equal.equals(refFor(cause.path).value, new Map(Object.entries(submitted)).get(cause.path))) {
-					status.note(cause.path, cause.message);
-				}
-			});
-	}
-
 	const submitter: Submitter<Name<F>> = {
-		fail: (path, message) => Effect.fail(new FieldFailure({ message, path })),
+		fail: (path, message) => Effect.fail(new FieldFailure(typeof path === "string" ? { message, path } : { message, path: path[0], segments: path })),
 	};
 
 	const submit = runtime.fn<void>()(() =>
@@ -130,7 +124,9 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		error,
 		errorAt: Atom.family((path: readonly [Name<F>, ...PropertyKey[]]) => {
 			const message = schemaErrors.at(path);
-			return Atom.readable((get) => (get(status.touched)[path[0]] === true || get(status.submitted) ? get(message) : undefined));
+			return Atom.readable((get) =>
+				get(status.touched)[path[0]] === true || get(status.submitted) ? (pathMessageAt(get(status.paths), path) ?? get(message)) : undefined,
+			);
 		}),
 		field: <K extends Name<F>>(name: K) => fieldOf<Encoded<F>[K]>(refFor(name)),
 		receive: editing.receive,
