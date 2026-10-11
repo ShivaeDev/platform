@@ -18,7 +18,8 @@ export const captureReading = () => {
   return {
     scroll: [scrollX, scrollY],
     sidebar: document.getElementById("sidebar").scrollTop,
-    details: [...root.querySelectorAll("details")].map((detail) => detail.open),
+    context: root.querySelector(".item-context")?.open,
+    details: [...root.querySelectorAll("details:not(.item-context)")].map((detail) => detail.open),
     selection: anchor && focus ? { anchor, focus, a: selection.anchorOffset, f: selection.focusOffset } : null,
   };
 };
@@ -26,7 +27,9 @@ export const captureReading = () => {
 export const restoreReading = (state, restoreDetails = true) => {
   if (!state || !Array.isArray(state.scroll) || state.scroll.length !== 2 || !state.scroll.every(Number.isFinite)) return;
   const root = document.getElementById("doc");
-  [...root.querySelectorAll("details")].forEach((detail, index) => {
+  const context = root.querySelector(".item-context");
+  if (restoreDetails && context && typeof state.context === "boolean") context.open = state.context;
+  [...root.querySelectorAll("details:not(.item-context)")].forEach((detail, index) => {
     if (restoreDetails && typeof state.details?.[index] === "boolean") detail.open = state.details[index];
   });
   document.getElementById("sidebar").scrollTop = state.sidebar ?? 0;
