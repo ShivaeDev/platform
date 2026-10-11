@@ -37,7 +37,8 @@ describe("report launch backpressure", () => {
 						yield* fixture.restart(cycle);
 						expect(fixture.launched).toHaveLength(2);
 						const [observation] = fixture.observations.values();
-						expect(observation?.output).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+						expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
+						expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
 						finishWorkers(fixture);
 						const completed = (yield* fleet.reconcile("one")).value;
 						expect(completed.stage).toBe("completed");
