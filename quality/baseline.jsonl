@@ -37,15 +37,10 @@
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-changes/src/test-support/fake-database.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/bind.test.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-contract/src/bind.typecheck.test.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/style/useNamingConvention","count":20}
-{"path":"packages/effect-contract/src/contract.ts","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/style/useNamingConvention","count":6}
 {"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/style/useNamingConvention","count":25}
 {"path":"packages/effect-contract/src/rejection.ts","rule":"biome/lint/style/useNamingConvention","count":21}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/command-query.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/duplicate-command.ts","rule":"files/named-after-export","count":1}
