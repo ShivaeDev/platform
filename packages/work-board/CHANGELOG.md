@@ -15,10 +15,6 @@
 
 - Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.
 
-- Keep Inbox ages and sorting in the cached document index, update both navigation counts on live changes, and wait for indexed writes when testing question history.
-
-- Make the handoff source-change DOM regression wait for refreshed source, then assert retained direction, disabled submission and the required fresh preview.
-
 - Mark stale Fleet snapshots and dim their counts while displaying the publisher’s observation time. Label Codex windows by duration, show local and relative resets, explain unsupported snapshot versions and API-key account limits, and make Diagnostics available in the header.
 
 - Keep same-origin assets and unrecognized routes in browser navigation instead of intercepting them as reader pages. Preserve native returned-result navigation.
