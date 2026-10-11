@@ -10,7 +10,7 @@ function location(file: string): string {
 		.join('<span class="separator">/</span>');
 }
 
-export const shell = (
+export function shell(
 	title: string,
 	nav: string,
 	main: string,
@@ -18,19 +18,19 @@ export const shell = (
 	board: boolean,
 	identity?: string,
 	view: boolean | "diagnostics" | "overview" | "changes" | "start" | "response" | "handoff" | "result" = false,
-): string =>
-	[
+): string {
+	return [
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
 		`<title>${escapeHtml(title)}</title>`,
 		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
 		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar"><a class="brand" href="/">work board<span>Local workspace</span></a>',
-		`<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a><a id="diagnostics-open" class="start-open" href="/_board/diagnostics"${view === "diagnostics" ? ' aria-current="page"' : ""}>Diagnostics</a><h2 class="nav-heading">Project files</h2>`,
+		`<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a><h2 class="nav-heading">Project files</h2>`,
 		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
 		'<div class="page"><header class="bar"><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true">Files</button>',
 		`<nav id="breadcrumbs" class="breadcrumbs" aria-label="File location"><a href="/">Workspace</a><span class="separator">/</span>${location(title)}</nav>`,
-		`<a id="overview-open" class="work-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" class="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" class="work-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>`,
+		`<a id="overview-open" class="work-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" class="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" class="work-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><a id="diagnostics-open" class="work-open" href="/_board/diagnostics"${view === "diagnostics" ? ' aria-current="page"' : ""}>Diagnostics</a><button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>`,
 		'<div class="preferences" role="group" aria-label="Reading preferences">',
 		'<div class="preference"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>',
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
@@ -38,3 +38,4 @@ export const shell = (
 		`<main${view ? ` data-view="${typeof view === "string" ? view : "work"}"` : ""}${identity ? ` data-identity="${escapeHtml(identity)}"` : ""} id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
 		`</div></div>${searchDialog}${visualDialog}</body></html>`,
 	].join("");
+}
