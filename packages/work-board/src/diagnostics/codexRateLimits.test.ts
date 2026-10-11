@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { expect } from "vitest";

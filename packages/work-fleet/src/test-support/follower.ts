@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { dirname } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";

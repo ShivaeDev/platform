@@ -1,4 +1,5 @@
 import { type FileHandle, lstat, realpath } from "node:fs/promises";
+import process from "node:process";
 import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { PublicationUncertain } from "#rpc/rejections.ts";
 
