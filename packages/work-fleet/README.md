@@ -60,6 +60,8 @@ The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet
 
 Missing or invalid configuration fails. Configuration and Cloud request tests are in `src/host/config.test.ts`, `src/host/reviewerGuidance.test.ts`, `src/host/quota.test.ts` and `src/providers/codexCloud.test.ts`; they prove parsing, reviewer guidance propagation and synthetic provider behavior, not live Cloud computation.
 
+Scheduler dispatch submits prepared items in sequence and stops the pass after a definite request-queue-full rejection. Rejected work stays prepared, releases execution capacity and retries on later passes with durable exponential backoff from 30 seconds up to five minutes. The waiting item is tried before the rest of the prepared backlog, so provider capacity backoff also pauses that backlog. `work-fleet status` shows waiting for provider capacity with the last rejection time and next retry time. Other definite rejections still require a human decision; ambiguous submissions retain their existing ownership for reconciliation.
+
 ### Approve work and override launch settings
 
 Set the exact `fleet: approved` value in the item's frontmatter. Missing approval or `fleet: draft` does not approve it. The optional `fleet-launch` object overrides host `launch` settings per field:

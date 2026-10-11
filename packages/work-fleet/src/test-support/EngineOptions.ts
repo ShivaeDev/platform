@@ -2,7 +2,7 @@ import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
-import type { LaunchSettings, SessionObservation } from "#session/schema.ts";
+import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
@@ -41,6 +41,7 @@ export interface EngineOptions {
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
+	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly writeGate?: (value: FleetRecord) => Effect.Effect<void>;

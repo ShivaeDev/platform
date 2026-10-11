@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
 import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
@@ -9,9 +9,18 @@ import type { Versioned } from "#storage/model.ts";
 
 const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: readonly Versioned<FleetRecord>[]) {
 	const fleet = yield* Fleet;
-	const prepared = records.filter(({ value }) => value.stage === "prepared");
-	// Admission serializes capacity and quota in the store, so provider launch latency need not serialize the fan-out.
-	return yield* Effect.forEach(prepared, ({ value }) => fleet.dispatch(value.workId).pipe(Effect.result), { concurrency: "unbounded" });
+	const prepared = records
+		.filter(({ value }) => value.stage === "prepared")
+		.sort((left, right) => (right.value.launchRetry?.retryAt ?? 0) - (left.value.launchRetry?.retryAt ?? 0));
+	const dispatched: Result.Result<Effect.Success<ReturnType<typeof fleet.dispatch>>, Effect.Error<ReturnType<typeof fleet.dispatch>>>[] = [];
+	for (const { value } of prepared) {
+		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
+		dispatched.push(result);
+		if (Result.isSuccess(result) && result.success.value.launchRetry !== undefined) {
+			break;
+		}
+	}
+	return dispatched;
 });
 
 function activeRecords(records: readonly Versioned<FleetRecord>[]) {

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
-import { launchReceipt } from "#engine/launchReceipt.ts";
+import { capacityRetry } from "#engine/capacityRetry.ts";
+import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
@@ -16,9 +17,16 @@ export function makeLaunch(state: EngineState) {
 		prompt: string,
 		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
 	) {
-		const workerPrompt = stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt;
-		const original = yield* launchReceipt(stored.value, role);
-		const sessionId = continuation?.sessionId ?? (role === "repair" ? original?.sessionId : undefined);
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
+		const {
+			prompt: retryPrompt,
+			role: launchRole,
+			sessionId,
+			settings: retrySettings,
+		} = yield* launchInput(stored.value, role, continuation?.sessionId);
+		const workerPrompt = retryPrompt ?? (stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt);
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
 			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope", undefined, "maintainer");
@@ -30,17 +38,17 @@ export function makeLaunch(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		const settings = { ...policy.launch, ...stored.value.launch };
+		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
-			role,
+			role: launchRole,
 			settings,
 			...(sessionId === undefined ? {} : { sessionId }),
 			status: "submitting",
 			submittedAt: policy.now(),
 		};
-		const record = launchRecord(stored.value, role, policy.now(), continuation?.responses);
+		const record = launchRecord(stored.value, launchRole, policy.now(), continuation?.responses);
 		const intent = yield* save(
 			stored,
 			{
@@ -48,12 +56,13 @@ export function makeLaunch(state: EngineState) {
 				admissionReady: true,
 				attempts: [...record.attempts, attempt],
 				blocker: undefined,
+				launchRetry: undefined,
 				mergeAreasReleased: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
 				stage: "executing",
 			},
-			{ quota, role },
+			{ quota, role: launchRole },
 		);
 		const submitted =
 			sessionId === undefined
@@ -61,7 +70,13 @@ export function makeLaunch(state: EngineState) {
 				: sessions.continue({ operationId: attempt.operationId, prompt: workerPrompt, sessionId, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
-				submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
+				capacityRetry(state, stored.value, attempt.operationId, error).pipe(
+					Effect.flatMap((retrying) =>
+						retrying
+							? Effect.void
+							: submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
+					),
+				),
 			),
 		);
 		return yield* load(stored.value.workId);

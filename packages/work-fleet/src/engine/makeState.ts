@@ -72,6 +72,7 @@ export const makeState = Effect.gen(function* () {
 			blocker: undefined,
 			decision: value,
 			decisionPublished: false,
+			launchRetry: undefined,
 			stage: "needs-human",
 		});
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));

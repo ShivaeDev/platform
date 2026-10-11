@@ -8,8 +8,12 @@ export function waitingOwner(record: {
 	readonly blocker?: string | undefined;
 	readonly checks?: { readonly pending?: boolean | undefined } | undefined;
 	readonly decision?: { readonly attentionOwner?: AttentionOwner | undefined } | undefined;
+	readonly launchRetry?: { readonly retryAt: number } | undefined;
 	readonly stage: string;
 }): AttentionOwner | undefined {
+	if (record.launchRetry !== undefined) {
+		return "automation";
+	}
 	if (record.stage === "needs-human") {
 		return record.attentionOwner ?? record.decision?.attentionOwner ?? "orchestrator";
 	}

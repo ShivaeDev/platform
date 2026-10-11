@@ -19,13 +19,14 @@ export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (name
 					then jsonb_set(jsonb_set(payload, '{attentionOwner}', '"maintainer"'::jsonb), '{decision,attentionOwner}', '"maintainer"'::jsonb)
 					else jsonb_set(payload, '{attentionOwner}',
 						case when (payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true')
+							or payload->'launchRetry' is not null
 							or payload->>'blocker' = 'Fresh available provider quota is required'
 							or payload->>'blocker' ~ '^(execution|backlog) capacity is occupied'
 							or payload->>'blocker' like 'waiting for area %'
 						then '"automation"'::jsonb else '"orchestrator"'::jsonb end)
 					end
 				where payload->>'attentionOwner' is null and
-					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or
+					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or payload->'launchRetry' is not null or
 					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,
 		}),
 		lockTimeout: "5 seconds",

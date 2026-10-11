@@ -5,7 +5,10 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
 			attentionOwner: waitingOwner(record),
-			blocker: record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason),
+			blocker:
+				record.launchRetry === undefined
+					? (record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason))
+					: `Waiting for provider capacity; last rejection ${new Date(record.launchRetry.rejectedAt).toISOString()}; retry after ${new Date(record.launchRetry.retryAt).toISOString()}`,
 			decision: record.stage === "completed" ? undefined : record.decision,
 			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,

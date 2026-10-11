@@ -22,6 +22,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 				{ checks: { pending: true }, stage: "validating", workId: "checks" },
 				{ attentionOwner: "maintainer", stage: "needs-human", workId: "assigned" },
 				{ stage: "executing", workId: "active" },
+				{ launchRetry: { rejectedAt: 100, rejections: 1, retryAt: 30_100 }, stage: "prepared", workId: "retry" },
 			];
 			for (const payload of payloads) {
 				yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${payload.workId}, 1, ${JSON.stringify(payload)}::jsonb)`;
@@ -43,6 +44,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 				{ decisionOwner: null, owner: "orchestrator", version: 2, workId: "question" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "quota" },
 				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "ready" },
+				{ decisionOwner: null, owner: "automation", version: 2, workId: "retry" },
 			]);
 			yield* migrateFleet(namespace);
 			expect((yield* sql`select version from ${sql(`${namespace}_records`)} where work_id = 'question'`)[0]?.version).toBe(2);

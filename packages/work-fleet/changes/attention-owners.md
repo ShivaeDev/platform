@@ -15,3 +15,4 @@
 - Retry a committed reassignment by its original decision ID after a lost acknowledgement without publishing again. Competing reassignment and resolution writes fail with a typed stale decision.
 - Archive owners and supersession receipts when work continues without carrying those receipts into the new cycle or acknowledging them twice.
 - Scope changes detected before or after a reviewer verdict publish approval requests to the maintainer and appear in maintainer waits.
+- Persist provider launch backpressure waits under automation, including during upgrade, and clear the owner after a retry is accepted.
