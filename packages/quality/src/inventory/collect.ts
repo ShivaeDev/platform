@@ -46,7 +46,14 @@ export const collectInventory = (root: string, scope: InventoryScope): Effect.Ef
 		const excluded = ignore().add([...scope.exclude]);
 		const zones = yield* Effect.forEach(scope.sources, (zone) => zoneFiles(root, zone), { concurrency: READ_CONCURRENCY });
 		const relativePaths = zones.flat().map((absolute) => posix(relative(root, absolute)));
-		const files = [...new Set(relativePaths)].filter((path) => !excluded.ignores(path)).sort();
+		const files = [...new Set(relativePaths)]
+			.filter((path) => !excluded.ignores(path))
+			.sort((left, right) => {
+				if (left === right) {
+					return 0;
+				}
+				return left < right ? -1 : 1;
+			});
 		const sourcePaths = files.filter((path) => scope.extensions.some((extension) => path.endsWith(extension)));
 		const sources = yield* Effect.forEach(sourcePaths, (path) => readSource(root, path), { concurrency: READ_CONCURRENCY });
 		return { files, sources };
