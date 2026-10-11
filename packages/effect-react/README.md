@@ -306,9 +306,10 @@ Import the defining `.ts` module, such as `@shivaedev/effect-react/editor.ts`. T
 
 ### Render tests in happy-dom
 
-Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. Install the testing peers and the environment in your app's dev dependencies:
+Use `@shivaedev/effect-react/testing.ts` with Vitest's `happy-dom` environment. Install effect-contract for the example's query and command declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
+pnpm add @shivaedev/effect-contract
 pnpm add -D vitest happy-dom react-dom@19.2.8 @types/react-dom
 ```
 
