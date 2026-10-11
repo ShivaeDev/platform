@@ -1,0 +1,76 @@
+{
+	"name": "@shivaedev/pr-watch",
+	"version": "0.0.0",
+	"description": "One REST watcher for pull request transitions across a repository",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/pr-watch#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/pr-watch"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"types": "./dist/*.d.ts",
+			"source": "./src/*.ts",
+			"import": "./dist/*.js",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"pr-watch": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
+		"docs",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/effect-service": "workspace:*"
+	},
+	"devDependencies": {
+		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}
