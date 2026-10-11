@@ -10,7 +10,9 @@ it("rejects registration retries after the durable question file is moved", asyn
 	workspace = await responseWorkspace();
 	const question = await workspace.register();
 	renameSync(join(workspace.notes.root, `responses/${question.id}.md`), join(workspace.notes.root, "moved.md"));
-	await expect.poll(() => workspace.client.run(workspace.client.api.navigation.run())).toContain("/moved.md");
+	await expect
+		.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
+		.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })]));
 	await expect(workspace.register()).rejects.toMatchObject({
 		code: "Conflict",
 		message: "The registered identity moved or is duplicated. Read the existing record instead of retrying a write.",
@@ -48,7 +50,9 @@ it("rejects response retries after the saved reply is moved by an external edito
 	};
 	await workspace.client.mutate(workspace.client.responses.recordResponse.run(input));
 	renameSync(join(workspace.notes.root, "responses/response.edge.md"), join(workspace.notes.root, "moved.md"));
-	await expect.poll(() => workspace.client.run(workspace.client.api.navigation.run())).toContain("/moved.md");
+	await expect
+		.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
+		.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })]));
 	await expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({
 		code: "Conflict",
 		message: "The saved response moved. Read its existing record instead of retrying a write.",

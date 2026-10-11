@@ -26,6 +26,9 @@ describe("reviewer prompt and verdict", () => {
 		expect(prompt).toContain("Network writes are prohibited");
 		expect(prompt).toContain("always end with a verdict");
 		expect(prompt).toContain("Passing required checks at that exact head are the CI evidence");
+		expect(prompt).toContain("merge queue that re-runs CI against the latest main before merging");
+		expect(prompt).toContain("A branch behind main without conflicts is not a reason to request changes, repeat review or re-run validation");
+		expect(prompt).toContain("Workers merge main only when GitHub reports a conflict or the change needs something that landed there");
 		expect(prompt).toContain("Include the passing checks and the access limitation in your evidence list");
 		expect(prompt).not.toContain("pnpm db:setup");
 		expect(prompt).not.toContain("PLATFORM_EFFECT_");

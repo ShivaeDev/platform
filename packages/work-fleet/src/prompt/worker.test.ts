@@ -55,21 +55,25 @@ describe("workerPrompt", () => {
 		expect(prompt).toContain(`\`${PULL_REQUEST_MARKER} <url>\``);
 		expect(prompt).toContain("`FLEET_HEAD: <sha>`");
 	});
-	it("requires CI repair on the same branch and current main before reporting", () => {
+	it("requires green head CI and leaves latest-main validation to the merge queue", () => {
 		expect(prompt).toContain("After every push, watch your PR's CI until all checks finish");
 		expect(prompt).toContain("Fix failures on the same branch, push again and repeat");
-		expect(prompt).toContain("Before reporting, fetch the latest origin/main and check whether your PR is behind or has conflicts");
-		expect(prompt).toContain("merge the latest main into your branch and resolve conflicts");
-		expect(prompt).toContain("Run `pnpm ready`, push and watch CI again for the new head");
-		expect(prompt).toContain("Report only when all checks are green for the exact head against current main, or when genuinely blocked");
+		expect(prompt).toContain("merge queue that re-runs CI against the latest main before merging");
+		expect(prompt).toContain("Merge main only when GitHub reports a conflict or your change needs something that landed there");
+		expect(prompt).toContain("A branch behind main without conflicts does not need a merge, fresh review or revalidation");
+		expect(prompt).toContain("Never wait for main to stop moving or request a merge freeze");
+		expect(prompt).toContain("If you merge main or otherwise change the head, run `pnpm ready`, push and watch CI again for the new head");
+		expect(prompt).toContain("Report once all checks are green for your exact head");
+		expect(prompt).not.toContain("Before reporting, fetch the latest origin/main");
+		expect(prompt).not.toContain("against current main");
 		expect(prompt).toContain("If blocked, explain why and identify the failed or pending checks");
 	});
 	it("orders PR completion before the final CI result and the PR marker", () => {
 		const instructions = [
 			"Open exactly ONE pull request",
 			"After every push, watch your PR's CI",
-			"Before reporting, fetch the latest origin/main",
-			"Report only when all checks are green",
+			"`main` is protected by a merge queue",
+			"Report once all checks are green",
 			"Final report:",
 			"State the CI result for the exact head SHA you report",
 			`End with one line \`${PULL_REQUEST_MARKER} <url>\``,
