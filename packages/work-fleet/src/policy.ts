@@ -68,6 +68,7 @@ export const Checks = Schema.Struct({
 	evidence: Schema.Array(Schema.String),
 	head: Schema.String,
 	passed: Schema.Boolean,
+	pending: Schema.optional(Schema.Boolean),
 	repairPrompt: Schema.optional(Schema.String),
 });
 export type Checks = typeof Checks.Type;

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
+  pending checks in validation and send failed check names and links to repair.
+
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`
   blocks on one item and exits with its outcome. Host settings come from a

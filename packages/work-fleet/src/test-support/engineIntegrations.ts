@@ -36,7 +36,8 @@ export function engineIntegrations(options: EngineOptions, provider: EngineProvi
 			return {
 				authorize: () => Effect.succeed(!options.denyDelivery),
 				checks: (_board, result) =>
-					Effect.gen(function* () {
+					options.checksQuery?.(result)
+					?? Effect.gen(function* () {
 						if (options.checksGate !== undefined) {
 							yield* options.checksGate;
 						}
