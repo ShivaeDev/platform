@@ -1,3 +1,5 @@
+import { formReadingScript } from "./formReadingScript.ts";
+
 export function pageStateScript(): string {
 	return `
 import { tick } from "/_board/ages.js";
@@ -7,6 +9,7 @@ import { captureReading, reportMissingPassage, restoreReading } from "/_board/re
 import { revealCurrentFile } from "/_board/sidebar.js";
 import { refreshLibrary } from "/_board/library.js";
 
+${formReadingScript()}
 export const syncInbox = () => {
   const count = document.querySelector("#files [data-inbox-count]")?.dataset.inboxCount;
   if (count !== undefined) for (const id of ["inbox-count", "inbox-topbar-count"]) {
@@ -43,6 +46,7 @@ export const applyPage = (page, preserve = false) => {
   const incoming = page.getElementById("doc");
   const current = document.getElementById("doc");
   if (!incoming || !page.getElementById("files")) return false;
+  const responseFocus = preserve ? captureResponseFocus() : null;
   const reading = preserve ? captureReading() : null;
   const cachedScheme = incoming.dataset.scheme;
   if (preserve && (current.dataset.file === incoming.dataset.file || (current.dataset.identity && current.dataset.identity === incoming.dataset.identity))) {
@@ -81,6 +85,7 @@ export const applyPage = (page, preserve = false) => {
   renderDiagrams(document, cachedScheme && cachedScheme !== doc.dataset.scheme ? "figure.diagram" : undefined);
   reportMissingPassage();
   document.dispatchEvent(new Event("board-page"));
+  restoreResponseFocus(responseFocus);
   return true;
 };
 `;
