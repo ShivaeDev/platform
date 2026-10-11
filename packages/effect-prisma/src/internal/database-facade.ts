@@ -6,33 +6,33 @@ import type { AnySqlContract, DatabaseExecutor } from "./executor.ts";
 import { makeModelRelation } from "./relation-runtime.ts";
 import { acquireTransaction, releaseTransaction, type TransactionOrm, withTransactionSemaphore } from "./transaction.ts";
 
-export interface ActiveTransaction<Contract extends AnySqlContract, Identifier extends string> {
-	readonly executor: DatabaseExecutor<DefaultModels<Contract>, Contract>;
-	readonly facade: DatabaseService<Contract, Identifier>;
+export interface ActiveTransaction<TContract extends AnySqlContract, TIdentifier extends string> {
+	readonly executor: DatabaseExecutor<DefaultModels<TContract>, TContract>;
+	readonly facade: DatabaseService<TContract, TIdentifier>;
 }
 
-export interface FacadeScope<Contract extends AnySqlContract, Identifier extends string> {
-	readonly activeTransaction: Context.Reference<ActiveTransaction<Contract, Identifier> | undefined>;
-	readonly executors: WeakMap<DatabaseService<Contract, Identifier>, DatabaseExecutor<DefaultModels<Contract>, Contract>>;
-	readonly service: Context.Service<DatabaseIdentifier<Contract, Identifier>, DatabaseService<Contract, Identifier>>;
+export interface FacadeScope<TContract extends AnySqlContract, TIdentifier extends string> {
+	readonly activeTransaction: Context.Reference<ActiveTransaction<TContract, TIdentifier> | undefined>;
+	readonly executors: WeakMap<DatabaseService<TContract, TIdentifier>, DatabaseExecutor<DefaultModels<TContract>, TContract>>;
+	readonly service: Context.Service<DatabaseIdentifier<TContract, TIdentifier>, DatabaseService<TContract, TIdentifier>>;
 }
 
 // Prisma Next builds each namespace's model clients from the contract, so they are the contract's DefaultModels.
-export function contractModels<Models extends object>(namespace: unknown): Models;
+export function contractModels<TModels extends object>(namespace: unknown): TModels;
 export function contractModels(namespace: unknown): unknown {
 	return namespace;
 }
 
 // The facade serves `transaction` itself and a Relation for every other model name, matching DatabaseService.
-function databaseFacade<Contract extends AnySqlContract, Identifier extends string>(facade: object): DatabaseService<Contract, Identifier>;
+function databaseFacade<TContract extends AnySqlContract, TIdentifier extends string>(facade: object): DatabaseService<TContract, TIdentifier>;
 function databaseFacade(facade: object): unknown {
 	return facade;
 }
 
-export const namespaceModels = <Contract extends AnySqlContract, Models extends object>(
-	contract: Contract,
-	namespacedOrm: TransactionOrm<Contract>,
-): Models => {
+export const namespaceModels = <TContract extends AnySqlContract, TModels extends object>(
+	contract: TContract,
+	namespacedOrm: TransactionOrm<TContract>,
+): TModels => {
 	const namespaces = Object.entries(contract.domain.namespaces);
 	const [only] = namespaces;
 	if (namespaces.length !== 1 || only === undefined) {
@@ -40,18 +40,18 @@ export const namespaceModels = <Contract extends AnySqlContract, Models extends 
 	}
 	const [postgresSchemaOrSqliteUnbound, namespace] = only;
 	assertAvailableModelNames(Object.keys(namespace.models));
-	return contractModels<Models>(Reflect.get(namespacedOrm, postgresSchemaOrSqliteUnbound));
+	return contractModels<TModels>(Reflect.get(namespacedOrm, postgresSchemaOrSqliteUnbound));
 };
 
-export const runTransaction = <Contract extends AnySqlContract, Identifier extends string, A, E, R>(
-	scope: FacadeScope<Contract, Identifier>,
-	current: DatabaseExecutor<DefaultModels<Contract>, Contract>,
-	currentFacade: DatabaseService<Contract, Identifier>,
+export const runTransaction = <TContract extends AnySqlContract, TIdentifier extends string, A, E, R>(
+	scope: FacadeScope<TContract, TIdentifier>,
+	current: DatabaseExecutor<DefaultModels<TContract>, TContract>,
+	currentFacade: DatabaseService<TContract, TIdentifier>,
 	program: Effect.Effect<A, E, R>,
 	release: typeof releaseTransaction,
 	mode: "test" | "transaction",
 	span: string,
-): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseIdentifier<Contract, Identifier>>> => {
+): Effect.Effect<A, E | PrismaError, Exclude<R, DatabaseIdentifier<TContract, TIdentifier>>> => {
 	if (!current.liveness.open) {
 		return Effect.fail(toPrismaError({ code: current.liveness.closedCode }));
 	}
@@ -69,7 +69,7 @@ export const runTransaction = <Contract extends AnySqlContract, Identifier exten
 	const transaction = Effect.acquireUseRelease(
 		acquireTransaction(
 			current,
-			(transactionOrm) => namespaceModels<Contract, DefaultModels<Contract>>(current.client.contract, transactionOrm),
+			(transactionOrm) => namespaceModels<TContract, DefaultModels<TContract>>(current.client.contract, transactionOrm),
 			mode,
 		),
 		(resource) => {
@@ -88,11 +88,11 @@ export const runTransaction = <Contract extends AnySqlContract, Identifier exten
 	return withTransactionSemaphore(current.transactionSemaphore, transaction);
 };
 
-export function makeFacade<Contract extends AnySqlContract, Identifier extends string>(
-	scope: FacadeScope<Contract, Identifier>,
-	current: DatabaseExecutor<DefaultModels<Contract>, Contract>,
-): DatabaseService<Contract, Identifier> {
-	let facade: DatabaseService<Contract, Identifier>;
+export function makeFacade<TContract extends AnySqlContract, TIdentifier extends string>(
+	scope: FacadeScope<TContract, TIdentifier>,
+	current: DatabaseExecutor<DefaultModels<TContract>, TContract>,
+): DatabaseService<TContract, TIdentifier> {
+	let facade: DatabaseService<TContract, TIdentifier>;
 	const resolveActiveTransaction = Effect.flatMap(scope.activeTransaction, (active) => {
 		if (current.mode === "root") {
 			return Effect.succeed(active ?? { executor: current, facade });
@@ -110,7 +110,7 @@ export function makeFacade<Contract extends AnySqlContract, Identifier extends s
 	);
 	const target: object = Object.create(null);
 	Object.assign(target, {
-		transaction: <A, E, R>(program: Effect.Effect<A, E, R> & (DatabaseIdentifier<Contract, Identifier> extends R ? unknown : never)) =>
+		transaction: <A, E, R>(program: Effect.Effect<A, E, R> & (DatabaseIdentifier<TContract, TIdentifier> extends R ? unknown : never)) =>
 			Effect.suspend(() => {
 				if (!current.liveness.open) {
 					return Effect.fail(toPrismaError({ code: current.liveness.closedCode }));
@@ -120,7 +120,7 @@ export function makeFacade<Contract extends AnySqlContract, Identifier extends s
 				);
 			}),
 	});
-	facade = databaseFacade<Contract, Identifier>(
+	facade = databaseFacade<TContract, TIdentifier>(
 		new Proxy(target, {
 			get(target, property, receiver) {
 				if (Reflect.has(target, property)) {

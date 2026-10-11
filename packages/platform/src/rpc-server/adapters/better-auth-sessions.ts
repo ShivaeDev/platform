@@ -4,7 +4,7 @@ import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { redact } from "#rpc-server/redact.ts";
 import type { SessionProvider, SessionShape } from "#rpc-server/session.ts";
 
-export type GetSession<Session extends SessionShape> = (headers: globalThis.Headers) => Promise<Session | null>;
+export type GetSession<TSession extends SessionShape> = (headers: globalThis.Headers) => Promise<TSession | null>;
 
 function unavailable(cause: unknown) {
 	return Effect.andThen(
@@ -13,7 +13,7 @@ function unavailable(cause: unknown) {
 	);
 }
 
-export const betterAuthSessions = <Session extends SessionShape>(getSession: GetSession<Session>): SessionProvider<Session> => ({
+export const betterAuthSessions = <TSession extends SessionShape>(getSession: GetSession<TSession>): SessionProvider<TSession> => ({
 	get: Effect.fn("PlatformRpc.betterAuthSession")(function* (headers: Headers.Headers) {
 		const session = yield* Effect.tryPromise(() => getSession(new globalThis.Headers(headers))).pipe(
 			Effect.catch((error) => unavailable(error.cause)),
