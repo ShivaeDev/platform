@@ -47,7 +47,12 @@ function boardPage(root: string, view: string, maintainer?: string) {
 		Effect.gen(function* () {
 			const { url } = yield* boardHttp(root, undefined, maintainer);
 			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/${view}`));
-			return yield* Effect.tryPromise(() => page.text());
+			const html = yield* Effect.tryPromise(() => page.text());
+			const content = /<template id="board-legacy-page">(?<content>[\s\S]*?)<\/template>/u.exec(html)?.groups?.content;
+			if (content === undefined) {
+				return yield* Effect.die(new Error("Board did not return its page content."));
+			}
+			return content;
 		}),
 	);
 }

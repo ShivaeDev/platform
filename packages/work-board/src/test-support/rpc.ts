@@ -35,6 +35,11 @@ export function rpcResponse(window: BrowserWindow, request: RpcRequest, value: u
 	return new window.Response(RpcSerialization.ndjson.makeUnsafe().encode(message), { headers: { "content-type": "application/ndjson" } });
 }
 
+export function rpcFailure(window: BrowserWindow, request: RpcRequest, error: unknown) {
+	const message: FromServerEncoded = { _tag: "Exit", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error }] }, requestId: request.id };
+	return new window.Response(RpcSerialization.ndjson.makeUnsafe().encode(message), { headers: { "content-type": "application/ndjson" } });
+}
+
 export async function rpcCall(window: BrowserWindow, input: Parameters<BrowserWindow["fetch"]>[0], init?: Parameters<BrowserWindow["fetch"]>[1]) {
 	const request = new window.Request(input, init);
 	if (new URL(request.url).pathname.replace(/\/$/u, "") !== "/_board/rpc") {

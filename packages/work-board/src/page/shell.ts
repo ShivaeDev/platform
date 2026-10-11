@@ -22,12 +22,8 @@ export function shell(
 	view: boolean | "diagnostics" | "overview" | "changes" | "start" | "response" | "handoff" | "result" | "inbox" = false,
 	snapshot?: Snapshot,
 ): string {
-	return [
-		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
-		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
-		`<title>${escapeHtml(title)}</title>`,
-		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
-		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
+	const legacy = [
+		'<a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar" aria-label="Workspace navigation"><a class="brand" href="/">work board<span>Local workspace</span></a>',
 		`<nav id="primary-navigation" class="primary-navigation" aria-label="Workspace"><a id="home-open" href="/">Home</a><a id="inbox-open" class="inbox-link" href="/_board/inbox"${view === "inbox" ? ' aria-current="page"' : ""}>Inbox <span id="inbox-count" class="inbox-count" aria-label="${inboxCount(snapshot)} waiting">${inboxCount(snapshot)}</span></a>`,
 		`<a id="overview-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><a id="diagnostics-open" href="/_board/diagnostics"${view === "diagnostics" ? ' aria-current="page"' : ""}>Diagnostics</a></nav>`,
@@ -41,6 +37,14 @@ export function shell(
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',
 		'<button id="updates-toggle" type="button" aria-pressed="false" disabled>Pause updates</button><span id="preference-status" role="status"></span></div>',
 		`<main${view ? ` data-view="${typeof view === "string" ? view : "work"}"` : ""}${identity ? ` data-identity="${escapeHtml(identity)}"` : ""} id="doc" data-file="${escapeHtml(title)}" data-url="${escapeHtml(fileUrl(title))}" class="${board ? "board-view" : "document-view"}" tabindex="-1">${main}</main>`,
-		`</div></div>${searchDialog}${visualDialog}<dialog id="library-dialog" aria-labelledby="library-title"><div class="search-header"><h2 id="library-title">Reading history</h2><button id="library-close" type="button">Close</button></div><div id="reading-library" class="reading-library"></div></dialog></body></html>`,
+		`</div></div>${searchDialog}${visualDialog}<dialog id="library-dialog" aria-labelledby="library-title"><div class="search-header"><h2 id="library-title">Reading history</h2><button id="library-close" type="button">Close</button></div><div id="reading-library" class="reading-library"></div></dialog>`,
+	].join("");
+	return [
+		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
+		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
+		`<title>${escapeHtml(title)}</title>`,
+		'<link rel="stylesheet" href="/_board/react.css"><link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/react.js"></script>',
+		`</head><body><noscript data-board-fallback><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style>${legacy}</noscript>`,
+		`<div data-board-react-root></div><template id="board-legacy-page">${legacy}</template></body></html>`,
 	].join("");
 }

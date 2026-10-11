@@ -22,7 +22,8 @@ afterEach(() => {
 });
 
 function cards(body: string) {
-	return [...body.matchAll(/data-attention-item="(?<item>[^"]+)" data-request="(?<request>[^"]+)"/gu)].map((match) => [
+	const page = /<template id="board-legacy-page">(?<content>[\s\S]*?)<\/template>/u.exec(body)?.groups?.content ?? body;
+	return [...page.matchAll(/data-attention-item="(?<item>[^"]+)" data-request="(?<request>[^"]+)"/gu)].map((match) => [
 		match.groups?.item,
 		match.groups?.request,
 	]);
