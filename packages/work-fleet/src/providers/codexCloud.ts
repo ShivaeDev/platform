@@ -34,7 +34,7 @@ function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 	return {
 		config: {
 			"sandbox_mode": input.access === "read-only" ? "read-only" : "workspace-write",
-			...(input.access === "read-only" ? { "approval_policy": "never" } : {}),
+			...(input.access === "read-only" ? { "approval_policy": "never", "sandbox_read_only.network_access": true } : {}),
 			...(input.settings?.effort === undefined ? {} : { "model_reasoning_effort": input.settings.effort }),
 		},
 		deferredEnvironment: true,
@@ -77,7 +77,7 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 				return yield* Effect.fail(failure("protocol", "Codex Cloud did not confirm the configured environment and cwd; retain the session"));
 			}
 			return input.access === "read-only"
-				? { approvalPolicy: "never", sandboxPolicy: { networkAccess: false, type: "readOnly" } }
+				? { approvalPolicy: "never", sandboxPolicy: { networkAccess: true, type: "readOnly" } }
 				: { approvalPolicy: "on-request", approvalsReviewer: "auto_review", sandboxPolicy };
 		});
 		const adapter = codexAdapter(rpc, {

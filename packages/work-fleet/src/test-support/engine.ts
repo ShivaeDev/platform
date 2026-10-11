@@ -23,7 +23,6 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly editWork: (workId: string, revision: string) => void;
 	readonly foreign: (owner: string) => Effect.Effect<void, unknown>;
 	readonly foreignReservations: () => Effect.Effect<readonly ForeignReservation[], unknown>;
-	readonly markLegacyDeliverySubmitted: (workId: string) => Effect.Effect<void, unknown>;
 	readonly merged: readonly string[];
 	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
@@ -120,14 +119,6 @@ export function withEngine<A, E, TBoardError = never>(
 				},
 				foreign,
 				foreignReservations: store.foreignReservations,
-				markLegacyDeliverySubmitted: (workId) =>
-					Effect.gen(function* () {
-						const stored = yield* store.load(workId);
-						if (stored === undefined) {
-							return yield* Effect.die("Missing legacy work");
-						}
-						yield* store.compareAndSet(workId, stored.version, { ...stored.value, deliverySubmitted: true });
-					}),
 				merged,
 				respond: scripted.respond,
 				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
