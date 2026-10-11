@@ -15,6 +15,29 @@ import { healthLayer } from "./healthLayer.ts";
 import { statusLayer } from "./statusLayer.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
+test("publishes an idle scheduler pass without an extra list request", () =>
+	withFleetBoard({}, (_fixture, root) =>
+		Effect.gen(function* () {
+			const fleet = yield* Fleet;
+			let reads = 0;
+			yield* cycle.pipe(
+				Effect.provideService(Fleet, {
+					...fleet,
+					list: () =>
+						Effect.sync(() => {
+							reads += 1;
+						}).pipe(Effect.andThen(fleet.list())),
+				}),
+			);
+			expect(reads).toBe(2);
+			expect((yield* fleetHealth(root)).lastSchedulerPass).toBeGreaterThan(0);
+		}).pipe(
+			Effect.provide(
+				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+			),
+		),
+	));
+
 test("publishes counts, configured cap, scheduler pass and provider rejection through the shared Board contract", () =>
 	withFleetBoard({ denyDelivery: true }, (fixture, root) =>
 		Effect.gen(function* () {
@@ -23,10 +46,10 @@ test("publishes counts, configured cap, scheduler pass and provider rejection th
 			yield* prepareWork("one");
 			expect(yield* fleetHealth(root)).toMatchObject({ queued: 1, running: 0 });
 			yield* Effect.sync(heal);
-			yield* capacityRejected("Synthetic provider capacity");
+			yield* capacityRejected("serverOverloaded");
 			yield* cycle;
 			const running = yield* fleetHealth(root);
-			expect(running).toMatchObject({ concurrency: 8, lastCapacityRejection: { cause: "Synthetic provider capacity" }, queued: 0, running: 1 });
+			expect(running).toMatchObject({ concurrency: 8, lastCapacityRejection: { cause: "serverOverloaded" }, queued: 0, running: 1 });
 			expect(running.lastSchedulerPass).toBeGreaterThan(0);
 			finishWorkers(fixture);
 			yield* cycle;
@@ -48,7 +71,7 @@ test("failed health publication leaves execution usable and retries on the next 
 			expect((yield* fleet.get("one")).value.stage).toBe("executing");
 			expect(yield* fleetHealth(root).pipe(Effect.flip)).toMatchObject({ kind: "error" });
 			yield* Effect.sync(heal);
-			yield* fleet.list();
+			yield* cycle;
 			expect(yield* fleetHealth(root)).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
 		}).pipe(
 			Effect.provide(

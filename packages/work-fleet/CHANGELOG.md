@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Keep queue-full launch rejections queued with durable exponential backoff from 30 seconds up to five minutes. Stop scheduler dispatch for the pass and show the last rejection time while waiting for provider capacity.
+- Publish structured provider capacity codes without raw upstream text and refresh health after each scheduler pass.
+
 - Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.
 - Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
 - Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
@@ -30,9 +32,6 @@
 - Approve Board work with `fleet: approved` frontmatter on the exact revision read.
 - Launch Codex Cloud workers through a hosted provider with model, reasoning effort
   and service tier from host config, overridable per item, and read their final output.
-- Build Cloud worker prompts from one template with a startup block and a parseable
-  `FLEET_PR:` report line.
-- Require Cloud worker prompts to watch CI after every push, repair failures on the same branch, merge current main when behind or conflicted, and report the exact head's CI result before the PR marker, with a reason when blocked.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
@@ -51,4 +50,3 @@
   immutable qualified receipts and persisted publication markers; retry pending
   acknowledgement without repeating actions or rewriting reviewed source.
 - Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
-- Read and index Board Markdown once per scheduler pass, share that snapshot across admission and item lookups, and refresh it on the next pass. Approval remains bound to the exact source revision read.
