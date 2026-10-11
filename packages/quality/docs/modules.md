@@ -9,7 +9,7 @@ A module link opens its source. Type and value declarations with the same name a
 | Module | Exported names |
 | --- | --- |
 | [cli.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/cli.ts) | None; executable entry. |
-| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `PreCommit`, `QualityConfig`, `defineConfig` |
+| [config.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/config.ts) | `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules`, `QualityConfig`, `defineConfig` |
 | [decoded.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/decoded.ts) | `Decoded`, `decodeWith`, `validOrFail` |
 | [failure.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/failure.ts) | `SetupFailure`, `GateFailed` |
 | [rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rule.ts) | `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext`, `Configured`, `Rule`, `defineRule` |
