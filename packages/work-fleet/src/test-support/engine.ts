@@ -3,12 +3,13 @@ import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
-import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
+import { BoardFailure, type BoardGateway, type BoardWork, FleetPolicy } from "#policy.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
+import { enginePolicy } from "#test/enginePolicy.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { prepared } from "#test/preparation.ts";
 import { scriptedBoard } from "#test/scriptedBoard.ts";
@@ -69,18 +70,7 @@ export function withEngine<A, E, TBoardError = never>(
 			const decisions: string[] = [];
 			const reviews: string[] = [];
 			const merged: string[] = [];
-			let operationCount = 0;
-			const policy: FleetConfiguration = {
-				deliveryBacklog: options.backlog ?? 2,
-				executionConcurrency: options.concurrency ?? 2,
-				...(options.launch === undefined ? {} : { launch: options.launch }),
-				now: () => 100,
-				operationId: () => {
-					operationCount += 1;
-					return options.operationCollision ? "operation-fixed" : `operation-${operationCount}`;
-				},
-				quota: { ...(options.unknownQuota ? {} : { available: options.quota ?? 100 }), expiresAt: 1000, observedAt: 0 },
-			};
+			const policy = enginePolicy(options);
 			const scripted = scriptedBoard(options, decisions, (id) =>
 				unavailable.has(id)
 					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))

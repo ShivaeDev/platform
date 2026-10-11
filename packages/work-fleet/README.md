@@ -96,6 +96,8 @@ terminal adopted PR transfers its actual paths into a foreign reservation until
 the runtime observes that the PR no longer owns them. Ambiguous submitted
 delivery cannot be released.
 
+Scheduler dispatch submits prepared items in sequence and stops the pass after a definite request-queue-full rejection. Rejected work stays prepared, releases execution capacity and retries on later passes with durable exponential backoff from 30 seconds up to five minutes. The waiting item is tried before the rest of the prepared backlog, so provider capacity backoff also pauses that backlog. `work-fleet status` shows waiting for provider capacity with the last rejection time and next retry time. Other definite rejections still require a human decision; ambiguous submissions retain their existing ownership for reconciliation.
+
 ### Answer a worker question
 
 Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.

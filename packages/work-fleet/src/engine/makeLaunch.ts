@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
+import { capacityRetry } from "#engine/capacityRetry.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -7,6 +8,9 @@ import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
 	const { store, board, policy, sessions, load, save, decision } = state;
 	return Effect.fn("Fleet.launch")(function* (stored: Versioned<FleetRecord>, role: "worker" | "repair", prompt: string) {
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
 		const work = yield* board.get(stored.value.workId);
 		if (work.revision !== stored.value.boardRevision) {
 			return yield* decision(stored, "Board context changed after preparation", "Approve and prepare the current scope");
@@ -21,7 +25,7 @@ export function makeLaunch(state: EngineState) {
 		const attempt: Attempt = { operationId: policy.operationId(), role, status: "submitting", submittedAt: policy.now() };
 		const intent = yield* save(
 			stored,
-			{ ...stored.value, attempts: [...stored.value.attempts, attempt], blocker: undefined, stage: "executing" },
+			{ ...stored.value, attempts: [...stored.value.attempts, attempt], blocker: undefined, launchRetry: undefined, stage: "executing" },
 			{ quota, role },
 		);
 		const original = stored.value.attempts.find((previous) => previous.role === "worker" && previous.receipt !== undefined)?.receipt;
@@ -32,7 +36,13 @@ export function makeLaunch(state: EngineState) {
 				: sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
-				submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
+				capacityRetry(state, stored.value, attempt.operationId, error).pipe(
+					Effect.flatMap((retrying) =>
+						retrying
+							? Effect.void
+							: submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
+					),
+				),
 			),
 		);
 		return yield* load(stored.value.workId);

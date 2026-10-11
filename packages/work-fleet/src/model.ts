@@ -26,6 +26,7 @@ const cycleFields = {
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverySubmitted: Schema.optional(Schema.Boolean),
 	launch: Schema.optional(LaunchSettings),
+	launchRetry: Schema.optional(Schema.Struct({ rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number })),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,

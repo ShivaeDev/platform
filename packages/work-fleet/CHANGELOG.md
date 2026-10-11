@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep queue-full launch rejections queued with durable exponential backoff from 30 seconds up to five minutes. Stop scheduler dispatch for the pass and show the last rejection time while waiting for provider capacity.
 - Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
@@ -16,7 +17,6 @@
 - Build Cloud worker prompts from one template with a startup block and a parseable
   `FLEET_PR:` report line.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
-- Dispatch prepared work concurrently.
 
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
   transactional reservations, session/turn receipts and native command/query contracts.

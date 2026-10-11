@@ -1,7 +1,7 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { BoardFailure, Checks, FleetFailure, WorkResult } from "#policy.ts";
-import type { LaunchSettings } from "#session/schema.ts";
+import type { LaunchSettings, SessionFailure } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
@@ -20,6 +20,7 @@ export interface EngineOptions {
 	readonly lostContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
+	readonly now?: () => number;
 	readonly operationCollision?: boolean;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
@@ -32,6 +33,7 @@ export interface EngineOptions {
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
+	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
 	readonly unknownQuota?: boolean;
 	readonly wrongHead?: "review" | "checks";
 }

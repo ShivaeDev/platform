@@ -3,10 +3,13 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
-export function dispatchCommand({ board, load, save, decision, integrations }: EngineState, launch: ReturnType<typeof makeLaunch>) {
+export function dispatchCommand({ board, load, save, decision, integrations, policy }: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.dispatch")(function* (workId: string) {
 		let stored = yield* load(workId);
 		if (stored.value.stage !== "prepared") {
+			return stored;
+		}
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
 		const work = yield* board.get(workId);

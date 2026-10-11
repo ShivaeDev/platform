@@ -26,15 +26,23 @@ export function engineProvider(options: EngineOptions) {
 					: receipt;
 			}),
 		startSession: (input) =>
-			Effect.sync(() => {
+			Effect.gen(function* () {
 				launched.push(input.operationId);
 				settings.push({ call: "session", operationId: input.operationId, settings: input.settings });
+				const failure = options.submissionFailure?.("session");
+				if (failure !== undefined) {
+					return yield* Effect.fail(failure);
+				}
 				return `session-${input.operationId}`;
 			}),
 		startTurn: (input) =>
 			Effect.gen(function* () {
 				turns += 1;
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
+				const failure = options.submissionFailure?.("turn");
+				if (failure !== undefined) {
+					return yield* Effect.fail(failure);
+				}
 				if (turns === 2 && options.continuationGate !== undefined) {
 					yield* options.continuationGate;
 				}
