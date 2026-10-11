@@ -16,6 +16,8 @@
 
 ### Changed
 
+- Re-read only changed Markdown paths after each settled watcher batch. Retain unchanged parsed documents and search entries, update dependent metadata diagnostics, and coalesce bursts larger than 256 events into one revision. Watcher recovery checks source bytes while retaining unchanged parses.
+
 - Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 
 - Remove hard line wrapping from Markdown prose while preserving code examples and document structure.

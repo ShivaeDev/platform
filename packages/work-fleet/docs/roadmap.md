@@ -14,16 +14,16 @@
 - The command host reads GitHub check runs and commit statuses for the adopted PR's exact SHA through `gh`. Pending checks keep validation open and failures reach repair. `src/host/githubChecks.test.ts` and `src/engine/validation.spec.ts` cover these transitions with synthetic GitHub responses.
 - Approved tasks with `fleet-deliverable: report` return the whole report in the worker's final message. Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery; empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status, wait and lost-publication recovery without a duplicate result or worker.
 - The Cloud adapter and headless host commit each attempt intent before `thread/start`, the session acknowledgement before `turn/start` and the turn acknowledgement before observation. PostgreSQL SIGKILL tests with a synthetic Cloud server cover both sides of these mutations and recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it stays blocked with ownership retained.
+- Fleet never submits a merge. Reviewed, green PRs wait in Needs human; the command host observes the adopted PR through `gh pr view`, accepts only a merge of the reviewed head, keeps closed unmerged PRs in Needs human and preserves the current decision through transient observation failures. Delivery tests cover these cases with synthetic GitHub responses and real PostgreSQL.
 - The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
 ## Open for the command host
 
 - Result adoption: verify and attach the actual pull request or evidenced no-change result. A worker report marker alone is insufficient.
 - Independent review and repair: wire the core's exact-head review and reconciliation boundary to a real reviewer.
-- Authorized delivery: supply trusted authorization, delivery observation and normal merge under branch requirements.
 - Board view: present Fleet execution attachments and decisions in the Board interface.
 
-The command host's default integrations read GitHub checks but do not supply result adoption, review or delivery. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
+The command host's default integrations read GitHub checks and observe human delivery of the adopted PR, but do not supply result adoption or review. The PostgreSQL host-loop test reaches Needs human after a terminal worker when adoption is unavailable. Completion tests use injected synthetic integrations; they prove the core path, not these open host integrations.
 
 ## Validation boundary
 
@@ -31,9 +31,9 @@ Real PostgreSQL tests cover durable storage, host admission, status reads, wait 
 
 The CLI host publishes an atomic versioned `fleet/health.json` using Board's shared schema. Filesystem fixtures cover atomic replacement, unchanged writes, authored content and symlink refusal; restart fixtures restore last scheduler/capacity observations. PostgreSQL scheduler fixtures exercise actual Fleet counts and independent status/health publication, while synthetic provider fixtures cover structured capacity errors across the WebSocket boundary and terminal-turn observation. These checks live in `src/board/writeHealth.test.ts`, `src/host/healthLayer.test.ts`, `healthPublication.spec.ts`, `providerHealth.test.ts`, and `src/providers/capacityWire.spec.ts`. They do not establish live provider capacity or credential access.
 
-Live Cloud computation, actual pull request adoption, independent review, required checks and authorized delivery still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
+Live Cloud computation, actual pull request adoption, independent review, required checks and an observed human merge still need end-to-end evidence. A terminal turn, a report URL and accepted delivery are separate facts. No synthetic fixture supplies live proof.
 
 ## Maintainer decisions
 
 - Release and public distribution: the package remains private at version `0.0.0`.
-- Live pilot: validate disjoint work, replacement timing, restart recovery and normal delivery once the open host integrations are connected. Provider lookup for an unacknowledged thread and live hosted restart evidence remain pending.
+- Live pilot: validate disjoint work, replacement timing, restart recovery and an observed human merge under actual branch requirements once the open host integrations are connected. Provider lookup for an unacknowledged thread and live hosted restart evidence remain pending.

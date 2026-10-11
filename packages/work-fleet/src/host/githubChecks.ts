@@ -1,27 +1,11 @@
-import { Effect, Schema, Stream } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { Effect, Schema } from "effect";
 import { CheckPages, githubCheckState, StatusPages } from "#host/githubCheckState.ts";
+import { githubRead } from "#host/githubRead.ts";
 import { FleetFailure, type WorkResult } from "#policy.ts";
 
 function failure(message: string) {
 	return new FleetFailure({ message, reason: "integration" });
 }
-const githubRead = Effect.fn("Fleet.githubRead")(function* (endpoint: string) {
-	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	return yield* Effect.scoped(
-		Effect.gen(function* () {
-			const process = yield* spawner.spawn(ChildProcess.make("gh", ["api", "--method", "GET", "--paginate", "--slurp", endpoint]));
-			const output = yield* process.stdout.pipe(Stream.decodeText, Stream.mkString);
-			if ((yield* process.exitCode) !== 0) {
-				return yield* failure(`GitHub request failed: ${endpoint}`);
-			}
-			return output;
-		}),
-	).pipe(
-		Effect.timeout("60 seconds"),
-		Effect.mapError(() => failure(`GitHub checks could not be read from ${endpoint}; check gh authentication and repository access`)),
-	);
-});
 
 export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<string, FleetFailure, R>) {
 	return Effect.fn("Fleet.githubChecks")(function* (result: WorkResult) {
@@ -54,4 +38,4 @@ export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<st
 	});
 }
 
-export const githubChecks = makeGithubChecks(githubRead);
+export const githubChecks = makeGithubChecks((endpoint) => githubRead(["api", "--method", "GET", "--paginate", "--slurp", endpoint]));

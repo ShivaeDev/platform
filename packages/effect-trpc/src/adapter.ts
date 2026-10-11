@@ -18,22 +18,22 @@ export interface MakeEffectTRPCOptions<Requirements, RuntimeError> {
 export interface EffectTRPCRuntime<Requirements, RuntimeError> {
 	readonly contextEffect: Effect.Effect<Context.Context<Requirements>, RuntimeError>;
 	readonly currentServices?: () => Context.Context<never> | undefined;
-	readonly runPromise: <Value, Error>(
-		effect: Effect.Effect<Value, Error, Requirements>,
+	readonly runPromise: <Value, TError>(
+		effect: Effect.Effect<Value, TError, Requirements>,
 		options?: { readonly signal?: AbortSignal },
 	) => Promise<Value>;
-	readonly runPromiseExit: <Value, Error>(
-		effect: Effect.Effect<Value, Error, Requirements>,
+	readonly runPromiseExit: <Value, TError>(
+		effect: Effect.Effect<Value, TError, Requirements>,
 		options?: { readonly signal?: AbortSignal },
-	) => Promise<Exit.Exit<Value, Error | RuntimeError>>;
+	) => Promise<Exit.Exit<Value, TError | RuntimeError>>;
 	readonly runWithServices?: <Services, Value>(services: Context.Context<Services>, evaluate: () => Value) => Value;
 }
 
 export interface EffectTRPCAdapter<Requirements> {
-	readonly procedure: <Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError>(
-		builder: TRPCProcedureBuilder<Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, false>,
-		requestServices: EffectProcedureRequestServices<ResolverContext<Context, Meta, ContextOverrides>, ProvidedServices, LayerError>,
-	) => EffectProcedureBuilder<Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError, Requirements>;
+	readonly procedure: <TContext, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError>(
+		builder: TRPCProcedureBuilder<TContext, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, false>,
+		requestServices: EffectProcedureRequestServices<ResolverContext<TContext, Meta, ContextOverrides>, ProvidedServices, LayerError>,
+	) => EffectProcedureBuilder<TContext, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError, Requirements>;
 	readonly runWithServices: <Services, Value>(services: Context.Context<Services>, evaluate: () => Value) => Value;
 }
 
@@ -44,13 +44,13 @@ export const makeEffectTRPC = <Requirements, RuntimeError = never>(
 	const runtime = makeRuntimeBridge(options.runtime, contextBridge, options);
 
 	return {
-		procedure: <Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError>(
-			builder: TRPCProcedureBuilder<Context, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, false>,
-			requestServices: EffectProcedureRequestServices<ResolverContext<Context, Meta, ContextOverrides>, ProvidedServices, LayerError>,
+		procedure: <TContext, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, ProvidedServices, LayerError>(
+			builder: TRPCProcedureBuilder<TContext, Meta, ContextOverrides, InputIn, InputOut, OutputIn, OutputOut, false>,
+			requestServices: EffectProcedureRequestServices<ResolverContext<TContext, Meta, ContextOverrides>, ProvidedServices, LayerError>,
 		) => {
 			const loose = looseBuilder(builder);
 			return new EffectProcedureBuilder<
-				Context,
+				TContext,
 				Meta,
 				ContextOverrides,
 				InputIn,

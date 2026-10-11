@@ -1,6 +1,7 @@
 import { attentionProblems } from "./attentionProblems.ts";
 import type { MetadataDocument } from "./model.ts";
 import type { Diagnostic } from "./parse.ts";
+import { referencesOf } from "./referencesOf.ts";
 
 function referenceProblem(target: string, ids: ReadonlyMap<string, readonly MetadataDocument[]>): string | undefined {
 	const [id = "", criterion] = target.split("#");
@@ -25,25 +26,8 @@ function criterionProblems(document: MetadataDocument): readonly Diagnostic[] {
 	);
 }
 function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>): readonly Diagnostic[] {
-	const { fields, lines } = document.parsed;
-	const references = [
-		...(fields.handoff ? [{ field: "handoff", key: "handoff.item", target: fields.handoff.item }] : []),
-		...(fields.question ? [{ field: "question", key: "question.item", target: fields.question.item }] : []),
-		...(fields.response ? [{ field: "response", key: "response.question", target: fields.response.question }] : []),
-		...(fields.response?.supersedes ? [{ field: "response", key: "response.supersedes", target: fields.response.supersedes }] : []),
-		...(fields.requestReceipt ? [{ field: "request_receipt", key: "request_receipt.question", target: fields.requestReceipt.question }] : []),
-		...(fields.requestReceipt?.response
-			? [{ field: "request_receipt", key: "request_receipt.response", target: fields.requestReceipt.response }]
-			: []),
-		...(fields.attention?.flatMap((request, index) =>
-			request.unblocks.map((target, targetIndex) => ({ field: "attention", key: `attention.${index}.unblocks.${targetIndex}`, target })),
-		) ?? []),
-		...(fields.relationships?.map((link, index) => ({ field: "relationships", key: `relationships.${index}.target`, target: link.target })) ?? []),
-		...(fields.items?.map((target, index) => ({ field: "items", key: `items.${index}`, target })) ?? []),
-		...(fields.evidence?.flatMap((item, index) =>
-			item.criterion ? [{ field: "evidence", key: `evidence.${index}.criterion`, target: item.criterion }] : [],
-		) ?? []),
-	];
+	const { lines } = document.parsed;
+	const references = referencesOf(document);
 	return references.flatMap((reference) => {
 		const message = referenceProblem(reference.target, ids);
 		return message ? [{ field: reference.field, line: lines[reference.key] ?? lines[reference.field] ?? 2, message }] : [];
