@@ -28,7 +28,7 @@ export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (ro
 	const tracker = trackInvalidations();
 	const changes: Changes = {
 		events: yield* PubSub.unbounded<Change>(),
-		files: listMarkdown(root, root).pipe(Effect.provide(NodeServices.layer)),
+		files: listMarkdown(root, root).pipe(Effect.provide(context)),
 		realRoot: root,
 		revision: Ref.get(revision),
 		watching,
