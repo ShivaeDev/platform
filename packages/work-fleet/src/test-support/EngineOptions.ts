@@ -5,6 +5,7 @@ import type { LaunchSettings } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+	readonly archiveFailure?: boolean;
 	readonly backlog?: number;
 	readonly checkRepair?: boolean;
 	readonly checksFailure?: boolean;
