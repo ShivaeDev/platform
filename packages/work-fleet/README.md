@@ -42,9 +42,23 @@ Put `fleet.config.json` in the Board folder. `--config <file>` selects another c
 
 Replace the placeholders with trusted host settings. `cloud.environmentId` identifies the Cloud environment configuration, and `cloud.cwd` identifies its workspace. The Cloud transport confirms the returned environment before starting a turn. It rejects work prepared for a different workspace and rejects an echoed service tier that differs from the requested tier. `worker` supplies the branch prefix and environment script path used in the generated worker instructions.
 
+Set optional `worker.reviewerGuidance` to repository-specific review instructions. It accepts inline text or `{ "file": "reviewer.md" }`; file paths resolve from the Board folder. An unreadable file fails host policy creation. The host includes the text in initial reviewer prompts and verdict follow-ups. Omitted guidance leaves the default prompt repository-independent.
+
+For this repository, configure the `worker` section in `.work/fleet.config.json` with the Platform guidance:
+
+```json
+{
+  "worker": {
+    "branchPrefix": "<branch-prefix>",
+    "sharedEnvironment": "<environment-script-path>",
+    "reviewerGuidance": "To check that PostgreSQL tests are not skipped without job logs, read .github/workflows/ci.yml at the reviewed head and follow its test job database setup and environment configuration. In this repository, pnpm db:setup provisions PostgreSQL and pnpm test supplies PLATFORM_EFFECT_*_TEST_DATABASE_URL through script/test.ts and script/lib/postgres-test-environment.ts. Inspect those files at the same head; the checkout may differ."
+  }
+}
+```
+
 The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet"`, `quota: "codex"` and an empty `launch`. `concurrency` limits execution; `backlog` limits undelivered adopted changes. The Codex quota policy uses ordinary-usage eligibility and caches observations for a minute; `quota: "unlimited"` admits without that provider limit. An unknown quota response fails rather than granting capacity.
 
-Missing or invalid configuration fails. Configuration and Cloud request tests are in `src/host/config.test.ts`, `src/host/quota.test.ts` and `src/providers/codexCloud.test.ts`; they prove parsing and synthetic provider behavior, not live Cloud computation.
+Missing or invalid configuration fails. Configuration and Cloud request tests are in `src/host/config.test.ts`, `src/host/reviewerGuidance.test.ts`, `src/host/quota.test.ts` and `src/providers/codexCloud.test.ts`; they prove parsing, reviewer guidance propagation and synthetic provider behavior, not live Cloud computation.
 
 ### Approve work and override launch settings
 
@@ -199,7 +213,7 @@ A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet re
 
 ### Independent review
 
-After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited. When the exact-head diff and check results are readable, the prompt requires a verdict. Passing required checks at that head are CI evidence even when job logs or artifacts are unavailable; reviewers record that limitation in their evidence. To assess PostgreSQL test setup without logs, reviewers inspect the workflow and its database environment configuration at the same head.
+After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. `FleetPolicy.reviewerGuidance` supplies repository-specific validation instructions, resolved by the command host from `worker.reviewerGuidance`. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited. When the exact-head diff and check results are readable, the prompt requires a verdict. Passing required checks at that head are CI evidence even when job logs or artifacts are unavailable; reviewers record that limitation in their evidence.
 
 The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns produce a human decision. A malformed completed verdict gets one automatic follow-up on the same read-only reviewer thread requesting the required format. Fleet persists that attempt before submission and reconciles its receipt after restart; a second malformed reply produces a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
 
