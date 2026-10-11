@@ -1,8 +1,6 @@
-import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -12,11 +10,10 @@ import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
+import { type CliRun, cliProcess } from "#test/fleetCli.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 export const MAIN = { observedAt: 1, revision: "main-revision" };
-
-const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 
 export function task(id: string, fleet?: string, body = "Do the work.") {
 	return `---\nid: ${id}\nkind: task\n${fleet === undefined ? "" : `fleet: ${fleet}\n`}---\n# ${id}\n\n${body}\n`;
@@ -104,35 +101,10 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 	}).pipe(Effect.provide(hostSql(host)), Effect.orDie);
 }
 
-export interface WaitRun {
-	readonly code: number | null;
-	readonly stdout: string;
-}
-
 export function waitProcess(
 	configFile: string,
 	workId: string,
 	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
-): Promise<WaitRun> {
-	return new Promise((resolve, reject) => {
-		const args = [
-			"--conditions=source",
-			CLI,
-			"wait",
-			workId,
-			"--config",
-			configFile,
-			"--interval",
-			String(intervalSeconds),
-			"--timeout",
-			String(timeoutSeconds),
-		];
-		const child = spawn(process.execPath, args, { stdio: ["ignore", "pipe", "ignore"] });
-		let stdout = "";
-		child.stdout.on("data", (chunk: Buffer) => {
-			stdout += chunk.toString();
-		});
-		child.on("error", reject);
-		child.on("close", (code) => resolve({ code, stdout: stdout.trim() }));
-	});
+): Promise<CliRun> {
+	return cliProcess(["wait", workId, "--config", configFile, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]);
 }
