@@ -5,7 +5,7 @@ import type { LiveHint } from "./live.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
-	const resyncKey = Symbol("live-resync");
+	const resyncKey = `@shivaedev/effect-contract/resync/${crypto.randomUUID()}`;
 	let generation = 0;
 	function stream(keys: readonly Key[]) {
 		return Stream.unwrap(

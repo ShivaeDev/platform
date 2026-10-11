@@ -37,3 +37,32 @@ it("committed keys wake matching streams, and resync wakes every stream", () =>
 			}),
 		).pipe(Effect.provide(Reactivity.layer)),
 	));
+
+it("resync belongs to its helper when independent helpers share Reactivity", () =>
+	Effect.runPromise(
+		Effect.scoped(
+			Effect.gen(function* () {
+				const first = yield* makeLiveServer;
+				const second = yield* makeLiveServer;
+				const orders = collection("orders", Schema.Number);
+				const a: unknown[] = [];
+				const b: unknown[] = [];
+				yield* first.stream([orders.item(1)]).pipe(
+					Stream.runForEach((hint) => Effect.sync(() => a.push(hint))),
+					Effect.forkScoped,
+				);
+				yield* second.stream([orders.item(2)]).pipe(
+					Stream.runForEach((hint) => Effect.sync(() => b.push(hint))),
+					Effect.forkScoped,
+				);
+				yield* Effect.yieldNow;
+				yield* first.resync;
+				yield* Effect.yieldNow;
+				expect(a).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
+				expect(b).toEqual([{ _tag: "Resync" }]);
+				yield* second.resync;
+				yield* Effect.yieldNow;
+				expect(b).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
+			}),
+		).pipe(Effect.provide(Reactivity.layer)),
+	));
