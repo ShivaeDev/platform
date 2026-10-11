@@ -9,13 +9,14 @@ function sessionId(attempt: Attempt) {
 
 export function pendingSessionCleanup(record: FleetRecord): readonly string[] {
 	const attempts = allAttempts(record);
-	const eligible = [
-		...(record.history ?? []).flatMap((cycle) => cycle.attempts),
-		...(["completed", "released"].includes(record.stage) ? record.attempts : []),
-	];
+	const terminal = ["completed", "released"].includes(record.stage);
+	const retained = new Set(terminal ? [] : record.attempts.map(sessionId));
+	const eligible = [...(record.history ?? []).flatMap((cycle) => cycle.attempts), ...(terminal ? record.attempts : [])];
 	return [...new Set(eligible.filter((attempt) => !attempt.sessionCleanupComplete).map(sessionId))].filter(
 		(id): id is string =>
-			id !== undefined && !attempts.some((attempt) => sessionId(attempt) === id && ["submitting", "accepted", "running"].includes(attempt.status)),
+			id !== undefined
+			&& !retained.has(id)
+			&& !attempts.some((attempt) => sessionId(attempt) === id && ["submitting", "accepted", "running"].includes(attempt.status)),
 	);
 }
 

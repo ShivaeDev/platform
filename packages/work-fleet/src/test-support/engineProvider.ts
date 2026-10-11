@@ -30,6 +30,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const operations = new Map<string, SessionReceipt>();
 	let turns = 0;
 	let lost = options.lostAcknowledgement ?? false;
+	let rejectNext = false;
 	function consumeLostAcknowledgement(readOnly: boolean) {
 		const reviewerLost = readOnly && reviewLost;
 		const missing = lost || reviewerLost || (options.lostContinuationAcknowledgement && turns === 2);
@@ -81,7 +82,9 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 			Effect.gen(function* () {
 				turns += 1;
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
-				yield* acceptTurn(options, turns);
+				const rejected = rejectNext;
+				rejectNext = false;
+				yield* acceptTurn({ ...options, rejectTurn: options.rejectTurn || rejected }, turns);
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
 				operations.set(input.operationId, receipt);
 				if (input.access === "read-only") {
@@ -96,6 +99,21 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				return receipt;
 			}),
 	});
-	return { archived, failedObservations, launched, observations, operations, settings, starts, transport };
+	return {
+		archived,
+		failedObservations,
+		launched,
+		loseAcknowledgement: () => {
+			lost = true;
+		},
+		observations,
+		operations,
+		rejectNextTurn: () => {
+			rejectNext = true;
+		},
+		settings,
+		starts,
+		transport,
+	};
 }
 export type EngineProvider = ReturnType<typeof engineProvider>;

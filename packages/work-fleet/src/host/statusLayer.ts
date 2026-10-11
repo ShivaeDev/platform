@@ -49,6 +49,7 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 				Layer.succeed(HealthPublication)(publish),
 				Layer.succeed(Fleet)({
 					...fleet,
+					continue: (workId, message) => after(fleet.continue(workId, message)),
 					dispatch: (workId) => after(fleet.dispatch(workId)),
 					list: () => after(fleet.list()),
 					prepare: (input) => after(fleet.prepare(input)),
