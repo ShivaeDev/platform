@@ -116,7 +116,7 @@ it.effect("keeps clarify and not-now explicit and requires supersession before c
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });
 
-it.effect("qualifies current answers by exact decision source location, context and original work revision", function* () {
+it.effect("qualifies current answers by exact decision source location, context independently of work revision", function* () {
 	const root = yield* boardFolder("withDependency");
 	const files = boardHttpFiles(root);
 	yield* Effect.gen(function* () {
@@ -145,9 +145,9 @@ it.effect("qualifies current answers by exact decision source location, context 
 		expect((yield* board.readDecision(receipt))._tag).toBe("Stale");
 		files.move("moved.md", receipt.sourcePath);
 		files.move("task.md", "moved-task.md");
-		expect((yield* board.readDecision(receipt))._tag).toBe("Stale");
+		expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
 		files.move("moved-task.md", "task.md");
 		files.write("task.md", `${files.read("task.md")}\nChanged work.\n`);
-		expect((yield* board.readDecision(receipt))._tag).toBe("Stale");
+		expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
 	}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
 });

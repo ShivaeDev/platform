@@ -109,6 +109,7 @@ A `depends_on` relationship waits on the orchestrator for an accepted Fleet outc
 | `work-fleet dispatch <work-id> --board <board-dir>` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
 | `work-fleet status --board <board-dir>` | Prints Active, owner-grouped waiting and Completed views from stored records. |
 | `work-fleet status <work-id> --board <board-dir> --json` | Filters to one item and prints the views as JSON. |
+| `work-fleet release <work-id>... --board <board-dir>` | Releases terminal needs-human items and records closing responses on their Board decisions. |
 | `work-fleet reassign <work-id> <decision-id> <owner> --board <board-dir>` | Reassigns the exact current question to maintainer, orchestrator or automation. |
 | `work-fleet wait <work-id> --board <board-dir> --timeout <seconds>` | Polls stored state until an outcome or timeout. |
 | `work-fleet watch [work-ids...] --board <board-dir>` | Follows several items in one process and reports each outcome once. |
@@ -159,6 +160,16 @@ Reassignment publishes a new question for the assigned owner and acknowledges th
 The CLI host also atomically publishes `fleet/health.json`, using Board's versioned `FleetHealth` schema from `@shivaedev/work-board/diagnostics/health.ts`. Running counts work with submitting, accepted or running attempts; queued counts prepared work; waiting counts group every wait by maintainer, orchestrator and automation, including capacity and quota blockers and pending checks. The snapshot uses version 2. The snapshot carries the configured concurrency cap, publication time and freshness threshold, last completed scheduler pass and last observed structured provider capacity rejection. A host restart reloads the two last observations. Status-board and health publication failures do not change execution outcomes; the next publication retries. Board's Diagnostics view reads the optional file without Fleet or database dependencies.
 
 A composed runtime enables health publication with `statusLayer(boardRoot, { concurrency, staleAfterMs })`, provides `healthLayer(boardRoot)` from `@shivaedev/work-fleet/host/healthLayer.ts`, and wraps its provider with `providerHealth` from `@shivaedev/work-fleet/host/providerHealth.ts`. Capacity comes only from structured `rateLimitExceeded`, `flexUnavailable` or `serverOverloaded` errors; unclassified rejection text is not treated as capacity. A repeatedly observed terminal turn does not refresh the same rejection's timestamp.
+
+### Release waiting work
+
+A guided release answer frees terminal Fleet ownership even when the task content or location changed, or the task is now done, deferred or unapproved. Fleet still checks the exact decision source, question and response and refuses release while execution is running or uncertain. A stale retry answer closes the old question and publishes one replacement bound to the current Board revision; preparing the newly approved scope remains necessary before execution can resume. Repeated resolution and restart recover publication and acknowledgement without another replacement.
+
+```sh
+work-fleet release sample-one sample-two --board ./notes
+```
+
+The command records an explicit release response for each current waiting decision, including worker questions, then uses the same resolution path as a release answer. It supersedes an existing unambiguous response, refuses changed decision sources or competing responses, and can be repeated to recover a pending acknowledgement. `src/engine/staleDecisions.spec.ts` and `src/host/bulkRelease.spec.ts` prove changed-task release, one replacement on concurrent retry, Board Inbox closure and bulk release of done and deferred tasks against PostgreSQL.
 
 ### Continue a worker with new instructions
 

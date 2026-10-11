@@ -91,7 +91,7 @@ it.effect("a reconciliation fiber cannot retain an expired pass snapshot", funct
 	}).pipe(Effect.provide(fixture.board));
 });
 
-it.effect("a pass sees its own durable decisions without rescanning and the next pass detects stale context", function* () {
+it.effect("a pass sees its own durable decisions without rescanning and the next pass reads changed work independently", function* () {
 	const fixture = yield* boardReads(1);
 	yield* Effect.gen(function* () {
 		const board = yield* BoardGateway;
@@ -107,7 +107,12 @@ it.effect("a pass sees its own durable decisions without rescanning and the next
 		expect(fixture.scans()).toBe(1);
 		expect([...fixture.reads.values()]).toEqual([1]);
 		yield* fixture.write("0.md", fixture.source("item.0", true, "Changed after review."));
-		expect((yield* withBoardReadPass(board.readDecision(receipt)))._tag).toBe("Stale");
+		yield* withBoardReadPass(
+			Effect.gen(function* () {
+				expect((yield* board.get("item.0")).revision).not.toBe(receipt.workRevision);
+				expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
+			}),
+		);
 	}).pipe(Effect.provide(fixture.board));
 });
 

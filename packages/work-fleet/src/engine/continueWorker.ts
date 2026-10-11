@@ -20,7 +20,10 @@ export function continueWorker(state: EngineState) {
 			return yield* Effect.fail(new FleetFailure({ message: "Confirm the exact question turn is terminal before continuing", reason: "denied" }));
 		}
 		const work = yield* state.board.get(stored.value.workId);
-		if (work.revision !== stored.value.boardRevision) {
+		if (
+			work.revision !== stored.value.boardRevision
+			|| (stored.value.boardSourcePath !== undefined && work.sourcePath !== stored.value.boardSourcePath)
+		) {
 			return yield* Effect.fail(new FleetFailure({ message: "Board context changed before worker continuation", reason: "stale" }));
 		}
 		return yield* makeLaunch(state)(stored, latest.role, prompt, { responses, sessionId: worker.sessionId });

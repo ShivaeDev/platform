@@ -21,6 +21,7 @@ export const Decision = Schema.Struct({
 	attentionOwner: Schema.optional(AttentionOwner),
 	id: Schema.String,
 	links: Schema.Array(Schema.String),
+	publicationWork: Schema.optional(BoardWork),
 	published: Schema.optional(BoardDecision),
 	reason: Schema.String,
 	recommendation: Schema.String,

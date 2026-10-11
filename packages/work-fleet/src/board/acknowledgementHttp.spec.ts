@@ -84,7 +84,7 @@ it.effect(
 			const recovered = yield* board.decision("task.one", decision, original);
 			expect(recovered).toEqual(lost);
 			expect(files.read(recovered.sourcePath)).toBe(oldSource);
-			expect((yield* board.readDecision(recovered))._tag).toBe("Stale");
+			expect((yield* board.readDecision(recovered))._tag).toBe("Pending");
 			yield* board.acknowledgeDecision({ decision: recovered, disposition: "superseded", recordedAt: 2000 });
 			expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${lost.itemId}"`);
 			expect(files.receipts().map(files.read).join("\n")).not.toContain('"response":');
