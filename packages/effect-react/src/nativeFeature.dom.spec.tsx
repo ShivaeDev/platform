@@ -1,4 +1,3 @@
-import { RegistryContext } from "@effect/atom-react";
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Effect, Layer, Option, Schema } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
@@ -7,11 +6,10 @@ import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
 import { Model } from "effect/unstable/schema";
 import { SqlClient } from "effect/unstable/sql";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { useAction, useQuery } from "#result-state.ts";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -58,10 +56,6 @@ class NotesClient extends AtomRpc.Service<NotesClient>()("test/NotesClient", {
 }) {}
 
 it("rendered create persists through RPC and refreshes its query; rejected saves preserve the list", async () => {
-	const registry = AtomRegistry.make();
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
 	const list = NotesClient.query("ListNotes", undefined, {
 		reactivityKeys: ["notes"],
 	});
@@ -108,6 +102,7 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 			),
 		);
 	}
+	const { container, registry, unmount } = await render(createElement(Component));
 	function snapshot() {
 		return JSON.parse(container.querySelector("output")?.textContent ?? "null");
 	}
@@ -121,7 +116,6 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 			});
 		});
 	try {
-		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component))));
 		await settled([]);
 		await act(async () => container.querySelectorAll("button").item(0).click());
 		await settled(["Morning walk"]);
@@ -136,8 +130,6 @@ it("rendered create persists through RPC and refreshes its query; rejected saves
 		const persisted = await Effect.runPromise(AtomRegistry.getResult(registry, publicRead));
 		expect(persisted.map(({ id, title }) => ({ id, title }))).toEqual([{ id: 1, title: "Morning walk" }]);
 	} finally {
-		await act(async () => root.unmount());
-		registry.dispose();
-		container.remove();
+		await unmount();
 	}
 });
