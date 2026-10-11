@@ -16,14 +16,16 @@ let page: OpenPage;
 afterEach(() => {
 	notes?.remove();
 });
-
-const open = Effect.fn("Test.open")(function* (kind: "handoff" | "response") {
+const open = Effect.fn("Test.open")(function* (kind: "handoff" | "response", beforeScripts?: Parameters<typeof openPage>[2]) {
 	notes = folder({ "item.md": EDGE_ATTENTION_SOURCE });
 	board = yield* startBoard(notes.root, undefined, undefined, true);
-	page = yield* openPage(board, kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction");
+	page = yield* openPage(
+		board,
+		kind === "handoff" ? "/_board/handoff?item=item.edge" : "/_board/respond?item=item.edge&request=direction",
+		beforeScripts,
+	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById(`${kind}-preview`)?.hasAttribute("disabled")).toBe(false)));
 });
-
 function click(id: string) {
 	page.document.getElementById(id)?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 }
@@ -52,21 +54,22 @@ it.live("shows Schema field messages for handoff direction and clears them when 
 });
 
 it.live("saves the captured response while retaining and resubmitting input typed during the command", function* () {
-	yield* open("response");
+	const gate = held();
+	let reached = false;
+	yield* open("response", (window) => {
+		const fetch = window.fetch.bind(window);
+		window.fetch = async (input, init) => {
+			const call = await rpcCall(window, input, init);
+			if (call?.tag === "work-board.recordResponse" && !reached) {
+				reached = true;
+				await gate.gate;
+			}
+			return fetch(input, init);
+		};
+	});
 	enterField(page, "author", "reviewer");
 	const body = enterField(page, "body", "First reviewed response");
 	click("response-preview");
-	const gate = held();
-	const fetch = page.window.fetch.bind(page.window);
-	let reached = false;
-	page.window.fetch = async (input, init) => {
-		const call = await rpcCall(page.window, input, init);
-		if (call?.tag === "work-board.recordResponse" && !reached) {
-			reached = true;
-			await gate.gate;
-		}
-		return fetch(input, init);
-	};
 	submit("response");
 	try {
 		yield* Effect.promise(() => waitFor(() => expect(reached).toBe(true)));

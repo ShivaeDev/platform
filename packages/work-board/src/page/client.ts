@@ -14,12 +14,9 @@ import { remember, swap } from "/_board/swap.js";
 import { refreshLibrary } from "/_board/library.js";
 import { session } from "/_board/native.js";
 
-
 document.documentElement.dataset.js = "true";
 ${itemContextScript()}
-remember(document.getElementById("files"));
 remember(document.getElementById("doc"));
-
 let native = session(window);
 const live = document.getElementById("live");
 const toggle = document.getElementById("updates-toggle");
@@ -53,7 +50,7 @@ const watchNavigation = () => {
     if (value._tag === "Failure") navFailure = "navigation refresh failed";
     if (value._tag === "Success" && !value.waiting) {
       navFailure = "";
-      applyNavigation(value.value);
+      if (!document.querySelector("[data-board-react-root]")) applyNavigation(value.value);
     }
     show();
   }, { immediate: true });
@@ -70,6 +67,7 @@ const watchPage = () => {
     pageWaiting = value.waiting || value._tag === "Initial";
     if (value._tag === "Failure") pageFailure = "refresh failed";
     if (value._tag === "Success" && !value.waiting && active === location.pathname + location.search) {
+      if (document.querySelector("[data-board-react-root]")) { pageFailure = ""; show(); return; }
       const next = new DOMParser().parseFromString(value.value.html, "text/html");
       pageFailure = applyPage(next, true) ? "" : "refresh failed";
       tick();
@@ -85,6 +83,8 @@ native.registry.subscribe(native.api.watcher.query(), (value) => {
 native.registry.subscribe(native.updates.status, show);
 native.registry.subscribe(native.updates.paused, (paused) => { show(); if (!paused) document.dispatchEvent(new Event("board-updates-resumed")); });
 };
+document.addEventListener("board-page", () => { tick(); renderDiagrams(document); refreshLibrary(); });
+document.addEventListener("board-index-change", () => { tick(); refreshLibrary(); });
 observe();
 toggle.disabled = false;
 toggle.addEventListener("click", () => native.registry.set(native.updates.paused, !native.registry.get(native.updates.paused)));
