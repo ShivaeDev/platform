@@ -39,7 +39,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 	function find(file: MarkdownFile, dirty: ReadonlySet<string> | undefined) {
 		const previous = records.get(file.path);
 		return shouldRead(file, previous, listed, dirty)
-			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, previous)), Option.getOrUndefined)
+			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous)), Option.getOrUndefined)
 			: Effect.succeed(previous);
 	}
 	const read = Effect.gen(function* () {

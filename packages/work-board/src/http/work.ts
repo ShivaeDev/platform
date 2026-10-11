@@ -12,7 +12,7 @@ import { respond } from "./respond.ts";
 export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, changes: Changes, home: string | undefined) {
 	return Effect.fn("WorkBoard.work")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const snapshot = yield* index;
-		const nav = navHtml(yield* changes.files, "", home);
+		const nav = navHtml(yield* changes.files, "", home, snapshot);
 		if (snapshot.unavailable.length > 0) {
 			return respond(
 				shell(
@@ -23,6 +23,7 @@ export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, c
 					true,
 					undefined,
 					true,
+					snapshot,
 				),
 				"text/html",
 				503,
@@ -36,6 +37,6 @@ export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, c
 				}),
 			),
 		);
-		return respond(shell("Work", nav, result.html, changes.realRoot, true, undefined, true), "text/html", result.status);
+		return respond(shell("Work", nav, result.html, changes.realRoot, true, undefined, true, snapshot), "text/html", result.status);
 	});
 }

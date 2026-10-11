@@ -9,9 +9,9 @@ import { respond } from "./respond.ts";
 export function overview(index: Effect.Success<ReturnType<typeof searchSnapshot>>, changes: Changes, home: string | undefined) {
 	return Effect.fn("WorkBoard.overview")(function* () {
 		const snapshot = yield* index;
-		const nav = navHtml(yield* changes.files, "", home);
+		const nav = navHtml(yield* changes.files, "", home, snapshot);
 		return respond(
-			shell("Overview", nav, overviewHtml(snapshot), changes.realRoot, true, undefined, "overview"),
+			shell("Overview", nav, overviewHtml(snapshot), changes.realRoot, true, undefined, "overview", snapshot),
 			"text/html",
 			snapshot.unavailable.length > 0 ? 503 : 200,
 		);
