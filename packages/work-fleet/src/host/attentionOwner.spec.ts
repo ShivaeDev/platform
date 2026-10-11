@@ -33,7 +33,7 @@ test("CLI status groups all owners and wait names each owner without changing ex
 			}
 			const json = yield* daemonCli(fixture.host, ["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(json.code).toBe(0);
-			expect(Object.keys(JSON.parse(json.stdout)).sort()).toEqual(["active", "completed", "waiting"]);
+			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual(["active", "completed", "waiting"]);
 			expect(JSON.parse(json.stdout)).toMatchObject({
 				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
 			});

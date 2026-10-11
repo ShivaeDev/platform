@@ -4,27 +4,7 @@ import { nativeEffectCall } from "./nativeEffectCall.ts";
 import type { Diagnostic } from "./report.ts";
 import { nodeAt, offsetOf, type Syntax, syntaxOf } from "./syntax.ts";
 
-const RECOGNIZED: ReadonlySet<string> = new Set([
-	"lint/nursery/noComponentHookFactories",
-	"lint/nursery/useValidTestTitle",
-	"lint/style/noDoneCallback",
-]);
-
-function regexArgument(node: ts.Node): boolean {
-	const call = node.parent;
-	let receiver: ts.Expression | undefined =
-		ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) ? call.expression.expression : undefined;
-	while (receiver !== undefined && ts.isParenthesizedExpression(receiver)) {
-		receiver = receiver.expression;
-	}
-	return (
-		ts.isCallExpression(call)
-		&& call.arguments[0] === node
-		&& ts.isPropertyAccessExpression(call.expression)
-		&& call.expression.name.text === "test"
-		&& receiver?.kind === ts.SyntaxKind.RegularExpressionLiteral
-	);
-}
+const RECOGNIZED: ReadonlySet<string> = new Set(["lint/nursery/noComponentHookFactories", "lint/style/noDoneCallback"]);
 
 function generatorParameter(node: ts.Node): boolean {
 	const parameter = node.parent;
@@ -63,8 +43,6 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 		return false;
 	}
 	switch (diagnostic.category) {
-		case "lint/nursery/useValidTestTitle":
-			return regexArgument(node);
 		case "lint/style/noDoneCallback":
 			return generatorParameter(node);
 		case "lint/nursery/noComponentHookFactories":
