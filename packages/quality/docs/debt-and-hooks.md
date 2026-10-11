@@ -22,14 +22,14 @@ Neither `tighten` nor `prune` ever adds or raises an entry. They lower an entry 
 
 ### Pre-commit
 
-Lowering entries in the commit that fixes them keeps the baseline current without a separate cleanup. With `preCommit: { tighten: true }`, the [pre-commit hook](#pre-commit-hook) does it. A hook of the repository's own runs:
+Lowering entries in the commit that fixes them keeps the baseline current. Run these commands explicitly before committing:
 
 ```sh
 quality baseline tighten --staged && git add quality/baseline.jsonl
 quality lint
 ```
 
-`tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds. Quality's hook leaves the entries of such a file for a later commit instead.
+`tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds.
 
 ### Baseline growth
 
@@ -63,23 +63,23 @@ quality hooks install
 
 `quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit. Installing dependencies never installs it: a repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
 
-By default the hook runs `quality lint`. `preCommit` in the config adds to it:
+The hook runs `quality lint`, then the `typecheck` script from `package.json` when present, then an optional `quality:commit` script for repository checks:
 
-```ts
-import { defineConfig } from "@shivaedev/quality/config.ts";
-
-export default defineConfig({
-	preCommit: { run: ["pnpm typecheck"], tighten: true },
-});
+```json
+{
+	"scripts": {
+		"quality:commit": "pnpm test",
+		"typecheck": "tsc --noEmit"
+	}
+}
 ```
 
-- `run` lists shell commands that run after `lint`, one after another, from the config's folder.
-- `tighten` lowers the baseline entries of the staged files before `lint`, as `quality baseline tighten --staged` does, and stages the baseline, so the commit that fixes debt also removes it from the baseline. A file with unstaged changes is counted as it is on disk, not as the commit holds it, so its entries wait for a later commit. A baseline with unstaged changes is left as it is, with a note.
+Scripts run from the config's folder, or the current directory when there is no config. The hook uses `packageManager` from that folder's manifest (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Without a manifest or either script, it runs lint alone. An invalid manifest stops the run. Baseline tightening is an explicit command; the hook does not change or stage debt records.
 
 After a reported lint failure or a nonzero command exit, later commands still run, so one attempt shows their results too. A config, setup or process-launch failure stops the run. `lint` and the commands check the files on disk, not only what is staged. When checks report failures, the hook blocks the commit and ends with the checks that failed and what to do next:
 
 ```text
-quality: pre-commit failed: quality lint, `pnpm typecheck` (exit code 2).
+quality: pre-commit failed: quality lint, `pnpm run typecheck` (exit code 2).
 help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.
 ```
 

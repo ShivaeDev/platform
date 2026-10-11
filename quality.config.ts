@@ -175,7 +175,6 @@ const fences: readonly Fence[] = [
 ];
 
 export default defineConfig({
-	preCommit: { run: ["node --conditions=source script/lint.ts", "pnpm changelog:check", "pnpm typecheck"] },
 	rules: {
 		"imports/fences": { options: { fences } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },

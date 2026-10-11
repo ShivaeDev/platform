@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import sortPackageJson from "sort-package-json";
 import { qualityArgs, type Run } from "./cli.ts";
 import { commitAll, git, ISOLATED_ENV } from "./git.ts";
-import { packageRoot, type SeedFile, seedTree } from "./tree.ts";
+import { DEFAULT_FILES, linkPackage, packageRoot, type SeedFile, seedTree } from "./tree.ts";
 
 export interface HookRepository {
 	readonly folder: string;
@@ -12,9 +13,10 @@ export interface HookRepository {
 }
 
 export interface HookSetup {
+	readonly configless?: boolean;
 	readonly files?: readonly SeedFile[];
 	readonly folder?: string;
-	readonly preCommit?: string;
+	readonly scripts?: Readonly<Record<string, string>>;
 }
 
 const CLEAN: SeedFile = { content: "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", path: "src/full.ts" };
@@ -26,12 +28,10 @@ function run(command: string, args: readonly string[], cwd: string): Run {
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 
-function preCommitConfig(preCommit: string): SeedFile {
-	return {
-		content: `export default { rules: { biome: "off", "structure/max-lines": { options: { source: 3 } } }, sources: ["src"], preCommit: ${preCommit} };\n`,
-		path: "quality.config.ts",
-	};
-}
+const CONFIG: SeedFile = {
+	content: 'export default { rules: { biome: "off", "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
+	path: "quality.config.ts",
+};
 
 export function writes(root: string, path: string, content: string): void {
 	mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -44,19 +44,39 @@ function withBin(root: string): void {
 }
 
 // A committed repository whose installed quality is this package's source, behind the bin a package manager links.
-export function hookRepository({ files = [CLEAN], folder = "", preCommit = "{}" }: HookSetup = {}): HookRepository {
+export function hookRepository({
+	configless = false,
+	files = configless ? DEFAULT_FILES : [CLEAN],
+	folder = "",
+	scripts = {},
+}: HookSetup = {}): HookRepository {
 	const root = seedTree(
-		[preCommitConfig(preCommit), ...files].map((file) => ({ ...file, path: join(folder, file.path) })),
+		[
+			...(configless ? [] : [CONFIG]),
+			{ content: `${JSON.stringify(sortPackageJson({ scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
+			...files,
+		].map((file) => ({
+			...file,
+			path: join(folder, file.path),
+		})),
 		[{ content: "node_modules/\n", path: ".gitignore" }],
 	);
 	withBin(join(root, folder));
+	if (configless) {
+		linkPackage(join(root, folder));
+	}
 	git(root, "init", "--quiet");
 	commitAll(root, "Base");
 	return { folder, hook: join(root, ".git", "hooks", "pre-commit"), root };
 }
 
-export function withPreCommit(root: string, preCommit: string): string {
-	writes(root, "quality.config.ts", preCommitConfig(preCommit).content);
+export function withScripts(root: string, scripts: Readonly<Record<string, string>>, packageManager?: string): string {
+	writes(root, "package.json", `${JSON.stringify(sortPackageJson({ packageManager, scripts, type: "module" }), null, "\t")}\n`);
+	return root;
+}
+
+export function withoutManifest(root: string): string {
+	rmSync(join(root, "package.json"));
 	return root;
 }
 
