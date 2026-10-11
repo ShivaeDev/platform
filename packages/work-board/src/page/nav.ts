@@ -1,5 +1,7 @@
+import { fleetRecords, inboxItems } from "#attention/inbox.ts";
 import type { MarkdownFile } from "#files/list.ts";
 import { fileUrl } from "#files/url.ts";
+import type { Snapshot } from "#search/snapshot.ts";
 import { escapeHtml } from "./escape.ts";
 
 function nameOf(path: string): string {
@@ -24,7 +26,7 @@ function branch(path: string): Folder {
 	return { active: false, count: 0, files: [], folders: new Map(), path };
 }
 
-function contents(folder: Folder, current: string): string {
+function contents(folder: Folder, current: string, count?: string): string {
 	const files = folder.files.map((file) => `<li>${link(file, current)}</li>`).join("");
 	const folders = [...folder.folders]
 		.sort(([left], [right]) => left.localeCompare(right))
@@ -33,10 +35,10 @@ function contents(folder: Folder, current: string): string {
 			return `<li class="file-folder"><details data-key="folder:${escapeHtml(child.path)}"${open}><summary>${escapeHtml(name)}/ (${child.count})</summary>${contents(child, current)}</details></li>`;
 		})
 		.join("");
-	return `<ul>${files}${folders}</ul>`;
+	return `<ul${count === undefined ? "" : ` data-inbox-count="${count}"`}>${files}${folders}</ul>`;
 }
 
-export function navHtml(files: readonly MarkdownFile[], current: string, home: string | undefined): string {
+function fileTree(files: readonly MarkdownFile[], current: string, home: string | undefined, count: string): string {
 	const root = branch("");
 	const ordered = [
 		...files.filter((file) => file.path === home),
@@ -57,5 +59,24 @@ export function navHtml(files: readonly MarkdownFile[], current: string, home: s
 		}
 		parent.files.push(file);
 	}
-	return contents(root, current);
+	return contents(root, current, count);
+}
+
+function fleetGroup(records: readonly MarkdownFile[], current: string): string {
+	if (records.length === 0) {
+		return "";
+	}
+	const open = records.some((file) => file.path === current) ? " open" : "";
+	return `<details data-key="fleet-records"${open}><summary>Fleet records (${records.length})</summary><ul>${records.map((file) => `<li>${link(file, current)}</li>`).join("")}</ul></details>`;
+}
+export function navHtml(files: readonly MarkdownFile[], current: string, home: string | undefined, snapshot?: Snapshot): string {
+	const generated = snapshot ? fleetRecords(snapshot.model) : new Set<string>();
+	const records = files.filter((file) => generated.has(file.path));
+	const visible = files.filter((file) => !generated.has(file.path));
+	const count = inboxCount(snapshot);
+	return `${fileTree(visible, current, home, count)}${fleetGroup(records, current)}`;
+}
+
+export function inboxCount(snapshot?: Snapshot): string {
+	return !snapshot || snapshot.unavailable.length > 0 ? "?" : String(inboxItems(snapshot).length);
 }

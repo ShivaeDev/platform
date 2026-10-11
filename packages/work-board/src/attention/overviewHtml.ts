@@ -2,6 +2,8 @@ import { fileUrl } from "#files/url.ts";
 import { escapeHtml } from "#page/escape.ts";
 import { referenceHtml } from "#page/metadataLinks.ts";
 import type { Snapshot } from "#search/snapshot.ts";
+import { inboxItems } from "./inbox.ts";
+import { inboxHtml } from "./inboxHtml.ts";
 import { type AttentionEntry, attentionRequests } from "./requests.ts";
 
 function card(entry: AttentionEntry, snapshot: Snapshot): string {
@@ -24,7 +26,7 @@ export function overviewHtml(snapshot: Snapshot): string {
 	if (!projection.complete) {
 		return `${header}<p class="attention-incomplete" role="status">Workspace incomplete. Could not read ${snapshot.unavailable.map(escapeHtml).join(", ")}. Requests are not counted or classified until the index is complete.</p>${issues}`;
 	}
-	let summary = "All quiet — no explicit open requests recorded.";
+	let summary = inboxItems(snapshot).length > 0 ? "No explicit open attention requests recorded." : "All quiet — no explicit open requests recorded.";
 	if (projection.entries.length > 0) {
 		summary = `${projection.entries.length} validated open request${projection.entries.length === 1 ? "" : "s"}`;
 	} else if (projection.issues.length > 0) {
@@ -40,5 +42,5 @@ export function overviewHtml(snapshot: Snapshot): string {
 			return `<section class="attention-group" aria-labelledby="attention-${group.kind}"><h2 id="attention-${group.kind}" tabindex="-1">${group.title}<span>${entries.length}</span></h2>${entries.length > 0 ? entries.map((entry) => card(entry, snapshot)).join("") : `<p class="empty">${group.empty}</p>`}</section>`;
 		})
 		.join("");
-	return `${header}<p class="attention-total" role="status">${summary}</p><p class="attention-order">Decisions, reviews, then blockers. Within each group: source title, item ID, request ID. Recipients are recorded labels.</p>${issues}<div class="attention-groups">${groups}</div><p class="attention-footnote">These are authored requests. Closing one does not verify evidence or record an answer. Status, owner, file activity and finished runs do not create requests.</p>`;
+	return `${header}${inboxHtml(snapshot, true)}<p class="attention-total" role="status">${summary}</p><p class="attention-order">Decisions, reviews, then blockers. Within each group: source title, item ID, request ID. Recipients are recorded labels.</p>${issues}<div class="attention-groups">${groups}</div><p class="attention-footnote">These are authored requests. Closing one does not verify evidence or record an answer. The Inbox also shows human-owned next actions and questions; file activity and finished runs do not create requests.</p>`;
 }

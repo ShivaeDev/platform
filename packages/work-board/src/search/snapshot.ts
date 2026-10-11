@@ -12,6 +12,7 @@ export interface Snapshot {
 	readonly documents: readonly MetadataDocument[];
 	readonly entries: readonly Entry[];
 	readonly model: ReturnType<typeof metadataModel>;
+	readonly modified: ReadonlyMap<string, number>;
 	readonly revision: number;
 	readonly unavailable: readonly string[];
 }
@@ -39,7 +40,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 	function find(file: MarkdownFile, dirty: ReadonlySet<string> | undefined) {
 		const previous = records.get(file.path);
 		return shouldRead(file, previous, listed, dirty)
-			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, previous)), Option.getOrUndefined)
+			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous)), Option.getOrUndefined)
 			: Effect.succeed(previous);
 	}
 	const read = Effect.gen(function* () {
@@ -65,7 +66,8 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 		}
 		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
 		const enriched = enrich(next, model);
-		const snapshot = { documents, entries: enriched, model, revision, unavailable };
+		const modified = new Map(files.map((file) => [file.path, file.modified]));
+		const snapshot = { documents, entries: enriched, model, modified, revision, unavailable };
 		records = next;
 		listed = new Map(files.map((file) => [file.path, file]));
 		yield* Ref.set(cached, snapshot);
