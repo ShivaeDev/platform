@@ -417,4 +417,4 @@ Query, action, session and resume modules do not require effect-form. The packag
 
 The full design is in [the north star](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/north-star.md). Implementation status and unresolved choices are in [the roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/docs/roadmap.md).
 
-The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication.
+The [reference PostgreSQL feature](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses the same leased database infrastructure and a scoped story verb for its real server and rendered clients. It is a test fixture, not a copyable app; an app template is still needed. Its stories verify commit visibility, live refresh of a second editor, retained local edits and rollback without publication.

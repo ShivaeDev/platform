@@ -8,10 +8,7 @@ checkbox. The [design guide](./README.md) explains how the paths fit.
 
 ## Built: composed boundary fixtures
 
-- [x] The reference order feature joins migrated PostgreSQL, a declared service,
-  authenticated native HTTP RPC, atoms and an editor. Commit-bound live HTTP
-  hints refresh a second client, while rollback publishes nothing.
-  [Composition and evidence](./composed-example.md).
+- [x] The reference order test fixture joins migrated PostgreSQL, a declared service, authenticated native HTTP RPC, atoms and an editor. Commit-bound live HTTP hints refresh a second client, while rollback publishes nothing. It is not a copyable app; an app template is still needed. [Composition and evidence](./composed-example.md).
 
 - [x] A rendered native feature connects an actual SQLite repository, native RPC,
   AtomRpc and React. Successful actions refresh the list; rejected actions leave
@@ -83,6 +80,7 @@ remain part of that handoff.
   [tRPC](../../packages/effect-trpc/docs/roadmap.md),
   [jobs](../../packages/effect-pg-boss/docs/roadmap.md).
 - [Effect tests](../../packages/effect-test/docs/roadmap.md),
+  [PostgreSQL test isolation](../../packages/effect-test-sql/docs/roadmap.md),
   [story tests](../../packages/test-story/docs/roadmap.md),
   [type helpers](../../packages/types/docs/roadmap.md).
 - [Repository quality](../../packages/quality/docs/roadmap.md),
@@ -90,7 +88,8 @@ remain part of that handoff.
   [local PostgreSQL](../../packages/local-postgres/docs/roadmap.md),
   [shared skills](../../packages/skills/docs/roadmap.md),
   [Work Board](../../packages/work-board/docs/roadmap.md),
-  [Work Fleet](../../packages/work-fleet/docs/roadmap.md).
+  [Work Fleet](../../packages/work-fleet/docs/roadmap.md),
+  [PR observation](../../packages/pr-watch/docs/roadmap.md).
 
 ## Open questions for the maintainer
 
