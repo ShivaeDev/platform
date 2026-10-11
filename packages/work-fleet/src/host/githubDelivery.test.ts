@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { ConflictingPr } from "#host/conflictingPr.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { FleetFailure } from "#policy.ts";
@@ -25,6 +26,28 @@ it.effect("records the reviewed head and actual merge revision", function* () {
 		revision: "merge-revision",
 		url: result.pr,
 	});
+});
+
+it.effect("carries the conflicting main revision only for an open PR at the adopted head", function* () {
+	const conflict = { ...open, baseRefOid: "main-revision", mergeable: "CONFLICTING" };
+	const error = yield* githubDelivery("/repository", () => Effect.succeed(conflict))(result).pipe(Effect.flip);
+	expect(error).toBeInstanceOf(ConflictingPr);
+	expect(error).toMatchObject({ mainRevision: "main-revision" });
+	const moved = yield* githubDelivery("/repository", () => Effect.succeed({ ...conflict, headRefOid: "new-head" }))(result).pipe(Effect.flip);
+	expect(moved).toBeInstanceOf(MovedPrHead);
+	expect(yield* githubDelivery("/repository", () => Effect.succeed({ ...conflict, ...merged }))(result)).toMatchObject({
+		revision: "merge-revision",
+	});
+});
+
+it.effect("waits for mergeable, unknown or incomplete mergeability observations", function* () {
+	for (const observation of [
+		{ ...open, baseRefOid: "main-revision", mergeable: "MERGEABLE", mergeStateStatus: "BEHIND" },
+		{ ...open, baseRefOid: "main-revision", mergeable: "UNKNOWN" },
+		{ ...open, mergeable: "CONFLICTING" },
+	]) {
+		expect(yield* githubDelivery("/repository", () => Effect.succeed(observation))(result)).toBeUndefined();
+	}
 });
 
 it.effect("reports a closed unmerged PR explicitly even when its head changed", function* () {

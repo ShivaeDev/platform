@@ -3,6 +3,7 @@ import { briefChanged, changedBrief, refreshedBrief } from "#engine/boardBrief.t
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
 import { settleDone } from "#engine/settleDone.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
@@ -31,7 +32,7 @@ export function applyResolution(state: EngineState) {
 		if (action === "continue") {
 			return yield* continueWorker(state)(stored, responses, body).pipe(Effect.flatMap(closeDecisions(state)));
 		}
-		return yield* retryOrRelease(state)(stored, action, responses).pipe(Effect.flatMap(closeDecisions(state)));
+		return yield* retryOrRelease(state)(stored, action, responses, body).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }
 
@@ -40,9 +41,13 @@ function retryOrRelease(state: EngineState) {
 		stored: Versioned<FleetRecord>,
 		action: "retry" | "release",
 		responses: readonly DecisionResponse[],
+		body: string,
 	) {
 		const current = yield* resolveExecution(state, stored, action);
 		if (action === "retry") {
+			if (current.value.decision?.reason === "Reviewed PR is ready to merge" && current.value.result?.kind === "change" && body.trim()) {
+				return yield* requestRework(state)(current, body, responses);
+			}
 			const refreshed = yield* retryChangedBrief(state)(current, responses);
 			if (refreshed !== undefined) {
 				return refreshed;

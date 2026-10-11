@@ -16,7 +16,15 @@ export interface StandardIssue {
 	readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined;
 }
 
-const segment = (part: PropertyKey | { readonly key: PropertyKey }): string => String(typeof part === "object" ? part.key : part);
+// Biome's noBaseToString does not narrow the ternary in segment, so the key is stringified behind a PropertyKey parameter.
+function keyText(key: PropertyKey): string {
+	return key.toString();
+}
 
-export const describeIssue = (issue: StandardIssue): string =>
-	issue.path === undefined || issue.path.length === 0 ? issue.message : `${issue.path.map(segment).join(".")}: ${issue.message}`;
+function segment(part: PropertyKey | { readonly key: PropertyKey }): string {
+	return keyText(typeof part === "object" ? part.key : part);
+}
+
+export function describeIssue(issue: StandardIssue): string {
+	return issue.path === undefined || issue.path.length === 0 ? issue.message : `${issue.path.map(segment).join(".")}: ${issue.message}`;
+}

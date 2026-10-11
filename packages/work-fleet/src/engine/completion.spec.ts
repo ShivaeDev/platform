@@ -39,7 +39,7 @@ describe("Fleet completion path", () => {
 				expect(complete.value.checks?.head).toBe("head-one-1");
 			}),
 		));
-	test("reviewed green work waits for a human merge and keeps ownership", () =>
+	test("reviewed green work waits for a human merge and retains its PR through requested changes", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -51,9 +51,14 @@ describe("Fleet completion path", () => {
 				expect(denied.value.decision?.reason).toContain("ready to merge");
 				expect(fixture.merged).toHaveLength(0);
 				const decisionId = denied.value.decision?.id ?? "missing";
-				expect(yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry")).pipe(Effect.flip)).toMatchObject({ reason: "invalid" });
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+				const requested = yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"));
+				expect(requested.value.stage).toBe("repairing");
+				expect(requested.value.result).toEqual(denied.value.result);
+				const repairing = yield* fleet.reconcile("one");
+				expect(repairing.value.stage).toBe("executing");
+				expect(repairing.value.attempts.at(-1)?.prompt).toContain("Human context");
 				expect(fixture.launched).toHaveLength(2);
+				expect(fixture.merged).toHaveLength(0);
 			}),
 		));
 	test("accepts no-change at its actual head after independent review and required checks", () =>

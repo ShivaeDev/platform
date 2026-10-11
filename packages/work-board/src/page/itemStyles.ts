@@ -1,8 +1,8 @@
 export function itemStyles(): string {
 	return `
 .document-view:has(.document-layout) { max-width: 1220px; }
-.page:has(> .document-view > .document-layout) > .bar,
-.page:has(> .document-view > .document-layout) > .preferences { max-height: 25vh; overflow: auto; }
+.page:has(.document-layout) > .bar,
+.page:has(.document-layout) > .preferences { max-height: 25vh; overflow: auto; }
 .document-view:has(.document-layout) > .response-panel { max-width: 72ch; margin-inline: 0; }
 .document-layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
 .document-layout > * { min-width: 0; }

@@ -29,7 +29,7 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 	return yield* decision(
 		ready,
 		"Reviewed PR is ready to merge",
-		"Merge the reviewed, green PR; Fleet will observe delivery without submitting a merge",
+		"Merge the reviewed, green PR, or choose retry with an overall response to request changes on the same branch and PR",
 		undefined,
 		"maintainer",
 	);

@@ -12,3 +12,11 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 import { session as ownedSession } from "./session.ts";
 
 export const session = ownedSession;
+
+import { remember as retain } from "#browser/reconcile/signature.ts";
+import { swap as reconcile } from "#browser/reconcile/swap.ts";
+export const remember = retain;
+export const swap = reconcile;
+
+import { legacyRuntime as loadLegacy } from "./legacyRuntime.ts";
+export const legacyRuntime = loadLegacy;
