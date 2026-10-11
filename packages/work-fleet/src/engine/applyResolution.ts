@@ -1,11 +1,9 @@
 import { Effect } from "effect";
-import { authorizeResolution } from "#engine/authorizeResolution.ts";
+import { briefChanged, changedBrief, refreshedBrief } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { refreshDecision } from "#engine/refreshDecision.ts";
-import { releaseExecution } from "#engine/releaseExecution.ts";
-import { retireUnacknowledged } from "#engine/retireUnacknowledged.ts";
+import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -13,7 +11,7 @@ import type { DecisionResponse } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function applyResolution(state: EngineState) {
-	const { board, save } = state;
+	const { save } = state;
 	return Effect.fn("Fleet.applyResolution")(function* (
 		stored: Versioned<FleetRecord>,
 		responses: readonly DecisionResponse[],
@@ -29,13 +27,6 @@ export function applyResolution(state: EngineState) {
 		if (action === "continue") {
 			return yield* continueWorker(state)(stored, responses, body).pipe(Effect.flatMap(closeDecisions(state)));
 		}
-		if (action === "retry") {
-			const work = yield* board.get(stored.value.workId);
-			const sourcePath = stored.value.decision?.publicationWork?.sourcePath ?? stored.value.boardSourcePath;
-			if (work.revision !== stored.value.decision?.published?.workRevision || (sourcePath !== undefined && sourcePath !== work.sourcePath)) {
-				return yield* refreshDecision(state)(stored, responses, work);
-			}
-		}
 		return yield* retryOrRelease(state)(stored, action, responses).pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }
@@ -46,13 +37,12 @@ function retryOrRelease(state: EngineState) {
 		action: "retry" | "release",
 		responses: readonly DecisionResponse[],
 	) {
+		const current = yield* resolveExecution(state, stored, action);
 		if (action === "retry") {
-			yield* authorizeResolution(state, stored.value, action);
-		}
-		const fenced = yield* retireUnacknowledged(state, stored);
-		const current = action === "release" && executing(fenced.value) ? yield* releaseExecution(state, fenced) : fenced;
-		if (action === "release") {
-			yield* authorizeResolution(state, current.value, action);
+			const refreshed = yield* retryChangedBrief(state)(current, responses);
+			if (refreshed !== undefined) {
+				return refreshed;
+			}
 		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
@@ -71,7 +61,6 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 	if (deliveryRetry(record)) {
 		return "delivering";
 	}
-
 	if (record.attempts.at(-1)?.status === "completed" && record.attempts.at(-1)?.receipt === undefined) {
 		return "executing";
 	}
@@ -89,6 +78,27 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 		return "reviewing";
 	}
 	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
+}
+
+function retryChangedBrief(state: EngineState) {
+	return Effect.fn("Fleet.retryChangedBrief")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[]) {
+		const work = yield* state.board.get(stored.value.workId);
+		if (!briefChanged(stored.value, work)) {
+			return undefined;
+		}
+		if (executing(stored.value)) {
+			return yield* state.save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage: "executing" });
+		}
+		const hasWorker = stored.value.attempts.some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined);
+		const refreshed = hasWorker ? changedBrief(stored.value, work) : refreshedBrief(stored.value, work);
+		return yield* state.save(stored, {
+			...refreshed,
+			blocker: undefined,
+			decision: undefined,
+			responses,
+			stage: hasWorker ? "repairing" : "prepared",
+		});
+	});
 }
 
 function deliveryRetry(record: FleetRecord) {

@@ -1,11 +1,11 @@
 import { Effect } from "effect";
-import { afterEach, expect, it } from "vitest";
+import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { agentRequest } from "#responses/agent.ts";
 import { questionnaireAnswers } from "#test/questionnaire.ts";
 import { responseWorkspace } from "#test/responseEdges.ts";
 
-let workspace: Awaited<ReturnType<typeof responseWorkspace>>;
-afterEach(async () => workspace?.stop());
+let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
 
 it("rejects unsafe agent server URLs before creating any HTTP request", () => {
 	for (const url of [
@@ -20,42 +20,44 @@ it("rejects unsafe agent server URLs before creating any HTTP request", () => {
 	}
 });
 
-it("reports malformed agent request references with the exact command correction", async () => {
-	workspace = await responseWorkspace();
+it.live("reports malformed agent request references with the exact command correction", function* () {
+	workspace = yield* responseWorkspace();
 	const url = workspace.board.url;
-	await expect(Effect.runPromise(agentRequest("question", { request: "investigation.choices", url }))).rejects.toThrow(
+	expect((yield* Effect.flip(agentRequest("question", { request: "investigation.choices", url }))).message).toContain(
 		"Use question <item>/<request>.",
 	);
-	await expect(Effect.runPromise(agentRequest("wait", { request: "investigation.choices/direction", url }))).rejects.toThrow(
+	expect((yield* Effect.flip(agentRequest("wait", { request: "investigation.choices/direction", url }))).message).toContain(
 		"Use wait <item>/<request> --revision <reviewed SHA-256>, or wait <registered-question-id>.",
 	);
 });
 
-it("previews, registers and reattaches agent shorthand to the same durable question through real HTTP", async () => {
-	workspace = await responseWorkspace();
+it.live("previews, registers and reattaches agent shorthand to the same durable question through real HTTP", function* () {
+	workspace = yield* responseWorkspace();
 	const url = workspace.board.url;
-	const preview = await Effect.runPromise(agentRequest("question", { request: "investigation.choices/direction", url }));
+	const preview = yield* agentRequest("question", { request: "investigation.choices/direction", url });
 	if (!("reviewedRevision" in preview)) {
 		throw new Error("Expected a question preview");
 	}
-	const question = await workspace.register();
-	const saved = await workspace.client.mutate(
-		workspace.client.responses.recordResponse.run({
-			answers: questionnaireAnswers,
-			author: "reviewer",
-			body: "Keep the rationale.",
-			id: "response.edge",
-			question: question.id,
-			type: "answer",
-		}),
+	const question = yield* Effect.promise(() => workspace.register());
+	const saved = yield* Effect.promise(() =>
+		workspace.client.mutate(
+			workspace.client.responses.recordResponse.run({
+				answers: questionnaireAnswers,
+				author: "reviewer",
+				body: "Keep the rationale.",
+				id: "response.edge",
+				question: question.id,
+				type: "answer",
+			}),
+		),
 	);
 	const diagnostics: string[] = [];
-	const result = await Effect.runPromise(
-		agentRequest("wait", { request: "investigation.choices/direction", revision: preview.reviewedRevision, url }, (text) => diagnostics.push(text)),
+	const result = yield* agentRequest("wait", { request: "investigation.choices/direction", revision: preview.reviewedRevision, url }, (text) =>
+		diagnostics.push(text),
 	);
 	expect(result).toMatchObject({ kind: "response", question, response: saved });
 	expect(diagnostics).toEqual([
 		`Registered ${question.id}; reattach with work-board wait ${question.id}. Deadline: ${new Date(question.question.deadline).toISOString()}`,
 	]);
-	expect(await Effect.runPromise(agentRequest("response", { request: question.id, url }))).toEqual({ question, responses: [saved] });
+	expect(yield* agentRequest("response", { request: question.id, url })).toEqual({ question, responses: [saved] });
 });

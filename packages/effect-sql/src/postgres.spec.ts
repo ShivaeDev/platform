@@ -82,6 +82,14 @@ integration("PostgreSQL repository preserves model codecs and ambient transactio
 							select: ["name"],
 						}),
 					).toEqual([{ name: "Consulting" }, { name: "Hosting" }]);
+					const updated = yield* lines.update({ ...consulting, amount: 60, name: "Revised" });
+					expect(updated.name).toBe("Revised");
+					expect(updated.amount).toBe(60);
+					yield* lines.updateVoid({ ...updated, name: "Final" });
+					expect((yield* lines.findById(consulting.id)).name).toBe("Final");
+					yield* lines.delete(consulting.id);
+					yield* lines.delete(consulting.id);
+					expect(yield* lines.findMany({ where: { id: consulting.id } })).toEqual([]);
 				}),
 			);
 		}).pipe(

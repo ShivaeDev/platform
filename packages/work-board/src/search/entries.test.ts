@@ -1,27 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { Effect } from "effect";
+import { describe, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { entriesOf } from "./entries.ts";
 import { searchMatch } from "./match.ts";
 
 describe("search passages", () => {
-	it("omits synthetic source lines for board footnotes appended to a rendering fragment", async () => {
+	it.live("omits synthetic source lines for board footnotes appended to a rendering fragment", function* () {
 		const source = "# Plan\n\n[^proof]: Supporting citation.\n\n## Review\n\n### Item\n\nA claim[^proof].\n";
-		const entries = await entriesOf(source, "board.md", true);
+		const entries = yield* Effect.promise(() => entriesOf(source, "board.md", true));
 		const citations = entries.filter((entry) => entry.text.includes("Supporting citation"));
 		expect(citations.length).toBeGreaterThan(0);
 		expect(citations.every((entry) => entry.line === undefined)).toBe(true);
 		expect(entries.find((entry) => entry.text.startsWith("A claim"))?.line).toBe(9);
 	});
-	it.each([false, true])("links duplicate headings to the reader's generated anchors (home %s)", async (home) => {
-		const entries = await entriesOf("# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle.", "plans/c# & more?.md", home);
+
+	it.live.each([false, true])("links duplicate headings to the reader's generated anchors (home %s)", function* (home) {
+		const entries = yield* Effect.promise(() =>
+			entriesOf("# Plan\n\n## Evidence\n\nA known phrase.\n\n## Evidence\n\nSecond needle.", "plans/c# & more?.md", home),
+		);
 		expect(entries.find((entry) => entry.text === "Second needle.")?.href).toBe("/plans/c%23%20%26%20more%3F.md#heading-evidence-2");
 		expect(searchMatch(entries, "known phrase").results[0]?.kind).toBe("passage");
 		expect(searchMatch(entries, "evidence").results.filter((entry) => entry.kind === "heading")).toHaveLength(2);
 	});
-	it("indexes readable GFM, code, links, and Unicode without searching HTML markup", async () => {
-		const entries = await entriesOf(
-			"# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |",
-			"note.md",
-			false,
+
+	it.live("indexes readable GFM, code, links, and Unicode without searching HTML markup", function* () {
+		const entries = yield* Effect.promise(() =>
+			entriesOf("# Ελληνικά\n\nA **bold** [phrase](target.md).\n\n```ts\nconst needle = 1;\n```\n\n| Value |\n| --- |\n| useful |", "note.md", false),
 		);
 		expect(searchMatch(entries, "BOLD phrase").results[0]?.snippet).toContain("bold phrase");
 		expect(searchMatch(entries, "needle").results[0]?.href).toContain("heading-%CE%B5");
@@ -29,11 +33,10 @@ describe("search passages", () => {
 		expect(searchMatch(entries, "href").total).toBe(0);
 		expect(searchMatch(entries, "ελληνικά").results[0]?.kind).toBe("document");
 	});
-	it("ranks titles then headings then passages, bounds results, and matches terms deterministically", async () => {
-		const entries = await entriesOf(
-			`# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `Needle ${i} other.`).join("\n\n")}`,
-			"needle.md",
-			false,
+
+	it.live("ranks titles then headings then passages, bounds results, and matches terms deterministically", function* () {
+		const entries = yield* Effect.promise(() =>
+			entriesOf(`# Needle\n\n## Needle section\n\n${Array.from({ length: 50 }, (_, i) => `Needle ${i} other.`).join("\n\n")}`, "needle.md", false),
 		);
 		const found = searchMatch(entries, "needle");
 		expect(found.total).toBe(53);

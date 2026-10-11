@@ -114,7 +114,7 @@ test("native Maintainer waiting query prioritizes its concrete decision over pre
 				yield* client("fleet.dispatch", { workId: "dependent" });
 				const item = (yield* client("fleet.views", undefined)).waiting.maintainer[0];
 				expect(item?.stage).toBe("needs-human");
-				expect(item?.blocker).toBe("Board context changed after preparation");
+				expect(item?.blocker).toBe("Work is no longer approved or is done or superseded");
 				expect(item?.decision?.reason).toBe(item?.blocker);
 			}),
 		),

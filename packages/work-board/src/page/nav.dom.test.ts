@@ -1,6 +1,8 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { Effect } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import type { OpenPage } from "#test/browser.ts";
 import { openLive, waitFor } from "#test/live.ts";
@@ -11,9 +13,8 @@ let notes: Folder;
 let reference: Folder;
 let board: RunningBoard;
 let page: OpenPage;
-afterEach(async () => {
-	await page?.close();
-	await board?.stop();
+
+afterEach(() => {
 	notes?.remove();
 	reference?.remove();
 });
@@ -55,10 +56,10 @@ it("renders shared ancestry, direct files, escaped names, stable URLs and home f
 	expect(navHtml([], "", undefined)).toBe('<ul data-inbox-count="?"></ul>');
 });
 
-it("serves a native reference tree and preserves parent and child state through live changes and navigation", async () => {
+it.live("serves a native reference tree and preserves parent and child state through live changes and navigation", function* () {
 	({ notes, reference } = referenceTree());
-	board = await startBoard(notes.root, "root.md");
-	const response = await rawGet(board, "/packages/form/README.md");
+	board = yield* startBoard(notes.root, "root.md");
+	const response = yield* rawGet(board, "/packages/form/README.md");
 	expect(response.status).toBe(200);
 	const html = document.createElement("div");
 	html.innerHTML = response.body;
@@ -77,8 +78,8 @@ it("serves a native reference tree and preserves parent and child state through 
 		"/reference/guide/start.md",
 	);
 	expect(html.querySelector('details[data-key="folder:empty"]')).toBe(null);
-	expect((await rawGet(board, "/reference/guide/start.md")).status).toBe(200);
-	page = await openLive(board, "/packages/form/README.md");
+	expect((yield* rawGet(board, "/reference/guide/start.md")).status).toBe(200);
+	page = yield* openLive(board, "/packages/form/README.md");
 	function folderAt(path: string) {
 		const item = page.document.querySelector(`#files details[data-key="folder:${path}"]`);
 		if (!(item instanceof page.window.HTMLDetailsElement)) {
@@ -90,7 +91,7 @@ it("serves a native reference tree and preserves parent and child state through 
 	folderAt("packages/form").open = false;
 	folderAt("packages/changes").open = true;
 	notes.write("packages/form/new.md", "# Added\n");
-	await waitFor(() => expect(page.document.querySelector('#files a[href="/packages/form/new.md"]')).not.toBe(null));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('#files a[href="/packages/form/new.md"]')).not.toBe(null)));
 	expect(folderAt("packages").open).toBe(false);
 	expect(folderAt("packages/form").open).toBe(false);
 	expect(folderAt("packages/changes").open).toBe(true);
@@ -99,16 +100,16 @@ it("serves a native reference tree and preserves parent and child state through 
 	}
 	const previous = age();
 	notes.write("root.md", "# Unrelated update\n");
-	await waitFor(() => expect(age()).not.toBe(previous));
+	yield* Effect.promise(() => waitFor(() => expect(age()).not.toBe(previous)));
 	expect(folderAt("packages").open).toBe(false);
 	rmSync(join(notes.root, "packages/form/new.md"));
-	await waitFor(() => expect(page.document.querySelector('#files a[href="/packages/form/new.md"]')).toBe(null));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('#files a[href="/packages/form/new.md"]')).toBe(null)));
 	expect(folderAt("packages").open).toBe(false);
 	page.document
 		.querySelector('#files a[href="/packages/changes/guide.md"]')
 		?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
-	await waitFor(() => expect(page.window.location.pathname).toBe("/packages/changes/guide.md"));
-	await waitFor(() => expect(folderAt("packages").open).toBe(true));
+	yield* Effect.promise(() => waitFor(() => expect(page.window.location.pathname).toBe("/packages/changes/guide.md")));
+	yield* Effect.promise(() => waitFor(() => expect(folderAt("packages").open).toBe(true)));
 	expect(folderAt("packages/changes").open).toBe(true);
 	expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("href")).toBe("/packages/changes/guide.md");
 });

@@ -4,8 +4,7 @@ import { Fleet } from "#fleet.ts";
 import { FleetFailure } from "#policy.ts";
 import { HEAD } from "#test/githubResult.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
-import { changeRecoveryWork, finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
-import { answerReport } from "#test/report.ts";
+import { finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
 const readerUnavailable = new FleetFailure({ message: "Synthetic result reader unavailable", reason: "integration" });
 export function recoveryIntegrationCases(): readonly RecoveryCase[] {
@@ -52,24 +51,6 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 			},
 			reason: "Result identity changed during review",
 			sites: ['engine/refreshReviewResult.ts: "Result identity changed during review"'],
-		},
-		{
-			enter: Effect.fnUntraced(function* (ctx) {
-				yield* launchRecoveryWorker();
-				setLastObservation(ctx, { execution: "failed" });
-				const fleet = yield* Fleet;
-				const stopped = yield* fleet.reconcile("one");
-				const decision = stopped.value.decision;
-				if (decision?.published === undefined) {
-					return yield* Effect.die("Missing decision");
-				}
-				changeRecoveryWork(ctx);
-				const answer = answerReport(ctx.root, decision.published, "retry");
-				yield* fleet.resolve("one", decision.id, answer);
-			}),
-			name: "scope changed after the published decision",
-			reason: "Board context changed after this decision was published",
-			sites: ['engine/refreshDecision.ts: "Board context changed after this decision was published"'],
 		},
 		{
 			enter: Effect.fnUntraced(function* (ctx) {

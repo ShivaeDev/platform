@@ -4,9 +4,11 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
+import type { FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
+import type { Versioned } from "#storage/model.ts";
 
 function capacityFailure(error: unknown) {
 	return (
@@ -33,9 +35,11 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 			"Inspect this specific integration failure and retry the existing work",
 			undefined,
 			error instanceof FleetFailure ? error.attentionOwner : undefined,
-		);
+		).pipe(Effect.catchTag("BoardFailure", () => load(workId)));
 	});
-	return Effect.fn("Fleet.reconcile")(function* (workId: string) {
+	return Effect.fn("Fleet.reconcile")(function* (
+		workId: string,
+	): Effect.fn.Return<Versioned<FleetRecord>, Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>>> {
 		return yield* advance(workId).pipe(Effect.catch((error) => handleFailure(workId, error)));
 	});
 }

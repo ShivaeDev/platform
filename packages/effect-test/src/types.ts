@@ -9,9 +9,14 @@ export type EffectTestOptions = TestOptions & {
 	readonly clock?: EffectClock;
 };
 
+export type EffectTestBody<THarness, TProvided, A = unknown> = (
+	harness: THarness,
+	context: TestContext,
+) => Generator<Effect.Effect<unknown, unknown, TProvided | Scope.Scope>, A, never> | Effect.Effect<A, unknown, TProvided | Scope.Scope>;
+
 export type EffectTest<THarness, TProvided> = <A, TEff extends Effect.Effect<unknown, unknown, TProvided | Scope.Scope>>(
 	name: string,
-	body: (harness: THarness, context: TestContext) => Generator<TEff, A, never>,
+	body: (harness: THarness, context: TestContext) => Generator<TEff, A, never> | Effect.Effect<A, unknown, TProvided | Scope.Scope>,
 	options?: number | EffectTestOptions,
 ) => void;
 
@@ -20,7 +25,7 @@ export interface EffectTester<THarness, TProvided> extends EffectTest<THarness, 
 		cases: readonly TItem[],
 	) => <A, TEff extends Effect.Effect<unknown, unknown, TProvided | Scope.Scope>>(
 		name: string,
-		body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never>,
+		body: (item: TItem, harness: THarness, context: TestContext) => Generator<TEff, A, never> | Effect.Effect<A, unknown, TProvided | Scope.Scope>,
 		options?: number | EffectTestOptions,
 	) => void;
 	readonly fails: EffectTest<THarness, TProvided>;

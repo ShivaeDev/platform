@@ -92,7 +92,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				}),
 			},
 			progress,
-			reason: "Current Board revision needs maintainer approval",
+			reason: "Work is no longer approved or is done or superseded",
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
 		},

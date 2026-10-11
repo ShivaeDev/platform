@@ -1,5 +1,6 @@
 import { Effect } from "effect";
-import { type DraftInput, type Question, ResponseFailed } from "#browser/responses/schema.ts";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { DraftInput, Question } from "#browser/responses/schema.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { questionFrom, responseFrom } from "./records.ts";
 
@@ -18,7 +19,5 @@ export function validateSupersedes(input: DraftInput, question: Question, data: 
 		&& old.question.request === question.question.request
 		&& input.supersedes !== input.id
 		? Effect.void
-		: Effect.fail(
-				new ResponseFailed({ code: "Conflict", message: "Supersedes must identify one recorded response to this item's attention request." }),
-			);
+		: Effect.fail(new Conflict({ message: "Supersedes must identify one recorded response to this item's attention request." }));
 }

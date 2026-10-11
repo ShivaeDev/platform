@@ -1,13 +1,15 @@
 import { createServer, request } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Effect, Layer, ManagedRuntime, Schema } from "effect";
+import { Context, Effect, Exit, Layer, Schema, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest } from "effect/unstable/http";
 import { Rpc, RpcGroup, RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
 
 const LocalRpcs = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
 
-export async function localRpcServer(serialization: Layer.Layer<RpcSerialization.RpcSerialization> = RpcSerialization.layerNdjson) {
+export const localRpcServer = Effect.fn("Test.localRpcServer")(function* (
+	serialization: Layer.Layer<RpcSerialization.RpcSerialization> = RpcSerialization.layerNdjson,
+) {
 	let calls = 0;
 	const handlers = LocalRpcs.toLayer({
 		ping: () =>
@@ -28,23 +30,27 @@ export async function localRpcServer(serialization: Layer.Layer<RpcSerialization
 			);
 		}),
 	).pipe(Layer.provide([handlers, serialization]));
-	const runtime = ManagedRuntime.make(
+	const scope = yield* Scope.fork(yield* Scope.Scope);
+	const context = yield* Layer.buildWithScope(
 		HttpRouter.serve(routes, { disableLogger: true }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 })),
 		),
+		scope,
 	);
-	const server = await runtime.runPromise(HttpServer.HttpServer);
+	const server = Context.get(context, HttpServer.HttpServer);
 	if (server.address._tag !== "TcpAddress") {
-		await runtime.dispose();
 		throw new Error("Expected a TCP RPC server");
 	}
 	const { hostname, port } = server.address;
 	return {
 		calls: () => calls,
-		close: () => runtime.dispose(),
+		close: () => Scope.close(scope, Exit.void),
 		host: `${hostname}:${port}`,
 		post: (headers: Readonly<Record<string, string>>, json = false) =>
-			new Promise<{ readonly body: string; readonly status: number }>((resolve, reject) => {
+			new Promise<{
+				readonly body: string;
+				readonly status: number;
+			}>((resolve, reject) => {
 				const outgoing = request({ headers, host: hostname, method: "POST", path: "/rpc", port }, (response) => {
 					let body = "";
 					response.setEncoding("utf8");
@@ -58,4 +64,4 @@ export async function localRpcServer(serialization: Layer.Layer<RpcSerialization
 				outgoing.end(json ? JSON.stringify([message]) : `${JSON.stringify(message)}\n`);
 			}),
 	};
-}
+});

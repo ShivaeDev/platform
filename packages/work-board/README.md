@@ -210,7 +210,7 @@ Explicit opt-in enables writes. Open question packets offer **Answer these quest
 
 Registration captures one question generation in `responses/`; submission creates an independent response file there. Original source bytes stay unchanged. Source edits or moves require a fresh review/preview; historical replies still identify the old context. Same-identity/content retries reconcile, conflicting contributions are rejected, and uncertain publication is reported explicitly.
 
-An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. Only an unambiguous receipt matching the exact current source path and bytes removes the managed request from the overview and response surface. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
+An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. Only an unambiguous receipt matching the exact current source path and bytes removes the managed request from the overview and response surface. `currentResponses(responses)` from `@shivaedev/work-board/responses/current.ts` selects the latest response per author, ordered by recorded time and then response ID, and removes explicitly superseded responses. Managed acknowledgements use this selection; different authors remain competing, and superseding an author’s latest response does not revive an earlier answer. `src/responses/current.test.ts` and Fleet’s PostgreSQL question tests cover this rule. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
 
 Browser drafts have their own 2 MiB workspace bound and expire 30 days after their last edit. Navigation, reload and source refresh retain them; text edited while an earlier save completes remains an unsaved draft with a fresh identity. Corruption, expiry and storage failures are disclosed. Clearing drafts does not clear saved records or the seen baseline.
 
@@ -294,12 +294,13 @@ Import the module that defines a name. The package has no root entry; its manife
 | `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
-| `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
+| `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
 | `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
 | `browser/navigation/schema.ts` | `Navigation`, `NavigationFolder`, `NavigationFile`: native navigation result schemas/types |
-| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
+| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
+| `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
 | `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
@@ -456,11 +457,11 @@ export async function readReturnedResult(url: string, item: string) {
 
 Pass a uniquely identified result, such as `result.keyboard`. Its declared review request still uses `responses.question`, `registerQuestion` and `recordResponse`, or the normal browser response controls; there is no separate acceptance writer.
 
-`ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`, `Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication may already have produced a file; inspect the saved identity/content before retrying.
+RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `NotFound` for missing context, `PreconditionFailed` for stale review, `Conflict` for incompatible content, `BadRequest` for unsupported input and `ServiceUnavailable` for unavailable reads. Unexpected handler failures become `InternalServerError` with a redacted public message and a server-only trace cause. These errors need no login middleware. `PublicationUncertain` means publication may already have produced a file; inspect the saved identity/content before retrying. `Unanswered` is the wait client’s deadline error.
 
 #### Render a source query in React
 
-Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities return `ReadFailed`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
+Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
 Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The existing Board page still uses server rendering; hosts decide when to mount the React view.
 

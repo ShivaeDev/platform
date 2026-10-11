@@ -1,9 +1,4 @@
 const explanations: Readonly<Record<string, string>> = {
-	"Board context changed after preparation": "Retry cannot prepare changed Board scope; release this cycle and prepare the approved scope again.",
-	"Board context changed after this decision was published":
-		"Retry cannot prepare changed Board scope; release this cycle and prepare the approved scope again.",
-	"Board context changed during review": "Retry cannot authorize changed review scope; release this cycle and prepare the approved scope again.",
-	"Board context changed while work ran": "Retry cannot authorize changed Board scope; release this cycle and prepare the approved scope again.",
 	"Delivery requires the adopted GitHub PR URL":
 		"Retry cannot replace an adopted PR identity; release and inspect ownership before preparing a valid GitHub result.",
 	"GitHub checks need a GitHub pull request URL and an exact commit SHA":
