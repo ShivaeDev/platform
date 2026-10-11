@@ -101,10 +101,14 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 	}).pipe(Effect.provide(hostSql(host)), Effect.orDie);
 }
 
+export type WaitRun = Pick<CliRun, "code" | "stdout">;
+
 export function waitProcess(
 	configFile: string,
 	workId: string,
 	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
-): Promise<CliRun> {
-	return cliProcess(["wait", workId, "--config", configFile, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]);
+): Promise<WaitRun> {
+	return cliProcess(["wait", workId, "--config", configFile, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]).then(
+		({ code, stdout }) => ({ code, stdout }),
+	);
 }

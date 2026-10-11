@@ -9,10 +9,10 @@ import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus } from "#host/status.ts";
-import { cliProcess } from "#test/cliProcess.ts";
 import { codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { finishWorkers } from "#test/engine.ts";
+import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
