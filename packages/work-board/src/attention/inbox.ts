@@ -3,7 +3,7 @@ import { identityUrl } from "#metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { answeredQuestion, pendingQuestions } from "./questionState.ts";
-import { attentionRequests } from "./requests.ts";
+import { attentionRequests, isMaintainerRequest } from "./requests.ts";
 
 const closed = new Set(["closed", "done", "completed", "cancelled", "canceled", "resolved", "released"]);
 const automation = /^(?:codex|claude|fleet|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
@@ -16,9 +16,12 @@ export function authoredQuestion(document: MetadataDocument): boolean {
 	return document.parsed.fields.kind === "question" && document.parsed.fields.question === undefined;
 }
 
-export function waitingReason(document: MetadataDocument, model: MetadataModel): string | undefined {
+export function waitingReason(document: MetadataDocument, model: MetadataModel, maintainer = "maintainer"): string | undefined {
 	const fields = document.parsed.fields;
 	if (!openItem(document) || fields.kind === "response" || fields.kind === "handoff" || fields.question) {
+		return undefined;
+	}
+	if (fields.attention?.length && !fields.attention.some((request) => isMaintainerRequest(request, maintainer))) {
 		return undefined;
 	}
 	if (authoredQuestion(document) && answeredQuestion(document, model)) {
@@ -45,11 +48,13 @@ function identityProblem(document: MetadataDocument, model: MetadataModel): stri
 	return model.ids.get(id)?.length === 1 ? undefined : `Duplicate item ID: ${id}`;
 }
 
-function unresolvedReason(document: MetadataDocument, problem: string | undefined): string | undefined {
+function unresolvedReason(document: MetadataDocument, problem: string | undefined, maintainer: string | undefined): string | undefined {
 	if (!problem) {
 		return undefined;
 	}
-	const requests = document.parsed.fields.attention?.filter((request) => request.managed && request.state === "open") ?? [];
+	const requests =
+		document.parsed.fields.attention?.filter((request) => request.managed && request.state === "open" && isMaintainerRequest(request, maintainer))
+		?? [];
 	return requests.length > 0 ? `Managed decision: ${requests.map((request) => request.reason).join("; ")}` : undefined;
 }
 
@@ -58,15 +63,17 @@ export function inboxItems(snapshot: Snapshot) {
 		return [];
 	}
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
-	const managed = attentionRequests(snapshot).entries.filter((entry) => entry.request.managed);
+	const managed = attentionRequests(snapshot).entries.filter(
+		(entry) => entry.request.managed && isMaintainerRequest(entry.request, snapshot.maintainer),
+	);
 	const direct = snapshot.documents.flatMap((document) => {
 		const id = document.parsed.fields.id;
 		const problem = identityProblem(document, snapshot.model);
 		const requests = managed.filter((entry) => entry.document.file === document.file);
 		const reason =
-			waitingReason(document, snapshot.model)
+			waitingReason(document, snapshot.model, snapshot.maintainer)
 			?? (requests.length > 0 ? `Managed decision: ${requests.map((entry) => entry.request.reason).join("; ")}` : undefined)
-			?? unresolvedReason(document, problem);
+			?? unresolvedReason(document, problem, snapshot.maintainer);
 		return reason
 			? [
 					{

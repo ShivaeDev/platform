@@ -19,6 +19,10 @@ export interface SourceIssue {
 	readonly message: string;
 }
 
+export function isMaintainerRequest(request: Request, maintainer = "maintainer"): boolean {
+	return request.responseFrom.includes(maintainer);
+}
+
 function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: string): readonly AttentionEntry[] {
 	const { fields, lines } = document.parsed;
 	const itemId = fields.id;

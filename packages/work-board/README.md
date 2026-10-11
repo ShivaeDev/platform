@@ -169,7 +169,7 @@ The view refreshes through the native page query every 15 seconds while visible.
 
 #### Find what waits on you
 
-The sidebar and top bar offer **Inbox** with a live count, including on narrow screens. It lists open human-owned next actions, open questions (including registered questions on ordinary attention sources), and work whose status is `needs-human`. Fleet's open managed decisions appear there too, until their exact-context acknowledgement retires them. Each row links to the source and shows the reason and time since the source last changed. Overview links to an Inbox count summary. The Work board/table mark the same items as **Waiting on you** while keeping every card in its recorded status column. Missing or duplicated item IDs remain listed with a visible problem and a link to each source. Ages of 48 hours or more use days.
+The sidebar and top bar offer **Inbox** with a live count, including on narrow screens. It lists open human-owned next actions, unaddressed standalone questions, and work whose status is `needs-human`. Addressed questions, including registered questions on ordinary attention sources and Fleet's open managed decisions, enter the Inbox only when their attention request's `response_from` includes the maintainer label. The default label is `maintainer`; set `--maintainer <name>` to use another literal, case-sensitive label. Questions for other responders remain reachable through their item, Responses and the Work board/table. Boards without addressed questions keep the same Inbox membership. Managed decisions leave the Inbox when their exact-context acknowledgement retires them. Each row links to the source and shows the reason and time since the source last changed. Overview links to an Inbox count summary. The Work board/table mark the same items as **Waiting on you** while keeping every card in its recorded status column. Missing or duplicated item IDs remain listed with a visible problem and a link to each source. Ages of 48 hours or more use days.
 
 Owner labels are local conventions: `codex`, `claude`, `fleet`, `agent`, `automation`, `bot` and `copilot`, including labels beginning with those names followed by a dash, underscore, dot, space or slash, denote automation. Other nonblank owner labels denote people. A human owner needs a nonblank `next_action` to enter the Inbox. Statuses `closed`, `done`, `completed`, `cancelled`, `canceled`, `resolved` and `released` leave the queue. These rules classify waiting work; they do not edit the recorded status.
 
@@ -323,7 +323,7 @@ try {
 }
 ```
 
-`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests still require a loopback `Host`; a missing/non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
+`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the Inbox responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests still require a loopback `Host`; a missing/non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
 
 #### Read and wait from a Node agent
 
@@ -458,6 +458,7 @@ Pass a uniquely identified result, such as `result.keyboard`. Its declared revie
 | --- | --- | --- |
 | `<dir>` | Required | Existing folder to read |
 | `--home <file>` | None | Listed Markdown file rendered as a board at `/`; a missing file prevents startup |
+| `--maintainer <name>` | `maintainer` | Literal `response_from` label for Inbox questions; unaddressed standalone questions remain included |
 | `--port <number>` | `4747` | Loopback server port; `0` asks for a free port |
 | `--responses` | Off | Enable local question/response/handoff publication |
 
