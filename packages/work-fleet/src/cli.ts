@@ -30,6 +30,21 @@ const dispatchCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
 
+const continueCommand = Command.make(
+	"continue",
+	{ args: [Argument.string("id"), Argument.string("message").pipe(Argument.optional)] as const, board, config },
+	Effect.fn("WorkFleetCli.continue")(function* (input) {
+		const [{ continueWork }, { continuationMessage }] = yield* Effect.promise(() =>
+			Promise.all([import("#host/commands.ts"), import("#host/continuationMessage.ts")]),
+		);
+		const message = yield* continuationMessage(Option.getOrUndefined(input.args[1]));
+		const { value } = yield* continueWork(yield* host(input.board, input.config), input.args[0], message);
+		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+	}),
+).pipe(
+	Command.withDescription("Continue terminal needs-human or completed work on its existing worker thread; read the message from stdin if omitted"),
+);
+
 const statusCommand = Command.make(
 	"status",
 	{
@@ -59,7 +74,7 @@ const nameThreadsCommand = Command.make(
 
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
-	Command.withSubcommands([runCommand, dispatchCommand, statusCommand, waitCommand, watchCommand, nameThreadsCommand]),
+	Command.withSubcommands([runCommand, dispatchCommand, continueCommand, statusCommand, waitCommand, watchCommand, nameThreadsCommand]),
 );
 
 const main = Command.run(cli, { version: "0.0.0" }).pipe(
