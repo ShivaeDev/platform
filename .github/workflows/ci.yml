@@ -48,8 +48,6 @@ jobs:
         with:
           save-workspace-cache: 'true'
       - run: pnpm build
-        env:
-          CI_WORKSPACE_SORT: 'false'
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
