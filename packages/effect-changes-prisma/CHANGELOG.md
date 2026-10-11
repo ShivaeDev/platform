@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Prefix generic type parameters in the write and written-table tests with `T` to follow the naming convention.
 - Explain the package's purpose, model mappings, transaction boundary and test coverage in its README, agent north star and package docs; publish `docs/` with the README while keeping agent instructions out of the package.
 - Build package JavaScript, declarations and source maps with TypeScript 7.
 
