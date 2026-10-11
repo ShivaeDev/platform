@@ -109,7 +109,7 @@ describe("quality baseline", { timeout: cliTimeout }, () => {
 
 describe("quality exits 2 when it cannot run", { timeout: cliTimeout }, () => {
 	it.each([
-		["without a config", [], "no config at"],
+		["with a broken config", [{ content: "export default {", path: "quality.config.ts" }], "cannot load"],
 		[
 			"with an invalid config",
 			[config('{ rules: { "structure/max-line": "error" } }')],

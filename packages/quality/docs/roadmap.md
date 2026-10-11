@@ -4,7 +4,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 
 ## Built
 
-- [x] A typed and runtime-validated config; built-in rules enabled at `error` by default; local-rule and Standard Schema option APIs; one checked inventory and one report grouped by rule.
+- [x] Optional typed and runtime-validated config with config-free defaults; built-in rules enabled at `error` by default; local-rule and Standard Schema option APIs; one checked inventory and one report grouped by rule.
 - [x] Consumer `warn` and `off` settings and reasoned consumer Biome weakenings are implemented and tested. These capabilities do not match the intended whole-policy adoption model; the work below closes that gap.
 - [x] A JSON Lines baseline with counted debt, explicit named-rule recording, lowering and pruning, tracked-move handling and preservation of unrelated lines.
 - [x] A registry of reasoned exceptions with optional subjects, detection of stale entries and rules that refuse exceptions.
@@ -13,7 +13,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 - [x] Static import resolution, rejection of production imports of test code, runtime-cycle checks, same-folder relative imports and direct, transitive and vocabulary fences with validated examples.
 - [x] Manifest sorting and identifier, file, folder, content, test-layout and story-setup conventions.
 - [x] Shared type-check and package-build TypeScript presets; Vitest unit, DOM and opt-in slow projects, excluded type tests and inherited project tags.
-- [x] Opt-in pre-commit hooks with per-worktree config and dependencies, configured commands, staged debt tightening and protection for partly staged files.
+- [x] Opt-in pre-commit hooks with per-worktree config and dependencies, conventional `typecheck` and `quality:commit` scripts, and explicit installation.
 - [x] Seeded-repository and real-command tests for the gate, import policies, Biome, baseline and git hooks, plus packed consumer checks for the CLI and presets.
 
 ## Next
