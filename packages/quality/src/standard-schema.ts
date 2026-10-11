@@ -16,8 +16,9 @@ export interface StandardIssue {
 	readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined;
 }
 
+// Biome's noBaseToString does not narrow the ternary in segment, so the key is stringified behind a PropertyKey parameter.
 function keyText(key: PropertyKey): string {
-	return typeof key === "symbol" ? key.toString() : String(key);
+	return key.toString();
 }
 
 function segment(part: PropertyKey | { readonly key: PropertyKey }): string {
