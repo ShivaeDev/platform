@@ -17,6 +17,24 @@ const Answers = Schema.Struct({
 	),
 );
 
+it("nested error atoms are memoized by path value", function* () {
+	const form = yield* Effect.sync(() =>
+		make(Answers, {
+			initialValues: { answers: [{ selected: [], text: "" }] },
+			onSubmit: Effect.succeed,
+			runtime,
+		}),
+	);
+	const path: readonly ["answers", number, string] = ["answers", 0, "text"];
+	const first = form.errorAt(path);
+	expect(form.errorAt(path)).toBe(first);
+	expect(form.errorAt(["answers", 0, "text"])).toBe(first);
+	expect(form.errorAt(["answers", 1, "text"])).not.toBe(first);
+	expect(form.errorAt(["answers", "0", "text"])).not.toBe(first);
+	expect(form.errorAt(["answers", 0, "selected"])).not.toBe(first);
+	expect(form.errorAt(["answers", 0])).not.toBe(first);
+});
+
 it("nested Schema messages address each unanswered control and retain the top-level summary", function* (registry) {
 	let calls = 0;
 	const form = make(Answers, {
@@ -44,6 +62,7 @@ it("nested Schema messages address each unanswered control and retain the top-le
 	expect(yield* Effect.flip(AtomRegistry.getResult(registry, form.submit))).toBeInstanceOf(Invalid);
 	expect(calls).toBe(0);
 	expect(registry.get(first)).toBe("Choose or write an answer");
+	expect(form.errorAt(["answers", 0, "text"])).toBe(first);
 	expect(registry.get(second)).toBe("Choose or write an answer");
 	expect(registry.get(selections)).toBeUndefined();
 	expect(registry.get(form.error("answers"))).toBe("Choose or write an answer");
@@ -52,6 +71,7 @@ it("nested Schema messages address each unanswered control and retain the top-le
 		{ selected: [], text: "" },
 	]);
 	expect(registry.get(first)).toBeUndefined();
+	expect(form.errorAt(["answers", 0, "text"])).toBe(first);
 	expect(registry.get(second)).toBe("Choose or write an answer");
 	form.change("answers", [
 		{ selected: ["option"], text: "" },
@@ -69,7 +89,12 @@ it("blur reveals descendant Schema feedback without inventing sibling paths", fu
 		onSubmit: Effect.succeed,
 		runtime,
 	});
+	const name = form.errorAt(["profile", "name"]);
+	registry.mount(name);
+	expect(registry.get(name)).toBeUndefined();
 	yield* Effect.sync(() => form.blur("profile"));
+	expect(form.errorAt(["profile", "name"])).toBe(name);
+	expect(registry.get(name)).toBe("Required");
 	expect(registry.get(form.errorAt(["profile"]))).toBe("Required");
 	expect(registry.get(form.errorAt(["profile", "name"]))).toBe("Required");
 	expect(registry.get(form.errorAt(["profile", "other"]))).toBeUndefined();

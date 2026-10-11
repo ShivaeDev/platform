@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { executing, type FleetRecord } from "#model.ts";
+import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import { StorageAdmission } from "#storage/errors.ts";
 import type { AdmissionLimits } from "#storage/model.ts";
 
@@ -39,7 +39,7 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	limits: AdmissionLimits,
 ) {
 	const scheduling = limits.scheduling;
-	if (scheduling === undefined || record.attempts.length <= (previous?.attempts.length ?? 0)) {
+	if (scheduling === undefined || allAttempts(record).length <= (previous === undefined ? 0 : allAttempts(previous).length)) {
 		return;
 	}
 	const areas = record.areas ?? [];
