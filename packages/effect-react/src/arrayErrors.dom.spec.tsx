@@ -1,27 +1,20 @@
-import { RegistryContext } from "@effect/atom-react";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 import { AnswerList } from "#test/AnswerList.tsx";
 import { answerValues, makeAnswerForm } from "#test/answerForm.ts";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 it("React renders Schema and server messages next to their answer after array edits", async () => {
-	const registry = AtomRegistry.make();
-	const container = document.createElement("div");
-	document.body.append(container);
-	const root = createRoot(container);
 	const { first, second, third } = answerValues;
 	const form = makeAnswerForm();
+	const { container, unmount } = await render(createElement(AnswerList, { form }));
 	function messages() {
 		return [...container.querySelectorAll("li")].map((item) => [item.getAttribute("data-answer"), item.querySelector('[role="alert"]')?.textContent]);
 	}
 	try {
-		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(AnswerList, { form }))));
 		expect(messages()).toEqual([
 			["first", undefined],
 			["second", undefined],
@@ -76,8 +69,6 @@ it("React renders Schema and server messages next to their answer after array ed
 		await act(async () => form.change("answers", [second]));
 		await eventually(() => expect(messages()).toEqual([["second", undefined]]));
 	} finally {
-		await act(async () => root.unmount());
-		registry.dispose();
-		container.remove();
+		await unmount();
 	}
 });

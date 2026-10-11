@@ -3,7 +3,7 @@ import { app, realPostgres } from "#test/order-example/application.ts";
 import { localApp, localOrder } from "#test/order-example/localApplication.ts";
 import { hasPostgres } from "#test/order-example/postgres.ts";
 import { aliceHasOrder, orderEditorIsOpen, orderListIsOpen } from "#test/order-example/traits.ts";
-import { expectNoReactWarnings } from "#test/react.ts";
+import { expectNoReactWarnings } from "#testing.ts";
 
 expectNoReactWarnings();
 
