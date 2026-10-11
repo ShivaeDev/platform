@@ -61,7 +61,7 @@ function columnSchema(kind: string) {
 }
 
 const rowFields = {
-	"admission_order": Model.Field({ select: Schema.NumberFromString, update: Schema.NumberFromString }),
+	"admission_order": Model.Field({ select: Schema.BigIntFromString, update: Schema.BigIntFromString }),
 	attentionOwner: Schema.NullOr(Schema.String),
 	blocker: Schema.NullOr(Schema.String),
 	checks: Schema.NullOr(Schema.String),

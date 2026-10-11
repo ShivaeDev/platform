@@ -17,13 +17,15 @@ test("populated JSONB records migrate without changing records, versions, order 
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
 			yield* migrateFleet(namespace, undefined, true);
+			yield* sql`select setval(pg_get_serial_sequence(${`${namespace}_records`}, 'admission_order'), 9007199254740993, false)`;
 			const values = migrationRecords();
 			for (const [index, value] of values.entries()) {
 				yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, ${index + 7}, ${JSON.stringify(value)}::jsonb)`;
 			}
 			yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
 			const before = yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`;
-			const store = yield* makePostgresFleetStore(FleetRecord, { namespace, requeue: () => true });
+			let requeue = false;
+			const store = yield* makePostgresFleetStore(FleetRecord, { namespace, requeue: () => requeue });
 			yield* store.initialize();
 			const expected = values.map((value, index) => ({ value, version: index + 7 }));
 			expect(yield* store.list()).toEqual(expected);
@@ -37,8 +39,16 @@ test("populated JSONB records migrate without changing records, versions, order 
 			if (first === undefined) {
 				return yield* Effect.die("Missing migrated record");
 			}
-			const saved = yield* store.compareAndSet(first.value.workId, first.version, { ...first.value, areas: undefined, mergeReadyAt: undefined });
-			expect(saved.version).toBe(first.version + 1);
+			const unchanged = yield* store.compareAndSet(first.value.workId, first.version, first.value);
+			expect(yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
+			requeue = true;
+			const saved = yield* store.compareAndSet(first.value.workId, unchanged.version, { ...first.value, areas: undefined, mergeReadyAt: undefined });
+			expect(saved.version).toBe(first.version + 2);
+			expect(yield* sql`select admission_order from ${sql(`${namespace}_records`)} where work_id = ${first.value.workId}`).toEqual([
+				{
+					"admission_order": "9007199254740995",
+				},
+			]);
 			expect((yield* store.load(first.value.workId))?.value.areas).toBeUndefined();
 			expect((yield* store.list()).map((entry) => entry.value.workId)).toEqual(["two", "one"]);
 			expect((yield* store.compareAndSet(first.value.workId, first.version, first.value).pipe(Effect.flip))._tag).toBe("StorageConflict");
