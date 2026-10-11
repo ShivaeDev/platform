@@ -42,6 +42,8 @@ export const capturePage = () => {
 };
 
 export const applyPage = (page, preserve = false) => {
+  const template = page.querySelector("#board-legacy-page");
+  if (template) page.body.replaceChildren(template.content.cloneNode(true));
   const incoming = page.getElementById("doc");
   const current = document.getElementById("doc");
   if (!incoming || !page.getElementById("files")) return false;
@@ -72,12 +74,14 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("diagnostics-open")?.setAttribute("aria-current", doc.dataset.view === "diagnostics" ? "page" : "false");
   document.getElementById("home-open")?.setAttribute("aria-current", location.pathname === "/" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
+  if (!document.querySelector("[data-board-react-root]")) {
   swap(document.getElementById("files"), page.getElementById("files"));
   const inbox = page.getElementById("inbox-topbar");
   if (inbox) document.getElementById("inbox-topbar").replaceWith(document.importNode(inbox, true));
   syncInbox();
   const crumbs = page.getElementById("breadcrumbs");
   if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
+  }
   revealCurrentFile(!preserve);
   refreshLibrary(!preserve);
   if (reading) restoreReading({ ...reading, selection: null }, false);

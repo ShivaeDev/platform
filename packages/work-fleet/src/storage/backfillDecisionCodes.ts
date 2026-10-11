@@ -14,6 +14,7 @@ const legacyCodes: Readonly<Record<string, DecisionCode>> = {
 	"Multiple Codex turns match one operation; retain reservation": "duplicate-turns",
 	"No-change validation is not configured in this Fleet host; inspect the worker session": "no-change-checks-unconfigured",
 	"not-ancestor": "not-ancestor",
+	"PR conflicts with main; inspect the conflict repair before retrying or releasing this work": "fleet-stale",
 	"PR head differs from the reviewed head; review the current revision before accepting delivery": "pr-head-moved",
 	"PR head moved after the worker report": "worker-report-head-moved",
 	"Report worker published to GitHub": "report-published",

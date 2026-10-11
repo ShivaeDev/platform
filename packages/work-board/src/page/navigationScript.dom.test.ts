@@ -3,10 +3,12 @@ import { join } from "node:path";
 import { Effect, Layer } from "effect";
 import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
 import { FILES, settle, waitFor } from "#test/live.ts";
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
+import { rpcCall, rpcFailure } from "#test/rpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -139,10 +141,11 @@ describe("document navigation", () => {
 	effectApp.each([undefined, 503, "network"] as const)("ignores an old page refresh after newer navigation (%s)", function* (failWith) {
 		yield* open();
 		const response = held();
+		const reads = page.pageRequests.count;
 		page.pageRequests.gate = response.gate;
 		page.pageRequests.failWith = failWith;
 		page.streams[0]?.emit("change");
-		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.count).toBe(2)));
+		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.count).toBe(reads + 1)));
 		click('#files a[href="/flow.md"]');
 		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
@@ -201,4 +204,41 @@ effectApp("keeps favorites usable across document navigation when browser storag
 	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 	expect(page.document.querySelector('#reading-library a[href="/plan.md"]')?.textContent).toBe("Plan");
 	expect(page.document.querySelector(".library-status")?.textContent).toContain("this page only");
+});
+
+effectApp("retains reading history when the selected file is opened again", function* () {
+	page = yield* openPage(board, "/plan.md", (window) => {
+		window.history.replaceState({ workBoard: { id: "selected-file" } }, "");
+	});
+	page.document.querySelector("article details")?.setAttribute("open", "");
+	click('#files a[href="/plan.md"]');
+	yield* Effect.promise(() => settle());
+	expect(page.window.history.state).toMatchObject({ workBoard: { id: "selected-file" } });
+	click('#files a[href="/flow.md"]');
+	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
+	page.window.history.back();
+	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Plan")));
+	expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true);
+});
+
+effectApp("retries the same route after a navigation request fails", function* () {
+	let fail = false;
+	page = yield* openPage(board, "/plan.md", (window) => {
+		const fetch = window.fetch.bind(window);
+		window.fetch = async (input, init) => {
+			const call = await rpcCall(window, input, init);
+			if (fail && call?.tag === "work-board.page" && JSON.stringify(call.payload).includes(JSON.stringify("/flow.md"))) {
+				return rpcFailure(window, call, new InternalServerError({ message: "Page rendering is unavailable." }));
+			}
+			return fetch(input, init);
+		};
+	});
+	fail = true;
+	click('#files a[href="/flow.md"]');
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toContain("Could not open")));
+	expect(title()).toBe("Plan");
+	fail = false;
+	click('#files a[href="/flow.md"]');
+	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
+	expect(page.document.getElementById("navigation-status")?.textContent).toBe("");
 });

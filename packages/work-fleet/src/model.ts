@@ -29,6 +29,7 @@ const cycleFields = {
 	boardRevision: Schema.String,
 	boardSourcePath: Schema.optional(Schema.String),
 	checks: Schema.optional(Checks),
+	conflictRepairs: Schema.optional(Schema.Array(Schema.String)),
 	cwd: Schema.String,
 	decision: Schema.optional(Decision),
 	decisionAcknowledged: Schema.optional(Schema.Boolean),

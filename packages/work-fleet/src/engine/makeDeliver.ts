@@ -7,6 +7,7 @@ import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
+import { requestConflictRepair } from "#engine/requestConflictRepair.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
@@ -85,6 +86,10 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	const observed = yield* integrations.delivery(result).pipe(Effect.result);
 	if (Result.isFailure(observed)) {
+		const repair = yield* requestConflictRepair(state, stored, observed.failure);
+		if (repair !== undefined) {
+			return repair;
+		}
 		if (
 			observed.failure instanceof MovedPrHead
 			&& !executing(record)

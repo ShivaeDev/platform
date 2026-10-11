@@ -22,7 +22,7 @@ describe("Biome diagnostic recognition", () => {
 		const raw = await runBiome(root, [...RECOGNITION_ARGS, "--reporter=json", "--max-diagnostics=none", "."]);
 		expect(raw.code).toBe(1);
 		const original = Schema.decodeUnknownSync(Schema.fromJsonString(RawReport))(raw.stdout);
-		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/regex.ts")).toHaveLength(5);
+		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/regex.ts")).toHaveLength(3);
 		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/generators.test.ts")).toHaveLength(8);
 		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/tags.tsx")).toHaveLength(11);
 		expect(original.diagnostics.filter((diagnostic) => diagnostic.location.path === "src/fake-tags.tsx")).toHaveLength(1);

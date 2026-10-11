@@ -7,8 +7,10 @@ import { FleetFailure } from "#policy.ts";
 import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 
 interface GithubState {
+	base: string;
 	head: string;
 	legacyResult: boolean;
+	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 	paths: string[];
 	pending: boolean;
 	status: "OPEN" | "CLOSED" | "MERGED";
@@ -35,7 +37,9 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 		],
 		[`/repos/example/repository/commits/${state.head}/status?per_page=100`]: [{ sha: state.head, statuses: [] }],
 		"/delivery": {
+			baseRefOid: state.base,
 			headRefOid: state.head,
+			mergeable: state.mergeable,
 			mergeCommit: merged ? { oid: BASE } : null,
 			mergedAt: merged ? "2026-01-01T00:00:00Z" : null,
 			state: state.status,
@@ -54,7 +58,15 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 }
 
 export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* () {
-	const state: GithubState = { head: HEAD, legacyResult: false, paths: ["src/one.ts"], pending: false, status: "OPEN" };
+	const state: GithubState = {
+		base: BASE,
+		head: HEAD,
+		legacyResult: false,
+		mergeable: "MERGEABLE",
+		paths: ["src/one.ts"],
+		pending: false,
+		status: "OPEN",
+	};
 	const requests: string[] = [];
 	const server = createServer((request, response) => {
 		const path = request.url ?? "";

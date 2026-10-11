@@ -6,6 +6,34 @@ import { refreshLibrary } from "/_board/library.js";
 import { revealCurrentFile } from "/_board/sidebar.js";
 import { session } from "/_board/native.js";
 
+let router;
+export const connectRouter = (control) => {
+  router = control;
+  let resolved = location.href;
+  router.subscribe(() => {
+    if (location.href === resolved) return;
+    const previous = new URL(resolved);
+    const target = new URL(location.href);
+    resolved = location.href;
+    const entry = history.state?.workBoard;
+    const id = entry?.id && entry.id !== displayedId ? entry.id : newId();
+    const hashOnly = target.pathname === previous.pathname && target.search === previous.search;
+    navigate(target, { ...entry, id, reading: id === entry?.id ? entry.reading : null }, hashOnly);
+  });
+};
+const open = async (target) => {
+  if (!router) return navigate(target);
+  const sameRoute = target.href === location.href;
+  saveCurrent();
+  await router.navigate(target.pathname + target.search + target.hash);
+  if (!sameRoute || target.href !== location.href) return;
+  const native = session(window);
+  const page = native.api.page.query({ url: target.pathname + target.search });
+  if (native.registry.get(page)._tag === "Failure") {
+    native.registry.refresh(page);
+    await navigate(target, history.state?.workBoard ?? { id: newId() });
+  }
+};
 const cache = new Map();
 const readingKey = "work-board:reading:" + document.documentElement.dataset.workspace;
 let savedReading = {};
@@ -16,6 +44,7 @@ try {
 let count = 0;
 const newId = () => Date.now() + "-" + ++count;
 let displayedId = history.state?.workBoard?.id ?? newId();
+let displayedRoute = location.pathname + location.search;
 let version = 0;
 let controller;
 export const pageVersion = () => version;
@@ -46,8 +75,9 @@ const saveCurrent = (write = true) => {
 };
 window.addEventListener("pagehide", () => saveCurrent(false));
 
-const navigate = async (target, entry) => {
-  const sameDocument = document.getElementById("favorite-toggle") !== null && displayedId === history.state?.workBoard?.id && target.pathname === location.pathname && target.search === location.search;
+const navigate = async (target, entry, hashOnly = false) => {
+  const route = target.pathname + target.search;
+  const sameDocument = route === displayedRoute;
   saveCurrent(!entry);
   const id = entry?.id ?? newId();
   if (!entry) history.pushState(stateWith(id), "", target);
@@ -57,15 +87,18 @@ const navigate = async (target, entry) => {
   controller = new AbortController();
   const status = document.getElementById("navigation-status");
   status.textContent = "";
-  if (!entry && sameDocument) {
+  if (sameDocument && (!entry || hashOnly)) {
     displayedId = id;
-    scrollToPassage(target.hash);
+    const reading = savedReading[id] ?? entry?.reading;
+    if (reading) restoreReading(reading);
+    else scrollToPassage(target.hash);
     return;
   }
   const cached = cache.get(id);
   if (cached) {
     applyPage(cached.page);
     displayedId = id;
+    displayedRoute = route;
     restoreReading(cached.reading);
   } else status.textContent = "Opening document…";
   try {
@@ -75,6 +108,7 @@ const navigate = async (target, entry) => {
     if (mine !== version) return;
     if (!applyPage(page, Boolean(cached))) throw new Error("Invalid page");
     displayedId = id;
+    displayedRoute = route;
     status.textContent = response.status < 400 ? "" : response.status === 404 ? "This document is missing or was renamed." : "This document could not be opened.";
     if (response.status < 400) reportMissingPassage();
     if (!cached) {
@@ -94,7 +128,7 @@ document.addEventListener("click", (event) => {
   if (target.origin !== location.origin || !(target.pathname === "/" || target.pathname === "/_board/diagnostics" || target.pathname === "/_board/handoff" || target.pathname === "/_board/result" || target.pathname === "/_board/respond" || target.pathname === "/_board/start" || target.pathname === "/_board/changes" || target.pathname === "/_board/inbox" || target.pathname === "/_board/overview" || target.pathname === "/_board/work" || target.pathname.startsWith("/_board/item/") || /\\.md$/i.test(target.pathname))) return;
   event.preventDefault();
   document.dispatchEvent(new Event("board-navigate"));
-  navigate(target);
+  open(target);
 });
 document.addEventListener("submit", (event) => {
   const form = event.target;
@@ -102,8 +136,8 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   const target = new URL(form.action, location.href);
   target.search = new URLSearchParams([...new FormData(form)].map(([key, value]) => [key, String(value)])).toString();
-  navigate(target);
+  open(target);
 });
-window.addEventListener("popstate", (event) => navigate(new URL(location.href), event.state?.workBoard ?? { id: newId() }));
+window.addEventListener("popstate", (event) => { if (!router) navigate(new URL(location.href), event.state?.workBoard ?? { id: newId() }); });
 `;
 }

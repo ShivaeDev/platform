@@ -15,7 +15,6 @@ const explanations: Readonly<Partial<Record<DecisionCode, string>>> = {
 		"Retry cannot undo GitHub publication because closed pull requests remain publication evidence; release this report cycle and inspect the published work.",
 	"report-too-large": "Retry cannot shorten the immutable completed report; release and prepare a worker to produce a shorter report.",
 	"result-identity-changed": "Retry cannot transfer ownership to a different result; release and inspect the replacement before preparing again.",
-	"reviewed-pr-ready": "Retry cannot merge a PR; a human must merge the reviewed head, or release Fleet ownership.",
 	"worker-receipt-missing":
 		"Retry cannot establish adopted worker ownership from the saved evidence; release and inspect ownership before preparing again.",
 };
