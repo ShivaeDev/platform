@@ -27,7 +27,8 @@ function displayError(control: Control, message: HTMLElement, error: string) {
 	}
 }
 function messageFor(control: Control, index: number) {
-	const message = document.createElement("span");
+	const existing = control.nextElementSibling;
+	const message = existing instanceof HTMLElement && existing.classList.contains("response-field-error") ? existing : document.createElement("span");
 	message.id = `response-error-${index}`;
 	message.className = "response-field-error";
 	message.hidden = true;

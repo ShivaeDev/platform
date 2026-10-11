@@ -106,3 +106,18 @@ it("keeps pasted text, focus and cursor through a source update and restores the
 	expect(page.document.querySelector('[name="author"]')).toHaveProperty("value", "reviewer");
 	expect(page.document.querySelector('[data-prompt="display"] textarea')).toHaveProperty("value", "");
 });
+
+it("rebinds a cached page without duplicate error labels or stale warnings", async () => {
+	await open();
+	answer("display", "Keep history.");
+	preview();
+	page.window.dispatchEvent(new page.window.Event("pagehide"));
+	page.window.dispatchEvent(Object.assign(new page.window.Event("pageshow"), { persisted: true }));
+	enterField(page, "author", "reviewer");
+	answer("checks", "Keyboard checks.");
+	expect(page.document.querySelectorAll(".response-field-error:not([hidden])")).toHaveLength(0);
+	const messages = [...page.document.querySelectorAll(".response-field-error")];
+	expect(new Set(messages.map((message) => message.id)).size).toBe(messages.length);
+	expect(page.document.getElementById("response-status")?.textContent).not.toContain("Unanswered");
+	expect(page.document.getElementById("response-status")?.textContent).not.toContain("Add your local author");
+});
