@@ -33,7 +33,7 @@ Feedback describes current input. A check result appears only when its input is 
 
 **Native pieces before convenience.** Keep the atom result, refs and runtime available rather than replacing them with package-specific equivalents. React hooks are adapters, not another implementation of draft state.
 
-**A small field model before a general form language.** Address top-level schema keys. A nested editor can use a whole encoded value as a field; path-addressed nested fields, field arrays and a general form language require a separate scope decision.
+**A small field model before a general form language.** Edit top-level schema keys. A nested editor uses a whole encoded value as a field, reads Schema messages and handler rejections by path, and supplies stable keys when top-level array elements need their own rejection identity. Independently editable nested fields and a general form language require a separate scope decision.
 
 ## What it leaves out
 
