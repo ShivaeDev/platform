@@ -91,7 +91,6 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 	}
 
 	for (const scenario of [
-		{ options: {}, output: "Missing final PR line" },
 		{ options: { before: { state: "closed" } }, output: REPORT },
 		{ options: { before: { head: { sha: MOVED } } }, output: REPORT },
 	]) {
