@@ -1,5 +1,4 @@
 import { Option, Schema } from "effect";
-import type { HandoffInput } from "#browser/handoffs/schema.ts";
 import type { Draft } from "#browser/responses/drafts.ts";
 
 const TextFields = Schema.Struct({ constraints: Schema.String, goal: Schema.String, nextAction: Schema.String });
@@ -36,15 +35,4 @@ export function restoreFields(fields: NonNullable<ReturnType<typeof handoffField
 		fields.goal.value = draft.body;
 		fields.recipient.value = draft.author;
 	}
-}
-export function inputFrom(form: HTMLFormElement, draft: Draft): HandoffInput {
-	const fields = Schema.decodeUnknownSync(TextFields)(JSON.parse(draft.body));
-	return {
-		...fields,
-		id: draft.id,
-		item: form.dataset.item ?? "",
-		recipient: draft.author,
-		revision: draft.revision,
-		source: form.dataset.source ?? "",
-	};
 }

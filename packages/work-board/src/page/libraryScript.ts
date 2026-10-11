@@ -3,6 +3,18 @@ export function libraryScript(): string {
 const root = document.documentElement;
 const key = "work-board:library:" + root.dataset.workspace;
 const library = document.getElementById("reading-library");
+const dialog = document.getElementById("library-dialog");
+const opener = document.getElementById("library-open");
+opener.disabled = false;
+opener.addEventListener("click", () => dialog.showModal());
+document.getElementById("library-close").addEventListener("click", () => dialog.close());
+dialog.addEventListener("close", () => opener.focus({ preventScroll: true }));
+dialog.addEventListener("click", (event) => {
+  if (event.target.closest?.("a[href]")) dialog.close();
+  if (event.target !== dialog) return;
+  const bounds = dialog.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+});
 let favorites = [];
 let recents = [];
 let notice = "";
@@ -59,7 +71,7 @@ export const refreshLibrary = (visit = false) => {
   status.setAttribute("role", "status");
   status.textContent = notice;
   library.replaceChildren(...(favorites.length ? list("Favorites", favorites) : []), ...(recents.length ? list("Recent documents", recents) : []), ...(notice ? [status] : []));
-  library.hidden = favorites.length === 0 && recents.length === 0 && notice === "";
+  if (favorites.length === 0 && recents.length === 0 && notice === "") library.textContent = "No recent documents yet.";
 };
 document.addEventListener("click", (event) => {
   if (!event.target.closest?.("#favorite-toggle")) return;

@@ -51,7 +51,17 @@ export function makeLaunch(state: EngineState) {
 		const record = launchRecord(stored.value, launchRole, policy.now(), continuation?.responses);
 		const intent = yield* save(
 			stored,
-			{ ...record, attempts: [...record.attempts, attempt], blocker: undefined, launchRetry: undefined, stage: "executing" },
+			{
+				...record,
+				admissionReady: true,
+				attempts: [...record.attempts, attempt],
+				blocker: undefined,
+				launchRetry: undefined,
+				mergeAreasReleased: undefined,
+				mergeReadyAt: undefined,
+				mergeReadyHead: undefined,
+				stage: "executing",
+			},
 			{ quota, role: launchRole },
 		);
 		const submitted =

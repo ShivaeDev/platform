@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { acquires, checkCapacity, checkQuota } from "#storage/admission.ts";
-import { StorageConflict } from "#storage/errors.ts";
+import { type StorageAdmission, StorageConflict } from "#storage/errors.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, ForeignReservation, type StoredRow } from "#storage/model.ts";
 
@@ -14,6 +14,13 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 >(
 	schema: TSchema,
 	options: {
+		readonly admission?: (
+			record: TSchema["Type"],
+			previous: TSchema["Type"] | undefined,
+			records: readonly TSchema["Type"][],
+			limits: AdmissionLimits,
+		) => Effect.Effect<void, StorageAdmission>;
+		readonly requeue?: (record: TSchema["Type"], previous: TSchema["Type"]) => boolean;
 		readonly namespace?: string;
 		readonly executing?: (record: TSchema["Type"]) => boolean;
 		readonly backlog?: (record: TSchema["Type"]) => boolean;
@@ -33,7 +40,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		return rows[0] === undefined ? undefined : yield* decode(rows[0]);
 	});
 	const list = Effect.fn("FleetStore.list")(function* () {
-		const rows = yield* sql<StoredRow>`select version, payload::text as value from ${sql(records)} order by work_id`;
+		const rows = yield* sql<StoredRow>`select version, payload::text as value from ${sql(records)} order by admission_order`;
 		return yield* Effect.forEach(rows, decode);
 	});
 	const foreignReservations = Effect.fn("FleetStore.foreignReservations")(function* () {
@@ -59,7 +66,14 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				if (actualVersion !== expectedVersion) {
 					return yield* Effect.fail(new StorageConflict({ actualVersion, expectedVersion, workId }));
 				}
-				const others = (yield* list()).filter(({ value }) => value.workId !== workId);
+				const entries = yield* list();
+				yield* options.admission?.(
+					record,
+					previous?.value,
+					entries.map(({ value }) => value),
+					limits,
+				) ?? Effect.void;
+				const others = entries.filter(({ value }) => value.workId !== workId);
 				const external = yield* foreignReservations();
 				const acquiringExecution = acquires(options.executing, record, previous?.value);
 				yield* checkCapacity(
@@ -80,8 +94,12 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				);
 				yield* checkQuota(limits.quota, options.submissions, record, previous?.value, others);
 				const version = (actualVersion ?? 0) + 1;
+				const requeue = previous !== undefined && options.requeue?.(record, previous.value) === true;
 				yield* sql`insert into ${sql(records)} (work_id, version, payload) values (${workId}, ${version}, ${encoded}::jsonb)
                     on conflict (work_id) do update set version = excluded.version, payload = excluded.payload`;
+				if (requeue) {
+					yield* sql`update ${sql(records)} set admission_order = default where work_id = ${workId}`;
+				}
 				return { value: record, version };
 			}),
 		);

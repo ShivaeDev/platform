@@ -4,9 +4,11 @@ import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { BoardFailure, type BoardGateway, type BoardWork, FleetPolicy } from "#policy.ts";
+import { checkAreas, requeue } from "#scheduling/areas.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
+import { boardWork } from "#test/boardWork.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
@@ -19,6 +21,8 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly acknowledgements: readonly BoardDecisionAcknowledgement[];
 	readonly acknowledgeTurn: (operationId: string, receipt: { readonly sessionId: string; readonly turnId: string }) => Effect.Effect<void, unknown>;
 	readonly approveWork: (workId: string, revision: string) => void;
+	readonly areas: (workId: string, areas: readonly string[]) => void;
+	readonly boardStatus: (workId: string, status: string) => void;
 	readonly decisions: readonly string[];
 	readonly dependencies: (workId: string, references: readonly string[]) => void;
 	readonly editWork: (workId: string, revision: string) => void;
@@ -33,22 +37,6 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly work: (id: string) => BoardWork;
 }
-function boardWork(
-	id: string,
-	approved: Readonly<Record<string, string>>,
-	revisions: ReadonlyMap<string, string> = new Map(),
-	dependencies: ReadonlyMap<string, readonly string[]> = new Map(),
-): BoardWork {
-	const revision = revisions.get(id) ?? `board-${id}`;
-	return {
-		approved: approved[id] === revision,
-		context: `Work ${id}: ${revisions.get(id) ?? `board-${id}`}`,
-		dependsOn: dependencies.get(id) ?? (id === "dependent" ? ["one"] : []),
-		revision: revisions.get(id) ?? `board-${id}`,
-		sourcePath: `board/${id}.md`,
-		workId: id,
-	};
-}
 export function withEngine<A, E, TBoardError = never>(
 	options: EngineOptions,
 	use: (fixture: EngineFixture<TBoardError>) => Effect.Effect<A, E, typeof Fleet.Identifier>,
@@ -57,15 +45,19 @@ export function withEngine<A, E, TBoardError = never>(
 	return withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
 			const store = yield* makePostgresFleetStore(FleetRecord, {
+				admission: checkAreas,
 				backlog,
 				executing,
 				namespace,
+				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
 			const dependencies = new Map<string, readonly string[]>();
+			const areas = new Map<string, readonly string[]>();
+			const statuses = new Map<string, string>();
 			const unavailable = new Set<string>();
 			const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 			const decisions: string[] = [];
@@ -74,7 +66,7 @@ export function withEngine<A, E, TBoardError = never>(
 			const scripted = scriptedBoard(options, decisions, (id) =>
 				unavailable.has(id)
 					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
-					: Effect.succeed(boardWork(id, approved, revisions, dependencies)),
+					: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses)),
 			);
 			const base = Layer.mergeAll(
 				Layer.succeed(FleetRepository)(store),
@@ -100,6 +92,12 @@ export function withEngine<A, E, TBoardError = never>(
 				approveWork: (workId: string, revision: string) => {
 					approved[workId] = revision;
 				},
+				areas: (workId, names) => {
+					areas.set(workId, names);
+				},
+				boardStatus: (workId, status) => {
+					statuses.set(workId, status);
+				},
 				decisions,
 				dependencies: (workId: string, references: readonly string[]) => {
 					dependencies.set(workId, references);
@@ -120,7 +118,7 @@ export function withEngine<A, E, TBoardError = never>(
 						unavailable.delete(workId);
 					}
 				},
-				work: (id: string) => boardWork(id, approved, revisions, dependencies),
+				work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));
 		}),

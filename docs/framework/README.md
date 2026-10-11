@@ -57,10 +57,7 @@ automatic relationship loading are outside the default path.
 
 ## Composing a feature
 
-The [order-editing example](./order-example.md) follows a feature from declared
-services and a repository through authenticated HTTP RPC to query state and an
-editable form. Read it for the composition; use each package's README for its
-mental model and API.
+The [PostgreSQL order feature](./composed-example.md) is the reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
 - [Request context](./request-context.md) explains session resolution, Origin
