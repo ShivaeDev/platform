@@ -5,6 +5,7 @@ import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments } from "#board/documents.ts";
+import { boardDiagnostics, fleetApproved } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
@@ -25,6 +26,7 @@ export function markdownBoard(root: string) {
 					return yield* Effect.fail(new BoardFailure({ message: `Board identity is missing or ambiguous: ${workId}` }));
 				}
 				return {
+					approved: fleetApproved(found.parsed),
 					context: found.source,
 					dependsOn: (found.parsed.fields.relationships ?? [])
 						.filter((relation) => relation.kind === "depends_on")
@@ -45,7 +47,7 @@ export function markdownBoard(root: string) {
 						work.workId !== workId
 						|| work.revision !== revisionOf(work.context)
 						|| parsed.fields.id !== workId
-						|| parsed.diagnostics.length > 0
+						|| boardDiagnostics(parsed).length > 0
 						|| relativeSource === "."
 						|| !Schema.is(RepositoryPath)(relativeSource)
 					) {

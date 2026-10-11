@@ -26,7 +26,7 @@ describe("Fleet delivery ownership", () => {
 				expect(fixture.reviews).toHaveLength(1);
 			}),
 		));
-	test("safe local release preserves the adopted PR's actual scope as foreign ownership", () =>
+	test("safe local release keeps the adopted PR in the foreign backlog without blocking its paths", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -35,14 +35,8 @@ describe("Fleet delivery ownership", () => {
 				finishWorkers(fixture);
 				const denied = yield* fleet.reconcile("one");
 				yield* fleet.resolve("one", denied.value.decision?.id ?? "missing", fixture.respond(denied.value.decision?.id ?? "missing", "release"));
-				const overlap = fleet.prepare({
-					cwd: "/synthetic",
-					preparation: prepared({ ownedPaths: ["src/one.ts"] }),
-					prompt: "Overlapping work",
-					workId: "two",
-				});
-				expect(yield* Effect.flip(overlap)).toMatchObject({ _tag: "StorageOwnershipConflict", owner: "https://example.invalid/pr/one" });
-				yield* prepareWork("two");
+				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+				yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["src/one.ts"] }), prompt: "Same scope", workId: "two" });
 				expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
 			}),
 		));

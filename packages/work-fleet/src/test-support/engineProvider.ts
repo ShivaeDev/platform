@@ -1,9 +1,10 @@
 import { Effect, Layer } from "effect";
-import { SessionFailure, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
+import { type LaunchSettings, SessionFailure, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 export function engineProvider(options: EngineOptions) {
 	const launched: string[] = [];
+	const settings: { readonly call: "session" | "turn"; readonly operationId: string; readonly settings: LaunchSettings | undefined }[] = [];
 	const observations = new Map<string, SessionObservation>();
 	const failedObservations = new Set<string>();
 	const operations = new Map<string, SessionReceipt>();
@@ -26,10 +27,12 @@ export function engineProvider(options: EngineOptions) {
 		startSession: (input) =>
 			Effect.sync(() => {
 				launched.push(input.operationId);
+				settings.push({ call: "session", operationId: input.operationId, settings: input.settings });
 				return `session-${input.operationId}`;
 			}),
 		startTurn: (input) =>
 			Effect.gen(function* () {
+				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
 				if (options.rejectTurn) {
 					return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
 				}
@@ -43,6 +46,6 @@ export function engineProvider(options: EngineOptions) {
 				return receipt;
 			}),
 	});
-	return { failedObservations, launched, observations, operations, transport };
+	return { failedObservations, launched, observations, operations, settings, transport };
 }
 export type EngineProvider = ReturnType<typeof engineProvider>;

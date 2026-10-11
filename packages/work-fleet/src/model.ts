@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { Checks, Decision, DecisionResponse, Delivery, Review, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
-import { SessionReceipt } from "#session/schema.ts";
+import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
@@ -24,6 +24,7 @@ const cycleFields = {
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverySubmitted: Schema.optional(Schema.Boolean),
+	launch: Schema.optional(LaunchSettings),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,
@@ -48,17 +49,11 @@ export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Sc
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
 export const FleetRecord = Schema.Struct({ ...cycleFields, history: Schema.optional(Schema.Array(FleetCycleSnapshot)), workId: Schema.String });
 export type FleetRecord = typeof FleetRecord.Type;
-export function owns(record: FleetRecord): boolean {
-	return record.stage !== "completed" && record.stage !== "released";
-}
 export function executing(record: FleetRecord): boolean {
 	return record.attempts.some((attempt) => ["submitting", "accepted", "running"].includes(attempt.status));
 }
 export function backlog(record: FleetRecord): boolean {
 	return record.result?.kind === "change" && record.stage !== "completed" && record.stage !== "released";
-}
-export function reservations(record: FleetRecord): readonly string[] {
-	return owns(record) ? record.preparation.ownedPaths : [];
 }
 export const FleetView = Schema.Struct({
 	blocker: Schema.optional(Schema.String),

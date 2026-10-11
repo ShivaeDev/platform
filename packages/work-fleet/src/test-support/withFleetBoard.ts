@@ -1,6 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, Path, type Scope } from "effect";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import type { Fleet } from "#fleet.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
@@ -18,14 +17,11 @@ export function withFleetBoard<A, E>(
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "fleet-http-postgres-" });
-		const source = "---\nid: one\nkind: task\n---\n# Scoped work\n\nPreserve review and required validation.\n";
+		const source = "---\nid: one\nkind: task\nfleet: approved\n---\n# Scoped work\n\nPreserve review and required validation.\n";
 		yield* fs.writeFileString(path.join(root, "one.md"), source);
 		return yield* withEngine(
 			options,
-			(fixture) => {
-				fixture.approveWork("one", revisionOf(source));
-				return use(fixture, root, source).pipe(Effect.provide(NodeServices.layer), Effect.scoped);
-			},
+			(fixture) => use(fixture, root, source).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
 			markdownBoard(root).pipe(Layer.provide(NodeServices.layer)),
 		);
 	}).pipe(Effect.provide(NodeServices.layer));

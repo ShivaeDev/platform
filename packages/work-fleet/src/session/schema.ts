@@ -17,14 +17,27 @@ export class SessionFailure extends Schema.TaggedError<SessionFailure>()("Sessio
 	reason: Schema.Literals(["unavailable", "rejected", "ambiguous", "protocol", "persistence"]),
 }) {}
 
+const Setting = Schema.String.check(Schema.isNonEmpty());
+// Providers echo or reject these; an omitted setting inherits the provider's own default.
+export const LaunchSettings = Schema.Struct({
+	effort: Schema.optional(Setting),
+	model: Schema.optional(Setting),
+	serviceTier: Schema.optional(Setting),
+});
+export type LaunchSettings = typeof LaunchSettings.Type;
 export const StartSession = Schema.Struct({
 	cwd: Schema.String,
-	model: Schema.optional(Schema.String),
 	operationId: Schema.String,
 	prompt: Schema.String,
+	settings: Schema.optional(LaunchSettings),
 });
 export type StartSession = typeof StartSession.Type;
-export const ContinueSession = Schema.Struct({ operationId: Schema.String, prompt: Schema.String, sessionId: Schema.String });
+export const ContinueSession = Schema.Struct({
+	operationId: Schema.String,
+	prompt: Schema.String,
+	sessionId: Schema.String,
+	settings: Schema.optional(LaunchSettings),
+});
 export type ContinueSession = typeof ContinueSession.Type;
 export const ReconcileSession = Schema.Struct({
 	operationId: Schema.String,

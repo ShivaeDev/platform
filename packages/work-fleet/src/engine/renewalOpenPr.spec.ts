@@ -9,7 +9,7 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 const original: WorkResult = { head: "head-one", kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" };
 describe("renewal refreshes adopted open PR ownership", () => {
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
-	test("changed actual scope remains reserved when renewal is denied", () => {
+	test("changed actual scope keeps its PR reservation when renewal is denied", () => {
 		let result = original;
 		return withEngine({ denyDelivery: true, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 			Effect.gen(function* () {
@@ -23,7 +23,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				fixture.approveWork("one", "board-one-next");
 				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ message: expect.stringContaining("scope exceeds"), reason: "denied" });
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
-				expect(yield* Effect.flip(prepareWork("two"))).toMatchObject({ _tag: "StorageOwnershipConflict" });
+				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		);
@@ -71,7 +71,10 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				fixture.approveWork("one", "board-one-next");
 				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ message: expect.stringContaining("identity changed"), reason: "denied" });
 				expect((yield* fleet.get("one")).value.result).toEqual(original);
-				expect(yield* Effect.flip(prepareWork("two"))).toMatchObject({ _tag: "StorageOwnershipConflict" });
+				expect((yield* fixture.foreignReservations()).map(({ owner }) => owner)).toEqual([
+					"https://example.invalid/pr/one",
+					"https://example.invalid/pr/replacement",
+				]);
 			}),
 		);
 	});
@@ -97,7 +100,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 			}),
 		);
 	});
-	test("guided release cannot shrink a previously observed expanded PR reservation", () => {
+	test("guided release keeps the observed PR backlog reservation", () => {
 		let result = original;
 		return withEngine({ denyDelivery: true, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 			Effect.gen(function* () {
@@ -111,7 +114,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				const decisionId = denied.value.decision?.id ?? "missing";
 				const responseId = fixture.respond(decisionId, "release");
 				expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");
-				expect(yield* Effect.flip(prepareWork("two"))).toMatchObject({ _tag: "StorageOwnershipConflict" });
+				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 			}),
 		);
 	});

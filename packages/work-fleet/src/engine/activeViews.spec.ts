@@ -34,7 +34,7 @@ for (const type of ["clarify", "not_now"] as const) {
 }
 
 test("native Active query exposes backlog admission blockers with the prepared stage", () =>
-	withEngine({ backlog: 1, foreign: ["foreign/file.ts"] }, () =>
+	withEngine({ backlog: 1, foreignBacklog: true }, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
 				yield* prepareWork("one");

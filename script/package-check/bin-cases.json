@@ -69,5 +69,12 @@
 			"/_board/visual-viewport.js": "inspectDiagram",
 			"/_board/visuals.js": "inspectImage"
 		}
+	},
+	"work-fleet": {
+		"args": ["status", "--help"],
+		"checkVersion": true,
+		"expectedFiles": {},
+		"files": {},
+		"output": "Show active, needs-human and completed Fleet work"
 	}
 }

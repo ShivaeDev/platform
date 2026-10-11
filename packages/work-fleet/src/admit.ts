@@ -8,7 +8,7 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 	policy: FleetConfiguration,
 	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
 ) {
-	if (policy.approved[work.workId] !== work.revision) {
+	if (!work.approved) {
 		return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
 	}
 	yield* qualifyDependencies(work.dependsOn, records, get);

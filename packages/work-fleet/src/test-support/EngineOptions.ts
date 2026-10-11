@@ -1,6 +1,7 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { BoardFailure, FleetFailure, WorkResult } from "#policy.ts";
+import type { LaunchSettings } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
@@ -11,7 +12,8 @@ export interface EngineOptions {
 	readonly concurrency?: number;
 	readonly deliveryFailure?: boolean;
 	readonly denyDelivery?: boolean;
-	readonly foreign?: readonly string[];
+	readonly foreignBacklog?: boolean;
+	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;

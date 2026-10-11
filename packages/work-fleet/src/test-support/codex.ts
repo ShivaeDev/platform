@@ -51,14 +51,42 @@ function nextFrame(buffered: Buffer) {
 	}
 	return { body, consumed: offset + 4 + length, opcode };
 }
-// This synthetic server proves local wire handling; it supplies no provider execution evidence.
-export function codexServer(handle: (request: WireRequest) => unknown) {
+function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
+	const message = Schema.decodeUnknownSync(WireRequest)(JSON.parse(body.toString()));
+	const result = handle(message);
+	if (message.id === undefined || result === undefined) {
+		return undefined;
+	}
+	return result instanceof WireRejection ? { error: { code: -32_602, message: result.message }, id: message.id } : { id: message.id, result };
+}
+function offeredProtocols(header: string | undefined) {
+	return (header ?? "")
+		.split(",")
+		.map((protocol) => protocol.trim())
+		.filter(Boolean);
+}
+export class WireRejection {
+	readonly message: string;
+	constructor(message: string) {
+		this.message = message;
+	}
+}
+export interface Handshake {
+	readonly protocols: readonly string[];
+}
+// This synthetic server proves wire handling; it supplies no provider execution evidence.
+export function codexServer(handle: (request: WireRequest) => unknown, handshakes: Handshake[] = []) {
 	return Effect.acquireRelease(
 		Effect.tryPromise(async () => {
 			const server = createServer();
 			server.on("upgrade", (request, socket) => {
 				const accept = createHash("sha1").update(`${request.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
-				socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+				const protocols = offeredProtocols(request.headers["sec-websocket-protocol"]);
+				handshakes.push({ protocols });
+				const selected = protocols[0] === undefined ? "" : `Sec-WebSocket-Protocol: ${protocols[0]}\r\n`;
+				socket.write(
+					`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n${selected}\r\n`,
+				);
 				let buffered = Buffer.alloc(0);
 				socket.on("data", (chunk: Buffer) => {
 					buffered = Buffer.concat([buffered, chunk]);
@@ -68,10 +96,9 @@ export function codexServer(handle: (request: WireRequest) => unknown) {
 							return;
 						}
 						buffered = buffered.subarray(parsed.consumed);
-						const message = Schema.decodeUnknownSync(WireRequest)(JSON.parse(parsed.body.toString()));
-						const result = handle(message);
-						if (message.id !== undefined && result !== undefined) {
-							socket.write(frame({ id: message.id, result }));
+						const reply = respond(handle, parsed.body);
+						if (reply !== undefined) {
+							socket.write(frame(reply));
 						}
 					}
 				});

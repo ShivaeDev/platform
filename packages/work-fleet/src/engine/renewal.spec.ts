@@ -116,7 +116,7 @@ describe("context-bound Fleet renewal", () => {
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
 			}),
 		));
-	test("renewal conserves an adopted open PR reservation and blocks overlapping dispatch", () =>
+	test("renewal conserves an adopted open PR backlog reservation and relaunches the same scope", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -127,10 +127,9 @@ describe("context-bound Fleet renewal", () => {
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.history?.[0]?.resultObservations).toEqual([denied.value.result]);
 				expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
-				expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
-				expect(fixture.launched).toHaveLength(2);
-				yield* prepareWork("two");
-				expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+				expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+				expect(fixture.launched).toHaveLength(3);
 			}),
 		));
 });

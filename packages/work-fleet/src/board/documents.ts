@@ -3,6 +3,7 @@ import { listMarkdown } from "@shivaedev/work-board/files/list.ts";
 import { markdownPath } from "@shivaedev/work-board/files/markdownPath.ts";
 import type { MetadataDocument } from "@shivaedev/work-board/metadata/model.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { boardDiagnostics } from "#board/fleetField.ts";
 import { BoardFailure } from "#policy.ts";
 
 export type BoardDocument = MetadataDocument & { readonly source: string };
@@ -18,7 +19,7 @@ export const boardDocuments = Effect.fn("FleetBoard.boardDocuments")(function* (
 			}
 			const source = yield* fs.readFileString(real);
 			const parsed = metadataParse(source);
-			if (parsed.diagnostics.length > 0) {
+			if (boardDiagnostics(parsed).length > 0) {
 				return yield* Effect.fail(new BoardFailure({ message: `Board metadata is invalid: ${file.path}` }));
 			}
 			return { file: file.path, parsed, source };

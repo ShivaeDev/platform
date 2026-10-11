@@ -91,7 +91,7 @@ test("decision acknowledgement remains usable while unrelated review waits", fun
 	const entered = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	const reviewGate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
-	yield* withEngine({ reviewGate }, (fixture) =>
+	yield* withEngine({ mainChanges: ["src/two.ts"], reviewGate }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
 			yield* prepareWork("two");
@@ -100,7 +100,6 @@ test("decision acknowledgement remains usable while unrelated review waits", fun
 			finishWorkers(fixture);
 			const reviewing = yield* fleet.reconcile("one").pipe(Effect.forkChild);
 			yield* Deferred.await(entered);
-			yield* fixture.foreign("native-owner-two", ["src/two.ts"]);
 			const pending = yield* fleet.dispatch("two");
 			const id = pending.value.decision?.id ?? "missing";
 			const applied = yield* fleet.resolve("two", id, fixture.respond(id, "release"));

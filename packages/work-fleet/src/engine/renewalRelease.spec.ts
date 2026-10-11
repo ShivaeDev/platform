@@ -9,7 +9,7 @@ import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("renewal after explicit safe release", () => {
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
-	test("released terminal work restarts a fresh scope without losing human receipts or the old PR", () =>
+	test("released terminal work restarts a fresh scope without losing human receipts or the old PR backlog", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -33,13 +33,6 @@ describe("renewal after explicit safe release", () => {
 						expect(renewed.value.history?.[0]?.responses?.[0]?.responseId).toBe(responseId);
 						expect(renewed.value.responses).toBeUndefined();
 						expect((yield* restarted.dispatch("one")).value.stage).toBe("executing");
-						const overlap = restarted.prepare({
-							cwd: "/synthetic",
-							preparation: prepared({ ownedPaths: ["src/one.ts"] }),
-							prompt: "Overlap old PR",
-							workId: "two",
-						});
-						expect(yield* Effect.flip(overlap)).toMatchObject({ _tag: "StorageOwnershipConflict", owner: "https://example.invalid/pr/one" });
 					}),
 				);
 			}),

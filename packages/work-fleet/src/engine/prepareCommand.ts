@@ -10,7 +10,7 @@ export function prepareCommand(state: EngineState) {
 	const { store, board, policy, save } = state;
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
-		if (policy.approved[work.workId] !== work.revision) {
+		if (!work.approved) {
 			return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
 		}
 		if (!input.prompt.trim() || input.preparation.ownedPaths.length === 0) {
@@ -22,6 +22,7 @@ export function prepareCommand(state: EngineState) {
 			boardRevision: work.revision,
 			boardSourcePath: work.sourcePath,
 			cwd: input.cwd,
+			...(input.launch === undefined ? {} : { launch: input.launch }),
 			preparation: input.preparation,
 			prompt: input.prompt,
 			stage: "prepared",
@@ -35,7 +36,7 @@ export function prepareCommand(state: EngineState) {
 		yield* renewable(existing.value, work.revision);
 		existing = yield* inspectRenewal(state)(existing, work);
 		if (existing.value.result?.kind === "change" && existing.value.outcome === undefined) {
-			yield* store.reserveForeign(existing.value.result.pr, existing.value.result.paths, { backlog: true, executing: false, preservePaths: true });
+			yield* store.reserveForeign(existing.value.result.pr, { backlog: true, executing: false });
 		}
 		return yield* save(existing, { ...current, history: [...(existing.value.history ?? []), snapshot(existing.value, policy.now())] });
 	});

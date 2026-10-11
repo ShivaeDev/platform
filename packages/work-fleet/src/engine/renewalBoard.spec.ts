@@ -26,7 +26,6 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 			expect(yield* boardOverview(root)).toContain(`data-attention-item="${published.itemId}"`);
 			const nextSource = `${source}\n## Approved revised scope\n\nInspect the next independent behavior.\n`;
 			files.write("one.md", nextSource);
-			fixture.approveWork("one", revisionOf(nextSource));
 			const renewed = yield* prepareWork("one");
 			expect(renewed.value.workId).toBe("one");
 			expect(renewed.value.boardRevision).toBe(revisionOf(nextSource));

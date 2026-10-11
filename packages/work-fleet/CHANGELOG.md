@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
+  launches one item, `status` lists active, done and needs-human work, and `wait`
+  blocks on one item and exits with its outcome. Host settings come from a
+  `fleet.config.json` in the Board folder.
+- Approve Board work with `fleet: approved` frontmatter on the exact revision read.
+- Launch Codex Cloud workers through a hosted provider with model, reasoning effort
+  and service tier from host config, overridable per item, and read their final output.
+- Build Cloud worker prompts from one template with a startup block and a parseable
+  `FLEET_PR:` report line.
+- Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
+- Dispatch prepared work concurrently.
+
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
   transactional reservations, session/turn receipts and native command/query contracts.
 - Carry approved work through independent revision-bound review, repair, validation,
