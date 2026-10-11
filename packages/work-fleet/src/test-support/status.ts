@@ -19,6 +19,7 @@ export function statusRecord(workId: string, stage: FleetRecord["stage"] = "exec
 export const blockedStatus = Effect.fn("FleetStory.blockedStatus")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const occupied = join(root, "fleet/status.md");
+	yield* fs.remove(occupied, { force: true });
 	yield* fs.makeDirectory(occupied, { recursive: true });
 	return () => rmSync(occupied, { recursive: true });
 });

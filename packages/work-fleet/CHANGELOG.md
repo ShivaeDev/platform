@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Atomically publish versioned Fleet health snapshots beside the status board using Board's shared schema. Report execution occupancy, prepared queue and needs-human counts against host concurrency, retain scheduler and structured provider capacity observations across restart, and keep publication failures separate from execution outcomes. Reuse Board's read-only Codex app-server rate-limit reader for host quota.
 - Wait for a human merge after exact-head review and checks; Fleet never submits a merge.
 - Observe the adopted GitHub PR through the host’s GitHub CLI, record its reviewed head and merge revision, and release ownership after acceptance, including after restart.
 - Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.
