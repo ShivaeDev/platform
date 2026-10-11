@@ -84,5 +84,7 @@ it("keeps a member's development dependencies restricted to test code with an un
 	expect(result.status).toBe(1);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
-	expect(result.stdout).toContain("devDependencies are only available to tests, test support and tooling.");
+	expect(result.stdout).toContain(
+		"devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code.",
+	);
 }, 30_000);
