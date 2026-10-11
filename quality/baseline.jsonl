@@ -413,9 +413,7 @@
 {"path":"packages/quality/src/cli.test.ts","rule":"tests/story-setup","count":4}
 {"path":"packages/quality/src/cli/args.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/cli/baseline.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
-{"path":"packages/quality/src/cli/baseline.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/cli/baseline.ts","rule":"biome/plugin","count":2}
-{"path":"packages/quality/src/cli/fix.ts","rule":"biome/lint/style/useNamingConvention","count":8}
 {"path":"packages/quality/src/cli/fix.ts","rule":"biome/plugin","count":3}
 {"path":"packages/quality/src/cli/lint.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/cli/lint.ts","rule":"biome/plugin","count":1}
@@ -423,11 +421,9 @@
 {"path":"packages/quality/src/cli/migrate.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/cli/migrate.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/cli/run-main.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/quality/src/cli/run-main.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/quality/src/cli/run-main.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/cli/shrink.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"packages/quality/src/config.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/quality/src/config.ts","rule":"biome/lint/style/useNamingConvention","count":7}
 {"path":"packages/quality/src/config/decode.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/config/file.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/config/load.test.ts","rule":"biome/lint/suspicious/noShadow","count":1}
@@ -436,7 +432,6 @@
 {"path":"packages/quality/src/config/resolve.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/config/resolve.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/decoded.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
-{"path":"packages/quality/src/decoded.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/quality/src/engine/baseline-file.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/engine/baseline-file.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/engine/baseline-file.ts","rule":"files/named-after-export","count":1}
@@ -445,10 +440,8 @@
 {"path":"packages/quality/src/engine/run-rules.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
 {"path":"packages/quality/src/engine/run-rules.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/engine/session.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/quality/src/engine/session.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/quality/src/engine/session.ts","rule":"biome/plugin","count":2}
 {"path":"packages/quality/src/engine/violation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":8}
-{"path":"packages/quality/src/engine/violation.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/exceptions/registry.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/exceptions/registry.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/git/base.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":8}
@@ -464,7 +457,6 @@
 {"path":"packages/quality/src/imports/graph.test.ts","rule":"tests/story-setup","count":5}
 {"path":"packages/quality/src/imports/paths.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/imports/pnpm-workspace.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/quality/src/imports/projects.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/inventory/collect.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/inventory/collect.ts","rule":"biome/lint/suspicious/useArraySortCompare","count":1}
 {"path":"packages/quality/src/inventory/collect.ts","rule":"biome/plugin","count":2}
