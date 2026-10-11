@@ -95,8 +95,6 @@ export class FleetIntegrations extends Context.Service<
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
-		readonly authorize: (work: BoardWork, result: typeof ChangeResult.Type) => Effect.Effect<boolean, FleetFailure>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
-		readonly merge: (work: BoardWork, result: typeof ChangeResult.Type) => Effect.Effect<Delivery, FleetFailure>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}
