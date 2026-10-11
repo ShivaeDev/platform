@@ -4,6 +4,7 @@
 
 - Retain unresolved session ownership when the provider becomes unavailable after acknowledging a session, or creates a thread with mismatched launch settings.
 - Test host restarts with real PostgreSQL and a synthetic Cloud WebSocket server: SIGKILL before and after thread/turn mutations does not replay submissions, and 100 lost turn acknowledgements recover the existing sessions.
+- Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
 
