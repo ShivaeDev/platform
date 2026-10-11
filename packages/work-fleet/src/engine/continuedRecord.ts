@@ -13,6 +13,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		deliverySubmitted: false,
 		history: [...(record.history ?? []), { ...cycle, archivedAt }],
 		outcome: undefined,
+		report: undefined,
 		responses: [],
 		result: record.result?.kind === "change" && record.outcome === undefined ? record.result : undefined,
 		resultObservations: [],

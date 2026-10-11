@@ -6,6 +6,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
+import { reportPrompt } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
 	const { store, board, policy, sessions, load, save, decision } = state;
@@ -15,6 +16,7 @@ export function makeLaunch(state: EngineState) {
 		prompt: string,
 		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
 	) {
+		const workerPrompt = stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt;
 		const original = yield* launchReceipt(stored.value, role);
 		const sessionId = continuation?.sessionId ?? (role === "repair" ? original?.sessionId : undefined);
 		const work = yield* board.get(stored.value.workId);
@@ -30,7 +32,7 @@ export function makeLaunch(state: EngineState) {
 		);
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
-			prompt,
+			prompt: workerPrompt,
 			role,
 			...(sessionId === undefined ? {} : { sessionId }),
 			status: "submitting",
@@ -45,8 +47,8 @@ export function makeLaunch(state: EngineState) {
 		const settings = { ...policy.launch, ...stored.value.launch };
 		const submitted =
 			sessionId === undefined
-				? sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt, settings })
-				: sessions.continue({ operationId: attempt.operationId, prompt, sessionId, settings });
+				? sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt: workerPrompt, settings })
+				: sessions.continue({ operationId: attempt.operationId, prompt: workerPrompt, sessionId, settings });
 		yield* submitted.pipe(
 			Effect.catch((error) =>
 				submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
