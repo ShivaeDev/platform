@@ -22,6 +22,25 @@ export function questionnaireControls(form: HTMLFormElement) {
 		return field.dataset.mode === "many" ? "many" : "one";
 	}
 	const fields = [...form.querySelectorAll<HTMLFieldSetElement>("fieldset[data-prompt]")];
+	function syncChoices() {
+		for (const button of form.querySelectorAll<HTMLButtonElement>("button[data-choice]")) {
+			const input = form.querySelector<HTMLInputElement>(`input[value="${button.dataset.choice}"]`);
+			button.setAttribute("aria-pressed", String(input?.checked ?? false));
+		}
+	}
+	form.addEventListener("click", (event) => {
+		const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button[data-choice]") : null;
+		if (!button) {
+			return;
+		}
+		const input = form.querySelector<HTMLInputElement>(`input[value="${button.dataset.choice}"]`);
+		if (input) {
+			input.checked = true;
+			syncChoices();
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		}
+	});
+	form.addEventListener("input", syncChoices);
 	const models: Prompt[] = fields.map((field) => ({
 		id: field.dataset.prompt ?? "",
 		mode: modeOf(field),
@@ -43,6 +62,7 @@ export function questionnaireControls(form: HTMLFormElement) {
 	function restore(draft: Draft, revision: string) {
 		const same = draft.revision === revision && (draft.question === undefined || draft.question === form.dataset.question);
 		restoreAnswers(fields, draft, same);
+		syncChoices();
 		const recovery = form.querySelector<HTMLPreElement>("#response-draft-recovery");
 		const retained =
 			!same && draft.answers

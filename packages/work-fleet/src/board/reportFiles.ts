@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { type FileHandle, link, mkdir, open, realpath, unlink } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { directoryPath, validateDirectory } from "@shivaedev/work-board/responses/publicationDirectory.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { reportFileName, reportLinks } from "#board/reportLinks.ts";
 import type { ReportFile } from "#host/reportDiff.ts";
 import { BoardFailure } from "#policy.ts";
 
@@ -77,19 +77,17 @@ export function reportFiles(root: string, itemId: string, files: readonly Report
 					const directory = await open(`${parent}/${folderName}`, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
 					try {
 						const folder = directoryPath(directory, expected);
-						const links: string[] = [];
 						for (const file of files) {
 							await validateDirectory(workspace, base, realRoot);
 							await validateDirectory(responses, parent, expectedResponses);
 							await validateDirectory(directory, folder, expected);
-							const name = `${revisionOf(file.path)}-${basename(file.path)}${file.path.endsWith(".md") ? ".attachment" : ""}`;
+							const name = reportFileName(file.path);
 							await publishFile(directory, folder, name, file.bytes);
-							links.push(`- [${file.path.replaceAll(/[[\]\\\r\n]/gu, "\\$&")}](${folderName}/${encodeURIComponent(name)})`);
 						}
 						await validateDirectory(directory, folder, expected);
 						await validateDirectory(workspace, base, realRoot);
 						await validateDirectory(responses, parent, expectedResponses);
-						return `\n\n## Attachments\n\n${links.join("\n")}`;
+						return reportLinks(itemId, files);
 					} finally {
 						await directory.close();
 					}

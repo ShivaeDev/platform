@@ -2,6 +2,8 @@ import { renameSync, statSync, unlinkSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Ref } from "effect";
 import { afterEach, expect, it } from "vitest";
+import { inboxItems } from "#attention/inbox.ts";
+import { inboxHtml } from "#attention/inboxHtml.ts";
 import { type Folder, folder } from "#test/board.ts";
 import { incrementalIndex } from "#test/incrementalIndex.ts";
 import { indexState } from "#test/indexState.ts";
@@ -67,4 +69,31 @@ it("checks bytes during reconciliation without reparsing unchanged files, retrie
 	notes.write("b.md", "# Offline edit");
 	const offline = await index.read();
 	expect(indexState(offline)).toEqual(indexState(await index.fresh()));
+});
+
+it("carries source modification times into Inbox order and age while retaining unchanged document identity", async () => {
+	function source(id: string) {
+		return `---\nid: ${id}\nkind: question\nstatus: open\n---\n# ${id}`;
+	}
+	notes = folder({ "a.md": source("a"), "b.md": source("b") });
+	utimesSync(join(notes.root, "a.md"), 1, 1);
+	utimesSync(join(notes.root, "b.md"), 2, 2);
+	index = await incrementalIndex(notes.root);
+	const before = await index.read();
+	expect(inboxItems(before).map((item) => item.id)).toEqual(["a", "b"]);
+	expect(inboxHtml(before, false, 3 * 86_400_000)).toContain("updated 3d ago");
+	notes.write("a.md", `${source("a")}\nChanged context`);
+	utimesSync(join(notes.root, "a.md"), 10, 10);
+	index.update(["a.md"]);
+	const edited = await index.read();
+	expect(inboxItems(edited).map((item) => item.id)).toEqual(["b", "a"]);
+	expect(edited.documents[0]?.modified).toBe(10_000);
+	expect(edited.documents[1]).toBe(before.documents[1]);
+	expect(edited.model.ids.get("b")).toBe(before.model.ids.get("b"));
+	utimesSync(join(notes.root, "b.md"), 20, 20);
+	index.update();
+	const unchanged = await index.read();
+	expect(unchanged.documents[1]).toBe(edited.documents[1]);
+	expect(unchanged.model.ids.get("b")).toBe(edited.model.ids.get("b"));
+	expect(unchanged.documents[1]?.modified).toBe(2000);
 });
