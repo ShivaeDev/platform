@@ -2,10 +2,11 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 import { FleetFailure } from "#policy.ts";
 
-export function daemonClient(port = 3457) {
+export function daemonClient(port = DAEMON_PORT) {
 	return RpcClient.make(DaemonContract, { flatten: true }).pipe(
 		Effect.provide(
 			RpcClient.layerProtocolHttp({ url: `http://127.0.0.1:${port}${RPC_PATH}` }).pipe(
