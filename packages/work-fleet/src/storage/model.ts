@@ -1,4 +1,6 @@
-import { Schema } from "effect";
+import { Effect, Schema, SchemaAST } from "effect";
+import { Model } from "effect/unstable/schema";
+import { FleetRecord } from "#model.ts";
 export interface Versioned<A> {
 	readonly value: A;
 	readonly version: number;
@@ -11,9 +13,69 @@ export interface AdmissionLimits {
 	readonly scheduling?: { readonly now: number; readonly areaMergeWaitMs: number };
 }
 
-export interface StoredRow {
-	readonly value: string;
-	readonly version: number;
+function scalarKind(ast: SchemaAST.AST): "string" | "number" | "boolean" | "json" {
+	if (SchemaAST.isString(ast)) {
+		return "string";
+	}
+	if (SchemaAST.isNumber(ast)) {
+		return "number";
+	}
+	if (SchemaAST.isBoolean(ast)) {
+		return "boolean";
+	}
+	if (SchemaAST.isLiteral(ast)) {
+		if (typeof ast.literal === "string") {
+			return "string";
+		}
+		if (typeof ast.literal === "number") {
+			return "number";
+		}
+		if (typeof ast.literal === "boolean") {
+			return "boolean";
+		}
+	}
+	if (SchemaAST.isUnion(ast)) {
+		const kinds = new Set(ast.types.filter((type) => !SchemaAST.isUndefined(type)).map(scalarKind));
+		if (kinds.size === 1) {
+			return [...kinds][0] ?? "json";
+		}
+	}
+	return "json";
+}
+
+export function recordColumns(schema: Schema.Top = FleetRecord) {
+	const ast = SchemaAST.toEncoded(schema.ast);
+	const base = SchemaAST.toEncoded(FleetRecord.ast);
+	const properties = [...(SchemaAST.isObjects(base) ? base.propertySignatures : []), ...(SchemaAST.isObjects(ast) ? ast.propertySignatures : [])];
+	return Object.fromEntries(properties.filter((field) => field.name !== "workId").map((field) => [String(field.name), scalarKind(field.type)]));
+}
+
+function columnSchema(kind: string) {
+	if (kind === "number") {
+		return Schema.Number;
+	}
+	if (kind === "boolean") {
+		return Schema.Boolean;
+	}
+	return Schema.String;
+}
+
+export function recordModel(schema: Schema.Top = FleetRecord) {
+	const fields = Object.fromEntries(Object.entries(recordColumns(schema)).map(([name, kind]) => [name, Schema.NullOr(columnSchema(kind))]));
+	// Explicit summary fields retain typed projections while the remaining fields come from the record schema.
+	class FleetRow extends Model.Class<FleetRow>("FleetRow")({
+		attentionOwner: Schema.NullOr(Schema.String),
+		blocker: Schema.NullOr(Schema.String),
+		checks: Schema.NullOr(Schema.String),
+		decision: Schema.NullOr(Schema.String),
+		outcome: Schema.NullOr(Schema.String),
+		stage: Schema.NullOr(Schema.String),
+		...fields,
+		"admission_order": Model.Field({ select: Schema.NumberFromString, update: Schema.NumberFromString }),
+		version: Model.Field({ select: Schema.Number, update: Schema.Number }),
+		"work_id": Schema.String,
+	}) {}
+	return FleetRow;
 }
 
 export const ForeignReservation = Schema.Struct({
@@ -22,3 +84,36 @@ export const ForeignReservation = Schema.Struct({
 	owner: Schema.String,
 });
 export type ForeignReservation = typeof ForeignReservation.Type;
+
+export class ForeignReservationRow extends Model.Class<ForeignReservationRow>("ForeignReservationRow")(ForeignReservation.fields) {}
+
+export function recordInput(value: string, columns: ReturnType<typeof recordColumns>) {
+	const encoded: Record<string, unknown> = JSON.parse(value);
+	return Object.fromEntries(
+		Object.entries(columns).map(([name, kind]) => {
+			if (encoded[name] === undefined) {
+				return [name, null];
+			}
+			return [name, kind === "json" ? JSON.stringify(encoded[name]) : encoded[name]];
+		}),
+	);
+}
+
+export const recordJson = Effect.fn("FleetRow.recordJson")(function* (row: object, columns: ReturnType<typeof recordColumns>) {
+	const values = Object.fromEntries(Object.entries(row));
+	const fields = yield* Effect.forEach(Object.entries(columns), ([name, kind]) => {
+		const value = values[name];
+		if (value === null || value === undefined) {
+			return Effect.succeed([]);
+		}
+		return kind === "json"
+			? Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(value).pipe(Effect.map((decoded) => [[name, decoded]]))
+			: Effect.succeed([[name, value]]);
+	});
+	return JSON.stringify({ ...Object.fromEntries(fields.flat()), workId: values.work_id });
+});
+
+export interface StoredRow {
+	readonly value: string;
+	readonly version: number;
+}

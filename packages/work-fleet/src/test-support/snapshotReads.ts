@@ -15,14 +15,14 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 	yield* Effect.addFinalizer(() =>
 		Effect.gen(function* () {
 			if (broken) {
-				yield* rename("unavailable_payload", "payload");
+				yield* rename("unavailable_stage", "stage");
 			}
 			yield* Effect.promise(() => control.end());
 			queries.mockRestore();
 		}),
 	);
 	return {
-		breakReads: rename("payload", "unavailable_payload").pipe(
+		breakReads: rename("stage", "unavailable_stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = true;
@@ -31,9 +31,10 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 		),
 		count: () =>
 			queries.mock.calls.filter(
-				([query]) => typeof query === "string" && query.includes("jsonb_strip_nulls") && query.includes(`${host.namespace}_records`),
+				([query]) =>
+					typeof query === "string" && query.includes('"checks"') && !query.includes('"history"') && query.includes(`${host.namespace}_records`),
 			).length,
-		restoreReads: rename("unavailable_payload", "payload").pipe(
+		restoreReads: rename("unavailable_stage", "stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = false;

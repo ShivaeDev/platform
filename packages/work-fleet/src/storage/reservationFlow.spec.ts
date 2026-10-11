@@ -2,6 +2,7 @@ import { Effect, Exit } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { competingStorage } from "#test/competingStorage.ts";
 import { makeTestStore, record, storageDatabaseUrl, withStorage } from "#test/storage.ts";
 
 const integration = it.live.skipIf(storageDatabaseUrl === undefined);
@@ -66,8 +67,20 @@ integration("Schema rejects corrupted durable records", () =>
 		Effect.gen(function* () {
 			yield* store.insert({ ...record("board-a"), stage: "submitting" });
 			const sql = yield* SqlClient.SqlClient;
-			yield* sql`update ${sql(`${namespace}_records`)} set payload = '{"workId":"board-a","stage":"unknown"}'::jsonb where work_id = 'board-a'`;
+			yield* sql`update ${sql(`${namespace}_records`)} set stage = 'unknown' where work_id = 'board-a'`;
 			expect(Exit.isFailure(yield* store.load("board-a").pipe(Effect.exit))).toBe(true);
+		}),
+	),
+);
+
+integration("repository version predicate rejects a writer that races after Fleet's version check", () =>
+	withStorage((_unused, namespace) =>
+		Effect.gen(function* () {
+			const store = yield* competingStorage(namespace);
+			const original = yield* store.insert(record("board-a"));
+			const conflict = yield* store.compareAndSet("board-a", original.version, { ...original.value, stage: "completed" }).pipe(Effect.flip);
+			expect(conflict).toMatchObject({ _tag: "StorageConflict", actualVersion: 2, expectedVersion: 1, workId: "board-a" });
+			expect(yield* store.load("board-a")).toEqual({ value: { ...original.value, stage: "running" }, version: 2 });
 		}),
 	),
 );

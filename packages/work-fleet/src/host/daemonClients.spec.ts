@@ -8,6 +8,7 @@ import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, storeState, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { readDaemonLayer, withReadDaemon } from "#test/readDaemon.ts";
+import { snapshotReads, untilReads } from "#test/snapshotReads.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fixture: HostFixture, port: number) {
@@ -34,9 +35,10 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	}
 	yield* storeState(fixture.host, "a", { stage: "executing" });
 	yield* storeState(fixture.host, "b", { stage: "executing" });
+	const reads = yield* snapshotReads(fixture.host);
 	yield* withFollower(fixture.configFile, "watch", [], { interval: 0.1, port: address.port }, (follower) =>
 		Effect.gen(function* () {
-			yield* Effect.sleep("2 seconds");
+			yield* untilReads(reads, 2);
 			yield* storeState(fixture.host, "a", { stage: "released" });
 			yield* untilOutput(follower, "a released\n");
 			yield* Scope.close(first, Exit.void);
