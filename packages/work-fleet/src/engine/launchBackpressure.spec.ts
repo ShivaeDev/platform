@@ -51,8 +51,10 @@ describe("Fleet launch backpressure", () => {
 						expect(accepted.stage).toBe("executing");
 						expect(accepted.launchRetry).toBeUndefined();
 						expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
-						expect(fixture.launched).toHaveLength(2);
-						expect(new Set(fixture.launched).size).toBe(2);
+						expect(fixture.launched).toHaveLength(rejectedCall === "turn" ? 1 : 2);
+						if (rejectedCall === "turn") {
+							expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(queued.attempts[0]?.sessionId);
+						}
 						expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).not.toContain("Waiting for provider capacity");
 					}),
 			);

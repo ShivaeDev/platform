@@ -1,10 +1,9 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
-import { capacityRetry } from "#engine/capacityRetry.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { submissionFailure } from "#engine/submissionFailure.ts";
+import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
 import { reportPrompt } from "#prompt/worker.ts";
@@ -49,7 +48,7 @@ export function makeLaunch(state: EngineState) {
 			submittedAt: policy.now(),
 		};
 		const record = launchRecord(stored.value, launchRole, policy.now(), continuation?.responses);
-		const intent = yield* save(
+		yield* save(
 			stored,
 			{
 				...record,
@@ -68,17 +67,7 @@ export function makeLaunch(state: EngineState) {
 			sessionId === undefined
 				? sessions.start({ cwd: stored.value.cwd, operationId: attempt.operationId, prompt: workerPrompt, settings })
 				: sessions.continue({ operationId: attempt.operationId, prompt: workerPrompt, sessionId, settings });
-		yield* submitted.pipe(
-			Effect.catch((error) =>
-				capacityRetry(state, stored.value, attempt.operationId, error).pipe(
-					Effect.flatMap((retrying) =>
-						retrying
-							? Effect.void
-							: submissionFailure(state, intent.value.workId, attempt.operationId, error, "Restore provider access and retry this approved work"),
-					),
-				),
-			),
-		);
+		yield* submitLaunch(state, stored.value, attempt.operationId, submitted);
 		return yield* load(stored.value.workId);
 	});
 }
