@@ -4,6 +4,7 @@ import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
 import { DiagnosticsSources, diagnostics } from "#diagnostics/source.ts";
+import { readDocument } from "#document/read.ts";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
@@ -115,6 +116,13 @@ function routes(options: BoardOptions) {
 			);
 			const rpc = yield* server({
 				changes,
+				document: (url) =>
+					Effect.provideContext(
+						readDocument({ changes, home, index: Effect.provideContext(index, context), root: options.root, writable: options.responses === true })(
+							url,
+						),
+						context,
+					),
 				handoffs,
 				home,
 				index: Effect.provideContext(index, context),

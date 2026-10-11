@@ -37,7 +37,7 @@ async function highlighted(highlighter: Shiki, source: string, language: string)
 	return highlighter.codeToHast(source, { defaultColor: false, lang: language, themes: THEMES }).children.at(0);
 }
 
-async function renderedCode(highlighter: Shiki, pre: Element) {
+async function renderedCode(highlighter: Shiki, pre: Element, diagrams: boolean) {
 	const [code] = pre.children;
 	if (code?.type !== "element" || code.tagName !== "code") {
 		return undefined;
@@ -45,24 +45,27 @@ async function renderedCode(highlighter: Shiki, pre: Element) {
 	const language = languageOf(code);
 	const source = textOf(code);
 	if (language === "mermaid") {
-		return diagram(source);
+		return diagrams ? diagram(source) : undefined;
 	}
 	return language === undefined ? undefined : await highlighted(highlighter, source, language);
 }
 
-export const codeBlocks = (highlighter: Shiki) => () => async (tree: Root) => {
-	const work: Promise<void>[] = [];
-	visitElements(tree, "element", (pre, index, parent) => {
-		if (pre.tagName !== "pre" || index === undefined || parent === undefined) {
-			return;
-		}
-		work.push(
-			renderedCode(highlighter, pre).then((result) => {
-				if (result?.type === "element") {
-					parent.children[index] = result;
-				}
-			}),
-		);
-	});
-	await Promise.all(work);
-};
+export const codeBlocks =
+	(highlighter: Shiki, { diagrams = true }: { readonly diagrams?: boolean } = {}) =>
+	() =>
+	async (tree: Root) => {
+		const work: Promise<void>[] = [];
+		visitElements(tree, "element", (pre, index, parent) => {
+			if (pre.tagName !== "pre" || index === undefined || parent === undefined) {
+				return;
+			}
+			work.push(
+				renderedCode(highlighter, pre, diagrams).then((result) => {
+					if (result?.type === "element") {
+						parent.children[index] = result;
+					}
+				}),
+			);
+		});
+		await Promise.all(work);
+	};

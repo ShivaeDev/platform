@@ -3,18 +3,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MarkdownAsync } from "react-markdown";
 import rehypeRaw from "rehype-raw";
-import remarkDirective from "remark-directive";
-import remarkGfm from "remark-gfm";
 import type { PluggableList } from "unified";
-import { callouts } from "#render/callouts.ts";
-import { visualDocuments } from "#render/visualDocuments.ts";
 import { codeBlocks } from "./code.ts";
 import type { documentHeadings } from "./documentHeadings.ts";
 import { documentLinks } from "./documentLinks.ts";
+import { documentPlugins } from "./documentPlugins.ts";
 import { RenderFailed } from "./failed.ts";
 import { footnoteIds } from "./footnotes.ts";
 import { Highlighter } from "./highlighter.ts";
-import { questionnaireDocuments } from "./questionnaireDocuments.ts";
 
 export interface RenderOptions {
 	readonly file?: string;
@@ -43,7 +39,7 @@ export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (s
 					children: source,
 					components: { img: ({ node: _node, ...props }) => createElement("img", { ...props, loading: "lazy" }) },
 					rehypePlugins: plugins,
-					remarkPlugins: [remarkGfm, remarkDirective, questionnaireDocuments, visualDocuments, callouts],
+					remarkPlugins: documentPlugins,
 					skipHtml: options.safe,
 				}),
 			),

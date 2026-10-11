@@ -1,0 +1,5 @@
+### Added
+
+- The native `document` query returns Markdown source, resolved links and references, metadata, source diagnostics and validated request/response history without rendered HTML or syntax trees. `browser/document/schema.ts` defines the `Document` and `DocumentRequest` schemas; `browser/document/View.ts` exports `DocumentView` and `DocumentViewProps` for React reading with the existing Markdown plugins, client-side Shiki and a Mermaid code override. The existing page continues to use server rendering.
+- `document/read.ts` exports `readDocument(options)` and `DocumentOptions` for source reads. `ServerOptions.document` optionally supplies this reader; `render/documentLinks.ts` accepts query-provided targets and exports `resolveDocumentLink`. `codeBlocks` accepts `{ diagrams: false }` to retain Mermaid code for React rendering.
+- Defining modules also expose the shared `documentPlugins`, browser `highlightDocument` and `Mermaid` components, and server `documentTargets` and `documentRequests` data helpers.
