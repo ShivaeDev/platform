@@ -17,11 +17,7 @@ function isMigration(before: PackageNotes, after: PackageNotes): boolean {
 
 function assertRelease(name: string, before: PackageNotes, after: PackageNotes): void {
 	const date = /^## [^\n]+ - (?<date>\d{4}-\d{2}-\d{2})$/mu.exec(after.changelog)?.groups?.date;
-	if (
-		date === undefined
-		|| before.fragments.length === 0
-		|| after.fragments.some((fragment) => before.fragments.some((old) => old.name === fragment.name))
-	) {
+	if (date === undefined || before.fragments.length === 0) {
 		throw new Error(`${name}: a release must collect and delete its pending fragments.`);
 	}
 	if (collectFragments(before.changelog, after.version, date, before.fragments) !== after.changelog) {
@@ -36,6 +32,9 @@ export function assertPackageChange(name: string, before: PackageNotes | undefin
 	after.fragments.forEach(parseFragment);
 	if (before === undefined) {
 		return;
+	}
+	if (before.version !== after.version && after.fragments.length > 0) {
+		throw new Error(`${name}: a release must collect and delete its pending fragments.`);
 	}
 	if (before.version === after.version && !preservedFragments(before, after)) {
 		throw new Error(`${name}: keep existing fragments intact; add a new changes/<short-name>.md file for this PR.`);
