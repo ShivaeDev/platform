@@ -5,7 +5,7 @@ import { storeState, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
-describe("work-fleet watch against PostgreSQL", () => {
+describe("work-fleet watch against PostgreSQL and HTTP", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
 
 	test("streams each selected outcome once, including late records and multiline details", function* () {
@@ -34,7 +34,7 @@ describe("work-fleet watch against PostgreSQL", () => {
 				);
 			}),
 		);
-	});
+	}, 30_000);
 
 	test("without IDs snapshots only active work", function* () {
 		yield* withHost(
@@ -67,7 +67,7 @@ describe("work-fleet watch against PostgreSQL", () => {
 				);
 			}),
 		);
-	});
+	}, 30_000);
 
 	test("timeout preserves printed outcomes", function* () {
 		yield* withHost(
@@ -90,7 +90,7 @@ describe("work-fleet watch against PostgreSQL", () => {
 				);
 			}),
 		);
-	});
+	}, 30_000);
 	test("an empty active set exits without printing terminal records", function* () {
 		yield* withHost(
 			{},
@@ -108,5 +108,5 @@ describe("work-fleet watch against PostgreSQL", () => {
 				);
 			}),
 		);
-	});
+	}, 30_000);
 });

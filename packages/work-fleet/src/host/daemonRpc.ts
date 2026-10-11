@@ -2,7 +2,9 @@ import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
+import type { FleetHost } from "#host/config.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
+import { daemonHandlers } from "#host/daemonHandlers.ts";
 import { fleetHandlers } from "#operations.ts";
 
 function localRequest(request: HttpServerRequest.HttpServerRequest) {
@@ -20,15 +22,18 @@ function localRequest(request: HttpServerRequest.HttpServerRequest) {
 	}
 }
 
-export const daemonRpc = HttpRouter.use((router) =>
-	Effect.gen(function* () {
-		const handler = yield* RpcServer.toHttpEffect(DaemonContract).pipe(
-			Effect.provide(Layer.mergeAll(fleetHandlers, requestTracingLayer(), RpcSerialization.layerNdjson)),
-		);
-		yield* router.add("POST", RPC_PATH, (request) =>
-			localRequest(request) && request.headers["content-type"]?.split(";")[0] === "application/ndjson"
-				? handler.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request))
-				: Effect.succeed(HttpServerResponse.text("Local same-origin NDJSON requests only", { status: 403 })),
-		);
-	}),
-);
+export function daemonRpc(host: FleetHost) {
+	return HttpRouter.use((router) =>
+		Effect.gen(function* () {
+			const clientHandlers = yield* daemonHandlers(host);
+			const handler = yield* RpcServer.toHttpEffect(DaemonContract).pipe(
+				Effect.provide(Layer.mergeAll(fleetHandlers, clientHandlers, requestTracingLayer(), RpcSerialization.layerNdjson)),
+			);
+			yield* router.add("POST", RPC_PATH, (request) =>
+				localRequest(request) && request.headers["content-type"]?.split(";")[0] === "application/ndjson"
+					? handler.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request))
+					: Effect.succeed(HttpServerResponse.text("Local same-origin NDJSON requests only", { status: 403 })),
+			);
+		}),
+	);
+}

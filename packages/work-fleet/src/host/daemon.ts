@@ -15,7 +15,7 @@ export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(
 	const runtime = hostLayer(host, parts);
 	const scheduler = Layer.effect(Scheduler)(hostScheduler(host).pipe(Effect.forkScoped));
 	const listener = NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: DAEMON_HOST, port });
-	const http = HttpRouter.serve(daemonRpc, { disableLogger: true }).pipe(Layer.provideMerge(listener));
+	const http = HttpRouter.serve(daemonRpc(host), { disableLogger: true }).pipe(Layer.provideMerge(listener));
 	return scheduler.pipe(Layer.provideMerge(http), Layer.provide(runtime));
 }
 

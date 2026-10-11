@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
+import { loadHost } from "#host/config.ts";
+import { withReadDaemon } from "#test/readDaemon.ts";
 
 interface FollowRun {
 	readonly code: number | null;
@@ -15,6 +19,7 @@ interface Follower {
 
 interface FollowOptions {
 	readonly interval?: number;
+	readonly port?: number;
 	readonly timeout?: number;
 }
 
@@ -25,52 +30,60 @@ export function withFollower<A, E, R>(
 	options: FollowOptions,
 	use: (follower: Follower) => Effect.Effect<A, E, R>,
 ) {
-	return Effect.acquireUseRelease(
-		Effect.sync(() => {
-			const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
-			const child = spawn(
-				process.execPath,
-				[
-					"--conditions=source",
-					cli,
-					command,
-					...ids,
-					"--config",
-					configFile,
-					"--interval",
-					String(options.interval ?? 0.05),
-					"--timeout",
-					String(options.timeout ?? 20),
-				],
-				{ stdio: ["ignore", "pipe", "pipe"] },
-			);
-			let stdout = "";
-			let stderr = "";
-			child.stdout.on("data", (chunk: Buffer) => {
-				stdout += chunk.toString();
-			});
-			child.stderr.on("data", (chunk: Buffer) => {
-				stderr += chunk.toString();
-			});
-			const done = new Promise<FollowRun>((resolve, reject) => {
-				child.on("error", reject);
-				child.on("close", (code) =>
-					resolve({
-						code,
-						stderr: stderr.trim(),
-						stdout: stdout.trim(),
-					}),
+	function run(port: number) {
+		return Effect.acquireUseRelease(
+			Effect.sync(() => {
+				const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
+				const child = spawn(
+					process.execPath,
+					[
+						"--conditions=source",
+						cli,
+						command,
+						...ids,
+						"--port",
+						String(port),
+						"--interval",
+						String(options.interval ?? 0.05),
+						"--timeout",
+						String(options.timeout ?? 20),
+					],
+					{ stdio: ["ignore", "pipe", "pipe"] },
 				);
-			});
-			return { child, done, output: () => stdout };
-		}),
-		use,
-		({ child, done }) =>
-			Effect.promise(async () => {
-				child.kill();
-				await done;
+				let stdout = "";
+				let stderr = "";
+				child.stdout.on("data", (chunk: Buffer) => {
+					stdout += chunk.toString();
+				});
+				child.stderr.on("data", (chunk: Buffer) => {
+					stderr += chunk.toString();
+				});
+				const done = new Promise<FollowRun>((resolve, reject) => {
+					child.on("error", reject);
+					child.on("close", (code) =>
+						resolve({
+							code,
+							stderr: stderr.trim(),
+							stdout: stdout.trim(),
+						}),
+					);
+				});
+				return { child, done, output: () => stdout };
 			}),
-	);
+			use,
+			({ child, done }) =>
+				Effect.promise(async () => {
+					child.kill();
+					await done;
+				}),
+		);
+	}
+	return options.port === undefined
+		? loadHost(dirname(configFile), configFile).pipe(
+				Effect.flatMap((host) => withReadDaemon(host, run)),
+				Effect.provide(NodeServices.layer),
+			)
+		: run(options.port);
 }
 
 export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string) {

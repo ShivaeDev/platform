@@ -1,0 +1,29 @@
+import { Effect, Layer } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
+import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
+import { FleetFailure } from "#policy.ts";
+
+export function daemonClient(port = 3457) {
+	return RpcClient.make(DaemonContract, { flatten: true }).pipe(
+		Effect.provide(
+			RpcClient.layerProtocolHttp({ url: `http://127.0.0.1:${port}${RPC_PATH}` }).pipe(
+				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
+			),
+		),
+	);
+}
+
+export function daemonError(error: unknown, port: number) {
+	if (error instanceof FleetFailure) {
+		return error;
+	}
+	const transport = error instanceof RpcClientError && error.reason._tag === "HttpError" && error.reason.kind === "TransportError";
+	return new FleetFailure({
+		message: transport
+			? `No Fleet daemon is running at 127.0.0.1:${port}; start work-fleet serve <board-dir> --port ${port}`
+			: `Fleet daemon communication failed at 127.0.0.1:${port}: ${error instanceof Error ? error.message : String(error)}`,
+		reason: "integration",
+	});
+}

@@ -10,6 +10,7 @@ import { WAIT_EXIT } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { storeState, task, waitProcess, withHost } from "#test/fleetHost.ts";
+import { daemonCli } from "#test/readDaemon.ts";
 import { statusRecord } from "#test/status.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 import { askWorker } from "#test/workerQuestion.ts";
@@ -26,12 +27,12 @@ test("CLI status groups all owners and wait names each owner without changing ex
 					stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker`,
 				});
 			}
-			const text = yield* Effect.promise(() => cliProcess(["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
+			const text = yield* daemonCli(fixture.host, ["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(text.code).toBe(0);
 			for (const owner of ["maintainer", "orchestrator", "automation"]) {
 				expect(text.stdout).toContain(`Waiting on ${owner} (1)\n  ${owner}  needs-human`);
 			}
-			const json = yield* Effect.promise(() => cliProcess(["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
+			const json = yield* daemonCli(fixture.host, ["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(json.code).toBe(0);
 			expect(Object.keys(JSON.parse(json.stdout)).sort()).toEqual(["active", "completed", "waiting"]);
 			expect(JSON.parse(json.stdout)).toMatchObject({
@@ -56,7 +57,7 @@ test("terminal publication blockers remain grouped by owner with their original 
 					stdout: `${stage} ${stage} (waiting on orchestrator)`,
 				});
 			}
-			const status = yield* Effect.promise(() => cliProcess(["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]));
+			const status = yield* daemonCli(fixture.host, ["status", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(status.code).toBe(0);
 			expect(status.stdout).toContain("Waiting on orchestrator (2)");
 			expect(status.stdout).toContain("  completed  completed  Synthetic publication blocker");

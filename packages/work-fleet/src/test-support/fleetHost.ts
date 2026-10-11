@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, Redacted } from "effect";
@@ -8,12 +8,13 @@ import { SqlClient } from "effect/unstable/sql";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
-import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
+import { type FleetHost, type HostConfig, loadHost, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
-import { type CliRun, cliProcess } from "#test/fleetCli.ts";
+import type { CliRun } from "#test/fleetCli.ts";
+import { daemonCli } from "#test/readDaemon.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 export const MAIN = { observedAt: 1, revision: "main-revision" };
@@ -116,5 +117,10 @@ export function waitProcess(
 	workId: string,
 	{ intervalSeconds = 0.1, timeoutSeconds = 20 }: { readonly intervalSeconds?: number; readonly timeoutSeconds?: number } = {},
 ): Promise<CliRun> {
-	return cliProcess(["wait", workId, "--config", configFile, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)]);
+	return Effect.runPromise(
+		loadHost(dirname(configFile), configFile).pipe(
+			Effect.flatMap((host) => daemonCli(host, ["wait", workId, "--interval", String(intervalSeconds), "--timeout", String(timeoutSeconds)])),
+			Effect.provide(NodeServices.layer),
+		),
+	);
 }

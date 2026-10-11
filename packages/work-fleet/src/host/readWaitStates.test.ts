@@ -1,11 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import pg from "pg";
 import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { readOnlySql } from "#host/readOnlySql.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
-import { waitFor } from "#host/wait.ts";
-import { watchFor } from "#host/watch.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
@@ -19,6 +19,8 @@ describe("Fleet summary reads against PostgreSQL", () => {
 				for (const id of ids) {
 					yield* storeState(fixture.host, id, { history: ["x".repeat(100_000)], stage: "executing" });
 				}
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`select 1`;
 				const query = vi.spyOn(pg.Client.prototype, "query");
 				try {
 					for (let poll = 0; poll < 2; poll += 1) {
@@ -31,25 +33,7 @@ describe("Fleet summary reads against PostgreSQL", () => {
 				} finally {
 					query.mockRestore();
 				}
-			}),
+			}).pipe(Effect.provide(readOnlySql(fixture.host))),
 		);
 	}, 30_000);
-
-	test("watch and wait retry exactly twenty consecutive connection failures", function* () {
-		const options = {
-			databaseUrl: "postgresql://postgres:postgres@127.0.0.1:1/unavailable",
-			intervalMs: 1,
-			namespace: "unavailable",
-		};
-		const connect = vi.spyOn(pg.Client.prototype, "connect");
-		try {
-			expect(yield* watchFor({ ...options, workIds: ["unknown"] })).toBe(1);
-			expect(connect).toHaveBeenCalledTimes(20);
-			connect.mockClear();
-			expect((yield* waitFor({ ...options, workId: "unknown" })).code).toBe(1);
-			expect(connect).toHaveBeenCalledTimes(20);
-		} finally {
-			connect.mockRestore();
-		}
-	});
 });
