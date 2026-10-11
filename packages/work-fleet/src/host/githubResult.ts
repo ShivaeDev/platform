@@ -57,8 +57,20 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (host
 });
 
 function validatePullRequest(pr: typeof PullRequest.Type, head: string, number: number, url: string, branch: string) {
-	if (pr.state !== "open" || pr.merged || pr.number !== number || pr.htmlUrl.toLowerCase() !== url.toLowerCase() || pr.base.ref !== branch) {
-		return Effect.fail(new FleetFailure({ message: "Reported PR must be open and target the configured repository branch", reason: "invalid" }));
+	const adoptable = (pr.state === "open" && !pr.merged) || (pr.state === "closed" && pr.merged);
+	if (!adoptable || pr.number !== number || pr.htmlUrl.toLowerCase() !== url.toLowerCase() || pr.base.ref !== branch) {
+		return Effect.fail(
+			new FleetFailure({ message: "Reported PR must be open or merged and target the configured repository branch", reason: "invalid" }),
+		);
 	}
-	return pr.head.sha === head ? Effect.void : Effect.fail(new FleetFailure({ message: "PR head moved after the worker report", reason: "stale" }));
+	return pr.head.sha === head
+		? Effect.void
+		: Effect.fail(
+				new FleetFailure({
+					message: pr.merged
+						? "Merged PR head differs from the reported head; inspect delivery before accepting this work"
+						: "PR head moved after the worker report",
+					reason: "stale",
+				}),
+			);
 }

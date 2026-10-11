@@ -1,6 +1,7 @@
-import { Context, Effect, Schema } from "effect";
+import { Context, Effect, type Layer, Schema } from "effect";
+import { expectTypeOf } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { makePgBoss } from "#service.ts";
+import { makePgBoss, type PgBossDefinition } from "#service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
 
@@ -34,3 +35,22 @@ const program = Effect.gen(function* () {
 	yield* jobs.enqueue(Queue, { count: 1 });
 });
 void program;
+
+const EmailJobs = makePgBoss("@test/EmailJobs");
+const ReportJobs = makePgBoss("@test/ReportJobs");
+const options = { connectionString: "postgresql://compile-only", jobs: [] };
+const emailLayer = EmailJobs.layer(options);
+const reportLayer = ReportJobs.layer(options);
+const health = Effect.flatMap(EmailJobs, (jobs) => jobs.health);
+
+expectTypeOf<Effect.Services<typeof EmailJobs>>().toEqualTypeOf<"@test/EmailJobs">();
+expectTypeOf<Effect.Services<typeof ReportJobs>>().toEqualTypeOf<"@test/ReportJobs">();
+expectTypeOf<Layer.Success<typeof emailLayer>>().toEqualTypeOf<"@test/EmailJobs">();
+expectTypeOf<Layer.Success<typeof reportLayer>>().toEqualTypeOf<"@test/ReportJobs">();
+
+Effect.runPromise(health.pipe(Effect.provide(emailLayer)));
+// @ts-expect-error A different jobs Layer leaves the email service unprovided.
+Effect.runPromise(health.pipe(Effect.provide(reportLayer)));
+
+const definition: PgBossDefinition<"@test/EmailJobs"> = EmailJobs;
+void definition;
