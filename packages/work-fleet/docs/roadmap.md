@@ -36,13 +36,15 @@ Preparation compatibility uses authoritative ancestry and complete relevant cont
 Unrelated changes refresh preparation while preserving original validation evidence;
 relevant or uncertain changes require preparation again for the affected work.
 
+Review now launches independent provider sessions through the shared session service and durable journal. Host launch settings reach reviewers, whose prompts contain the task, criteria and exact adopted result. Codex adapters request read-only execution without shell network or escalation. Completed machine-readable verdicts record evidence and findings against the exact head. Lost responses reconcile existing receipts; a moved head requires fresh review.
+
 ## Validation boundary
 
 The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
 
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
 response recording, native Fleet RPC and the actual admission/completion paths.
-Provider execution and delivery in those fixtures are synthetic. These tests prove
+Reviewer regressions cover asynchronous approval, changes with repair guidance, terminal failure, lost acknowledgement, restart and a head moving during review. Synthetic Cloud and local protocol servers verify read-only launch requests. Provider execution and delivery in those fixtures are synthetic. These tests prove
 the core decisions and recovery behavior, not Cloud execution or live merges.
 The experimental local Codex adapter is based on the installed CLI's generated
 protocol and a real app-server connection. Two read-only local turns were accepted

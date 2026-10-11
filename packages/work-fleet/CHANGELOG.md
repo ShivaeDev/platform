@@ -5,6 +5,12 @@
 - Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
+- Replace host review callbacks with independent provider sessions using the same
+  session service, durable journal and host model settings. Reviewers receive the
+  task and exact PR head with read-only execution, no shell network and no escalation.
+- Record completed machine-readable reviewer verdicts with evidence and findings
+  against the exact revision. Reconcile lost responses and require fresh review
+  after the PR head moves.
 
 - Add the `work-fleet` command: `run` schedules approved Board work, `dispatch`
   launches one item, `status` lists active, done and needs-human work, and `wait`

@@ -73,7 +73,7 @@ export function withHost<A, E, R>(
 			return { boardDir, configFile, host: resolveHost(boardDir, settings) };
 		}),
 		({ boardDir, configFile, host }) => {
-			const provider = engineProvider({});
+			const provider = engineProvider({}, []);
 			return use({
 				configFile,
 				host,

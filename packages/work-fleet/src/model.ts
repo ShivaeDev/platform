@@ -7,6 +7,7 @@ export const Attempt = Schema.Struct({
 	output: Schema.optional(Schema.String),
 	prompt: Schema.optional(Schema.String),
 	receipt: Schema.optional(SessionReceipt),
+	reviewHead: Schema.optional(Schema.String),
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
 	sessionId: Schema.optional(Schema.String),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),

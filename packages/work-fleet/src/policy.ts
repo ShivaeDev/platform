@@ -59,6 +59,7 @@ export const WorkResult = Schema.Union([ChangeResult, NoChangeResult]);
 export type WorkResult = typeof WorkResult.Type;
 export const Review = Schema.Struct({
 	evidence: Schema.Array(Schema.String),
+	findings: Schema.optional(Schema.Array(Schema.String)),
 	head: Schema.String,
 	receipt: SessionReceipt,
 	repairPrompt: Schema.String,
@@ -83,6 +84,7 @@ export interface FleetConfiguration {
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetFailure>;
+	readonly sharedEnvironment?: string;
 }
 export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration>()("@shivaedev/work-fleet/FleetPolicy") {}
 export class FleetIntegrations extends Context.Service<
@@ -90,8 +92,6 @@ export class FleetIntegrations extends Context.Service<
 	{
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
-		readonly review: (work: BoardWork, result: WorkResult, operationId: string) => Effect.Effect<Review, FleetFailure>;
-		readonly reconcileReview: (work: BoardWork, result: WorkResult, operationId: string) => Effect.Effect<Review, FleetFailure>;
 		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
 		readonly authorize: (work: BoardWork, result: typeof ChangeResult.Type) => Effect.Effect<boolean, FleetFailure>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;

@@ -25,6 +25,8 @@ describe("launch settings", () => {
 				expect(fixture.settings.map(({ call, settings }) => ({ call, settings }))).toEqual([
 					{ call: "session", settings: expected },
 					{ call: "turn", settings: expected },
+					{ call: "session", settings: defaults },
+					{ call: "turn", settings: defaults },
 					{ call: "turn", settings: expected },
 				]);
 			}),

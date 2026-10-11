@@ -42,13 +42,11 @@ There are no personal numeric defaults. Unknown or expired quota blocks admissio
 Foreign reservations record actual scope and separate occupancy/backlog flags;
 release them only after an authoritative observation permits it.
 
-`FleetIntegrations` supplies current main observations, adoption of the actual PR
-or no-change result, independent review, required checks, delivery observation,
-trusted authorization and normal merge. Review and checks acknowledge the exact
-head. Review receipts must differ from worker sessions. Review implementations
-using a provider must use the same durable session journal and reconcile the
-existing review operation after a lost response. Build and delivery policies
-belong to the runtime and must enforce actual branch requirements without bypass.
+`FleetIntegrations` supplies current main observations, adoption of the actual PR or no-change result, required checks, delivery observation, trusted authorization and normal merge. Its `result` implementation must re-read current result ownership and head each time it is called. Build and delivery policies belong to the runtime and must enforce actual branch requirements without bypass.
+
+Fleet starts independent reviewer sessions through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with no shell network access and no escalation. Reviewers inspect existing exact-head repository objects or read-only repository tools; missing access ends without an accepted verdict.
+
+The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns and malformed verdicts produce a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
 
 The host reads GitHub check runs and commit statuses through an authenticated `gh` CLI for the adopted PR's exact commit SHA, including all pages. Pending or absent checks keep work in validation; failed checks send their names and links to the repair worker. A newer push does not replace the adopted head's evidence. The host requires all observed checks to succeed, be neutral or be skipped; this does not establish branch protection or merge authority. No-change validation still needs a runtime integration.
 
@@ -162,8 +160,7 @@ command or account reset. Configure these runtime boundaries before dispatch:
 2. Supply a verified `SessionTransport` with working provider access. If using the
    local adapter, connect it to an independently owned local app-server; its lifetime
    must survive the host's observing scopes.
-3. Implement current source observations, exact result/PR adoption, independent
-   review, required checks and normal authorized delivery in `FleetIntegrations`.
+3. Implement current source observations, exact result/PR adoption, required checks and normal authorized delivery in `FleetIntegrations`.
    Authentication belongs to the host when exposing `FleetContract`.
 4. Prepare two disjoint Board items, inspect their attached scopes and run `cycle`
    before keeping `run(interval)` active. Answer any concrete Board decision while
@@ -182,8 +179,7 @@ remote interruption. Explicit interruption requires the exact provider acknowled
 Submission ambiguity retains ownership and reconciliation checks the existing turn.
 
 The Codex app-server contract is experimental. A local app-server is distinct from
-hosted modern Cloud. No hosted adapter, endpoint or authentication contract is
-inferred from `codex cloud exec`; hosted capability is an injected transport.
+hosted modern Cloud. The hosted Codex Cloud adapter uses the configured environment and workspace. Synthetic protocol tests cover its launch settings, environment checks, final output and read-only reviewer policy; they do not prove live Cloud execution.
 The [roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/roadmap.md)
 records validation boundaries and personal pilot follow-up.
 
