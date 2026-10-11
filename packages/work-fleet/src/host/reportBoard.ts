@@ -1,8 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
+import { reportContent } from "#board/reportContent.ts";
 import { reportFiles } from "#board/reportFiles.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
+import { reportLinks } from "#board/reportLinks.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { FleetHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -41,8 +43,11 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 			}
 			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
 				const attachments = yield* files(observation.receipt).pipe(Effect.provide(services));
-				const suffix = yield* reportFiles(root, reportIdentity(work, observation.receipt).itemId, attachments);
-				return yield* board.report(work, { ...observation, output: observation.output + suffix });
+				const { itemId } = reportIdentity(work, observation.receipt);
+				const reportObservation = { ...observation, output: observation.output + reportLinks(itemId, attachments) };
+				yield* reportContent(work, reportObservation);
+				yield* reportFiles(root, itemId, attachments);
+				return yield* board.report(work, reportObservation);
 			}, Effect.mapError(attachmentFailure));
 			return Layer.merge(Layer.succeed(ReportInspection)({ check: inspect }), Layer.succeed(BoardGateway)({ ...board, report }));
 		}),
