@@ -1,23 +1,18 @@
-import { Effect, PubSub, Stream } from "effect";
+import { Stream } from "effect";
+import type { State } from "#host/waitOutcome.ts";
 import type { FleetFailure } from "#policy.ts";
-import type { State } from "./waitOutcome.ts";
 
 type States = readonly (typeof State.Type)[];
-export type Snapshot = Effect.Effect<States, FleetFailure>;
 
-export function snapshotStream(events: PubSub.PubSub<Snapshot>, read: Snapshot, ids: readonly string[]) {
-	return Stream.unwrap(
-		Effect.gen(function* () {
-			const subscription = yield* PubSub.subscribe(events);
-			const initial = yield* read;
-			const selected = new Set(
-				ids.length === 0
-					? initial.filter((state) => !["completed", "needs-human", "released"].includes(state.stage)).map((state) => state.workId)
-					: ids,
-			);
-			return Stream.concat(Stream.succeed(initial), Stream.fromSubscription(subscription).pipe(Stream.mapEffect((snapshot) => snapshot))).pipe(
-				Stream.map((states) => states.filter((state) => selected.has(state.workId))),
-			);
-		}),
-	);
+export function snapshotStream(snapshots: Stream.Stream<States, FleetFailure>, ids: readonly string[]) {
+	return Stream.suspend(() => {
+		let selected = ids.length === 0 ? undefined : new Set(ids);
+		return snapshots.pipe(
+			Stream.map((states) => {
+				selected ??= new Set(states.filter((state) => !["completed", "needs-human", "released"].includes(state.stage)).map((state) => state.workId));
+				const selection = selected;
+				return states.filter((state) => selection.has(state.workId));
+			}),
+		);
+	});
 }
