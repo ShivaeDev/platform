@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
+import { checkAreas, requeue } from "#scheduling/areas.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
@@ -11,8 +12,10 @@ export function postgresFleetRepository(namespace?: string) {
 	return Layer.effect(FleetRepository)(
 		Effect.gen(function* () {
 			const store = yield* makePostgresFleetStore(FleetRecord, {
+				admission: checkAreas,
 				backlog,
 				executing,
+				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 				...(namespace === undefined ? {} : { namespace }),
 			});

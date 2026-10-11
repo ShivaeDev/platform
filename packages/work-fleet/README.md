@@ -64,6 +64,27 @@ fleet-launch:
 
 The launch fields are strings. Omitted fields inherit the host settings; without host settings or an override, they inherit provider defaults. An invalid override fails before dispatch. The selected settings also apply to repair turns. `src/board/fleetField.test.ts`, `src/host/commands.test.ts` and `src/engine/launchSettings.spec.ts` cover these rules.
 
+### Schedule areas and dependencies
+
+Use `areas` to name the code areas a task changes. Area names are exact shared labels, such as `work-fleet/host`; they do not expand into filesystem paths. Fleet admits one task per area, while disjoint areas and tasks without areas can run concurrently within the existing capacity and quota limits.
+
+```yaml
+---
+id: task.follow-up
+kind: task
+fleet: approved
+areas: [work-fleet/host, work-board/ui]
+relationships:
+  - kind: depends_on
+    target: task.foundation
+---
+# Add the follow-up behavior
+```
+
+An overlapping task remains prepared with a reason such as `waiting for area work-fleet/host held by task.foundation`. Areas are held through execution, review and validation, and are freed on completion or safe release. For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery. PostgreSQL preserves admission order across restarts; eligible overlapping tasks wait behind earlier prepared work.
+
+A `depends_on` relationship waits for an accepted Fleet outcome on the target's current Board revision: an observed merge or validated no-change completion. If the target has no Fleet record, its authored `status: done` also qualifies. A prepared, released or unfinished Fleet record does not qualify through Board status alone. Missing or ambiguous targets and criterion-specific references remain blocked. Status, wait timeout summaries and the generated Board view show the stored reason. Real PostgreSQL regressions in `src/engine/areaScheduling.spec.ts`, `areaMergeWait.spec.ts`, `areaDeliveryObservation.spec.ts`, `dependencyScheduling.spec.ts`, `dependencies.spec.ts` and `src/host/schedulingViews.spec.ts` cover admission, release, ordered restart, dependency acceptance and those views with synthetic provider integrations.
+
 ### Run, dispatch and inspect
 
 | Command | Behavior |
@@ -178,11 +199,11 @@ A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet re
 
 ### Independent review
 
-After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited and missing access ends without an accepted verdict.
+After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited. When the exact-head diff and check results are readable, the prompt requires a verdict. Passing required checks at that head are CI evidence even when job logs or artifacts are unavailable; reviewers record that limitation in their evidence. To assess PostgreSQL test setup without logs, reviewers inspect the workflow and its database environment configuration at the same head.
 
-The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns and malformed verdicts produce a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
+The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns produce a human decision. A malformed completed verdict gets one automatic follow-up on the same read-only reviewer thread requesting the required format. Fleet persists that attempt before submission and reconciles its receipt after restart; a second malformed reply produces a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
 
-`src/engine/reviewerSession.spec.ts`, `src/engine/recovery.spec.ts`, `src/prompt/reviewer.test.ts` and `src/providers/readOnly.spec.ts` cover these boundaries with real PostgreSQL and synthetic providers; they do not prove live Cloud review.
+`src/engine/reviewerSession.spec.ts`, `src/engine/reviewerEvidence.spec.ts`, `src/engine/recovery.spec.ts`, `src/prompt/reviewer.test.ts` and `src/providers/readOnly.spec.ts` cover these boundaries with real PostgreSQL and synthetic providers; they do not prove live Cloud review.
 
 ### Required checks
 
