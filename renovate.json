@@ -1,12 +1,13 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"automerge": false,
-	"draftPR": true,
+	"dependencyDashboard": true,
 	"extends": ["config:recommended", ":enableVulnerabilityAlerts"],
 	"lockFileMaintenance": {
 		"enabled": false
 	},
 	"minimumReleaseAge": "7 days",
+	"mode": "full",
 	"packageRules": [
 		{
 			"description": "Every version lives once in the pnpm-workspace.yaml catalog and stays exact.",
@@ -44,10 +45,9 @@
 	],
 	"prConcurrentLimit": 3,
 	"rebaseWhen": "conflicted",
-	"schedule": ["* 0-5 * * 1"],
+	"schedule": ["* 0-5 * * *"],
 	"vulnerabilityAlerts": {
 		"automerge": false,
-		"draftPR": true,
 		"prConcurrentLimit": 1
 	}
 }
