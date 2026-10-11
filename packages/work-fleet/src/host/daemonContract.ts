@@ -3,6 +3,7 @@ import { Rpc } from "effect/unstable/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
+import { DAEMON_RPC_PATH, DiagnosticsContract } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
 import { State } from "#host/waitOutcome.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
@@ -33,5 +34,5 @@ export const Follow = Rpc.make("daemon.follow", {
 	success: Schema.Array(State),
 });
 export const ClientContract = clientContract.add(Follow);
-export const DaemonContract = FleetContract.merge(ClientContract).middleware(RequestTracing);
-export const RPC_PATH = "/_fleet/rpc";
+export const DaemonContract = FleetContract.merge(ClientContract, DiagnosticsContract).middleware(RequestTracing);
+export const RPC_PATH = DAEMON_RPC_PATH;
