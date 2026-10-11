@@ -30,6 +30,7 @@ describe("Fleet completion path", () => {
 				finishWorkers(fixture);
 				const repair = yield* fleet.reconcile("one");
 				expect(repair.value.attempts.at(-1)?.role).toBe("repair");
+				expect(repair.value.review).toMatchObject({ findings: ["Repair the implementation to meet the task criteria"], verdict: "changes" });
 				expect(repair.value.attempts.at(-1)?.receipt?.sessionId).toBe(repair.value.attempts[0]?.receipt?.sessionId);
 				finishWorkers(fixture);
 				const complete = yield* fleet.reconcile("one");
@@ -91,6 +92,7 @@ describe("Fleet completion path", () => {
 				finishWorkers(fixture);
 				const rejected = yield* fleet.reconcile("one");
 				expect(rejected.value.decision?.reason).toContain("Independent review");
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 				expect(fixture.merged).toHaveLength(0);
 			}),
 		));

@@ -20,6 +20,7 @@ export interface EngineOptions {
 	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
 	readonly lostContinuationAcknowledgement?: boolean;
+	readonly lostReviewAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
 	readonly operationCollision?: boolean;
@@ -30,6 +31,7 @@ export interface EngineOptions {
 	readonly repairs?: boolean;
 	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
+	readonly reviewExecution?: "failed" | "interrupted";
 	readonly reviewFailure?: boolean;
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;

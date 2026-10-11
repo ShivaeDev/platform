@@ -1,19 +1,33 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
+import { reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
-export function obtainReview({ store, policy, integrations, save, board }: EngineState) {
+
+export function obtainReview(state: EngineState) {
+	const { store, policy, sessions, save, board } = state;
 	return Effect.fn("Fleet.obtainReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult) {
-		if (stored.value.review !== undefined) {
-			return stored.value.review;
+		if (stored.value.review?.head === result.head) {
+			return stored.value.review.receipt;
 		}
 		const previous = stored.value.attempts.at(-1);
-		if (previous?.role === "reviewer") {
-			return yield* integrations.reconcileReview(work, result, previous.operationId);
+		if (
+			previous?.role === "reviewer"
+			&& !["failed", "interrupted"].includes(previous.status)
+			&& (previous.reviewHead === undefined || previous.reviewHead === result.head)
+		) {
+			return previous.receipt ?? (yield* sessions.reconcile({ operationId: previous.operationId, sessionId: previous.sessionId }));
 		}
-		const attempt: Attempt = { operationId: policy.operationId(), role: "reviewer", status: "submitting", submittedAt: policy.now() };
+		const attempt: Attempt = {
+			operationId: policy.operationId(),
+			reviewHead: result.head,
+			role: "reviewer",
+			status: "submitting",
+			submittedAt: policy.now(),
+		};
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,
@@ -22,6 +36,22 @@ export function obtainReview({ store, policy, integrations, save, board }: Engin
 			board.get,
 		);
 		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { quota, role: "reviewer" });
-		return yield* integrations.review(work, result, attempt.operationId);
+		return yield* sessions
+			.start({
+				access: "read-only",
+				cwd: stored.value.cwd,
+				operationId: attempt.operationId,
+				prompt: reviewerPrompt({
+					result,
+					...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
+					task: work.context,
+				}),
+				settings: policy.launch,
+			})
+			.pipe(
+				Effect.tapError((error) =>
+					submissionFailure(state, stored.value.workId, attempt.operationId, error, "Restore provider access and retry this review"),
+				),
+			);
 	});
 }

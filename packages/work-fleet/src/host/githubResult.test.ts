@@ -41,7 +41,7 @@ describe("GitHub worker result adoption", () => {
 		expect(fixture.requests).toHaveLength(0);
 	});
 
-	it.effect("host configuration selects adoption while independent review remains required", function* () {
+	it.effect("host configuration selects adoption without granting no-change validation", function* () {
 		const fixture = resultFixture();
 		const integrations = yield* FleetIntegrations.pipe(
 			Effect.provide(hostIntegrations(fixture.host).pipe(Layer.provide(Layer.succeed(MainSource)(fixture.main)))),
@@ -52,7 +52,6 @@ describe("GitHub worker result adoption", () => {
 			message: "GitHub checks need an adopted pull request",
 			reason: "integration",
 		});
-		expect(yield* integrations.review(work, result, "review-operation").pipe(Effect.flip)).toMatchObject({ reason: "integration" });
 	});
 
 	it.effect("leaves adoption unconfigured unless selected", function* () {

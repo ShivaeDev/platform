@@ -1,6 +1,6 @@
 # @shivaedev/work-fleet
 
-Work Fleet launches approved Work Board items and keeps execution receipts in PostgreSQL. Use its command to schedule workers and inspect progress, or compose its Effect services with your own result, review, validation and delivery integrations.
+Work Fleet launches approved Work Board items and keeps execution receipts in PostgreSQL. Use its command to schedule workers and inspect progress, or compose its Effect services with your own result, validation and delivery integrations.
 
 ## Keep approved work moving
 
@@ -103,6 +103,10 @@ work-board ./notes --home fleet/status.md
 
 The host refreshes the view on scheduler reads and after preparation, dispatch, reconciliation and resolution. Work Board's existing file watcher refreshes an open page. Identical content leaves the file untouched. Publication failures are reported and retried on the next cycle without changing execution outcomes. The writer refuses authored content or symlinks at the generated destination. Board remains usable without Fleet; the generated file is an optional projection of SQL records. A composed headless runtime can opt into the same publication behavior by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services. `src/board/statusMarkdown.test.ts`, `src/board/writeStatus.test.ts` and `src/host/statusLayer.test.ts` cover rendering, file boundaries and publication retry.
 
+The CLI host also atomically publishes `fleet/health.json`, using Board's versioned `FleetHealth` schema from `@shivaedev/work-board/diagnostics/health.ts`. Running counts work with submitting, accepted or running attempts; queued counts prepared work; needs-human counts that explicit stage. The snapshot carries the configured concurrency cap, publication time and freshness threshold, last completed scheduler pass and last observed structured provider capacity rejection. A host restart reloads the two last observations. Status-board and health publication failures do not change execution outcomes; the next publication retries. Board's Diagnostics view reads the optional file without Fleet or database dependencies.
+
+A composed runtime enables health publication with `statusLayer(boardRoot, { concurrency, staleAfterMs })`, provides `healthLayer(boardRoot)` from `@shivaedev/work-fleet/host/healthLayer.ts`, and wraps its provider with `providerHealth` from `@shivaedev/work-fleet/host/providerHealth.ts`. Capacity comes only from structured `rateLimitExceeded`, `flexUnavailable` or `serverOverloaded` errors; unclassified rejection text is not treated as capacity. A repeatedly observed terminal turn does not refresh the same rejection's timestamp.
+
 ### Answer a worker question
 
 Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
@@ -147,9 +151,17 @@ Cloud worker instructions include startup waiting, the configured environment sc
 
 Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
 
-A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet retains that head and the report as evidence, and passes the result through independent review and required checks. Main movement does not invalidate the report; a changed task revision prevents adoption. Result adoption supplies no review authority; configure that integration separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet retains that head and the report as evidence, and passes the result through independent review and required checks. Main movement does not invalidate the report; a changed task revision prevents adoption. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
 
 `src/host/githubResult.test.ts`, `src/host/githubResultFailures.spec.ts` and `src/engine/resultAdoption.spec.ts` cover these adoption boundaries.
+
+### Independent review
+
+After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with no shell network access and no escalation. Reviewers inspect existing exact-head repository objects or read-only repository tools; missing access ends without an accepted verdict.
+
+The reviewer ends with `FLEET_REVIEW:` followed by JSON containing `head`, `verdict` (`approve` or `changes`), nonempty `evidence` and `findings`. Changes require concrete findings; approval requires an empty findings array. Fleet accepts this verdict only after the exact turn completes and records it with that revision and receipt. Accepted or running turns keep their execution slot without a verdict. A lost acknowledgement reconciles the existing operation. Failed turns and malformed verdicts produce a human decision. A moved PR head retains the prior revision's review and requires a fresh reviewer before checks or delivery.
+
+`src/engine/reviewerSession.spec.ts`, `src/engine/recovery.spec.ts`, `src/prompt/reviewer.test.ts` and `src/providers/readOnly.spec.ts` cover these boundaries with real PostgreSQL and synthetic providers; they do not prove live Cloud review.
 
 ### Required checks
 
@@ -176,6 +188,6 @@ yield* fleet.prepare({ workId, preparation, prompt, cwd });
 yield* cycle;
 ```
 
-Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, independent review, required checks and delivery observation. Fleet does not call the `authorize` and `merge` callbacks, which remain in the integration contract for compatibility. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
+Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Fleet does not call the `authorize` and `merge` callbacks, which remain in the integration contract for compatibility. Its `result` implementation must re-read current result ownership and head each time it is called. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current Board revisions. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` covers those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.

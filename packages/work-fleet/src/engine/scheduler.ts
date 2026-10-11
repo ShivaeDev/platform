@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
+import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
 import { Fleet } from "#fleet.ts";
@@ -22,7 +23,7 @@ const activeWork = Effect.gen(function* () {
 export const cycle = inBoardReadPass(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
-		return yield* Effect.all(
+		const result = yield* Effect.all(
 			{
 				dispatched: dispatchPrepared,
 				reconciled: activeWork.pipe(
@@ -33,6 +34,10 @@ export const cycle = inBoardReadPass(
 			},
 			{ concurrency: "unbounded" },
 		);
+		if (yield* schedulerPassed) {
+			yield* fleet.list().pipe(Effect.catch((error) => Effect.logWarning("Fleet health publication failed", error)));
+		}
+		return result;
 	}),
 );
 export const run = Effect.fn("Fleet.run")(function* <R = never>(
@@ -55,6 +60,9 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 						.pipe(Effect.ignore, Effect.ensuring(Effect.sync(() => running.delete(value.workId))), Effect.forkScoped);
 				}
 				yield* dispatchPrepared;
+				if (yield* schedulerPassed) {
+					yield* fleet.list().pipe(Effect.catch((error) => Effect.logWarning("Fleet health publication failed", error)));
+				}
 				yield* Effect.sleep(interval);
 			}),
 		),
