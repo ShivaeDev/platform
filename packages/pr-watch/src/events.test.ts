@@ -17,15 +17,16 @@ effectApp.each(cases)("observes $event once with PR identity", function* ({ even
 	yield* h.restart;
 	expect(h.lines).toHaveLength(count);
 });
-effectApp("queue ref disappearance emits dequeued only while open", function* (h) {
+effectApp("confirmed queue disappearance emits dequeued only while open", function* (h) {
 	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }] });
 	yield* h.cycle;
 	h.set("/git/matching-refs/heads/gh-readonly-queue/", { body: [] });
+	h.setPull(1, { "auto_merge": null });
 	yield* h.cycle;
-	expect(h.lines).toEqual([JSON.stringify({ branch: "feature-1", event: "dequeued", number: 1, title: "Change 1" })]);
+	expect(h.lines.map((line) => JSON.parse(line).event)).toEqual(["dequeued", "auto-merge-off"]);
 	h.setPull(1, { merged: true, state: "closed" });
 	yield* h.cycle;
-	expect(h.lines).toHaveLength(2);
+	expect(h.lines).toHaveLength(3);
 });
 effectApp("failed check runs and commit statuses produce checks-failed and stuck", function* (h) {
 	yield* h.cycle;

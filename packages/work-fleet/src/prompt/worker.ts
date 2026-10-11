@@ -66,6 +66,7 @@ export function workerPrompt(input: WorkerPrompt) {
 		"- The pull request URL, its head SHA and base, the changed paths and the exact commands you ran with their results.",
 		"- A short result against each acceptance criterion, separating proven behavior from anything still pending.",
 		"- State the CI result for the exact head SHA you report, including any failed or pending checks and why you are blocked. Put the CI result before the final `FLEET_PR:` line.",
+		"- Before the final PR line, include one line `FLEET_HEAD: <sha>` with the full 40-character PR head SHA, or the exact checked main SHA when no change was needed.",
 		`- End with one line \`${PULL_REQUEST_MARKER} <url>\` naming the pull request, or \`${PULL_REQUEST_MARKER} none\` when no change was needed.`,
 	].join("\n");
 }
@@ -75,12 +76,23 @@ export function reportPrompt(task: string): string {
 }
 
 export function reportedPullRequest(output: string) {
-	const lines = output.split("\n").filter((line) => line.trim().startsWith(PULL_REQUEST_MARKER));
-	const value = lines.at(-1)?.trim().slice(PULL_REQUEST_MARKER.length).trim().replaceAll("`", "");
+	const lines = output
+		.trim()
+		.split(/\r?\n/u)
+		.map((line) => line.trim());
+	const markers = lines.filter((line) => line.startsWith(PULL_REQUEST_MARKER));
+	if (markers.length !== 1 || markers[0] !== lines.at(-1)) {
+		return undefined;
+	}
+	const value = markers[0]
+		?.slice(PULL_REQUEST_MARKER.length)
+		.trim()
+		.replace(/^`(?<value>[^`]*)`$/u, "$<value>")
+		.trim();
 	if (value === "none") {
 		return { kind: "none" } as const;
 	}
-	if (value === undefined || !URL.canParse(value)) {
+	if (value === undefined || /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/[1-9]\d*$/u.exec(value) === null) {
 		return undefined;
 	}
 	return { kind: "url", url: value } as const;

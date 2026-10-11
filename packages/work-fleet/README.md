@@ -151,6 +151,14 @@ The adapter sends `thread/archive` and `thread/name/set`; grouping uses `thread/
 
 Cloud worker instructions include startup waiting, the configured environment script, fetching current main, repository checks and one pull request for human review. Workers watch CI after every push, repair failures on the same branch, merge current main when behind and state the exact head's CI result before the marker line. They ask for a final `FLEET_PR: <url>` or `FLEET_PR: none` line. The parser reads the last marker line; missing or malformed reports yield no result. `src/prompt/worker.test.ts` covers the instructions and parser. A report line is not proof of an adopted result or accepted delivery.
 
+### Adopt a worker result
+
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
+
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. Fleet retains that head and the report as evidence, and passes the result through independent review and required checks. Main movement does not invalidate the report; a changed task revision prevents adoption. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
+
+`src/host/githubResult.test.ts`, `src/host/githubResultFailures.spec.ts` and `src/engine/resultAdoption.spec.ts` cover these adoption boundaries.
+
 ### Independent review
 
 After adopting a result, Fleet starts an independent reviewer through the same `SessionService`, provider and durable journal as workers. Reviewers receive the Board task and criteria plus the adopted result at its exact head, without the worker conversation or preparation prompt. They use `FleetPolicy.launch` from host configuration; task launch overrides remain worker and repair settings. The Codex adapters request read-only execution with shell network access for read-only PR and exact-head CI inspection, and no escalation. Reviewers use existing exact-head repository objects, read-only repository tools or `gh pr view`, `gh pr diff` and `gh api --method GET`; network writes are prohibited and missing access ends without an accepted verdict.

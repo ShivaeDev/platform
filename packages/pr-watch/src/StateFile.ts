@@ -1,28 +1,22 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import process from "node:process";
-import { Effect, Schema } from "effect";
+import { Effect, FileSystem, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { State, WatchError } from "./model.ts";
 
 function failure(cause: unknown) {
 	return new WatchError({ message: cause instanceof Error ? cause.message : "State file operation failed" });
 }
-function readExisting(path: string) {
-	return readFile(path, "utf8").catch((cause: unknown) => {
-		if (cause instanceof Error && "code" in cause && cause.code === "ENOENT") {
-			return undefined;
-		}
-		throw cause;
-	});
-}
 export const StateFile = defineService({
 	id: "@shivaedev/pr-watch/StateFile",
-	initialize: Effect.void,
-	methods: () => ({
+	initialize: FileSystem.FileSystem,
+	methods: (fs) => ({
 		load: (path: string, repository: string) =>
 			Effect.gen(function* () {
-				const text = yield* Effect.tryPromise({ catch: failure, try: () => readExisting(path) });
+				const text = yield* fs.readFileString(path).pipe(
+					Effect.catchTag("PlatformError", (error) => (error.reason._tag === "NotFound" ? Effect.succeed(undefined) : Effect.fail(error))),
+					Effect.mapError(failure),
+				);
 				if (text === undefined) {
 					return { prs: {}, repository, version: 1 } satisfies State;
 				}
@@ -33,15 +27,12 @@ export const StateFile = defineService({
 				return state;
 			}),
 		save: (path: string, state: State) =>
-			Effect.tryPromise({
-				catch: failure,
-				try: async () => {
-					await mkdir(dirname(path), { recursive: true });
-					const temporary = `${path}.${process.pid}.tmp`;
-					await writeFile(temporary, `${JSON.stringify(state)}\n`, { mode: 0o600 });
-					await rename(temporary, path);
-				},
-			}),
+			Effect.gen(function* () {
+				yield* fs.makeDirectory(dirname(path), { recursive: true });
+				const temporary = `${path}.${process.pid}.tmp`;
+				yield* fs.writeFileString(temporary, `${JSON.stringify(state)}\n`, { mode: 0o600 });
+				yield* fs.rename(temporary, path);
+			}).pipe(Effect.mapError(failure)),
 	}),
-	requires: [],
+	requires: [FileSystem.FileSystem],
 });

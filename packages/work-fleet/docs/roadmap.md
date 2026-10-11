@@ -19,7 +19,11 @@
 - Fleet never submits a merge. Reviewed, green PRs wait in Needs human; the command host observes the adopted PR through `gh pr view`, accepts only a merge of the reviewed head, keeps closed unmerged PRs in Needs human and preserves the current decision through transient observation failures. Delivery tests cover these cases with synthetic GitHub responses and real PostgreSQL.
 - The local Codex adapter connects to an independently owned app-server. `src/providers/codexLocal.test.ts` covers receipts, reconnect, explicit interruption and observation-scope closure with a synthetic backend.
 
+The host can select GitHub result adoption with `result: "github"`. Synthetic GitHub responses prove final-marker placement with whitespace and backtick tolerance, exact reported-head checks, open PR identity, paginated paths and observation-race rejection. PostgreSQL fixtures persist the adopted PR number, head and paths, route failed adoption to a human decision, and require terminal independent review and checks before accepting a reported no-change result, preserve that result when main moves and reject a changed task revision. Live GitHub adoption remains pilot evidence.
+
 ## Open for the command host
+
+For the opt-in GitHub adapter, the result-adoption item below requires live pilot evidence.
 
 - Result adoption: verify and attach the actual pull request or evidenced no-change result. A worker report marker alone is insufficient.
 - Board view: present Fleet execution attachments and decisions in the Board interface.

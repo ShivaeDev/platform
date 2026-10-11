@@ -7,6 +7,7 @@ import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
+import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
@@ -20,17 +21,19 @@ function unconfigured(what: string) {
 	);
 }
 
-export const hostIntegrations = Layer.effect(FleetIntegrations)(
-	Effect.gen(function* () {
-		const main = yield* MainSource;
-		return FleetIntegrations.of({
-			checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
-			delivery: githubDelivery(main.repositoryRoot),
-			main: main.observe,
-			result: () => unconfigured("Worker result adoption"),
-		});
-	}),
-);
+export function hostIntegrations(host: FleetHost) {
+	return Layer.effect(FleetIntegrations)(
+		Effect.gen(function* () {
+			const main = yield* MainSource;
+			return FleetIntegrations.of({
+				checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
+				delivery: githubDelivery(main.repositoryRoot),
+				main: main.observe,
+				result: host.result === "github" ? githubResult(host, main) : () => unconfigured("Worker result adoption"),
+			});
+		}),
+	);
+}
 
 export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
@@ -72,7 +75,7 @@ export function fleetHostLayer<TProvider, TMain>(
 		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
-	const integrations = (parts.integrations ?? hostIntegrations).pipe(Layer.provide(parts.main));
+	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
 	);

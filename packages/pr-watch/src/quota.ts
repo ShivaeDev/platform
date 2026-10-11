@@ -1,19 +1,21 @@
+import type { HttpClientResponse } from "effect/unstable/http";
+
 export interface Budget {
 	blockedUntil: number;
 	limit: number;
 	remaining: number;
 	reset: number;
 }
-function numeric(headers: Headers, name: string): number | undefined {
-	const value = headers.get(name);
-	return value !== null && Number.isFinite(Number(value)) ? Number(value) : undefined;
+function numeric(headers: Readonly<Record<string, string>>, name: string): number | undefined {
+	const value = headers[name];
+	return value !== undefined && Number.isFinite(Number(value)) ? Number(value) : undefined;
 }
-export function observeBudget(budget: Budget, response: Response, now: number): void {
+export function observeBudget(budget: Budget, response: Pick<HttpClientResponse.HttpClientResponse, "headers" | "status">, now: number): void {
 	budget.remaining = numeric(response.headers, "x-ratelimit-remaining") ?? budget.remaining;
 	budget.limit = numeric(response.headers, "x-ratelimit-limit") ?? budget.limit;
 	budget.reset = (numeric(response.headers, "x-ratelimit-reset") ?? budget.reset / 1000) * 1000;
 	if (response.status === 429 || response.status === 403) {
-		const retry = response.headers.get("retry-after");
+		const retry = response.headers["retry-after"] ?? null;
 		const until = retryUntil(retry, now);
 		budget.blockedUntil = Math.max(budget.blockedUntil, Number.isFinite(until) ? until : now + 60_000);
 	}
