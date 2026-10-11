@@ -84,7 +84,9 @@ export function inboxItems(snapshot: Snapshot) {
 		...new Map(
 			[...pendingQuestions(snapshot).map((item) => ({ ...item, problem: undefined })), ...direct].map((item) => [item.document.file, item]),
 		).values(),
-	].sort((left, right) => (left.document.modified ?? 0) - (right.document.modified ?? 0) || left.id.localeCompare(right.id));
+	]
+		.map((item) => ({ ...item, modified: snapshot.modified.get(item.document.file) }))
+		.sort((left, right) => (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id));
 }
 
 export function fleetRecords(model: MetadataModel): ReadonlySet<string> {

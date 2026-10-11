@@ -15,6 +15,7 @@ it("orders requests by title then exact IDs and escapes literal source values", 
 		documents,
 		entries: documents.map((source) => ({ file: source.file, href: `/${source.file}`, kind: "document", text: "", title: "Same title" })),
 		model: metadataModel(documents),
+		modified: new Map(),
 		revision: 1,
 		unavailable: [],
 	};
