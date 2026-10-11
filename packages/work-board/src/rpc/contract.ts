@@ -6,6 +6,7 @@ import { query } from "@shivaedev/effect-contract/operation.ts";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
+import { Navigation } from "#browser/navigation/schema.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -61,9 +62,10 @@ const ReadDocument = query("document", {
 	success: Document,
 });
 const ReadNavigation = query("navigation", {
+	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
 	reads: () => [workspace.list, navigation.list],
 	rejections: { InternalServerError },
-	success: Schema.String,
+	success: Navigation,
 });
 const ReadSearch = query("search", {
 	payload: { query: Schema.String.check(Schema.isMaxLength(8192)) },
