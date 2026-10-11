@@ -12,12 +12,12 @@ afterEach(async () => {
 	notes?.remove();
 });
 
-it("links Diagnostics from the header and renders all three sources through normal HTTP", async () => {
+it("links Diagnostics from the sidebar and renders all three sources through normal HTTP", async () => {
 	notes = folder({ "home.md": "# Home" });
 	board = await startBoard(notes.root, "home.md", undefined, false, syntheticSources());
 	const response = await rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
-	expect(response.body).toContain('id="diagnostics-open" class="work-open" href="/_board/diagnostics" aria-current="page"');
+	expect(response.body).toContain('id="diagnostics-open" href="/_board/diagnostics" aria-current="page"');
 	for (const text of ["24% used", "63% used", "4321 / 5000", "3210 / 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
 		expect(response.body).toContain(text);
 	}

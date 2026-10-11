@@ -8,7 +8,7 @@ The reading, response, handoff and result-review implementation has these capabi
 
 | Steps | Capability | Evidence |
 | --- | --- | --- |
-| [01](delivery/wave1.md#01-a-real-workspace-shell) | Workspace shell, theme/density/sidebar preferences | `src/page/shell.test.ts`, `src/page/client.dom.test.ts` |
+| [01](delivery/wave1.md#01-a-real-workspace-shell) | Workspace shell, theme/density/sidebar preferences | `src/page/shell.test.ts`, `src/page/client.dom.test.ts`, `src/page/sidebarScript.dom.test.ts`; `src/test-support/navigationBrowser.py` checks navigation layout at desktop and narrow widths |
 | [02](delivery/wave1.md#02-document-locations-and-reading-state) | Passage links, reading navigation, favorites and recents | `src/render/documentHeadings.test.ts`, `src/page/navigationScript.dom.test.ts` |
 | [03](delivery/wave1.md#03-find-work-from-anywhere) | Local deterministic search and command dialog | `src/search/entries.test.ts`, `src/http/search.test.ts`, `src/page/searchRequests.dom.spec.ts` |
 | [04](delivery/wave1.md#04-optional-identity-and-a-rebuildable-index) | Optional identity, metadata and rebuildable reference index | `src/metadata/parse.test.ts`, `src/metadata/model.test.ts`, `src/http/identity.test.ts` |
@@ -30,7 +30,7 @@ Directory reference reading and watcher recovery are covered by `src/http/symlin
 
 Nested sidebar ancestry, home ordering, logical reference paths and folder expansion through live changes and navigation are covered by `src/page/nav.dom.test.ts`. Exact-context managed decision acknowledgements are covered by Work Fleet's `src/board/managedRequestReceipt.spec.ts` and `src/board/acknowledgementHttp.spec.ts`; those receipts leave source bytes intact and do not establish execution, acceptance or delivery authority.
 
-The header Diagnostics view reads Codex app-server usage windows, cached GitHub REST/GraphQL limits and optional versioned Fleet health snapshots. Synthetic source, command and app-server fixtures cover ready, missing, failing and malformed states, shared caching and refused provider approvals in `src/diagnostics/source.test.ts`, `readers.spec.ts` and `codexRateLimits.test.ts`. HTTP and DOM fixtures cover header navigation, source isolation, snapshot freshness and native polling/pause/resume in `src/diagnostics/page.test.ts`, `fleetHealth.test.ts` and `liveRefresh.dom.spec.ts`. These fixtures do not establish live account authorization.
+The sidebar Diagnostics view reads Codex app-server usage windows, cached GitHub REST/GraphQL limits and optional versioned Fleet health snapshots. Synthetic source, command and app-server fixtures cover ready, missing, failing and malformed states, shared caching and refused provider approvals in `src/diagnostics/source.test.ts`, `readers.spec.ts` and `codexRateLimits.test.ts`. HTTP and DOM fixtures cover navigation, source isolation, snapshot freshness and native polling/pause/resume in `src/diagnostics/page.test.ts`, `fleetHealth.test.ts` and `liveRefresh.dom.spec.ts`. These fixtures do not establish live account authorization.
 
 ## Next
 

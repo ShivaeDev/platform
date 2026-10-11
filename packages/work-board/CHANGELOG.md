@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- Keep Home, Inbox, Overview, Work, Changes and Diagnostics in fixed sidebar rows. Project files scroll independently and reveal the selected document; recent documents and favorites open in a bounded reading-history dialog. Below 768px, Files opens an overlay drawer with keyboard focus containment, Escape/backdrop dismissal and focus return. The new `page/sidebarScript.ts` module exports `sidebarScript()` to emit the drawer and selected-file scrolling client script.
+
 - Inbox ages and order follow current file modification times, including content-preserving touches and index restarts, while unchanged document identities stay reused. Place the sidebar Inbox above recent files and Getting started, and space Clear selection above the answer label.
 
 - Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.

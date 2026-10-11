@@ -26,17 +26,27 @@ Open the printed URL in a real browser. Record the browser/version, viewport, ac
 2. Reload, press Tab, then Enter on **Skip to content**. Focus moves to the main content. Tab through Files, Theme, Density, folder summaries, and file links; focus must be visible. Open a nested document and check its file location.
 3. Select Dark and Compact, collapse Files, then reload and open another file. All three choices persist. Select Light with the operating system in dark mode; code colors and diagrams follow Light. Return to System and switch the system scheme; diagrams redraw. Changing density alone must not redraw them.
 4. Open `notes/flow & details.md`. Wait for the real diagram and open Review notes. Append a paragraph to that file in the printed fixture folder. The paragraph appears, details stay open, and the unchanged diagram stays drawn.
-5. In a fresh browser context at 390 × 844, verify Files starts collapsed, the board uses one column, and the page does not scroll horizontally. Open Files: its height stays bounded and its list scrolls. Close it and open a document. Also check at 200% zoom.
+5. In a fresh browser context at 390 × 844, verify Files starts collapsed, the board uses one column, and the page does not scroll horizontally. Open Files: an overlay drawer contains the fixed Home, Inbox, Overview, Work, Changes and Diagnostics rows, and the project tree scrolls independently. Escape and an outside tap close the drawer and return focus to Files. Close it and open a document. Also check at 200% zoom.
 6. Disable JavaScript and reload. Content and navigation remain readable. With browser storage blocked, enable JavaScript and change appearance: controls work and explain that choices apply only to the current page.
 
 The fixture includes duplicate headings, a missing link, long prose, an encoded filename, a diagram, details, and malformed example metadata. The additional `identityFixture()` supplies richer items, explicit references, and recorded claims. Performance timings from this fixture are observations, not established budgets or proof of the north star's usability targets.
+
+## Automated navigation layout check
+
+With workspace dependencies, browser assets (`pnpm --filter @shivaedev/work-board test:prepare`), Python Playwright and its Chromium installed, run from the repository root:
+
+```sh
+python packages/work-board/src/test-support/navigationBrowser.py /tmp/navigation-evidence
+```
+
+This synthetic 50-document fixture checks fixed row positions across five visits, separate tree scrolling, selection visibility after navigation and browser Back, the bounded history dialog, and drawer dismissal/focus containment at 1440 × 1000 and 390 × 844. It saves screenshots at both widths and checks the 768px breakpoint. Chromium's sandbox must be available. These checks establish browser layout and interactions for the fixture; they do not establish physical-device or representative-reader acceptance.
 
 ## Document navigation acceptance — step 02
 
 1. In a document, open **On this page** and follow the second Evidence heading. Its hash and focused heading differ from the first. Copy a heading passage link, open it in a new tab, and verify the target. Check a Unicode heading too.
 2. Designate a home file in a nested folder. Serve it at `/` and follow a relative Markdown link to a sibling or parent folder. Repeat with encoded `#`, `?`, spaces, and `&` in a filename. Ctrl/Cmd-click should open a separate tab.
 3. Select text, open a content details block, and scroll down. Open another document, then use Back and Forward. Selection, details, and scroll restore. Reload the returned document and check tab-scoped reading state. Repeat after changing the theme on the other page; a cached diagram uses the current theme.
-4. Save a favorite, visit several documents, reload, and use the sidebar lists. Recents are unique and bounded. A second workspace must not inherit the first one's favorites. Block browser storage: controls work and display the notice.
+4. Save a favorite, visit several documents, reload, and open Recent documents to use the reading-history dialog. Recents are unique and bounded. A second workspace must not inherit the first one's favorites. Block browser storage: controls work and display the notice.
 5. Delete a favorite's source file while another page is open. Its sidebar link remains visible with a missing label; following it explains the missing file. Remove a heading after copying its URL and check the missing-passage notice.
 6. Hold a page response in the browser's network tools, navigate elsewhere, then release it. The old response must not replace the new page. Simulate a failed navigation, restore network access, and retry the same link. Recheck desktop, mobile, keyboard, no-JavaScript rendering, and live updates of the active title.
 

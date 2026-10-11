@@ -4,6 +4,7 @@ import { tick } from "/_board/ages.js";
 import { remember, swap } from "/_board/swap.js";
 import { renderDiagrams } from "/_board/diagrams.js";
 import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
+import { revealCurrentFile } from "/_board/sidebar.js";
 import { refreshLibrary } from "/_board/library.js";
 
 export const syncInbox = () => {
@@ -26,6 +27,7 @@ export const applyNavigation = (html) => {
   for (const link of next.querySelectorAll("a")) if (decodeURIComponent(new URL(link.href, location.href).pathname.slice(1)) === current) link.setAttribute("aria-current", "page");
   swap(files, next);
   syncInbox();
+  revealCurrentFile();
   refreshLibrary();
   tick();
   document.dispatchEvent(new Event("board-index-change"));
@@ -65,6 +67,7 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("overview-open")?.setAttribute("aria-current", doc.dataset.view === "overview" ? "page" : "false");
   document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
   document.getElementById("diagnostics-open")?.setAttribute("aria-current", doc.dataset.view === "diagnostics" ? "page" : "false");
+  document.getElementById("home-open")?.setAttribute("aria-current", location.pathname === "/" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
   const inbox = page.getElementById("inbox-topbar");
@@ -72,13 +75,7 @@ export const applyPage = (page, preserve = false) => {
   syncInbox();
   const crumbs = page.getElementById("breadcrumbs");
   if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
-  if (!preserve) {
-    let folder = document.querySelector('#files a[aria-current="page"]')?.closest("details");
-    while (folder) {
-      folder.open = true;
-      folder = folder.parentElement?.closest("details");
-    }
-  }
+  revealCurrentFile(!preserve);
   refreshLibrary(!preserve);
   if (reading) restoreReading({ ...reading, selection: null }, false);
   renderDiagrams(document, cachedScheme && cachedScheme !== doc.dataset.scheme ? "figure.diagram" : undefined);
