@@ -62,13 +62,13 @@ export function withEngine<A, E, TBoardError = never>(
 				namespace,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
-			const provider = engineProvider(options);
+			const reviews: string[] = [];
+			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
 			const dependencies = new Map<string, readonly string[]>();
 			const unavailable = new Set<string>();
 			const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 			const decisions: string[] = [];
-			const reviews: string[] = [];
 			const merged: string[] = [];
 			let operationCount = 0;
 			const policy: FleetConfiguration = {
@@ -94,7 +94,7 @@ export function withEngine<A, E, TBoardError = never>(
 				provider.transport,
 			);
 			const session = SessionService.layer.pipe(Layer.provide(Layer.merge(base, fleetSessionJournal.pipe(Layer.provide(base)))));
-			const integrations = engineIntegrations(options, provider, reviews, merged).pipe(Layer.provide(session));
+			const integrations = engineIntegrations(options, merged);
 			const fleetLayer = Fleet.layer.pipe(Layer.provide(Layer.mergeAll(base, session, integrations)));
 			function foreign(owner: string) {
 				return store.reserveForeign(owner, { backlog: true, executing: false });
