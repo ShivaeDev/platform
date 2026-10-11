@@ -16,8 +16,8 @@ function collectRows(iterable: AsyncIterable<unknown>): Effect.Effect<unknown[],
 	});
 }
 
-export const makeRelationStream = <Models extends object, Contract extends AnyPostgresContract>(
-	resolveExecutor: Effect.Effect<DatabaseExecutor<Models, Contract>, PrismaError>,
+export const makeRelationStream = <TModels extends object, TContract extends AnyPostgresContract>(
+	resolveExecutor: Effect.Effect<DatabaseExecutor<TModels, TContract>, PrismaError>,
 	recipe: RelationRecipe,
 ): Stream.Stream<unknown, PrismaError> =>
 	Stream.unwrap(

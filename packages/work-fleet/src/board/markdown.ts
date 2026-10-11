@@ -5,8 +5,9 @@ import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments } from "#board/documents.ts";
-import { boardDiagnostics, fleetApproved } from "#board/fleetField.ts";
+import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
+import { publishReport } from "#board/publishReport.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
@@ -25,8 +26,13 @@ export function markdownBoard(root: string) {
 				if (!found) {
 					return yield* Effect.fail(new BoardFailure({ message: `Board identity is missing or ambiguous: ${workId}` }));
 				}
+				const deliverable = fleetDeliverable(found.parsed);
+				if (deliverable !== undefined && deliverable !== "report") {
+					return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-deliverable; use report or omit the field for pull requests." }));
+				}
 				return {
 					approved: fleetApproved(found.parsed),
+					...(deliverable === "report" ? { deliverable: "report" as const } : {}),
 					context: found.source,
 					dependsOn: (found.parsed.fields.relationships ?? [])
 						.filter((relation) => relation.kind === "depends_on")
@@ -59,6 +65,7 @@ export function markdownBoard(root: string) {
 				}),
 				get,
 				readDecision: decisionReading(realRoot, documents, get),
+				report: publishReport(root, realRoot, documents),
 			});
 		}),
 	);
