@@ -1,4 +1,5 @@
 import { Clock, Context, Data, Effect, Schema } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { FleetHealth } from "./health.ts";
 
 export class SourceFailure extends Data.TaggedError("SourceFailure")<{
@@ -48,3 +49,20 @@ export const diagnostics = Effect.fn("WorkBoard.diagnostics")(function* (sources
 		{ concurrency: "unbounded" },
 	);
 });
+
+type DiagnosticsInput =
+	| { readonly _tag: "Sources"; readonly sources: Sources }
+	| { readonly _tag: "Read"; readonly read: Effect.Success<ReturnType<typeof diagnostics>> };
+
+export class DiagnosticsConfig extends Context.Service<DiagnosticsConfig, DiagnosticsInput>()("WorkBoard/DiagnosticsConfig") {}
+
+export const Diagnostics = defineService({
+	id: "WorkBoard/Diagnostics",
+	initialize: Effect.gen(function* () {
+		const input = yield* DiagnosticsConfig;
+		return input._tag === "Sources" ? yield* diagnostics(input.sources) : input.read;
+	}),
+	methods: (read) => ({ read: () => read }),
+	requires: [DiagnosticsConfig],
+});
+export type Diagnostics = typeof Diagnostics.Identifier;

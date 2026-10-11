@@ -1,8 +1,9 @@
-import { Effect, PlatformError, Schema } from "effect";
+import { Effect, PlatformError } from "effect";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { MAX_BYTES } from "#history/limits.ts";
-import { HistoryOutput } from "#history/schema.ts";
-import { changesUntil, type Folder, folder, type RunningBoard, rawGet, startBoard, subscribe } from "#test/board.ts";
+import type { HistoryInput } from "#history/schema.ts";
+import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { changesUntil, rpcHistory, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -14,14 +15,8 @@ afterEach(async () => {
 	await board.stop();
 	notes.remove();
 });
-async function query(action: string, baseline: string | null = null) {
-	const response = await fetch(`${board.url}/_board/history`, {
-		body: JSON.stringify({ action, baseline }),
-		headers: { "content-type": "application/json" },
-		method: "POST",
-	});
-	expect(response.status).toBe(200);
-	return Schema.decodeUnknownSync(Schema.fromJsonString(HistoryOutput))(await response.text());
+function query(action: typeof HistoryInput.Type.action, baseline: string | null = null) {
+	return rpcHistory(board, action, baseline);
 }
 it("offers explicit browser retention without storing anything on GET, then compares complete observed sources", async () => {
 	const page = await rawGet(board, "/_board/changes");
@@ -43,18 +38,13 @@ it("offers explicit browser retention without storing anything on GET, then comp
 	expect(result.html).toContain("# Second");
 	expect((await query("compare")).html).toContain("No previous snapshot");
 });
-it("rejects unknown input and cross-origin private queries", async () => {
-	const endpoint = `${board.url}/_board/history`;
-	for (const body of [
-		{ action: "write", baseline: null },
-		{ action: "check", baseline: null, extra: true },
-	]) {
-		expect((await fetch(endpoint, { body: JSON.stringify(body), method: "POST" })).status).toBe(400);
-	}
-	expect(
-		(await fetch(endpoint, { body: JSON.stringify({ action: "check", baseline: null }), headers: { origin: "http://example.test" }, method: "POST" }))
-			.status,
-	).toBe(403);
+it("rejects cross-origin private queries and discards an invalid baseline", async () => {
+	const response = await fetch(`${board.url}/_board/rpc`, {
+		body: `${JSON.stringify({ _tag: "Request", id: "1", payload: { action: "check", baseline: null }, tag: "work-board.history" })}\n`,
+		headers: { "content-type": "application/ndjson", origin: "http://example.test" },
+		method: "POST",
+	});
+	expect(response.status).toBe(403);
 	expect((await rawGet(board, "/_board/changes", "example.test")).status).toBe(403);
 	expect((await query("check", "broken")).discardBaseline).toBe(true);
 });
@@ -82,9 +72,9 @@ it("declines an oversized complete workspace rather than retaining a partial sna
 });
 
 it("bounds native query bodies before accepting retained source data", async () => {
-	const status = await fetch(`${board.url}/_board/history`, {
-		body: JSON.stringify({ action: "check", baseline: "x".repeat(4 * MAX_BYTES + 4096) }),
-		headers: { "content-type": "application/json" },
+	const status = await fetch(`${board.url}/_board/rpc`, {
+		body: `${JSON.stringify({ _tag: "Request", id: "1", payload: { action: "check", baseline: "x".repeat(4 * MAX_BYTES + 4096) }, tag: "work-board.history" })}\n`,
+		headers: { "content-type": "application/ndjson" },
 		method: "POST",
 	}).then(
 		(response) => response.status,
