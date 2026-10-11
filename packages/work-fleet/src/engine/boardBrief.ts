@@ -29,7 +29,7 @@ export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work:
 export function refreshBrief(state: EngineState) {
 	return Effect.fn("Fleet.refreshBrief")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
 		yield* authorizeBrief(work);
-		if (!briefChanged(stored.value, work)) {
+		if (!briefChanged(stored.value, work) || stored.value.launchRetry !== undefined) {
 			return stored;
 		}
 		return yield* state.save(stored, refreshedBrief(stored.value, work));
@@ -67,7 +67,6 @@ export function refreshedBrief(record: FleetRecord, work: BoardWork): FleetRecor
 		boardRevision: work.revision,
 		boardSourcePath: work.sourcePath,
 		checks: undefined,
-		launchRetry: undefined,
 		mergeReadyAt: undefined,
 		mergeReadyHead: undefined,
 		prompt,
