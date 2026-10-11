@@ -4,40 +4,40 @@ import type { PrismaError } from "./error.ts";
 
 type AnyFunction = (...arguments_: readonly never[]) => unknown;
 
-export type CollectionResult<Collection> = Collection extends {
-	all: () => infer Result;
+export type CollectionResult<TCollection> = TCollection extends {
+	all: () => infer TResult;
 }
-	? Awaited<Result>
+	? Awaited<TResult>
 	: never;
 
-type NormalizeTerminal<Name, Result> = Name extends "first" ? import("effect").Option.Option<Exclude<Result, null>> : Result;
+type NormalizeTerminal<TName, TResult> = TName extends "first" ? import("effect").Option.Option<Exclude<TResult, null>> : TResult;
 
-type WrapReturn<Name, Result, Contract, Model extends string, DatabaseId> =
-	Result extends PromiseLike<infer Value>
-		? Effect.Effect<NormalizeTerminal<Name, Awaited<Value>>, PrismaError>
-		: Result extends object
-			? Relation<Result, Contract, Model, DatabaseId>
+type WrapReturn<TName, TResult, TContract, TModel extends string, TDatabaseId> =
+	TResult extends PromiseLike<infer TValue>
+		? Effect.Effect<NormalizeTerminal<TName, Awaited<TValue>>, PrismaError>
+		: TResult extends object
+			? Relation<TResult, TContract, TModel, TDatabaseId>
 			: never;
 
-type WrapFunction<Name, Function_, Contract, Model extends string, DatabaseId> = Function_ extends {
-	(...arguments_: infer Arguments1): infer Result1;
-	(...arguments_: infer Arguments2): infer Result2;
-	(...arguments_: infer Arguments3): infer Result3;
-	(...arguments_: infer Arguments4): infer Result4;
-	(...arguments_: infer Arguments5): infer Result5;
-	(...arguments_: infer Arguments6): infer Result6;
+type WrapFunction<TName, TFunction, TContract, TModel extends string, TDatabaseId> = TFunction extends {
+	(...arguments_: infer TArguments1): infer TResult1;
+	(...arguments_: infer TArguments2): infer TResult2;
+	(...arguments_: infer TArguments3): infer TResult3;
+	(...arguments_: infer TArguments4): infer TResult4;
+	(...arguments_: infer TArguments5): infer TResult5;
+	(...arguments_: infer TArguments6): infer TResult6;
 }
-	? ((...arguments_: Arguments1) => WrapReturn<Name, Result1, Contract, Model, DatabaseId>) &
-			((...arguments_: Arguments2) => WrapReturn<Name, Result2, Contract, Model, DatabaseId>) &
-			((...arguments_: Arguments3) => WrapReturn<Name, Result3, Contract, Model, DatabaseId>) &
-			((...arguments_: Arguments4) => WrapReturn<Name, Result4, Contract, Model, DatabaseId>) &
-			((...arguments_: Arguments5) => WrapReturn<Name, Result5, Contract, Model, DatabaseId>) &
-			((...arguments_: Arguments6) => WrapReturn<Name, Result6, Contract, Model, DatabaseId>)
+	? ((...arguments_: TArguments1) => WrapReturn<TName, TResult1, TContract, TModel, TDatabaseId>) &
+			((...arguments_: TArguments2) => WrapReturn<TName, TResult2, TContract, TModel, TDatabaseId>) &
+			((...arguments_: TArguments3) => WrapReturn<TName, TResult3, TContract, TModel, TDatabaseId>) &
+			((...arguments_: TArguments4) => WrapReturn<TName, TResult4, TContract, TModel, TDatabaseId>) &
+			((...arguments_: TArguments5) => WrapReturn<TName, TResult5, TContract, TModel, TDatabaseId>) &
+			((...arguments_: TArguments6) => WrapReturn<TName, TResult6, TContract, TModel, TDatabaseId>)
 	: never;
 
-type FunctionKeys<Value> = {
-	[Key in keyof Value]-?: Value[Key] extends AnyFunction ? Key : never;
-}[keyof Value];
+type FunctionKeys<TValue> = {
+	[TKey in keyof TValue]-?: TValue[TKey] extends AnyFunction ? TKey : never;
+}[keyof TValue];
 
 type ExplicitPrismaMethod =
 	| "aggregate"
@@ -58,25 +58,25 @@ type ExplicitPrismaMethod =
 	| "sum"
 	| "variant";
 
-type RelationMethods<Collection, Contract, Model extends string, DatabaseId> = {
-	readonly [Key in Exclude<FunctionKeys<Collection>, ExplicitPrismaMethod>]: WrapFunction<Key, Collection[Key], Contract, Model, DatabaseId>;
+type RelationMethods<TCollection, TContract, TModel extends string, TDatabaseId> = {
+	readonly [TKey in Exclude<FunctionKeys<TCollection>, ExplicitPrismaMethod>]: WrapFunction<TKey, TCollection[TKey], TContract, TModel, TDatabaseId>;
 };
 
 declare const RelationQueryTypeId: unique symbol;
 
-export type RelationQuery<Value, Contract, Model extends string, DatabaseId> = Effect.Effect<Value, PrismaError> & {
+export type RelationQuery<TValue, TContract, TModel extends string, TDatabaseId> = Effect.Effect<TValue, PrismaError> & {
 	readonly [RelationQueryTypeId]: {
-		readonly contract: Contract;
-		readonly database: (database: DatabaseId) => DatabaseId;
-		readonly model: Model;
+		readonly contract: TContract;
+		readonly database: (database: TDatabaseId) => TDatabaseId;
+		readonly model: TModel;
 	};
 };
 
-export type Relation<Collection, Contract = undefined, Model extends string = string, DatabaseId = undefined> = RelationQuery<
-	CollectionResult<Collection>,
-	Contract,
-	Model,
-	DatabaseId
+export type Relation<TCollection, TContract = undefined, TModel extends string = string, TDatabaseId = undefined> = RelationQuery<
+	CollectionResult<TCollection>,
+	TContract,
+	TModel,
+	TDatabaseId
 > &
-	RelationMethods<Collection, Contract, Model, DatabaseId> &
-	PrismaRelationMethods<Collection, Contract, Model, DatabaseId>;
+	RelationMethods<TCollection, TContract, TModel, TDatabaseId> &
+	PrismaRelationMethods<TCollection, TContract, TModel, TDatabaseId>;
