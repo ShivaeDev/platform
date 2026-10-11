@@ -13,9 +13,7 @@
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-changes-prisma/src/write.test.ts","rule":"biome/lint/nursery/noComponentHookFactories","count":1}
-{"path":"packages/effect-changes-prisma/src/write.test.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-changes-prisma/src/write.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-changes-prisma/src/written.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-changes-prisma/src/written.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes/src/batch.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -142,7 +140,6 @@
 {"path":"packages/effect-prisma/src/internal/transactionConcurrency.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"biome/lint/style/useNamingConvention","count":31}
 {"path":"packages/effect-prisma/src/relation/include-metadata.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-prisma/src/relation/include.ts","rule":"biome/lint/style/useNamingConvention","count":44}
 {"path":"packages/effect-prisma/src/relation/include.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/relation/prisma-methods.ts","rule":"biome/lint/style/useNamingConvention","count":45}
 {"path":"packages/effect-prisma/src/relation/prisma-methods.ts","rule":"files/named-after-export","count":1}
