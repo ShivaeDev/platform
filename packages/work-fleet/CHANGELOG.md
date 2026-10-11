@@ -2,8 +2,7 @@
 
 ## Unreleased
 
-- Continue work waiting on a human merge on its existing worker thread, retaining the reviewed head in history and PR ownership until the new result is adopted.
-
+- Adopt PRs already merged at the reported head, including merges during review, then require independent approval and checks for that head before accepting observed human delivery. Retry failed adoption from the completed worker receipt instead of launching another worker; keep mismatched merges and unmerged closures waiting for a human.
 - Recover interrupted Cloud launches on the acknowledged thread: adopt matching accepted turns, wait five seconds for late acceptance, then start the saved turn only when the thread remains empty. Guided retry uses the same recovery for existing missing-turn decisions and retains the attempt identity; uncertain thread evidence stays blocked.
 - Check complete report bytes, including attachment links, before writing attachment files, so oversized reports leave no attachment folder. Name launching threads with one record lookup using the work ID retained from session acknowledgement.
 - Name Cloud threads from their Board work ID and first heading, with bounded titles and reviewer or separate repair labels. Add best-effort `work-fleet name-threads` backfill with per-session results and idempotent repeat runs.
@@ -49,6 +48,7 @@
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
 - Continue terminal needs-human or completed work on its existing worker thread with `work-fleet continue <id> <message>` or a message on stdin. Persist each message and attempt before submission, preserve the prior cycle in history, and reconcile lost acknowledgements without replay. Status and wait follow the continued turn and result; running and released work cannot be continued.
+- Continue work waiting on a human merge on its existing worker thread, retaining the reviewed head in history and PR ownership until the new result is adopted.
 
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
   transactional reservations, session/turn receipts and native command/query contracts.
