@@ -4,6 +4,7 @@
 
 - Schedule exact Board `areas` under PostgreSQL admission, keep eligible overlapping tasks in durable order, and expose area and dependency wait reasons in status, wait and Board views. Free held areas on completion, safe release or a reviewed, green PR’s merge wait. Add `areaMergeWaitMs` to Fleet policy and host configuration with a 30-minute default from readiness; delivery observation continues after that wait.
 - Admit `depends_on` targets without Fleet records when their Board status is `done`; targets with Fleet records still require accepted completion for the current Board revision.
+- Treat passing required checks at the reviewed head as CI evidence when job logs or artifacts are unavailable, with the limitation recorded in reviewer evidence. Ask once for a malformed verdict on the same reviewer thread before requiring a human; persist and reconcile that follow-up across restart.
 
 - Adopt PRs already merged at the reported head, including merges during review, then require independent approval and checks for that head before accepting observed human delivery. Retry failed adoption from the completed worker receipt instead of launching another worker; keep mismatched merges and unmerged closures waiting for a human.
 - Recover interrupted Cloud launches on the acknowledged thread: adopt matching accepted turns, wait five seconds for late acceptance, then start the saved turn only when the thread remains empty. Guided retry uses the same recovery for existing missing-turn decisions and retains the attempt identity; uncertain thread evidence stays blocked.
@@ -50,6 +51,8 @@
 - Select GitHub worker-result adoption in host configuration. Require a final PR marker and exact reported head, record the observed PR number and paginated changed paths, and reject closed PRs or revision movement. Reported no-change still requires independent review and validation.
 - Remove owned-path overlap blocking; overlapping work runs and Git resolves conflicts.
 - Dispatch prepared work concurrently.
+- Continue terminal needs-human or completed work on its existing worker thread with `work-fleet continue <id> <message>` or a message on stdin. Persist each message and attempt before submission, preserve the prior cycle in history, and reconcile lost acknowledgements without replay. Status and wait follow the continued turn and result; running and released work cannot be continued.
+- Continue work waiting on a human merge on its existing worker thread, retaining the reviewed head in history and PR ownership until the new result is adopted.
 
 - Add the optional Board-backed Fleet core with PostgreSQL attempt attachments,
   transactional reservations, session/turn receipts and native command/query contracts.

@@ -1,15 +1,12 @@
 import { Effect } from "effect";
-import { admit } from "#admit.ts";
+import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { submissionFailure } from "#engine/submissionFailure.ts";
-import { type Attempt, executing, type FleetRecord } from "#model.ts";
+import { executing, type FleetRecord } from "#model.ts";
 import { type DecisionResponse, FleetFailure } from "#policy.ts";
-import { reportPrompt } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function continueWorker(state: EngineState) {
 	return Effect.fn("Fleet.continueWorker")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[], prompt: string) {
-		const workerPrompt = stored.value.deliverable === "report" ? reportPrompt(prompt) : prompt;
 		const worker = stored.value.decision?.worker;
 		const latest = stored.value.attempts.at(-1);
 		if (
@@ -26,50 +23,6 @@ export function continueWorker(state: EngineState) {
 		if (work.revision !== stored.value.boardRevision) {
 			return yield* Effect.fail(new FleetFailure({ message: "Board context changed before worker continuation", reason: "stale" }));
 		}
-		const quota = yield* state.policy.refreshQuota === undefined ? Effect.succeed(state.policy.quota) : state.policy.refreshQuota();
-		yield* admit(
-			work,
-			(yield* state.store.list()).map(({ value }) => value),
-			{ ...state.policy, quota },
-			state.board.get,
-		);
-		const settings = { ...state.policy.launch, ...stored.value.launch };
-		const attempt: Attempt = {
-			operationId: state.policy.operationId(),
-			prompt: workerPrompt,
-			role: latest.role,
-			sessionId: worker.sessionId,
-			settings,
-			status: "submitting",
-			submittedAt: state.policy.now(),
-		};
-		yield* state.save(
-			stored,
-			{
-				...stored.value,
-				attempts: [...stored.value.attempts, attempt],
-				blocker: undefined,
-				decision: undefined,
-				mergeAreasReleased: undefined,
-				mergeReadyAt: undefined,
-				mergeReadyHead: undefined,
-				responses,
-				stage: "executing",
-			},
-			{ quota, role: attempt.role },
-		);
-		yield* state.sessions
-			.continue({
-				operationId: attempt.operationId,
-				prompt: workerPrompt,
-				sessionId: worker.sessionId,
-				settings,
-			})
-			.pipe(
-				Effect.catch((error) =>
-					submissionFailure(state, stored.value.workId, attempt.operationId, error, "Restore provider access and inspect the recorded answer"),
-				),
-			);
-		return yield* state.load(stored.value.workId);
+		return yield* makeLaunch(state)(stored, latest.role, prompt, { responses, sessionId: worker.sessionId });
 	});
 }
