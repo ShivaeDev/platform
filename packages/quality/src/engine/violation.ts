@@ -13,8 +13,8 @@ export const keyOf = (rule: string, file: string): string => `${rule}\u0000${fil
 export const byLocation = (left: Violation, right: Violation): number =>
 	left.rule.localeCompare(right.rule) || left.file.localeCompare(right.file) || (left.line ?? 0) - (right.line ?? 0);
 
-export const groupBy = <Item>(items: readonly Item[], key: (item: Item) => string): ReadonlyMap<string, readonly Item[]> => {
-	const groups = new Map<string, Item[]>();
+export const groupBy = <TItem>(items: readonly TItem[], key: (item: TItem) => string): ReadonlyMap<string, readonly TItem[]> => {
+	const groups = new Map<string, TItem[]>();
 	for (const item of items) {
 		const group = groups.get(key(item));
 		if (group === undefined) {
