@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Prefix relation include type parameters with `T` to follow the shared naming convention; query types and runtime behavior stay the same.
+- Use `T`-prefixed descriptive type parameter names in Relation types and internal testing and transaction helpers, preserving their type behavior.
 
 - Document the package purpose, query and transaction model, API and limits; add agent guidance and package north star and roadmap, and publish `docs/` with the README.
 

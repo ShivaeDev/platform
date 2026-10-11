@@ -6,9 +6,9 @@ import { genericMethod } from "#generic-method.ts";
 
 class Caller extends Context.Service<Caller, { readonly value: number }>()("test/GenericCaller") {}
 
-function preserve<Success, Failure, Requirements>(
-	effect: Effect.Effect<Success, Failure, Requirements>,
-): Effect.Effect<{ readonly value: Success }, Failure, Requirements> {
+function preserve<TSuccess, TFailure, TRequirements>(
+	effect: Effect.Effect<TSuccess, TFailure, TRequirements>,
+): Effect.Effect<{ readonly value: TSuccess }, TFailure, TRequirements> {
 	return Effect.map(effect, (value) => ({ value }));
 }
 
