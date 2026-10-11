@@ -5,7 +5,7 @@ import type { Observation } from "#observe.ts";
 
 it("an empty change list does not call observers or subscribers inside or outside a batch", () => {
 	const published: Array<readonly string[]> = [];
-	const observed: Array<Observation<string>> = [];
+	const observed: Observation<string>[] = [];
 	const channel = makeChannel<string>({
 		name: "EmptyChanges",
 		owner: Effect.succeed("request"),

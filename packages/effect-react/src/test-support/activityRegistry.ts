@@ -17,7 +17,7 @@ function Value({ atom }: { readonly atom: Atom.Atom<string> }) {
 	return createElement("span", null, useAtomValue(atom));
 }
 
-function ActivityProbe({ count, atoms, held }: { readonly count: number; readonly atoms: ReadonlyArray<Entry>; readonly held: Held }) {
+function ActivityProbe({ count, atoms, held }: { readonly count: number; readonly atoms: readonly Entry[]; readonly held: Held }) {
 	held.registry = useContext(RegistryContext);
 	const [draft] = useState("retained draft");
 	return createElement("output", null, draft, ...atoms.slice(0, count).map(({ atom, name }) => createElement(Value, { atom, key: name })));
