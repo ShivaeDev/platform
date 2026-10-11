@@ -32,6 +32,8 @@ it("returns Schema source, link targets, metadata and exact-context response rec
 	expect(result.links["task.md"]).toBe("/nested/task.md");
 	expect(result.links["../shots/review.png"]).toBe("/_board/attachment/shots/review.png");
 	expect(result.references["investigation.choices"]).toBe("/_board/item/investigation.choices/");
+	expect(result.questionActions["direction/display"]).toBe("/_board/respond?item=investigation.choices&request=direction");
+	expect(result.questionActions["/checks"]).toBe(result.questionActions["direction/display"]);
 	expect(Object.keys(result).sort()).toEqual([
 		"diagnostics",
 		"file",
@@ -39,6 +41,7 @@ it("returns Schema source, link targets, metadata and exact-context response rec
 		"links",
 		"metadata",
 		"modified",
+		"questionActions",
 		"references",
 		"requests",
 		"source",
@@ -86,6 +89,7 @@ it("refreshes query data when a referenced identity becomes ambiguous", async ()
 	});
 	const fresh = await client.read(atom);
 	expect(fresh.identity).toBeUndefined();
+	expect(fresh.questionActions).toEqual({});
 	expect(fresh.requests[0]).toMatchObject({ open: false, unavailable: expect.stringContaining("ambiguous") });
 	expect(fresh.requests[0]?.responses).toBeUndefined();
 	release();

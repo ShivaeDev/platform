@@ -43,7 +43,7 @@ export function DocumentView({ document, idPrefix = "" }: DocumentViewProps) {
 					documentLinks(document.file, document.links),
 					documentHeadings(true).plugin,
 				],
-				remarkPlugins: documentPlugins,
+				remarkPlugins: documentPlugins(new Map(Object.entries(document.questionActions))),
 			},
 			document.source,
 		),

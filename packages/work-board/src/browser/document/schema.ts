@@ -17,6 +17,7 @@ export const Document = Schema.Struct({
 	links: Schema.Record(Schema.String, Schema.String),
 	metadata: Metadata,
 	modified: Schema.Number,
+	questionActions: Schema.Record(Schema.String, Schema.String),
 	references: Schema.Record(Schema.String, Schema.String),
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,

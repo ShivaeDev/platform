@@ -22,9 +22,9 @@ const editor = useEditor({
 
 ### How to think about it
 
-State belongs to an **atom in a registry**. A query hook reads that atom's native `AsyncResult`; an action hook reads and dispatches a native action atom. Two readers of the same query share its execution. Changing the query atom changes the data being read: the hook does not carry the previous atom's data into the next one.
+State belongs to an **atom in a registry**. A query hook reads that atom's native `AsyncResult`; an action hook reads and dispatches a native action atom. Two readers of the same query share its execution. Changing the query atom resets displayed data by default. An application can use `useQuery(atom, { keepPreviousData: true })` to keep the last successful value while a changed payload loads or fails. This retained display belongs to the hook and clears when its registry changes; native atoms still own execution and caching. Editors keep the default reset so a new record starts a new form.
 
-`useQuery` and `useAction` turn native results into `data`, `cause`, `pending` and `refreshing`. A refresh or failure can still contain a previous success, so a component can show data and an error together. Keep the atom's identity stable for the same work: declare it outside render or use the native family's identity, such as `AtomRpc.Service.query(...)`.
+`useQuery` and `useAction` turn native results into `data`, `cause`, `pending` and `refreshing`. A query's same-identity refresh always keeps the last successful value, including after a typed failure, so a component can show data and an error together. An action uses the native result's retained success. Keep the atom's identity stable for the same work: declare it outside render or use the native family's identity, such as `AtomRpc.Service.query(...)`.
 
 An **editor** joins a query atom, an effect-form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. effect-form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
@@ -281,16 +281,16 @@ const query = Atom.swr(atom, {
 | Field | Meaning |
 | --- | --- |
 | `result` | Native `AsyncResult<A, E>`. |
-| `data` | `Option<A>` from the current or retained successful result. |
+| `data` | `Option<A>` from the current or retained success. Queries can retain displayed data even when the native `result` has no value. |
 | `cause` | `Option<Cause<E>>` from a failed result. |
 | `pending` | The native result is waiting. |
 | `refreshing` | The result is waiting and successful data is available. |
 
-`useQuery` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. Success, input and typed failure types are inferred from the supplied atom.
+`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom.
 
 | Defining module | Exports |
 | --- | --- |
-| `result-state.ts` | `useQuery`, `useAction`, `isUnauthorized`; `ResultState`, `QueryState`, `ActionState`. |
+| `result-state.ts` | `useQuery`, `useAction`, `isUnauthorized`; `ResultState`, `QueryOptions`, `QueryState`, `ActionState`. |
 | `session-boundary.ts` | `SessionBoundary`, `useSessionRecheck`; `SessionBoundaryProps`. |
 | `editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
 | `create.ts` | `useCreate`; `Create`, `CreateConfig`. |

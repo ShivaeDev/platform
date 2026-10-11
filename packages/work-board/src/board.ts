@@ -118,9 +118,14 @@ function routes(options: BoardOptions) {
 				changes,
 				document: (url) =>
 					Effect.provideContext(
-						readDocument({ changes, home, index: Effect.provideContext(index, context), root: options.root, writable: options.responses === true })(
-							url,
-						),
+						readDocument({
+							changes,
+							home,
+							index: Effect.provideContext(index, context),
+							responses,
+							root: options.root,
+							writable: options.responses === true,
+						})(url),
 						context,
 					),
 				handoffs,
