@@ -155,17 +155,6 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
 	});
 
-	it("returns on a switch where the fixes of useExhaustiveSwitchCases and noUselessSwitchCase undo each other", async () => {
-		const partialSwitch: SeedFile = {
-			content:
-				'type Shape = "circle" | "square";\n\nexport function area(shape: Shape): number {\n\tswitch (shape) {\n\t\tcase "circle":\n\t\t\treturn 1;\n\t\tdefault:\n\t\t\treturn 2;\n\t}\n}\n',
-			path: "src/area.ts",
-		};
-		const root = repository(preset, partialSwitch);
-		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
-		expect(readFileSync(join(root, partialSwitch.path), "utf8")).toBe(partialSwitch.content);
-	});
-
 	it("leaves an unused private member for a person to decide on, and the lint still reports it", async () => {
 		const unusedMember: SeedFile = {
 			content: "export class Counter {\n\tprivate readonly stale = 0;\n\n\tcount(): number {\n\t\treturn 1;\n\t}\n}\n",

@@ -31,12 +31,12 @@
 	},
 	{
 		"includes": ["**"],
-		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"reason": "Awaiting a promise changes timing, conditional results and rejection handling; the author must choose who owns the promise.",
 		"rule": "lint/nursery/noMisusedPromises"
 	},
 	{
 		"includes": ["**"],
-		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"reason": "Adding cases that fall through to default conflicts with noUselessSwitchCase; write explicit cases that preserve the intended fallback by hand.",
 		"rule": "lint/nursery/useExhaustiveSwitchCases"
 	},
 	{
@@ -61,7 +61,7 @@
 	},
 	{
 		"includes": ["**"],
-		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
+		"reason": "Replacing loose null equality with strict equality loses the undefined case; write explicit checks for both null and undefined.",
 		"rule": "lint/suspicious/noEqualsToNull"
 	},
 	{
