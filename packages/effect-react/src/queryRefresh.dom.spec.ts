@@ -4,7 +4,7 @@ import * as Atom from "effect/unstable/reactivity/Atom";
 import { act } from "react";
 import { expect, it } from "vitest";
 import { finishQuery, queryRequests, queryView, type Unavailable } from "#test/queryView.ts";
-import { expectNoReactWarnings } from "#test/react.ts";
+import { expectNoReactWarnings } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

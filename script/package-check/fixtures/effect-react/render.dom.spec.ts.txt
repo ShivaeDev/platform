@@ -1,0 +1,32 @@
+import { Effect, Option } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import { createElement } from "react";
+import { expect, it } from "vitest";
+import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { eventually, expectNoReactWarnings, render, type Rendered } from "@shivaedev/effect-react/testing.ts";
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+expectNoReactWarnings();
+
+it("renders with the packed testing entry and releases the registry", async () => {
+  let finalized = false;
+  const resource = Atom.keepAlive(Atom.make((get) => {
+    get.addFinalizer(() => { finalized = true; });
+    return "ready";
+  }));
+  const query = Atom.make(Effect.succeed("settled").pipe(Effect.delay("20 millis")));
+  function Component() {
+    return createElement("output", null, Option.getOrNull(useQuery(query).data));
+  }
+  const view: Rendered = await render(createElement(Component));
+  try {
+    expect(view.registry.get(resource)).toBe("ready");
+    await eventually(() => expect(view.container.textContent).toBe("settled"));
+    await view.render(createElement("output", null, "rerendered"));
+    expect(view.container.textContent).toBe("rerendered");
+  } finally {
+    await view.unmount();
+  }
+  expect(finalized).toBe(true);
+  expect(view.container.isConnected).toBe(false);
+});
