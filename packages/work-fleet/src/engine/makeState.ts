@@ -63,7 +63,14 @@ export const makeState = Effect.gen(function* () {
 			recommendation,
 			...(worker === undefined ? {} : { worker }),
 		};
-		const updated = yield* save(stored, { ...stored.value, blocker: undefined, decision: value, decisionPublished: false, stage: "needs-human" });
+		const updated = yield* save(stored, {
+			...stored.value,
+			blocker: undefined,
+			decision: value,
+			decisionPublished: false,
+			launchRetry: undefined,
+			stage: "needs-human",
+		});
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
