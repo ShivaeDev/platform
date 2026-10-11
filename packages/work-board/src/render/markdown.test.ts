@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 
 function render(source: string) {

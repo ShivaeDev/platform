@@ -1,7 +1,6 @@
 import type { Root } from "hast";
 import { createHighlighter, type Highlighter } from "shiki";
-import { codeBlocks } from "#render/code.ts";
-import { THEMES } from "#render/highlighter.ts";
+import { codeBlocks, THEMES } from "#render/code.ts";
 
 let highlighter: Promise<Highlighter> | undefined;
 
