@@ -571,7 +571,7 @@
 				"noShadow": "error",
 				"noShadowRestrictedNames": "error",
 				"noShorthandPropertyOverrides": "error",
-				"noSkippedTests": "off",
+				"noSkippedTests": { "fix": "none", "level": "error" },
 				"noSparseArray": "error",
 				"noSuspiciousSemicolonInJsx": "error",
 				"noTemplateCurlyInString": "error",
