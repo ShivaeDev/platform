@@ -35,7 +35,39 @@ An **Origin policy** is a function of the transport request's origin, headers an
 
 The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, `node-http/` combines subscription cancellation sources, `better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `testing/vitest.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
 
-### 1. Once per application: the server boundary
+### Host the application
+
+`appHost` is the server entry point for a local PostgreSQL app. Supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
+
+```ts
+import { NodeRuntime } from "@effect/platform-node";
+import { Layer } from "effect";
+import { appHost } from "@shivaedev/platform/appHost.ts";
+import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
+
+const Server = appHost({
+  group: Api,
+  handlers: Handlers,
+  services: Services,
+  migrations: { loader: migrations },
+  sessions,
+  assets: "./public",
+});
+
+NodeRuntime.runMain(Layer.launch(Server));
+```
+
+`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `errors/`, `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
+
+The listener binds `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `port` (0 selects an ephemeral port), `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
+
+RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. Contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+
+A subscription handler reads `AppChanges` and returns `changes.stream(keys)` after its authorization check. Writes use `transact` and `invalidateOnCommit` from effect-sql: local streams receive committed invalidations and rollback emits none. For delivery between processes, set `config.changes: { channel: "app_changes" }`; the host binds PostgreSQL LISTEN/NOTIFY to the same SQL pool and resyncs streams when its listener recovers. The native heartbeat and retry options may be supplied in `changes`. A worker can provide `appDatabase({ migrations, config })` to its service Layer to share this database and delivery composition without starting HTTP.
+
+The [composed PostgreSQL fixture](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) uses this host for its HTTP servers and `appDatabase` for its worker. It proves commit visibility, rollback silence, typed refusals and delivery between server processes. Platform's host tests also cover static files, environment configuration, guard rejection before session lookup, startup ordering, migration failure and scoped shutdown.
+
+### 1. Once per application: contracts and session policy
 
 Declare the RPC group in a shared module:
 
@@ -68,54 +100,20 @@ export const Handlers = Account.toLayer({
 
 The middleware declaration makes `Identity` available to guarded handlers and adds `Unauthorized`, `AuthUnavailable` and `Forbidden` to the client's failure type. An unguarded handler that requires `Identity` cannot become a service-free handler Layer. Keep the group declaration in the shared module and the handler implementation on the server when organizing application files.
 
-Supply a provider and an explicit Origin policy on the server:
-
-```ts
-import { Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
-import { trustedOrigins } from "@shivaedev/platform/rpc-server/origin.ts";
-import {
-  authenticatedLayer,
-  type SessionProvider,
-  type SessionShape,
-} from "@shivaedev/platform/rpc-server/session.ts";
-import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
-import { Account, Handlers } from "./account.ts";
-
-export function accountServer(provider: SessionProvider<SessionShape>) {
-  const Middleware = Layer.mergeAll(
-    authenticatedLayer({
-      origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-      provider,
-    }),
-    requestTracingLayer(),
-  );
-
-  return HttpRouter.toWebHandler(
-    RpcServer.layerHttp({ group: Account, path: "/rpc", protocol: "http" }).pipe(
-      Layer.provide(Handlers),
-      Layer.provide(Middleware),
-      Layer.provide(RpcSerialization.layerJson),
-    ),
-    { disableLogger: true },
-  );
-}
-```
-
-`accountServer` returns the native Web handler and its disposal function. The example uses an exact allowlist and rejects a missing Origin. `trustedOrigins({ allow, missing })` also supports `missing: "allow"`; a custom `OriginPolicy` can make the decision depend on `rpc` or transport headers. A denied Origin fails with `Forbidden` before the provider is consulted.
-
-For a Better Auth provider, adapt its existing session lookup:
+Supply a provider and an explicit Origin policy as the host's `sessions` input. For a Better Auth provider, adapt its existing session lookup:
 
 ```ts
 import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
-import { accountServer } from "./account-server.ts";
+import { trustedOrigins } from "@shivaedev/platform/rpc-server/origin.ts";
 import { auth } from "./auth.ts";
 
-export const server = accountServer(
-  betterAuthSessions((headers) => auth.api.getSession({ headers })),
-);
+export const sessions = {
+  origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
+  provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+};
 ```
+
+`trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. The host's HTTP guard also checks Origin against the local request's Host.
 
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
@@ -355,6 +353,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
+| `appHost.ts` | `appHost({ group, handlers, services, migrations, sessions, assets?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppDatabaseOptions`: scoped local HTTP and PostgreSQL composition. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. |
@@ -392,6 +391,7 @@ Install the optional peers for the selected integration:
 
 | Integration | Additional peers |
 | --- | --- |
+| `appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
 | `better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
 | `testing/vitest.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 

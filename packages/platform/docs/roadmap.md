@@ -4,6 +4,8 @@ This file owns Platform's module implementation, package tests and scope questio
 
 ## Built
 
+- [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker.
+
 - [x] Shared Schema tagged errors and field-rejection extraction, with native RPC JSON and tRPC rejection tests.
 - [x] Browser-safe native RPC middleware declarations and request-id, identity and optional-identity services, with compile-time checks on guarded handlers.
 - [x] Request-local session middleware, a Better Auth session-provider boundary and an explicit Origin policy. Tests cover concurrent identities, anonymous callers, provider failures and rejection before provider lookup.
