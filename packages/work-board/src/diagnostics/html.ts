@@ -73,7 +73,7 @@ function fleet(value: FleetHealth, now: number): string {
 	if (now < value.observedAt) {
 		freshness = "Publisher clock is ahead";
 	} else if (now - value.observedAt > value.staleAfterMs) {
-		freshness = "Stale snapshot — Fleet may be stopped or unable to publish";
+		freshness = "Stale snapshot — Fleet has not refreshed its health";
 	}
 	return `<p class="diagnostics-freshness">${freshness}</p><dl class="diagnostics-metrics"><div><dt>Running / concurrency cap</dt><dd><strong>${value.running} / ${value.concurrency}</strong></dd></div><div><dt>Queued</dt><dd><strong>${value.queued}</strong></dd></div>${Object.entries(
 		value.waiting,

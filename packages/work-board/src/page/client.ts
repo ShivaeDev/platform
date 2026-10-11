@@ -1,3 +1,5 @@
+import { itemContextScript } from "./itemContextScript.ts";
+
 export const client = `
 import "/_board/diagnostics.js";
 import "/_board/saved-views.js";
@@ -14,6 +16,7 @@ import { session } from "/_board/native.js";
 
 
 document.documentElement.dataset.js = "true";
+${itemContextScript()}
 remember(document.getElementById("files"));
 remember(document.getElementById("doc"));
 
