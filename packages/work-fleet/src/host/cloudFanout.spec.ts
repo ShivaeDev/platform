@@ -4,6 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
+import { readWaitStates } from "#host/readWaitStates.ts";
 import { cloudFanout } from "#test/cloudFanout.ts";
 import { hostProcess, until } from "#test/cloudRestart.ts";
 import { codexServer } from "#test/codex.ts";
@@ -19,7 +20,14 @@ function records(fixture: HostFixture) {
 
 const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostFixture, backend: ReturnType<typeof cloudFanout>) {
 	const first = yield* hostProcess(fixture.configFile);
-	yield* until(() => Effect.succeed({ done: backend.operations.size === 100, progress: backend.sessions.length + backend.operations.size }));
+	yield* until(() =>
+		readWaitStates(fixture.host).pipe(
+			Effect.map((admitted) => ({
+				done: backend.operations.size === 100,
+				progress: admitted.length + backend.sessions.length + backend.operations.size,
+			})),
+		),
+	);
 	const before = yield* records(fixture);
 	expect(before).toHaveLength(100);
 	expect(
