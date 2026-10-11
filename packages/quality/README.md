@@ -42,7 +42,7 @@ export default defineConfig({
 });
 ```
 
-This supplies the source location and the repository's type-check command, while keeping Quality's rule settings at their defaults. The hook can also lower staged debt as it is repaired. The config's folder is the root for paths and commands. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips files ignored by git and the `.git` and `node_modules` directories. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+This supplies the source location and the repository's type-check command, while keeping Quality's rule settings at their defaults. The hook can also lower staged debt as it is repaired. The config's folder is the root for paths and commands. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
 
 `defineConfig` checks the config's types. The CLI also validates it: an unknown rule id fails before checks run, and enabled built-in rules reject unknown options. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md) and [naming reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/naming.md) explain the shared checks. Their option inventory describes accepted inputs; you do not need to fill it out to adopt the policy.
 
@@ -89,7 +89,7 @@ export default defineConfig({
 });
 ```
 
-This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The [import reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#imports) covers resolution, selectors and generated files.
+This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The default `imports/no-test-code` rule rejects production imports of either, including type imports and re-exports. Move shared code into a production module that tests can import. The [import reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#imports) covers resolution, selectors and generated files.
 
 ### Story tests
 

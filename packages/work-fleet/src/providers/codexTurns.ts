@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { type Item, ItemsResponse, TurnsResponse } from "#providers/codexProtocol.ts";
+import { type Item, ItemsResponse, type Turn, TurnsResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
 import { makeWaitUntilIdle } from "#providers/makeWaitUntilIdle.ts";
 import { reportLimit } from "#reportLimits.ts";
-import type { SessionFailure, SessionReceipt } from "#session/schema.ts";
+import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 
 export type CodexRequest = (method: string, params: unknown, mutation?: boolean) => Effect.Effect<unknown, SessionFailure>;
 function finalOutput(items: readonly (typeof Item.Type)[]) {
@@ -11,12 +11,12 @@ function finalOutput(items: readonly (typeof Item.Type)[]) {
 	const final = messages.filter((item) => item.phase === "final_answer");
 	return (final.length > 0 ? final : messages).map((item) => item.text).join("\n");
 }
-function rememberCursor(cursors: Set<string>, cursor: string | null) {
+function rememberCursor(cursors: Set<string>, cursor: string | null, message = "Codex repeated an item pagination cursor") {
 	if (cursor === null) {
 		return Effect.void;
 	}
 	if (cursors.has(cursor)) {
-		return Effect.fail(failure("protocol", "Codex repeated an item pagination cursor"));
+		return Effect.fail(failure("protocol", message));
 	}
 	cursors.add(cursor);
 	return Effect.void;
@@ -46,20 +46,28 @@ export function codexTurns(rpc: CodexRequest) {
 	const waitUntilIdle = makeWaitUntilIdle((sessionId, cursor) => turns(sessionId, cursor, false));
 	const operationTurn = Effect.fn("Codex.operationTurn")(function* (sessionId: string, operationId: string) {
 		let cursor: string | null = null;
-		const matching: string[] = [];
+		const matching: (typeof Turn.Type)[] = [];
+		const cursors = new Set<string>();
 		let empty = true;
 		do {
 			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, true);
 			empty = empty && page.data.length === 0;
-			matching.push(
-				...page.data.filter((turn) => turn.items.some((item) => item.type === "userMessage" && item.clientId === operationId)).map((turn) => turn.id),
-			);
-			if (matching.length > 1) {
-				return yield* Effect.fail(failure("ambiguous", "Multiple Codex turns match one operation; retain reservation"));
-			}
+			matching.push(...page.data.filter((turn) => turn.items.some((item) => item.type === "userMessage" && item.clientId === operationId)));
 			cursor = page.nextCursor;
+			yield* rememberCursor(cursors, cursor, "Codex repeated a turn pagination cursor");
 		} while (cursor !== null);
-		const [turnId] = matching;
+		if (matching.length > 1) {
+			return yield* Effect.fail(
+				new SessionFailure({
+					message: "Multiple Codex turns match one operation; retain reservation",
+					reason: "ambiguous",
+					...(matching.every((turn) => turn.status !== "inProgress")
+						? { terminalReceipts: matching.map((turn) => ({ sessionId, turnId: turn.id })) }
+						: {}),
+				}),
+			);
+		}
+		const turnId = matching[0]?.id;
 		if (turnId === undefined && !empty) {
 			return yield* Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
 		}

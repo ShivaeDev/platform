@@ -651,6 +651,9 @@ importers:
       '@shivaedev/effect-form':
         specifier: workspace:*
         version: link:../effect-form
+      '@shivaedev/effect-pg-boss':
+        specifier: workspace:*
+        version: link:../effect-pg-boss
       '@shivaedev/effect-service':
         specifier: workspace:*
         version: link:../effect-service

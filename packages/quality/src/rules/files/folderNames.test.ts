@@ -26,6 +26,7 @@ describe("files/folder-names", () => {
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"packages/app/content/Forest-Path",
 			"packages/app/src/Toolbar",
+			"packages/app/src/generated/Client",
 			"packages/app/src/testSupport",
 			"packages/kit",
 		]);
@@ -36,6 +37,7 @@ describe("files/folder-names", () => {
 		expect(findings.map((finding) => finding.message)).toEqual([
 			'"Forest-Path" holds content, so it is named in snake_case, such as forest_path/.',
 			'"Toolbar" is PascalCase but holds no Toolbar.ts or Toolbar.tsx. A PascalCase folder is a module named after its main file: add that file, or name the folder in kebab-case.',
+			'"Client" is PascalCase but holds no Client.ts or Client.tsx. A PascalCase folder is a module named after its main file: add that file, or name the folder in kebab-case.',
 			'"testSupport" groups files, so it is named in kebab-case, such as test-support/. A folder named after a file beside or inside it is a module and takes that file\'s name.',
 			'The folder of the package @demo/ui-kit is named "ui-kit", in kebab-case after the package name.',
 		]);
