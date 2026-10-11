@@ -34,32 +34,35 @@ describe("reviewer evidence and verdict follow-up", () => {
 		));
 	for (const malformed of ["Cannot see CI job logs: HTTP 403", "FLEET_REVIEW: invalid"]) {
 		test(`continues the same reviewer thread once to fix ${JSON.stringify(malformed)}`, () =>
-			withEngine({ launch: { effort: "high", model: "host-model" }, reviewRunning: true }, (fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					yield* fleet.dispatch("one");
-					finishWorkers(fixture);
-					const reviewing = yield* fleet.reconcile("one");
-					const original = yield* reviewerReply(fixture, reviewing, malformed);
-					const followUp = yield* fleet.reconcile("one");
-					const attempt = followUp.value.attempts.at(-1);
-					expect(followUp.value.stage).toBe("reviewing");
-					expect(followUp.value.decision).toBeUndefined();
-					expect(followUp.value.review).toBeUndefined();
-					expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", sessionId: original.sessionId });
-					expect(attempt?.receipt?.turnId).not.toBe(original.turnId);
-					expect(attempt?.prompt).toContain("Your previous reply did not contain a parseable verdict");
-					expect(attempt?.prompt).toContain('"verdict":"approve"');
-					expect(attempt?.settings).toEqual({ effort: "high", model: "host-model" });
-					expect(followUp.value.attempts.at(-2)?.output).toBe(malformed);
-					const receipt = yield* reviewerReply(fixture, followUp, approval);
-					const completed = yield* fixture.restart(fleet.reconcile("one"));
-					expect(completed.value.stage).toBe("completed");
-					expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
-					expect(fixture.launched).toHaveLength(2);
-					expect(completed.value.attempts).toHaveLength(3);
-				}),
+			withEngine(
+				{ launch: { effort: "high", model: "host-model" }, reviewerGuidance: "Inspect synthetic database checks.", reviewRunning: true },
+				(fixture) =>
+					Effect.gen(function* () {
+						yield* prepareWork("one");
+						const fleet = yield* Fleet;
+						yield* fleet.dispatch("one");
+						finishWorkers(fixture);
+						const reviewing = yield* fleet.reconcile("one");
+						const original = yield* reviewerReply(fixture, reviewing, malformed);
+						const followUp = yield* fleet.reconcile("one");
+						const attempt = followUp.value.attempts.at(-1);
+						expect(followUp.value.stage).toBe("reviewing");
+						expect(followUp.value.decision).toBeUndefined();
+						expect(followUp.value.review).toBeUndefined();
+						expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", sessionId: original.sessionId });
+						expect(attempt?.receipt?.turnId).not.toBe(original.turnId);
+						expect(attempt?.prompt).toContain("Your previous reply did not contain a parseable verdict");
+						expect(attempt?.prompt).toContain("Inspect synthetic database checks.");
+						expect(attempt?.prompt).toContain('"verdict":"approve"');
+						expect(attempt?.settings).toEqual({ effort: "high", model: "host-model" });
+						expect(followUp.value.attempts.at(-2)?.output).toBe(malformed);
+						const receipt = yield* reviewerReply(fixture, followUp, approval);
+						const completed = yield* fixture.restart(fleet.reconcile("one"));
+						expect(completed.value.stage).toBe("completed");
+						expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
+						expect(fixture.launched).toHaveLength(2);
+						expect(completed.value.attempts).toHaveLength(3);
+					}),
 			));
 	}
 	test("reconciles a lost follow-up acknowledgement on the same thread after restart", () =>
