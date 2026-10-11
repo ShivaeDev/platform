@@ -1,14 +1,11 @@
-import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
 import { type Create, useCreate } from "#create.ts";
 import { type Editor, useEditor } from "#editor.ts";
-import { eventually, expectNoReactWarnings } from "#test/react.ts";
+import { eventually, expectNoReactWarnings, render } from "#testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -28,14 +25,8 @@ interface Order {
 const runtime = Atom.runtime(Layer.empty);
 
 async function mount(Component: () => null) {
-	const container = document.createElement("div");
-	const root = createRoot(container);
-	const registry = AtomRegistry.make();
-	cleanups.push(async () => {
-		await act(async () => root.unmount());
-		registry.dispose();
-	});
-	await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(Component))));
+	const { registry, unmount } = await render(createElement(Component));
+	cleanups.push(unmount);
 	return registry;
 }
 

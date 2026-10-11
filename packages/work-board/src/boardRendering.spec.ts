@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { boardHtml } from "#page/board.ts";
 import { boardOf, countsOf } from "#render/board.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 
 const notes = `# Project notes
 

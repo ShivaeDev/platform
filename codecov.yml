@@ -74,6 +74,10 @@ component_management:
       name: "@shivaedev/effect-test"
       paths:
         - "packages/effect-test/src/**"
+    - component_id: effect-test-sql
+      name: "@shivaedev/effect-test-sql"
+      paths:
+        - "packages/effect-test-sql/src/**"
     - component_id: effect-trpc
       name: "@shivaedev/effect-trpc"
       paths:

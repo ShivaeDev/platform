@@ -1,31 +1,30 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
+import { boardServices } from "#boardServices.ts";
 import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
-import { DiagnosticsSources, diagnostics } from "#diagnostics/source.ts";
+import { Diagnostics, DiagnosticsSources } from "#diagnostics/source.ts";
 import { readDocument } from "#document/read.ts";
 import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
-import { handoffService } from "#handoffs/service.ts";
+import type { HandoffsService } from "#handoffs/Service.ts";
 import { ASSETS, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot, NATIVE_ROUTE, nativeAsset } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
-import { events } from "#http/events.ts";
-import { changesPage, history } from "#http/history.ts";
+import { changesPage } from "#http/changesPage.ts";
 import { identity } from "#http/identity.ts";
 import { inbox } from "#http/inbox.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { readPage } from "#http/readPage.ts";
 import { respond } from "#http/respond.ts";
-import { search } from "#http/search.ts";
 import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import { Highlighter } from "#render/highlighter.ts";
+import { Highlighter } from "#render/Highlighter.ts";
 import { responsePage } from "#responses/page.ts";
-import { responseService } from "#responses/service.ts";
+import type { Responses } from "#responses/service.ts";
 import { resultPage } from "#results/page.ts";
 import { server } from "#rpc/server.ts";
 import { searchSnapshot } from "#search/snapshot.ts";
@@ -38,7 +37,7 @@ export interface BoardOptions {
 	readonly root: string;
 }
 
-type Services = Highlighter | FileSystem.FileSystem | Path.Path;
+type Services = Highlighter | Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
 
 function routes(options: BoardOptions) {
@@ -47,7 +46,18 @@ function routes(options: BoardOptions) {
 			const home = yield* homeIn(options.root, options.home);
 			const mermaid = yield* mermaidRoot();
 			const changes = yield* watchChanges(options.root);
-			const context = (yield* Effect.context<Services>()).pipe(Context.pick(Highlighter, FileSystem.FileSystem, Path.Path));
+			const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
+				Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
+			);
+			const index = yield* searchSnapshot(options.root, home, changes, options.maintainer);
+			const provided = yield* Effect.serviceOption(DiagnosticsSources);
+			const services = yield* Layer.build(
+				boardServices(
+					{ changes, enabled: options.responses === true, index: Effect.provideContext(index, platform), root: options.root },
+					provided._tag === "Some" ? { _tag: "Sources", sources: provided.value } : { _tag: "Read", read: daemonDiagnostics(options.fleetPort) },
+				),
+			);
+			const context = Context.merge(platform, services);
 			function serve<E>(route: HttpRouter.PathInput, handler: Handler<E>, method: "GET" | "POST" = "GET") {
 				return router.add(
 					method,
@@ -55,14 +65,14 @@ function routes(options: BoardOptions) {
 					loopbackOnly((request) => Effect.provideContext(handler(request), context)),
 				);
 			}
-			yield* serve("/events", events(changes));
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
-			const index = yield* searchSnapshot(options.root, home, changes, options.maintainer);
-			const provided = yield* Effect.serviceOption(DiagnosticsSources);
-			const read = provided._tag === "Some" ? yield* diagnostics(provided.value) : daemonDiagnostics(options.fleetPort);
-			const healthPage = diagnosticsPage(read, changes, home, index);
+			const healthPage = diagnosticsPage(
+				Effect.flatMap(Diagnostics, (service) => service.read()).pipe(Effect.provideContext(context)),
+				changes,
+				home,
+				index,
+			);
 			yield* serve("/_board/diagnostics", () => healthPage);
-			yield* serve("/_board/search", search(index));
 			const inboxPage = inbox(index, changes, home);
 			yield* serve("/_board/inbox", inboxPage);
 			const startPage = start(changes, home, index);
@@ -75,32 +85,19 @@ function routes(options: BoardOptions) {
 			yield* serve("/_board/work", workPage);
 			yield* serve("/_board/overview", overviewPage);
 			yield* serve("/_board/changes", historyPage);
-			yield* serve("/_board/history", history(index), "POST");
 			for (const [route, body, contentType] of ASSETS) {
 				yield* serve(route, () => Effect.succeed(respond(body, contentType)));
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
 			yield* serve(NATIVE_ROUTE, nativeAsset);
-			const responses = yield* responseService({
-				changes,
-				enabled: options.responses === true,
-				index: Effect.provideContext(index, context),
-				root: options.root,
-			});
-			const replyPage = responsePage(responses, changes, home, options.responses === true, index);
+			const replyPage = responsePage(changes, home, options.responses === true, index);
 			yield* serve("/_board/respond", replyPage);
-			const handoffs = yield* handoffService({
-				changes,
-				enabled: options.responses === true,
-				index: Effect.provideContext(index, context),
-				root: options.root,
-			});
-			const handoff = handoffPage(handoffs, changes, home, options.responses === true, index);
+			const handoff = handoffPage(changes, home, options.responses === true, index);
 			yield* serve("/_board/handoff", handoff);
-			const pages = page({ home, responses, root: options.root, writable: options.responses === true }, changes, index);
+			const pages = page({ home, root: options.root, writable: options.responses === true }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
-			const reading = readPage(
+			const reading = readPage<PlatformError.PlatformError, Services>(
 				{
 					"/_board/changes": () => historyPage(),
 					"/_board/diagnostics": () => healthPage,
@@ -122,18 +119,15 @@ function routes(options: BoardOptions) {
 							changes,
 							home,
 							index: Effect.provideContext(index, context),
-							responses,
 							root: options.root,
 							writable: options.responses === true,
 						})(url),
 						context,
 					),
-				handoffs,
 				home,
 				index: Effect.provideContext(index, context),
 				page: (url) => Effect.provideContext(reading(url), context),
-				responses,
-			});
+			}).pipe(Effect.provideContext(context));
 			yield* serve("/_board/rpc", (request) => rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request)), "POST");
 			yield* serve("/", pages);
 			yield* serve("/*", pages);

@@ -481,7 +481,7 @@ Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-bo
 | `--port <number>` | Select the shared server's port; default `4747` |
 | `--url <origin>` | Select an HTTP loopback origin instead of `--port` |
 
-The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/work`, `/_board/overview`, `/_board/changes`, `/_board/respond`, `/_board/handoff`, `/_board/result`, identity links, the search/history endpoints and `/events` remain available alongside it. There is no automatic workspace discovery or server launch in agent commands.
+The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/work`, `/_board/overview`, `/_board/changes`, `/_board/respond`, `/_board/handoff`, `/_board/result`, and identity links remain available alongside it. Search, retained-source history and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
 
 ### Install and limits
 
