@@ -1,9 +1,6 @@
 # @shivaedev/work-fleet
 
-Work Fleet carries approved Work Board items through execution, independent
-review, repair, validation and authorized delivery. It keeps durable ownership
-and receipts attached to the Board work so routine progress needs fewer human
-handoffs.
+Work Fleet carries approved Work Board items through execution, independent review, repair, validation and observed human delivery. It keeps durable ownership and receipts attached to the Board work so routine progress needs fewer human handoffs.
 
 ## Keep approved work moving
 
@@ -42,13 +39,7 @@ There are no personal numeric defaults. Unknown or expired quota blocks admissio
 Foreign reservations record actual scope and separate occupancy/backlog flags;
 release them only after an authoritative observation permits it.
 
-`FleetIntegrations` supplies current main observations, adoption of the actual PR
-or no-change result, independent review, required checks, delivery observation,
-trusted authorization and normal merge. Review and checks acknowledge the exact
-head. Review receipts must differ from worker sessions. Review implementations
-using a provider must use the same durable session journal and reconcile the
-existing review operation after a lost response. Build and delivery policies
-belong to the runtime and must enforce actual branch requirements without bypass.
+`FleetIntegrations` supplies current main observations, adoption of the actual PR or no-change result, independent review, required checks and observations of human delivery. Fleet never submits a merge. Reviewed, green PRs wait in Needs human as ready to merge; reconciliation keeps observing the adopted PR and accepts only a merge of the reviewed head. A closed unmerged PR stays in Needs human with that fact. Review and checks acknowledge the exact head. Review receipts must differ from worker sessions. Review implementations using a provider must use the same durable session journal and reconcile the existing review operation after a lost response. Required checks belong to the runtime and must enforce actual branch requirements without bypass. The existing `authorize` and `merge` callbacks remain in the integration contract for compatibility and are not called by Fleet.
 
 ```ts
 import { Layer } from "effect";
@@ -145,9 +136,7 @@ addon does not rewrite authored task status or maintain competing status files.
 
 ### Start a small personal pilot
 
-The smallest host is an Effect program with the composed Fleet Layer above; it can
-run headlessly. The package supplies no provider login, hosting-specific merge
-command or account reset. Configure these runtime boundaries before dispatch:
+The smallest host is an Effect program with the composed Fleet Layer above; it can run headlessly. The default host observes the adopted GitHub PR through `gh pr view`, using the host’s existing CLI authentication. It records the PR head and merge commit after a human merge. Result adoption, independent review and required checks still need host integrations. Configure these runtime boundaries before dispatch:
 
 1. Use one Board root and durable SQL namespace. Record exact approved Board
    revisions in runtime policy, with current provider quota observations.
@@ -155,7 +144,7 @@ command or account reset. Configure these runtime boundaries before dispatch:
    local adapter, connect it to an independently owned local app-server; its lifetime
    must survive the host's observing scopes.
 3. Implement current source observations, exact result/PR adoption, independent
-   review, required checks and normal authorized delivery in `FleetIntegrations`.
+   review, required checks and delivery observation in `FleetIntegrations`.
    Authentication belongs to the host when exposing `FleetContract`.
 4. Prepare two disjoint Board items, inspect their attached scopes and run `cycle`
    before keeping `run(interval)` active. Answer any concrete Board decision while

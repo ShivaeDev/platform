@@ -38,7 +38,7 @@ describe("Fleet completion path", () => {
 				expect(complete.value.checks?.head).toBe("head-one-1");
 			}),
 		));
-	test("denied delivery persists an actionable decision and keeps ownership", () =>
+	test("reviewed green work waits for a human merge and keeps ownership", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -47,7 +47,7 @@ describe("Fleet completion path", () => {
 				finishWorkers(fixture);
 				const denied = yield* fleet.reconcile("one");
 				expect(denied.value.stage).toBe("needs-human");
-				expect(denied.value.decision?.reason).toContain("denies delivery");
+				expect(denied.value.decision?.reason).toContain("ready to merge");
 				expect(fixture.merged).toHaveLength(0);
 				const decisionId = denied.value.decision?.id ?? "missing";
 				expect((yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "retry"))).value.stage).toBe("reviewing");

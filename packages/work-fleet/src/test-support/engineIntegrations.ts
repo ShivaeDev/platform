@@ -50,17 +50,22 @@ export function engineIntegrations(options: EngineOptions, provider: EngineProvi
 						};
 					}),
 				delivery: (result) =>
-					Effect.succeed(merged.includes(result.head) ? { head: result.head, revision: `merged-${result.head}`, url: result.pr } : undefined),
-				main: (preparation) => Effect.succeed(mainObservation({ changedPaths: options.mainChanges ?? [], fromRevision: preparation.baseRevision })),
-				merge: (_board, result) =>
-					Effect.gen(function* () {
-						merged.push(result.head);
+					options.deliveryQuery?.(result)
+					?? Effect.gen(function* () {
 						if (options.deliveryFailure && !deliveryFailed) {
 							deliveryFailed = true;
-							return yield* Effect.fail(new FleetFailure({ message: "Delivery acknowledgement lost", reason: "integration" }));
+							return yield* Effect.fail(new FleetFailure({ message: "Delivery observation unavailable", reason: "integration" }));
+						}
+						if (options.denyDelivery) {
+							return undefined;
+						}
+						if (!merged.includes(result.head)) {
+							merged.push(result.head);
 						}
 						return { head: result.head, revision: `merged-${result.head}`, url: result.pr };
 					}),
+				main: (preparation) => Effect.succeed(mainObservation({ changedPaths: options.mainChanges ?? [], fromRevision: preparation.baseRevision })),
+				merge: () => Effect.die("Fleet must never submit a merge"),
 				reconcileReview: (board, result, operationId) => review(board, result, operationId, true),
 				result: (board) =>
 					options.resultQuery?.()

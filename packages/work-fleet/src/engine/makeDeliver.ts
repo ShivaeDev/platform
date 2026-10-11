@@ -1,36 +1,52 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
+import { validateChecks, validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import type { FleetRecord } from "#model.ts";
-import type { BoardWork, Delivery } from "#policy.ts";
+import { executing, type FleetRecord } from "#model.ts";
+import type { ChangeResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
-export function makeDeliver({ integrations, save, decision }: EngineState) {
-	return Effect.fn("Fleet.makeDeliver")(function* (input: Versioned<FleetRecord>, work: BoardWork) {
-		let stored = input;
-		const result = stored.value.result;
-		if (stored.value.stage !== "delivering" || result === undefined) {
+
+export function makeDeliver(state: EngineState) {
+	const { save } = state;
+	return Effect.fn("Fleet.makeDeliver")(function* (stored: Versioned<FleetRecord>) {
+		const record = stored.value;
+		const result = record.result;
+		if (!["delivering", "needs-human"].includes(record.stage) || result === undefined) {
 			return stored;
 		}
 		if (result.kind === "no-change") {
-			return yield* save(stored, { ...stored.value, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" });
+			return record.stage === "delivering" && !executing(record)
+				? yield* save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
+				: stored;
 		}
-		if (!(yield* integrations.authorize(work, result))) {
-			return yield* decision(stored, "Runtime policy denies delivery", "Approve delivery scope in trusted runtime policy");
-		}
-		const head = result.head;
-		const accepted = yield* integrations.delivery(result);
-		function accept(delivery: Delivery) {
-			return delivery.head === head
-				? save(stored, { ...stored.value, blocker: undefined, outcome: delivery, stage: "completed" })
-				: decision(stored, "Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
-		}
-		if (accepted !== undefined) {
-			return yield* accept(accepted);
-		}
-		if (stored.value.deliverySubmitted) {
-			return yield* decision(stored, "Delivery acknowledgement is unresolved", "Reconcile the existing PR; do not submit a duplicate merge");
-		}
-		stored = yield* save(stored, { ...stored.value, blocker: undefined, deliverySubmitted: true });
-		const delivered = yield* integrations.merge(work, result);
-		return yield* accept(delivered);
+		return yield* observeDelivery(state, stored, result);
 	});
 }
+
+const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
+	{ integrations, save, decision }: EngineState,
+	stored: Versioned<FleetRecord>,
+	result: typeof ChangeResult.Type,
+) {
+	const record = stored.value;
+	function needsHuman(reason: string, recommendation: string) {
+		return record.decision?.reason === reason ? Effect.succeed(stored) : decision(stored, reason, recommendation);
+	}
+	const observed = yield* integrations.delivery(result).pipe(Effect.result);
+	if (Result.isFailure(observed)) {
+		return yield* needsHuman(observed.failure.message, "Inspect the adopted PR and its delivery evidence before retrying or releasing this work");
+	}
+	if (executing(record) || record.review?.verdict !== "approved" || record.checks?.passed !== true) {
+		return stored;
+	}
+	yield* validateReview(record, record.review, result.head);
+	yield* validateChecks(record.checks, result.head);
+	if (observed.success === undefined) {
+		return record.responses?.some((response) => response.decisionId === record.decision?.id && response.action === undefined)
+			? stored
+			: yield* needsHuman("Reviewed PR is ready to merge", "Merge the reviewed, green PR; Fleet will observe delivery without submitting a merge");
+	}
+	const delivery = observed.success;
+	return delivery.head === result.head
+		? yield* save(stored, { ...record, blocker: undefined, outcome: delivery, stage: "completed" })
+		: yield* needsHuman("Delivered revision differs from reviewed head", "Inspect actual delivery before accepting this work");
+});

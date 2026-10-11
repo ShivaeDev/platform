@@ -7,14 +7,7 @@ PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns
 review/check evidence, decisions and accepted outcomes. Completion is attached to
 the Board ID in SQL; Fleet does not rewrite the authored task status in Markdown.
 
-The core provides prepare/dispatch/reconcile, native RPC commands and derived
-Active, Completed and Needs human queries. Independent review, repair and validation
-precede trusted delivery or evidenced no-change. Scope, execution capacity, quota
-and delivery backlog remain separate. Recovery retains ambiguous operations and
-accepted ownership instead of relaunching blindly. Renewal keeps the same Board ID
-and archives prior context, attempts, responses and evidence after confirming terminal
-execution and resolving existing result ownership. Current dependency revisions
-need fresh accepted outcomes; criterion-specific references remain unsupported.
+The core provides prepare/dispatch/reconcile, native RPC commands and derived Active, Completed and Needs human queries. Independent review, repair and validation precede observed human delivery or evidenced no-change. Scope, execution capacity, quota and delivery backlog remain separate. Recovery retains ambiguous operations and accepted ownership instead of relaunching blindly. Renewal keeps the same Board ID and archives prior context, attempts, responses and evidence after confirming terminal execution and resolving existing result ownership. Current dependency revisions need fresh accepted outcomes; criterion-specific references remain unsupported.
 
 Published decisions retain exact Board question/context receipts. Reconciliation
 consumes current guided retry/release responses and records idempotent SQL
@@ -34,6 +27,8 @@ Preparation compatibility uses authoritative ancestry and complete relevant cont
 Unrelated changes refresh preparation while preserving original validation evidence;
 relevant or uncertain changes require preparation again for the affected work.
 
+Reviewed, green PRs wait in Needs human as ready to merge. Fleet never submits a merge. Reconciliation continues observing the adopted PR while it waits, accepts only the reviewed head with a merge revision, and records a closed unmerged PR as a human blocker. The default host uses the GitHub CLI for this observation; result adoption, independent review and required checks remain injected integrations.
+
 ## Validation boundary
 
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
@@ -49,12 +44,12 @@ admission under fresh quota, automatic replacement or delivery.
 
 ## Personal pilot follow-up
 
-- Configure working provider access, authoritative quota and trusted delivery policy.
+- Configure working provider access, authoritative quota and delivery observation.
 - Run at least two disjoint Board items through the headless host.
 - One independently reviewed, validated routine outcome progressing automatically.
 - Replacement timing and occupancy observations after confirmed terminal execution.
 - Restart adoption without a duplicate launch using exact accepted receipts.
-- Normal authorized delivery under actual branch requirements.
+- Observe a human merge under actual branch requirements.
 - A verified modern hosted Cloud transport/configuration if hosted execution is wanted.
 
 The maintainer will verify this live loop in a personal pilot after the environment's

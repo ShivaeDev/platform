@@ -5,6 +5,7 @@ import { markdownBoard } from "#board/markdown.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
+import { githubDelivery } from "#host/githubDelivery.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostQuota } from "#host/quota.ts";
 import { FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
@@ -16,14 +17,13 @@ function unconfigured(what: string) {
 	);
 }
 
-// Result adoption, review, checks and delivery stay explicit gaps until the host wires them.
 export const hostIntegrations = Layer.effect(FleetIntegrations)(
 	Effect.gen(function* () {
 		const main = yield* MainSource;
 		return FleetIntegrations.of({
 			authorize: () => Effect.succeed(false),
 			checks: () => unconfigured("Required checks"),
-			delivery: () => unconfigured("Delivery observation"),
+			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),
 			reconcileReview: () => unconfigured("Review reconciliation"),
