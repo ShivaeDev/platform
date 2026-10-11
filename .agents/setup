@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Prepares an Amp orb: pinned Node.js and pnpm, Docker for the shared PostgreSQL service,
+# `./script/update`, then a build.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+step() {
+	local name="$1" start="$SECONDS"
+	shift
+	echo "==> $name"
+	"$@"
+	echo "    $name took $((SECONDS - start))s"
+}
+
+install_docker() {
+	if command -v dockerd >/dev/null 2>&1; then
+		return
+	fi
+	sudo install -m 0755 -d /etc/apt/keyrings
+	sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+	sudo chmod a+r /etc/apt/keyrings/docker.asc
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+		| sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+	sudo apt-get update
+	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io
+}
+
+# The orb image ships its own Node.js; replace it with the release `.node-version` pins.
+install_node() {
+	local version
+	version="$(cat .node-version)"
+	if [ "$(node --version 2>/dev/null)" = "v$version" ]; then
+		return
+	fi
+	local archive="node-v$version-linux-x64.tar.xz" download
+	download="$(mktemp -d)"
+	curl -fsSL "https://nodejs.org/dist/v$version/$archive" -o "$download/$archive"
+	curl -fsSL "https://nodejs.org/dist/v$version/SHASUMS256.txt" | grep -F " $archive" >"$download/SHASUMS256.txt"
+	(cd "$download" && sha256sum --check --quiet SHASUMS256.txt)
+	# Extracting over an older npm would leave its stale files behind.
+	sudo rm -rf /usr/local/lib/node_modules/npm
+	sudo tar --extract --xz --file "$download/$archive" --directory /usr/local --strip-components=1 \
+		--wildcards "node-v$version-linux-x64/"{bin,include,lib,share}
+	rm -rf "$download"
+}
+
+# pnpm switches to the `packageManager` release inside the repository, but the global pnpm stays at
+# the image's version elsewhere and has to download the pinned one into every fresh orb.
+install_pnpm() {
+	local version
+	version="$(node --print 'require("./package.json").packageManager.split("@")[1].split("+")[0]')"
+	if [ "$(cd / && pnpm --version 2>/dev/null)" = "$version" ]; then
+		return
+	fi
+	sudo npm install --global --no-fund --no-audit "pnpm@$version"
+}
+
+# Amp's processes do not receive the supplementary docker group, so the socket belongs to the
+# user's primary group instead. Systemd owns the daemon, so it starts again in every orb restored
+# from the snapshot.
+configure_docker() {
+	local dropin=/etc/systemd/system/docker.socket.d/amp-orb.conf
+	local wanted
+	wanted="$(printf '[Socket]\nSocketGroup=%s' "$(id -gn)")"
+	if [ "$(cat "$dropin" 2>/dev/null)" != "$wanted" ]; then
+		sudo install -d "$(dirname "$dropin")"
+		printf '%s\n' "$wanted" | sudo tee "$dropin" >/dev/null
+		sudo systemctl daemon-reload
+		sudo systemctl stop docker.service docker.socket
+	fi
+	sudo systemctl enable --now --quiet docker.socket docker.service
+}
+
+step "Install Node.js" install_node
+step "Install pnpm" install_pnpm
+step "Install Docker" install_docker
+step "Configure Docker" configure_docker
+step "Install dependencies, the pre-commit hook and local PostgreSQL" ./script/update
+# Package test scripts resolve workspace dependencies through their dist exports.
+step "Build packages" pnpm build
