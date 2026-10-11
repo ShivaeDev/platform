@@ -7,14 +7,14 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus } from "#host/status.ts";
 import { codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { task, withHost } from "#test/fleetHost.ts";
-import { daemonCli } from "#test/readDaemon.ts";
+import { daemonCli, withReadDaemon } from "#test/readDaemon.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
@@ -70,14 +70,14 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const flags = ["--board", fixture.host.boardDir, "--config", fixture.configFile];
 				const args = ["continue", "one", ...(input === "argument" ? [message] : []), ...flags];
 				let errors = "";
-				const run = yield* Effect.promise(() =>
-					cliProcess(args, {
-						onError: (text) => {
-							errors += text;
-						},
-						stdin: input === "stdin" ? message : "",
-					}),
-				);
+				function captureError(text: string) {
+					errors += text;
+				}
+				const options = { onError: captureError, stdin: input === "stdin" ? message : "" };
+				const run = yield* withReadDaemon(fixture.host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)], options)), {
+					...fixture.parts,
+					provider: hostProvider(fixture.host),
+				});
 				expect(run).toEqual({ code: 0, stdout: "one executing" });
 				expect(errors).toBe("");
 				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");

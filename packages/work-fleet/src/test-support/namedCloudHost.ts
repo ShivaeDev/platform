@@ -32,7 +32,7 @@ export function namedAttempt(role: Attempt["role"], sessionId?: string): Attempt
 	};
 }
 
-interface NamedHost extends HostFixture {
+export interface NamedHost extends HostFixture {
 	readonly failures: Set<string>;
 	readonly names: Map<string, string | null>;
 	readonly requests: readonly WireRequest[];

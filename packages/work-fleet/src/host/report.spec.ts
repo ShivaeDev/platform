@@ -6,11 +6,11 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { type HostFixture, withHost } from "#test/fleetHost.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 import { answerReport } from "#test/report.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 

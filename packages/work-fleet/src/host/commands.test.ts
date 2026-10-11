@@ -7,13 +7,13 @@ import { Fleet } from "#fleet.ts";
 import { admitApproved } from "#host/admission.ts";
 import { dispatchWork, hostLayer, runFleet } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { finishWorkers } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {

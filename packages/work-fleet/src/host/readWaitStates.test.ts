@@ -4,9 +4,9 @@ import { SqlClient } from "effect/unstable/sql";
 import pg from "pg";
 import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet summary reads against PostgreSQL", () => {

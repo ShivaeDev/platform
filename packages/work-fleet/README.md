@@ -16,7 +16,7 @@ Board owns authored work and its revision. Fleet stores preparation, attempts an
 
 ### Configure the host
 
-Put `fleet.config.json` in the Board folder. `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
+Put `fleet.config.json` in the Board folder. For `serve`, `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
 
 ```json
 {
@@ -119,13 +119,17 @@ A `depends_on` relationship waits on the orchestrator for an accepted Fleet outc
 | `work-fleet dispatch <work-id> [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
-| `work-fleet release <work-id>... --board <board-dir>` | Releases terminal needs-human items and records closing responses on their Board decisions. |
-| `work-fleet reassign <work-id> <decision-id> <owner> --board <board-dir>` | Reassigns the exact current question to maintainer, orchestrator or automation. |
+| `work-fleet release <work-id>... [--port <port>]` | Releases terminal needs-human items and records closing responses on their Board decisions. |
+| `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]` | Reassigns the exact current question to maintainer, orchestrator or automation. |
 | `work-fleet wait <work-id> --timeout <seconds> [--port <port>]` | Subscribes to daemon snapshots until an outcome or timeout. |
 | `work-fleet watch [work-ids...] [--port <port>]` | Follows several items in one process and reports each outcome once. |
-| `work-fleet name-threads --board <board-dir>` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
+| `work-fleet continue <work-id> [message] [--port <port>]` | Continues terminal work on its existing worker thread; reads stdin when the message is omitted. |
+| `work-fleet decide <work-id> retry\|release [--port <port>]` | Records an answer to the current published Fleet decision and resolves it without looking up question or response IDs. |
+| `work-fleet name-threads [--port <port>]` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
 
-Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. `status`, `dispatch`, `wait` and `watch` connect to its loopback port (3457 by default) over RPC and open no PostgreSQL connection. Their retained `--board` and `--config` flags do not select a host; the running daemon owns its Board and configuration. Without a daemon, they exit 1 with the address and a command to start it. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
+Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. All commands except `serve` connect to its loopback port (3457 by default) over RPC and open no PostgreSQL connection. Their retained `--board` and `--config` flags do not select a host; the running daemon owns its Board and configuration. Without a daemon, they exit 1 with the address and a command to start it. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
+
+`decide` requires an open published decision. Retry uses the runtime’s existing approval and revision checks; a worker question needs an answer or `continue` with a message instead. Release retains the runtime’s terminal-execution check. `src/host/daemonCommands.spec.ts` proves retry and release responses, Board acknowledgements, rejection of active items and reuse of the daemon’s pool against PostgreSQL over HTTP. The release, reassignment, continuation and thread-naming process tests exercise those commands through the daemon.
 
 `wait` prints a summary and exits with these codes:
 
@@ -137,7 +141,7 @@ Automatic admission does not re-approve an edited item that already has a record
 | `3` | Released. |
 | `4` | The requested timeout expired. |
 
-`--interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout and delayed creation against PostgreSQL over HTTP. `src/host/watchFailures.spec.ts` covers each command's missing-daemon message.
+`--interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout and delayed creation against PostgreSQL over HTTP. `src/host/watchFailures.spec.ts` covers every client command's missing-daemon message.
 
 `watch` prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. `wait` and `watch` each use one scoped RPC subscription. The daemon shares one summary stream across followers, reading compact fields through its existing pool every half second only while at least one follower is subscribed. New followers receive the last good snapshot; after the last follower leaves, the next subscription starts with a fresh read. PostgreSQL read failures retain the last good snapshot and retry every half second; 20 consecutive failed attempts end all current followers with a clear message and exit 1. A reconnect receives a snapshot of the original selected set; printed outcomes remain deduplicated. Connection loss retries up to 20 consecutive attempts before exit 1. `--timeout <seconds>` exits 4 and writes a timeout message to stderr. `src/host/watch.test.ts`, `src/host/daemonClients.spec.ts`, `src/host/snapshotStream.test.ts` and `src/host/daemonFollow.spec.ts` cover output, HTTP restart resync, initial selection, PostgreSQL read recovery and failure bounds, and the poller subscription lifecycle.
 
@@ -186,8 +190,8 @@ The command records an explicit release response for each current waiting decisi
 Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal work waiting on an owner or completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work is refused. Work waiting on a human merge can continue on the same worker thread; its reviewed head stays in history and its PR ownership remains until the new result is adopted.
 
 ```sh
-work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
-printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --board .work
+work-fleet continue work-id "Fix the failed checks on the existing PR"
+printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id
 work-fleet wait work-id --board .work
 ```
 
