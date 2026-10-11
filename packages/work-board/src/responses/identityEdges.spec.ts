@@ -11,7 +11,11 @@ it.live("rejects registration retries after the durable question file is moved",
 	workspace = yield* responseWorkspace();
 	const question = yield* Effect.promise(() => workspace.register());
 	renameSync(join(workspace.notes.root, `responses/${question.id}.md`), join(workspace.notes.root, "moved.md"));
-	yield* Effect.promise(() => expect.poll(() => workspace.client.run(workspace.client.api.navigation.run())).toContain("/moved.md"));
+	yield* Effect.promise(() =>
+		expect
+			.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
+			.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })])),
+	);
 	yield* Effect.promise(() =>
 		expect(workspace.register()).rejects.toMatchObject({
 			code: "Conflict",
@@ -53,7 +57,11 @@ it.live("rejects response retries after the saved reply is moved by an external 
 	};
 	yield* Effect.promise(() => workspace.client.mutate(workspace.client.responses.recordResponse.run(input)));
 	renameSync(join(workspace.notes.root, "responses/response.edge.md"), join(workspace.notes.root, "moved.md"));
-	yield* Effect.promise(() => expect.poll(() => workspace.client.run(workspace.client.api.navigation.run())).toContain("/moved.md"));
+	yield* Effect.promise(() =>
+		expect
+			.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
+			.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })])),
+	);
 	yield* Effect.promise(() =>
 		expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({
 			code: "Conflict",

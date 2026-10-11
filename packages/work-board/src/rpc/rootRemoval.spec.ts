@@ -8,11 +8,17 @@ let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
 it.live("returns specific native read errors when an external process removes the workspace root", function* () {
 	workspace = yield* responseWorkspace();
 	const { client } = workspace;
-	yield* Effect.promise(() => client.run(client.api.navigation.run()));
+	yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })));
 	workspace.notes.remove();
-	yield* Effect.promise(() => expect.poll(() => client.run(client.api.navigation.run()).then(() => "readable", String)).toContain("ReadFailed"));
 	yield* Effect.promise(() =>
-		expect(client.run(client.api.navigation.run())).rejects.toMatchObject({ _tag: "ReadFailed", operation: "navigation", status: 500 }),
+		expect.poll(() => client.run(client.api.navigation.run({ current: "" })).then(() => "readable", String)).toContain("ReadFailed"),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.navigation.run({ current: "" }))).rejects.toMatchObject({
+			_tag: "ReadFailed",
+			operation: "navigation",
+			status: 500,
+		}),
 	);
 	yield* Effect.promise(() =>
 		expect(client.run(client.api.search.run({ query: "review" }))).rejects.toMatchObject({

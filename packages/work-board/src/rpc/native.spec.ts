@@ -29,7 +29,9 @@ it.live("reads SSR documents, stable item URLs, navigation, search and explicit 
 	const page = yield* Effect.promise(() => client.read(client.api.page.query({ url: "/_board/item/note/" })));
 	expect(page.html).toContain("Read this.");
 	expect(page.status).toBe(200);
-	expect(yield* Effect.promise(() => client.read(client.api.navigation.query()))).toContain("/note.md");
+	expect((yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "note.md" })))).tree.files).toEqual(
+		expect.arrayContaining([expect.objectContaining({ current: true, href: "/note.md" })]),
+	);
 	expect((yield* Effect.promise(() => client.read(client.api.search.query({ query: "Read this" })))).results).toEqual(
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),
 	);
@@ -44,7 +46,7 @@ it.live("retains unrelated mounted reads while reconciling dependent pages and n
 	const atom = client.api.page.query({ url: "/note.md" });
 	const release = client.registry.mount(atom);
 	const initial = yield* Effect.promise(() => client.read(atom));
-	const nav = client.api.navigation.query();
+	const nav = client.api.navigation.query({ current: "note.md" });
 	const releaseNav = client.registry.mount(nav);
 	const oldNav = yield* Effect.promise(() => client.read(nav));
 	notes.write("other.md", "# Updated unrelated");
