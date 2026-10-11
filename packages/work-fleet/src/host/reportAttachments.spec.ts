@@ -52,7 +52,7 @@ describe("Report attachments", () => {
 	}
 	for (const published of ["branch", "pr"] as const) {
 		for (const output of [OUTPUT, "FLEET_QUESTION: Which approach?"]) {
-			test(`rejects a published ${published} after a report turn${output === OUTPUT ? "" : " with a question"}`, function* () {
+			test(`rejects a published ${published} after a report turn${output === OUTPUT ? "" : " with a question and changed context"}`, function* () {
 				const download = yield* taskDownload(attachmentDiff());
 				yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 					Effect.gen(function* () {
@@ -64,6 +64,9 @@ describe("Report attachments", () => {
 							return yield* Effect.die(new Error("No report worker"));
 						}
 						fixture.provider.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output });
+						if (output !== OUTPUT) {
+							fixture.write("research.md", SOURCE.replace("fleet-deliverable: report\n", ""));
+						}
 						const result = yield* Effect.gen(function* () {
 							return yield* (yield* Fleet).reconcile("research");
 						}).pipe(Effect.provide(hostLayer(fixture.host, parts)));

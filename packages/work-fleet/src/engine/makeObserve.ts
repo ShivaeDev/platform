@@ -32,8 +32,8 @@ export function makeObserve({ sessions, load, save, decision, board, reportInspe
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
 		}
-		const work = yield* board.get(stored.value.workId);
-		if (work.deliverable === "report") {
+		if (stored.value.deliverable === "report") {
+			const work = yield* board.get(stored.value.workId);
 			yield* Option.match(reportInspection, { onNone: () => Effect.void, onSome: (inspection) => inspection.check(work) });
 		}
 		if (observation.execution !== "completed") {
