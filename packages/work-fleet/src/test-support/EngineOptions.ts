@@ -10,11 +10,13 @@ export interface EngineOptions {
 	readonly checksFailure?: boolean;
 	readonly checksGate?: Effect.Effect<void>;
 	readonly concurrency?: number;
+	readonly continuationGate?: Effect.Effect<void>;
 	readonly deliveryFailure?: boolean;
 	readonly denyDelivery?: boolean;
 	readonly foreignBacklog?: boolean;
 	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
+	readonly lostContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
 	readonly operationCollision?: boolean;
