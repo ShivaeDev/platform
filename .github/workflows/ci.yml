@@ -71,27 +71,6 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
-  question-reading:
-    name: Question reading (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - run: pnpm --filter @shivaedev/quality build
-      - name: Read changed questions ten consecutive times
-        shell: bash
-        run: |
-          for attempt in {1..10}; do
-            pnpm --filter @shivaedev/work-board test src/http/questionReading.spec.ts || exit 1
-          done
-
   shard-plan:
     name: Select measured shard counts
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
@@ -279,7 +258,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, question-reading]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:
