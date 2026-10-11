@@ -36,7 +36,13 @@ export const HostConfig = Schema.Struct({
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
 	result: Schema.optional(Schema.Literal("github")),
-	worker: Schema.optional(Schema.Struct({ branchPrefix: Text, sharedEnvironment: Text })),
+	worker: Schema.optional(
+		Schema.Struct({
+			branchPrefix: Text,
+			reviewerGuidance: Schema.optional(Schema.Union([Text, Schema.Struct({ file: Text })])),
+			sharedEnvironment: Text,
+		}),
+	),
 });
 export type HostConfig = typeof HostConfig.Type;
 

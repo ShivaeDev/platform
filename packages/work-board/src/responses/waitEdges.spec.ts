@@ -1,4 +1,5 @@
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Fiber } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { afterEach, expect, it } from "vitest";
 import { ResponseFailed } from "#browser/responses/schema.ts";
 import { waitForResponse } from "#responses/waitFor.ts";
@@ -27,7 +28,18 @@ it("reconnects after repeated external service failures and reports one outage b
 		Effect.succeed({ expired: false, question, response }),
 	]);
 	const diagnostics: string[] = [];
-	expect(await Effect.runPromise(waitForResponse(rpc.read, (text) => diagnostics.push(text)))).toEqual({ kind: "response", question, response });
+	const waiting = Effect.scoped(
+		Effect.gen(function* () {
+			const fiber = yield* waitForResponse(rpc.read, (text) => diagnostics.push(text)).pipe(Effect.forkChild);
+			yield* TestClock.adjust("1999 millis");
+			expect(rpc.calls()).toBe(1);
+			yield* TestClock.adjust("1 millis");
+			expect(rpc.calls()).toBe(2);
+			yield* TestClock.adjust("2 seconds");
+			return yield* Fiber.join(fiber);
+		}),
+	).pipe(Effect.provide(TestClock.layer()));
+	expect(await Effect.runPromise(waiting)).toEqual({ kind: "response", question, response });
 	expect(rpc.calls()).toBe(4);
 	expect(diagnostics).toEqual(["Local service unavailable; reconnecting to the same question."]);
 });
