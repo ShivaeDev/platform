@@ -42,8 +42,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 		if (
 			observed.failure instanceof MovedPrHead
 			&& !executing(record)
-			&& record.review?.verdict === "approved"
-			&& record.review.head === result.head
+			&& (record.stage === "delivering" || (record.review?.verdict === "approved" && record.review.head === result.head))
 		) {
 			const work = yield* state.board.get(record.workId);
 			current = yield* invalidateMergeReadiness(state, stored);

@@ -21,7 +21,15 @@ export const workerReportFailure = Effect.fn("Fleet.workerReportFailure")(functi
 		return undefined;
 	}
 	const parsed = yield* resultReport(latest.output ?? "").pipe(Effect.result);
-	return Result.isFailure(parsed) && parsed.failure.message === reason ? parsed.failure : undefined;
+	if (Result.isFailure(parsed)) {
+		return parsed.failure.message === reason ? parsed.failure : undefined;
+	}
+	return [
+		"PR head moved after the worker report",
+		"Merged PR head differs from the reported head; inspect delivery before accepting this work",
+	].includes(reason)
+		? new FleetFailure({ message: reason, reason: "stale" })
+		: undefined;
 });
 
 export function correctWorkerReport(state: EngineState) {

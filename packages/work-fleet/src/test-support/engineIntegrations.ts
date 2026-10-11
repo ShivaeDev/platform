@@ -40,7 +40,9 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 						}
 						return { head: result.head, revision: `merged-${result.head}`, url: result.pr };
 					}),
-				main: (preparation) => Effect.succeed(mainObservation({ changedPaths: options.mainChanges ?? [], fromRevision: preparation.baseRevision })),
+				main: (preparation) =>
+					options.mainQuery?.(preparation)
+					?? Effect.succeed(mainObservation({ changedPaths: options.mainChanges ?? [], fromRevision: preparation.baseRevision })),
 				result: (board, observation) => {
 					if (options.resultQuery !== undefined) {
 						return options.resultQuery(board, observation);

@@ -1,7 +1,8 @@
 import type { Effect } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetRecord } from "#model.ts";
-import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
+import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetFailure, WorkResult } from "#policy.ts";
+import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 export interface EngineOptions {
@@ -17,6 +18,7 @@ export interface EngineOptions {
 	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
+	readonly decorateBoard?: (board: typeof BoardGateway.Service) => typeof BoardGateway.Service;
 	readonly decorateTransport?: (transport: typeof SessionTransport.Service) => typeof SessionTransport.Service;
 	readonly deliveryFailure?: boolean;
 	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
@@ -28,6 +30,7 @@ export interface EngineOptions {
 	readonly lostReviewAcknowledgement?: boolean;
 	readonly lostReviewContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
+	readonly mainQuery?: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
 	readonly noChange?: boolean;
 	readonly now?: () => number;
 	readonly operationCollision?: boolean;
@@ -36,6 +39,7 @@ export interface EngineOptions {
 	readonly quota?: number;
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
+	readonly reportPublicationQuery?: (work: BoardWork) => Effect.Effect<boolean, FleetFailure>;
 	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
 	readonly resultUnavailable?: boolean;
 	readonly reviewExecution?: "failed" | "interrupted";
