@@ -145,6 +145,8 @@ For built capabilities and open host integrations, see the [roadmap](https://git
 
 ## Compose the Effect core
 
+Each scheduler pass shares one Board read and identity index across admission, dispatch and reconciliation. The next pass reads changed, added and removed files again. Approval and decisions remain bound to the exact source revision read. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
+
 Provide `BoardGateway`, `FleetRepository`, `FleetPolicy`, `FleetIntegrations` and `SessionService` to `Fleet.layer`. The Markdown gateway reads Board context, and `postgresFleetRepository(namespace?)` supplies durable SQL attachments on a native `SqlClient`. A session journal persists intents and acknowledged turns before further remote mutation. `src/session/service.test.ts` and `src/engine/recovery.spec.ts` cover receipt ordering and recovery without duplicate launch.
 
 ```ts
