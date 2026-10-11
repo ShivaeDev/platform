@@ -29,6 +29,8 @@ Directory reference reading and watcher recovery are covered by `src/http/symlin
 
 Nested sidebar ancestry, home ordering, logical reference paths and folder expansion through live changes and navigation are covered by `src/page/nav.dom.test.ts`. Exact-context managed decision acknowledgements are covered by Work Fleet's `src/board/managedRequestReceipt.spec.ts` and `src/board/acknowledgementHttp.spec.ts`; those receipts leave source bytes intact and do not establish execution, acceptance or delivery authority.
 
+The sidebar Diagnostics view reads Codex app-server usage windows, cached GitHub REST/GraphQL limits and optional versioned Fleet health snapshots. Synthetic source, command and app-server fixtures cover ready, missing, failing and malformed states, shared caching and refused provider approvals in `src/diagnostics/source.test.ts`, `readers.spec.ts` and `codexRateLimits.test.ts`. HTTP and DOM fixtures cover sidebar navigation, source isolation, snapshot freshness and native polling/pause/resume in `src/diagnostics/page.test.ts`, `fleetHealth.test.ts` and `liveRefresh.dom.spec.ts`. These fixtures do not establish live account authorization.
+
 ## Next
 
 - [ ] Finish [07's representative-reader acceptance](delivery/wave1.md#07-an-attention-first-overview). The proposed target is finding the actual next judgment within 30 seconds. Automated queues and browser fixtures do not establish that outcome.

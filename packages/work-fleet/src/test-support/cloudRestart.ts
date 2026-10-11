@@ -1,5 +1,3 @@
-import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { Clock, Effect, Schema } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
@@ -95,29 +93,4 @@ export function hostRecord(fixture: HostFixture) {
 	return Effect.gen(function* () {
 		return (yield* (yield* Fleet).get("synthetic-work")).value;
 	}).pipe(Effect.provide(hostLayer(fixture.host, { ...fixture.parts, provider: hostProvider(fixture.host) })));
-}
-
-export function hostProcess(configFile: string) {
-	return Effect.acquireRelease(
-		Effect.sync(() => {
-			const child = spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile], {
-				stdio: ["ignore", "ignore", "pipe"],
-			});
-			let errors = "";
-			child.stderr.on("data", (chunk: Buffer) => {
-				errors += chunk.toString();
-			});
-			const exited = new Promise<void>((resolve, reject) => {
-				child.on("error", reject);
-				child.on("exit", (code, signal) => (signal === "SIGKILL" || code === 0 ? resolve() : reject(new Error(errors))));
-			});
-			return {
-				kill: Effect.promise(async () => {
-					child.kill("SIGKILL");
-					await exited;
-				}),
-			};
-		}),
-		(child) => child.kill,
-	);
 }

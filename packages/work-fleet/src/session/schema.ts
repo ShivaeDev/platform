@@ -1,9 +1,12 @@
 import * as Schema from "effect/Schema";
 
+export const ProviderCapacity = Schema.Literals(["rateLimitExceeded", "flexUnavailable", "serverOverloaded"]);
+
 export const SessionReceipt = Schema.Struct({ sessionId: Schema.String, turnId: Schema.String });
 export type SessionReceipt = typeof SessionReceipt.Type;
 
 export const SessionObservation = Schema.Struct({
+	capacity: Schema.optional(ProviderCapacity),
 	error: Schema.optional(Schema.String),
 	execution: Schema.Literals(["accepted", "running", "completed", "failed", "interrupted"]),
 	output: Schema.String,
@@ -13,6 +16,7 @@ export const SessionObservation = Schema.Struct({
 export type SessionObservation = typeof SessionObservation.Type;
 
 export class SessionFailure extends Schema.TaggedError<SessionFailure>()("SessionFailure", {
+	capacity: Schema.optional(ProviderCapacity),
 	message: Schema.String,
 	reason: Schema.Literals(["unavailable", "rejected", "ambiguous", "protocol", "persistence"]),
 }) {}

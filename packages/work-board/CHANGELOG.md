@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add a sidebar Diagnostics view with live native reads of Codex app-server usage windows, one-minute shared GitHub REST/GraphQL limit reads, and optional versioned Fleet health snapshots. Each source reports missing configuration and failures independently; Fleet freshness, concurrency, queues, human blockers and scheduler/capacity observations remain visible.
+
 - Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
 
 ### Fixed
@@ -13,6 +15,8 @@
 - Keep same-origin assets and unrecognized routes in browser navigation instead of intercepting them as reader pages. Preserve native returned-result navigation.
 
 ### Changed
+
+- Re-read only changed Markdown paths after each settled watcher batch. Retain unchanged parsed documents and search entries, update dependent metadata diagnostics, and coalesce bursts larger than 256 events into one revision. Watcher recovery checks source bytes while retaining unchanged parses.
 
 - Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 

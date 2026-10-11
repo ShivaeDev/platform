@@ -6,7 +6,9 @@ import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
+import { githubDelivery } from "#host/githubDelivery.ts";
 import { MainSource } from "#host/mainSource.ts";
+import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
@@ -23,7 +25,7 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 		return FleetIntegrations.of({
 			authorize: () => Effect.succeed(false),
 			checks: (_work, result) => githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
-			delivery: () => unconfigured("Delivery observation"),
+			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),
 			reconcileReview: () => unconfigured("Review reconciliation"),
@@ -67,7 +69,9 @@ export function fleetHostLayer<TProvider, TMain>(
 	},
 ) {
 	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provide(hostSql(host)));
-	const sessions = SessionService.layer.pipe(Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), parts.provider]));
+	const sessions = SessionService.layer.pipe(
+		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
+	);
 	const board = markdownBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
