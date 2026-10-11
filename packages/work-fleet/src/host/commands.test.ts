@@ -94,7 +94,7 @@ describe("work-fleet host against PostgreSQL", () => {
 				expect(prompts(fixture.provider)).toEqual([expect.stringContaining("Second revision.")]);
 			}),
 		);
-	}, 30_000);
+	});
 
 	test("cloud workers get the worker prompt and the host launch defaults under a task's fleet-launch", function* () {
 		const files = {
@@ -123,5 +123,5 @@ describe("work-fleet host against PostgreSQL", () => {
 				expect(invalid).toMatchObject({ message: "b has an invalid fleet-launch; use model, effort and serviceTier strings" });
 			}),
 		);
-	}, 30_000);
+	});
 });

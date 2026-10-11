@@ -49,7 +49,7 @@ describe("Report attachments", () => {
 					expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(SOURCE);
 				}),
 			);
-		}, 30_000);
+		});
 	}
 	for (const published of ["branch", "pr"] as const) {
 		for (const output of [OUTPUT, "FLEET_QUESTION: Which approach?"]) {
@@ -81,7 +81,7 @@ describe("Report attachments", () => {
 						expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
 					}),
 				);
-			}, 30_000);
+			});
 		}
 	}
 });

@@ -42,4 +42,4 @@ it("client-supplied message headers cannot satisfy the origin policy or carry cr
 		await app.dispose();
 		provider.database.close();
 	}
-}, 20_000);
+});

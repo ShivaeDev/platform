@@ -23,4 +23,4 @@ it("rejects every package pair today's leaf fences reject using the actual manif
 	const withoutFence = findings.filter((finding) => !held.has(finding.file));
 	expect(withoutFence.length).toBeGreaterThan(0);
 	expect(packages.length).toBeGreaterThan(18);
-}, 30_000);
+});

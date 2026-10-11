@@ -14,7 +14,7 @@ it("enables manifest boundaries by default on the CLI without import configurati
 	expect(result.status).toBe(1);
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
-}, 30_000);
+});
 
 it("checks manifest dependencies and test-code boundaries on the same resolved import", () => {
 	const root = manifestTree(
@@ -31,7 +31,7 @@ it("checks manifest dependencies and test-code boundaries on the same resolved i
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain("error imports/no-test-code (1)");
 	expect(result.stdout).toContain('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".');
-}, 30_000);
+});
 
 it.each([
 	{ linked: false, sources: ["modules/app/src", "modules/kit/src"], workspace: "npm" },
@@ -68,7 +68,7 @@ it("keeps each importing member's policy when only source folders are selected",
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "@acme/app" without declaring it in modules/kit/package.json');
 	expect(result.stdout).not.toContain('Imports workspace package "plain-kit" without declaring it');
-}, 30_000);
+});
 
 it("keeps a member's development dependencies restricted to test code with an unselected target", () => {
 	const root = manifestTree(
@@ -85,4 +85,4 @@ it("keeps a member's development dependencies restricted to test code with an un
 	expect(result.stdout).toContain("error imports/manifest (1)");
 	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
 	expect(result.stdout).toContain("devDependencies are only available to tests, test support and tooling.");
-}, 30_000);
+});
