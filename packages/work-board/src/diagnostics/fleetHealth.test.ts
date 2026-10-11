@@ -22,9 +22,19 @@ it("reads the shared versioned snapshot and distinguishes missing from invalid F
 		Effect.gen(function* () {
 			expect(yield* fleetHealth(notes(JSON.stringify(health)).root)).toEqual(health);
 			expect(yield* fleetHealth(notes().root).pipe(Effect.flip)).toMatchObject({ kind: "not-configured" });
-			for (const source of ["broken json", JSON.stringify({ ...health, version: 2 }), JSON.stringify({ ...health, running: -1 })]) {
+			for (const source of ["broken json", JSON.stringify({ ...health, running: -1 })]) {
 				expect(yield* fleetHealth(notes(source).root).pipe(Effect.flip)).toMatchObject({ kind: "error" });
 			}
+		}),
+	));
+
+it("explains an unsupported version before validating its unknown shape", () =>
+	Effect.runPromise(
+		Effect.gen(function* () {
+			expect(yield* fleetHealth(notes(JSON.stringify({ version: 2 })).root).pipe(Effect.flip)).toMatchObject({
+				kind: "error",
+				message: "Fleet health snapshot version 2 is not supported by this Board",
+			});
 		}),
 	));
 

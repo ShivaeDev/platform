@@ -24,6 +24,15 @@ for (const mode of ["missing", "api-key"]) {
 			}),
 		));
 }
+it("reports API-key usage windows as not available without requesting rate limits", () =>
+	Effect.runPromise(
+		Effect.gen(function* () {
+			expect(yield* synthetic("api-key").pipe(Effect.flip)).toMatchObject({
+				kind: "not-configured",
+				message: "Codex usage windows are not available for API-key accounts",
+			});
+		}),
+	));
 for (const [mode, message] of [
 	["initialize-error", "Initialize refused"],
 	["refusal", "Account forbidden"],
