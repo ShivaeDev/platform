@@ -176,4 +176,4 @@ it("BetterAuth issued cookies authenticate isolated native RPC requests and hono
 		await app.dispose();
 		database.close();
 	}
-}, 20_000);
+});

@@ -70,7 +70,7 @@ describe("Fleet autonomous scheduling", () => {
 				expect((yield* fleet.get("two")).value.attempts[0]?.receipt?.turnId).toBeDefined();
 			}),
 		);
-	}, 10_000);
+	});
 	test("a slow independent review does not block disjoint dispatch", function* () {
 		const entered = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();
@@ -89,7 +89,7 @@ describe("Fleet autonomous scheduling", () => {
 				yield* Fiber.interrupt(scheduler);
 			}),
 		);
-	}, 10_000);
+	});
 	test("an unpublished decision cannot consume a fabricated response while publication remains interruptible", function* () {
 		const entered = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();
@@ -111,5 +111,5 @@ describe("Fleet autonomous scheduling", () => {
 				expect((yield* fleet.get("one")).value.stage).toBe("released");
 			}),
 		);
-	}, 10_000);
+	});
 });

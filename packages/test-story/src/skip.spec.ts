@@ -14,4 +14,4 @@ it("registers skip, skipIf and runIf stories without executing their setup or bo
 		],
 		warnings: [],
 	});
-}, 30_000);
+});

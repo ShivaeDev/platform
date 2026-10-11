@@ -34,13 +34,13 @@ test("CLI status groups all owners and wait names each owner without changing ex
 			}
 			const json = yield* daemonCli(fixture.host, ["status", "--json", "--board", fixture.host.boardDir, "--config", fixture.configFile]);
 			expect(json.code).toBe(0);
-			expect(Object.keys(JSON.parse(json.stdout)).sort()).toEqual(["active", "completed", "waiting"]);
+			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual(["active", "completed", "waiting"]);
 			expect(JSON.parse(json.stdout)).toMatchObject({
 				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
 			});
 		}),
 	);
-}, 30_000);
+});
 
 test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>
@@ -64,7 +64,7 @@ test("terminal publication blockers remain grouped by owner with their original 
 			expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
 		}),
 	);
-}, 30_000);
+});
 
 test("CLI reassignment publishes a new maintainer question and refreshes the generated Board", function* () {
 	const calls: string[] = [];
@@ -97,4 +97,4 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			expect(fixture.provider.launched).toHaveLength(1);
 		}),
 	);
-}, 30_000);
+});

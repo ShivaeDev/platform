@@ -41,7 +41,7 @@ it("Better Auth sessions give each concurrent native RPC request its own identit
 		await app.dispose();
 		provider.database.close();
 	}
-}, 20_000);
+});
 
 it("missing sessions are unauthorized while provider failures are reported as unavailable", async () => {
 	const provider = await createProvider();
@@ -73,7 +73,7 @@ it("missing sessions are unauthorized while provider failures are reported as un
 	} finally {
 		await app.dispose();
 	}
-}, 20_000);
+});
 
 it("origin policy is an explicit decision evaluated before the provider is consulted", async () => {
 	const provider = await createProvider();
@@ -111,4 +111,4 @@ it("origin policy is an explicit decision evaluated before the provider is consu
 		await Promise.all([strict.app.dispose(), permissive.app.dispose(), custom.app.dispose()]);
 		provider.database.close();
 	}
-}, 20_000);
+});

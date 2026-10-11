@@ -1,6 +1,7 @@
 import { Effect, FileSystem, Option } from "effect";
 import type { HttpServerRequest } from "effect/unstable/http";
 import { authoredQuestion } from "#attention/inbox.ts";
+import { documentBody } from "#document/body.ts";
 import type { Changes } from "#files/changes.ts";
 import type { MarkdownFile } from "#files/list.ts";
 import { markdownPath } from "#files/markdownPath.ts";
@@ -63,10 +64,11 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 			return Option.none();
 		}
 		const actions = yield* readingActions({ file: file.path, parsed }, source, options.writable === true, identity);
+		const prose = documentBody({ file: file.path, parsed });
 		const html =
 			file.path === options.home
-				? yield* boardHtml(boardOf(parsed.body), file.path, file.modified, metadata, actions)
-				: yield* documentHtml(parsed.body, file, metadata, itemIntroduction(parsed), actions);
+				? yield* boardHtml(boardOf(prose), file.path, file.modified, metadata, actions)
+				: yield* documentHtml(prose, file, metadata, itemIntroduction(parsed), actions);
 		const question = identity && authoredQuestion({ file: file.path, parsed });
 		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, options.writable === true) : "";
 		return Option.some({ html: html + answer, identity });

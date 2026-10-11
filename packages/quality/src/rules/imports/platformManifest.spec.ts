@@ -19,4 +19,4 @@ it("enforces Platform's actual dependency declarations on package-pair probes", 
 	expect(rejected.has("packages/effect-react/src/manifestProbe.ts:@shivaedev/effect-form")).toBe(false);
 	expect(rejected.has("packages/effect-changes-prisma/src/manifestProbe.ts:@shivaedev/platform")).toBe(true);
 	expect(rejected.has("packages/effect-changes-prisma/src/manifestProbe.ts:@shivaedev/effect-changes")).toBe(false);
-}, 30_000);
+});

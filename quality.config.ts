@@ -1,7 +1,6 @@
 import { defineConfig } from "./packages/quality/src/config.ts";
 
 export default defineConfig({
-	preCommit: { run: ["node --conditions=source script/lint.ts", "pnpm changelog:check", "pnpm typecheck"] },
 	rules: {
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 		"suppressions/biome-overrides": {

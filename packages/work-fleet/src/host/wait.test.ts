@@ -42,5 +42,5 @@ describe("work-fleet wait against PostgreSQL and HTTP", () => {
 				expect(yield* Effect.promise(() => waiting)).toEqual({ code: WAIT_EXIT.released, stdout: "late released" });
 			}),
 		);
-	}, 30_000);
+	});
 });

@@ -8,17 +8,22 @@ export function recoveryEvidence(scenario: (typeof uncertainEvidence)[number], r
 		Effect.gen(function* () {
 			requests.push(method);
 			const cursor = Schema.decodeUnknownSync(Schema.Struct({ cursor: Schema.NullOr(Schema.String) }))(params).cursor;
-			if (scenario === "missing-thread" || (scenario === "broken-page" && cursor === "second")) {
+			if (scenario === "broken-page" && cursor === "second") {
 				return yield* Effect.fail(failure("unavailable", "Thread evidence is unavailable"));
 			}
 			const matching = { id: "turn", items: [{ clientId: "operation", id: "input", type: "userMessage" }], status: "inProgress" };
 			switch (scenario) {
+				case "missing-thread":
+					return yield* Effect.fail(failure("unavailable", "Thread evidence is unavailable"));
 				case "duplicates":
 					return { data: [matching, { ...matching, id: "other" }], nextCursor: null };
 				case "unrelated":
 					return { data: [{ ...matching, items: [] }], nextCursor: null };
 				case "broken-page":
 					return { data: [], nextCursor: "second" };
+				case "missing-session":
+				case "missing-prompt":
+					return { data: [], nextCursor: null };
 				default:
 					return { data: [], nextCursor: null };
 			}

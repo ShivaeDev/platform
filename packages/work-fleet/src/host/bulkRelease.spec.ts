@@ -67,7 +67,7 @@ test("bulk CLI release closes changed done and deferred decisions and records on
 			expect(fixture.provider.launched).toHaveLength(2);
 		}),
 	);
-}, 30_000);
+});
 
 function waitingDecision(fixture: HostFixture, id: string) {
 	return Effect.gen(function* () {

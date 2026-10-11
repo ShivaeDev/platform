@@ -13,17 +13,11 @@ export type RuleSettings<TRules extends readonly Rule[]> = {
 
 export type BuiltInRules = typeof builtInRules;
 
-export interface PreCommit {
-	readonly run?: readonly string[];
-	readonly tighten?: boolean;
-}
-
 export interface QualityConfig<TLocal extends readonly Rule[] = readonly Rule[]> {
 	readonly baseline?: string;
 	readonly exclude?: readonly string[];
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;
-	readonly preCommit?: PreCommit;
 	readonly registry?: string;
 	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...TLocal]>;
 	readonly sources?: readonly string[];

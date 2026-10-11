@@ -52,4 +52,4 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			expect(fixture.provider.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 		}),
 	);
-}, 30_000);
+});

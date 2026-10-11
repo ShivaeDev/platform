@@ -44,8 +44,8 @@ describe("config", () => {
 		expect(await issues({ source: ["src"] })).toEqual([expect.stringContaining("source")]);
 	});
 
-	it("rejects pre-commit commands that are not a list of strings", async () => {
-		expect(await issues({ preCommit: { run: "pnpm typecheck" } })).toEqual([expect.stringContaining("preCommit")]);
+	it("rejects the removed preCommit config with script guidance", async () => {
+		expect(await issues({ preCommit: { run: ["pnpm typecheck"], tighten: true } })).toEqual([expect.stringContaining("quality:commit")]);
 	});
 
 	it("rejects an unknown rule id", async () => {
