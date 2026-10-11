@@ -3,7 +3,7 @@ import { fileUrl } from "#files/url.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
 import { escapeHtml } from "#page/escape.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { readResponses } from "#responses/read.ts";
 import { malformedResponse, questionFrom, revisionOf } from "#responses/records.ts";

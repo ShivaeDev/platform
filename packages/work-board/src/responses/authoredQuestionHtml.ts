@@ -4,18 +4,18 @@ import type { QuestionPreview } from "#browser/responses/schema.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
 import { escapeHtml } from "#page/escape.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import { composerHtml } from "./composerHtml.ts";
 import { historyHtml } from "./historyHtml.ts";
 import { questionId, revisionOf } from "./records.ts";
-import type { responseService } from "./service.ts";
+import { Responses } from "./service.ts";
 
 export const authoredQuestionHtml = Effect.fn("WorkBoard.authoredQuestionHtml")(function* (
 	document: MetadataDocument,
 	source: string,
-	service: Effect.Success<ReturnType<typeof responseService>>,
 	enabled: boolean,
-): Effect.fn.Return<string, RenderFailed, Highlighter | FileSystem.FileSystem | Path.Path> {
+): Effect.fn.Return<string, RenderFailed, Highlighter | FileSystem.FileSystem | Path.Path | Responses> {
+	const service = yield* Responses;
 	const item = document.parsed.fields.id ?? "";
 	const revision = revisionOf(source);
 	const preview: QuestionPreview = {

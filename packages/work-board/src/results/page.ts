@@ -8,7 +8,7 @@ import { escapeHtml } from "#page/escape.ts";
 import { metadataHtml } from "#page/metadata.ts";
 import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
-import type { Highlighter } from "#render/highlighter.ts";
+import type { Highlighter } from "#render/Highlighter.ts";
 import { renderMarkdown } from "#render/markdown.ts";
 import { revisionOf } from "#responses/records.ts";
 import { resultCriteria } from "#results/criteria.ts";
