@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { navHtml } from "#page/nav.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#responses/records.ts";
 import { inboxFixture, inboxQuestion, inboxSnapshot } from "#test/inboxFixture.ts";
 import { fleetRecords, inboxItems } from "./inbox.ts";
@@ -8,6 +9,7 @@ it("collects human-owned next actions, open questions, needs-human work and mana
 	const snapshot = inboxSnapshot();
 	expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.fleet", "task.review", "question.storage", "decision.delivery"]);
 	const html = inboxHtml(snapshot);
+	expect(html.match(/>Waiting on you</gu)).toHaveLength(1);
 	expect(html).toContain("Casey: Review the keyboard evidence");
 	expect(html).toContain("A question needs your answer");
 	expect(html).toContain("Fleet needs a person: Confirm the deployment target");
@@ -89,5 +91,25 @@ it("removes only a uniquely recorded answer to the current question and groups t
 		}),
 		"responses/fleet-question.md": questionMarkdown(fleetQuestion),
 	});
+	const nav = navHtml(
+		fleet.documents.map((entry) => ({ modified: 0, path: entry.file })),
+		"",
+		undefined,
+		fleet,
+	);
+	expect(nav).toContain('<details data-key="fleet-records"><summary>Fleet records (3)</summary>');
+	for (const file of ["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]) {
+		expect(nav.slice(nav.indexOf('<details data-key="fleet-records"'))).toContain(`href="/${file}"`);
+		expect(nav.slice(0, nav.indexOf('<details data-key="fleet-records"'))).not.toContain(`href="/${file}"`);
+	}
+	expect(nav.slice(0, nav.indexOf('<details data-key="fleet-records"'))).toContain('href="/responses/question.md"');
+	expect(
+		navHtml(
+			fleet.documents.map((entry) => ({ modified: 0, path: entry.file })),
+			"responses/fleet-question.md",
+			undefined,
+			fleet,
+		),
+	).toContain('<details data-key="fleet-records" open>');
 	expect([...fleetRecords(fleet.model)]).toEqual(["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]);
 });

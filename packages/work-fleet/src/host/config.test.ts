@@ -54,4 +54,17 @@ describe("work-fleet host configuration", () => {
 		).pipe(Effect.flip, Effect.provide(NodeServices.layer));
 		expect(failure.message).toMatch(/selects provider "cloud" without cloud and worker settings$/u);
 	});
+
+	it.effect("loads thread naming, project assignment and the archive opt-out from the host file", function* () {
+		const cloud = {
+			archiveThreads: false,
+			cwd: "/workspace/synthetic",
+			environmentId: "synthetic-environment",
+			projectId: "synthetic-project",
+			threadNamePrefix: "Automation: ",
+		};
+		const config = { cloud, provider: "cloud", worker: { branchPrefix: "automation/", sharedEnvironment: "/synthetic/env.sh" } };
+		const host = yield* loadHost(hostBoard(JSON.stringify(config))).pipe(Effect.provide(NodeServices.layer));
+		expect(host.cloud).toEqual(cloud);
+	});
 });

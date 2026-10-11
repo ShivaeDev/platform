@@ -5,6 +5,16 @@ import { renderDiagrams } from "/_board/diagrams.js";
 import { captureReading, reportMissingPassage, restoreReading } from "/_board/reading-state.js";
 import { refreshLibrary } from "/_board/library.js";
 
+export const syncInbox = () => {
+  const count = document.getElementById("inbox-count");
+  const topbarCount = document.getElementById("inbox-topbar-count");
+  if (count && topbarCount) {
+    topbarCount.textContent = count.textContent;
+    topbarCount.setAttribute("aria-label", count.getAttribute("aria-label"));
+  }
+  for (const id of ["inbox-open", "inbox-topbar"]) document.getElementById(id)?.setAttribute("aria-current", document.getElementById("doc").dataset.view === "inbox" ? "page" : "false");
+};
+
 export const capturePage = () => {
   const page = document.implementation.createHTMLDocument(document.title);
   for (const id of ["files", "doc", "breadcrumbs", "inbox-topbar"]) page.body.append(document.getElementById(id).cloneNode(true));
@@ -40,10 +50,9 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
-  document.getElementById("inbox-open")?.setAttribute("aria-current", doc.dataset.view === "inbox" ? "page" : "false");
   const inbox = page.getElementById("inbox-topbar");
   if (inbox) document.getElementById("inbox-topbar").replaceWith(document.importNode(inbox, true));
-  document.getElementById("inbox-topbar")?.setAttribute("aria-current", doc.dataset.view === "inbox" ? "page" : "false");
+  syncInbox();
   const crumbs = page.getElementById("breadcrumbs");
   if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
   if (!preserve) {

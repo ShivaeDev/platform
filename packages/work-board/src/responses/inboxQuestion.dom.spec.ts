@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 async function open() {
-	notes = folder({ "question.md": inboxQuestion });
+	notes = folder({ "question.md": inboxQuestion, "readme.md": "# Project notes" });
 	board = await startBoard(notes.root, undefined, (fs) => fs, true);
 	page = await openPage(board, "/_board/item/question.storage/");
 	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
@@ -89,12 +89,43 @@ it("opens a question through native Inbox navigation and refreshes a closed ques
 	page = await openPage(board, "/_board/inbox");
 	await waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live"));
 	expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(1);
+	expect(page.document.getElementById("inbox-topbar")?.getAttribute("aria-current")).toBe("page");
+	for (const id of ["inbox-count", "inbox-topbar-count"]) {
+		expect(page.document.getElementById(id)?.textContent).toBe("1");
+	}
 	page.document.querySelector(".inbox-row a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.getElementById("response-form")).not.toBeNull());
 	expect(page.window.location.pathname).toBe("/_board/item/question.storage/");
+	const location = page.window.location.href;
 	notes.write("question.md", inboxQuestion.replace("status: open", "status: closed"));
-	await waitFor(() => expect(page.document.getElementById("inbox-count")?.textContent).toBe("0"));
+	await waitFor(() => {
+		for (const id of ["inbox-count", "inbox-topbar-count"]) {
+			expect(page.document.getElementById(id)?.textContent).toBe("0");
+			expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 waiting");
+		}
+	});
+	expect(page.window.location.href).toBe(location);
 	page.document.getElementById("inbox-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("inbox"));
 	expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0);
+});
+
+it("updates both Inbox counts when a question closes while an unrelated document stays mounted", async () => {
+	await open();
+	await page.close();
+	page = await openPage(board, "/readme.md");
+	await waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live"));
+	const document = page.document.getElementById("doc");
+	for (const id of ["inbox-count", "inbox-topbar-count"]) {
+		expect(page.document.getElementById(id)?.textContent).toBe("1");
+	}
+	notes.write("question.md", inboxQuestion.replace("status: open", "status: closed"));
+	await waitFor(() => {
+		for (const id of ["inbox-count", "inbox-topbar-count"]) {
+			expect(page.document.getElementById(id)?.textContent).toBe("0");
+			expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe("0 waiting");
+		}
+	});
+	expect(page.document.getElementById("doc")).toBe(document);
+	expect(page.window.location.pathname).toBe("/readme.md");
 });

@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
@@ -29,11 +29,16 @@ it("keeps recorded answers readable when a question closes or its option labels 
 				type: "answer",
 			}),
 		);
-		for (const [source, message] of [
+		for (const [step, [source, message]] of [
 			[inboxQuestion.replace("status: open", "status: closed"), "Question closed"],
 			[inboxQuestion.replace("label: Use a database", "label: Keep local files"), "Question option labels must be unique."],
-		]) {
-			notes.write("question.md", source ?? "");
+		].entries()) {
+			const marker = `Indexed revision ${step}`;
+			notes.write("question.md", `${source}\n\n# ${marker}`);
+			await vi.waitFor(async () => {
+				const indexed = await client.run(client.api.search.run({ query: marker }));
+				expect(indexed.results.some((entry) => entry.file === "question.md" && entry.text.includes(marker))).toBe(true);
+			});
 			const page = await rawGet(board, "/_board/item/question.storage/");
 			expect(page.status).toBe(200);
 			expect(page.body).toContain(message);
@@ -41,6 +46,7 @@ it("keeps recorded answers readable when a question closes or its option labels 
 			expect(page.body).toContain("Keep readable project files.");
 			expect(page.body).toContain("Earlier reviewed context");
 			expect(page.body).not.toContain("ResponseFailed");
+			expect(page.body).not.toContain("Error:");
 			expect(page.body).not.toContain('id="response-form"');
 		}
 	} finally {

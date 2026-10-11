@@ -1,5 +1,7 @@
 import { Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule } from "effect";
-import { listMarkdown, type MarkdownFile } from "./list.ts";
+import { registerInvalidations, trackInvalidations } from "./invalidations.ts";
+import type { MarkdownFile } from "./list.ts";
+import { updateFiles } from "./update.ts";
 import { watchDirectories } from "./watchDirectories.ts";
 
 export type Change = ({ readonly _tag: "Changed"; readonly paths: readonly string[] } | { readonly _tag: "Watching"; readonly watching: boolean }) & {
@@ -40,16 +42,41 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	}
 	const cached = yield* Ref.make(Option.none<Cached>());
 	const settled = yield* Deferred.make<void>();
-	const stale = Ref.update(generation, (count) => count + 1);
+	let pending: Deferred.Deferred<void> | undefined;
+	const observed = Effect.gen(function* () {
+		if (pending === undefined) {
+			pending = yield* Deferred.make<void>();
+		}
+	});
+	const finishPending = Effect.suspend(() => {
+		const done = pending;
+		pending = undefined;
+		return done ? Deferred.succeed(done, undefined) : Effect.void;
+	});
+	const invalidations = trackInvalidations();
+	function invalidate(paths?: readonly string[]) {
+		return Ref.update(generation, (count) => {
+			invalidations.record(count + 1, paths);
+			return count + 1;
+		});
+	}
+	const stale = invalidate();
 	function setWatching(now: boolean) {
 		return Effect.andThen(
 			Effect.flatMap(Ref.getAndSet(watching, now), (was) =>
 				was === now ? Effect.void : Effect.andThen(stale, publish({ _tag: "Watching", watching: now })),
 			),
-			Deferred.succeed(settled, undefined),
+			Effect.andThen(finishPending, Deferred.succeed(settled, undefined)),
 		);
 	}
-	const attempt = watchDirectories(root, realRoot, stale, setWatching, (paths) => publish({ _tag: "Changed", paths }));
+	const attempt = watchDirectories(
+		root,
+		realRoot,
+		stale,
+		setWatching,
+		(paths) => Effect.andThen(invalidate(paths), Effect.andThen(finishPending, publish({ _tag: "Changed", paths }))),
+		observed,
+	);
 	yield* attempt.pipe(
 		Effect.sandbox,
 		Effect.tapError((cause) => Effect.andThen(setWatching(false), Effect.logWarning("Watching the folder failed; retrying", cause))),
@@ -58,15 +85,26 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 	);
 	yield* Deferred.await(settled);
 	const files = Effect.gen(function* () {
+		let waiting = pending;
+		while (waiting) {
+			yield* Deferred.await(waiting);
+			waiting = pending;
+		}
 		const now = yield* Ref.get(generation);
 		const hit = Option.filter(yield* Ref.get(cached), (entry) => entry.generation === now);
 		if ((yield* Ref.get(watching)) && Option.isSome(hit)) {
 			return hit.value.files;
 		}
-		const listed = yield* listMarkdown(root, realRoot).pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
+		const previous = yield* Ref.get(cached);
+		const dirty = Option.isSome(previous) && (yield* Ref.get(watching)) ? invalidations.since(previous.value.generation) : undefined;
+		const listed = yield* updateFiles(root, realRoot, Option.isSome(previous) ? previous.value.files : [], dirty).pipe(
+			Effect.provideService(FileSystem.FileSystem, fs),
+			Effect.provideService(Path.Path, path),
+		);
 		yield* Ref.set(cached, Option.some({ files: listed, generation: now }));
 		return listed;
 	});
 	const changes: Changes = { events, files, realRoot, refresh: stale, revision: Ref.get(generation), sequence: Ref.get(sequence), watching };
+	registerInvalidations(changes, invalidations);
 	return changes;
 });

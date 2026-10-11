@@ -30,7 +30,7 @@ it("returns the template diagnostic when an authored packet has an empty option"
 	workspace = await responseWorkspace(questionnaireSource.replace("**Latest reply** — compact, with older replies behind a link.", ""));
 	await expect(workspace.register()).rejects.toMatchObject({
 		code: "Unsupported",
-		message: "Invalid response template: Error: Options need Markdown descriptions and cannot nest response controls.",
+		message: "Invalid response template: Options need Markdown descriptions and cannot nest response controls.",
 	});
 });
 

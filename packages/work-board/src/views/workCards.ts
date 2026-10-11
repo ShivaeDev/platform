@@ -6,7 +6,7 @@ function card(item: Item, state: State, waiting: ReadonlyMap<string, string>): s
 	const fields = item.document.parsed.fields;
 	const selected = item.id === state.item;
 	return `<article class="work-card" data-key="item:${escapeHtml(item.id)}" data-item="${escapeHtml(item.id)}"${selected ? ' data-selected="true"' : ""}>
- ${waiting.has(item.id) ? `<p class="waiting-state">Waiting on you · ${escapeHtml(waiting.get(item.id) ?? "")}</p>` : ""}
+ ${waiting.has(item.id) ? `<span class="waiting-badge" title="${escapeHtml(waiting.get(item.id) ?? "")}">Waiting on you</span>` : ""}
  <p class="work-kind">${escapeHtml(fields.kind ?? "Kind not recorded")}</p>
  <h3><a href="${escapeHtml(viewUrl(state, { item: item.id }, "work-detail"))}"${selected ? ' aria-current="true"' : ""}>${escapeHtml(item.title)}</a></h3>
  <p class="work-id">${escapeHtml(item.id)}</p><p class="work-owner">Owner: ${escapeHtml(fields.owner ?? "Not recorded")}</p>

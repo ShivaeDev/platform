@@ -13,11 +13,15 @@
 
 - Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.
 
+- Keep Inbox ages and sorting in the cached document index, update both navigation counts on live changes, and wait for indexed writes when testing question history.
+
 - Make the handoff source-change DOM regression wait for refreshed source, then assert retained direction, disabled submission and the required fresh preview.
 
 - Keep same-origin assets and unrecognized routes in browser navigation instead of intercepting them as reader pages. Preserve native returned-result navigation.
 
 ### Changed
+
+- Re-read only changed Markdown paths after each settled watcher batch. Retain unchanged parsed documents and search entries, update dependent metadata diagnostics, and coalesce bursts larger than 256 events into one revision. Watcher recovery checks source bytes while retaining unchanged parses.
 
 - Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
 

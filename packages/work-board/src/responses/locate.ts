@@ -35,7 +35,8 @@ export function locate(root: string, realRoot: string, snapshot: Effect.Effect<S
 		}
 		const revision = revisionOf(source);
 		yield* Effect.try({
-			catch: (cause) => new ResponseFailed({ code: "Unsupported", message: `Invalid response template: ${String(cause)}` }),
+			catch: (cause) =>
+				new ResponseFailed({ code: "Unsupported", message: `Invalid response template: ${cause instanceof Error ? cause.message : String(cause)}` }),
 			try: () => questionTemplate(source, request),
 		});
 		const question: QuestionPreview = {
