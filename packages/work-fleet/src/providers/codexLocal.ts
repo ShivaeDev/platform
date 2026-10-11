@@ -35,15 +35,21 @@ export const codexLocalLayer = Layer.effect(SessionTransport)(
 		const resumed = new Set<string>();
 		return codexAdapter(rpc, {
 			beforeTurn: (input) =>
-				resumed.has(input.sessionId)
+				(resumed.has(input.sessionId)
 					? Effect.succeed({})
 					: rpc("thread/resume", { excludeTurns: true, threadId: input.sessionId }).pipe(
 							Effect.tap(() => Effect.sync(() => resumed.add(input.sessionId))),
 							Effect.as({}),
-						),
+						)
+				).pipe(
+					Effect.map((params) =>
+						input.access === "read-only" ? { ...params, approvalPolicy: "never", sandboxPolicy: { networkAccess: false, type: "readOnly" } } : params,
+					),
+				),
 			provisioning: "ready",
 			sessionStarted: (sessionId) => resumed.add(sessionId),
 			threadStart: (input) => ({
+				...(input.access === "read-only" ? { approvalPolicy: "never", sandbox: "read-only" } : {}),
 				cwd: input.cwd,
 				ephemeral: false,
 				...(input.settings?.model === undefined ? {} : { model: input.settings.model }),

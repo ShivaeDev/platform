@@ -28,9 +28,7 @@ export const hostIntegrations = Layer.effect(FleetIntegrations)(
 			delivery: githubDelivery(main.repositoryRoot),
 			main: main.observe,
 			merge: () => unconfigured("Merge"),
-			reconcileReview: () => unconfigured("Review reconciliation"),
 			result: () => unconfigured("Worker result adoption"),
-			review: () => unconfigured("Independent review"),
 		});
 	}),
 );
@@ -50,6 +48,7 @@ export function hostPolicy(host: FleetHost) {
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
 				refreshQuota: hostQuota(host, now),
+				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
 			});
 		}),
 	);

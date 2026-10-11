@@ -30,6 +30,7 @@ export const LaunchSettings = Schema.Struct({
 });
 export type LaunchSettings = typeof LaunchSettings.Type;
 export const StartSession = Schema.Struct({
+	access: Schema.optional(Schema.Literal("read-only")),
 	cwd: Schema.String,
 	operationId: Schema.String,
 	prompt: Schema.String,
@@ -37,6 +38,7 @@ export const StartSession = Schema.Struct({
 });
 export type StartSession = typeof StartSession.Type;
 export const ContinueSession = Schema.Struct({
+	access: Schema.optional(Schema.Literal("read-only")),
 	operationId: Schema.String,
 	prompt: Schema.String,
 	sessionId: Schema.String,
