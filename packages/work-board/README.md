@@ -268,6 +268,8 @@ The agent edits `handoff.state` to `acknowledged`, `rejected` or `unavailable` a
 
 Same-ID retries preserve receipt and extra metadata, including after source deletion. Restarted servers read the recorded receipt. Different direction and moved or duplicate identities are conflicts; a changed source before initial preparation requires another review. Saved context remains inspectable when its source disappears. Native navigation and Back retain owned draft text; source changes require a fresh preview. Drafts share the existing workspace store and its 30-day/2-MiB bounds. Clearing that store clears response and handoff drafts together.
 
+The static handoff, response and question forms use `@shivaedev/effect-form` for Schema decoding, field messages and captured submissions. Board owns preview, reviewed-context checks and durable draft storage. Input typed during a response save remains available under a fresh draft identity; each form releases its registry on navigation or pagehide and rebinds on pageshow.
+
 The [handoff source reference](docs/delivery/handoff-examples.md) shows a complete record, ordinary receipt edits and the boundary with optional execution integrations.
 
 #### Review the returned result

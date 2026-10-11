@@ -50,6 +50,7 @@ export interface Form<F extends Fields, A, E, ER> {
 	readonly choices: <K extends Name<F>>(name: K) => readonly Encoded<F>[K][] | undefined;
 	readonly dirty: Atom.Atom<boolean>;
 	readonly error: (name: Name<F>) => Atom.Atom<string | undefined>;
+	readonly errorAt: (path: readonly [Name<F>, ...PropertyKey[]]) => Atom.Atom<string | undefined>;
 	readonly field: <K extends Name<F>>(name: K) => AtomRef.AtomRef<Encoded<F>[K]>;
 	readonly receive: (values: Encoded<F>) => void;
 	readonly revert: () => void;

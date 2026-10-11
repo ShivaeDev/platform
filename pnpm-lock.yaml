@@ -1049,6 +1049,9 @@ importers:
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
+      '@shivaedev/effect-form':
+        specifier: workspace:*
+        version: link:../effect-form
       mdast-util-directive:
         specifier: 'catalog:'
         version: 3.1.0(supports-color@7.2.0)

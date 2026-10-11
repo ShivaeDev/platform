@@ -172,6 +172,8 @@ const profile = make(Schema.Struct({ name: Schema.String }), {
 
 This check produces advisory feedback after the configured debounce and completion. A message is shown only while its checked input is still the current field value. Pending checks, older results and a defective check do not show an earlier value's message. Checks can read services from the supplied runtime. Keep authoritative validation in the schema or handler.
 
+For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first issue at or beneath that path; a sibling issue does not appear there. Handler rejections and advisory checks remain on `error("answers")`. Nested values are still edited as a whole top-level field.
+
 ### Choices and nullable inputs
 
 ```ts
@@ -196,7 +198,7 @@ Import the module that defines a name; there is no root entry.
 | `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
 | `@shivaedev/effect-form/react.ts` | `useField`, `useSubmit`, `useDirty`, `Field`, `Submit` |
 | `@shivaedev/effect-form/optional.ts` | `emptyAsNull` |
-| `@shivaedev/effect-form/messages.ts` | `FieldMessages`, `messagesByField`, `messageAt`, `withoutField`, `literalChoices`, `noMessages` |
+| `@shivaedev/effect-form/messages.ts` | `FieldMessages`, `messagesByField`, `messageAt`, `messageAtPath`, `schemaFeedback`, `withoutField`, `literalChoices`, `noMessages` |
 
 `make` takes a `Schema.Struct` and this configuration:
 
@@ -217,6 +219,7 @@ The returned form exposes:
 | `change(name, value)` | Write encoded input through the form's editing operation |
 | `blur(name)` | Field blur operation, supplied as `useField(...).onBlur` |
 | `error(name)` | Atom of `string \| undefined` |
+| `errorAt([name, ...path])` | Atom of nested Schema feedback; visibility follows the top-level field |
 | `choices(name)` | Encoded choices or `undefined` |
 | `dirty` | Atom of `boolean` |
 | `receive(values)` | Merge received encoded values |

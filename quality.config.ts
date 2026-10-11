@@ -20,7 +20,7 @@ const LEAVES: Readonly<Record<string, { readonly allowed: readonly string[]; rea
 	skills: { allowed: [], module: "syncSkills" },
 	"test-story": { allowed: ["effect-test"], module: "storyKit" },
 	types: { allowed: [], module: "bivariant" },
-	"work-board": { allowed: ["effect-contract"], module: "board" },
+	"work-board": { allowed: ["effect-contract", "effect-form"], module: "board" },
 	"work-fleet": { allowed: ["work-board", "effect-contract", "effect-service", "effect-sql"], module: "fleet" },
 };
 const TYPE_ONLY = "@shivaedev/types ships only types, such as Bivariant, so importing it adds no runtime code to the package.";
@@ -85,13 +85,13 @@ const fences: readonly Fence[] = [
 		}),
 	fence("browser-folder-stays-browser-safe")
 		.because(
-			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract, never @trpc/server, Node or other server code.",
+			"The browser folders of a server package ship to browsers: everything their modules reach stays in those folders or is effect or the browser-safe effect-contract and effect-form, never @trpc/server, Node or other server code.",
 		)
 		.from(BROWSER_CODE)
-		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "types"), modules("effect")))
+		.mayNotReach(anything.except(BROWSER_CODE, packages("effect-contract", "effect-form", "types"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
-			legal: ["packages/effect-trpc/src/client/rejection.ts", external("effect")],
+			legal: ["packages/work-board/src/browser/handoffs/form.ts", "packages/effect-form/src/form.ts"],
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(
