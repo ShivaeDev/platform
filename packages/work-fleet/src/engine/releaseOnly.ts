@@ -18,7 +18,6 @@ const explanations: Readonly<Record<string, string>> = {
 		"Retry cannot transfer ownership to a different result; release and inspect the replacement before preparing again.",
 	"Review lacks the adopted worker receipt":
 		"Retry cannot establish adopted worker ownership from the saved evidence; release and inspect ownership before preparing again.",
-	"Reviewed PR is ready to merge": "Retry cannot merge a PR; a human must merge the reviewed head, or release Fleet ownership.",
 	"relevant-change": "Retry cannot refresh affected preparation context; release and prepare against current main.",
 	"Worker report exceeds Board’s 256 KiB context limit, including metadata and receipt; request a shorter report before retrying.":
 		"Retry cannot shorten the immutable completed report; release and prepare a worker to produce a shorter report.",

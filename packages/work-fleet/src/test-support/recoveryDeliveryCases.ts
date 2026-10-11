@@ -52,6 +52,14 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 		{
 			enter: finishRecoveryReview,
 			name: "ready for human merge",
+			progress: (_ctx, before, after) => {
+				expect(after.stage).toBe("executing");
+				expect(after.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: before.attempts[0]?.receipt?.sessionId });
+				expect(after.attempts.at(-1)?.prompt).toContain("Resolve the report decision.");
+				expect(after.result).toEqual(before.result);
+				expect(after.review).toBeUndefined();
+				expect(after.checks).toBeUndefined();
+			},
 			reason: "Reviewed PR is ready to merge",
 			sites: ['engine/mergeReadiness.ts: "Reviewed PR is ready to merge"'],
 		},
