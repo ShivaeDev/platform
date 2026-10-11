@@ -28,7 +28,7 @@ export function statusLayer(root: string) {
 			return Fleet.of({
 				...fleet,
 				dispatch: (workId) => after(fleet.dispatch(workId)),
-				list: () => publish.pipe(Effect.andThen(fleet.list())),
+				list: () => after(fleet.list()),
 				prepare: (input) => after(fleet.prepare(input)),
 				reconcile: (workId) => after(fleet.reconcile(workId)),
 				resolve: (workId, decisionId, responseId) => after(fleet.resolve(workId, decisionId, responseId)),
