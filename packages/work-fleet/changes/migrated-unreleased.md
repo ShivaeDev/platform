@@ -1,5 +1,7 @@
 ### Added
 
+- Treat passing required checks at the reviewed head as CI evidence when job logs or artifacts are unavailable, with the limitation recorded in reviewer evidence. Ask once for a malformed verdict on the same reviewer thread before requiring a human; persist and reconcile that follow-up across restart.
+
 - Adopt PRs already merged at the reported head, including merges during review, then require independent approval and checks for that head before accepting observed human delivery. Retry failed adoption from the completed worker receipt instead of launching another worker; keep mismatched merges and unmerged closures waiting for a human.
 - Recover interrupted Cloud launches on the acknowledged thread: adopt matching accepted turns, wait five seconds for late acceptance, then start the saved turn only when the thread remains empty. Guided retry uses the same recovery for existing missing-turn decisions and retains the attempt identity; uncertain thread evidence stays blocked.
 - Check complete report bytes, including attachment links, before writing attachment files, so oversized reports leave no attachment folder. Name launching threads with one record lookup using the work ID retained from session acknowledgement.
