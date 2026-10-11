@@ -9,6 +9,7 @@ import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 interface GithubState {
 	head: string;
 	legacyResult: boolean;
+	paths: string[];
 	pending: boolean;
 	status: "OPEN" | "CLOSED" | "MERGED";
 }
@@ -16,15 +17,15 @@ interface GithubState {
 function githubResponses(state: GithubState): Readonly<Record<string, unknown>> {
 	const merged = state.status === "MERGED";
 	return {
-		"/repos/example/repository/pulls/7/files?per_page=100": [[{ filename: "src/one.ts" }]],
+		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repository": { nameWithOwner: "example/repository" },
-		[`/repos/example/repository/commits/${HEAD}/check-runs?per_page=100&filter=latest`]: [
+		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
 			{
 				"check_runs": [
 					{
 						conclusion: state.pending ? null : "success",
 						"details_url": null,
-						"head_sha": HEAD,
+						"head_sha": state.head,
 						"html_url": `${PR}/checks`,
 						name: "test",
 						status: state.pending ? "queued" : "completed",
@@ -32,7 +33,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 				],
 			},
 		],
-		[`/repos/example/repository/commits/${HEAD}/status?per_page=100`]: [{ sha: HEAD, statuses: [] }],
+		[`/repos/example/repository/commits/${state.head}/status?per_page=100`]: [{ sha: state.head, statuses: [] }],
 		"/delivery": {
 			headRefOid: state.head,
 			mergeCommit: merged ? { oid: BASE } : null,
@@ -42,7 +43,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 		},
 		"/repos/example/repository/pulls/7": {
 			base: { ref: "main", sha: BASE },
-			"changed_files": 1,
+			"changed_files": state.paths.length,
 			head: { sha: state.head },
 			"html_url": PR,
 			merged: state.status === "MERGED",
@@ -53,7 +54,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 }
 
 export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* () {
-	const state: GithubState = { head: HEAD, legacyResult: false, pending: false, status: "OPEN" };
+	const state: GithubState = { head: HEAD, legacyResult: false, paths: ["src/one.ts"], pending: false, status: "OPEN" };
 	const requests: string[] = [];
 	const server = createServer((request, response) => {
 		const path = request.url ?? "";

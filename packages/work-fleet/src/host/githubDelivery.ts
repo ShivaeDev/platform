@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
 import { githubRead } from "#host/githubRead.ts";
+import { MovedPrHead } from "#host/movedPrHead.ts";
 import { type ChangeResult, FleetFailure } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
@@ -31,21 +32,26 @@ export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => E
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
 			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),
 		);
-		if (pr.url !== result.pr) {
-			return yield* failure("Delivery observation differs from the adopted PR");
-		}
-		if (pr.state === "CLOSED" && pr.mergedAt === null && pr.mergeCommit === null) {
-			return yield* failure("PR was closed without merging; inspect the closed PR before retrying or releasing this work");
-		}
-		if (pr.headRefOid !== result.head) {
-			return yield* failure("PR head differs from the reviewed head; review the current revision before accepting delivery");
-		}
+		yield* validateDelivery(pr, result);
 		if (pr.state === "MERGED" && pr.mergedAt !== null && pr.mergeCommit !== null) {
 			return { head: pr.headRefOid, revision: pr.mergeCommit.oid, url: pr.url };
-		}
-		if (pr.state !== "OPEN" || pr.mergedAt !== null || pr.mergeCommit !== null) {
-			return yield* failure("PR delivery evidence is inconsistent; inspect the adopted PR");
 		}
 		return undefined;
 	});
 }
+
+const validateDelivery = Effect.fn("FleetHost.validateDelivery")(function* (pr: typeof PullRequest.Type, result: typeof ChangeResult.Type) {
+	if (pr.url !== result.pr) {
+		return yield* failure("Delivery observation differs from the adopted PR");
+	}
+	if (pr.state === "CLOSED" && pr.mergedAt === null && pr.mergeCommit === null) {
+		return yield* failure("PR was closed without merging; inspect the closed PR before retrying or releasing this work");
+	}
+	const merged = pr.state === "MERGED" && pr.mergedAt !== null && pr.mergeCommit !== null;
+	if (!merged && (pr.state !== "OPEN" || pr.mergedAt !== null || pr.mergeCommit !== null)) {
+		return yield* failure("PR delivery evidence is inconsistent; inspect the adopted PR");
+	}
+	if (pr.headRefOid !== result.head) {
+		return yield* new MovedPrHead(pr.headRefOid);
+	}
+});
