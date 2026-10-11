@@ -4,7 +4,7 @@ import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { questionFrom, responseFrom } from "#responses/records.ts";
 import type { Snapshot } from "#search/snapshot.ts";
-import { attentionRequests } from "./requests.ts";
+import { attentionRequests, isMaintainerRequest } from "./requests.ts";
 
 function currentSource(question: Question, document: MetadataDocument): boolean {
 	const captured = metadataParse(question.context);
@@ -37,7 +37,7 @@ export function answeredQuestion(document: MetadataDocument, model: MetadataMode
 }
 
 export function pendingQuestions(snapshot: Snapshot) {
-	const open = attentionRequests(snapshot).entries;
+	const open = attentionRequests(snapshot).entries.filter((entry) => isMaintainerRequest(entry.request, snapshot.maintainer));
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	return snapshot.documents.flatMap((captured) => {
 		const question = questionFrom(captured);

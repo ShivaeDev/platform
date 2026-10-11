@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { type Item, ItemsResponse, TurnsResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
+import { reportLimit } from "#reportLimits.ts";
 import type { SessionFailure, SessionReceipt } from "#session/schema.ts";
 
 export type CodexRequest = (method: string, params: unknown, mutation?: boolean) => Effect.Effect<unknown, SessionFailure>;
@@ -8,6 +9,16 @@ function finalOutput(items: readonly (typeof Item.Type)[]) {
 	const messages = items.filter((item) => item.type === "agentMessage" && item.text !== undefined);
 	const final = messages.filter((item) => item.phase === "final_answer");
 	return (final.length > 0 ? final : messages).map((item) => item.text).join("\n");
+}
+function rememberCursor(cursors: Set<string>, cursor: string | null) {
+	if (cursor === null) {
+		return Effect.void;
+	}
+	if (cursors.has(cursor)) {
+		return Effect.fail(failure("protocol", "Codex repeated an item pagination cursor"));
+	}
+	cursors.add(cursor);
+	return Effect.void;
 }
 export function codexTurns(rpc: CodexRequest) {
 	function turns(sessionId: string, cursor: string | null, full: boolean) {
@@ -52,20 +63,34 @@ export function codexTurns(rpc: CodexRequest) {
 		}
 		return turnId;
 	});
-	const readOutput = Effect.fn("Codex.readOutput")(function* (receipt: SessionReceipt) {
+	const readItems = Effect.fn("Codex.readItems")(function* (receipt: SessionReceipt, byteLimit?: number) {
 		let cursor: string | null = null;
 		const items: (typeof Item.Type)[] = [];
+		const cursors = new Set<string>();
+		let bytes = 0;
 		do {
-			const page: typeof ItemsResponse.Type = yield* rpc("thread/items/list", {
+			const response: unknown = yield* rpc("thread/items/list", {
 				cursor,
 				limit: 100,
+				sortDirection: "asc",
 				threadId: receipt.sessionId,
 				turnId: receipt.turnId,
-			}).pipe(Effect.flatMap((value) => decode(ItemsResponse, value)));
-			items.push(...page.data.map(({ item }) => item));
+			});
+			bytes += Buffer.byteLength(JSON.stringify(response) ?? "null", "utf8");
+			if (byteLimit !== undefined && bytes > byteLimit) {
+				return yield* Effect.fail(failure("protocol", reportLimit("downloadBytes").message));
+			}
+			const page: typeof ItemsResponse.Type = yield* decode(ItemsResponse, response);
+			for (const { item } of page.data) {
+				items.push(item);
+			}
 			cursor = page.nextCursor;
+			yield* rememberCursor(cursors, cursor);
 		} while (cursor !== null);
-		return finalOutput(items);
+		return items;
 	});
-	return { findTurn, operationTurn, readOutput };
+	function readOutput(receipt: SessionReceipt) {
+		return readItems(receipt).pipe(Effect.map(finalOutput));
+	}
+	return { findTurn, operationTurn, readItems, readOutput };
 }

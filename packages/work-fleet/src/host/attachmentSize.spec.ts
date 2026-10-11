@@ -12,7 +12,7 @@ it.effect("rejects oversized reports including attachment links before writing a
 	const boardLayer = reportBoard(
 		fixture.root,
 		() => Effect.succeed(false),
-		() => Effect.succeed([{ bytes: Uint8Array.of(42), path: "evidence.txt" }]),
+		() => Effect.succeed({ files: [{ bytes: Uint8Array.of(42), path: "evidence.txt" }], unavailable: [] }),
 	).pipe(Layer.provide(fixture.board));
 	const observation = { execution: "completed", output: "x", provisioning: "unknown", receipt: { sessionId: "worker", turnId: "small" } } as const;
 	const small = yield* Effect.gen(function* () {

@@ -1,8 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, symlink, truncate, unlink, writeFile } from "node:fs/promises";
+import { mkdir, symlink, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { ChildProcessSpawner } from "effect/unstable/process";
 import { REPORT_LIMITS } from "#reportLimits.ts";
 
 export const reconstructedAttachment = Effect.fn("ReportStory.reconstructedAttachment")(function* (
@@ -41,30 +40,4 @@ export const oversizedAttachments = Effect.fn("ReportStory.oversizedAttachments"
 		}
 	});
 	return folder;
-});
-
-async function replaceWithHostSymlink(folder: string, secret: string) {
-	await unlink(join(folder, "file.txt"));
-	await symlink(secret, join(folder, "file.txt"));
-}
-
-export const hostSymlinkAfterApply = Effect.fn("ReportStory.hostSymlinkAfterApply")(function* () {
-	const host = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
-	const secret = join(host, "secret.txt");
-	yield* Effect.promise(() => writeFile(secret, "synthetic host secret"));
-	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	return ChildProcessSpawner.make((command) =>
-		spawner.spawn(command).pipe(
-			Effect.map((process) => {
-				const folder = command._tag === "StandardCommand" && command.args.includes("--binary") ? command.options.cwd : undefined;
-				if (folder === undefined) {
-					return process;
-				}
-				return {
-					...process,
-					exitCode: process.exitCode.pipe(Effect.tap(() => Effect.promise(() => replaceWithHostSymlink(folder, secret)))),
-				};
-			}),
-		),
-	);
 });

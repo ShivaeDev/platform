@@ -8,13 +8,20 @@ const VERSION = "0.11.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;
+	readonly maintainer: string;
 	readonly port: number;
 	readonly responses: boolean;
 	readonly home: Option.Option<string>;
 }) {
 	const path = yield* Path.Path;
 	return yield* Layer.launch(
-		serveBoard({ home: Option.getOrUndefined(input.home), port: input.port, responses: input.responses, root: path.resolve(input.dir) }),
+		serveBoard({
+			home: Option.getOrUndefined(input.home),
+			maintainer: input.maintainer,
+			port: input.port,
+			responses: input.responses,
+			root: path.resolve(input.dir),
+		}),
 	);
 });
 
@@ -23,6 +30,10 @@ const workBoard = Command.make(
 	{
 		dir: Argument.directory("dir", { mustExist: true }).pipe(Argument.withDescription("The folder of markdown files to serve")),
 		home: Flag.string("home").pipe(Flag.optional, Flag.withDescription("The file shown as a board at /, relative to the folder")),
+		maintainer: Flag.string("maintainer").pipe(
+			Flag.withDefault("maintainer"),
+			Flag.withDescription("The response_from label whose questions appear in the Inbox"),
+		),
 		port: Flag.integer("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
 		responses: Flag.boolean("responses").pipe(
 			Flag.withDefault(false),

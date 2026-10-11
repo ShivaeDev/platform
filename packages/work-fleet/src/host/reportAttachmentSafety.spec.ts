@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
@@ -7,42 +7,36 @@ import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { REPORT_LIMITS } from "#reportLimits.ts";
 import { withHost } from "#test/fleetHost.ts";
-import { attachmentBoard, attachmentDiff, taskDownload } from "#test/reportAttachments.ts";
+import { addedAttachment, attachmentBoard, turnDownload } from "#test/reportAttachments.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
-const SAFE = new TextEncoder().encode("safe\n");
-const DIFF = attachmentDiff({ "file.txt": SAFE });
 const cases = [
+	{ items: () => [addedAttachment("../escape", "safe")], name: "path escape", reason: "Unsafe attachment path" },
 	{
-		diff: () => DIFF.replace("new file mode 100644", "new file mode 100644\nnew file mode 120000"),
-		name: "dual-mode symlink",
-		reason: "newly created regular files",
+		items: () => [addedAttachment("file.txt", "x".repeat(REPORT_LIMITS.diffBytes + 1))],
+		name: "diff size",
+		reason: "Downloaded report diff size limit",
 	},
-	{ diff: () => DIFF.replaceAll("file.txt", "../escape"), name: "path escape", reason: "unsafe attachment paths" },
-	{ diff: () => "x".repeat(REPORT_LIMITS.diffBytes + 1), name: "diff size", reason: "Downloaded report diff size limit" },
-	{ diff: () => "x".repeat(REPORT_LIMITS.downloadBytes + 1), name: "download size", reason: "Downloaded report task size limit" },
 	{
-		diff: () => attachmentDiff(Object.fromEntries(Array.from({ length: REPORT_LIMITS.attachmentCount + 1 }, (_, i) => [`file-${i}`, SAFE]))),
+		items: () => [{ id: "large", text: "x".repeat(REPORT_LIMITS.downloadBytes + 1), type: "reasoning" }],
+		name: "download size",
+		reason: "Downloaded report task size limit",
+	},
+	{
+		items: () => Array.from({ length: REPORT_LIMITS.attachmentCount + 1 }, (_, i) => addedAttachment(`file-${i}`, "safe")),
 		name: "attachment count",
 		reason: "Report attachment count limit",
 	},
-	{
-		diff: () =>
-			attachmentDiff({
-				"first.bin": new Uint8Array(REPORT_LIMITS.attachmentBytes / 2),
-				"second.bin": new Uint8Array(REPORT_LIMITS.attachmentBytes / 2 + 1),
-			}),
-		name: "total attachment bytes",
-		reason: "Total report attachment bytes limit",
-	},
+	{ items: () => [], name: "shell-only or missing attachment", reason: "No file-edit attachment was exposed" },
+	{ items: () => [], name: "unavailable server", reason: "Synthetic attachment retrieval unavailable", reject: true },
 ];
 
-describe("Unsafe report attachments", () => {
+describe("Unavailable report attachments", () => {
 	const test = it.live.skipIf(storageDatabaseUrl === undefined);
 	for (const scenario of cases) {
-		test(`sends ${scenario.name} to needs-human before writing a report or attachment`, function* () {
-			const download = yield* taskDownload(scenario.diff());
+		test(`publishes report text and records ${scenario.name} without attachments`, function* () {
+			const download = yield* turnDownload(scenario.items(), scenario.reject);
 			yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 				Effect.gen(function* () {
 					const collector = attachmentBoard(fixture.host.boardDir, download);
@@ -52,19 +46,25 @@ describe("Unsafe report attachments", () => {
 					if (observation === undefined) {
 						return yield* Effect.die(new Error("No report worker"));
 					}
-					fixture.provider.observations.set(observation.receipt.turnId, {
-						...observation,
-						execution: "completed",
-						output: "Report with attachments",
-					});
+					const output = "Report with attachments\nFLEET_ATTACHMENT: file.txt";
+					fixture.provider.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output });
 					const result = yield* Effect.gen(function* () {
 						return yield* (yield* Fleet).reconcile("research");
 					}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
-					expect(result.value.stage).toBe("needs-human");
-					expect(result.value.decision?.reason).toContain(scenario.reason);
-					expect(result.value.report).toBeUndefined();
-					expect(fixture.provider.archived).toEqual([]);
-					expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
+					expect(result.value.stage).toBe("completed");
+					expect(result.value.decision).toBeUndefined();
+					const report = result.value.report;
+					if (report === undefined) {
+						return yield* Effect.die(new Error("No report result"));
+					}
+					const content = readFileSync(join(fixture.host.boardDir, report.sourcePath), "utf8");
+					expect(content).toContain(output);
+					expect(content).toContain("## Unavailable attachments");
+					expect(content).toContain(scenario.reason);
+					expect(fixture.provider.archived).toEqual([observation.receipt.sessionId]);
+					expect(readdirSync(join(fixture.host.boardDir, "responses")).filter((file) => file.startsWith("fleet-report."))).toEqual([
+						`${report.itemId}.md`,
+					]);
 				}),
 			);
 		}, 30_000);

@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { Fleet } from "#fleet.ts";
-import { boardHttp, boardHttpFiles, boardOverview } from "#test/boardHttp.ts";
+import { boardHttp, boardHttpFiles, boardInbox, boardOverview } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { answerReport } from "#test/report.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
@@ -25,6 +25,7 @@ for (const status of ["planned", "done", "deferred"]) {
 					return yield* Effect.die("Missing decision");
 				}
 				const published = decision.published;
+				expect(yield* boardInbox(root, "orchestrator")).toContain(`data-key="inbox:${published.sourcePath}"`);
 				const files = boardHttpFiles(root);
 				files.write("one.md", `---\nid: one\nkind: task\nstatus: ${status}\n---\n# Changed scope\n`);
 				files.move("one.md", "moved.md");
@@ -45,6 +46,7 @@ for (const status of ["planned", "done", "deferred"]) {
 				expect(released.value.stage).toBe("released");
 				expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
 				expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${published.itemId}"`);
+				expect(yield* boardInbox(root, "orchestrator")).not.toContain('data-key="inbox:');
 				yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, answer.id))));
 				expect(files.receipts()).toHaveLength(1);
 				expect(fixture.launched).toHaveLength(2);
@@ -66,6 +68,7 @@ test("concurrent stale retries publish one current question, close the stale que
 			const files = boardHttpFiles(root);
 			const currentSource = `${source}\nChanged scope.\n`;
 			files.write("one.md", currentSource);
+			expect(yield* boardInbox(root, "orchestrator")).toContain(`data-key="inbox:${decision.published.sourcePath}"`);
 			const answer = answerReport(root, decision.published, "retry");
 			yield* Effect.all(
 				[fleet.resolve("one", decision.id, answer).pipe(Effect.result), fleet.resolve("one", decision.id, answer).pipe(Effect.result)],
@@ -85,12 +88,15 @@ test("concurrent stale retries publish one current question, close the stale que
 			expect(page).not.toContain(`data-attention-item="${decision.published.itemId}"`);
 			expect(page.match(/data-attention-item=/gu)).toHaveLength(1);
 			expect(page).toContain(`data-attention-item="${current.itemId}"`);
+			expect(yield* boardInbox(root, "orchestrator")).not.toContain('data-key="inbox:');
+			expect(yield* boardInbox(root)).toContain(`data-key="inbox:${current.sourcePath}"`);
 			yield* fixture.replaceRecord({ ...replacement, decision: { ...currentDecision, published: undefined }, decisionPublished: false });
 			yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, answer))));
 			expect((yield* fleet.get("one")).value.decision?.published).toEqual(current);
 			const release = answerReport(root, current, "release");
 			expect((yield* fleet.resolve("one", current.request, release)).value.stage).toBe("released");
 			expect(yield* boardOverview(root)).not.toContain("data-attention-item=");
+			expect(yield* boardInbox(root)).not.toContain('data-key="inbox:');
 			expect(files.receipts()).toHaveLength(2);
 			expect(fixture.launched).toHaveLength(2);
 		}),
