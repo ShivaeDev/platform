@@ -47,6 +47,10 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 	if (action === "release") {
 		return "released";
 	}
+	if (record.deliverable === "report" && !executing(record)) {
+		const latest = record.attempts.at(-1);
+		return latest?.status === "completed" && latest.output?.trim() ? "adopting" : "prepared";
+	}
 	if (record.deliverySubmitted && !executing(record)) {
 		return "delivering";
 	}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { PULL_REQUEST_MARKER, QUESTION_MARKER, reportedPullRequest, reportedQuestion, workerPrompt } from "#prompt/worker.ts";
+import { PULL_REQUEST_MARKER, QUESTION_MARKER, reportedPullRequest, reportedQuestion, reportPrompt, workerPrompt } from "#prompt/worker.ts";
 
 const prompt = workerPrompt({
 	branch: "synthetic/sidebar-tree",
@@ -8,6 +8,24 @@ const prompt = workerPrompt({
 	workId: "synthetic.task",
 });
 describe("workerPrompt", () => {
+	it("asks report workers for the whole final report without a branch or PR workflow", () => {
+		const report = workerPrompt({
+			branch: "synthetic/report",
+			deliverable: "report",
+			sharedEnvironment: "/synthetic/env.sh",
+			task: "Research.",
+			workId: "synthetic.report",
+		});
+		expect(report).toContain("Change nothing, commit nothing, push nothing, and open no PR");
+		expect(report).toContain("Do not create a branch or launch other workers");
+		expect(report).toContain(QUESTION_MARKER);
+		expect(reportPrompt(report)).toBe(report);
+		expect(report).toContain("Return the whole report as your final message");
+		expect(report).toContain("wait_for_environment");
+		expect(report).not.toContain("Fetch origin/main");
+		expect(report).not.toContain("pnpm ready");
+		expect(report).not.toContain(PULL_REQUEST_MARKER);
+	});
 	it("puts the Cloud startup block before the task and the evidence rules after it", () => {
 		const startup = prompt.indexOf("Cloud startup:");
 		const task = prompt.indexOf("# Make the sidebar a tree");
