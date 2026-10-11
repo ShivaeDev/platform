@@ -1,5 +1,5 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage } from "node:http";
-import { makeOrderWebHandler } from "./backend.ts";
+import { makeWebHandler } from "./makeWebHandler.ts";
 
 function toHeaders(incoming: IncomingHttpHeaders): Headers {
 	const headers = new Headers();
@@ -26,8 +26,11 @@ async function toRequest(incoming: IncomingMessage, signal: AbortSignal): Promis
 	});
 }
 
-export async function startOrderServer(options: Parameters<typeof makeOrderWebHandler>[0]) {
-	const app = makeOrderWebHandler(options);
+export function startOrderServer(options: Parameters<typeof makeWebHandler>[0]) {
+	return listenOrderServer(makeWebHandler(options));
+}
+
+export async function listenOrderServer(app: ReturnType<typeof makeWebHandler>) {
 	const server = createServer(async (incoming, outgoing) => {
 		const controller = new AbortController();
 		function abort() {
@@ -70,10 +73,10 @@ export async function startOrderServer(options: Parameters<typeof makeOrderWebHa
 	}
 	return {
 		close: async () => {
-			server.closeAllConnections();
 			try {
 				await new Promise<void>((resolve, reject) => {
 					server.close((error) => (error ? reject(error) : resolve()));
+					server.closeIdleConnections();
 				});
 			} finally {
 				await app.dispose();

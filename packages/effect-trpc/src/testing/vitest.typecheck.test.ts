@@ -60,3 +60,14 @@ harnessIt.effectTRPC("retains custom harness types", function* (harness) {
 	// @ts-expect-error Custom harnesses do not widen unknown properties.
 	void harness.missing;
 });
+
+makeTrpcIt({
+	adapter,
+	around: (effect) =>
+		Effect.gen(function* () {
+			yield* Effect.addFinalizer(() => Effect.void);
+			return yield* effect;
+		}),
+	createCaller: () => router.createCaller({ actor: "scoped" }),
+	layer: Layer.succeed(RuntimeService, 2),
+});

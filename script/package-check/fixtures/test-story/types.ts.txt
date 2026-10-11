@@ -53,3 +53,19 @@ garden.trait("harvested", "the garden is harvested", () => undefined)
 
 const tags: GenreTag[] = genreTags("garden", "pond")
 void tags
+
+const scoped = storyKit({
+  around: effect => Effect.gen(function* () {
+    yield* Effect.addFinalizer(() => Effect.void)
+    return yield* effect
+  }),
+  clock: "live",
+  *create() { return yield* Effect.acquireRelease(Effect.succeed({}), () => Effect.void) },
+  after: { *built() { yield* Effect.addFinalizer(() => Effect.void) } },
+  name: "scoped",
+  stages: ["built"],
+  verbs: () => ({}),
+})
+scoped.it("scopes traits and bodies", [scoped.trait("built", "a resource is open", function* () {
+  yield* Effect.addFinalizer(() => Effect.void)
+})], function* () { yield* Effect.addFinalizer(() => Effect.void) })

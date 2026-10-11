@@ -51,3 +51,30 @@ empty.effectApp("takes a Layer that provides nothing", function* (harness) {
 empty.effectApp("refuses a service the empty Layer does not provide", function* () {
 	return yield* Token;
 });
+
+const scoped = makeEffectIt({
+	around: (effect) =>
+		Effect.gen(function* () {
+			yield* Effect.addFinalizer(() => Effect.void);
+			return yield* effect;
+		}),
+	layer: Layer.empty,
+	makeHarness: () => Effect.acquireRelease(Effect.succeed("scoped"), () => Effect.void),
+});
+scoped.effectApp("accepts scoped bodies", function* () {
+	yield* Effect.addFinalizer(() => Effect.void);
+});
+scoped.effectApp.each([1, 2])("accepts scoped table bodies %s", function* () {
+	yield* Effect.addFinalizer(() => Effect.void);
+});
+makeEffectIt({
+	layer: Layer.empty,
+	// @ts-expect-error Scope cannot satisfy an unrelated harness requirement.
+	makeHarness: () => Token.asEffect(),
+});
+makeEffectIt({
+	// @ts-expect-error Scope cannot satisfy an unrelated wrapper requirement.
+	around: (effect) => Effect.flatMap(Token, () => effect),
+	layer: Layer.empty,
+	makeHarness: () => Effect.void,
+});

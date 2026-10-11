@@ -1,5 +1,5 @@
 import type { TestContext, Vitest } from "@effect/vitest";
-import type { Effect, Layer } from "effect";
+import type { Effect, Layer, Scope } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
 import type { EffectTRPCAdapter } from "#adapter.ts";
 import type { AnyTestLayer } from "./any-test-layer.ts";
@@ -40,7 +40,9 @@ export type TrpcHarnessIt<Harness, Provided> = Vitest.Methods & {
 
 export interface MakeTrpcItOptions<CreateCaller extends (...arguments_: never[]) => object, TestLayer extends AnyTestLayer> {
 	readonly adapter: Pick<EffectTRPCAdapter<never>, "runWithServices">;
-	readonly around?: <A, E>(effect: Effect.Effect<A, E, Layer.Success<TestLayer>>) => Effect.Effect<A, unknown, Layer.Success<TestLayer>>;
+	readonly around?: <A, E>(
+		effect: Effect.Effect<A, E, Layer.Success<TestLayer> | Scope.Scope>,
+	) => Effect.Effect<A, unknown, Layer.Success<TestLayer> | Scope.Scope>;
 	readonly clock?: EffectClock;
 	readonly createCaller: CreateCaller;
 	readonly layer: TestLayer;

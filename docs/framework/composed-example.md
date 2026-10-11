@@ -27,7 +27,7 @@ No publication API was added: the existing SQL change channel and native Reactiv
 
 ## What the test proves
 
-The fixture uses `makeEffectIt` with a live clock, a real native Node HTTP listener on an ephemeral loopback port, and PostgreSQL through `@effect/sql-pg`. Each test migrates uniquely named tables and removes them at cleanup. A separate pool reads committed rows and observes database visibility when the server produces a stream hint. The rendered clients use the native Node HTTP client in the DOM fixture; the frontend's default client uses native Fetch HTTP.
+The fixture uses an application-owned `storyKit` with a live clock, a real native Node HTTP listener on an ephemeral loopback port, and PostgreSQL through `@effect/sql-pg`. Its worker Layer leases a uniquely named disposable database shared with the order story kit. Each story migrates uniquely named application tables and removes them at cleanup; scoped views close before the server, and the last worker lease drops the database after its pools close. A PostgreSQL trait declares the real-commit policy, and a scoped `start` verb supplies the feature through the kit. A separate pool reads committed rows and observes database visibility when the server produces a stream hint. The rendered clients use the native Node HTTP client in the DOM fixture; the frontend's default client uses native Fetch HTTP.
 
 The two scenarios prove:
 

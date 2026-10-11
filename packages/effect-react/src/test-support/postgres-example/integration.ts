@@ -1,21 +1,24 @@
-import { Config, Effect, Layer, Option } from "effect";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { Clock, Effect } from "effect";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/storyKit.ts";
+import { isolate, wholeStack } from "#test/order-example/isolation.ts";
+import { databaseUrl, hasPostgres, StoryDatabase, workerDatabase } from "#test/order-example/postgres.ts";
 import { type ServerOptions, startServer } from "./server.ts";
 import { mountView } from "./view.tsx";
 
-const databaseUrl = Option.getOrUndefined(Effect.runSync(Config.option(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
-const { effectApp } = makeEffectIt({
-	clock: "live",
-	layer: Layer.empty,
-	makeHarness: (context) =>
-		Effect.succeed({
-			start: async (options: ServerOptions = {}) => {
-				if (databaseUrl === undefined) {
-					throw new Error("PostgreSQL URL is required");
-				}
-				const server = await startServer(databaseUrl, options);
-				const views: Array<Awaited<ReturnType<typeof mountView>>> = [];
-				context.onTestFinished(async () => {
+function start(name: string, options: ServerOptions) {
+	return Effect.acquireRelease(
+		Effect.promise(async () => {
+			if (databaseUrl._tag === "None") {
+				throw new Error("PostgreSQL URL is required");
+			}
+			const url = new URL(databaseUrl.value);
+			url.pathname = `/${name}`;
+			const server = await startServer(url.toString(), options);
+			const views: Array<Awaited<ReturnType<typeof mountView>>> = [];
+			return {
+				...server,
+				close: async () => {
 					try {
 						for (const view of views.reverse()) {
 							await view.close();
@@ -23,16 +26,38 @@ const { effectApp } = makeEffectIt({
 					} finally {
 						await server.close();
 					}
-				});
-				return {
-					...server,
-					mount: async () => {
-						const view = await mountView(server.url);
-						views.push(view);
-						return view;
-					},
-				};
-			},
+				},
+				mount: async () => {
+					const view = await mountView(server.url);
+					views.push(view);
+					return view;
+				},
+			};
 		}),
+		(server) => Effect.promise(server.close),
+	);
+}
+
+const kit = storyKit({
+	around: isolate(wholeStack),
+	clock: "live",
+	*create() {
+		return yield* StoryDatabase;
+	},
+	inspect: (database) => ({ database: database.name }),
+	layer: workerDatabase,
+	name: "composed orders",
+	stages: ["database"],
+	verbs: (database, story) => ({
+		start: (options: ServerOptions = {}) =>
+			start(database.name, options).pipe(Effect.tap(Effect.sync(() => story.tell("the reference feature serves authenticated live HTTP RPC")))),
+	}),
 });
-export const integration = effectApp.skipIf(databaseUrl === undefined);
+
+export const app = { ...kit, it: kit.it.runIf(hasPostgres) };
+export function realPostgres() {
+	return app.trait("database", "the reference feature uses a leased disposable PostgreSQL database", function* (database) {
+		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
+		expect(database.sql).not.toBe(database.observer);
+	});
+}
