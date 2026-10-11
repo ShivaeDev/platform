@@ -33,11 +33,13 @@ export function continueWorker(state: EngineState) {
 			{ ...state.policy, quota },
 			state.board.get,
 		);
+		const settings = { ...state.policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
 			operationId: state.policy.operationId(),
 			prompt: workerPrompt,
 			role: latest.role,
 			sessionId: worker.sessionId,
+			settings,
 			status: "submitting",
 			submittedAt: state.policy.now(),
 		};
@@ -58,7 +60,7 @@ export function continueWorker(state: EngineState) {
 				operationId: attempt.operationId,
 				prompt: workerPrompt,
 				sessionId: worker.sessionId,
-				settings: { ...state.policy.launch, ...stored.value.launch },
+				settings,
 			})
 			.pipe(
 				Effect.catch((error) =>

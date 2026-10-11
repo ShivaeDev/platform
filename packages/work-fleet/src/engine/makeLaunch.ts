@@ -24,14 +24,21 @@ export function makeLaunch(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		const attempt: Attempt = { operationId: policy.operationId(), role, status: "submitting", submittedAt: policy.now() };
+		const settings = { ...policy.launch, ...stored.value.launch };
+		const attempt: Attempt = {
+			operationId: policy.operationId(),
+			prompt: workerPrompt,
+			role,
+			settings,
+			status: "submitting",
+			submittedAt: policy.now(),
+		};
 		const intent = yield* save(
 			stored,
 			{ ...stored.value, attempts: [...stored.value.attempts, attempt], blocker: undefined, launchRetry: undefined, stage: "executing" },
 			{ quota, role },
 		);
 		const original = stored.value.attempts.find((previous) => previous.role === "worker" && previous.receipt !== undefined)?.receipt;
-		const settings = { ...policy.launch, ...stored.value.launch };
 		const submitted =
 			role === "repair" && original !== undefined
 				? sessions.continue({ operationId: attempt.operationId, prompt: workerPrompt, sessionId: original.sessionId, settings })
