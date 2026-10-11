@@ -1,0 +1,60 @@
+import { expect } from "@effect/vitest";
+import { Effect, Fiber } from "effect";
+import { it } from "@shivaedev/effect-test/it.ts";
+import { Fleet } from "#fleet.ts";
+import { activeTurn } from "#test/activeTurn.ts";
+import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { storageDatabaseUrl } from "#test/storage.ts";
+
+const test = it.live.skipIf(storageDatabaseUrl === undefined);
+
+test("a follow-up rejected while a steered turn is active waits and continues the same durable attempt", function* () {
+	const provider = yield* activeTurn();
+	let merged = false;
+	yield* withEngine(
+		{
+			decorateTransport: provider.decorateTransport,
+			deliveryQuery: (result) => Effect.succeed(merged ? { head: result.head, revision: "merge-commit", url: result.pr } : undefined),
+			launch: { effort: "high", model: "synthetic-model" },
+		},
+		(fixture) =>
+			Effect.gen(function* () {
+				yield* prepareWork("one");
+				const fleet = yield* Fleet;
+				const started = yield* fleet.dispatch("one");
+				finishWorkers(fixture);
+				yield* fleet.reconcile("one");
+				provider.activate();
+				const continuing = yield* fleet.continue("one", "Continue after the steered turn").pipe(Effect.forkChild);
+				yield* Effect.race(provider.waiting, Fiber.join(continuing).pipe(Effect.asVoid));
+				const waiting = yield* fleet.get("one");
+				expect(waiting.value.stage).toBe("executing");
+				expect(waiting.value.attempts).toHaveLength(1);
+				expect(waiting.value.attempts[0]).toMatchObject({
+					operationId: "operation-3",
+					sessionId: started.value.attempts[0]?.receipt?.sessionId,
+					status: "submitting",
+				});
+				expect(waiting.value.decision).toBeUndefined();
+				expect(waiting.value.attempts[0]?.receipt).toBeUndefined();
+				yield* fleet.reconcile("one");
+				expect(provider.submissions).toHaveLength(3);
+				provider.complete();
+				const continued = yield* Fiber.join(continuing);
+				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.attempts).toHaveLength(1);
+				expect(continued.value.attempts[0]?.receipt).toEqual({
+					sessionId: started.value.attempts[0]?.receipt?.sessionId,
+					turnId: "turn-operation-3",
+				});
+				expect(provider.submissions.at(-1)).toEqual(provider.submissions.at(-2));
+				expect(fixture.operations.size).toBe(3);
+				finishWorkers(fixture);
+				merged = true;
+				const delivered = yield* fleet.reconcile("one");
+				expect(delivered.value.stage).toBe("completed");
+				expect(delivered.value.review?.head).toBe(delivered.value.result?.head);
+				expect(delivered.value.checks?.head).toBe(delivered.value.result?.head);
+			}),
+	);
+});

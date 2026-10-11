@@ -16,7 +16,7 @@ export function refreshReviewResult({ integrations, save, board, decision, polic
 				"maintainer",
 			);
 		}
-		const worker = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
+		const worker = reviewWorker(stored.value);
 		if (worker?.receipt === undefined) {
 			return yield* new FleetFailure({ message: "Review lacks the adopted worker receipt", reason: "invalid" });
 		}
@@ -49,6 +49,27 @@ export function refreshReviewResult({ integrations, save, board, decision, polic
 			supersededDecisions: supersedeDecision(stored.value, policy.now()),
 		});
 	});
+}
+
+function reviewWorker(record: FleetRecord) {
+	const cycles = [record, ...(record.history ?? []).toReversed()];
+	for (const cycle of cycles) {
+		if (
+			cycle.boardRevision !== record.boardRevision
+			|| cycle.result === undefined
+			|| record.result === undefined
+			|| !sameResultIdentity(cycle.result, record.result)
+		) {
+			continue;
+		}
+		const worker = cycle.attempts.findLast(
+			(attempt) => attempt.role !== "reviewer" && !(attempt.status === "failed" && attempt.receipt === undefined),
+		);
+		if (worker !== undefined) {
+			return worker;
+		}
+	}
+	return undefined;
 }
 
 function sameResultIdentity(current: WorkResult, result: WorkResult) {
