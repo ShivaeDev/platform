@@ -109,6 +109,7 @@ test("RPC reassignment publishes maintainer ownership, supersedes the old questi
 				expect(reassigned.attentionOwner).toBe("maintainer");
 				expect(reassigned.decision?.id).not.toBe(old.decision.id);
 				expect(reassigned.decision?.worker).toEqual(old.decision.worker);
+				expect(fixture.archived).toEqual([]);
 				expect(reassigned.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: old.published }]);
 				expect((yield* client("fleet.views", undefined)).waiting.maintainer).toHaveLength(1);
 				expect((yield* client("fleet.views", undefined)).waiting.orchestrator).toHaveLength(0);
@@ -127,6 +128,7 @@ test("RPC reassignment publishes maintainer ownership, supersedes the old questi
 					}),
 				);
 				expect(fixture.launched).toHaveLength(1);
+				expect(fixture.archived).toEqual([]);
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 			}),
 		),

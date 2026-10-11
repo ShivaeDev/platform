@@ -10,6 +10,7 @@ export const Attempt = Schema.Struct({
 	prompt: Schema.optional(Schema.String),
 	receipt: Schema.optional(SessionReceipt),
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
+	sessionCleanupComplete: Schema.optional(Schema.Boolean),
 	sessionId: Schema.optional(Schema.String),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submittedAt: Schema.Number,
