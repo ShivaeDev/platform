@@ -57,6 +57,7 @@
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
+		"@shivaedev/platform": "workspace:*",
 		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",
 		"react": "catalog:",

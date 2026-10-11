@@ -1,5 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
+import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import { boardServices } from "#boardServices.ts";
 import { daemonDiagnostics } from "#diagnostics/daemon.ts";
 import { diagnosticsPage } from "#diagnostics/page.ts";
@@ -13,12 +14,10 @@ import { attachment } from "#http/attachment.ts";
 import { changesPage } from "#http/changesPage.ts";
 import { identity } from "#http/identity.ts";
 import { inbox } from "#http/inbox.ts";
-import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
 import { readPage } from "#http/readPage.ts";
 import { respond } from "#http/respond.ts";
-import { sameOrigin } from "#http/sameOrigin.ts";
 import { start } from "#http/start.ts";
 import { work } from "#http/work.ts";
 import type { RenderFailed } from "#render/failed.ts";
@@ -117,14 +116,7 @@ function routes(options: BoardOptions) {
 				index: Effect.provideContext(index, context),
 				page: (url) => Effect.provideContext(reading(url), context),
 			}).pipe(Effect.provideContext(context));
-			yield* serve(
-				"/_board/rpc",
-				(request) =>
-					sameOrigin(request) && (options.responses !== true || request.headers["content-type"]?.split(";")[0] === "application/ndjson")
-						? rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request))
-						: Effect.succeed(respond("Local same-origin requests only", "text/plain", 403)),
-				"POST",
-			);
+			yield* serve("/_board/rpc", (request) => rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request)), "POST");
 			yield* serve("/", pages);
 			yield* serve("/*", pages);
 		}),
