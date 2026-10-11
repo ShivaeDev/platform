@@ -9,9 +9,11 @@ export const ThreadResponse = Schema.Struct({
 });
 export const TurnResponse = Schema.Struct({ turn: Schema.Struct({ id: Schema.String }) });
 export const Item = Schema.Struct({
+	changes: Schema.optional(Schema.Unknown),
 	clientId: Schema.optional(Schema.NullOr(Schema.String)),
 	id: Schema.String,
 	phase: Schema.optional(Schema.NullOr(Schema.String)),
+	status: Schema.optional(Schema.String),
 	text: Schema.optional(Schema.String),
 	type: Schema.String,
 });

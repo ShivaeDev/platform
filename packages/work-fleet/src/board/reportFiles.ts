@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { directoryPath, validateDirectory } from "@shivaedev/work-board/responses/publicationDirectory.ts";
 import { reportFileName, reportLinks } from "#board/reportLinks.ts";
-import type { ReportFile } from "#host/reportDiff.ts";
 import { BoardFailure } from "#policy.ts";
+import type { ReportFile } from "#reportAttachments.ts";
 
 function exists(cause: unknown) {
 	return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
