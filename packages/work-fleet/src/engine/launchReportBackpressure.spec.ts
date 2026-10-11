@@ -22,6 +22,7 @@ describe("report launch backpressure", () => {
 				{
 					now: () => now,
 					submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+					workerGuidance: "Follow synthetic report conventions.",
 				},
 				(fixture) =>
 					Effect.gen(function* () {
@@ -42,6 +43,7 @@ describe("report launch backpressure", () => {
 						expect(observation?.output).toBe(queued.attempts[0]?.prompt);
 						expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
 						expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
+						expect(observation?.output).toContain("Follow synthetic report conventions.");
 						finishWorkers(fixture);
 						const completed = (yield* fleet.reconcile("one")).value;
 						expect(completed.stage).toBe("completed");

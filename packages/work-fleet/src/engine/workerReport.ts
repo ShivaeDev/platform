@@ -42,7 +42,7 @@ export function correctWorkerReport(state: EngineState) {
 		if (latest?.receipt === undefined || latest.role === "reviewer" || latest.status !== "completed") {
 			return yield* new FleetFailure({ message: "Report correction requires a completed worker receipt", reason: "invalid" });
 		}
-		if (responses === undefined && latest.prompt === correctionPrompt) {
+		if (responses === undefined && latest.prompt?.startsWith(correctionPrompt)) {
 			return yield* state.decision(stored, failure.message, "Retry to request a corrected worker report or safely release");
 		}
 		return yield* makeLaunch(state)(stored, latest.role, correctionPrompt, {

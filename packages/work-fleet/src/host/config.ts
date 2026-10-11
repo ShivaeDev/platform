@@ -8,6 +8,7 @@ import { LaunchSettings } from "#session/schema.ts";
 
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
 const Text = Schema.String.check(Schema.isMinLength(1));
+const Guidance = Schema.Union([Text, Schema.Struct({ file: Text })]);
 
 export const HostConfig = Schema.Struct({
 	areaMergeWaitMs: Schema.optional(Positive),
@@ -39,8 +40,9 @@ export const HostConfig = Schema.Struct({
 	worker: Schema.optional(
 		Schema.Struct({
 			branchPrefix: Text,
-			reviewerGuidance: Schema.optional(Schema.Union([Text, Schema.Struct({ file: Text })])),
+			reviewerGuidance: Schema.optional(Guidance),
 			sharedEnvironment: Text,
+			workerGuidance: Schema.optional(Guidance),
 		}),
 	),
 });
