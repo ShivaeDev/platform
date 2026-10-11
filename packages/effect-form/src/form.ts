@@ -1,9 +1,9 @@
-import { Effect, Equal, Option, Result, type Schema, SchemaParser } from "effect";
+import { Effect, Equal, Result, type Schema, type SchemaIssue, SchemaParser } from "effect";
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
 import { draft } from "./draft.ts";
-import { type FieldMessages, literalChoices, messageAt, messagesByField, noMessages } from "./messages.ts";
+import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./messages.ts";
 import { fromRef, propertyRef } from "./refs.ts";
 import {
 	type Config,
@@ -55,20 +55,13 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 	const decoded = runtime.atom((get) =>
 		decode(get(valuesAtom)).pipe(
 			Effect.match({
-				onFailure: (issue): Result.Result<Decoded<F>, FieldMessages> => Result.fail(messagesByField(issue)),
-				onSuccess: (value): Result.Result<Decoded<F>, FieldMessages> => Result.succeed(value),
+				onFailure: (issue): Result.Result<Decoded<F>, SchemaIssue.Issue> => Result.fail(issue),
+				onSuccess: (value): Result.Result<Decoded<F>, SchemaIssue.Issue> => Result.succeed(value),
 			}),
 		),
 	);
 
-	const schemaMessages = Atom.map(decoded, (result) =>
-		Option.match(AsyncResult.value(result), {
-			onNone: () => noMessages,
-			onSome: (either) => (Result.isFailure(either) ? either.failure : noMessages),
-		}),
-	);
-
-	const schemaError = Atom.family((name: string) => Atom.map(schemaMessages, (messages) => messageAt(messages, name)));
+	const schemaErrors = schemaFeedback(decoded);
 
 	const checkError = Atom.family((name: string): Atom.Atom<string | undefined> => {
 		const check = checks.get(name);
@@ -96,7 +89,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 			if (get(status.touched)[name] !== true && !get(status.submitted)) {
 				return undefined;
 			}
-			return messageAt(get(status.failures), name) ?? get(schemaError(name)) ?? get(checkError(name));
+			return messageAt(get(status.failures), name) ?? get(schemaErrors.field(name)) ?? get(checkError(name));
 		}),
 	);
 
@@ -135,6 +128,10 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 		choices: <K extends Name<F>>(name: K) => choicesOf<Encoded<F>[K]>(offered.get(name)),
 		dirty: editing.dirty,
 		error,
+		errorAt: (path) => {
+			const message = schemaErrors.at(path);
+			return Atom.readable((get) => (get(status.touched)[path[0]] === true || get(status.submitted) ? get(message) : undefined));
+		},
 		field: <K extends Name<F>>(name: K) => fieldOf<Encoded<F>[K]>(refFor(name)),
 		receive: editing.receive,
 		revert: editing.revert,

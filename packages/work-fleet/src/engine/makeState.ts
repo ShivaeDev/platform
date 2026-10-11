@@ -5,6 +5,7 @@ import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardGateway, type Decision, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -41,6 +42,7 @@ export const makeState = Effect.gen(function* () {
 			admission === undefined
 				? undefined
 				: {
+						scheduling: { areaMergeWaitMs: policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS, now: policy.now() },
 						...(admission.quota.available === undefined
 							? {}
 							: { quota: { available: admission.quota.available, observedAt: admission.quota.observedAt } }),

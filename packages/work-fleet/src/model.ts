@@ -19,6 +19,8 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
+	admissionReady: Schema.optional(Schema.Boolean),
+	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),
 	blocker: Schema.optional(Schema.String),
@@ -32,6 +34,9 @@ const cycleFields = {
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverable: Schema.optional(Schema.Literal("report")),
 	launch: Schema.optional(LaunchSettings),
+	mergeAreasReleased: Schema.optional(Schema.Boolean),
+	mergeReadyAt: Schema.optional(Schema.Number),
+	mergeReadyHead: Schema.optional(Schema.String),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,

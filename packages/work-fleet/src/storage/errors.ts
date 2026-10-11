@@ -18,4 +18,6 @@ export class StorageQuota extends Schema.TaggedError<StorageQuota>()("StorageQuo
 	submitted: Schema.optional(Schema.Number),
 }) {}
 
-export type StorageError = SqlError | Schema.SchemaError | StorageConflict | StorageCapacity | StorageQuota;
+export class StorageAdmission extends Schema.TaggedError<StorageAdmission>()("StorageAdmission", { message: Schema.String }) {}
+
+export type StorageError = StorageAdmission | SqlError | Schema.SchemaError | StorageConflict | StorageCapacity | StorageQuota;

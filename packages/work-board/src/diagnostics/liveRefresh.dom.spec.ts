@@ -14,7 +14,7 @@ afterEach(async () => {
 	notes?.remove();
 });
 
-it("navigates from the header, polls native page reads, pauses, resumes, and stops polling after navigation", async () => {
+it("navigates from the fixed sidebar, polls native page reads, pauses, resumes, and stops polling after navigation", async () => {
 	notes = folder({ "fleet/health.json": JSON.stringify(health), "home.md": "# Home" });
 	board = await startBoard(notes.root, "home.md", undefined, false, syntheticSources({ fleet: fleetHealth(notes.root) }));
 	let poll: () => void = () => undefined;
@@ -32,7 +32,7 @@ it("navigates from the header, polls native page reads, pauses, resumes, and sto
 	page.document.getElementById("diagnostics-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("3 / 8"));
 	expect(page.window.location.pathname).toBe("/_board/diagnostics");
-	expect(page.document.querySelector(".bar #diagnostics-open")).not.toBeNull();
+	expect(page.document.querySelector("#primary-navigation #diagnostics-open")).not.toBeNull();
 	await waitFor(() => expect(page.document.querySelector("time[data-reset]")?.textContent).toContain(", 14:20"));
 	expect(page.document.getElementById("diagnostics-open")?.getAttribute("aria-current")).toBe("page");
 	page.document.getElementById("updates-toggle")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));

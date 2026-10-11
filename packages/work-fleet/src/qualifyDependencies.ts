@@ -33,14 +33,13 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 					}),
 				);
 			}
-			const accepted = records.some(
-				(record) =>
-					record.workId === workId && record.stage === "completed" && record.outcome !== undefined && record.boardRevision === current.revision,
-			);
+			const hasFleetWork = records.some((record) => record.workId === workId);
+			const accepted = dependencyAccepted(workId, current, records);
+			const fallback = hasFleetWork ? "" : " or Board status done without Fleet work";
 			if (!accepted) {
 				return yield* Effect.fail(
 					new FleetFailure({
-						message: `Dependency ${reference} needs an accepted outcome for current Board revision ${current.revision}`,
+						message: `waiting for dependency ${reference}: needs an accepted outcome for current Board revision ${current.revision}${fallback}`,
 						reason: "denied",
 					}),
 				);
@@ -48,3 +47,10 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 		}),
 	);
 });
+
+function dependencyAccepted(workId: string, current: BoardWork, records: readonly FleetRecord[]): boolean {
+	const record = records.find((entry) => entry.workId === workId);
+	return record === undefined
+		? current.status === "done"
+		: record.stage === "completed" && record.outcome !== undefined && record.boardRevision === current.revision;
+}

@@ -1,16 +1,18 @@
 import { Effect, Layer } from "effect";
-import { SqlClient } from "effect/unstable/sql";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
-import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
+import { BoardFailure, type BoardGateway, type BoardWork, FleetPolicy } from "#policy.ts";
+import { checkAreas, requeue } from "#scheduling/areas.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
+import { attentionStorage } from "#test/attentionStorage.ts";
 import { boardWork } from "#test/boardWork.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
+import { enginePolicy } from "#test/enginePolicy.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { prepared } from "#test/preparation.ts";
 import { scriptedBoard } from "#test/scriptedBoard.ts";
@@ -20,6 +22,8 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly acknowledgements: readonly BoardDecisionAcknowledgement[];
 	readonly acknowledgeTurn: (operationId: string, receipt: { readonly sessionId: string; readonly turnId: string }) => Effect.Effect<void, unknown>;
 	readonly approveWork: (workId: string, revision: string) => void;
+	readonly areas: (workId: string, areas: readonly string[]) => void;
+	readonly boardStatus: (workId: string, status: string) => void;
 	readonly decisions: readonly string[];
 	readonly dependencies: (workId: string, references: readonly string[]) => void;
 	readonly editWork: (workId: string, revision: string) => void;
@@ -44,41 +48,29 @@ export function withEngine<A, E, TBoardError = never>(
 	return withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
 			const originalStore = yield* makePostgresFleetStore(FleetRecord, {
+				admission: checkAreas,
 				backlog,
 				executing,
 				namespace,
+				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
-			const store = {
-				...originalStore,
-				compareAndSet: (...args: Parameters<typeof originalStore.compareAndSet>) =>
-					(options.writeGate?.(args[2]) ?? Effect.void).pipe(Effect.andThen(originalStore.compareAndSet(...args))),
-			};
-			const sql = yield* SqlClient.SqlClient;
+			const { replaceRecord, store, upgradeAttention } = yield* attentionStorage(originalStore, namespace, options.writeGate);
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
 			const dependencies = new Map<string, readonly string[]>();
+			const areas = new Map<string, readonly string[]>();
+			const statuses = new Map<string, string>();
 			const unavailable = new Set<string>();
 			const approved: Record<string, string> = { dependent: "board-dependent", one: "board-one", two: "board-two" };
 			const decisions: string[] = [];
 			const merged: string[] = [];
-			let operationCount = 0;
-			const policy: FleetConfiguration = {
-				deliveryBacklog: options.backlog ?? 2,
-				executionConcurrency: options.concurrency ?? 2,
-				...(options.launch === undefined ? {} : { launch: options.launch }),
-				now: () => 100,
-				operationId: () => {
-					operationCount += 1;
-					return options.operationCollision ? "operation-fixed" : `operation-${operationCount}`;
-				},
-				quota: { ...(options.unknownQuota ? {} : { available: options.quota ?? 100 }), expiresAt: 1000, observedAt: 0 },
-			};
+			const policy = enginePolicy(options);
 			const scripted = scriptedBoard(options, decisions, (id) =>
 				unavailable.has(id)
 					? Effect.fail(new BoardFailure({ message: "Board work unavailable" }))
-					: Effect.succeed(boardWork(id, approved, revisions, dependencies)),
+					: Effect.succeed(boardWork(id, approved, revisions, dependencies, areas, statuses)),
 			);
 			const base = Layer.mergeAll(
 				Layer.succeed(FleetRepository)(store),
@@ -96,13 +88,6 @@ export function withEngine<A, E, TBoardError = never>(
 				yield* foreign("foreign-pr");
 			}
 			const journal = yield* SessionJournal.pipe(Effect.provide(fleetSessionJournal.pipe(Layer.provide(base))));
-			const replaceRecord = Effect.fn("FleetFixture.replaceRecord")(function* (value: FleetRecord) {
-				const stored = yield* store.load(value.workId);
-				if (stored === undefined) {
-					return yield* Effect.die("Missing fixture record");
-				}
-				yield* store.compareAndSet(value.workId, stored.version, value);
-			});
 			const fixture: EngineFixture<TBoardError> = {
 				...provider,
 				acknowledgementAttempts: scripted.acknowledgementAttempts,
@@ -110,6 +95,12 @@ export function withEngine<A, E, TBoardError = never>(
 				acknowledgeTurn: journal.acknowledgeTurn,
 				approveWork: (workId: string, revision: string) => {
 					approved[workId] = revision;
+				},
+				areas: (workId, names) => {
+					areas.set(workId, names);
+				},
+				boardStatus: (workId, status) => {
+					statuses.set(workId, status);
 				},
 				decisions,
 				dependencies: (workId: string, references: readonly string[]) => {
@@ -132,12 +123,8 @@ export function withEngine<A, E, TBoardError = never>(
 						unavailable.delete(workId);
 					}
 				},
-				upgradeAttention: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 3`.pipe(
-					Effect.andThen(store.initialize()),
-					Effect.asVoid,
-					Effect.provideService(SqlClient.SqlClient, sql),
-				),
-				work: (id: string) => boardWork(id, approved, revisions, dependencies),
+				upgradeAttention,
+				work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer));
 		}),

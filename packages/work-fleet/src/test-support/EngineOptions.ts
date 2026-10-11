@@ -7,6 +7,7 @@ export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
 	readonly archiveFailure?: boolean;
+	readonly areaMergeWaitMs?: number;
 	readonly backlog?: number;
 	readonly checkRepair?: boolean;
 	readonly checksFailure?: boolean;
@@ -25,6 +26,7 @@ export interface EngineOptions {
 	readonly lostReviewContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
+	readonly now?: () => number;
 	readonly operationCollision?: boolean;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;

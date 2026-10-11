@@ -63,8 +63,8 @@ it("serves a native reference tree and preserves parent and child state through 
 	const html = document.createElement("div");
 	html.innerHTML = response.body;
 	expect([...html.querySelectorAll("#sidebar > [id]")].map((element) => element.id)).toEqual([
-		"inbox-open",
-		"reading-library",
+		"primary-navigation",
+		"library-open",
 		"start-open",
 		"files",
 	]);

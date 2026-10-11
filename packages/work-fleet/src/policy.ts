@@ -7,11 +7,13 @@ import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
 
 export const BoardWork = Schema.Struct({
 	approved: Schema.Boolean,
+	areas: Schema.optional(Schema.Array(Schema.String)),
 	context: Schema.String,
 	deliverable: Schema.optional(Schema.Literal("report")),
 	dependsOn: Schema.Array(Schema.String),
 	revision: Schema.String,
 	sourcePath: Schema.String,
+	status: Schema.optional(Schema.String),
 	workId: Schema.String,
 });
 export type BoardWork = typeof BoardWork.Type;
@@ -89,6 +91,7 @@ export type Checks = typeof Checks.Type;
 export const Delivery = Schema.Struct({ head: Schema.String, revision: Schema.String, url: Schema.String });
 export type Delivery = typeof Delivery.Type;
 export interface FleetConfiguration {
+	readonly areaMergeWaitMs?: number;
 	readonly deliveryBacklog?: number;
 	readonly executionConcurrency?: number;
 	readonly launch?: LaunchSettings;
