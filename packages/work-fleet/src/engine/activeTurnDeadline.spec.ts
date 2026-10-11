@@ -28,7 +28,11 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			yield* TestClock.adjust("5 minutes");
 			yield* Fiber.join(continuing);
 			yield* Effect.gen(function* () {
-				while ((yield* fleet.get("one")).value.stage !== "needs-human") {
+				while (true) {
+					const current = (yield* fleet.get("one")).value;
+					if (current.stage === "needs-human" && current.decision?.published !== undefined) {
+						break;
+					}
 					yield* Effect.yieldNow;
 				}
 			});
