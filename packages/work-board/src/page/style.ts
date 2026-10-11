@@ -1,3 +1,4 @@
+import { inboxStyle } from "#attention/inboxHtml.ts";
 import { attentionStyle } from "#attention/style.ts";
 import { metadataStyles } from "#page/metadata.ts";
 import { readingStyles } from "#page/readingStyles.ts";
@@ -87,6 +88,7 @@ const documents = `
 export const style =
 	theme
 	+ layout
+	+ inboxStyle
 	+ prose
 	+ board
 	+ diagrams

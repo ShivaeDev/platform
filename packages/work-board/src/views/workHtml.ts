@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { inboxItems } from "#attention/inbox.ts";
 import { identityUrl } from "#metadata/links.ts";
 import { escapeHtml } from "#page/escape.ts";
 import type { Snapshot } from "#search/snapshot.ts";
@@ -12,6 +13,7 @@ import { workTable } from "./workTable.ts";
 
 export const workHtml = Effect.fn("WorkBoard.workHtml")(function* (snapshot: Snapshot, state: State) {
 	const projection = projectItems(snapshot, state);
+	const waiting = new Map(inboxItems(snapshot).map((item) => [item.id, item.reason]));
 	const controls = workControls(projection, state);
 	const tools = viewTools(state);
 	if (!projection.validBoard) {
@@ -33,7 +35,7 @@ export const workHtml = Effect.fn("WorkBoard.workHtml")(function* (snapshot: Sna
 	return {
 		html: `<header class="work-head"><p class="work-eyebrow">WORK · ${state.view.toUpperCase()} VIEW</p><h1>${escapeHtml(projection.title)}</h1><p>Views use recorded fields. A section heading does not set an item's status.</p>${source}</header>
  ${tools}${controls}${issues}<p class="work-total" role="status">${projection.rows.length} shown · ${projection.items.length} items in this view</p>
- <div class="work-layout${state.item ? " has-detail" : ""}"><section id="work-results" tabindex="-1" aria-label="Work items">${empty}${state.view === "table" ? workTable(projection.rows, state) : workCards(projection.rows, state)}</section>${detail}</div>`,
+ <div class="work-layout${state.item ? " has-detail" : ""}"><section id="work-results" tabindex="-1" aria-label="Work items">${empty}${state.view === "table" ? workTable(projection.rows, state, waiting) : workCards(projection.rows, state, waiting)}</section>${detail}</div>`,
 		status: 200,
 	};
 });

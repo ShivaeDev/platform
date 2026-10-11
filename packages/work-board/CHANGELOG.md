@@ -4,9 +4,14 @@
 
 ### Added
 
+- Add a sidebar Inbox with a live count for human-owned open next actions, open questions and Fleet work waiting on a person. Overview and Work cards/tables show Waiting on you. Group Fleet decision sources and their question/response records under a collapsed sidebar section.
+- Standalone `kind: question` items accept optional label/description options and a recommended label. Their item pages support option buttons and free-text answers through the opted-in response publisher. An answer removes the question from the Inbox for its exact reviewed source; edits require a new answer and original source bytes stay unchanged.
+
 - Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
 
 ### Fixed
+
+- Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.
 
 - Make the handoff source-change DOM regression wait for refreshed source, then assert retained direction, disabled submission and the required fresh preview.
 

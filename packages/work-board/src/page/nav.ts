@@ -1,5 +1,7 @@
+import { fleetRecords, inboxItems } from "#attention/inbox.ts";
 import type { MarkdownFile } from "#files/list.ts";
 import { fileUrl } from "#files/url.ts";
+import type { Snapshot } from "#search/snapshot.ts";
 import { escapeHtml } from "./escape.ts";
 
 function nameOf(path: string): string {
@@ -36,7 +38,7 @@ function contents(folder: Folder, current: string): string {
 	return `<ul>${files}${folders}</ul>`;
 }
 
-export function navHtml(files: readonly MarkdownFile[], current: string, home: string | undefined): string {
+function fileTree(files: readonly MarkdownFile[], current: string, home: string | undefined): string {
 	const root = branch("");
 	const ordered = [
 		...files.filter((file) => file.path === home),
@@ -58,4 +60,19 @@ export function navHtml(files: readonly MarkdownFile[], current: string, home: s
 		parent.files.push(file);
 	}
 	return contents(root, current);
+}
+
+function fleetGroup(records: readonly MarkdownFile[], current: string): string {
+	if (records.length === 0) {
+		return "";
+	}
+	const open = records.some((file) => file.path === current) ? " open" : "";
+	return `<details data-key="fleet-records"${open}><summary>Fleet records (${records.length})</summary><ul>${records.map((file) => `<li>${link(file, current)}</li>`).join("")}</ul></details>`;
+}
+export function navHtml(files: readonly MarkdownFile[], current: string, home: string | undefined, snapshot?: Snapshot): string {
+	const generated = snapshot ? fleetRecords(snapshot.model) : new Set<string>();
+	const records = files.filter((file) => generated.has(file.path));
+	const visible = files.filter((file) => !generated.has(file.path));
+	const count = snapshot?.unavailable.length ? "?" : String(snapshot ? inboxItems(snapshot).length : 0);
+	return `<a id="inbox-open" class="inbox-link" href="/_board/inbox">Inbox <span id="inbox-count" class="inbox-count" aria-label="${count} waiting">${count}</span></a>${fileTree(visible, current, home)}${fleetGroup(records, current)}`;
 }

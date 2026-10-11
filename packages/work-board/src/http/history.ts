@@ -11,9 +11,9 @@ import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
 import { sameOrigin } from "./sameOrigin.ts";
 
-export function changesPage(changes: Changes, home: string | undefined) {
+export function changesPage(changes: Changes, home: string | undefined, index?: Effect.Success<ReturnType<typeof searchSnapshot>>) {
 	return Effect.fn("WorkBoard.changesPage")(function* () {
-		const nav = navHtml(yield* changes.files, "", home);
+		const nav = navHtml(yield* changes.files, "", home, index ? yield* index : undefined);
 		return respond(shell("Changes", nav, changesHtml(), changes.realRoot, true, undefined, "changes"), "text/html");
 	});
 }

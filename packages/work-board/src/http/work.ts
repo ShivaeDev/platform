@@ -12,7 +12,7 @@ import { respond } from "./respond.ts";
 export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, changes: Changes, home: string | undefined) {
 	return Effect.fn("WorkBoard.work")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const snapshot = yield* index;
-		const nav = navHtml(yield* changes.files, "", home);
+		const nav = navHtml(yield* changes.files, "", home, snapshot);
 		if (snapshot.unavailable.length > 0) {
 			return respond(
 				shell(

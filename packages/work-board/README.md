@@ -26,7 +26,7 @@ A **workspace** is a folder of Markdown files. Those files are authoritative: pl
 
 A file can declare an optional **item ID**. That ID connects it to other files, criteria and boards without tying the connection to its filename. A **criterion** is an explicitly named requirement; an **evidence record** is an author's claim about an observation. The board displays that claim and its provenance; it does not run the check or establish acceptance.
 
-An **attention request** explicitly asks for a decision, review or help with a blocker. It is separate from an item's status. A **question** captures that request's exact source text, source path and reviewed SHA-256. A **response** is an independent Markdown record of a person's answer, clarification or deferral. Responses retain their reviewed context; they do not close requests, change task status or start an agent. An optional execution integration can acknowledge a managed decision through a separate immutable request receipt. That receipt is distinct from a handoff receipt, execution or acceptance.
+An **attention request** explicitly asks for a decision, review or help with a blocker. It is separate from an item's status. A **question** asks for a person's answer. It can be authored as a standalone item or captured from an attention request with its exact source text, source path and reviewed SHA-256. A **response** is an independent Markdown record of a person's answer, clarification or deferral. Responses retain their reviewed context; they do not close requests, change task status or start an agent. An optional execution integration can acknowledge a managed decision through a separate immutable request receipt. That receipt is distinct from a handoff receipt, execution or acceptance.
 
 A **handoff** captures direction and the exact source the person reviewed in another Markdown file. The person copies its short file instruction into an existing agent session; the agent records receipt through ordinary file edits. Receipt states describe acknowledgment, rejection or unavailability, rather than execution or acceptance.
 
@@ -160,6 +160,37 @@ Back restores selected text and expanded details. Favorites and recents belong t
 **Changes** starts remembering only through **Start remembering changes**. After review, **Mark current workspace seen** replaces the baseline; **Clear remembered history** turns it off. Opening a view and receiving live updates never mark it seen. Compare additions, removals, fields and source text against that one browser-local baseline. Unique IDs match moved items; plain-file renames are removed/added paths. The baseline is bounded to 2 MiB and 30 days, with expiry, corruption, incomplete reads and oversized workspaces disclosed. It holds Markdown, not image bytes.
 
 **Pause updates** holds the displayed reading state while counting observed hints, bounded at **256+**. Resume and reconnect reconcile the workspace. Unrelated source edits retain mounted document reads; relevant updates retain unchanged reading blocks. A failed read keeps visible source and says **refresh failed**. Connection or watcher loss says **reconnecting**. These are reconciliation hints, not a durable event journal or a count of completed work.
+
+#### Find what waits on you
+
+The sidebar starts with **Inbox** and a live count. It lists open human-owned next actions, open questions, and work whose status is `needs-human`. Fleet's open managed decisions appear there too, until their exact-context acknowledgement retires them. Each row links to the source and shows the reason and time since the source last changed. Overview and the Work board/table mark the same items as **Waiting on you**.
+
+Owner labels are local conventions: `codex`, `claude`, `fleet`, `agent`, `automation`, `bot` and `copilot`, including labels beginning with those names followed by a dash, underscore, dot, space or slash, denote automation. Other nonblank owner labels denote people. A human owner needs a nonblank `next_action` to enter the Inbox. Statuses `closed`, `done`, `completed`, `cancelled`, `canceled`, `resolved` and `released` leave the queue. These rules classify waiting work; they do not edit the recorded status.
+
+Fleet decision sources, captured questions and their answers are grouped under a collapsed **Fleet records** section in the sidebar. Ordinary human questions and answers remain in their source folders. Opening a grouped source reveals its group; the underlying files remain readable and searchable.
+
+An agent can ask a standalone question with frontmatter:
+
+```markdown
+---
+id: question.storage
+kind: question
+status: open
+options:
+  - label: Keep local files
+    description: Keep readable Markdown in the project folder.
+  - label: Use a database
+    description: Store project documents in a shared database.
+recommended: Keep local files
+---
+# Where should the project documents live?
+
+Choose where the project keeps its readable source.
+```
+
+`options` is optional and accepts up to 32 entries with unique nonblank labels and descriptions. `recommended` names an option label. The item page presents buttons, marks the recommendation without selecting it, and accepts another answer as free text. Omit `options` for a text-only question. Use frontmatter options or a Markdown question packet on a question, rather than both.
+
+Start with `--responses` to enable saving. Preview and record the answer on the item page with a local author label. The existing publisher captures the reviewed source as a `kind: question` record in `responses/`, then writes a `kind: response` that links to that capture. Its `question.item` links back to the authored question. An `answer` removes the authored question from the Inbox for those exact source bytes and path; clarification and deferral keep it waiting. An edited question needs another answer. The original source file stays unchanged, and the answer does not establish acceptance or start an agent.
 
 #### Record a human response
 

@@ -19,8 +19,10 @@ export const applyPage = (page, preserve = false) => {
   const cachedScheme = incoming.dataset.scheme;
   if (preserve && (current.dataset.file === incoming.dataset.file || (current.dataset.identity && current.dataset.identity === incoming.dataset.identity))) {
     if (current.dataset.view === "changes" && incoming.dataset.view === "changes") {
-      const content = current.querySelector("#changes-content");
-      if (content) incoming.querySelector("#changes-content")?.replaceWith(content.cloneNode(true));
+      for (const selector of ["#changes-content", ".history-controls"]) {
+        const content = current.querySelector(selector);
+        if (content) incoming.querySelector(selector)?.replaceWith(content.cloneNode(true));
+      }
     }
     swap(current, incoming, true);
   } else {
@@ -38,6 +40,7 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
+  document.getElementById("inbox-open")?.setAttribute("aria-current", doc.dataset.view === "inbox" ? "page" : "false");
   const crumbs = page.getElementById("breadcrumbs");
   if (crumbs) document.getElementById("breadcrumbs").replaceChildren(...document.importNode(crumbs, true).childNodes);
   if (!preserve) {

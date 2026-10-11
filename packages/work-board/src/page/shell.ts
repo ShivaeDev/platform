@@ -17,7 +17,7 @@ export const shell = (
 	workspace: string,
 	board: boolean,
 	identity?: string,
-	view: boolean | "overview" | "changes" | "start" | "response" | "handoff" | "result" = false,
+	view: boolean | "overview" | "changes" | "start" | "response" | "handoff" | "result" | "inbox" = false,
 ): string =>
 	[
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
@@ -26,8 +26,9 @@ export const shell = (
 		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
 		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar"><a class="brand" href="/">work board<span>Local workspace</span></a>',
-		'<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a><h2 class="nav-heading">Project files</h2>',
-		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
+		`<nav id="files" class="files" aria-label="Project files">${nav}</nav>`,
+		'<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a>',
+		"</aside>",
 		'<div class="page"><header class="bar"><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true">Files</button>',
 		`<nav id="breadcrumbs" class="breadcrumbs" aria-label="File location"><a href="/">Workspace</a><span class="separator">/</span>${location(title)}</nav>`,
 		`<a id="overview-open" class="work-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" class="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" class="work-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>`,

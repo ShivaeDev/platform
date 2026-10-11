@@ -4,6 +4,7 @@ import { metadataProblems } from "./problems.ts";
 export interface MetadataDocument {
 	readonly file: string;
 	readonly links?: readonly string[];
+	readonly modified?: number;
 	readonly parsed: ParsedMetadata;
 }
 export interface MetadataModel {

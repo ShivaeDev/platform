@@ -9,6 +9,7 @@ import { attachment } from "#http/attachment.ts";
 import { events } from "#http/events.ts";
 import { changesPage, history } from "#http/history.ts";
 import { identity } from "#http/identity.ts";
+import { inbox } from "#http/inbox.ts";
 import { loopbackOnly } from "#http/loopback.ts";
 import { overview } from "#http/overview.ts";
 import { page } from "#http/page.ts";
@@ -52,13 +53,15 @@ function routes(options: BoardOptions) {
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			const index = yield* searchSnapshot(options.root, home, changes);
 			yield* serve("/_board/search", search(index));
-			const startPage = start(changes, home);
+			const inboxPage = inbox(index, changes, home);
+			yield* serve("/_board/inbox", inboxPage);
+			const startPage = start(changes, home, index);
 			yield* serve("/_board/start", startPage);
 			const workPage = work(index, changes, home);
 			const result = resultPage(index, changes, home);
 			yield* serve("/_board/result", result);
 			const overviewPage = overview(index, changes, home);
-			const historyPage = changesPage(changes, home);
+			const historyPage = changesPage(changes, home, index);
 			yield* serve("/_board/work", workPage);
 			yield* serve("/_board/overview", overviewPage);
 			yield* serve("/_board/changes", historyPage);
@@ -74,7 +77,7 @@ function routes(options: BoardOptions) {
 				index: Effect.provideContext(index, context),
 				root: options.root,
 			});
-			const replyPage = responsePage(responses, changes, home, options.responses === true);
+			const replyPage = responsePage(responses, changes, home, options.responses === true, index);
 			yield* serve("/_board/respond", replyPage);
 			const handoffs = yield* handoffService({
 				changes,
@@ -82,9 +85,9 @@ function routes(options: BoardOptions) {
 				index: Effect.provideContext(index, context),
 				root: options.root,
 			});
-			const handoff = handoffPage(handoffs, changes, home, options.responses === true);
+			const handoff = handoffPage(handoffs, changes, home, options.responses === true, index);
 			yield* serve("/_board/handoff", handoff);
-			const pages = page({ home, root: options.root }, changes, index);
+			const pages = page({ home, responses, root: options.root, writable: options.responses === true }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
 			function readPage(url: string) {
@@ -106,6 +109,9 @@ function routes(options: BoardOptions) {
 						break;
 					case "/_board/work":
 						selected = workPage(request);
+						break;
+					case "/_board/inbox":
+						selected = inboxPage();
 						break;
 					case "/_board/overview":
 						selected = overviewPage();

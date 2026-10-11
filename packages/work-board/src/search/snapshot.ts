@@ -43,7 +43,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (r
 				}),
 			);
 			if (Option.isSome(found) && found.value) {
-				documents.push({ file: file.path, links: found.value.links, parsed: found.value.parsed });
+				documents.push({ file: file.path, links: found.value.links, modified: file.modified, parsed: found.value.parsed });
 				entries.push(...found.value.rendered);
 			} else {
 				unavailable.push(file.path);

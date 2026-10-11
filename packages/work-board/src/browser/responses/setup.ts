@@ -5,7 +5,7 @@ import { submitResponse } from "./submit.ts";
 
 function attach() {
 	const doc = document.getElementById("doc");
-	if (doc?.dataset.view !== "response") {
+	if (!doc) {
 		return;
 	}
 	const form = doc.querySelector<HTMLFormElement>("#response-form");
