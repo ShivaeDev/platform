@@ -27,7 +27,10 @@ export function codexReply(line: string): CodexReply {
 				return { send: [{ method: "initialized" }, { id: "account", method: "account/read", params: { refreshToken: false } }] };
 			case "account": {
 				const account = Schema.decodeUnknownSync(Account)(message.result).account;
-				if (account === null || account.type === "apiKey") {
+				if (account?.type === "apiKey") {
+					return { failure: new SourceFailure({ kind: "not-configured", message: "Codex usage windows are not available for API-key accounts" }) };
+				}
+				if (account === null) {
 					return { failure: new SourceFailure({ kind: "not-configured", message: "Codex usage windows require an authenticated ChatGPT account" }) };
 				}
 				return { send: [{ id: "limits", method: "account/rateLimits/read", params: { excludeResetCreditDetails: true } }] };

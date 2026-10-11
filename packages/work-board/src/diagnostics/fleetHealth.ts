@@ -1,20 +1,38 @@
 import { constants } from "node:fs";
-import { open, realpath } from "node:fs/promises";
+import { type FileHandle, open, realpath } from "node:fs/promises";
 import { Effect, Schema } from "effect";
 import { directoryPath, validateDirectory } from "#responses/publicationDirectory.ts";
 import { FLEET_HEALTH_NAME, FleetHealth } from "./health.ts";
 import { SourceFailure } from "./source.ts";
 
+function readFailure(error: unknown): SourceFailure {
+	if (error instanceof SourceFailure) {
+		return error;
+	}
+	if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+		return new SourceFailure({ kind: "not-configured", message: "Fleet has not published a health snapshot" });
+	}
+	return new SourceFailure({
+		kind: "error",
+		message: `Fleet health snapshot could not be read: ${error instanceof Error ? error.message : "unknown error"}`.slice(0, 500),
+	});
+}
+async function readSnapshot(file: FileHandle): Promise<FleetHealth> {
+	const stat = await file.stat();
+	if (!stat.isFile() || stat.size > 64 * 1024) {
+		throw new Error("Snapshot must be a regular file under 64 KiB");
+	}
+	const source = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(await file.readFile("utf8"));
+	const { version } = Schema.decodeUnknownSync(Schema.Struct({ version: Schema.Int }))(source);
+	if (version !== 1) {
+		throw new SourceFailure({ kind: "error", message: `Fleet health snapshot version ${version} is not supported by this Board` });
+	}
+	return Schema.decodeUnknownSync(FleetHealth)(source);
+}
+
 export function fleetHealth(root: string) {
 	return Effect.tryPromise({
-		catch: (error) =>
-			new SourceFailure({
-				kind: error instanceof Error && "code" in error && error.code === "ENOENT" ? "not-configured" : "error",
-				message:
-					error instanceof Error && "code" in error && error.code === "ENOENT"
-						? "Fleet has not published a health snapshot"
-						: `Fleet health snapshot could not be read: ${error instanceof Error ? error.message : "unknown error"}`.slice(0, 500),
-			}),
+		catch: readFailure,
 		try: async () => {
 			const realRoot = await realpath(root);
 			const directory = await open(realRoot, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
@@ -27,11 +45,7 @@ export function fleetHealth(root: string) {
 					await validateDirectory(target, folder, `${realRoot}/fleet`);
 					const file = await open(`${folder}/${FLEET_HEALTH_NAME}`, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
 					try {
-						const stat = await file.stat();
-						if (!stat.isFile() || stat.size > 64 * 1024) {
-							throw new Error("Snapshot must be a regular file under 64 KiB");
-						}
-						const snapshot = Schema.decodeUnknownSync(Schema.fromJsonString(FleetHealth))(await file.readFile("utf8"));
+						const snapshot = await readSnapshot(file);
 						await validateDirectory(directory, base, realRoot);
 						await validateDirectory(target, folder, `${realRoot}/fleet`);
 						return snapshot;
