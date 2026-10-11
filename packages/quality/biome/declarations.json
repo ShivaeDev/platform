@@ -66,11 +66,6 @@
 	},
 	{
 		"includes": ["**"],
-		"reason": "A skipped test provides no evidence. The author must repair or remove it; automatically enabling it can change which setup and bodies run.",
-		"rule": "lint/suspicious/noSkippedTests"
-	},
-	{
-		"includes": ["**"],
 		"reason": "An unused private member asks whether it is still needed or should be used; deleting it automatically skips that decision.",
 		"rule": "lint/correctness/noUnusedPrivateClassMembers"
 	},
