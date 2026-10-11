@@ -10,18 +10,38 @@ import { rejectWith } from "@shivaedev/effect-trpc/rejection.ts";
 import { rejectionFormatter } from "@shivaedev/effect-trpc/rejection-formatter.ts";
 import { makeRequestServices } from "@shivaedev/effect-trpc/request-services.ts";
 import { rejectedField } from "#errors/rejected-field.ts";
-import { AuthUnavailable, BadRequest, Conflict, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
+import {
+	AuthUnavailable,
+	BadRequest,
+	Conflict,
+	InternalServerError,
+	NotFound,
+	PreconditionFailed,
+	ServiceUnavailable,
+	TooManyRequests,
+} from "#errors/taxonomy.ts";
 
-const Rejection = Schema.Union([NotFound, BadRequest, Conflict, PreconditionFailed, TooManyRequests, AuthUnavailable]);
+const Rejection = Schema.Union([
+	NotFound,
+	BadRequest,
+	Conflict,
+	PreconditionFailed,
+	TooManyRequests,
+	AuthUnavailable,
+	InternalServerError,
+	ServiceUnavailable,
+]);
 
 const failures = {
 	busy: new TooManyRequests({ message: "Slow down" }),
+	internal: new InternalServerError({ message: "Internal server error" }),
 	malformed: new BadRequest({ message: "Malformed" }),
 	missing: new NotFound({ message: "No profile" }),
 	outage: new AuthUnavailable({ message: "Sessions are unavailable" }),
 	required: new BadRequest({ field: "name", message: "Name is required" }),
 	stale: new PreconditionFailed({ message: "Profile changed" }),
 	taken: new Conflict({ field: "name", message: "Name is taken" }),
+	unavailable: new ServiceUnavailable({ message: "Storage is unavailable" }),
 };
 
 const runtime = ManagedRuntime.make(Layer.empty);
@@ -104,4 +124,13 @@ it("an input the procedure's schema rejects reaches the form as a BadRequest fie
 	expect(Option.map(Option.flatMap(rejectionOf(invalid), rejectedField), ({ field }) => field)).toEqual(Option.some("name"));
 	expect(Option.map(rejectionOf(invalid), ({ invalidInput }) => invalidInput)).toEqual(Option.some(true));
 	expect(Option.map(rejectionOf(await rename("required")), ({ invalidInput }) => invalidInput)).toEqual(Option.some(undefined));
+});
+
+it("general server taxonomy errors retain their declared type and HTTP status through tRPC", async () => {
+	const internal = await rename("internal");
+	const unavailable = await rename("unavailable");
+	expect(internal).toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, rejection: { _tag: "InternalServerError" } } });
+	expect(unavailable).toMatchObject({ data: { code: "SERVICE_UNAVAILABLE", httpStatus: 503, rejection: { _tag: "ServiceUnavailable" } } });
+	expect(Option.getOrThrow(decodeRejection(Rejection)(internal))).toBeInstanceOf(InternalServerError);
+	expect(Option.getOrThrow(decodeRejection(Rejection)(unavailable))).toBeInstanceOf(ServiceUnavailable);
 });

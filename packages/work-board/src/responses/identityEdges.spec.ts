@@ -14,7 +14,7 @@ it("rejects registration retries after the durable question file is moved", asyn
 		.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
 		.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })]));
 	await expect(workspace.register()).rejects.toMatchObject({
-		code: "Conflict",
+		_tag: "Conflict",
 		message: "The registered identity moved or is duplicated. Read the existing record instead of retrying a write.",
 	});
 });
@@ -33,7 +33,7 @@ it("rejects a new response identity already owned by an ordinary project item", 
 			}),
 		),
 	).rejects.toMatchObject({
-		code: "Conflict",
+		_tag: "Conflict",
 		message: "This response identity is already used.",
 	});
 });
@@ -54,7 +54,7 @@ it("rejects response retries after the saved reply is moved by an external edito
 		.poll(async () => (await workspace.client.run(workspace.client.api.navigation.run({ current: "" }))).tree.files)
 		.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })]));
 	await expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({
-		code: "Conflict",
+		_tag: "Conflict",
 		message: "The saved response moved. Read its existing record instead of retrying a write.",
 	});
 });

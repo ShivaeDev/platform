@@ -28,7 +28,7 @@ it("retains the response draft and exposes the precise real HTTP rejection when 
 	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.getElementById("response-status")?.getAttribute("data-outcome")).toBe("rejected"));
 	expect(page.document.getElementById("response-status")?.textContent).toBe(
-		"Rejected: ResponseFailed: Source changed since review. Read it again before registering this question.. Draft retained. Preview and retry with the same identity; saved content will be reconciled.",
+		"Rejected: PreconditionFailed: Source changed since review. Read it again before registering this question.. Draft retained. Preview and retry with the same identity; saved content will be reconciled.",
 	);
 	expect(body.value).toBe("Retain these conditions.");
 });

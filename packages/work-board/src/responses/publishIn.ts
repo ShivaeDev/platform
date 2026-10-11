@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { type FileHandle, link, lstat, open, readFile, realpath, unlink } from "node:fs/promises";
-import { ResponseFailed } from "#browser/responses/schema.ts";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { PublicationUncertain } from "#rpc/rejections.ts";
 import { directoryPath, publicationFailure, uncertain, validateDirectory } from "./publicationDirectory.ts";
 
 function exists(cause: unknown) {
@@ -20,7 +21,7 @@ async function linkOrReconcile(temporary: string, name: string, content: string)
 	let matched = false;
 	try {
 		if ((await readFile(existing, "utf8")) !== content) {
-			throw new ResponseFailed({ code: "Conflict", message: "This identity already records different content; no file was replaced." });
+			throw new Conflict({ message: "This identity already records different content; no file was replaced." });
 		}
 		matched = true;
 		await existing.sync();
@@ -59,7 +60,7 @@ export async function publishIn(
 			|| currentRoot.ino !== originalRoot.ino
 			|| (await realpath(root)) !== realRoot
 		) {
-			throw new ResponseFailed({ code: "Conflict", message: "The write boundary changed." });
+			throw new Conflict({ message: "The write boundary changed." });
 		}
 	}
 	await validate();
@@ -80,7 +81,7 @@ export async function publishIn(
 		await target.sync();
 		await validate();
 	} catch (cause) {
-		published ||= cause instanceof ResponseFailed && cause.code === "Uncertain";
+		published ||= cause instanceof PublicationUncertain;
 		publicationFailure(cause, published);
 	} finally {
 		await validate().catch((cause: unknown) => publicationFailure(cause, published));

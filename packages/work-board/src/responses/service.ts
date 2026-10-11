@@ -1,6 +1,8 @@
 import { Clock, Context, Effect, FileSystem, Path, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import { type DraftInput, ResponseFailed } from "#browser/responses/schema.ts";
+import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import type { DraftInput } from "#browser/responses/schema.ts";
 import type { Changes } from "#files/changes.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { awaitResponse } from "./await.ts";
@@ -23,17 +25,21 @@ export interface ResponseOptions {
 }
 export class ResponseConfig extends Context.Service<ResponseConfig, ResponseOptions>()("WorkBoard/ResponseConfig") {}
 
-function reject(code: ResponseFailed["code"], message: string) {
-	return Effect.fail(new ResponseFailed({ code, message }));
-}
 export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
 		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* ResponseConfig };
 	}),
 	methods: ({ options, fs, lock }) => {
-		const snapshot = options.index.pipe(Effect.catch(() => reject("Unavailable", "The workspace could not be indexed.")));
-		const enabled = options.enabled ? Effect.void : reject("Disabled", "Start with --responses to explicitly enable local question/response writes.");
+		const snapshot = options.index.pipe(
+			rpcBoundary(ServiceUnavailable, {
+				message: "The workspace could not be indexed.",
+				unexpected: (message) => new ServiceUnavailable({ message }),
+			}),
+		);
+		const enabled = options.enabled
+			? Effect.void
+			: Effect.fail(new Forbidden({ message: "Start with --responses to explicitly enable local question/response writes." }));
 		const locate = locateQuestion(options.root, options.changes.realRoot, snapshot, fs);
 		const read = readResponses(snapshot);
 		const register = registerQuestion(options, snapshot, locate, read);
@@ -43,7 +49,7 @@ export const Responses = defineService({
 					yield* enabled;
 					const result = yield* read(draft.question);
 					const input = yield* Effect.try({
-						catch: (cause) => new ResponseFailed({ code: "Conflict", message: String(cause) }),
+						catch: (cause) => new Conflict({ message: String(cause) }),
 						try: () => validatedInput(draft, result.question.context, result.question.question.request, result.question.question.source),
 					});
 					const existing = result.responses.find((candidate) => candidate.id === input.id);
@@ -54,12 +60,14 @@ export const Responses = defineService({
 					const { question } = result;
 					const current = yield* locate(question.question.item, question.question.request);
 					if (current.reviewedRevision !== question.question.reviewedRevision || current.source !== question.question.source) {
-						return yield* reject("Stale", "Source changed or moved. Keep the draft and review the new revision before responding.");
+						return yield* Effect.fail(
+							new PreconditionFailed({ message: "Source changed or moved. Keep the draft and review the new revision before responding." }),
+						);
 					}
 					const data = yield* snapshot;
 					yield* validateSupersedes(input, question, data);
 					if (data.model.ids.has(input.id)) {
-						return yield* reject("Conflict", "This response identity is already used.");
+						return yield* Effect.fail(new Conflict({ message: "This response identity is already used." }));
 					}
 					const response = makeResponse(
 						input,
@@ -76,7 +84,7 @@ export const Responses = defineService({
 		function history(preview: Parameters<typeof responseHistory>[1]) {
 			return Effect.flatMap(snapshot, (data) =>
 				Effect.try({
-					catch: (cause) => new ResponseFailed({ code: "Unavailable", message: String(cause) }),
+					catch: (cause) => new ServiceUnavailable({ message: String(cause) }),
 					try: () => responseHistory(data, preview),
 				}),
 			);

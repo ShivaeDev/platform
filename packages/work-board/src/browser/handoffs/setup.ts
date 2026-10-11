@@ -1,11 +1,12 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { formOwner } from "#browser/fieldFeedback.ts";
 import { copyPrompts, preparedPrompt } from "#browser/handoffs/copy.ts";
 import { handoffFields, restoreFields } from "#browser/handoffs/fields.ts";
 import { draftSession } from "#browser/responses/draftSession.ts";
-import { ResponseFailed } from "#browser/responses/schema.ts";
 import { session } from "#browser/session.ts";
+import { PublicationUncertain, ResponseRejection } from "#rpc/rejections.ts";
 import { handoffForm } from "./form.ts";
 
 function attach() {
@@ -132,7 +133,7 @@ function attach() {
 	);
 }
 function failureStatus(error: unknown) {
-	return `${error instanceof ResponseFailed && error.code !== "Uncertain" ? "Rejected" : "Uncertain"}: ${String(error)}. Draft retained; preview and retry.`;
+	return `${Schema.is(ResponseRejection)(error) && !(error instanceof PublicationUncertain) && !(error instanceof InternalServerError) ? "Rejected" : "Uncertain"}: ${String(error)}. Draft retained; preview and retry.`;
 }
 export function setupHandoffs() {
 	document.addEventListener("board-page", attach);
