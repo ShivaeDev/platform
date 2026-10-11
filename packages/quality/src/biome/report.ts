@@ -1,11 +1,12 @@
 import { Schema } from "effect";
+import { recognizeDiagnostics } from "./recognizeDiagnostics.ts";
 import { type BiomeRun, runBiome } from "./run.ts";
 
-const Position = Schema.Struct({ line: Schema.Int });
+const Position = Schema.Struct({ column: Schema.optionalKey(Schema.Int), line: Schema.Int });
 
 const Diagnostic = Schema.Struct({
 	category: Schema.optionalKey(Schema.String),
-	location: Schema.Struct({ path: Schema.optionalKey(Schema.String), start: Schema.optionalKey(Position) }),
+	location: Schema.Struct({ end: Schema.optionalKey(Position), path: Schema.optionalKey(Schema.String), start: Schema.optionalKey(Position) }),
 	message: Schema.String,
 	severity: Schema.String,
 });
@@ -21,8 +22,9 @@ export type Report = typeof Report.Type;
 
 const decodeReport = Schema.decodeUnknownOption(Schema.fromJsonString(Report));
 
-const failure = (args: readonly string[], run: BiomeRun): Error =>
-	new Error(`biome ${args.join(" ")} exited ${run.code} without a report:\n${[run.stdout, run.stderr].join("\n").trim()}`);
+function failure(args: readonly string[], run: BiomeRun): Error {
+	return new Error(`biome ${args.join(" ")} exited ${run.code} without a report:\n${[run.stdout, run.stderr].join("\n").trim()}`);
+}
 
 export async function biomeReport(root: string, args: readonly string[]): Promise<Report> {
 	const command = [...args, "--reporter=json", "--max-diagnostics=none", "."];
@@ -31,5 +33,5 @@ export async function biomeReport(root: string, args: readonly string[]): Promis
 	if (report._tag === "None") {
 		throw failure(command, run);
 	}
-	return report.value;
+	return { ...report.value, diagnostics: recognizeDiagnostics(root, report.value.diagnostics) };
 }
