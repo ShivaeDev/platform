@@ -5,18 +5,18 @@ import { defineService } from "#define-service.ts";
 import type { ServiceRequirements } from "#service-requirements.ts";
 
 const noRequirements = [] as const;
-type NoRequirements<Success, Failure = never, CallerRequirements extends Scope.Scope = never> = ServiceRequirements<
+type NoRequirements<TSuccess, TFailure = never, TCallerRequirements extends Scope.Scope = never> = ServiceRequirements<
 	typeof noRequirements,
-	Success,
-	Failure,
-	CallerRequirements
+	TSuccess,
+	TFailure,
+	TCallerRequirements
 >;
 
 function declaredRequirementProof() {
 	return Effect.gen(function* () {
 		class Declared extends Context.Service<Declared, { readonly identity: object }>()("test/Declared") {}
 		const requirements = [Declared] as const;
-		type Requirements<Success> = ServiceRequirements<typeof requirements, Success>;
+		type Requirements<TSuccess> = ServiceRequirements<typeof requirements, TSuccess>;
 		const RequiredService = defineService({
 			id: "test/RequiredService",
 			initialize: Effect.fn("RequiredService.initialize")(function* (): Requirements<{ readonly identity: object }> {

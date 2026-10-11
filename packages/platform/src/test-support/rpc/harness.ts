@@ -74,7 +74,7 @@ export async function signup(provider: Provider, name: string) {
 	return { cookie, userId: session?.user.id ?? "" };
 }
 
-export function rpcHttp<Rpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<Rpcs>) {
+export function rpcHttp<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {
 	return RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" });
 }
 

@@ -4,21 +4,21 @@ export interface PlatformRuntimeOptions {
 	readonly developmentCacheKey?: string | symbol;
 }
 
-export interface PlatformRuntime<Services, BuildError> {
-	readonly contextEffect: Effect.Effect<Context.Context<Services>, BuildError>;
+export interface PlatformRuntime<TServices, TBuildError> {
+	readonly contextEffect: Effect.Effect<Context.Context<TServices>, TBuildError>;
 	readonly currentServices: () => Context.Context<never> | undefined;
 	readonly dispose: () => Promise<void>;
-	readonly runPromise: <A, E, Requirements extends Services>(
-		effect: Effect.Effect<A, E, Requirements>,
+	readonly runPromise: <A, E, TRequirements extends TServices>(
+		effect: Effect.Effect<A, E, TRequirements>,
 		options?: { readonly signal?: AbortSignal },
 	) => Promise<A>;
-	readonly runPromiseExit: <A, E, Requirements extends Services>(
-		effect: Effect.Effect<A, E, Requirements>,
+	readonly runPromiseExit: <A, E, TRequirements extends TServices>(
+		effect: Effect.Effect<A, E, TRequirements>,
 		options?: { readonly signal?: AbortSignal },
-	) => Promise<Exit.Exit<A, E | BuildError>>;
-	readonly runWithServices: <Provided, Value>(services: Context.Context<Provided>, evaluate: () => Value) => Value;
+	) => Promise<Exit.Exit<A, E | TBuildError>>;
+	readonly runWithServices: <TProvided, TValue>(services: Context.Context<TProvided>, evaluate: () => TValue) => TValue;
 }
 
-export type PlatformRuntimeServices<Runtime> = Runtime extends PlatformRuntime<infer Services, infer _BuildError> ? Services : never;
+export type PlatformRuntimeServices<TRuntime> = TRuntime extends PlatformRuntime<infer TServices, infer _BuildError> ? TServices : never;
 
-export type PlatformRuntimeBuildError<Runtime> = Runtime extends PlatformRuntime<infer _Services, infer BuildError> ? BuildError : never;
+export type PlatformRuntimeBuildError<TRuntime> = TRuntime extends PlatformRuntime<infer _Services, infer TBuildError> ? TBuildError : never;

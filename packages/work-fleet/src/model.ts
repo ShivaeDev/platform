@@ -1,10 +1,12 @@
 import { Schema } from "effect";
+import { BoardReport } from "#board/schema.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
+	prompt: Schema.optional(Schema.String),
 	receipt: Schema.optional(SessionReceipt),
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
 	sessionId: Schema.optional(Schema.String),
@@ -23,11 +25,13 @@ const cycleFields = {
 	decision: Schema.optional(Decision),
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
+	deliverable: Schema.optional(Schema.Literal("report")),
 	deliverySubmitted: Schema.optional(Schema.Boolean),
 	launch: Schema.optional(LaunchSettings),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,
+	report: Schema.optional(BoardReport),
 	responses: Schema.optional(Schema.Array(DecisionResponse)),
 	result: Schema.optional(WorkResult),
 	resultObservations: Schema.optional(Schema.Array(WorkResult)),

@@ -11,11 +11,13 @@ export interface EngineOptions {
 	readonly checksGate?: Effect.Effect<void>;
 	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
 	readonly concurrency?: number;
+	readonly continuationGate?: Effect.Effect<void>;
 	readonly deliveryFailure?: boolean;
 	readonly denyDelivery?: boolean;
 	readonly foreignBacklog?: boolean;
 	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
+	readonly lostContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
 	readonly noChange?: boolean;
 	readonly operationCollision?: boolean;
@@ -30,6 +32,7 @@ export interface EngineOptions {
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
+	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;
 	readonly wrongHead?: "review" | "checks";
 }

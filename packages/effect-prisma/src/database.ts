@@ -12,9 +12,9 @@ export interface DatabaseLayerOptions extends PostgresOptionsBase {
 	readonly url: string | Redacted.Redacted<string>;
 }
 
-type DatabaseFactoryOptions<Contract extends AnySqlContract> =
+type DatabaseFactoryOptions<TContract extends AnySqlContract> =
 	| {
-			readonly contract: Contract;
+			readonly contract: TContract;
 			readonly contractJson?: never;
 	  }
 	| {
@@ -22,8 +22,9 @@ type DatabaseFactoryOptions<Contract extends AnySqlContract> =
 			readonly contract?: never;
 	  };
 
-export interface DatabaseDefinition<Contract extends AnySqlContract, Identifier extends string> extends DatabaseServiceHolder<Contract, Identifier> {
-	readonly layer: (options: DatabaseLayerOptions) => Layer.Layer<DatabaseIdentifier<Contract, Identifier>, PrismaError>;
+export interface DatabaseDefinition<TContract extends AnySqlContract, TIdentifier extends string>
+	extends DatabaseServiceHolder<TContract, TIdentifier> {
+	readonly layer: (options: DatabaseLayerOptions) => Layer.Layer<DatabaseIdentifier<TContract, TIdentifier>, PrismaError>;
 }
 
 function clientOptions({ url, extensions, middleware, poolOptions, verifyMarker }: DatabaseLayerOptions) {
@@ -36,27 +37,29 @@ function clientOptions({ url, extensions, middleware, poolOptions, verifyMarker 
 	};
 }
 
-function defaultModels<Contract extends AnySqlContract, Models extends object>(client: Pick<PostgresClient<Contract>, "contract" | "orm">): Models {
-	return namespaceModels<Contract, Models>(client.contract, client.orm);
+function defaultModels<TContract extends AnySqlContract, TModels extends object>(
+	client: Pick<PostgresClient<TContract>, "contract" | "orm">,
+): TModels {
+	return namespaceModels<TContract, TModels>(client.contract, client.orm);
 }
 
 export const makeDatabase =
-	<const Contract extends AnySqlContract>() =>
-	<const Identifier extends string>(
-		identifier: DatabaseIdentifierLiteral<Identifier>,
-		options: DatabaseFactoryOptions<Contract>,
-	): DatabaseDefinition<Contract, Identifier> => {
-		type Models = DefaultModels<Contract>;
+	<const TContract extends AnySqlContract>() =>
+	<const TIdentifier extends string>(
+		identifier: DatabaseIdentifierLiteral<TIdentifier>,
+		options: DatabaseFactoryOptions<TContract>,
+	): DatabaseDefinition<TContract, TIdentifier> => {
+		type Models = DefaultModels<TContract>;
 
-		return makeSqlDatabase<Contract, Identifier, DatabaseLayerOptions>(identifier, (layerOptions) => {
+		return makeSqlDatabase<TContract, TIdentifier, DatabaseLayerOptions>(identifier, (layerOptions) => {
 			const forwarded = clientOptions(layerOptions);
 			const client =
 				options.contract === undefined
-					? postgres<Contract>({
+					? postgres<TContract>({
 							...forwarded,
 							contractJson: options.contractJson,
 						})
-					: postgres<Contract>({
+					: postgres<TContract>({
 							...forwarded,
 							contract: options.contract,
 						});
@@ -70,7 +73,7 @@ export const makeDatabase =
 						open: true,
 					},
 					mode: "root",
-					models: defaultModels<Contract, Models>(client),
+					models: defaultModels<TContract, Models>(client),
 					querySemaphore: undefined,
 					transactionIdentity: undefined,
 					transactionSemaphore: undefined,
