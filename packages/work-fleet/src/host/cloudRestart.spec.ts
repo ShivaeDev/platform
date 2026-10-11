@@ -21,7 +21,7 @@ const expected = {
 	"before-thread": { recoverable: false, sessions: 0, turnRequests: 0, turns: 0 },
 	"before-turn": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
 	"before-turn-request": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
-	"changed-context": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
+	"changed-context": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
 	"late-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
 	"retry": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
 	"revoked-approval": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
@@ -88,6 +88,16 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	}
 	if (recoverable) {
 		expect(after.attempts[0]?.receipt).toEqual({ sessionId: "synthetic-session", turnId: "synthetic-turn" });
+	}
+	if (boundary === "changed-context") {
+		expect(after.stage).toBe("executing");
+		expect(after.decision).toBeUndefined();
+		expect(backend.requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
+			input: [{ text: expect.stringContaining("Current brief:") }],
+		});
+		expect(backend.requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
+			input: [{ text: expect.stringContaining("Changed scope") }],
+		});
 	}
 	if (boundary === "retry") {
 		expect(after.decision).toBeUndefined();

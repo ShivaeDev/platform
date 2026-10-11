@@ -28,6 +28,8 @@ export const answerWorker = Effect.fn("FleetStory.answerWorker")(function* (
 	id = "response.worker.answer",
 	type: "answer" | "clarify" | "not_now" = "answer",
 	supersedes?: string,
+	author = "maintainer",
+	body = "Use **PostgreSQL**. Preserve the transaction boundary.",
 ) {
 	const { client } = yield* boardHttp(root);
 	const published = decision.published;
@@ -37,8 +39,8 @@ export const answerWorker = Effect.fn("FleetStory.answerWorker")(function* (
 	return yield* Effect.tryPromise(() =>
 		client.mutate(
 			client.responses.recordResponse.run({
-				author: "maintainer",
-				body: "Use **PostgreSQL**. Preserve the transaction boundary.",
+				author,
+				body,
 				id,
 				question: published.questionId,
 				type,

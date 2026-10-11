@@ -1,7 +1,7 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
-import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
 import type { Metadata } from "#metadata/schema.ts";
+import { currentResponses } from "#responses/current.ts";
 import { malformedResponse, questionFrom, questionId, responseFrom, responsesFor, revisionOf } from "#responses/records.ts";
 
 type Request = NonNullable<Metadata["attention"]>[number];
@@ -29,8 +29,7 @@ function appliedAnswer(question: string, revision: string, responseId: string | 
 	if (responses.some((response) => model.ids.get(response.id)?.length !== 1)) {
 		return false;
 	}
-	const superseded = new Set(responses.flatMap((response) => (response.response.supersedes ? [response.response.supersedes] : [])));
-	const current: readonly RecordedResponse[] = responses.filter((response) => !superseded.has(response.id));
+	const current = currentResponses(responses);
 	return current.length === 1 && current[0]?.id === responseId;
 }
 

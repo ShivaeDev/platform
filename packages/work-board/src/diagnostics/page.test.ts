@@ -1,5 +1,6 @@
 import { Effect } from "effect";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { codexResponse, health, syntheticSources } from "#test/diagnostics.ts";
@@ -7,15 +8,15 @@ import { diagnosticsHtml } from "./html.ts";
 
 let notes: Folder;
 let board: RunningBoard;
-afterEach(async () => {
-	await board?.stop();
+
+afterEach(() => {
 	notes?.remove();
 });
 
-it("links Diagnostics from the sidebar and renders all three sources through normal HTTP", async () => {
+it.live("links Diagnostics from the sidebar and renders all three sources through normal HTTP", function* () {
 	notes = folder({ "home.md": "# Home" });
-	board = await startBoard(notes.root, "home.md", undefined, false, syntheticSources());
-	const response = await rawGet(board, "/_board/diagnostics");
+	board = yield* startBoard(notes.root, "home.md", undefined, false, syntheticSources());
+	const response = yield* rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
 	expect(response.body).toContain('id="diagnostics-open" href="/_board/diagnostics" aria-current="page"');
 	for (const text of [
@@ -36,13 +37,13 @@ it("links Diagnostics from the sidebar and renders all three sources through nor
 		expect(response.body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
 	}
 	expect(response.body).toContain('data-view="diagnostics"');
-	expect((await rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
-	expect((await rawGet(board, "/_board/diagnostics", "example.invalid")).status).toBe(403);
+	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
+	expect((yield* rawGet(board, "/_board/diagnostics", "example.invalid")).status).toBe(403);
 });
 
-it("source failures leave the page usable and escape their causes", async () => {
+it.live("source failures leave the page usable and escape their causes", function* () {
 	notes = folder({});
-	board = await startBoard(
+	board = yield* startBoard(
 		notes.root,
 		undefined,
 		undefined,
@@ -52,7 +53,7 @@ it("source failures leave the page usable and escape their causes", async () => 
 			github: Effect.fail(new SourceFailure({ kind: "error", message: "<script>bad</script>" })),
 		}),
 	);
-	const response = await rawGet(board, "/_board/diagnostics");
+	const response = yield* rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
 	expect(response.body).toContain("Not configured");
 	expect(response.body).toContain("Unavailable");

@@ -53,9 +53,10 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 			}),
 		get: getWork,
 		readDecision: (receipt) =>
-			Effect.gen(function* () {
-				if ((yield* getWork(receipt.workId)).revision !== receipt.workRevision) {
-					return { _tag: "Stale" as const, reason: "Board work context changed" };
+			Effect.sync(() => {
+				const published = publications.get(receipt.request);
+				if (published?.questionId !== receipt.questionId || published.revision !== receipt.revision || published.sourcePath !== receipt.sourcePath) {
+					return { _tag: "Stale" as const, reason: "Board decision changed" };
 				}
 				const response = responses.get(receipt.questionId);
 				return response === undefined ? { _tag: "Pending" as const } : { _tag: "Response" as const, response };

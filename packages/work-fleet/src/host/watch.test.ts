@@ -3,7 +3,6 @@ import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
-import { snapshotReads, untilReads } from "#test/snapshotReads.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("work-fleet watch against PostgreSQL and HTTP", () => {
@@ -51,14 +50,13 @@ describe("work-fleet watch against PostgreSQL and HTTP", () => {
 				] as const) {
 					yield* storeState(fixture.host, id, { stage });
 				}
-				const reads = yield* snapshotReads(fixture.host);
 				yield* withFollower(
 					fixture.configFile,
 					"watch",
 					[],
 					{},
 					Effect.fnUntraced(function* (follower) {
-						yield* untilReads(reads, 2);
+						yield* Effect.promise(() => follower.ready);
 						expect(follower.output()).toBe("");
 						yield* storeState(fixture.host, "a", { stage: "released" });
 						yield* untilOutput(follower, "a released\n");
