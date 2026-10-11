@@ -13,13 +13,16 @@ export function readingStyles(): string {
 .heading-anchor::after { content: "#"; }
 .heading-anchor:hover, .heading-anchor:focus-visible { opacity: 1; }
 [id^="heading-"] { scroll-margin-top: 20px; }
-.reading-library { font-size: 13px; margin-bottom: 24px; }
+#library-dialog { width: min(560px, calc(100vw - 32px)); max-height: min(600px, calc(100dvh - 32px)); overflow-y: auto; padding: 20px; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+#library-dialog::backdrop { background: rgb(0 0 0 / .45); }
+.reading-library { font-size: 14px; margin-top: 20px; }
+.reading-library .nav-heading { font-size: 14px; }
 .reading-library[hidden] { display: none; }
 .reading-library ul { list-style: none; padding: 0 12px; margin: 0 0 20px; }
-.reading-library a { color: var(--sidebar-text); overflow-wrap: anywhere; }
+.reading-library a { color: var(--link); overflow-wrap: anywhere; }
 .reading-library a[aria-current="page"] { font-weight: 600; }
-.reading-library .missing { color: var(--sidebar-muted); }
-.library-status { padding: 0 12px; color: var(--sidebar-muted); }
+.reading-library .missing { color: var(--muted); }
+.library-status { padding: 0 12px; color: var(--muted); }
 #navigation-status { color: var(--danger); overflow-wrap: anywhere; }
 #navigation-status:empty { display: none; }
 .bar:has(#navigation-status:not(:empty)) { flex-wrap: wrap; }
