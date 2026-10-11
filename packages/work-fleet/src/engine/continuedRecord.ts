@@ -8,6 +8,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		attentionOwner: undefined,
 		blocker: undefined,
 		checks: undefined,
+		conflictRepairs: undefined,
 		decision: undefined,
 		decisionAcknowledged: undefined,
 		decisionPublished: undefined,

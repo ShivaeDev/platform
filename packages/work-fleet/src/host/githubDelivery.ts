@@ -1,11 +1,14 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
+import { ConflictingPr } from "#host/conflictingPr.ts";
 import { githubRead } from "#host/githubRead.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { type ChangeResult, FleetFailure } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
+	baseRefOid: Schema.optional(Schema.NonEmptyString),
 	headRefOid: Schema.NonEmptyString,
+	mergeable: Schema.optional(Schema.Literals(["MERGEABLE", "CONFLICTING", "UNKNOWN"])),
 	mergeCommit: Schema.NullOr(Schema.Struct({ oid: Schema.NonEmptyString })),
 	mergedAt: Schema.NullOr(Schema.NonEmptyString),
 	state: Schema.Literals(["OPEN", "CLOSED", "MERGED"]),
@@ -17,7 +20,7 @@ function failure(message: string, reason: "integration" | "invalid" = "invalid")
 }
 
 function readPullRequest(cwd: string, pr: string) {
-	return githubRead(["pr", "view", pr, "--json", "url,state,headRefOid,mergedAt,mergeCommit"], cwd).pipe(
+	return githubRead(["pr", "view", pr, "--json", "url,state,headRefOid,mergedAt,mergeCommit,mergeable,baseRefOid"], cwd).pipe(
 		Effect.provide(NodeServices.layer),
 		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))),
 		Effect.mapError(() => failure("PR delivery observation failed; check GitHub CLI access and response", "integration")),
@@ -35,6 +38,9 @@ export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => E
 		yield* validateDelivery(pr, result);
 		if (pr.state === "MERGED" && pr.mergedAt !== null && pr.mergeCommit !== null) {
 			return { head: pr.headRefOid, revision: pr.mergeCommit.oid, url: pr.url };
+		}
+		if (pr.mergeable === "CONFLICTING" && pr.baseRefOid !== undefined) {
+			return yield* new ConflictingPr(pr.baseRefOid);
 		}
 		return undefined;
 	});
