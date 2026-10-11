@@ -1,6 +1,9 @@
 export function itemStyles(): string {
 	return `
 .document-view:has(.document-layout) { max-width: 1220px; }
+.page:has(> .document-view > .document-layout) > .bar,
+.page:has(> .document-view > .document-layout) > .preferences { max-height: 25vh; overflow: auto; }
+.document-view:has(.document-layout) > .response-panel { max-width: 72ch; margin-inline: 0; }
 .document-layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
 .document-layout > * { min-width: 0; }
 .item-introduction h1 { margin: 0 0 .6em; }
@@ -13,7 +16,7 @@ export function itemStyles(): string {
 .item-context .reading-tools { margin: 16px 0 0; }
 .document-layout > .doc > :first-child { margin-top: 0; }
 @media (min-width: 1100px) {
-  .document-layout { grid-template-columns: minmax(0, 72ch) minmax(240px, 280px); gap: 24px 32px; }
+  .document-layout { grid-template-columns: minmax(0, 72ch) minmax(240px, 280px); grid-template-rows: auto 1fr; gap: 24px 32px; }
   .item-introduction { grid-column: 1; grid-row: 1; }
   .item-context { grid-column: 2; grid-row: 1 / span 2; }
   .document-layout > .doc { grid-column: 1; grid-row: 2; }

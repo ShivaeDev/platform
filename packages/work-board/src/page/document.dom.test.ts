@@ -1,6 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { expectTitleInFirstScreen } from "#test/expectTitleInFirstScreen.ts";
 import { itemFixture } from "#test/itemFixture.ts";
 import { waitFor } from "#test/live.ts";
 
@@ -33,6 +34,7 @@ function context() {
 
 it.each([1440, 390])("starts document content with title, authored status and next action before context and prose at %ipx", async (width) => {
 	await open(width);
+	expectTitleInFirstScreen(page);
 	const layout = page.document.querySelector("#doc > .document-layout");
 	expect([...(layout?.children ?? [])].map((element) => element.className)).toEqual(["item-introduction", "item-context", "doc"]);
 	const introduction = layout?.firstElementChild;
@@ -55,6 +57,37 @@ it.each([1440, 390])("starts document content with title, authored status and ne
 	notes.write("release.md", `${itemFixture()["release.md"]}\nUpdated prose.\n`);
 	await waitFor(() => expect(page.document.querySelector(".doc")?.textContent).toContain("Updated prose."));
 	expect(context().open).toBe(true);
+});
+
+it.each([1440, 390])("rejects title spacing that pushes the CSS placement bound below the first screen at %ipx", async (width) => {
+	await open(width);
+	expectTitleInFirstScreen(page);
+	const introduction = page.document.querySelector(".item-introduction");
+	if (!(introduction instanceof page.window.HTMLElement)) {
+		throw new Error("Missing introduction");
+	}
+	introduction.style.marginTop = `${page.window.innerHeight}px`;
+	expect(() => expectTitleInFirstScreen(page)).toThrow();
+});
+
+it.each([1440, 1100, 390])("keeps the question form in the text column and allocates rail height to the prose row at %ipx", async (width) => {
+	await open(width, "/_board/item/question.storage/");
+	expectTitleInFirstScreen(page);
+	const panel = page.document.querySelector("#doc > .response-panel");
+	expect(panel?.querySelector("h2")?.textContent).toBe("Answer this question");
+	if (!panel) {
+		throw new Error("Missing question form");
+	}
+	const style = page.window.getComputedStyle(panel);
+	expect(style.maxWidth).toBe("72ch");
+	expect(style.getPropertyValue("margin-inline")).toBe("0");
+	const layout = page.document.querySelector(".document-layout");
+	if (!layout) {
+		throw new Error("Missing document layout");
+	}
+	const grid = page.window.getComputedStyle(layout);
+	expect(grid.gridTemplateRows).toBe(width >= 1100 ? "auto 1fr" : "");
+	expect(page.window.getComputedStyle(context()).gridRow).toBe(width >= 1100 ? "1 / span 2" : "");
 });
 
 it("shows unknown authored values, moves a top-level title before preamble and keeps unique heading anchors", async () => {
