@@ -4,12 +4,18 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import { Fleet } from "#fleet.ts";
-import { backlog, executing } from "#model.ts";
+import { backlog, executing, type FleetRecord } from "#model.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
 import { recoveryCases } from "#test/recoveryCases.ts";
 import { answerReport } from "#test/report.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
+
+function assertRetryProgress(before: FleetRecord, after: FleetRecord) {
+	const priorOperations = new Set(before.attempts.map((attempt) => attempt.operationId));
+	const freshTurn = after.attempts.some((attempt) => attempt.receipt !== undefined && !priorOperations.has(attempt.operationId));
+	expect(freshTurn || after.stage === "completed").toBe(true);
+}
 
 const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	scenario: RecoveryCase,
@@ -81,6 +87,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 			expect(yield* context.fixture.foreignReservations()).toContainEqual(expect.objectContaining({ owner: stopped.result.pr }));
 		}
 	} else {
+		assertRetryProgress(stopped, recovered.value);
 		if (scenario.progress === undefined) {
 			return yield* Effect.die("Retry needs an explicit progress assertion");
 		}
