@@ -3,7 +3,7 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { FleetFailure } from "#policy.ts";
-import { StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
+import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
 export function reconcileCommand({ load, save, decision }: EngineState, advance: ReturnType<typeof makeAdvance>) {
 	return Effect.fn("Fleet.reconcile")(function* (workId: string) {
 		return yield* advance(workId).pipe(
@@ -14,7 +14,8 @@ export function reconcileCommand({ load, save, decision }: EngineState, advance:
 						return current;
 					}
 					if (
-						error instanceof StorageQuota
+						error instanceof StorageAdmission
+						|| error instanceof StorageQuota
 						|| error instanceof StorageCapacity
 						|| (error instanceof FleetFailure && error.reason === "denied" && error.message.includes("quota"))
 					) {

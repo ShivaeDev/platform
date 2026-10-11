@@ -44,7 +44,17 @@ export function obtainReview(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		yield* save(stored, { ...stored.value, attempts: [...stored.value.attempts, attempt] }, { quota, role: "reviewer" });
+		yield* save(
+			stored,
+			{
+				...stored.value,
+				attempts: [...stored.value.attempts, attempt],
+				mergeAreasReleased: undefined,
+				mergeReadyAt: undefined,
+				mergeReadyHead: undefined,
+			},
+			{ quota, role: "reviewer" },
+		);
 		return yield* sessions
 			.start({
 				access: "read-only",

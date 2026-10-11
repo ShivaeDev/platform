@@ -11,6 +11,7 @@ export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (name
 				yield* sql`create table ${sql(`${namespace}_foreign_reservations`)} (owner text primary key, paths jsonb not null, executing boolean not null, backlog boolean not null)`;
 			}),
 			"2_occupancy_only_foreign_reservations": sql`alter table ${sql(`${namespace}_foreign_reservations`)} drop column paths`,
+			"3_admission_order": sql`alter table ${sql(`${namespace}_records`)} add column admission_order bigint generated always as identity`,
 		}),
 		lockTimeout: "5 seconds",
 		table: `${namespace}_migrations`,

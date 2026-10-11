@@ -9,7 +9,7 @@ export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait:
 	if (trait === "withDependency") {
 		writeFileSync(
 			join(root, "task.md"),
-			"---\nid: task.one\nkind: task\nrelationships:\n  - kind: depends_on\n    target: task.before\n---\n# Useful work\n",
+			"---\nid: task.one\nkind: task\nareas: [work-fleet/host, work-board/ui]\nstatus: done\nrelationships:\n  - kind: depends_on\n    target: task.before\n---\n# Useful work\n",
 		);
 	} else {
 		for (const name of ["one.md", "two.md"]) {

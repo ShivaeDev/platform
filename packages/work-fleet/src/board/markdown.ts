@@ -32,6 +32,8 @@ export function markdownBoard(root: string) {
 				}
 				return {
 					approved: fleetApproved(found.parsed),
+					areas: found.parsed.fields.areas,
+					status: found.parsed.fields.status,
 					...(deliverable === "report" ? { deliverable: "report" as const } : {}),
 					context: found.source,
 					dependsOn: (found.parsed.fields.relationships ?? [])
