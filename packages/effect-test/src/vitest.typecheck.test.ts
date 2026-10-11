@@ -70,7 +70,7 @@ scoped.effectApp.each([1, 2])("accepts scoped table bodies %s", function* () {
 makeEffectIt({
 	layer: Layer.empty,
 	// @ts-expect-error Scope cannot satisfy an unrelated harness requirement.
-	makeHarness: () => Token.asEffect(),
+	makeHarness: () => Effect.service(Token),
 });
 makeEffectIt({
 	// @ts-expect-error Scope cannot satisfy an unrelated wrapper requirement.
@@ -78,3 +78,21 @@ makeEffectIt({
 	layer: Layer.empty,
 	makeHarness: () => Effect.void,
 });
+
+effectApp("retains harness, context and service types for Effect-returning bodies", (harness, context) => {
+	expectTypeOf(harness.token).toEqualTypeOf<string>();
+	expectTypeOf(context.task.name).toEqualTypeOf<string>();
+	return Effect.service(Token);
+});
+
+effectApp.each([{ id: 1 as const }])("retains Effect-returning table case types", (item, harness) => {
+	expectTypeOf(item.id).toEqualTypeOf<1>();
+	expectTypeOf(harness.token).toEqualTypeOf<string>();
+	return Effect.service(Token);
+});
+
+// @ts-expect-error Effect-returning bodies cannot require services absent from the Layer.
+empty.effectApp("refuses missing services in an Effect-returning body", () => Effect.service(Token));
+
+// @ts-expect-error Effect-returning table bodies cannot require services absent from the Layer.
+empty.effectApp.each([1])("refuses missing services in an Effect-returning table body", () => Effect.service(Token));

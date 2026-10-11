@@ -1,4 +1,6 @@
-import { afterEach, expect, it } from "vitest";
+import { Effect } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { enterField } from "#test/enterField.ts";
@@ -9,17 +11,15 @@ let notes: Folder;
 let board: RunningBoard;
 let page: OpenPage;
 const RESPONSE_PATH = "/_board/respond?item=investigation.choices&request=direction";
-afterEach(async () => {
-	await page?.close();
-	await board?.stop();
+afterEach(() => {
 	notes?.remove();
 });
-async function open() {
+const open = Effect.fn("Test.open")(function* () {
 	notes = folder({ "proposal.md": questionnaireSource });
-	board = await startBoard(notes.root, undefined, (fs) => fs, true);
-	page = await openPage(board, RESPONSE_PATH);
-	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
-}
+	board = yield* startBoard(notes.root, undefined, (fs) => fs, true);
+	page = yield* openPage(board, RESPONSE_PATH);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
+});
 function answer(prompt: string, value: string) {
 	const field = page.document.querySelector(`[data-prompt="${prompt}"] textarea`);
 	if (!(field instanceof page.window.HTMLTextAreaElement)) {
@@ -32,8 +32,8 @@ function answer(prompt: string, value: string) {
 function preview() {
 	page.document.getElementById("response-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 }
-it("names missing prompts and author beside their controls and clears each corrected warning without losing answers", async () => {
-	await open();
+it.live("names missing prompts and author beside their controls and clears each corrected warning without losing answers", function* () {
+	yield* open();
 	const status = page.document.getElementById("response-status");
 	expect(status?.textContent).toContain("Question 1 · display; Question 2 · checks");
 	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
@@ -59,8 +59,8 @@ it("names missing prompts and author beside their controls and clears each corre
 	preview();
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 });
-it("keeps pasted text, focus and cursor through a source update and restores the whole draft and author after reload", async () => {
-	await open();
+it.live("keeps pasted text, focus and cursor through a source update and restores the whole draft and author after reload", function* () {
+	yield* open();
 	enterField(page, "author", "reviewer");
 	enterField(page, "body", "Overall conditions");
 	const display = answer("display", "Pasted multiline\nanswer");
@@ -68,7 +68,7 @@ it("keeps pasted text, focus and cursor through a source update and restores the
 	display.focus();
 	display.setSelectionRange(7, 16, "backward");
 	notes.write("proposal.md", `${questionnaireSource}\nNew context.\n`);
-	await waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Source changed"));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Source changed")));
 	const restored = page.document.querySelector('[data-prompt="display"] textarea');
 	expect(restored).toHaveProperty("value", "Pasted multiline\nanswer");
 	expect(page.document.activeElement).toBe(restored);
@@ -81,34 +81,33 @@ it("keeps pasted text, focus and cursor through a source update and restores the
 		const key = storage.key(index) ?? "";
 		return [key, storage.getItem(key) ?? ""] as const;
 	});
-	await page.close();
-	page = await openPage(board, RESPONSE_PATH, (window) => {
+	yield* Effect.promise(() => page.close());
+	page = yield* openPage(board, RESPONSE_PATH, (window) => {
 		for (const [key, value] of saved) {
 			window.localStorage.setItem(key, value);
 		}
 	});
-	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
 	expect(page.document.querySelector('[data-prompt="display"] textarea')).toHaveProperty("value", "Pasted multiline\nanswer continued");
 	expect(page.document.querySelector('[data-prompt="checks"] textarea')).toHaveProperty("value", "Keyboard checks");
 	expect(page.document.querySelector('[name="body"]')).toHaveProperty("value", "Overall conditions");
 	expect(page.document.querySelector('[name="author"]')).toHaveProperty("value", "reviewer");
 	preview();
 	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
-	await waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:"));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:")));
 	const authorKey = saved.find(([key]) => key.startsWith("work-board:author:"));
-	await page.close();
-	page = await openPage(board, RESPONSE_PATH, (window) => {
+	yield* Effect.promise(() => page.close());
+	page = yield* openPage(board, RESPONSE_PATH, (window) => {
 		if (authorKey) {
 			window.localStorage.setItem(...authorKey);
 		}
 	});
-	await waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
 	expect(page.document.querySelector('[name="author"]')).toHaveProperty("value", "reviewer");
 	expect(page.document.querySelector('[data-prompt="display"] textarea')).toHaveProperty("value", "");
 });
-
-it("rebinds a cached page without duplicate error labels or stale warnings", async () => {
-	await open();
+it.live("rebinds a cached page without duplicate error labels or stale warnings", function* () {
+	yield* open();
 	answer("display", "Keep history.");
 	preview();
 	page.window.dispatchEvent(new page.window.Event("pagehide"));

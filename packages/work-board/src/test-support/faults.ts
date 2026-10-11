@@ -3,7 +3,7 @@ import type { FileSystemWrapper } from "./board.ts";
 
 export interface FaultyWatch {
 	readonly attempts: readonly number[];
-	readonly fail: () => void;
+	readonly fail: () => Effect.Effect<void>;
 	readonly heal: () => void;
 	readonly wrap: FileSystemWrapper;
 }
@@ -13,7 +13,7 @@ const injected = PlatformError.systemError({ _tag: "Unknown", description: "Inje
 export function faultyWatch(): FaultyWatch {
 	let broken = false;
 	const attempts: number[] = [];
-	let failure = Effect.runSync(Deferred.make<void>());
+	let failure = Deferred.makeUnsafe<void>();
 	const wrap: FileSystemWrapper = (fs) => ({
 		...fs,
 		watch: (path, options) =>
@@ -22,7 +22,7 @@ export function faultyWatch(): FaultyWatch {
 				if (broken) {
 					return Stream.fail(injected);
 				}
-				failure = Effect.runSync(Deferred.make<void>());
+				failure = Deferred.makeUnsafe<void>();
 				return Stream.merge(
 					fs.watch(path, options),
 					Stream.flatMap(Stream.fromEffect(Deferred.await(failure)), () => Stream.fail(injected)),
@@ -30,8 +30,9 @@ export function faultyWatch(): FaultyWatch {
 			}),
 	});
 	function fail() {
-		broken = true;
-		Effect.runSync(Deferred.succeed(failure, undefined));
+		return Effect.sync(() => {
+			broken = true;
+		}).pipe(Effect.andThen(Effect.suspend(() => Deferred.succeed(failure, undefined))));
 	}
 	return {
 		attempts,
