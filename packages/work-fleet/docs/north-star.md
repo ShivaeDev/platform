@@ -1,10 +1,6 @@
 # Work Fleet north star
 
-A maintainer approves Board work. Fleet carries independent items through workers,
-reviewers, scoped repair, required validation and authorized delivery. The person
-sees work that is active, completed, or needs one concrete decision. Detailed
-receipts and evidence remain attached to the work rather than copied into a second
-status ledger.
+A maintainer approves Board work. Fleet carries independent items through workers, reviewers, scoped repair, required validation and observed human delivery. The person sees work that is active, completed, or needs one concrete decision. Detailed receipts and evidence remain attached to the work rather than copied into a second status ledger.
 
 Board is the foundation and remains useful without Fleet. Its Markdown sources
 hold stable identity, context, relationships and human questions. Its index and
@@ -18,10 +14,7 @@ acknowledged session and turn identities must be saved before further mutation.
 Ambiguous acceptance retains reservations until reconciliation. Closing observation
 does not interrupt execution; explicit interruption needs acknowledgement.
 
-Terminal execution releases computation capacity. Ownership ends only at accepted
-delivery, independently reviewed and validated no-change, or explicit safe release.
-Review and checks apply to an exact revision. Repair needs fresh evidence. Preparation
-can survive an unrelated main update while preserving its original validation facts.
+Terminal execution releases computation capacity. Ownership ends only at accepted delivery, independently reviewed and validated no-change, or explicit safe release. Fleet never submits a merge. Reviewed, green work waits for the human to merge; observation records accepted delivery against that exact head. A PR closed without merging needs a concrete human decision. Review and checks apply to an exact revision. Repair needs fresh evidence. Preparation can survive an unrelated main update while preserving its original validation facts.
 
 Provider, source observations, independent review, validation and delivery are
 injected runtime policy. A local Codex transport proves nothing about modern hosted

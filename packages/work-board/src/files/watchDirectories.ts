@@ -5,7 +5,6 @@ import { isMarkdown, scanMarkdown } from "./list.ts";
 class WatchEnded extends Data.TaggedError("WatchEnded") {}
 
 const SETTLE = "100 millis";
-const BATCH = 256;
 
 export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function* (
 	root: string,
@@ -13,6 +12,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 	stale: Effect.Effect<void>,
 	setWatching: (watching: boolean) => Effect.Effect<unknown>,
 	publish: (paths: readonly string[]) => Effect.Effect<unknown>,
+	observed: Effect.Effect<void> = Effect.void,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
@@ -35,21 +35,34 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					}),
 				),
 			);
+			const pending = new Set<string>();
 			const watch = Stream.mergeAll(streams, { concurrency: "unbounded" }).pipe(
-				Stream.tap(() => stale),
+				Stream.tap((relative) => (isMarkdown(relative) || attachmentType(relative) !== undefined ? observed : Effect.void)),
 				Stream.tap((relative) =>
 					Effect.gen(function* () {
 						const info = yield* Effect.option(fs.stat(path.join(root, relative)));
 						const removedLink = roots.some((folder) => folder.relative === relative || folder.relative.startsWith(`${relative}/`));
 						if (Option.match(info, { onNone: () => removedLink, onSome: (value) => value.type === "Directory" })) {
+							yield* stale;
 							yield* Effect.forkScoped(Effect.delay(Deferred.succeed(topology, undefined), SETTLE));
 						}
 					}),
 				),
 				Stream.filter((relative) => isMarkdown(relative) || attachmentType(relative) !== undefined),
+				Stream.tap((relative) =>
+					Effect.sync(() => {
+						pending.add(relative);
+					}),
+				),
 				Stream.interruptWhen(Deferred.await(topology)),
-				Stream.groupedWithin(BATCH, SETTLE),
-				Stream.runForEach((paths) => publish([...new Set(paths)])),
+				Stream.debounce(SETTLE),
+				Stream.runForEach(() =>
+					Effect.suspend(() => {
+						const paths = [...pending];
+						pending.clear();
+						return publish(paths);
+					}),
+				),
 				Effect.andThen(Effect.flatMap(Deferred.isDone(topology), (changed) => (changed ? Effect.void : Effect.fail(new WatchEnded())))),
 			);
 			yield* Effect.forkScoped(Effect.delay(setWatching(true), SETTLE));

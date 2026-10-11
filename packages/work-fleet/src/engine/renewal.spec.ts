@@ -100,7 +100,7 @@ describe("context-bound Fleet renewal", () => {
 				expect((yield* fleet.get("one")).value.attempts).toEqual([]);
 			}),
 		));
-	test("an unresolved delivery submission cannot be archived into a new cycle", () =>
+	test("a legacy unresolved delivery submission cannot be archived into a new cycle", () =>
 		withEngine({ deliveryFailure: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -108,6 +108,7 @@ describe("context-bound Fleet renewal", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const ambiguous = yield* fleet.reconcile("one");
+				yield* fixture.markLegacyDeliverySubmitted("one");
 				fixture.editWork("one", "board-one-next");
 				fixture.approveWork("one", "board-one-next");
 				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
