@@ -11,7 +11,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 	withStorage((_store, namespace) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			yield* sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 4`;
+			yield* sql`delete from ${sql(`${namespace}_migrations`)} where migration_id >= 4`;
 			const payloads = [
 				{ stage: "needs-human", workId: "question" },
 				{ blocker: "execution capacity is occupied (limit 1)", stage: "prepared", workId: "blocked" },
@@ -40,10 +40,10 @@ test("migration persists owners on existing waits and preserves assigned owners 
 				{ decisionOwner: null, owner: "maintainer", version: 1, workId: "assigned" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "blocked" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "checks" },
-				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "published" },
+				{ decisionOwner: "maintainer", owner: "maintainer", version: 3, workId: "published" },
 				{ decisionOwner: null, owner: "orchestrator", version: 2, workId: "question" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "quota" },
-				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "ready" },
+				{ decisionOwner: "maintainer", owner: "maintainer", version: 3, workId: "ready" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "retry" },
 			]);
 			yield* migrateFleet(namespace);

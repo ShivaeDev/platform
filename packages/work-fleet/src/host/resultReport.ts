@@ -5,7 +5,11 @@ import { reportedPullRequest } from "#prompt/worker.ts";
 export const resultReport = Effect.fn("FleetHost.resultReport")(function* (output: string) {
 	const pr = reportedPullRequest(output);
 	if (pr === undefined) {
-		return yield* new FleetFailure({ message: "Worker report needs one final FLEET_PR line containing a GitHub PR URL or none", reason: "invalid" });
+		return yield* new FleetFailure({
+			code: "worker-report-pr-invalid",
+			message: "Worker report needs one final FLEET_PR line containing a GitHub PR URL or none",
+			reason: "invalid",
+		});
 	}
 	const lines = output
 		.trim()
@@ -19,6 +23,7 @@ export const resultReport = Effect.fn("FleetHost.resultReport")(function* (outpu
 		.trim();
 	if (heads.length !== 1 || heads[0] !== lines.at(-2) || head === undefined || /^[a-f\d]{40}$/u.exec(head) === null) {
 		return yield* new FleetFailure({
+			code: "worker-report-head-invalid",
 			message: "Worker report needs one FLEET_HEAD line with the exact full head SHA immediately before the final PR line",
 			reason: "invalid",
 		});

@@ -33,7 +33,7 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 		return { action: "continue", published, response } as const;
 	}
 	const action = yield* guidedAction(response);
-	const explanation = releaseOnly(decision.reason);
+	const explanation = releaseOnly(decision.code);
 	if (action === "retry" && explanation !== undefined) {
 		return yield* new FleetFailure({ message: explanation, reason: "invalid" });
 	}

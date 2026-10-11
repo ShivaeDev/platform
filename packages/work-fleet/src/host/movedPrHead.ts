@@ -6,7 +6,7 @@ export class MovedPrHead extends FleetFailure {
 	readonly head: string;
 
 	constructor(head: string) {
-		super({ message: MOVED_PR_HEAD_REASON, reason: "stale" });
+		super({ code: "pr-head-moved", message: MOVED_PR_HEAD_REASON, reason: "stale" });
 		this.head = head;
 	}
 }

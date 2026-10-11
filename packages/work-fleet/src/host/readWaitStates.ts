@@ -16,7 +16,7 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 			'attentionOwner', payload->'attentionOwner',
 			'checks', case when payload->'checks'->'pending' is not null then jsonb_build_object('pending', payload->'checks'->'pending') end,
 			'decision', case when payload->'decision'->>'reason' is not null
-				then jsonb_strip_nulls(jsonb_build_object('reason', payload->'decision'->'reason', 'attentionOwner', payload->'decision'->'attentionOwner')) end,
+				then jsonb_strip_nulls(jsonb_build_object('reason', payload->'decision'->'reason', 'code', payload->'decision'->'code', 'attentionOwner', payload->'decision'->'attentionOwner')) end,
 			'outcome', jsonb_strip_nulls(jsonb_build_object('url', payload->'outcome'->'url', 'evidence', payload->'outcome'->'evidence'))
 		)) as value from ${sql(`${options.namespace}_records`)} where ${where} order by work_id`.pipe(
 			Effect.catch((error) => {

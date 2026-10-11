@@ -10,11 +10,23 @@ import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
 const faults = [
-	{ kind: "context", reason: "Report needs nonempty completed output and the exact current Board context." },
-	{ kind: "publication", reason: "The worker report could not be recorded on Board; retry the same completed attempt." },
-	{ kind: "attachments", reason: "Report attachments could not be recorded beside the result; retry the same completed attempt" },
-	{ kind: "payload-file", reason: "Report publication payload could not be recovered or persisted; retry the same completed attempt" },
-	{ kind: "payload-content", reason: "Saved report publication payload is invalid; retain the completed attempt" },
+	{ code: "board-failure" as const, kind: "context", reason: "Report needs nonempty completed output and the exact current Board context." },
+	{
+		code: "board-failure" as const,
+		kind: "publication",
+		reason: "The worker report could not be recorded on Board; retry the same completed attempt.",
+	},
+	{
+		code: "board-failure" as const,
+		kind: "attachments",
+		reason: "Report attachments could not be recorded beside the result; retry the same completed attempt",
+	},
+	{
+		code: "board-failure" as const,
+		kind: "payload-file",
+		reason: "Report publication payload could not be recovered or persisted; retry the same completed attempt",
+	},
+	{ code: "board-failure" as const, kind: "payload-content", reason: "Saved report publication payload is invalid; retain the completed attempt" },
 ] as const;
 
 function blockReport(root: string, itemId: string, kind: (typeof faults)[number]["kind"]) {
@@ -44,6 +56,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 		let restored = false;
 		let blocked: string | undefined;
 		return {
+			code: fault.code,
 			enter: Effect.fnUntraced(function* (ctx) {
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
 				yield* launchRecoveryWorker();
@@ -76,7 +89,6 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 				);
 				expect(after.report?.receipt).toEqual(before.attempts.at(-1)?.receipt);
 			},
-			reason: fault.reason,
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
@@ -84,7 +96,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 						rmSync(blocked, { recursive: true });
 					}
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		};
 	});
 }

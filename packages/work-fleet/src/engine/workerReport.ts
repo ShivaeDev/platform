@@ -1,4 +1,6 @@
 import { Effect, Result } from "effect";
+import type { DecisionCode } from "#DecisionCode.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { resultReport } from "#host/resultReport.ts";
@@ -15,20 +17,17 @@ const correctionPrompt = [
 	"FLEET_PR: <url or none>",
 ].join("\n");
 
-export const workerReportFailure = Effect.fn("Fleet.workerReportFailure")(function* (record: FleetRecord, reason: string) {
+export const workerReportFailure = Effect.fn("Fleet.workerReportFailure")(function* (record: FleetRecord, code: DecisionCode | undefined) {
 	const latest = record.attempts.at(-1);
 	if (record.deliverable === "report" || latest?.role === "reviewer" || latest?.status !== "completed" || executing(record)) {
 		return undefined;
 	}
 	const parsed = yield* resultReport(latest.output ?? "").pipe(Effect.result);
 	if (Result.isFailure(parsed)) {
-		return parsed.failure.message === reason ? parsed.failure : undefined;
+		return failureCode(parsed.failure) === code ? parsed.failure : undefined;
 	}
-	return [
-		"PR head moved after the worker report",
-		"Merged PR head differs from the reported head; inspect delivery before accepting this work",
-	].includes(reason)
-		? new FleetFailure({ message: reason, reason: "stale" })
+	return code !== undefined && ["worker-report-head-moved", "worker-report-merged-head-mismatch"].includes(code)
+		? new FleetFailure({ code, message: "The reported head changed; request a corrected worker report", reason: "stale" })
 		: undefined;
 });
 
@@ -43,7 +42,7 @@ export function correctWorkerReport(state: EngineState) {
 			return yield* new FleetFailure({ message: "Report execution lacks a completed receipt", reason: "invalid" });
 		}
 		if (responses === undefined && latest.prompt?.startsWith(correctionPrompt)) {
-			return yield* state.decision(stored, failure.message, "Retry to request a corrected worker report or safely release");
+			return yield* state.decision(stored, failureCode(failure), failure.message, "Retry to request a corrected worker report or safely release");
 		}
 		return yield* makeLaunch(state)(stored, latest.role, correctionPrompt, {
 			responses: responses ?? stored.value.responses ?? [],

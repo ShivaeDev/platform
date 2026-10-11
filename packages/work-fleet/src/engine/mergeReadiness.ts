@@ -22,12 +22,13 @@ export const awaitHumanMerge = Effect.fn("Fleet.awaitHumanMerge")(function* (
 			: yield* save(stored, { ...record, mergeReadyAt: policy.now(), mergeReadyHead: head });
 	if (
 		record.responses?.some((response) => response.decisionId === record.decision?.id && response.action === undefined)
-		|| record.decision?.reason === "Reviewed PR is ready to merge"
+		|| record.decision?.code === "reviewed-pr-ready"
 	) {
 		return ready;
 	}
 	return yield* decision(
 		ready,
+		"reviewed-pr-ready",
 		"Reviewed PR is ready to merge",
 		"Merge the reviewed, green PR; Fleet will observe delivery without submitting a merge",
 		undefined,

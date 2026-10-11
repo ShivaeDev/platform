@@ -36,4 +36,12 @@ describe("Fleet summary reads against PostgreSQL", () => {
 			}).pipe(Effect.provide(readOnlySql(fixture.host))),
 		);
 	}, 30_000);
+	test("waiting summaries retain a stable code beside reworded reason text", () =>
+		withHost({}, {}, (fixture) =>
+			Effect.gen(function* () {
+				const decision = { attentionOwner: "maintainer", code: "reviewed-pr-ready", reason: "A human can merge this reviewed change now." };
+				yield* storeState(fixture.host, "one", { decision, stage: "needs-human" });
+				expect(yield* readWaitStates(fixture.host, ["one"])).toEqual([{ decision, outcome: {}, stage: "needs-human", workId: "one" }]);
+			}).pipe(Effect.provide(readOnlySql(fixture.host))),
+		));
 });

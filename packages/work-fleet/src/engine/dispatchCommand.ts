@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { authorizeBrief, refreshBrief } from "#engine/boardBrief.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
@@ -21,6 +22,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
 				stored,
+				failureCode(authorized.failure),
 				authorized.failure.message,
 				"Restore approval for work that is still needed, or release it",
 				undefined,
@@ -30,7 +32,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		stored = yield* refreshBrief(state)(stored, work);
 		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
 		if (assessment._tag === "Reprepare") {
-			return yield* decision(stored, assessment.reason, "Prepare the affected scope again before dispatch");
+			return yield* decision(stored, assessment.code ?? "fleet-invalid", assessment.reason, "Prepare the affected scope again before dispatch");
 		}
 		stored = yield* save(stored, { ...stored.value, preparation: assessment.preparation });
 		return yield* launch(stored, "worker", stored.value.prompt).pipe(

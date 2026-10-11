@@ -65,6 +65,7 @@ it.effect("preserves read failures and rejects unsupported URLs before invoking 
 	}
 	expect(yield* githubDelivery("/repository", read)(result).pipe(Effect.flip)).toMatchObject({ message: "Read failed" });
 	expect(yield* githubDelivery("/repository", read)({ ...result, pr: "--repo=example/repository" }).pipe(Effect.flip)).toMatchObject({
+		code: "delivery-pr-required",
 		message: "Delivery requires the adopted GitHub PR URL",
 	});
 });

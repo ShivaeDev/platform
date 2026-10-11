@@ -16,7 +16,7 @@ export function refreshReviewResult(state: EngineState) {
 		}
 		const worker = reviewWorker(stored.value);
 		if (worker?.receipt === undefined) {
-			return yield* new FleetFailure({ message: "Review lacks the adopted worker receipt", reason: "invalid" });
+			return yield* new FleetFailure({ code: "worker-receipt-missing", message: "Review lacks the adopted worker receipt", reason: "invalid" });
 		}
 		const current = yield* integrations.result(work, {
 			execution: "completed",
@@ -29,7 +29,12 @@ export function refreshReviewResult(state: EngineState) {
 			return yield* new FleetFailure({ message: "Current PR result does not match the observed delivery head", reason: "stale" });
 		}
 		if (!sameResultIdentity(current, result)) {
-			return yield* decision(stored, "Result identity changed during review", "Inspect ownership before adopting a replacement result");
+			return yield* decision(
+				stored,
+				"result-identity-changed",
+				"Result identity changed during review",
+				"Inspect ownership before adopting a replacement result",
+			);
 		}
 		if (current.head === result.head) {
 			return stored;

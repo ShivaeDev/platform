@@ -47,7 +47,9 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 				return check(work).pipe(
 					Effect.provide(services),
 					Effect.mapError(() => new FleetFailure({ message: "Report publication could not be checked on GitHub", reason: "integration" })),
-					Effect.flatMap((published) => (published ? Effect.fail(new FleetFailure({ message: PUBLISHED_REPORT, reason: "invalid" })) : Effect.void)),
+					Effect.flatMap((published) =>
+						published ? Effect.fail(new FleetFailure({ code: "report-published", message: PUBLISHED_REPORT, reason: "invalid" })) : Effect.void,
+					),
 				);
 			}
 			const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {

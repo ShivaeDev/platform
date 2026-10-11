@@ -4,6 +4,7 @@ import { recoveryBoardReportCases } from "#test/recoveryBoardReportCases.ts";
 import { recoveryBoundaryCases } from "#test/recoveryBoundaryCases.ts";
 import { recoveryChecksCases } from "#test/recoveryChecksCases.ts";
 import { recoveryDeliveryCases } from "#test/recoveryDeliveryCases.ts";
+import { recoveryFallbackCases } from "#test/recoveryFallbackCases.ts";
 import { recoveryGithubDeliveryCases } from "#test/recoveryGithubDeliveryCases.ts";
 import { recoveryHostCases } from "#test/recoveryHostCases.ts";
 import { recoveryIntegrationCases } from "#test/recoveryIntegrationCases.ts";
@@ -20,6 +21,7 @@ import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
 export function recoveryCases() {
 	return [
+		...recoveryFallbackCases(),
 		...recoveryScopeCases(),
 		...recoveryAdmissionCases(),
 		...recoveryRecordCases(),

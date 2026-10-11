@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 
 export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (namespace: string) {
 	const sql = yield* SqlClient.SqlClient;
@@ -28,6 +29,7 @@ export const migrateFleet = Effect.fn("FleetStore.migrateFleet")(function* (name
 				where payload->>'attentionOwner' is null and
 					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or payload->'launchRetry' is not null or
 					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,
+			"5_decision_codes": backfillDecisionCodes(namespace),
 		}),
 		lockTimeout: "5 seconds",
 		table: `${namespace}_migrations`,

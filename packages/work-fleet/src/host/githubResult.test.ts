@@ -75,6 +75,7 @@ describe("GitHub worker result adoption", () => {
 		expect(result.kind).toBe("no-change");
 		expect(yield* integrations.checks(work, result).pipe(Effect.flip)).toMatchObject({
 			attentionOwner: "automation",
+			code: "no-change-checks-unconfigured",
 			message: "No-change validation is not configured in this Fleet host; inspect the worker session",
 			reason: "integration",
 		});

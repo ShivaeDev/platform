@@ -27,7 +27,7 @@ function readPullRequest(cwd: string, pr: string) {
 export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetFailure> = readPullRequest) {
 	return Effect.fn("FleetHost.githubDelivery")(function* (result: typeof ChangeResult.Type) {
 		if (result.pr.match(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/[1-9]\d*$/u) === null) {
-			return yield* failure("Delivery requires the adopted GitHub PR URL");
+			return yield* new FleetFailure({ code: "delivery-pr-required", message: "Delivery requires the adopted GitHub PR URL", reason: "invalid" });
 		}
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
 			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),

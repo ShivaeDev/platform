@@ -9,6 +9,7 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 	let restored = false;
 	return [
 		{
+			code: "session-ambiguous" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* launchRecoveryWorker();
 				setLastObservation(ctx, { execution: "completed", output: REPORT });
@@ -28,14 +29,14 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 				expect(after.result?.head).toBe(HEAD);
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
-			reason: "Provider receipt differs from the persisted session or turn; retain reservation",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "session-unavailable" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* launchRecoveryWorker();
 				setLastObservation(ctx, { execution: "completed", output: REPORT });
@@ -52,10 +53,10 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 				expect(after.result?.head).toBe(HEAD);
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
-			reason: "Observation temporarily unavailable",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "session-ambiguous" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* launchRecoveryWorker();
 				setLastObservation(ctx, { execution: "completed", output: REPORT });
@@ -73,7 +74,6 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 				expect(after.attempts[0]?.receipt).toBeDefined();
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
-			reason: "No authoritative operation receipt",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					const observed = [...ctx.fixture.observations.values()][0];
@@ -83,7 +83,7 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 					}
 					ctx.fixture.operations.set(operation, observed.receipt);
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

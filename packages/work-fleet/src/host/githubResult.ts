@@ -36,7 +36,7 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (host
 	const name = parts[2];
 	const number = Number(parts[4]);
 	if (!Number.isSafeInteger(number) || `${owner}/${name}`.toLowerCase() !== repository.nameWithOwner.toLowerCase()) {
-		return yield* new FleetFailure({ message: "Reported PR must belong to the host repository", reason: "invalid" });
+		return yield* new FleetFailure({ code: "foreign-pr", message: "Reported PR must belong to the host repository", reason: "invalid" });
 	}
 	const endpoint = `repos/${repository.nameWithOwner}/pulls/${number}`;
 	const before = yield* githubJson(PullRequest, read, ["api", endpoint]);
@@ -67,6 +67,7 @@ function validatePullRequest(pr: typeof PullRequest.Type, head: string, number: 
 		? Effect.void
 		: Effect.fail(
 				new FleetFailure({
+					code: pr.merged ? "worker-report-merged-head-mismatch" : "worker-report-head-moved",
 					message: pr.merged
 						? "Merged PR head differs from the reported head; inspect delivery before accepting this work"
 						: "PR head moved after the worker report",

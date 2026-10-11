@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
@@ -31,6 +32,7 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		current = yield* persistTerminalReceipts(state, current, error instanceof SessionFailure ? error.terminalReceipts : undefined);
 		return yield* decision(
 			current,
+			failureCode(error),
 			failureMessage(error),
 			"Inspect this specific integration failure and retry the existing work",
 			undefined,

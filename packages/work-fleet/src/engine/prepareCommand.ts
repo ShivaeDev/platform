@@ -11,7 +11,9 @@ export function prepareCommand(state: EngineState) {
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
 		if (!work.approved) {
-			return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
+			return yield* Effect.fail(
+				new FleetFailure({ code: "approval-required", message: "Current Board revision needs maintainer approval", reason: "denied" }),
+			);
 		}
 		if (!input.prompt.trim() || input.preparation.ownedPaths.length === 0) {
 			return yield* Effect.fail(new FleetFailure({ message: "Preparation needs fixed prompt and owned paths", reason: "invalid" }));

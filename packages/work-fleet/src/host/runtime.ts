@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
+import type { DecisionCode } from "#DecisionCode.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
@@ -16,10 +17,11 @@ import { hostReportBoard } from "#host/reportBoard.ts";
 import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
-function unconfigured(message: string) {
+function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
 	return Effect.fail(
 		new FleetFailure({
 			attentionOwner: "automation",
+			code,
 			message,
 			reason: "integration",
 		}),
@@ -33,7 +35,7 @@ export function hostIntegrations(host: FleetHost) {
 			return FleetIntegrations.of({
 				checks: (_work, result) =>
 					result.kind === "no-change"
-						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session")
+						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
 						: githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,

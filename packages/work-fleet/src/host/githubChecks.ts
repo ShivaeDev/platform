@@ -16,7 +16,11 @@ export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<st
 		const owner = match?.groups?.owner;
 		const repository = match?.groups?.repository;
 		if (owner === undefined || repository === undefined || [".", ".."].includes(repository) || /^[0-9a-f]{40}$/u.exec(result.head) === null) {
-			return yield* failure("GitHub checks need a GitHub pull request URL and an exact commit SHA");
+			return yield* new FleetFailure({
+				code: "checks-result-invalid",
+				message: "GitHub checks need a GitHub pull request URL and an exact commit SHA",
+				reason: "integration",
+			});
 		}
 		const commit = `repos/${owner}/${repository}/commits/${result.head}`;
 		const checks = yield* read(`${commit}/check-runs?per_page=100&filter=latest`).pipe(

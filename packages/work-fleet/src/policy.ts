@@ -1,6 +1,7 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
 import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading, type BoardReport } from "#board/schema.ts";
+import { DecisionCode } from "#DecisionCode.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
@@ -19,6 +20,7 @@ export const BoardWork = Schema.Struct({
 export type BoardWork = typeof BoardWork.Type;
 export const Decision = Schema.Struct({
 	attentionOwner: Schema.optional(AttentionOwner),
+	code: Schema.optional(DecisionCode),
 	id: Schema.String,
 	links: Schema.Array(Schema.String),
 	publicationWork: Schema.optional(BoardWork),
@@ -48,10 +50,14 @@ export const DecisionResponse = Schema.Struct({
 export type DecisionResponse = typeof DecisionResponse.Type;
 export class FleetFailure extends Schema.TaggedError<FleetFailure>()("FleetFailure", {
 	attentionOwner: Schema.optional(AttentionOwner),
+	code: Schema.optional(DecisionCode),
 	message: Schema.String,
 	reason: Schema.Literals(["missing", "stale", "denied", "integration", "invalid"]),
 }) {}
-export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailure", { message: Schema.String }) {}
+export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailure", {
+	code: Schema.optional(DecisionCode),
+	message: Schema.String,
+}) {}
 export class BoardGateway extends Context.Service<
 	BoardGateway,
 	{

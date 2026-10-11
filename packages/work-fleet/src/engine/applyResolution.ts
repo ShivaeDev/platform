@@ -5,7 +5,6 @@ import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
-import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -46,7 +45,7 @@ function retryOrRelease(state: EngineState) {
 		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
-			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.reason ?? "") : undefined;
+			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.code) : undefined;
 		if (reportFailure !== undefined) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
@@ -104,7 +103,6 @@ function retryChangedBrief(state: EngineState) {
 function deliveryRetry(record: FleetRecord) {
 	return (
 		record.result?.kind === "change"
-		&& (record.decision?.reason === MOVED_PR_HEAD_REASON
-			|| (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
+		&& (record.decision?.code === "pr-head-moved" || (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
 	);
 }

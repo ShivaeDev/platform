@@ -59,6 +59,7 @@ export function codexTurns(rpc: CodexRequest) {
 		if (matching.length > 1) {
 			return yield* Effect.fail(
 				new SessionFailure({
+					code: "duplicate-turns",
 					message: "Multiple Codex turns match one operation; retain reservation",
 					reason: "ambiguous",
 					...(matching.every((turn) => turn.status !== "inProgress")

@@ -9,7 +9,9 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
 ) {
 	if (!work.approved) {
-		return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
+		return yield* Effect.fail(
+			new FleetFailure({ code: "approval-required", message: "Current Board revision needs maintainer approval", reason: "denied" }),
+		);
 	}
 	yield* qualifyDependencies(work.dependsOn, records, get);
 	const quota = policy.quota;
