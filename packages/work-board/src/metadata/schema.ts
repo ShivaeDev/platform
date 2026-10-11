@@ -44,8 +44,14 @@ export const Metadata = Schema.Struct({
 	items: Schema.optional(Schema.Array(Identity)),
 	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response", "handoff"])),
 	nextAction: Schema.optional(Text),
+	options: Schema.optional(
+		Schema.Array(Schema.Struct({ description: Text.check(Schema.isMaxLength(8192)), label: Text.check(Schema.isMaxLength(128)) })).check(
+			Schema.isMaxLength(32),
+		),
+	),
 	owner: Schema.optional(Text),
 	question: Schema.optional(QuestionRecord),
+	recommended: Schema.optional(Text),
 	relationships: Schema.optional(Schema.Array(Relationship)),
 	requestReceipt: Schema.optional(RequestReceipt),
 	response: Schema.optional(ResponseRecord),

@@ -1,5 +1,7 @@
 import { fileUrl } from "#files/url.ts";
+import type { Snapshot } from "#search/snapshot.ts";
 import { escapeHtml } from "./escape.ts";
+import { inboxCount } from "./nav.ts";
 import { searchDialog } from "./searchDialog.ts";
 import { visualDialog } from "./visualDialog.ts";
 
@@ -17,7 +19,8 @@ export function shell(
 	workspace: string,
 	board: boolean,
 	identity?: string,
-	view: boolean | "diagnostics" | "overview" | "changes" | "start" | "response" | "handoff" | "result" = false,
+	view: boolean | "diagnostics" | "overview" | "changes" | "start" | "response" | "handoff" | "result" | "inbox" = false,
+	snapshot?: Snapshot,
 ): string {
 	return [
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
@@ -26,11 +29,12 @@ export function shell(
 		'<link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/client.js"></script>',
 		'</head><body><noscript><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style></noscript><a class="skip" href="#doc">Skip to content</a><div class="workspace">',
 		'<aside id="sidebar" class="sidebar"><a class="brand" href="/">work board<span>Local workspace</span></a>',
+		`<a id="inbox-open" class="inbox-link" href="/_board/inbox"${view === "inbox" ? ' aria-current="page"' : ""}>Inbox <span id="inbox-count" class="inbox-count" aria-label="${inboxCount(snapshot)} waiting">${inboxCount(snapshot)}</span></a>`,
 		`<div id="reading-library" class="reading-library" hidden></div><a id="start-open" class="start-open" href="/_board/start">Getting started</a><h2 class="nav-heading">Project files</h2>`,
 		`<nav id="files" class="files" aria-label="Project files">${nav}</nav></aside>`,
 		'<div class="page"><header class="bar"><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true">Files</button>',
 		`<nav id="breadcrumbs" class="breadcrumbs" aria-label="File location"><a href="/">Workspace</a><span class="separator">/</span>${location(title)}</nav>`,
-		`<a id="overview-open" class="work-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" class="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" class="work-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><a id="diagnostics-open" class="work-open" href="/_board/diagnostics"${view === "diagnostics" ? ' aria-current="page"' : ""}>Diagnostics</a><button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>`,
+		`<a id="inbox-topbar" class="inbox-link work-open" href="/_board/inbox"${view === "inbox" ? ' aria-current="page"' : ""}>Inbox <span id="inbox-topbar-count" class="inbox-count" aria-label="${inboxCount(snapshot)} waiting">${inboxCount(snapshot)}</span></a><a id="overview-open" class="work-open" href="/_board/overview"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a><a id="work-open" class="work-open" href="/_board/work?view=board"${view === true ? ' aria-current="page"' : ""}>Work</a><a id="changes-open" class="work-open" href="/_board/changes"${view === "changes" ? ' aria-current="page"' : ""}>Changes</a><a id="diagnostics-open" class="work-open" href="/_board/diagnostics"${view === "diagnostics" ? ' aria-current="page"' : ""}>Diagnostics</a><button id="search-open" type="button" disabled aria-haspopup="dialog" aria-controls="search-dialog">Search <kbd>⌘/Ctrl K</kbd></button><span id="live" class="live" role="status">connecting</span><span id="navigation-status" role="status"></span></header>`,
 		'<div class="preferences" role="group" aria-label="Reading preferences">',
 		'<div class="preference"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>',
 		'<div class="preference"><label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>',

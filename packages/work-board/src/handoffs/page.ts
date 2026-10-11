@@ -8,6 +8,7 @@ import { escapeHtml } from "#page/escape.ts";
 import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
 import type { Highlighter } from "#render/highlighter.ts";
+import type { searchSnapshot } from "#search/snapshot.ts";
 
 function unknownHistory(files: readonly string[]) {
 	return files.length > 0
@@ -19,14 +20,20 @@ export function handoffPage(
 	changes: Changes,
 	home: string | undefined,
 	enabled: boolean,
+	index?: Effect.Success<ReturnType<typeof searchSnapshot>>,
 ) {
 	return Effect.fn("WorkBoard.handoffPage")(function* (
 		request: HttpServerRequest.HttpServerRequest,
 	): Effect.fn.Return<HttpServerResponse.HttpServerResponse, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path | Highlighter> {
 		const item = new URL(request.url, "http://127.0.0.1").searchParams.get("item") ?? "";
 		const files = yield* changes.files;
+		const snapshot = index ? yield* index : undefined;
 		function layout(body: string, status = 200) {
-			return respond(shell("Handoff", navHtml(files, "", home), body, changes.realRoot, false, undefined, "handoff"), "text/html", status);
+			return respond(
+				shell("Handoff", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "handoff", snapshot),
+				"text/html",
+				status,
+			);
 		}
 		return yield* Effect.gen(function* () {
 			const source = yield* Effect.result(service.locate(item));

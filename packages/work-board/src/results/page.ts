@@ -34,8 +34,13 @@ export function resultPage(index: Effect.Effect<Snapshot, unknown, FileSystem.Fi
 	): Effect.fn.Return<HttpServerResponse.HttpServerResponse, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path | Highlighter> {
 		const item = new URL(request.url, "http://127.0.0.1").searchParams.get("item") ?? "";
 		const files = yield* changes.files;
+		const snapshot = yield* index.pipe(Effect.catch(() => Effect.succeed(undefined)));
 		function layout(body: string, status = 200) {
-			return respond(shell("Result review", navHtml(files, "", home), body, changes.realRoot, false, undefined, "result"), "text/html", status);
+			return respond(
+				shell("Result review", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "result", snapshot),
+				"text/html",
+				status,
+			);
 		}
 		return yield* Effect.gen(function* () {
 			const data = yield* index;

@@ -14,7 +14,7 @@ it("sends an initial reconciliation, targeted contiguous hints, and a full recon
 				const watching = yield* Ref.make(true);
 				const document = { file: "note.md", parsed: metadataParse("Note") };
 				const model = metadataModel([document]);
-				const snapshot: Snapshot = { documents: [document], entries: [], model, revision: 0, unavailable: [] };
+				const snapshot: Snapshot = { documents: [document], entries: [], model, modified: new Map(), revision: 0, unavailable: [] };
 				const changes: Changes = {
 					events,
 					files: Effect.succeed([]),

@@ -1,6 +1,9 @@
 import { Effect } from "effect";
+import { metadataParse } from "#metadata/parse.ts";
 import { escapeHtml } from "#page/escape.ts";
 import { renderMarkdown } from "#render/markdown.ts";
+import { optionControls } from "./optionControls.ts";
+import { optionPrompt } from "./optionPrompt.ts";
 import { questionTemplate } from "./template.ts";
 
 export const templateHtml = Effect.fn("WorkBoard.templateHtml")(function* (context: string, request: string, file: string) {
@@ -9,6 +12,11 @@ export const templateHtml = Effect.fn("WorkBoard.templateHtml")(function* (conte
 		return renderMarkdown(source, { file, safe: true });
 	}
 	const background = yield* render(template.context);
+	const fields = metadataParse(context).fields;
+	const choicePrompt = optionPrompt(fields);
+	if (choicePrompt) {
+		return { background, controls: optionControls(choicePrompt, fields), hasPrompts: true };
+	}
 	const controls = yield* Effect.forEach(template.prompts, (prompt, index) =>
 		Effect.gen(function* () {
 			const description = yield* render(prompt.source);

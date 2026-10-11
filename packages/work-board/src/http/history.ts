@@ -11,10 +11,11 @@ import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
 import { sameOrigin } from "./sameOrigin.ts";
 
-export function changesPage(changes: Changes, home: string | undefined) {
+export function changesPage(changes: Changes, home: string | undefined, index?: Effect.Success<ReturnType<typeof searchSnapshot>>) {
 	return Effect.fn("WorkBoard.changesPage")(function* () {
-		const nav = navHtml(yield* changes.files, "", home);
-		return respond(shell("Changes", nav, changesHtml(), changes.realRoot, true, undefined, "changes"), "text/html");
+		const snapshot = index ? yield* index : undefined;
+		const nav = navHtml(yield* changes.files, "", home, snapshot);
+		return respond(shell("Changes", nav, changesHtml(), changes.realRoot, true, undefined, "changes", snapshot), "text/html");
 	});
 }
 export function history(index: Effect.Success<ReturnType<typeof searchSnapshot>>) {

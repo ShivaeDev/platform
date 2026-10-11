@@ -52,9 +52,18 @@ export function identity(
 				? `The ID ${id} is duplicated. No document was selected.`
 				: `No item with ID ${id} is available. It may be missing, renamed, or invalid.`;
 		const choices = matches.map((document) => `<li><a href="${escapeHtml(fileUrl(document.file))}">${escapeHtml(document.file)}</a></li>`).join("");
-		const nav = navHtml(yield* changes.files, "", home);
+		const nav = navHtml(yield* changes.files, "", home, snapshot);
 		return respond(
-			shell(`Item ${id}`, nav, `<p class="empty">${escapeHtml(text)}</p>${choices ? `<ul>${choices}</ul>` : ""}`, changes.realRoot, false),
+			shell(
+				`Item ${id}`,
+				nav,
+				`<p class="empty">${escapeHtml(text)}</p>${choices ? `<ul>${choices}</ul>` : ""}`,
+				changes.realRoot,
+				false,
+				undefined,
+				false,
+				snapshot,
+			),
 			"text/html",
 			matches.length > 0 ? 409 : 404,
 		);

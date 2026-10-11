@@ -15,6 +15,7 @@ export const readDocument = Effect.fn("WorkBoard.readDocument")(function* (
 	realRoot: string,
 	file: string,
 	home: string | undefined,
+	modified: number,
 	previous?: IndexedDocument,
 ) {
 	const fs = yield* FileSystem.FileSystem;
@@ -29,5 +30,5 @@ export const readDocument = Effect.fn("WorkBoard.readDocument")(function* (
 	const parsed = metadataParse(source);
 	const links = new Set<string>();
 	const entries = yield* Effect.tryPromise(() => entriesOf(parsed.body, file, file === home, parsed.bodyLine, links));
-	return { document: { file, links: [...links], parsed }, entries, source };
+	return { document: { file, links: [...links], modified, parsed }, entries, source };
 });

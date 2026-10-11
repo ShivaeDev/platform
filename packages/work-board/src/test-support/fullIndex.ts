@@ -11,7 +11,7 @@ export const fullIndex = Effect.fn("Test.fullIndex")(function* (root: string, ho
 	const entries: Entry[] = [];
 	const unavailable: string[] = [];
 	for (const file of files) {
-		const found = yield* Effect.option(readDocument(root, root, file.path, home));
+		const found = yield* Effect.option(readDocument(root, root, file.path, home, file.modified));
 		if (Option.isSome(found) && found.value) {
 			documents.push(found.value.document);
 			entries.push(...found.value.entries);
@@ -20,5 +20,12 @@ export const fullIndex = Effect.fn("Test.fullIndex")(function* (root: string, ho
 		}
 	}
 	const model = metadataModel(documents, unavailable, home ?? files[0]?.path);
-	return { documents, entries: metadataEntries(entries, documents, model), model, revision: 0, unavailable };
+	return {
+		documents,
+		entries: metadataEntries(entries, documents, model),
+		model,
+		modified: new Map(files.map((file) => [file.path, file.modified])),
+		revision: 0,
+		unavailable,
+	};
 });

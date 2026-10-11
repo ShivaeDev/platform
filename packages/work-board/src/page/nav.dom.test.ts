@@ -25,7 +25,7 @@ it("renders shared ancestry, direct files, escaped names, stable URLs and home f
 		"packages/form/README.md",
 		"packages/README.md",
 	);
-	expect(nav.querySelector("a")?.getAttribute("href")).toBe("/packages/README.md");
+	expect(nav.querySelector("ul a")?.getAttribute("href")).toBe("/packages/README.md");
 	const packages = nav.querySelector('details[data-key="folder:packages"]');
 	expect(packages?.querySelector(":scope > summary")?.textContent).toBe("packages/ (2)");
 	expect(packages?.hasAttribute("open")).toBe(true);
@@ -52,7 +52,7 @@ it("renders shared ancestry, direct files, escaped names, stable URLs and home f
 	expect(
 		[...mixed.querySelectorAll('details[data-key="folder:packages"] > ul > li.file-folder > details > summary')].map((item) => item.textContent),
 	).toEqual(["changes/ (1)", "form/ (1)"]);
-	expect(navHtml([], "", undefined)).toBe("<ul></ul>");
+	expect(navHtml([], "", undefined)).toBe('<ul data-inbox-count="?"></ul>');
 });
 
 it("serves a native reference tree and preserves parent and child state through live changes and navigation", async () => {
@@ -62,6 +62,14 @@ it("serves a native reference tree and preserves parent and child state through 
 	expect(response.status).toBe(200);
 	const html = document.createElement("div");
 	html.innerHTML = response.body;
+	expect([...html.querySelectorAll("#sidebar > [id]")].map((element) => element.id)).toEqual([
+		"inbox-open",
+		"reading-library",
+		"start-open",
+		"files",
+	]);
+	expect(html.querySelectorAll("#inbox-open")).toHaveLength(1);
+	expect(html.querySelector("#files #inbox-open")).toBeNull();
 	expect(html.querySelector('#files details[data-key="folder:packages"] details[data-key="folder:packages/form"] a[aria-current="page"]')).not.toBe(
 		null,
 	);

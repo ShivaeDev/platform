@@ -21,6 +21,7 @@ const PageUrl = Schema.String.check(
 			return (
 				path === "/"
 				|| [
+					"/_board/inbox",
 					"/_board/diagnostics",
 					"/_board/work",
 					"/_board/overview",
