@@ -36,6 +36,7 @@ export const applyPage = (page, preserve = false) => {
   document.getElementById("work-open")?.setAttribute("aria-current", doc.dataset.view === "work" ? "page" : "false");
   document.getElementById("overview-open")?.setAttribute("aria-current", doc.dataset.view === "overview" ? "page" : "false");
   document.getElementById("changes-open")?.setAttribute("aria-current", doc.dataset.view === "changes" ? "page" : "false");
+  document.getElementById("diagnostics-open")?.setAttribute("aria-current", doc.dataset.view === "diagnostics" ? "page" : "false");
   doc.dataset.scheme = document.documentElement.dataset.scheme;
   swap(document.getElementById("files"), page.getElementById("files"));
   const crumbs = page.getElementById("breadcrumbs");
