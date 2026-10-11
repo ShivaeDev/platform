@@ -97,3 +97,17 @@ it("dismisses the narrow drawer with Escape or outside tap and restores focus wi
 	page.window.dispatchEvent(new page.window.Event("resize"));
 	await waitFor(() => expect(sidebar.hidden).toBe(true));
 });
+
+it("scrolls the project tree to reveal the selected file after navigation", async () => {
+	await open(1440);
+	const files = element("files");
+	function rect(top: number, bottom: number) {
+		return new page.window.DOMRect(0, top, 240, bottom - top);
+	}
+	files.getBoundingClientRect = () => rect(0, 100);
+	page.window.HTMLAnchorElement.prototype.getBoundingClientRect = () => rect(400 - files.scrollTop, 420 - files.scrollTop);
+	files.scrollTop = 0;
+	click('#files a[href="/notes/topic-6.md"]');
+	await waitFor(() => expect(element("doc").dataset.file).toBe("notes/topic-6.md"));
+	await waitFor(() => expect(files.scrollTop).toBe(320));
+});

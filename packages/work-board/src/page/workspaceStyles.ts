@@ -55,7 +55,6 @@ button, select { padding: 6px 10px; border: 1px solid var(--border); border-radi
   html[data-js] .sidebar { position: fixed; inset: 0 auto 0 0; width: min(320px, calc(100vw - 48px)); z-index: 4; }
   html[data-js] .sidebar-backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 3; background: rgb(0 0 0 / .45); }
   html:not([data-js]) .sidebar { position: relative; height: 100dvh; }
-  #inbox-topbar { display: none; }
   .brand { padding-bottom: 16px; }
   .bar { flex-wrap: wrap; gap: 12px; }
   .breadcrumbs { flex-basis: calc(100% - 100px); }
