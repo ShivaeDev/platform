@@ -60,12 +60,13 @@ it("records a recommended option from the item page and updates the live Inbox b
 	expect(response.body).toContain("Keep local files");
 });
 
-it("remembers the author across questions and keeps response details collapsed with one visible answer box", async () => {
+it("keeps the remembered author visible across questions and response details collapsed with one visible answer box", async () => {
 	await open();
 	expect(page.document.querySelector('[data-key="response-details"]')?.hasAttribute("open")).toBe(false);
 	const textareas = [...page.document.querySelectorAll("#response-form textarea")];
 	expect(textareas.filter((field) => !field.closest("details"))).toHaveLength(1);
-	for (const name of ["type", "supersedes", "author"]) {
+	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
+	for (const name of ["type", "supersedes"]) {
 		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	}
 	notes.write("other.md", inboxQuestion.replace("question.storage", "question.backup"));

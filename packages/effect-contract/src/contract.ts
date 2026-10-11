@@ -1,16 +1,25 @@
-import { Rpc, RpcGroup, type RpcMiddleware } from "effect/unstable/rpc";
-import type { CommandShape, OperationShape, QueryShape } from "./operation.ts";
+import type { Schema } from "effect";
+import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/unstable/rpc";
+import type { CommandShape, OperationShape, QueryShape, StreamShape } from "./operation.ts";
 
 export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
 
 export type OperationRpc<TContract extends string, TOperation> = TOperation extends OperationShape
-	? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], TOperation["error"]>
+	? TOperation extends StreamShape
+		? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], RpcSchema.Stream<TOperation["success"], TOperation["error"]>, Schema.Never>
+		: Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], TOperation["error"]>
 	: never;
 
-export interface Declared<TName extends string, TQueries extends readonly QueryShape[], TCommands extends readonly CommandShape[]> {
+export interface Declared<
+	TName extends string,
+	TQueries extends readonly QueryShape[],
+	TCommands extends readonly CommandShape[],
+	TStreams extends readonly StreamShape[] = readonly [],
+> {
 	readonly commands: TCommands;
 	readonly name: TName;
 	readonly queries: TQueries;
+	readonly streams: TStreams;
 }
 
 export interface Contract<
@@ -18,9 +27,10 @@ export interface Contract<
 	TQueries extends readonly QueryShape[],
 	TCommands extends readonly CommandShape[],
 	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]>,
+	TStreams extends readonly StreamShape[] = readonly [],
 > extends RpcGroup.RpcGroup<TRpcs> {
-	readonly declaration: Declared<TName, TQueries, TCommands>;
-	middleware: <TM extends RpcMiddleware.AnyService>(middleware: TM) => Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TM>>;
+	readonly declaration: Declared<TName, TQueries, TCommands, TStreams>;
+	middleware: <TM extends RpcMiddleware.AnyService>(middleware: TM) => Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TM>, TStreams>;
 }
 
 type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
@@ -41,7 +51,7 @@ function assertUnique(operations: readonly OperationShape[]) {
 	}
 }
 
-type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[]>;
+type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[]>;
 
 interface Group {
 	middleware: (middleware: RpcMiddleware.AnyService) => Group;
@@ -63,18 +73,28 @@ export function contract<
 	const TName extends string,
 	const TQueries extends readonly QueryShape[] = readonly [],
 	const TCommands extends readonly CommandShape[] = readonly [],
+	const TStreams extends readonly StreamShape[] = readonly [],
 >(
 	name: TName,
-	operations: { readonly queries?: TQueries & Unique<TQueries>; readonly commands?: TCommands & Unique<[...TQueries, ...TCommands]> },
-): Contract<TName, TQueries, TCommands>;
+	operations: {
+		readonly queries?: TQueries & Unique<TQueries>;
+		readonly commands?: TCommands & Unique<[...TQueries, ...TCommands]>;
+		readonly streams?: TStreams & Unique<[...TQueries, ...TCommands, ...TStreams]>;
+	},
+): Contract<TName, TQueries, TCommands, OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]>, TStreams>;
 export function contract(
 	name: string,
-	operations: { readonly queries?: readonly QueryShape[]; readonly commands?: readonly CommandShape[] },
+	operations: { readonly queries?: readonly QueryShape[]; readonly commands?: readonly CommandShape[]; readonly streams?: readonly StreamShape[] },
 ): DeclaredGroup {
-	const { queries = [], commands = [] } = operations;
-	assertUnique([...queries, ...commands]);
-	const rpcs = [...queries, ...commands].map((operation) =>
-		Rpc.make(`${name}.${operation.name}`, { error: operation.error, payload: operation.payload, success: operation.success }),
+	const { queries = [], commands = [], streams = [] } = operations;
+	assertUnique([...queries, ...commands, ...streams]);
+	const rpcs = [...queries, ...commands, ...streams].map((operation) =>
+		Rpc.make(`${name}.${operation.name}`, {
+			error: operation.error,
+			payload: operation.payload,
+			stream: operation.kind === "stream",
+			success: operation.success,
+		}),
 	);
-	return withDeclaration(RpcGroup.make(...rpcs), { commands, name, queries });
+	return withDeclaration(RpcGroup.make(...rpcs), { commands, name, queries, streams });
 }
