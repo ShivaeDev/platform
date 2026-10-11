@@ -165,13 +165,13 @@ The host refreshes the view on scheduler reads and after preparation, dispatch, 
 
 ### Start a small personal pilot
 
-Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The report includes one `FLEET_HEAD: <sha>` line with the full head SHA and ends with one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
-
-A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. The host refreshes main and requires the same SHA, retains the report as evidence, and passes that result through independent review and required checks. Result adoption supplies no review or delivery authority; configure those integrations separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
-
 Use `work-fleet watch first-item second-item --board <folder>` to follow several items in one process. It prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. Each poll uses one PostgreSQL query for summary fields, without loading execution history or the Fleet runtime.
 
 `--interval <seconds>` defaults to 15; `--timeout <seconds>` exits 4 and writes a timeout message to stderr. Read failures retry up to 20 consecutive polls before exit 1. `work-fleet wait <id>` prints the same outcome summary and keeps its individual exit codes: completed 0, needs-human 2, released 3, timeout 4 and errors 1. Both commands read host settings from `<board>/fleet.config.json` or `--config <file>`.
+
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The report includes one `FLEET_HEAD: <sha>` line with the full head SHA and ends with one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open in the host repository and target its configured branch; a different reported head or movement during observation fails with a typed `FleetFailure`.
+
+A final `FLEET_PR: none` claims no change at the reported `FLEET_HEAD`. The host refreshes main and requires the same SHA, retains the report as evidence, and passes that result through independent review and required checks. Result adoption supplies no review or delivery authority; configure those integrations separately. Fixture tests exercise GitHub responses and the PostgreSQL adoption path, not live GitHub or worker execution.
 
 The smallest host is an Effect program with the composed Fleet Layer above; it can
 run headlessly. The package supplies no provider login, hosting-specific merge
