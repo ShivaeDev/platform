@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Prepares an Amp orb: Docker for the shared PostgreSQL service, `./script/update`, then a build.
+# Prepares an Amp orb: pinned Node.js and pnpm, Docker for the shared PostgreSQL service,
+# `./script/update`, then a build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -24,6 +25,36 @@ install_docker() {
 	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io
 }
 
+# The orb image ships its own Node.js; replace it with the release `.node-version` pins.
+install_node() {
+	local version
+	version="$(cat .node-version)"
+	if [ "$(node --version 2>/dev/null)" = "v$version" ]; then
+		return
+	fi
+	local archive="node-v$version-linux-x64.tar.xz" download
+	download="$(mktemp -d)"
+	curl -fsSL "https://nodejs.org/dist/v$version/$archive" -o "$download/$archive"
+	curl -fsSL "https://nodejs.org/dist/v$version/SHASUMS256.txt" | grep -F " $archive" >"$download/SHASUMS256.txt"
+	(cd "$download" && sha256sum --check --quiet SHASUMS256.txt)
+	# Extracting over an older npm would leave its stale files behind.
+	sudo rm -rf /usr/local/lib/node_modules/npm
+	sudo tar --extract --xz --file "$download/$archive" --directory /usr/local --strip-components=1 \
+		--wildcards "node-v$version-linux-x64/"{bin,include,lib,share}
+	rm -rf "$download"
+}
+
+# pnpm switches to the `packageManager` release inside the repository, but the global pnpm stays at
+# the image's version elsewhere and has to download the pinned one into every fresh orb.
+install_pnpm() {
+	local version
+	version="$(node --print 'require("./package.json").packageManager.split("@")[1].split("+")[0]')"
+	if [ "$(cd / && pnpm --version 2>/dev/null)" = "$version" ]; then
+		return
+	fi
+	sudo npm install --global --no-fund --no-audit "pnpm@$version"
+}
+
 # Amp's processes do not receive the supplementary docker group, so the socket belongs to the
 # user's primary group instead. Systemd owns the daemon, so it starts again in every orb restored
 # from the snapshot.
@@ -40,6 +71,8 @@ configure_docker() {
 	sudo systemctl enable --now --quiet docker.socket docker.service
 }
 
+step "Install Node.js" install_node
+step "Install pnpm" install_pnpm
 step "Install Docker" install_docker
 step "Configure Docker" configure_docker
 step "Install dependencies, the pre-commit hook and local PostgreSQL" ./script/update
