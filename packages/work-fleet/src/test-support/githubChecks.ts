@@ -25,11 +25,11 @@ export function checkRun(overrides: Partial<CheckRun> = {}): CheckRun {
 export function commitStatus(overrides: Partial<Status> = {}): Status {
 	return { context: "legacy", state: "success", targetUrl: "https://example.invalid/logs/legacy", ...overrides };
 }
-export function githubFixture() {
+export function githubFixture(repository = "example/project") {
 	const requests: string[] = [];
 	const responses = new Map<string, string>();
 	function reply(head: string, runs: readonly (readonly CheckRun[])[], statuses: readonly (readonly Status[])[] = [[]]) {
-		const commit = `repos/example/project/commits/${head}`;
+		const commit = `repos/${repository}/commits/${head}`;
 		responses.set(
 			`${commit}/check-runs?per_page=100&filter=latest`,
 			JSON.stringify(Schema.encodeSync(CheckPages)(runs.map((checkRuns) => ({ checkRuns })))),

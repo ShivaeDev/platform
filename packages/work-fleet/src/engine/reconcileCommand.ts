@@ -3,10 +3,14 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import type { FleetRecord } from "#model.ts";
 import { FleetFailure } from "#policy.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
+import type { Versioned } from "#storage/model.ts";
 export function reconcileCommand({ load, save, decision }: EngineState, advance: ReturnType<typeof makeAdvance>) {
-	return Effect.fn("Fleet.reconcile")(function* (workId: string) {
+	return Effect.fn("Fleet.reconcile")(function* (
+		workId: string,
+	): Effect.fn.Return<Versioned<FleetRecord>, Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>>> {
 		return yield* advance(workId).pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {
@@ -28,7 +32,7 @@ export function reconcileCommand({ load, save, decision }: EngineState, advance:
 						"Inspect this specific integration failure and retry the existing work",
 						undefined,
 						error instanceof FleetFailure ? error.attentionOwner : undefined,
-					);
+					).pipe(Effect.catchTag("BoardFailure", () => load(workId)));
 				}),
 			),
 		);

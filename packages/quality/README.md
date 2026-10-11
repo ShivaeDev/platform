@@ -209,6 +209,21 @@ export default defineConfig({ test: testProjects({ exclude: ["e2e/**"] }) });
 
 `testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The `exclude` globs keep another runner's suites out of all three projects.
 
+#### PostgreSQL URL gate
+
+A skipped test proves nothing. `noSkippedTests` reports unconditional skips as errors, and its automatic fix is disabled: repair the test or remove a claim it cannot prove. Slow tests belong in the slow project.
+
+The **PostgreSQL URL gate** is the only permitted skip convention: a test that needs real PostgreSQL registers conditionally on its `PLATFORM_EFFECT_*_TEST_DATABASE_URL`. Skip only when that URL is absent; with a URL, execute the body against PostgreSQL and let connection or setup failures fail the test. Nothing else may skip. Keep the condition next to the database setup, either in the test file or its shared `test-support` module:
+
+```ts
+import { test } from "vitest";
+import { databaseUrl } from "#test/postgres.ts";
+
+const integration = test.skipIf(databaseUrl === undefined);
+```
+
+`databaseUrl` is the test database URL read by the repository's environment helper. Declare the real PostgreSQL tests with `integration(name, body)`. A conditionally registered suite or Effect tester follows the same URL gate. CI must supply the URL for every such test; a green run with missing URLs gives no PostgreSQL evidence.
+
 #### Inherited tags
 
 A root Vitest config that gathers inline projects from package configs uses `inheritTags(projects, root)` to copy the tags of each extended config into its project:
@@ -238,4 +253,5 @@ Numeric rule limits and local-rule APIs are also exposed. They are not setup req
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.
 - The installed hook checks files on disk and uses each committing worktree's config and dependencies. It runs later commands after a reported lint failure or a nonzero command exit; a setup or process-launch failure stops the run.
 - A pre-existing `core.hooksPath` decides which hook git runs. Quality keeps it and reports when its installed hook needs to be called from that hook.
+- Workspace imports require a declaration in the importing package’s `dependencies`, `peerDependencies` or `optionalDependencies`. Tests, `test-support`, package-root tooling folders (`script`, `scripts`, `tooling`) and package-root config files may also use `devDependencies`. See the [manifest rule](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md#manifest-dependencies).
 - Import fences skip test code. Keep the tests honest through their real fixtures and review; use the registry only where the rule allows it.

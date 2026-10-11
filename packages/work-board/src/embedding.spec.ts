@@ -1,27 +1,26 @@
-import { afterEach, expect, it } from "vitest";
-import { type Folder, folder, type RunningBoard, rawGet } from "#test/board.ts";
+import { Effect } from "effect";
+import { afterEach, expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
+import { type Folder, folder, rawGet } from "#test/board.ts";
 import { embeddedBoard } from "#test/embeddedBoard.ts";
 
 let notes: Folder | undefined;
-let board: RunningBoard | undefined;
 
-afterEach(async () => {
-	await board?.stop();
+afterEach(() => {
 	notes?.remove();
 });
 
-it("embeds reading routes beside an application's health route without relaxing the board boundary", async () => {
+it.live("embeds reading routes beside an application's health route without relaxing the board boundary", function* () {
 	notes = folder({ "evidence.md": "# Recorded evidence\n", "plan.md": "# Embedded project\n\n[Evidence](evidence.md)\n" });
-	board = await embeddedBoard(notes.root);
-	expect(await (await fetch(`${board.url}/health`)).text()).toBe("healthy");
-	expect(await (await fetch(`${board.url}/plan.md`)).text()).toContain('href="/evidence.md"');
-	expect(await (await fetch(`${board.url}/evidence.md`)).text()).toContain("Recorded evidence");
-	expect(await (await fetch(`${board.url}/_board/start`)).text()).toContain("Project and report templates");
-	expect((await rawGet(board, "/plan.md", "untrusted.example")).status).toBe(403);
-	expect((await rawGet(board, "/_board/native.js", "untrusted.example")).status).toBe(403);
-	expect((await rawGet(board, "/health", "untrusted.example")).body).toBe("healthy");
+	const board = yield* embeddedBoard(notes.root);
+	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/health`)).text())).toBe("healthy");
+	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/plan.md`)).text())).toContain('href="/evidence.md"');
+	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/evidence.md`)).text())).toContain("Recorded evidence");
+	expect(yield* Effect.promise(async () => (await fetch(`${board.url}/_board/start`)).text())).toContain("Project and report templates");
+	expect((yield* rawGet(board, "/plan.md", "untrusted.example")).status).toBe(403);
+	expect((yield* rawGet(board, "/_board/native.js", "untrusted.example")).status).toBe(403);
+	expect((yield* rawGet(board, "/health", "untrusted.example")).body).toBe("healthy");
 	const url = board.url;
-	await board.stop();
-	board = undefined;
-	await expect(fetch(`${url}/health`)).rejects.toThrow();
+	yield* board.stop();
+	yield* Effect.promise(() => expect(fetch(`${url}/health`)).rejects.toThrow());
 });

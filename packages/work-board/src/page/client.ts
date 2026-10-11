@@ -30,6 +30,8 @@ let watching = false;
 let navWaiting = true;
 let active = "";
 let releasePage;
+let selected;
+let releaseNavigation;
 const show = () => {
   const state = native.registry.get(native.updates.status);
   const paused = native.registry.get(native.updates.paused);
@@ -40,7 +42,24 @@ const show = () => {
   toggle.setAttribute("aria-pressed", String(paused));
   live.title = "Connection: " + state.connection + "; last observed source watcher: " + (watching ? "watching" : "unavailable") + "; " + (paused ? "automatic reads paused" : pageWaiting || navWaiting ? "reads pending" : failure ? "showing retained source" : "reads settled");
 };
+const watchNavigation = () => {
+  const doc = document.getElementById("doc");
+  const current = doc.dataset.view ? "" : doc.dataset.file;
+  if (current === selected) return;
+  selected = current;
+  releaseNavigation?.();
+  releaseNavigation = native.registry.subscribe(native.api.navigation.query({ current }), (value) => {
+    navWaiting = value.waiting || value._tag === "Initial";
+    if (value._tag === "Failure") navFailure = "navigation refresh failed";
+    if (value._tag === "Success" && !value.waiting) {
+      navFailure = "";
+      applyNavigation(value.value);
+    }
+    show();
+  }, { immediate: true });
+};
 const watchPage = () => {
+  watchNavigation();
   const path = location.pathname + location.search;
   if (path === active) return;
   active = path;
@@ -59,15 +78,6 @@ const watchPage = () => {
   }, { immediate: true });
 };
 const observe = () => {
-native.registry.subscribe(native.api.navigation.query(), (value) => {
-  navWaiting = value.waiting || value._tag === "Initial";
-  if (value._tag === "Failure") navFailure = "navigation refresh failed";
-  if (value._tag === "Success" && !value.waiting) {
-    navFailure = "";
-    applyNavigation(value.value);
-  }
-  show();
-}, { immediate: true });
 native.registry.subscribe(native.api.watcher.query(), (value) => {
   watching = value._tag === "Success" && value.value.watching;
   show();
@@ -80,7 +90,7 @@ toggle.disabled = false;
 toggle.addEventListener("click", () => native.registry.set(native.updates.paused, !native.registry.get(native.updates.paused)));
 document.addEventListener("board-page", watchPage);
 watchPage();
-window.addEventListener("pagehide", () => { releasePage?.(); active = ""; });
+window.addEventListener("pagehide", () => { releasePage?.(); releaseNavigation?.(); selected = undefined; active = ""; });
 window.addEventListener("pageshow", (event) => {
   if (!event.persisted) return;
   native = session(window);

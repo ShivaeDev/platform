@@ -1,5 +1,6 @@
-import { Clock, Effect } from "effect";
-import { expect, it } from "vitest";
+import { Clock } from "effect";
+import { expect } from "vitest";
+import { it } from "@shivaedev/effect-test/it.ts";
 import { draftSession } from "#browser/responses/draftSession.ts";
 import { DRAFT_AGE, encodeDrafts } from "#browser/responses/drafts.ts";
 import { edgeDraft } from "#test/coverageEdges.ts";
@@ -17,9 +18,9 @@ it("keeps drafts in memory and discloses unavailable browser storage", () => {
 	]);
 });
 
-it("clears expired persisted drafts and discloses the 30-day boundary", () => {
+it.live("clears expired persisted drafts and discloses the 30-day boundary", function* () {
 	const key = "expired-edge";
-	const external = draftStorage(key, encodeDrafts({ q: { ...edgeDraft, updatedAt: Effect.runSync(Clock.currentTimeMillis) - DRAFT_AGE } }));
+	const external = draftStorage(key, encodeDrafts({ q: { ...edgeDraft, updatedAt: (yield* Clock.currentTimeMillis) - DRAFT_AGE } }));
 	const reports: string[] = [];
 	const session = draftSession("q", edgeDraft.revision, external.storage, key, (message) => reports.push(message));
 	expect(session.current().body).toBe("");
@@ -27,9 +28,9 @@ it("clears expired persisted drafts and discloses the 30-day boundary", () => {
 	expect(reports).toEqual(["Expired drafts were cleared after 30 days. Saved responses are unaffected."]);
 });
 
-it("retains reviewed text and explicitly reports a changed source revision", () => {
+it.live("retains reviewed text and explicitly reports a changed source revision", function* () {
 	const key = "revision-edge";
-	const external = draftStorage(key, encodeDrafts({ q: { ...edgeDraft, updatedAt: Effect.runSync(Clock.currentTimeMillis) } }));
+	const external = draftStorage(key, encodeDrafts({ q: { ...edgeDraft, updatedAt: yield* Clock.currentTimeMillis } }));
 	const reports: string[] = [];
 	const session = draftSession("q", "b".repeat(64), external.storage, key, (message) => reports.push(message));
 	expect(session.current().body).toBe(edgeDraft.body);

@@ -11,6 +11,7 @@ import { otherNames } from "#rules/files/otherNames.ts";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { importCycles } from "#rules/imports/cycles.ts";
 import { importFences } from "#rules/imports/fences.ts";
+import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { storySetup } from "#rules/stories/setup.ts";
@@ -43,6 +44,7 @@ export const builtInRules = [
 	importCycles,
 	importFences,
 	importsResolvable,
+	importsManifest,
 	importsAliased,
 	noTestCode,
 	manifestsSorted,

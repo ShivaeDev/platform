@@ -1,42 +1,49 @@
 import { Effect, type FileSystem } from "effect";
-import { type QuestionPreview, ResponseFailed } from "#browser/responses/schema.ts";
+import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
+import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { markdownPath } from "#files/markdownPath.ts";
 import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
+import type { ResponseRejection } from "#rpc/rejections.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { questionId, revisionOf } from "./records.ts";
 import { requestSource } from "./requestSource.ts";
 import { questionTemplate } from "./template.ts";
 
-function reject(code: ResponseFailed["code"], message: string) {
-	return Effect.fail(new ResponseFailed({ code, message }));
-}
-export function locate(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ResponseFailed>, fs: FileSystem.FileSystem) {
+export function locate(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ResponseRejection>, fs: FileSystem.FileSystem) {
 	return Effect.fn("WorkBoard.locate")(function* (item: string, request: string) {
 		const data = yield* snapshot;
 		const entry = requestSource(data, item, request);
 		if (!entry) {
-			return yield* reject("Missing", "The exact open attention request is missing, ambiguous or unavailable.");
+			return yield* Effect.fail(new NotFound({ message: "The exact open attention request is missing, ambiguous or unavailable." }));
 		}
 		const real = yield* markdownPath(root, realRoot, entry.document.file);
 		if (!real) {
-			return yield* reject("Missing", "The reviewed source moved or disappeared.");
+			return yield* Effect.fail(new NotFound({ message: "The reviewed source moved or disappeared." }));
 		}
-		const source = yield* fs.readFileString(real).pipe(Effect.catch(() => reject("Unavailable", "The source could not be read.")));
+		const source = yield* fs
+			.readFileString(real)
+			.pipe(
+				rpcBoundary(ServiceUnavailable, { message: "The source could not be read.", unexpected: (message) => new ServiceUnavailable({ message }) }),
+			);
 		if (new TextEncoder().encode(source).length > 256 * 1024) {
-			return yield* reject("Unsupported", "Question context is limited to 256 KiB; use a focused source document.");
+			return yield* Effect.fail(new BadRequest({ message: "Question context is limited to 256 KiB; use a focused source document." }));
 		}
 		const parsed = metadataParse(source);
 		const documents = [...data.documents.filter((document) => document.file !== entry.document.file), { file: entry.document.file, parsed }];
 		const model = metadataModel(documents, data.unavailable, data.model.rootFile);
 		const fresh = requestSource({ ...data, documents, model }, item, request);
 		if (!fresh) {
-			return yield* reject("Stale", "The current request or its references are invalid. Review the source diagnostics before registering it.");
+			return yield* Effect.fail(
+				new PreconditionFailed({
+					message: "The current request or its references are invalid. Review the source diagnostics before registering it.",
+				}),
+			);
 		}
 		const revision = revisionOf(source);
 		yield* Effect.try({
-			catch: (cause) =>
-				new ResponseFailed({ code: "Unsupported", message: `Invalid response template: ${cause instanceof Error ? cause.message : String(cause)}` }),
+			catch: (cause) => new BadRequest({ message: `Invalid response template: ${cause instanceof Error ? cause.message : String(cause)}` }),
 			try: () => questionTemplate(source, request),
 		});
 		const question: QuestionPreview = {

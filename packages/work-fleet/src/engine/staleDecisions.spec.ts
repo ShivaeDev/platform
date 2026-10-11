@@ -54,7 +54,7 @@ for (const status of ["planned", "done", "deferred"]) {
 		));
 }
 
-test("concurrent stale retries publish one current question, close the stale question and survive restart", () =>
+test("concurrent retries prepare the current approved brief and acknowledge the original answer after restart", () =>
 	withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -66,55 +66,49 @@ test("concurrent stale retries publish one current question, close the stale que
 				return yield* Effect.die("Missing decision");
 			}
 			const files = boardHttpFiles(root);
-			const currentSource = `${source}\nChanged scope.\n`;
+			const currentSource = `${source}\nChanged criteria.\n`;
 			files.write("one.md", currentSource);
-			expect(yield* boardInbox(root, "orchestrator")).toContain(`data-key="inbox:${decision.published.sourcePath}"`);
 			const answer = answerReport(root, decision.published, "retry");
 			yield* Effect.all(
 				[fleet.resolve("one", decision.id, answer).pipe(Effect.result), fleet.resolve("one", decision.id, answer).pipe(Effect.result)],
 				{ concurrency: "unbounded" },
 			);
-			const replacement = (yield* fleet.get("one")).value;
-			expect(replacement.stage).toBe("needs-human");
-			expect(replacement.boardRevision).toBe(revisionOf(source));
-			expect(replacement.decision?.published?.workRevision).toBe(revisionOf(currentSource));
-			expect(replacement.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
-			const currentDecision = replacement.decision;
-			const current = currentDecision?.published;
-			if (current === undefined || currentDecision === undefined) {
-				return yield* Effect.die("Missing replacement");
-			}
-			const page = yield* boardOverview(root);
-			expect(page).not.toContain(`data-attention-item="${decision.published.itemId}"`);
-			expect(page.match(/data-attention-item=/gu)).toHaveLength(1);
-			expect(page).toContain(`data-attention-item="${current.itemId}"`);
-			expect(yield* boardInbox(root, "orchestrator")).not.toContain('data-key="inbox:');
-			expect(yield* boardInbox(root)).toContain(`data-key="inbox:${current.sourcePath}"`);
-			yield* fixture.replaceRecord({ ...replacement, decision: { ...currentDecision, published: undefined }, decisionPublished: false });
-			yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, answer))));
-			expect((yield* fleet.get("one")).value.decision?.published).toEqual(current);
-			const release = answerReport(root, current, "release");
-			expect((yield* fleet.resolve("one", current.request, release)).value.stage).toBe("released");
+			const prepared = (yield* fleet.get("one")).value;
+			expect(prepared.stage).toBe("repairing");
+			expect(prepared.boardRevision).toBe(revisionOf(currentSource));
+			expect(prepared.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
 			expect(yield* boardOverview(root)).not.toContain("data-attention-item=");
-			expect(yield* boardInbox(root)).not.toContain('data-key="inbox:');
-			expect(files.receipts()).toHaveLength(2);
+			yield* fixture.restart(
+				Effect.gen(function* () {
+					const restarted = yield* Fleet;
+					yield* restarted.resolve("one", decision.id, answer);
+					const continued = yield* restarted.reconcile("one");
+					expect(continued.value.stage).toBe("executing");
+					expect(continued.value.attempts.at(-1)?.prompt).toContain("Changed criteria.");
+				}),
+			);
+			expect(files.receipts()).toHaveLength(1);
 			expect(fixture.launched).toHaveLength(2);
 		}),
 	));
 
-test("an unambiguous worker answer still cannot continue changed work", () =>
+test("a worker answer arrives with the current approved brief after the task changes", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const { decision } = yield* askWorker(fixture);
-			yield* answerWorker(root, decision);
-			boardHttpFiles(root).write("one.md", `${source}\nChanged scope.\n`);
-			const stale = yield* fleet.reconcile("one");
-			expect(stale.value.stage).toBe("needs-human");
-			expect(stale.value.blocker).toContain("Board context changed");
-			expect(stale.value.responses).toBeUndefined();
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
+			const answer = yield* answerWorker(root, decision);
+			const current = `${source}\nChanged criteria.\n`;
+			boardHttpFiles(root).write("one.md", current);
+			const continued = yield* fleet.reconcile("one");
+			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.boardContext).toBe(current);
+			expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);
+			expect(continued.value.attempts.at(-1)?.prompt).toContain("Previous brief:");
+			expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
+			expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 		}),
 	));

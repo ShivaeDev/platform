@@ -198,7 +198,7 @@ Choose where the project keeps its readable source.
 
 `options` is optional and accepts up to 32 entries with unique nonblank labels and descriptions. `recommended` names an option label. The item page presents buttons, marks the recommendation without selecting it, and accepts another answer as free text. Omit `options` for a text-only question. Use frontmatter options or a Markdown question packet on a question, rather than both.
 
-Start with `--responses` to enable saving. Preview and record the answer on the item page with a local author label. The browser remembers that label for the workspace. Author, response kind and superseding controls sit in a collapsed details section; option questions show a choice and one answer box by default. Closed questions and invalid options keep recorded answers readable, with a clear message when another answer is unavailable. The existing publisher captures the reviewed source as a `kind: question` record in `responses/`, then writes a `kind: response` that links to that capture. Its `question.item` links back to the authored question. An `answer` removes the authored question from the Inbox for those exact source bytes and path; clarification and deferral keep it waiting. An edited question needs another answer. The original source file stays unchanged, and the answer does not establish acceptance or start an agent.
+Start with `--responses` to enable saving. Preview and record the answer on the item page with a local author label. The browser remembers that label for the workspace. The required author label stays visible; response kind and superseding controls sit in a collapsed details section; option questions show a choice and one answer box by default. Closed questions and invalid options keep recorded answers readable, with a clear message when another answer is unavailable. The existing publisher captures the reviewed source as a `kind: question` record in `responses/`, then writes a `kind: response` that links to that capture. Its `question.item` links back to the authored question. An `answer` removes the authored question from the Inbox for those exact source bytes and path; clarification and deferral keep it waiting. An edited question needs another answer. The original source file stays unchanged, and the answer does not establish acceptance or start an agent.
 
 #### Record a human response
 
@@ -206,11 +206,11 @@ Start with `--responses` to enable saving. Preview and record the answer on the 
 work-board ./project-notes --responses
 ```
 
-Explicit opt-in enables writes. Open question packets offer **Answer these questions** beside each question, leading to the response form. Static options are reading text. For other requests, open the request in **Work details and source**, choose **Respond to this request**, inspect the exact source and reviewed SHA-256, enter a local author label, then preview and record the Markdown. **Answer** may say no; **Ask back / clarify** and **Not now** are separate reply kinds. Author labels provide local attribution, not authentication.
+Explicit opt-in enables writes. Open question packets offer **Answer these questions** once per packet, leading to the response form. Static options are reading text. For other requests, open the request in **Work details and source**, choose **Respond to this request**, inspect the exact source and reviewed SHA-256, enter a local author label, then preview and record the Markdown. **Answer** may say no; **Ask back / clarify** and **Not now** are separate reply kinds. Author labels provide local attribution, not authentication.
 
 Registration captures one question generation in `responses/`; submission creates an independent response file there. Original source bytes stay unchanged. Source edits or moves require a fresh review/preview; historical replies still identify the old context. Same-identity/content retries reconcile, conflicting contributions are rejected, and uncertain publication is reported explicitly.
 
-An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. Only an unambiguous receipt matching the exact current source path and bytes removes the managed request from the overview and response surface. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
+An execution integration may mark a generated `kind: decision` request with `attention[].managed: true`. A separate immutable `kind: result` document records `request_receipt` with the registered question ID, its `reviewedRevision`, `recordedAt` and disposition `applied` or `superseded`. An applied receipt names the unique current `answer`; clarification and deferral cannot acknowledge it. Supersession retires the request without inventing an answer. Only an unambiguous receipt matching the exact current source path and bytes removes the managed request from the overview and response surface. `currentResponses(responses)` from `@shivaedev/work-board/responses/current.ts` selects the latest response per author, ordered by recorded time and then response ID, and removes explicitly superseded responses. Managed acknowledgements use this selection; different authors remain competing, and superseding an author’s latest response does not revive an earlier answer. `src/responses/current.test.ts` and Fleet’s PostgreSQL question tests cover this rule. The source remains unchanged and readable. Ordinary authored requests remain source-driven; receipts grant no execution, acceptance or delivery authority.
 
 Browser drafts have their own 2 MiB workspace bound and expire 30 days after their last edit. Navigation, reload and source refresh retain them; text edited while an earlier save completes remains an unsaved draft with a fresh identity. Corruption, expiry and storage failures are disclosed. Clearing drafts does not clear saved records or the seen baseline.
 
@@ -294,11 +294,13 @@ Import the module that defines a name. The package has no root entry; its manife
 | `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
-| `rpc/contract.ts` | `ReadFailed`, `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
+| `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |
 | `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
-| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types; `ResponseFailed` |
+| `browser/navigation/schema.ts` | `Navigation`, `NavigationFolder`, `NavigationFile`: native navigation result schemas/types |
+| `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
+| `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
 | `metadata/schema.ts`, `metadata/parse.ts`, `metadata/model.ts` | Source schemas, parsed fields/diagnostics and explicit identity/reference model |
 
@@ -396,6 +398,8 @@ export async function registerReviewedQuestion(url: string, revision: string) {
 
 Call this function with a revision whose source/context you have reviewed and a server started with `--responses`. `api` binds reading operations; `responses` binds question and response operations. `read` resolves a query atom, `run` executes a query Effect, and `mutate` executes a command with its invalidation service. `handoffs` binds source/history queries and the preparation command. The client also exposes `registry` and `updates`; dispose the registry when its owner ends.
 
+`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. The server sidebar and browser updates render this same data.
+
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
 ```ts
@@ -453,11 +457,11 @@ export async function readReturnedResult(url: string, item: string) {
 
 Pass a uniquely identified result, such as `result.keyboard`. Its declared review request still uses `responses.question`, `registerQuestion` and `recordResponse`, or the normal browser response controls; there is no separate acceptance writer.
 
-`ResponseFailed.code` distinguishes `Disabled`, `Missing`, `Stale`, `Conflict`, `Unavailable`, `Unsupported`, `Uncertain` and `Unanswered`. An uncertain publication may already have produced a file; inspect the saved identity/content before retrying.
+RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `NotFound` for missing context, `PreconditionFailed` for stale review, `Conflict` for incompatible content, `BadRequest` for unsupported input and `ServiceUnavailable` for unavailable reads. Unexpected handler failures become `InternalServerError` with a redacted public message and a server-only trace cause. These errors need no login middleware. `PublicationUncertain` means publication may already have produced a file; inspect the saved identity/content before retrying. `Unanswered` is the wait client’s deadline error.
 
 #### Render a source query in React
 
-Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities return `ReadFailed`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
+Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
 Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The existing Board page still uses server rendering; hosts decide when to mount the React view.
 
