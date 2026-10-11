@@ -5,16 +5,18 @@ import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { boardLayer } from "#board.ts";
 import { listenOn } from "#serve.ts";
 
-export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string) {
+export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string, assets: readonly string[]) {
 	const logged: Array<{ readonly level: string; readonly message: unknown }> = [];
 	const logger = Logger.make(({ logLevel, message }) => logged.push({ level: logLevel, message }));
-	const bundle = join(root, "native.js");
+	function local(path: string) {
+		return assets.some((asset) => path.endsWith(`/assets/${asset}`)) ? join(root, path.split("/").at(-1) ?? "") : path;
+	}
 	const fileSystem = Layer.effect(
 		FileSystem.FileSystem,
 		Effect.map(Effect.service(FileSystem.FileSystem), (fs) => ({
 			...fs,
-			exists: (path) => fs.exists(path.endsWith("/assets/native.js") ? bundle : path),
-			readFile: (path) => fs.readFile(path.endsWith("/assets/native.js") ? bundle : path),
+			exists: (path) => fs.exists(local(path)),
+			readFile: (path) => fs.readFile(local(path)),
 		})),
 	).pipe(Layer.provide(NodeServices.layer));
 	const board = boardLayer({ root }).pipe(Layer.provide(fileSystem));
