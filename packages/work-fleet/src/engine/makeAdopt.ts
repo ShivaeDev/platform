@@ -28,7 +28,7 @@ export function makeAdopt(state: EngineState) {
 				receipt: latest.receipt,
 			});
 			yield* validateResult(stored.value, result);
-			stored = yield* save(stored, { ...stored.value, checks: undefined, deliverySubmitted: false, result, review: undefined, stage: "reviewing" });
+			stored = yield* save(stored, { ...stored.value, checks: undefined, result, review: undefined, stage: "reviewing" });
 		}
 		return stored;
 	});

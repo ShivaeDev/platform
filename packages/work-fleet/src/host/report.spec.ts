@@ -29,7 +29,6 @@ const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixtur
 	expect(completed.value.result).toBeUndefined();
 	expect(completed.value.review).toBeUndefined();
 	expect(completed.value.checks).toBeUndefined();
-	expect(completed.value.deliverySubmitted).toBeUndefined();
 	expect(fixture.provider.launched).toHaveLength(1);
 	return { observation, value: completed.value };
 });

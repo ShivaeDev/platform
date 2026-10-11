@@ -59,8 +59,7 @@ export const run = Effect.fn("Fleet.run")(function* <R = never>(
 				}
 				yield* dispatchPrepared;
 				yield* schedulerPassed;
-				yield* Effect.sleep(interval);
 			}),
-		),
+		).pipe(Effect.andThen(Effect.sleep(interval))),
 	);
 });
