@@ -28,11 +28,13 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			yield* TestClock.adjust("5 minutes");
 			yield* Fiber.join(continuing);
 			yield* Effect.gen(function* () {
-				while ((yield* fleet.get("one")).value.stage !== "needs-human") {
+				while (!(yield* fleet.get("one")).value.decisionPublished) {
 					yield* Effect.yieldNow;
 				}
 			});
 			const blocked = (yield* fleet.get("one")).value;
+			expect(blocked.stage).toBe("needs-human");
+			expect(blocked.decision?.published).toBeDefined();
 			expect(blocked.attentionOwner).toBe("orchestrator");
 			expect(blocked.decision?.reason).toContain("active-turn wait deadline reached");
 			expect(blocked.attempts).toHaveLength(1);
