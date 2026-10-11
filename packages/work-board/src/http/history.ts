@@ -1,5 +1,6 @@
 import { Clock, Effect, FileSystem, Schema } from "effect";
 import { HttpIncomingMessage, HttpServerRequest } from "effect/unstable/http";
+import { sameOrigin } from "@shivaedev/platform/rpc-server/local.ts";
 import type { Changes } from "#files/changes.ts";
 import { changesHtml } from "#history/html.ts";
 import { MAX_BYTES } from "#history/limits.ts";
@@ -9,7 +10,6 @@ import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
-import { sameOrigin } from "./sameOrigin.ts";
 
 export function changesPage(changes: Changes, home: string | undefined, index?: Effect.Success<ReturnType<typeof searchSnapshot>>) {
 	return Effect.fn("WorkBoard.changesPage")(function* () {

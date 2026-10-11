@@ -101,7 +101,9 @@ it("opens a question through native Inbox navigation and refreshes a closed ques
 	}
 	page.document.querySelector(".inbox-row a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.getElementById("response-form")).not.toBeNull());
-	expect(page.window.location.pathname).toBe("/_board/item/question.storage/");
+	expect(page.window.location.pathname).toBe("/_board/respond");
+	expect(new URL(page.window.location.href).searchParams.get("item")).toBe("question.storage");
+	expect(new URL(page.window.location.href).searchParams.get("request")).toBe("answer");
 	const location = page.window.location.href;
 	notes.write("question.md", inboxQuestion.replace("status: open", "status: closed"));
 	await waitFor(() => {
