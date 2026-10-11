@@ -12,3 +12,26 @@ const result = await Effect.runPromise(Effect.gen(function* () {
 }).pipe(Effect.provide(layer), Effect.scoped));
 if (result.join() !== 'written') throw new Error('Packed contract did not return its handler result');
 if (invalidationKeys([notes.item(1)]).join() !== 'notes:1,notes') throw new Error('Packed keys did not expand');
+const { stream } = await import('@shivaedev/effect-contract/operation.ts');
+const { bind } = await import('@shivaedev/effect-contract/bind.ts');
+const AtomRpc = await import('effect/unstable/reactivity/AtomRpc');
+const AtomRegistry = await import('effect/unstable/reactivity/AtomRegistry');
+const { Stream } = await import('effect');
+class Missing extends Schema.TaggedError<Missing>()('Missing', { id: Schema.Number }) {}
+const Subscribe = stream('subscribe', { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] });
+const Feed = contract('feed', { streams: [Subscribe] });
+const handlers = Feed.toLayer({ 'feed.subscribe': ({ id }) => id > 0 ? Stream.make(`note:${id}`, 'done') : Stream.fromEffect(Subscribe.reject.Missing({ id })) });
+class Client extends AtomRpc.Service<Client>()('packed/Stream', { group: Feed, makeEffect: RpcTest.makeClient(Feed, { flatten: true }), protocol: handlers }) {}
+const api = bind(Feed, Client);
+const registry = AtomRegistry.make();
+const release = registry.mount(Client.runtime);
+try {
+ const context = await Effect.runPromise(AtomRegistry.getResult(registry, Client.runtime));
+ const values = await Effect.runPromise(Stream.runCollect(api.subscribe.run({ id: 2 })).pipe(Effect.provideContext(context)));
+ if (values.join() !== 'note:2,done') throw new Error('Packed bound stream did not deliver elements');
+ const rejected = await Effect.runPromise(Effect.flip(Stream.runDrain(api.subscribe.run({ id: 0 }))).pipe(Effect.provideContext(context)));
+ if (!(rejected instanceof Missing) || rejected.id !== 0) throw new Error('Packed stream lost its declared rejection');
+} finally {
+ release();
+ registry.dispose();
+}
