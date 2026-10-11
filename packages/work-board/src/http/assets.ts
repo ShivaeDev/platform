@@ -65,7 +65,33 @@ export const mermaidFile = (mermaidRoot: string) =>
 export const MERMAID_ROUTE: HttpRouter.PathInput = `${MERMAID}*`;
 
 export const NATIVE_ROUTE: HttpRouter.PathInput = "/_board/native.js";
-export const nativeAsset = bundledAsset("native.js", "text/javascript");
+const NATIVE_MISSING =
+	"Work Board browser bundle assets/native.js is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.";
+
+const bundledPath = Effect.fn("WorkBoard.bundledPath")(function* (file: string) {
+	const path = yield* Path.Path;
+	const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
+	return path.resolve(path.dirname(module), "../../assets", file);
+});
+
+export const checkNativeAsset = Effect.fn("WorkBoard.checkNativeAsset")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	if (!(yield* fs.exists(yield* bundledPath("native.js")))) {
+		yield* Effect.logWarning(NATIVE_MISSING);
+	}
+});
+
+export const nativeAsset = Effect.fn("WorkBoard.nativeAsset")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	return yield* fs.readFile(yield* bundledPath("native.js")).pipe(
+		Effect.map((body) => respond(body, "text/javascript")),
+		Effect.catchIf(
+			(error) => error.reason._tag === "NotFound",
+			() => Effect.succeed(respond(NATIVE_MISSING, "text/plain", 500)),
+		),
+	);
+});
+
 const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<typeof bundledAsset>]> = [
 	[NATIVE_ROUTE, nativeAsset],
 	["/_board/react.js", bundledAsset("react.js", "text/javascript")],
@@ -75,10 +101,7 @@ const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<t
 function bundledAsset(file: string, contentType: string) {
 	return Effect.fn("WorkBoard.bundledAsset")(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		const path = yield* Path.Path;
-		const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
-		const asset = path.resolve(path.dirname(module), "../../assets", file);
-		return respond(yield* fs.readFile(asset), contentType);
+		return respond(yield* fs.readFile(yield* bundledPath(file)), contentType);
 	});
 }
 

@@ -1,7 +1,7 @@
 import { Clock, Effect, Ref } from "effect";
 import { HandoffsService } from "#handoffs/Service.ts";
 import { historyResponse } from "#history/response.ts";
-import { navHtml } from "#page/nav.ts";
+import { navigationData } from "#navigation/model.ts";
 import { Responses } from "#responses/service.ts";
 import { searchMatch } from "#search/match.ts";
 import { ReadFailed, workRpcs } from "./contract.ts";
@@ -25,9 +25,9 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* ({ changes, do
 				const snapshot = action === "check" ? undefined : yield* index;
 				return historyResponse(baseline, now, snapshot);
 			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "history", status: 500 })))),
-		"work-board.navigation": () =>
+		"work-board.navigation": ({ current }) =>
 			Effect.gen(function* () {
-				return navHtml(yield* changes.files, "", home, yield* index);
+				return navigationData(yield* changes.files, current, home, yield* index);
 			}).pipe(Effect.catch(() => Effect.fail(new ReadFailed({ operation: "navigation", status: 500 })))),
 		"work-board.page": ({ url }) =>
 			page(url).pipe(
