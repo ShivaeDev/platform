@@ -4,6 +4,7 @@ import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import type { FleetHost } from "#host/config.ts";
+import { healthLayer } from "#host/healthLayer.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
@@ -23,8 +24,10 @@ export function productionParts(host: FleetHost): HostParts {
 }
 
 export function hostLayer(host: FleetHost, parts: HostParts) {
-	const runtime = Layer.mergeAll(fleetHostLayer(host, parts), NodeServices.layer);
-	return statusLayer(host.boardDir).pipe(Layer.provideMerge(runtime));
+	const runtime = Layer.mergeAll(fleetHostLayer(host, parts), NodeServices.layer).pipe(Layer.provideMerge(healthLayer(host.boardDir)));
+	return statusLayer(host.boardDir, { concurrency: host.concurrency, staleAfterMs: Math.max(60_000, host.interval * 3000) }).pipe(
+		Layer.provideMerge(runtime),
+	);
 }
 
 export function runFleet(host: FleetHost, parts: HostParts = productionParts(host)) {

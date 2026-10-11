@@ -71,6 +71,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const run = yield* Effect.promise(() => cliProcess(args, input === "stdin" ? message : ""));
 				expect(run).toEqual({ code: 0, stderr: "", stdout: "one executing" });
 				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");
+				expect(JSON.parse(readFileSync(join(fixture.host.boardDir, "fleet/health.json"), "utf8"))).toMatchObject({ needsHuman: 0, running: 1 });
 				expect(requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
 					input: [{ text: message, type: "text" }],
 					threadId: first.value.attempts[0]?.receipt?.sessionId,
