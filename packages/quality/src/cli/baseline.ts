@@ -46,11 +46,11 @@ const changes = (pruned: Pruned): string => {
 	return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 };
 
-export const shrinkBaseline = <Requirements>(
+export const shrinkBaseline = <TRequirements>(
 	cwd: string,
 	config: string | undefined,
-	scopeOf: (session: Session) => Effect.Effect<Scope, SetupFailure, Requirements>,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | Requirements> =>
+	scopeOf: (session: Session) => Effect.Effect<Scope, SetupFailure, TRequirements>,
+): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | TRequirements> =>
 	Effect.gen(function* () {
 		const session = yield* openSession(cwd, config);
 		if (session.baseline.raw === undefined) {

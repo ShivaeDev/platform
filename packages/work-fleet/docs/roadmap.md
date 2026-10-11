@@ -2,6 +2,8 @@
 
 ## Implemented slice
 
+Approved report tasks use `fleet-deliverable: report`. The worker returns its whole report in the final message; Fleet records an immutable Board result with the task relationship and exact session/turn provenance, then completes without PR adoption, review, checks or delivery. Empty output needs a human. PostgreSQL and Markdown host regressions cover completion, empty output, status and wait; a lost-publication regression recovers the existing attempt after restart without a duplicate result or worker. Provider execution in these regressions is synthetic.
+
 The headless addon reads stable Board identities and dependencies. Ordinary
 PostgreSQL attachments hold preparation, ownership, attempts, acknowledged turns,
 review/check evidence, decisions and accepted outcomes. Completion is attached to
@@ -40,6 +42,8 @@ Review now launches independent provider sessions through the shared session ser
 
 ## Validation boundary
 
+The CLI host publishes an optional `fleet/status.md` heading board with Active, Needs human and Done columns. Renderer tests cover card grouping, links and unsafe Markdown inputs; filesystem tests cover unchanged writes, authored content and symlink boundaries. PostgreSQL scheduler tests cover completion, human intervention, suspended validation and publication retry, including invalidation of a mounted native Board page over real HTTP. These fixtures use synthetic provider and delivery integrations; they do not establish a live Cloud worker or physical-browser acceptance.
+
 The host reads GitHub checks and commit statuses for the adopted PR head through `gh`. Synthetic paginated GitHub responses cover green, red, pending and newer-push cases, and PostgreSQL fixtures cover pending recovery and repair prompts. These fixtures prove the integration's SHA binding and validation transitions; they do not prove live GitHub authentication, branch requirements or delivery. No-change validation requires a separate runtime implementation.
 
 Focused regressions exercise ordinary PostgreSQL transactions, real Board HTTP
@@ -65,7 +69,6 @@ admission under fresh quota, automatic replacement or delivery.
 
 The maintainer will verify this live loop in a personal pilot after the environment's
 checks. Missing credentials and hosted capabilities remain concrete pilot blockers;
-synthetic fixtures do not supply live proof. A modern hosted transport remains a
-separate verified integration, not an inferred local CLI capability.
+synthetic fixtures do not supply live proof. The Cloud WebSocket adapter and headless host have PostgreSQL SIGKILL coverage around thread and turn mutations, including recovery of 100 concurrent attempts with lost turn acknowledgements. An unacknowledged thread cannot be located by operation ID with the current protocol, so it remains blocked with ownership retained. Provider lookup for that case and live hosted restart evidence remain pending.
 The addon is private at version 0.0.0 until the maintainer chooses a release; packed
 consumer validation still covers its archive. No existing package version changes.

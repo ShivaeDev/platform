@@ -2,19 +2,19 @@ import type { Effect } from "effect";
 
 export type AnyMethod = (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, unknown>;
 
-export interface GenericMethodDescriptor<Method extends AnyMethod> {
+export interface GenericMethodDescriptor<TMethod extends AnyMethod> {
 	readonly _tag: "GenericMethod";
-	readonly method: Method;
+	readonly method: TMethod;
 }
 
-type Same<Left, Right> = (<Value>() => Value extends Left ? 1 : 2) extends <Value>() => Value extends Right ? 1 : 2 ? true : false;
+type Same<TLeft, TRight> = (<TValue>() => TValue extends TLeft ? 1 : 2) extends <TValue>() => TValue extends TRight ? 1 : 2 ? true : false;
 
-export type HasDistinctCallSignatures<Method> = Method extends {
-	(...arguments_: infer FirstArguments): infer FirstResult;
-	(...arguments_: infer LastArguments): infer LastResult;
+export type HasDistinctCallSignatures<TMethod> = TMethod extends {
+	(...arguments_: infer TFirstArguments): infer TFirstResult;
+	(...arguments_: infer TLastArguments): infer TLastResult;
 }
-	? Same<FirstArguments, LastArguments> extends true
-		? Same<FirstResult, LastResult> extends true
+	? Same<TFirstArguments, TLastArguments> extends true
+		? Same<TFirstResult, TLastResult> extends true
 			? false
 			: true
 		: true
@@ -24,10 +24,10 @@ export interface GenericOrStructurallyOverloadedMethodsAreUnsupported {
 	readonly _serviceDefinitionError: "generic and structurally overloaded methods are unsupported";
 }
 
-type MarkedMethod<Method extends AnyMethod> =
-	HasDistinctCallSignatures<Method> extends true ? GenericOrStructurallyOverloadedMethodsAreUnsupported : GenericMethodDescriptor<Method>;
+type MarkedMethod<TMethod extends AnyMethod> =
+	HasDistinctCallSignatures<TMethod> extends true ? GenericOrStructurallyOverloadedMethodsAreUnsupported : GenericMethodDescriptor<TMethod>;
 
-export function genericMethod<Method extends AnyMethod>(method: Method): MarkedMethod<Method>;
+export function genericMethod<TMethod extends AnyMethod>(method: TMethod): MarkedMethod<TMethod>;
 export function genericMethod(method: AnyMethod): unknown {
 	return { _tag: "GenericMethod", method };
 }

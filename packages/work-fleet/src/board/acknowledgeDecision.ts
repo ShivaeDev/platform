@@ -5,6 +5,7 @@ import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import type { BoardDocument } from "#board/documents.ts";
+import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
@@ -37,5 +38,6 @@ export function acknowledgeDecision(root: string, realRoot: string, documents: E
 		yield* publish(root, realRoot, id, content).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "The managed request acknowledgement could not be recorded on Board." })),
 		);
+		yield* recordBoardSource(realRoot, file, content, receiptDocument.parsed);
 	});
 }

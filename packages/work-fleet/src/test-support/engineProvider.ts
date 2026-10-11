@@ -3,6 +3,19 @@ import { type LaunchSettings, SessionFailure, type SessionObservation, type Sess
 import { SessionTransport } from "#session/service.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { reviewerObservation } from "#test/reviewerObservation.ts";
+
+const acceptTurn = Effect.fnUntraced(function* (options: EngineOptions, turns: number) {
+	if (turns === 2 && options.continuationGate !== undefined) {
+		yield* options.continuationGate;
+	}
+	if (options.rejectTurn) {
+		return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
+	}
+	if (options.unavailableTurn) {
+		return yield* Effect.fail(new SessionFailure({ message: "Provider unavailable after session acknowledgement", reason: "unavailable" }));
+	}
+});
+
 export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const launched: string[] = [];
 	const starts: StartSession[] = [];
@@ -58,12 +71,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 			Effect.gen(function* () {
 				turns += 1;
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
-				if (turns === 2 && options.continuationGate !== undefined) {
-					yield* options.continuationGate;
-				}
-				if (options.rejectTurn) {
-					return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
-				}
+				yield* acceptTurn(options, turns);
 				const receipt = { sessionId: input.sessionId, turnId: `turn-${input.operationId}` };
 				operations.set(input.operationId, receipt);
 				if (input.access === "read-only") {

@@ -40,9 +40,9 @@ function defaultModelName(model: string): string {
 	return model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`;
 }
 
-export function effectPrismaAdapter<Database extends AnyDatabase, Services, BuildError>(
-	databaseTag: Database,
-	runtime: PlatformRuntime<Services, BuildError>,
+export function effectPrismaAdapter<TDatabase extends AnyDatabase, TServices, TBuildError>(
+	databaseTag: TDatabase,
+	runtime: PlatformRuntime<TServices, TBuildError>,
 	adapterOptions?: EffectPrismaAdapterOptions,
 ): DBAdapterInstance;
 export function effectPrismaAdapter(
@@ -56,14 +56,14 @@ export function effectPrismaAdapter(
 			isDynamicDatabase(database) ? Effect.succeed(database) : Effect.die(new TypeError("The database service has no transaction")),
 		);
 
-		function run<Value>(operation: (database: DynamicDatabase) => Effect.Effect<Value, unknown, unknown>): Promise<Value> {
+		function run<TValue>(operation: (database: DynamicDatabase) => Effect.Effect<TValue, unknown, unknown>): Promise<TValue> {
 			return runtime.runPromise(Effect.flatMap(databaseEffect, operation));
 		}
 
 		const query: RelationQuery = (model, refinement, use) =>
 			run((database) => use(refineRelation(modelRelation(database, mapModelName(model)), refinement)));
 
-		function inTransaction<Value>(callback: () => Promise<Value>): Effect.Effect<Value, unknown, unknown> {
+		function inTransaction<TValue>(callback: () => Promise<TValue>): Effect.Effect<TValue, unknown, unknown> {
 			return Effect.flatMap(Effect.context<unknown>(), (services) =>
 				Effect.tryPromise({
 					catch: (error) => error,
