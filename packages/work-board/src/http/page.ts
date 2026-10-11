@@ -14,7 +14,7 @@ import { navHtml } from "#page/nav.ts";
 import { shell } from "#page/shell.ts";
 import { startHtml } from "#page/startHtml.ts";
 import { boardOf } from "#render/board.ts";
-import { composerHtml } from "#responses/composerHtml.ts";
+import { authoredQuestionHtml } from "#responses/authoredQuestionHtml.ts";
 import type { responseService } from "#responses/service.ts";
 import type { searchSnapshot } from "#search/snapshot.ts";
 import { respond } from "./respond.ts";
@@ -68,21 +68,17 @@ export const page = (options: PageOptions, changes: Changes, index: Effect.Succe
 				: yield* documentHtml(parsed.body, file, metadata);
 		const service = options.responses;
 		const question = service && identity && authoredQuestion({ file: file.path, parsed });
-		const answer = question
-			? yield* Effect.gen(function* () {
-					const preview = yield* service.locate(parsed.fields.id ?? "", "answer");
-					return yield* composerHtml(preview, yield* service.history(preview), options.writable === true);
-				}).pipe(Effect.catch((error) => Effect.succeed(`<p role="status">Question unavailable: ${escapeHtml(String(error))}</p>`)))
-			: "";
+		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, service, options.writable === true) : "";
 		return Option.some({ html: html + answer, identity });
 	});
 	return Effect.fn("WorkBoard.page")(function* (request: HttpServerRequest.HttpServerRequest, resolved?: string, expectedIdentity?: string) {
 		const files = yield* changes.files;
 		const requested = resolved ?? (requestedPath(request.url) || options.home || files[0]?.path || "");
 		const file = files.find((candidate) => candidate.path === requested);
-		const nav = navHtml(files, requested, options.home, yield* index);
+		const snapshot = yield* index;
+		const nav = navHtml(files, requested, options.home, snapshot);
 		function layout(content: string, identity?: string) {
-			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity);
+			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity, false, snapshot);
 		}
 		function missing() {
 			return respond(

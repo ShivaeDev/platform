@@ -21,13 +21,17 @@ export function responsePage(
 		const files = yield* changes.files;
 		const snapshot = index ? yield* index : undefined;
 		function layout(body: string, status = 200) {
-			return respond(shell("Respond", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "response"), "text/html", status);
+			return respond(
+				shell("Respond", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "response", snapshot),
+				"text/html",
+				status,
+			);
 		}
 		return yield* Effect.gen(function* () {
 			const question = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
 			yield* service.read(question.id).pipe(Effect.catch((error) => (error.code === "Missing" ? Effect.void : Effect.fail(error))));
 			const records = yield* service.history(question);
 			return layout(yield* composerHtml(question, records, enabled));
-		}).pipe(Effect.catch((error) => Effect.succeed(layout(`<h1>Response unavailable</h1><p>${escapeHtml(String(error))}</p>`, 409))));
+		}).pipe(Effect.catch((error) => Effect.succeed(layout(`<h1>Response unavailable</h1><p>${escapeHtml(error.message)}</p>`, 409))));
 	});
 }

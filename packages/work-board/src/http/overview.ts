@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Effect } from "effect";
 import { overviewHtml } from "#attention/overviewHtml.ts";
 import type { Changes } from "#files/changes.ts";
 import { navHtml } from "#page/nav.ts";
@@ -11,7 +11,7 @@ export function overview(index: Effect.Success<ReturnType<typeof searchSnapshot>
 		const snapshot = yield* index;
 		const nav = navHtml(yield* changes.files, "", home, snapshot);
 		return respond(
-			shell("Overview", nav, overviewHtml(snapshot, yield* Clock.currentTimeMillis), changes.realRoot, true, undefined, "overview"),
+			shell("Overview", nav, overviewHtml(snapshot), changes.realRoot, true, undefined, "overview", snapshot),
 			"text/html",
 			snapshot.unavailable.length > 0 ? 503 : 200,
 		);

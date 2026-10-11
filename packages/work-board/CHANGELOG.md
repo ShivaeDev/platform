@@ -4,8 +4,8 @@
 
 ### Added
 
-- Add a sidebar Inbox with a live count for human-owned open next actions, open questions and Fleet work waiting on a person. Overview and Work cards/tables show Waiting on you. Group Fleet decision sources and their question/response records under a collapsed sidebar section.
-- Standalone `kind: question` items accept optional label/description options and a recommended label. Their item pages support option buttons and free-text answers through the opted-in response publisher. An answer removes the question from the Inbox for its exact reviewed source; edits require a new answer and original source bytes stay unchanged.
+- Add a sidebar and top-bar Inbox with a live count for human-owned open next actions, open questions and Fleet work waiting on a person. Overview links to an Inbox summary; Work cards/tables show Waiting on you without changing recorded status columns. Missing and duplicated IDs remain visible with source links, and ages beyond 48 hours use days. Group Fleet decision sources and their question/response records under a collapsed sidebar section.
+- Standalone `kind: question` items accept optional label/description options and a recommended label. Their item pages support option buttons and free-text answers through the opted-in response publisher. An answer removes the question from the Inbox for its exact reviewed source; edits require a new answer and original source bytes stay unchanged. Closed or invalid questions keep readable answer history. Option buttons use equal widths and spacing; the answer form remembers the local author and puts response details behind a toggle.
 
 - Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
 

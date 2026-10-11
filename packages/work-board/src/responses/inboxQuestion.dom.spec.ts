@@ -33,6 +33,7 @@ async function answer() {
 	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
 	await waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:"));
 	await waitFor(() => expect(page.document.getElementById("inbox-count")?.textContent).toBe("0"));
+	await waitFor(() => expect(page.document.getElementById("inbox-topbar-count")?.textContent).toBe("0"));
 	expect((await rawGet(board, "/_board/inbox")).body).toContain("0 waiting");
 	expect(readFileSync(join(notes.root, "question.md"), "utf8")).toBe(inboxQuestion);
 	const saved = readdirSync(join(notes.root, "responses")).find((file) => file.startsWith("response."));
@@ -51,6 +52,21 @@ it("records a recommended option from the item page and updates the live Inbox b
 	expect(response.fields.kind).toBe("response");
 	expect(response.fields.response?.answers?.[0]?.selected).toEqual(["option-1"]);
 	expect(response.body).toContain("Keep local files");
+});
+
+it("remembers the author across questions and keeps response details collapsed with one visible answer box", async () => {
+	await open();
+	expect(page.document.querySelector('[data-key="response-details"]')?.hasAttribute("open")).toBe(false);
+	const textareas = [...page.document.querySelectorAll("#response-form textarea")];
+	expect(textareas.filter((field) => !field.closest("details"))).toHaveLength(1);
+	for (const name of ["type", "supersedes", "author"]) {
+		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
+	}
+	notes.write("other.md", inboxQuestion.replace("question.storage", "question.backup"));
+	await waitFor(() => expect(page.document.querySelector('#files a[href="/other.md"]')).not.toBeNull());
+	page.document.querySelector('#files a[href="/other.md"]')?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+	await waitFor(() => expect(page.document.getElementById("response-form")?.getAttribute("data-item")).toBe("question.backup"));
+	await waitFor(() => expect(page.document.querySelector('[name="author"]')).toHaveProperty("value", "Casey"));
 });
 
 it("records a free-text answer and returns an edited question to the Inbox", async () => {

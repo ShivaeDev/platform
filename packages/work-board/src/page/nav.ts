@@ -73,6 +73,10 @@ export function navHtml(files: readonly MarkdownFile[], current: string, home: s
 	const generated = snapshot ? fleetRecords(snapshot.model) : new Set<string>();
 	const records = files.filter((file) => generated.has(file.path));
 	const visible = files.filter((file) => !generated.has(file.path));
-	const count = snapshot?.unavailable.length ? "?" : String(snapshot ? inboxItems(snapshot).length : 0);
+	const count = inboxCount(snapshot);
 	return `<a id="inbox-open" class="inbox-link" href="/_board/inbox">Inbox <span id="inbox-count" class="inbox-count" aria-label="${count} waiting">${count}</span></a>${fileTree(visible, current, home)}${fleetGroup(records, current)}`;
+}
+
+export function inboxCount(snapshot?: Snapshot): string {
+	return !snapshot || snapshot.unavailable.length > 0 ? "?" : String(inboxItems(snapshot).length);
 }

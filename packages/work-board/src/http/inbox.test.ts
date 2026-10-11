@@ -1,3 +1,4 @@
+import { Effect, PlatformError } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
@@ -8,6 +9,22 @@ let board: RunningBoard;
 afterEach(async () => {
 	await board?.stop();
 	notes?.remove();
+});
+
+it("renders unknown Inbox counts when a source cannot be indexed", async () => {
+	notes = folder(inboxFixture());
+	board = await startBoard(notes.root, undefined, (fs) => ({
+		...fs,
+		readFileString: (file, options) =>
+			file.endsWith("question.md")
+				? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
+				: fs.readFileString(file, options),
+	}));
+	for (const path of ["/owner.md", "/_board/inbox", "/_board/overview"]) {
+		const response = await rawGet(board, path);
+		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="? waiting">?</span>');
+		expect(response.body).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="? waiting">?</span>');
+	}
 });
 
 it("counts registered questions on ordinary attention sources without counting the captured copy twice", async () => {
@@ -46,11 +63,12 @@ it("serves the Inbox count on reader pages and exposes waiting work in Overview,
 	}
 	const inbox = (await rawGet(board, "/_board/inbox")).body;
 	expect(inbox).toContain("4 waiting");
+	expect(inbox).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="4 waiting">4</span>');
 	expect(inbox).toContain("Review keyboard behavior");
 	expect(inbox).toContain('data-modified="');
 	for (const path of ["/_board/overview", "/_board/work?view=board", "/_board/work?view=table"]) {
 		const view = (await rawGet(board, path)).body;
-		expect(view).toContain("Waiting on you");
+		expect(view).toContain(path === "/_board/overview" ? "Open Inbox" : "Waiting on you");
 		expect(view).not.toContain("All quiet");
 	}
 	const question = (await rawGet(board, "/question.md")).body;

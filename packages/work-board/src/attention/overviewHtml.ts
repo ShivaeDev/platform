@@ -15,7 +15,7 @@ function card(entry: AttentionEntry, snapshot: Snapshot): string {
 <a class="attention-source" href="${escapeHtml(fileUrl(entry.document.file))}#attention-request-${encodeURIComponent(request.id)}">Source: ${escapeHtml(entry.document.file)}:${entry.line}</a></article>`;
 }
 
-export function overviewHtml(snapshot: Snapshot, now?: number): string {
+export function overviewHtml(snapshot: Snapshot): string {
 	const projection = attentionRequests(snapshot);
 	const header =
 		'<header class="work-head"><p class="work-eyebrow">WORKSPACE · OVERVIEW</p><h1>What needs a response?</h1><p>Choose a recorded request to read its context, reasoning and evidence.</p><a href="/_board/work?view=board">Browse all work</a></header>';
@@ -42,5 +42,5 @@ export function overviewHtml(snapshot: Snapshot, now?: number): string {
 			return `<section class="attention-group" aria-labelledby="attention-${group.kind}"><h2 id="attention-${group.kind}" tabindex="-1">${group.title}<span>${entries.length}</span></h2>${entries.length > 0 ? entries.map((entry) => card(entry, snapshot)).join("") : `<p class="empty">${group.empty}</p>`}</section>`;
 		})
 		.join("");
-	return `${header}${inboxHtml(snapshot, true, now)}<p class="attention-total" role="status">${summary}</p><p class="attention-order">Decisions, reviews, then blockers. Within each group: source title, item ID, request ID. Recipients are recorded labels.</p>${issues}<div class="attention-groups">${groups}</div><p class="attention-footnote">These are authored requests. Closing one does not verify evidence or record an answer. The Inbox also shows human-owned next actions and questions; file activity and finished runs do not create requests.</p>`;
+	return `${header}${inboxHtml(snapshot, true)}<p class="attention-total" role="status">${summary}</p><p class="attention-order">Decisions, reviews, then blockers. Within each group: source title, item ID, request ID. Recipients are recorded labels.</p>${issues}<div class="attention-groups">${groups}</div><p class="attention-footnote">These are authored requests. Closing one does not verify evidence or record an answer. The Inbox also shows human-owned next actions and questions; file activity and finished runs do not create requests.</p>`;
 }

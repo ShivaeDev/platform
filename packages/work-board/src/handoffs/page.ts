@@ -29,7 +29,11 @@ export function handoffPage(
 		const files = yield* changes.files;
 		const snapshot = index ? yield* index : undefined;
 		function layout(body: string, status = 200) {
-			return respond(shell("Handoff", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "handoff"), "text/html", status);
+			return respond(
+				shell("Handoff", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "handoff", snapshot),
+				"text/html",
+				status,
+			);
 		}
 		return yield* Effect.gen(function* () {
 			const source = yield* Effect.result(service.locate(item));

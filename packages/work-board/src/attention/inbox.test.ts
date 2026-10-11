@@ -11,11 +11,11 @@ it("collects human-owned next actions, open questions, needs-human work and mana
 	expect(html).toContain("Casey: Review the keyboard evidence");
 	expect(html).toContain("A question needs your answer");
 	expect(html).toContain("Fleet needs a person: Confirm the deployment target");
-	expect(html).toContain("Fleet needs a person: Delivery needs approval");
+	expect(html).toContain("Managed decision: Delivery needs approval");
 	expect(html).toContain('data-modified="3000"');
 });
 
-it("excludes closed questions, automation labels, missing actions and ambiguous or incomplete identities", () => {
+it("excludes closed questions, automation labels and missing actions while disclosing ambiguous identities", () => {
 	const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: open", "status: closed") };
 	for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot"]) {
 		files["owner.md"] = `---\nid: task.review\nowner: ${owner}\nnext_action: Continue\n---\n# Work`;
@@ -24,7 +24,8 @@ it("excludes closed questions, automation labels, missing actions and ambiguous 
 	files["owner.md"] = "---\nid: task.review\nowner: Casey\n---\n# Work";
 	expect(inboxItems(inboxSnapshot(files)).some((item) => item.id === "task.review")).toBe(false);
 	files["duplicate.md"] = files["fleet.md"] ?? "";
-	expect(inboxItems(inboxSnapshot(files)).map((item) => item.id)).toEqual([]);
+	expect(inboxItems(inboxSnapshot(files)).map((item) => item.id)).toEqual(["task.fleet", "task.fleet"]);
+	expect(inboxHtml(inboxSnapshot(files))).toContain("Duplicate item ID: task.fleet");
 	const incomplete = inboxSnapshot(files, ["unreadable.md"]);
 	expect(inboxItems(incomplete)).toEqual([]);
 	expect(inboxHtml(incomplete)).toContain("Count unavailable");

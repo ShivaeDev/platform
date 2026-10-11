@@ -13,7 +13,11 @@ import { workTable } from "./workTable.ts";
 
 export const workHtml = Effect.fn("WorkBoard.workHtml")(function* (snapshot: Snapshot, state: State) {
 	const projection = projectItems(snapshot, state);
-	const waiting = new Map(inboxItems(snapshot).map((item) => [item.id, item.reason]));
+	const waiting = new Map(
+		inboxItems(snapshot)
+			.filter((item) => !item.problem)
+			.map((item) => [item.id, item.reason]),
+	);
 	const controls = workControls(projection, state);
 	const tools = viewTools(state);
 	if (!projection.validBoard) {

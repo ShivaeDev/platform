@@ -1,3 +1,4 @@
+import { fileUrl } from "#files/url.ts";
 import { identityUrl } from "#metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
 import type { Snapshot } from "#search/snapshot.ts";
@@ -24,7 +25,8 @@ export function waitingReason(document: MetadataDocument, model: MetadataModel):
 		return undefined;
 	}
 	if (fields.status?.toLowerCase() === "needs-human") {
-		return `Fleet needs a person: ${fields.nextAction ?? "Review the blocked work"}`;
+		const source = /^fleet(?:$|[-_. /])/iu.test(fields.owner?.trim() ?? "") ? "Fleet needs a person" : "Needs a person";
+		return `${source}: ${fields.nextAction ?? "Review the blocked work"}`;
 	}
 	if (authoredQuestion(document)) {
 		return fields.nextAction ?? "A question needs your answer";
@@ -35,6 +37,22 @@ export function waitingReason(document: MetadataDocument, model: MetadataModel):
 	return undefined;
 }
 
+function identityProblem(document: MetadataDocument, model: MetadataModel): string | undefined {
+	const id = document.parsed.fields.id;
+	if (!id) {
+		return "Missing or invalid item ID";
+	}
+	return model.ids.get(id)?.length === 1 ? undefined : `Duplicate item ID: ${id}`;
+}
+
+function unresolvedReason(document: MetadataDocument, problem: string | undefined): string | undefined {
+	if (!problem) {
+		return undefined;
+	}
+	const requests = document.parsed.fields.attention?.filter((request) => request.managed && request.state === "open") ?? [];
+	return requests.length > 0 ? `Managed decision: ${requests.map((request) => request.reason).join("; ")}` : undefined;
+}
+
 export function inboxItems(snapshot: Snapshot) {
 	if (snapshot.unavailable.length > 0) {
 		return [];
@@ -43,18 +61,30 @@ export function inboxItems(snapshot: Snapshot) {
 	const managed = attentionRequests(snapshot).entries.filter((entry) => entry.request.managed);
 	const direct = snapshot.documents.flatMap((document) => {
 		const id = document.parsed.fields.id;
-		if (!id || snapshot.model.ids.get(id)?.length !== 1) {
-			return [];
-		}
+		const problem = identityProblem(document, snapshot.model);
 		const requests = managed.filter((entry) => entry.document.file === document.file);
 		const reason =
 			waitingReason(document, snapshot.model)
-			?? (requests.length > 0 ? `Fleet needs a person: ${requests.map((entry) => entry.request.reason).join("; ")}` : undefined);
-		return reason ? [{ document, href: requests[0]?.href ?? identityUrl(id), id, reason, title: titles.get(document.file) ?? document.file }] : [];
+			?? (requests.length > 0 ? `Managed decision: ${requests.map((entry) => entry.request.reason).join("; ")}` : undefined)
+			?? unresolvedReason(document, problem);
+		return reason
+			? [
+					{
+						document,
+						href: problem ? fileUrl(document.file) : (requests[0]?.href ?? identityUrl(id ?? "")),
+						id: id ?? document.file,
+						problem,
+						reason,
+						title: titles.get(document.file) ?? document.file,
+					},
+				]
+			: [];
 	});
-	return [...new Map([...pendingQuestions(snapshot), ...direct].map((item) => [item.id, item])).values()].sort(
-		(left, right) => (left.document.modified ?? 0) - (right.document.modified ?? 0) || left.id.localeCompare(right.id),
-	);
+	return [
+		...new Map(
+			[...pendingQuestions(snapshot).map((item) => ({ ...item, problem: undefined })), ...direct].map((item) => [item.document.file, item]),
+		).values(),
+	].sort((left, right) => (left.document.modified ?? 0) - (right.document.modified ?? 0) || left.id.localeCompare(right.id));
 }
 
 export function fleetRecords(model: MetadataModel): ReadonlySet<string> {

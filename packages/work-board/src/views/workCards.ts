@@ -16,7 +16,7 @@ export function workCards(items: readonly Item[], state: State, waiting: Readonl
 	if (items.length === 0) {
 		return '<p class="empty">No work matches these filters.</p>';
 	}
-	const columns = Map.groupBy(items, (item) => (waiting.has(item.id) ? "Waiting on you" : item.document.parsed.fields.status));
+	const columns = Map.groupBy(items, (item) => item.document.parsed.fields.status);
 	return `<div class="work-columns">${[...columns]
 		.map(
 			([status, rows]) => `<section class="work-column" data-key="status:${escapeHtml(status ?? "")}"

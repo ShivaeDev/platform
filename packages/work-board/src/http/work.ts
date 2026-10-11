@@ -23,6 +23,7 @@ export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, c
 					true,
 					undefined,
 					true,
+					snapshot,
 				),
 				"text/html",
 				503,
@@ -36,6 +37,6 @@ export function work(index: Effect.Success<ReturnType<typeof searchSnapshot>>, c
 				}),
 			),
 		);
-		return respond(shell("Work", nav, result.html, changes.realRoot, true, undefined, true), "text/html", result.status);
+		return respond(shell("Work", nav, result.html, changes.realRoot, true, undefined, true, snapshot), "text/html", result.status);
 	});
 }

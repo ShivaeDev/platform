@@ -37,7 +37,7 @@ export function resultPage(index: Effect.Effect<Snapshot, unknown, FileSystem.Fi
 		const snapshot = yield* index.pipe(Effect.catch(() => Effect.succeed(undefined)));
 		function layout(body: string, status = 200) {
 			return respond(
-				shell("Result review", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "result"),
+				shell("Result review", navHtml(files, "", home, snapshot), body, changes.realRoot, false, undefined, "result", snapshot),
 				"text/html",
 				status,
 			);
