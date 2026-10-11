@@ -46,7 +46,6 @@
 {"path":"packages/effect-contract/src/keys.ts","rule":"biome/lint/style/useNamingConvention","count":6}
 {"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-contract/src/operation.ts","rule":"biome/lint/style/useNamingConvention","count":25}
-{"path":"packages/effect-contract/src/rejection.ts","rule":"biome/lint/style/useNamingConvention","count":21}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/command-query.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/duplicate-command.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-contract/src/test-support/fixtures/invalid/duplicate-name.ts","rule":"files/named-after-export","count":1}
