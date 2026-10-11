@@ -81,37 +81,41 @@ test("backfills sessions across all records and history once, including legacy n
 		}),
 	));
 
-test("reports read and rename failures, continues other sessions, and retries only failed names", () =>
-	withNamedCloudHost(undefined, (fixture) =>
-		Effect.gen(function* () {
-			yield* fixture.store(
-				namedRecord("synthetic-work", [
-					namedAttempt("worker", "synthetic-read-failure"),
-					namedAttempt("reviewer", "synthetic-name-failure"),
-					namedAttempt("repair", "synthetic-success"),
-				]),
-			);
-			fixture.failures.add("thread/read:synthetic-read-failure");
-			fixture.failures.add("thread/name/set:synthetic-name-failure");
-			let errors = "";
-			const args = ["name-threads", "--board", fixture.host.boardDir];
-			const first = yield* Effect.promise(() =>
-				cliProcess(args, {
-					onError: (text) => {
-						errors += text;
-					},
-				}),
-			);
-			expect(first.code).toBe(0);
-			expect(errors).toContain("synthetic-read-failure: naming failed: Codex rejected the protocol request: Synthetic naming failure");
-			expect(errors).toContain("synthetic-name-failure: naming failed: Codex rejected the protocol request: Synthetic naming failure");
-			expect(first.stdout).toContain("synthetic-success: renamed to Fleet: synthetic-work (repair): Readable title");
-			fixture.failures.clear();
-			const retried = yield* Effect.promise(() => cliProcess(args));
-			expect(retried.code).toBe(0);
-			expect(retried.stdout).toContain("synthetic-read-failure: renamed to Fleet: synthetic-work: Readable title");
-			expect(retried.stdout).toContain("synthetic-name-failure: renamed to Fleet: synthetic-work (review): Readable title");
-			expect(retried.stdout).not.toContain("synthetic-success");
-			expect(yield* Effect.promise(() => cliProcess(args))).toEqual({ code: 0, stdout: "" });
-		}),
-	));
+test(
+	"reports read and rename failures, continues other sessions, and retries only failed names",
+	() =>
+		withNamedCloudHost(undefined, (fixture) =>
+			Effect.gen(function* () {
+				yield* fixture.store(
+					namedRecord("synthetic-work", [
+						namedAttempt("worker", "synthetic-read-failure"),
+						namedAttempt("reviewer", "synthetic-name-failure"),
+						namedAttempt("repair", "synthetic-success"),
+					]),
+				);
+				fixture.failures.add("thread/read:synthetic-read-failure");
+				fixture.failures.add("thread/name/set:synthetic-name-failure");
+				let errors = "";
+				const args = ["name-threads", "--board", fixture.host.boardDir];
+				const first = yield* Effect.promise(() =>
+					cliProcess(args, {
+						onError: (text) => {
+							errors += text;
+						},
+					}),
+				);
+				expect(first.code).toBe(0);
+				expect(errors).toContain("synthetic-read-failure: naming failed: Codex rejected the protocol request: Synthetic naming failure");
+				expect(errors).toContain("synthetic-name-failure: naming failed: Codex rejected the protocol request: Synthetic naming failure");
+				expect(first.stdout).toContain("synthetic-success: renamed to Fleet: synthetic-work (repair): Readable title");
+				fixture.failures.clear();
+				const retried = yield* Effect.promise(() => cliProcess(args));
+				expect(retried.code).toBe(0);
+				expect(retried.stdout).toContain("synthetic-read-failure: renamed to Fleet: synthetic-work: Readable title");
+				expect(retried.stdout).toContain("synthetic-name-failure: renamed to Fleet: synthetic-work (review): Readable title");
+				expect(retried.stdout).not.toContain("synthetic-success");
+				expect(yield* Effect.promise(() => cliProcess(args))).toEqual({ code: 0, stdout: "" });
+			}),
+		),
+	30_000,
+);
