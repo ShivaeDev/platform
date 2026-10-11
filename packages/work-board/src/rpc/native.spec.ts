@@ -1,3 +1,4 @@
+import { Stream } from "effect";
 import { afterEach, expect, it } from "vitest";
 import { browserClient } from "#browser/client.ts";
 import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
@@ -81,4 +82,10 @@ it("reads getting-started templates through the shared native page contract", as
 	expect(page.html).toContain("Project and report templates");
 	expect(page.html).toContain('data-view="start"');
 	expect(page.html).toContain("example.result");
+});
+
+it("delivers the initial reconciliation hint through the bound Board subscription", async () => {
+	await open();
+	const hints = await client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1))));
+	expect(hints).toEqual([{ _tag: "Resync" }]);
 });
