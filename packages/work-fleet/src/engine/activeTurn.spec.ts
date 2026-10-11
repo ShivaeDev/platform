@@ -40,7 +40,13 @@ test("a follow-up rejected while a steered turn is active waits and continues th
 				yield* fleet.reconcile("one");
 				expect(provider.submissions).toHaveLength(3);
 				provider.complete();
-				const continued = yield* Fiber.join(continuing);
+				yield* Fiber.join(continuing);
+				yield* Effect.gen(function* () {
+					while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {
+						yield* Effect.yieldNow;
+					}
+				}).pipe(Effect.timeout("5 seconds"));
+				const continued = yield* fleet.get("one");
 				expect(continued.value.stage).toBe("executing");
 				expect(continued.value.attempts).toHaveLength(1);
 				expect(continued.value.attempts[0]?.receipt).toEqual({

@@ -58,3 +58,25 @@ it.live("other definite turn rejections still fail without polling or replay", (
 		}),
 	),
 );
+
+it.live("repeated busy races stop after three resubmissions with a definite rejection", () =>
+	Effect.scoped(
+		Effect.gen(function* () {
+			const methods: string[] = [];
+			const fixture = yield* codexServer((request) => {
+				methods.push(request.method);
+				return request.method === "turn/start"
+					? new WireRejection("turn already active for thread")
+					: { data: [{ id: "finished", items: [], status: "completed" }], nextCursor: null };
+			});
+			yield* Effect.gen(function* () {
+				const provider = yield* SessionTransport;
+				const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
+				expect(error.reason).toBe("rejected");
+				expect(error.message).toContain("active-turn resubmission limit reached");
+			}).pipe(Effect.provide(codexConfiguration(fixture.endpoint)));
+			expect(methods.filter((method) => method === "turn/start")).toHaveLength(4);
+			expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(3);
+		}),
+	),
+);

@@ -1,4 +1,4 @@
-import { Deferred, Effect, Schema } from "effect";
+import { Clock, Deferred, Effect, Schema } from "effect";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { failure } from "#providers/codexRpc.ts";
 import type { CodexRequest } from "#providers/codexTurns.ts";
@@ -10,6 +10,7 @@ const Page = Schema.Struct({ cursor: Schema.NullOr(Schema.String) });
 export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
 	const waiting = yield* Deferred.make<void>();
 	const submissions: unknown[] = [];
+	const pollTimes: number[] = [];
 	let active = false;
 	function listTurns(params: unknown) {
 		return Effect.gen(function* () {
@@ -17,6 +18,7 @@ export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
 				Effect.mapError(() => failure("protocol", "Invalid synthetic pagination request")),
 			);
 			if (cursor === null) {
+				pollTimes.push(yield* Clock.currentTimeMillis);
 				return { data: [{ id: "finished-turn", items: [], status: "completed" }], nextCursor: "active-page" };
 			}
 			yield* Deferred.succeed(waiting, undefined);
@@ -59,6 +61,7 @@ export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
 			active = false;
 		},
 		decorateTransport,
+		pollTimes,
 		submissions,
 		waiting: Deferred.await(waiting),
 	};
