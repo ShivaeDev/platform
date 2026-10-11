@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
+import process from "node:process";
 import type { FailedTest } from "#internal/failureReport.ts";
 import type { Subject } from "#internal/narration.ts";
 import { describeValue, toJson } from "#internal/render.ts";

@@ -17,7 +17,7 @@ const assertMaintainerScopeApproval = Effect.fn("FleetTest.assertMaintainerScope
 	const path = yield* Path.Path;
 	expect(record).toMatchObject({
 		attentionOwner: "maintainer",
-		decision: { attentionOwner: "maintainer", reason: "Board context changed during review" },
+		decision: { attentionOwner: "maintainer", reason: "Work is no longer approved or is done or superseded" },
 		decisionPublished: true,
 		stage: "needs-human",
 	});
@@ -41,7 +41,7 @@ const assertMaintainerScopeApproval = Effect.fn("FleetTest.assertMaintainerScope
 });
 
 for (const timing of ["between review passes", "while the reviewer finishes"] as const) {
-	test(`Board scope edited ${timing} publishes a maintainer approval and persists its waiting group`, function* () {
+	test(`approval removed ${timing} publishes a maintainer decision and persists its waiting group`, function* () {
 		const observing = yield* Deferred.make<void>();
 		const resume = yield* Deferred.make<void>();
 		const betweenPasses = timing === "between review passes";
@@ -59,16 +59,12 @@ for (const timing of ["between review passes", "while the reviewer finishes"] as
 			if (!betweenPasses) {
 				yield* Deferred.await(observing);
 			}
-			yield* fs.writeFileString(path.join(root, "one.md"), `${source}\nApprove the expanded scope before delivery.\n`);
+			yield* fs.writeFileString(path.join(root, "one.md"), source.replace("fleet: approved", "fleet: draft"));
 			finishWorkers(fixture);
 			yield* Deferred.succeed(resume, undefined);
 			const stopped = reconciliation === undefined ? yield* fleet.reconcile("one") : yield* Fiber.join(reconciliation);
 
-			if (betweenPasses) {
-				expect(stopped.value.review).toBeUndefined();
-			} else {
-				expect(stopped.value.review).toMatchObject({ head: "head-one-0", verdict: "approved" });
-			}
+			expect(stopped.value.review).toBeUndefined();
 			yield* fixture.restart(
 				assertMaintainerScopeApproval(stopped.value, root).pipe(
 					Effect.provideService(FileSystem.FileSystem, fs),

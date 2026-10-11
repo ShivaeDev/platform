@@ -60,7 +60,7 @@ for (const type of ["clarify", "not_now"] as const) {
 		));
 }
 
-test("competing answers and changed Board context do not continue a worker", () =>
+test("answers from different authors remain ambiguous through Board edits", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -68,7 +68,7 @@ test("competing answers and changed Board context do not continue a worker", () 
 			yield* fleet.dispatch("one");
 			const { decision } = yield* askWorker(fixture);
 			yield* answerWorker(root, decision, "response.first");
-			yield* answerWorker(root, decision, "response.second");
+			yield* answerWorker(root, decision, "response.second", "answer", undefined, "orchestrator");
 			const competing = yield* fleet.reconcile("one");
 			expect(competing.value.stage).toBe("needs-human");
 			expect(competing.value.blocker).toContain("Several Board answers compete");

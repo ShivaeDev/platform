@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
+import { releaseOnly } from "#engine/releaseOnly.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
 import { FleetFailure } from "#policy.ts";
 
@@ -32,6 +33,10 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 		return { action: "continue", published, response } as const;
 	}
 	const action = yield* guidedAction(response);
+	const explanation = releaseOnly(decision.reason);
+	if (action === "retry" && explanation !== undefined) {
+		return yield* new FleetFailure({ message: explanation, reason: "invalid" });
+	}
 	return { action, published, response } as const;
 });
 

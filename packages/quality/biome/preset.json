@@ -218,7 +218,7 @@
 				"noNonoctalDecimalEscape": "error",
 				"noPrecisionLoss": "error",
 				"noPrivateImports": "error",
-				"noProcessGlobal": "off",
+				"noProcessGlobal": { "fix": "none", "level": "error" },
 				"noReactPropAssignments": "error",
 				"noRenderReturnValue": "error",
 				"noSelfAssign": "error",
@@ -257,7 +257,7 @@
 				"useHookAtTopLevel": "error",
 				"useInlineScriptId": "error",
 				"useIsNan": "error",
-				"useJsonImportAttributes": "off",
+				"useJsonImportAttributes": { "fix": "none", "level": "error" },
 				"useJsxKeyInIterable": {
 					"level": "error",
 					"options": {

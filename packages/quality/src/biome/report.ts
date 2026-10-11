@@ -1,4 +1,6 @@
+import { relative, sep } from "node:path";
 import { Schema } from "effect";
+import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
 import { recognizeDiagnostics } from "./recognizeDiagnostics.ts";
 import { type BiomeRun, runBiome } from "./run.ts";
 
@@ -26,12 +28,26 @@ function failure(args: readonly string[], run: BiomeRun): Error {
 	return new Error(`biome ${args.join(" ")} exited ${run.code} without a report:\n${[run.stdout, run.stderr].join("\n").trim()}`);
 }
 
-export async function biomeReport(root: string, args: readonly string[]): Promise<Report> {
-	const command = [...args, "--reporter=json", "--max-diagnostics=none", "."];
+async function reportFor(root: string, args: readonly string[], paths: readonly string[]): Promise<Report> {
+	const command = [...args, "--reporter=json", "--max-diagnostics=none", ...paths];
 	const run = await runBiome(root, command);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
 		throw failure(command, run);
 	}
-	return { ...report.value, diagnostics: recognizeDiagnostics(root, report.value.diagnostics) };
+	return report.value;
+}
+
+export async function biomeReport(root: string, args: readonly string[]): Promise<Report> {
+	const [report, tracked] = await Promise.all([reportFor(root, args, ["."]), ignoredTrackedPaths(root)]);
+	const paths = tracked
+		.map((path) => relative(root, path))
+		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === "node_modules"));
+	const extra = paths.length === 0 ? undefined : await reportFor(root, [...args, "--vcs-enabled=false"], paths);
+	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
+	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
+	return {
+		diagnostics: recognizeDiagnostics(root, unique),
+		summary: { changed: report.summary.changed + (extra?.summary.changed ?? 0) },
+	};
 }

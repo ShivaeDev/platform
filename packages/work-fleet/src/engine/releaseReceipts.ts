@@ -1,0 +1,22 @@
+import { Effect } from "effect";
+import type { EngineState } from "#engine/makeState.ts";
+import type { Attempt } from "#model.ts";
+import { FleetFailure } from "#policy.ts";
+
+export function releaseReceipts(state: EngineState, attempt: Attempt) {
+	if (attempt.terminalReceipts !== undefined && attempt.terminalReceipts.length > 0) {
+		const receipts = [...attempt.terminalReceipts, ...(attempt.receipt === undefined ? [] : [attempt.receipt])];
+		return Effect.succeed([...new Map(receipts.map((receipt) => [JSON.stringify([receipt.sessionId, receipt.turnId]), receipt])).values()]);
+	}
+	if (attempt.receipt !== undefined) {
+		return Effect.succeed([attempt.receipt]);
+	}
+	return state.sessions.reconcile({ operationId: attempt.operationId, sessionId: attempt.sessionId }).pipe(
+		Effect.map((receipt) => [receipt]),
+		Effect.catch((error) =>
+			error.terminalReceipts !== undefined && error.terminalReceipts.length > 0
+				? Effect.succeed(error.terminalReceipts)
+				: Effect.fail(new FleetFailure({ message: error.message, reason: "integration" })),
+		),
+	);
+}

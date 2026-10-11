@@ -10,7 +10,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 - [x] A registry of reasoned exceptions with optional subjects, detection of stale entries and rules that refuse exceptions.
 - [x] File-size and comment rules; inline-suppression, double-cast, deprecation-setting and declared-Biome-override checks.
 - [x] A shared Biome preset and bridge whose error findings use the gate's baseline; enforcement of the installed Biome's recommended rules; bounded fix rounds and selected fixes left to the author.
-- [x] Static import resolution, runtime-cycle checks, same-folder relative imports and direct, transitive and vocabulary fences with validated examples.
+- [x] Static import resolution, rejection of production imports of test code, runtime-cycle checks, same-folder relative imports and direct, transitive and vocabulary fences with validated examples.
 - [x] Manifest sorting and identifier, file, folder, content, test-layout and story-setup conventions.
 - [x] Shared type-check and package-build TypeScript presets; Vitest unit, DOM and opt-in slow projects, excluded type tests and inherited project tags.
 - [x] Opt-in pre-commit hooks with per-worktree config and dependencies, configured commands, staged debt tightening and protection for partly staged files.
@@ -18,7 +18,7 @@ This page owns Quality's shared policy, tooling, CLI and hook implementation sta
 
 ## Next
 
-- [ ] Align the public config and CLI with the opinionated policy: remove consumer `warn` and `off` settings and warning-report controls, and prove that the config rejects them. Keep old-debt adoption in the baseline, and remove CLI repair guidance that recommends turning a rule off.
+- [ ] Align the public config and CLI with the opinionated policy: remove consumer `warn` and `off` settings and warning-report controls, and prove that the config rejects them. Keep old-debt adoption in the baseline.
 - [ ] Separate Quality's internally reasoned Biome exceptions from consumer weakenings. The current declaration API permits a repository to demote or disable Biome checks; make the whole-policy boundary explicit in validation and tests.
 - [ ] Reduce policy-tuning inputs to the ones checks need about a repository. Numeric thresholds and local-rule APIs are exposed; review their public boundary and migration before removing or narrowing them.
 - [ ] Port reusable checks still in `script/lint/rules/` into the shared policy, so consumers do not copy Platform's scripts.

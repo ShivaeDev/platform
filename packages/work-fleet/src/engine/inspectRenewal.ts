@@ -10,11 +10,14 @@ import type { Versioned } from "#storage/model.ts";
 export function inspectRenewal(state: EngineState) {
 	const { integrations, save } = state;
 	return Effect.fn("Fleet.inspectRenewal")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
+		if (stored.value.stage === "released") {
+			return stored;
+		}
 		if (stored.value.deliverable === "report") {
 			return yield* inspectReportRenewal(stored);
 		}
 		const previous = stored.value.result;
-		if (previous !== undefined && (previous.kind === "no-change" || stored.value.outcome !== undefined)) {
+		if (renewalSettled(stored.value)) {
 			return stored;
 		}
 		const worker = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
@@ -62,4 +65,8 @@ function inspectReportRenewal(stored: Versioned<FleetRecord>) {
 	return stored.value.report === undefined && latest?.status === "completed" && latest.output?.trim()
 		? Effect.fail(new FleetFailure({ message: "Reconcile the completed report before renewing preparation", reason: "denied" }))
 		: Effect.succeed(stored);
+}
+
+function renewalSettled(record: FleetRecord) {
+	return record.result !== undefined && (record.result.kind === "no-change" || record.outcome !== undefined);
 }

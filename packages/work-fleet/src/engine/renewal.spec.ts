@@ -15,9 +15,9 @@ describe("context-bound Fleet renewal", () => {
 				const fleet = yield* Fleet;
 				const first = yield* fleet.dispatch("one");
 				fixture.editWork("one", "board-one-next");
-				fixture.approveWork("one", "board-one-next");
 				finishWorkers(fixture);
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+				fixture.approveWork("one", "board-one-next");
 				yield* fixture.restart(
 					Effect.gen(function* () {
 						const restarted = yield* Fleet;

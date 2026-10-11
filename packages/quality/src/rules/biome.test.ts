@@ -148,13 +148,6 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		);
 	});
 
-	it("returns on code where Biome's noProcessGlobal fix never settles", async () => {
-		const neverSettles: SeedFile = { content: "export const n = Number(globalThis.process.env.N);\n", path: "src/n.ts" };
-		const root = repository(preset, neverSettles);
-		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
-		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
-	});
-
 	it("leaves an unused private member for a person to decide on, and the lint still reports it", async () => {
 		const unusedMember: SeedFile = {
 			content: "export class Counter {\n\tprivate readonly stale = 0;\n\n\tcount(): number {\n\t\treturn 1;\n\t}\n}\n",

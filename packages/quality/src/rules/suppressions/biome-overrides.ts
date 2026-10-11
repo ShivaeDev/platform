@@ -21,11 +21,16 @@ const shippedBy = ({ base, layers }: Chain): readonly Shipped[] =>
 
 const undeclared = ({ includes, layer, line, rule }: Weakening): Finding =>
 	layer.preset === undefined
-		? { file: layer.path, line, message: `Weakens "${rule}" for ${scopeText(includes)} without a declaration.`, subject: rule }
+		? {
+				file: layer.path,
+				line,
+				message: `Weakens "${rule}" for ${scopeText(includes)} without a declaration. Repair the code and remove the weakening setting.`,
+				subject: rule,
+			}
 		: {
 				file: layer.preset.file,
 				line: layer.preset.line,
-				message: `Extends "${layer.preset.specifier}", which weakens "${rule}" for ${scopeText(includes)} without a declaration.`,
+				message: `Extends "${layer.preset.specifier}", which weakens "${rule}" for ${scopeText(includes)} without a declaration. Repair the code and restore the check in the preset.`,
 				subject: rule,
 			};
 
@@ -63,7 +68,7 @@ export const biomeOverrides = defineRule({
 		];
 	},
 	description:
-		"A Biome setting that turns a check off or down, or keeps files out of it, is an exception for every file it covers. Fix the code and remove the setting, or declare its rule, includes and reason under this rule's declared option.",
+		"A Biome setting that turns a check off or down, or keeps files out of it, hides findings for every file it covers. Repair the code and remove the weakening setting.",
 	id: "suppressions/biome-overrides",
 	options: Schema.toStandardSchemaV1(BiomeOverridesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	registrable: false,

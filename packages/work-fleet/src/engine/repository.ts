@@ -50,6 +50,7 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 				const original = stored.value.attempts.find((attempt) => attempt.operationId === operationId);
 				if (
 					original === undefined
+					|| (original.sessionId === undefined && original.status !== "submitting")
 					|| (original.role === "reviewer"
 						&& allAttempts(stored.value).some((attempt) => attempt.role !== "reviewer" && attempt.sessionId === sessionId))
 					|| (original.sessionId !== undefined && original.sessionId !== sessionId)

@@ -44,15 +44,15 @@ describe("suppressions/biome-recommended", () => {
 
 	it("reports a recommended rule the preset leaves at Biome's default level", async () => {
 		expect(await check(presetTexts(allAtError), [...RECOMMENDED, "correctness/noUnusedImports"])).toEqual([
-			`${PACKAGE}/biome/preset.json Biome recommends "lint/correctness/noUnusedImports", which the preset leaves at Biome's default level. Set it to "error" in the preset, or declare why not in its declarations.json.`,
+			`${PACKAGE}/biome/preset.json Biome recommends "lint/correctness/noUnusedImports", which the preset leaves at Biome's default level. Set it to "error" in the preset and repair the code it reports.`,
 		]);
 	});
 
 	it("reports each recommended rule the preset sets below error, at its line", async () => {
 		const rules = { ...allAtError, suspicious: { noDebugger: "warn", noExplicitAny: { level: "off" } } };
 		expect(await check(presetTexts(rules))).toEqual([
-			`${PACKAGE}/biome/preset.json:11 Biome recommends "lint/suspicious/noDebugger", which the preset sets to "warn". Set it to "error" in the preset, or declare why not in its declarations.json.`,
-			`${PACKAGE}/biome/preset.json:12 Biome recommends "lint/suspicious/noExplicitAny", which the preset sets to "off". Set it to "error" in the preset, or declare why not in its declarations.json.`,
+			`${PACKAGE}/biome/preset.json:11 Biome recommends "lint/suspicious/noDebugger", which the preset sets to "warn". Set it to "error" in the preset and repair the code it reports.`,
+			`${PACKAGE}/biome/preset.json:12 Biome recommends "lint/suspicious/noExplicitAny", which the preset sets to "off". Set it to "error" in the preset and repair the code it reports.`,
 		]);
 	});
 
@@ -60,7 +60,7 @@ describe("suppressions/biome-recommended", () => {
 		const rules = { ...allAtError, suspicious: { noDebugger: "off", noExplicitAny: "off" } };
 		const declarations = [{ includes: ["**"], reason: REASON, rule: "lint/suspicious/noExplicitAny" }];
 		expect(await check(presetTexts(rules, declarations))).toEqual([
-			`${PACKAGE}/biome/preset.json:11 Biome recommends "lint/suspicious/noDebugger", which the preset sets to "off". Set it to "error" in the preset, or declare why not in its declarations.json.`,
+			`${PACKAGE}/biome/preset.json:11 Biome recommends "lint/suspicious/noDebugger", which the preset sets to "off". Set it to "error" in the preset and repair the code it reports.`,
 		]);
 	});
 

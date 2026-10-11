@@ -1,4 +1,5 @@
 import { dirname } from "node:path";
+import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { productionParts, runFleet } from "#host/commands.ts";

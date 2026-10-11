@@ -1,3 +1,4 @@
+import process from "node:process";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
