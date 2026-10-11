@@ -1,3 +1,4 @@
+import process from "node:process";
 import type { Readable } from "node:stream";
 import { text } from "node:stream/consumers";
 import { Effect } from "effect";

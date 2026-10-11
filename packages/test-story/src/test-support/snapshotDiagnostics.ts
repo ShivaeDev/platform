@@ -1,5 +1,6 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import process from "node:process";
 import type { Bakery } from "#test/bakery.ts";
 
 export const snapshotTest = {

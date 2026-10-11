@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import process from "node:process";
 
 const FRAMES = 50;
 
