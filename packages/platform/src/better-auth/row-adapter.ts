@@ -17,11 +17,11 @@ interface RowMethods {
 	readonly update: (input: { readonly model: string; readonly update: Row; readonly where: CleanedWhere[] }) => Promise<Row | null>;
 }
 
-export type RelationQuery = <Value>(
+export type RelationQuery = <TValue>(
 	model: string,
 	refinement: Refinement,
-	use: (relation: DynamicRelation<unknown>) => Effect.Effect<Value, unknown, unknown>,
-) => Promise<Value>;
+	use: (relation: DynamicRelation<unknown>) => Effect.Effect<TValue, unknown, unknown>,
+) => Promise<TValue>;
 
 // Better Auth lets each call declare its row type; the rows are whatever its generated schema stored.
 function rowTyped(adapter: Omit<CustomAdapter, RowMethod> & RowMethods): CustomAdapter;

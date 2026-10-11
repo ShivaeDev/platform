@@ -3,12 +3,12 @@ import type { Rule } from "./rule.ts";
 
 export type Level = "error" | "warn" | "off";
 
-export type RuleSetting<Input> = Level | { readonly level?: Level; readonly options?: Input };
+export type RuleSetting<TInput> = Level | { readonly level?: Level; readonly options?: TInput };
 
-type InputOf<Candidate> = Candidate extends Rule<string, infer Input> ? Input : never;
+type InputOf<TCandidate> = TCandidate extends Rule<string, infer TInput> ? TInput : never;
 
-export type RuleSettings<Rules extends readonly Rule[]> = {
-	readonly [Candidate in Rules[number] as Candidate["id"]]?: RuleSetting<InputOf<Candidate>>;
+export type RuleSettings<TRules extends readonly Rule[]> = {
+	readonly [TCandidate in TRules[number] as TCandidate["id"]]?: RuleSetting<InputOf<TCandidate>>;
 };
 
 export type BuiltInRules = typeof builtInRules;
@@ -18,15 +18,15 @@ export interface PreCommit {
 	readonly tighten?: boolean;
 }
 
-export interface QualityConfig<Local extends readonly Rule[] = readonly Rule[]> {
+export interface QualityConfig<TLocal extends readonly Rule[] = readonly Rule[]> {
 	readonly baseline?: string;
 	readonly exclude?: readonly string[];
 	readonly extensions?: readonly string[];
-	readonly local?: Local;
+	readonly local?: TLocal;
 	readonly preCommit?: PreCommit;
 	readonly registry?: string;
-	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...Local]>;
+	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...TLocal]>;
 	readonly sources?: readonly string[];
 }
 
-export const defineConfig = <const Local extends readonly Rule[] = readonly []>(config: QualityConfig<Local>): QualityConfig<Local> => config;
+export const defineConfig = <const TLocal extends readonly Rule[] = readonly []>(config: QualityConfig<TLocal>): QualityConfig<TLocal> => config;

@@ -33,14 +33,14 @@ export function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, stri
 	}).pipe(Effect.mapError((failure) => new SetupFailure({ message: failure.message })));
 }
 
-export interface Pass<Failure, Requirements> {
+export interface Pass<TFailure, TRequirements> {
 	readonly label: string;
-	readonly run: Effect.Effect<number, Failure, Requirements>;
+	readonly run: Effect.Effect<number, TFailure, TRequirements>;
 }
 
-export interface Settling<Failure, Requirements> {
-	readonly passes: ReadonlyArray<Pass<Failure, Requirements>>;
-	readonly snapshot: Effect.Effect<ReadonlyMap<string, string>, Failure, Requirements>;
+export interface Settling<TFailure, TRequirements> {
+	readonly passes: ReadonlyArray<Pass<TFailure, TRequirements>>;
+	readonly snapshot: Effect.Effect<ReadonlyMap<string, string>, TFailure, TRequirements>;
 }
 
 function changedBy(root: string, args: readonly string[]): Effect.Effect<number, SetupFailure> {
@@ -57,11 +57,11 @@ function biomePasses(root: string): ReadonlyArray<Pass<SetupFailure, never>> {
 	];
 }
 
-function round<Failure, Requirements>(
-	passes: ReadonlyArray<Pass<Failure, Requirements>>,
+function round<TFailure, TRequirements>(
+	passes: ReadonlyArray<Pass<TFailure, TRequirements>>,
 	index: number,
-	afterEachPass: Effect.Effect<void, Failure, Requirements>,
-): Effect.Effect<number, Failure, Requirements> {
+	afterEachPass: Effect.Effect<void, TFailure, TRequirements>,
+): Effect.Effect<number, TFailure, TRequirements> {
 	return Effect.gen(function* () {
 		let total = 0;
 		const parts: string[] = [];
@@ -95,10 +95,10 @@ function unsettled(changed: ReadonlySet<string>): SetupFailure {
 	});
 }
 
-export function settle<Failure, Requirements>({
+export function settle<TFailure, TRequirements>({
 	passes,
 	snapshot,
-}: Settling<Failure, Requirements>): Effect.Effect<void, Failure | SetupFailure, Requirements> {
+}: Settling<TFailure, TRequirements>): Effect.Effect<void, TFailure | SetupFailure, TRequirements> {
 	return Effect.gen(function* () {
 		for (let index = 1; index < MAX_FIX_ROUNDS; index += 1) {
 			if ((yield* round(passes, index, Effect.void)) === 0) {

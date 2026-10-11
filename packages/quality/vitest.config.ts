@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { testProjects } from "./src/vitest.ts";
+import { testProjects } from "#vitest.ts";
 
 export default defineConfig({
 	resolve: { conditions: ["source", "module", "browser", "development|production"] },

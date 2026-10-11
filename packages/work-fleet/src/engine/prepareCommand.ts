@@ -22,6 +22,7 @@ export function prepareCommand(state: EngineState) {
 			boardRevision: work.revision,
 			boardSourcePath: work.sourcePath,
 			cwd: input.cwd,
+			...(work.deliverable === undefined ? {} : { deliverable: work.deliverable }),
 			...(input.launch === undefined ? {} : { launch: input.launch }),
 			preparation: input.preparation,
 			prompt: input.prompt,

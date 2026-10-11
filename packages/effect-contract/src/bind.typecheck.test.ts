@@ -15,10 +15,10 @@ declare const client: AtomRpc.AtomRpcClient<Self, "test/Client", Rpcs>;
 declare const flat: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 declare const api: Api;
 
-type Used<Tag extends Rpcs["_tag"]> = ReturnType<
-	typeof client.use<Effect.Success<Called<Tag>>, Effect.Error<Called<Tag>>, Effect.Services<Called<Tag>>>
+type Used<TTag extends Rpcs["_tag"]> = ReturnType<
+	typeof client.use<Effect.Success<Called<TTag>>, Effect.Error<Called<TTag>>, Effect.Services<Called<TTag>>>
 >;
-type Called<Tag extends Rpcs["_tag"]> = ReturnType<typeof flat<Tag>>;
+type Called<TTag extends Rpcs["_tag"]> = ReturnType<typeof flat<TTag>>;
 
 expectTypeOf(api.get.query).returns.toEqualTypeOf<ReturnType<typeof client.query<"notes.get">>>();
 expectTypeOf(api.list.query).returns.toEqualTypeOf<ReturnType<typeof client.query<"notes.list">>>();
