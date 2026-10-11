@@ -43,7 +43,11 @@ describe("embedding", () => {
 			const response = yield* Effect.promise(() => handler(new Request(`http://localhost/_board/${path}`, { headers: { host: "localhost" } })));
 			expect(response.status).toBe(200);
 			expect(response.headers.get("content-type")).toContain(type);
-			expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL(`../assets/${path}`, import.meta.url), "utf8"));
+			const body = yield* Effect.promise(() => response.text());
+			expect(body).toBe(readFileSync(new URL(`../assets/${path}`, import.meta.url), "utf8"));
+			if (path === "native.js") {
+				expect(body).toContain("/* @shivaedev/work-board native browser bundle */");
+			}
 		}
 		const page = yield* Effect.promise(() => handler(new Request("http://localhost/", { headers: { host: "localhost" } })));
 		const html = yield* Effect.promise(() => page.text());
