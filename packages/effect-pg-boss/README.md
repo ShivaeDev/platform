@@ -33,6 +33,8 @@ A **schedule definition** describes a queue with a cron trigger. `schedule.run(e
 
 The application creates one jobs service with `makePgBoss(identifier)`. Its Layer starts a client, registers the job list and captures the services those workers need. The Layer's scope owns its client reference and releases it when the scope ends; the final reference closes the client. Callers use the jobs service to enqueue a decoded payload or read queue health.
 
+Use a distinct literal identifier for each jobs service. The service and its Layer keep that identifier in their types, so providing a Layer for a different identifier leaves the required jobs service unprovided at compile time.
+
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
 ### Once per application: the jobs service
