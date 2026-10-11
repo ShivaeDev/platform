@@ -1,17 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Added
-
-- Add a reference order fixture against migrated PostgreSQL and native HTTP RPC: authenticated saves publish commit-bound live hints that refresh a second client's query and open editor; rollback publishes nothing. Test-only dependencies supply the real database, HTTP host, request identity and Effect test runner.
-
-### Changed
-
-- Document the package's purpose, native atom mental model, query/action usage, session ownership and editor/create workflows; publish the north star and package roadmap with the README.
-
-- Build package JavaScript, declarations and source maps with TypeScript 7.
-
 ## 0.2.1 - 2026-10-05
 
 ### Changed
