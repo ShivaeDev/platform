@@ -36,6 +36,12 @@ describe("every published Fleet decision has a recovery", () => {
 				(reason) => !reasons.has(reason),
 			),
 		).toEqual(["New integration reason"]);
+		expect(
+			sourceDecisionReasons(
+				"host/new.ts",
+				'const NEW_REASON = "New integration reason"; new FleetFailure({message: NEW_REASON, reason: "invalid"});',
+			).filter((reason) => !reasons.has(reason)),
+		).toEqual(["New integration reason"]);
 	});
 	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 	for (const action of ["retry", "release"] as const) {

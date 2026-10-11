@@ -26,24 +26,21 @@ export function decisionReasons(root: string) {
 }
 export function sourceDecisionReasons(file: string, source: string) {
 	const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+	const constants = stringConstants(tree);
 	const reasons: string[] = [];
 	function literals(node: ts.Node) {
+		const constant = ts.isIdentifier(node) ? constants.get(node.text) : undefined;
 		if (ts.isStringLiteral(node)) {
 			reasons.push(node.text);
-		} else {
+		} else if (constant === undefined) {
 			ts.forEachChild(node, literals);
+		} else {
+			reasons.push(constant);
 		}
 	}
 	function visit(node: ts.Node) {
 		if (file === "host/reportBoard.ts" && ts.isFunctionDeclaration(node) && node.parent === tree && node.name?.text !== "reportBoard") {
 			return;
-		}
-		if (
-			ts.isVariableDeclaration(node)
-			&& ["MOVED_PR_HEAD_REASON", "PUBLISHED_REPORT"].includes(node.name.getText(tree))
-			&& node.initializer !== undefined
-		) {
-			literals(node.initializer);
 		}
 		if (
 			ts.isPropertyAssignment(node)
@@ -58,4 +55,16 @@ export function sourceDecisionReasons(file: string, source: string) {
 	}
 	visit(tree);
 	return reasons;
+}
+
+function stringConstants(tree: ts.SourceFile) {
+	const constants = new Map<string, string>();
+	function visit(node: ts.Node) {
+		if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer !== undefined && ts.isStringLiteral(node.initializer)) {
+			constants.set(node.name.text, node.initializer.text);
+		}
+		ts.forEachChild(node, visit);
+	}
+	visit(tree);
+	return constants;
 }
