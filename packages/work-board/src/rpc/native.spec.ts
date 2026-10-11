@@ -61,6 +61,11 @@ it("enforces same-origin and loopback guards at the native route", async () => {
 	const rebound = await rawPost(board, "/_board/rpc", { host: "remote.example" });
 	expect(rebound.status).toBe(403);
 });
+it("requires the RPC content type even with responses disabled", async () => {
+	await open();
+	const blocked = await rawPost(board, "/_board/rpc", { "content-type": "application/json", origin: board.url });
+	expect(blocked.status).toBe(403);
+});
 it("interrupts an active native subscription when the HTTP server scope ends", async () => {
 	await open();
 	await client.read(client.api.page.query({ url: "/note.md" }));
