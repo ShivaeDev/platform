@@ -7,6 +7,7 @@
 - Keep closed unmerged PRs and uncertain or mismatched delivery evidence in Needs human with a concrete reason.
 - Preserve the current Board decision and ownership when GitHub delivery observation is temporarily unavailable.
 - Hide resolved delivery decisions in completed views while retaining the original decision in detailed records.
+- Publish stopped worker questions through Board and continue the same thread with the recorded answer, using a durable submission intent to prevent repeated continuation after concurrent resolution, restart or a lost acknowledgement.
 - Read GitHub check runs and commit statuses for the adopted PR's exact SHA, retain
   pending checks in validation and send failed check names and links to repair.
 

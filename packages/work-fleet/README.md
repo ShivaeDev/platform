@@ -87,6 +87,12 @@ terminal adopted PR transfers its actual paths into a foreign reservation until
 the runtime observes that the PR no longer owns them. Ambiguous submitted
 delivery cannot be released.
 
+### Answer a worker question
+
+Cloud worker prompts instruct workers to stop for a decision with `FLEET_QUESTION: <question>` and include the context and choices needed to answer. Fleet recognizes this marker in a completed worker or repair turn, publishes the question through Board's response writer, and keeps the work in Needs human. `work-fleet wait <id>` exits with code 2 while that question is open. Questions must use this explicit marker; Fleet does not infer questions from prose.
+
+Record a nonempty answer through Board's response page or response API. Reconciliation continues the exact worker thread with the answer body under current approval, quota and capacity policy. The response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection. Clarification, deferral, changed context and competing answers keep the work blocked. Answer text supplies task input and does not grant delivery authority.
+
 ### Answer the current Board decision
 
 Fleet publishes an ordinary Board decision and stores its exact `BoardDecision`
