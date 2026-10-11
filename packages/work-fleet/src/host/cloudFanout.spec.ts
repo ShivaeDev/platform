@@ -19,7 +19,7 @@ function records(fixture: HostFixture) {
 
 const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostFixture, backend: ReturnType<typeof cloudFanout>) {
 	const first = yield* hostProcess(fixture.configFile);
-	yield* until(() => Effect.succeed(backend.operations.size === 100));
+	yield* until(() => Effect.succeed({ done: backend.operations.size === 100, progress: backend.sessions.length + backend.operations.size }));
 	const before = yield* records(fixture);
 	expect(before).toHaveLength(100);
 	expect(
@@ -30,7 +30,13 @@ const killFanout = Effect.fn("CloudFanout.killFanout")(function* (fixture: HostF
 	yield* first.kill;
 	const restarted = yield* hostProcess(fixture.configFile);
 	yield* until(() =>
-		records(fixture).pipe(Effect.map((stored) => stored.length === 100 && stored.every(({ value }) => value.attempts[0]?.status === "running"))),
+		records(fixture).pipe(
+			Effect.map((stored) => {
+				const running = stored.filter(({ value }) => value.attempts[0]?.status === "running").length;
+				const acknowledged = stored.filter(({ value }) => value.attempts[0]?.receipt !== undefined).length;
+				return { done: stored.length === 100 && running === 100, progress: acknowledged + running };
+			}),
+		),
 	);
 	yield* restarted.kill;
 	const after = yield* records(fixture);
@@ -72,6 +78,7 @@ describe("Cloud fanout restarts against PostgreSQL", () => {
 	it.live.skipIf(storageDatabaseUrl === undefined)(
 		"SIGKILL with 100 lost turn acknowledgements recovers exactly one session per attempt",
 		fanoutStory,
-		60_000,
+		// Each launch and recovery phase is bounded by the progress stall timer.
+		0,
 	);
 });

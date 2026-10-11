@@ -66,11 +66,26 @@ export function restartBackend(boundary: Boundary) {
 	};
 }
 
-export const until = Effect.fn("CloudRestart.until")(function* (condition: () => Effect.Effect<boolean, unknown>) {
-	const deadline = (yield* Clock.currentTimeMillis) + 20_000;
-	while (!(yield* condition())) {
-		if ((yield* Clock.currentTimeMillis) > deadline) {
-			return yield* Effect.die(new Error("Restart boundary was not reached"));
+interface Progress {
+	readonly done: boolean;
+	readonly progress: number;
+}
+
+export const until = Effect.fn("CloudRestart.until")(function* (condition: () => Effect.Effect<boolean | Progress, unknown>) {
+	let deadline = (yield* Clock.currentTimeMillis) + 20_000;
+	let progress = 0;
+	while (true) {
+		const observed = yield* condition();
+		if (typeof observed === "boolean" ? observed : observed.done) {
+			return;
+		}
+		const now = yield* Clock.currentTimeMillis;
+		if (typeof observed !== "boolean" && observed.progress > progress) {
+			progress = observed.progress;
+			deadline = now + 20_000;
+		}
+		if (now >= deadline) {
+			return yield* Effect.die(new Error(`Restart progress stalled at ${progress} for 20 seconds`));
 		}
 		yield* Effect.sleep("20 millis");
 	}
