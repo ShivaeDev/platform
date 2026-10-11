@@ -1,6 +1,7 @@
 import { fileUrl } from "#files/url.ts";
 import { identityUrl } from "#metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#metadata/model.ts";
+import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#search/snapshot.ts";
 import { answeredQuestion, pendingQuestions } from "./questionState.ts";
 import { attentionRequests, isMaintainerRequest } from "./requests.ts";
@@ -63,6 +64,15 @@ function unresolvedReason(document: MetadataDocument, problem: string | undefine
 	return requests.length > 0 ? `Managed decision: ${requests.map((request) => request.reason).join("; ")}` : undefined;
 }
 
+function inboxTarget(document: MetadataDocument, problem: string | undefined, request: string | undefined): string {
+	if (problem) {
+		return fileUrl(document.file);
+	}
+	const item = document.parsed.fields.id ?? "";
+	const answer = request ?? (authoredQuestion(document) ? "answer" : undefined);
+	return answer ? responseUrl(item, answer) : identityUrl(item);
+}
+
 export function inboxItems(snapshot: Snapshot) {
 	if (snapshot.unavailable.length > 0) {
 		return [];
@@ -71,6 +81,8 @@ export function inboxItems(snapshot: Snapshot) {
 	const managed = attentionRequests(snapshot).entries.filter(
 		(entry) => entry.request.managed && isMaintainerRequest(entry.request, snapshot.maintainer),
 	);
+	const pending = pendingQuestions(snapshot);
+	const pendingLinks = new Map(pending.map((item) => [item.document.file, item.href]));
 	const direct = snapshot.documents.flatMap((document) => {
 		const id = document.parsed.fields.id;
 		const problem = identityProblem(document, snapshot.model);
@@ -83,7 +95,7 @@ export function inboxItems(snapshot: Snapshot) {
 			? [
 					{
 						document,
-						href: problem ? fileUrl(document.file) : (requests[0]?.href ?? identityUrl(id ?? "")),
+						href: pendingLinks.get(document.file) ?? inboxTarget(document, problem, requests[0]?.request.id),
 						id: id ?? document.file,
 						problem,
 						reason,
@@ -92,11 +104,7 @@ export function inboxItems(snapshot: Snapshot) {
 				]
 			: [];
 	});
-	return [
-		...new Map(
-			[...pendingQuestions(snapshot).map((item) => ({ ...item, problem: undefined })), ...direct].map((item) => [item.document.file, item]),
-		).values(),
-	]
+	return [...new Map([...pending.map((item) => ({ ...item, problem: undefined })), ...direct].map((item) => [item.document.file, item])).values()]
 		.map((item) => ({ ...item, modified: snapshot.modified.get(item.document.file) }))
 		.sort((left, right) => (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id));
 }
