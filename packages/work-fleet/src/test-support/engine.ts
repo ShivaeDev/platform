@@ -114,7 +114,8 @@ export function withEngine<A, E, TBoardError = never>(
 				merged,
 				replaceRecord,
 				respond: scripted.respond,
-				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) => effect.pipe(Effect.provide(fleetLayer)),
+				restart: <TResult, TFailure>(effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>) =>
+					effect.pipe(Effect.provide(Layer.fresh(fleetLayer))),
 				reviews,
 				unavailableWork: (workId: string, value: boolean) => {
 					if (value) {

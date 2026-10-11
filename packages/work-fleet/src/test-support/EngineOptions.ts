@@ -5,6 +5,7 @@ import type { BoardFailure, BoardWork, ChangeResult, Checks, Delivery, FleetFail
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
 export interface EngineOptions {
 	readonly acknowledgeFailure?: boolean;
+	readonly acknowledgementGate?: Effect.Effect<void>;
 	readonly acknowledgementQuery?: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
 	readonly archiveFailure?: boolean;
 	readonly areaMergeWaitMs?: number;
@@ -41,6 +42,7 @@ export interface EngineOptions {
 	readonly reviewGate?: Effect.Effect<void>;
 	readonly reviewRunning?: boolean;
 	readonly sameReviewer?: boolean;
+	readonly sessionAcknowledgementGate?: Effect.Effect<void, SessionFailure>;
 	readonly submissionFailure?: (call: "session" | "turn") => SessionFailure | undefined;
 	readonly unavailableTurn?: boolean;
 	readonly unknownQuota?: boolean;

@@ -16,6 +16,8 @@ export const makeState = Effect.gen(function* () {
 	const integrations = yield* FleetIntegrations;
 	const sessions = yield* SessionService;
 	const reportInspection = yield* Effect.serviceOption(ReportInspection);
+	const launchScope = yield* Effect.scope;
+	const launching = new Set<string>();
 	function load(workId: string) {
 		return store
 			.load(workId)
@@ -78,6 +80,6 @@ export const makeState = Effect.gen(function* () {
 		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
-	return { board, decision, integrations, load, policy, reportInspection, save, sessions, store };
+	return { board, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
 });
 export type EngineState = Effect.Success<typeof makeState>;
