@@ -3,8 +3,14 @@ import { Effect } from "effect";
 export type Outcome = "committed" | "rolledBack";
 
 export interface Frame {
-	readonly provide: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
+	readonly provide: <TValue, TError, TRequirements>(
+		body: Effect.Effect<TValue, TError, TRequirements>,
+	) => Effect.Effect<TValue, TError, TRequirements>;
 	readonly settle: (outcome: Outcome) => Effect.Effect<void>;
+}
+
+export interface CommitFrame<E = never> extends Frame {
+	readonly beforeCommit: Effect.Effect<void, E>;
 }
 
 export interface Buffer<A> {
@@ -46,13 +52,20 @@ export const keyed = <A>(changes: Iterable<A>, keyOf: (change: A) => unknown): M
 	return entries;
 };
 
-export const makeFrame = <A>(options: {
+function transactionParent<A>(buffer: Buffer<A> | undefined): boolean {
+	return buffer !== undefined && (buffer.kind === "transaction" || transactionParent(buffer.parent));
+}
+
+export const makeFrame = <A, E = never>(options: {
+	readonly beforeCommit?: (changes: readonly A[]) => Effect.Effect<void, E>;
 	readonly name: string;
 	readonly buffer: Buffer<A>;
-	readonly provide: <X, E, R>(body: Effect.Effect<X, E, R>) => Effect.Effect<X, E, R>;
+	readonly provide: <TValue, TError, TRequirements>(
+		body: Effect.Effect<TValue, TError, TRequirements>,
+	) => Effect.Effect<TValue, TError, TRequirements>;
 	readonly publish: (changes: readonly A[]) => Effect.Effect<void>;
 	readonly discard: (changes: readonly A[]) => Effect.Effect<void>;
-}): Frame => {
+}): CommitFrame<E> => {
 	const { name, buffer } = options;
 	const settle = Effect.fn("Changes.settle")(function* (outcome: Outcome) {
 		if (!buffer.open) {
@@ -68,5 +81,14 @@ export const makeFrame = <A>(options: {
 		}
 		yield* outcome === "committed" ? options.publish(changes) : options.discard(changes);
 	}, Effect.uninterruptible);
-	return { provide: options.provide, settle };
+	const beforeCommit = Effect.suspend(() => {
+		if (!buffer.open) {
+			return settled(name);
+		}
+		if (buffer.kind !== "transaction" || transactionParent(buffer.parent) || buffer.changes.size === 0) {
+			return Effect.void;
+		}
+		return options.beforeCommit?.([...buffer.changes.values()]) ?? Effect.void;
+	});
+	return { beforeCommit, provide: options.provide, settle };
 };

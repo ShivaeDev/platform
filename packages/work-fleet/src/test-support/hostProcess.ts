@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Cause, Effect } from "effect";
 import { until } from "#test/cloudRestart.ts";

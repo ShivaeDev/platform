@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { validateResult } from "#completion.ts";
+import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
@@ -8,19 +9,14 @@ import type { BoardWork } from "#policy.ts";
 import { FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdopt(state: EngineState) {
-	const { integrations, save, decision } = state;
+	const { integrations, save } = state;
 	return Effect.fn("Fleet.makeAdopt")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
 		if (stored.value.stage !== "adopting") {
 			return stored;
 		}
-		if (work.revision !== stored.value.boardRevision) {
-			return yield* decision(
-				stored,
-				"Board context changed while work ran",
-				"Approve the current Board scope before adopting this result",
-				undefined,
-				"maintainer",
-			);
+		yield* authorizeBrief(work);
+		if (briefChanged(stored.value, work)) {
+			return yield* continueChangedBrief(state)(stored, work);
 		}
 		if (stored.value.deliverable === "report") {
 			return yield* completeReport(state)(stored, work);

@@ -69,7 +69,7 @@ A check that is silenced at one site hides the problem instead of fixing it. Fiv
 
 Coverage hints (`c8 ignore`, `v8 ignore`, `istanbul ignore`) are allowed: they leave code out of a coverage measure and silence no linter or compiler. The rule reads the TypeScript and JavaScript modules among the sources, declaration files included, and every `.css`, `.scss` and `.less` file among the checked files, whatever `extensions` says. Each finding names the line its comment starts on and has the directive as its subject.
 
-`suppressions/no-ignore-deprecations` reads every JSON file in the repository whose `compilerOptions` sets `ignoreDeprecations`, whatever the file is named, so a shared config such as `tsconfig/base.json` counts as much as a `tsconfig.json`. Like `manifests/sorted`, it walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. Each finding names the line of the setting. Replace the deprecated option it hides, then remove it.
+`suppressions/no-ignore-deprecations` reads every JSON file in the repository whose `compilerOptions` sets `ignoreDeprecations`, whatever the file is named, so a shared config such as `tsconfig/base.json` counts as much as a `tsconfig.json`. Like `manifests/sorted`, it walks the whole repository, not only the sources, and skips untracked files ignored by git and `node_modules`. Each finding names the line of the setting. Replace the deprecated option it hides, then remove it.
 
 #### Type tests
 
@@ -148,18 +148,20 @@ A weakening the preset makes without such a declaration is reported at the line 
 
 #### Recommended Biome rules
 
-`suppressions/biome-recommended` holds the [Biome preset](./tooling.md#biome-preset) to every rule Biome recommends, so a Biome upgrade that adds a recommended rule, or recommends one the preset leaves below `error`, fails the gate until the preset takes a position on it. It asks the installed Biome, the one `quality` runs, which rules its `recommended` preset enables, through `biome rage --linter`, so the list is never written down. When the root Biome config extends `@shivaedev/quality/biome`, it reads that preset and its `declarations.json`, resolved from the repository root as under [Shared presets](#shared-presets); a repository that does not extend the preset is left to the `biome` rule, which asks for it. A recommended rule is in order when the preset's `linter.rules` sets it to `error`, directly or through its group's severity, or when a declaration names it, whatever the declaration's `includes`. Every other recommended rule is reported at the preset, one finding per rule: set it to `error`, or declare why not.
+`suppressions/biome-recommended` holds the [Biome preset](./tooling.md#biome-preset) to every rule Biome recommends, so a Biome upgrade that adds a recommended rule, or recommends one the preset leaves below `error`, fails the gate until the preset takes a position on it. It asks the installed Biome, the one `quality` runs, which rules its `recommended` preset enables, through `biome rage --linter`, so the list is never written down. When the root Biome config extends `@shivaedev/quality/biome`, it reads that preset and its `declarations.json`, resolved from the repository root as under [Shared presets](#shared-presets); a repository that does not extend the preset is left to the `biome` rule, which asks for it. A recommended rule is in order when the preset's `linter.rules` sets it to `error`, directly or through its group's severity, or when a declaration names it, whatever the declaration's `includes`. Every other recommended rule is reported at the preset, one finding per rule: set it to `error` and repair the code it reports.
 
 ### Imports
 
-Four rules check the imports of the TypeScript and JavaScript modules among the sources. `imports/cycles`, `imports/resolvable` and `imports/fences` with declared fences build a graph resolved by the TypeScript compiler. `imports/aliased` checks relative path syntax.
+Six rules check the imports of the TypeScript and JavaScript modules among the sources. `imports/cycles`, `imports/resolvable`, `imports/manifest`, `imports/no-test-code` and `imports/fences` with declared fences build a graph resolved by the TypeScript compiler. `imports/aliased` checks relative path syntax.
 
 | Rule | Reports | Options |
 | --- | --- | --- |
 | `imports/cycles` | Modules that import each other at run time | none |
 | `imports/resolvable` | An import that resolves to nothing | `generated` |
+| `imports/manifest` | A workspace import missing from the importing package’s shipped dependencies, or present only in `devDependencies` in shipped code | none |
 | `imports/fences` | An import that crosses a fence the config declares | `fences` |
 | `imports/aliased` | A relative import that leaves its own folder | none |
+| `imports/no-test-code` | A production module importing a test file or anything under `test-support/` | none |
 
 Each graph edge resolves the way the compiler resolves it, with the options of the nearest `tsconfig.json` and the projects it references, under bundler resolution: `paths`, `package.json` `imports` and `exports` and the `source` condition hold, so a workspace package resolves to its source. The graph reads literal specifiers in static and dynamic imports, `export ... from`, `require()`, `require.resolve()`, `import.meta.resolve()` of a bare specifier (a relative one is URL arithmetic that never checks the path), `import()` types, `/// <reference types>`, `/// <reference path>` and JSDoc `@import` tags. Computed specifiers are outside this check.
 
@@ -180,6 +182,14 @@ export default defineConfig({
 `imports/cycles` reports each group of modules that import each other at run time once, at the alphabetically first of them, with one loop through the group. Its count is the number of modules in the group. `import type`, `export type`, type references and imports in declaration files are left out; `import { type X }` stays a runtime import. Dynamic `import()` and `require()` count; `require.resolve()` does not. It takes no registry exceptions. Each finding of `imports/resolvable` has the import as its subject.
 
 When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code; do not disable the checks to conceal an empty inventory. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
+
+#### Manifest dependencies
+
+`imports/manifest` discovers named workspace members from `pnpm-workspace.yaml` or the root manifest's `workspaces`, with no package scope convention or fence configuration. It discovers manifests across the repository, independently of `sources`, skipping files ignored by git and `node_modules`. Selecting only a member's `src` folder still checks its imports of members outside that selection against its own manifest. Each import of another member must appear in the importing member's `dependencies`, `peerDependencies` or `optionalDependencies`. The workspace root uses its own manifest for code outside a member. Self-imports and packages outside the workspace do not need a workspace declaration under this rule.
+
+Tests and files under `test-support/` may also use `devDependencies`. Tooling means files under a `script/`, `scripts/` or `tooling/` folder directly below the importing package's root, or a config file directly at that root, named `config.ts`, `vitest.config.ts` or another `*.config.*` with a JavaScript or TypeScript extension. A folder or config file nested under `src/` still counts as shipped code.
+
+The rule checks type imports as well as value imports. Resolved aliases and relative paths use the target's workspace owner; unresolved bare package names and subpaths still require a declaration. A nested manifest that is not a workspace member does not replace its owner's dependency policy. Malformed dependency objects stop the run. Add the dependency to the correct manifest field or remove the import; the rule does not edit manifests.
 
 #### Aliases
 
@@ -235,9 +245,11 @@ Fences guard shipped code, and [test code](./naming.md#test-code) ships nowhere,
 
 A finding has its fence's name as its subject, so a registry entry with that subject excuses one file from one fence.
 
+`imports/no-test-code` checks every file edge from a production module to a test file or a file under `test-support/`, including type imports, re-exports and test assets. It rejects missing relative paths under `test-support/` too. Test importers may still import production code and other test code. Move shared code into a production module and import it from both production and tests. The rule takes no registry exceptions.
+
 ### Manifests
 
-`manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no registry exceptions.
+`manifests/sorted` keeps every `package.json` in the repository in the key order of [sort-package-json](https://github.com/keithamus/sort-package-json), a dependency of this package. It walks the whole repository, not only the sources, and skips untracked files ignored by git and `node_modules`. A manifest that is not valid JSON is reported too. `quality fix` sorts the manifests, and the rule takes no registry exceptions.
 
 ## Local-rule API
 

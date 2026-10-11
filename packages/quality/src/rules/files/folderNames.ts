@@ -5,7 +5,7 @@ import { packageLayout } from "#naming/packageLayout.ts";
 import { KEBAB, PASCAL } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
-const DEFAULT_TOOL_OWNED: readonly string[] = ["generated/", "migrations/"];
+const DEFAULT_TOOL_OWNED: readonly string[] = ["migrations/"];
 
 const SNAKE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/u;
 

@@ -32,12 +32,15 @@ const nativeTransactionWithoutTransact = Effect.fn("Transact.guard")(function* (
 	}
 });
 
-const invalidations = makeChannel<unknown, SqlClient.SqlClient | Reactivity.Reactivity>({
+const invalidations = makeChannel<unknown, SqlClient.SqlClient | Reactivity.Reactivity, SqlError>({
 	name: "@shivaedev/effect-sql/transact",
 	owner: Effect.map(SqlClient.SqlClient, (sql) => sql.transactionService),
 	publish: (keys) => Reactivity.invalidate(keys),
 	unowned: nativeTransactionWithoutTransact(),
 });
+
+export const BeforeCommit = invalidations.BeforeCommit;
+export const CommittedSink = invalidations.CommittedSink;
 
 export const invalidateOnCommit = Effect.fn("Transact.invalidateOnCommit")(function* (keys: InvalidationKeys) {
 	yield* invalidations.record(flatten(keys));

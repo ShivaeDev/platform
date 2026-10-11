@@ -47,6 +47,9 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/types": "workspace:*"
+	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
 		"@prisma-next/adapter-postgres": "catalog:",
@@ -58,7 +61,6 @@
 		"@shivaedev/effect-prisma": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/types": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",

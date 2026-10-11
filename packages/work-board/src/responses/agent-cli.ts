@@ -1,3 +1,4 @@
+import process from "node:process";
 import * as Effect from "effect/Effect";
 import { Unanswered } from "#rpc/rejections.ts";
 import { agentRequest } from "./agent.ts";

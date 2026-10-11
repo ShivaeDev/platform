@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { dirname } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
@@ -15,6 +16,7 @@ interface FollowRun {
 interface Follower {
 	readonly done: Promise<FollowRun>;
 	readonly output: () => string;
+	readonly ready: Promise<void>;
 }
 
 interface FollowOptions {
@@ -30,6 +32,7 @@ export function withFollower<A, E, R>(
 	options: FollowOptions,
 	use: (follower: Follower) => Effect.Effect<A, E, R>,
 ) {
+	const ready = Promise.withResolvers<void>();
 	function run(port: number) {
 		return Effect.acquireUseRelease(
 			Effect.sync(() => {
@@ -68,7 +71,7 @@ export function withFollower<A, E, R>(
 						}),
 					);
 				});
-				return { child, done, output: () => stdout };
+				return { child, done, output: () => stdout, ready: options.port === undefined ? ready.promise : Promise.resolve() };
 			}),
 			use,
 			({ child, done }) =>
@@ -80,7 +83,7 @@ export function withFollower<A, E, R>(
 	}
 	return options.port === undefined
 		? loadHost(dirname(configFile), configFile).pipe(
-				Effect.flatMap((host) => withReadDaemon(host, run)),
+				Effect.flatMap((host) => withReadDaemon(host, run, undefined, () => ready.resolve())),
 				Effect.provide(NodeServices.layer),
 			)
 		: run(options.port);

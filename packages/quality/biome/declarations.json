@@ -22,16 +22,6 @@
 	{
 		"includes": ["**"],
 		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
-		"rule": "lint/correctness/noProcessGlobal"
-	},
-	{
-		"includes": ["**"],
-		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
-		"rule": "lint/correctness/useJsonImportAttributes"
-	},
-	{
-		"includes": ["**"],
-		"reason": "quality fix applies every Biome lint fix, and this rule's fix changed behavior or did not finish on real code, so the rule is off until it is reviewed.",
 		"rule": "lint/nursery/useSortedClasses"
 	},
 	{

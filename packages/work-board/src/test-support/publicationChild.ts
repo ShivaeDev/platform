@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { syncBuiltinESMExports } from "node:module";
+import process from "node:process";
 import { Effect } from "effect";
 
 const [root, phase] = process.argv.slice(2);

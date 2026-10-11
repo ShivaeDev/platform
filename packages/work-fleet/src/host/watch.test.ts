@@ -56,7 +56,7 @@ describe("work-fleet watch against PostgreSQL and HTTP", () => {
 					[],
 					{},
 					Effect.fnUntraced(function* (follower) {
-						yield* Effect.sleep("2 seconds");
+						yield* Effect.promise(() => follower.ready);
 						expect(follower.output()).toBe("");
 						yield* storeState(fixture.host, "a", { stage: "released" });
 						yield* untilOutput(follower, "a released\n");
