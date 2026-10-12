@@ -71,8 +71,8 @@ function developmentFile(owner: WorkspacePackage, path: string): boolean {
 	return TOOL_FOLDERS.has(folder) || (!local.includes("/") && CONFIG_FILE.test(local));
 }
 
-function developmentImport(policy: ManifestDependencies | undefined, owner: WorkspacePackage, path: string) {
-	if (policy?.runtime.has(path)) {
+function developmentImport(policy: ManifestDependencies | undefined, owner: WorkspacePackage, path: string, runtime: ReadonlySet<string>) {
+	if (runtime.has(path)) {
 		return false;
 	}
 	return developmentFile(owner, path) || policy?.privateFiles.has(path);
@@ -84,6 +84,7 @@ export const importsManifest = defineRule({
 		const root: WorkspacePackage | undefined = (await inputs.readText("package.json")) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
 		const policies = new Map(await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph)] as const)));
+		const runtime = new Set([...policies.values()].flatMap((policy) => [...policy.runtime]));
 		const named = new Map(graph.packages.map((owner) => [owner.name, owner]));
 		const requests = [...graph.edges, ...graph.unresolved.filter((request) => request.missing === undefined)];
 		return requests.flatMap((request) => {
@@ -95,7 +96,7 @@ export const importsManifest = defineRule({
 				return [];
 			}
 			const policy = policies.get(owner);
-			const development = developmentImport(policy, owner, request.from);
+			const development = developmentImport(policy, owner, request.from, runtime);
 			if (policy?.shipped.has(target.name) || (development && policy?.development.has(target.name))) {
 				return [];
 			}

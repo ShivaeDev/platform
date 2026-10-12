@@ -49,6 +49,24 @@ it("follows blocked helpers and cycles reached by runtime code", async () => {
 	expect((await findingsIn(importsManifest, undefined, root)).map(({ file }) => file)).toEqual([input.path]);
 });
 
+it.each([
+	{ file: "runtime.ts", runtime: true },
+	{ file: "consumer.test.ts", runtime: false },
+])("keeps cross-member reachability from $file inside its dependency boundary", async ({ file, runtime }) => {
+	const root = manifestTree([
+		manifest(),
+		input,
+		{
+			content: JSON.stringify({ dependencies: { "@acme/app": "workspace:*" }, name: "consumer-app" }),
+			path: "modules/consumer/package.json",
+		},
+		{ content: 'import "../../app/src/bundle/input.ts";', path: `modules/consumer/src/${file}` },
+	]);
+	expect((await findingsIn(importsManifest, undefined, root)).map(({ file: path, subject }) => ({ file: path, subject }))).toEqual(
+		runtime ? [{ file: input.path, subject: "plain-kit" }] : [],
+	);
+});
+
 it.each(["./dist/bundle/input.js", "./src/bundle/input.ts"])("keeps executable %s in the runtime dependency boundary", async (bin) => {
 	const root = manifestTree([manifest(blocked, bin), input]);
 	expect(await findingsIn(importsManifest, undefined, root)).toHaveLength(1);
