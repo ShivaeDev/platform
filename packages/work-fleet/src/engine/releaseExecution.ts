@@ -1,14 +1,14 @@
 import { Effect } from "effect";
+import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseReceipts } from "#engine/releaseReceipts.ts";
 import type { FleetRecord } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
 
 function observationFailure(error: SessionFailure) {
-	return new FleetFailure({ message: error.message, reason: "integration" });
+	return new ServiceUnavailable({ message: error.message });
 }
 export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	let current = stored;
@@ -19,7 +19,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 		const recoveredReceipts = yield* releaseReceipts(state, attempt);
 		current = yield* state.load(stored.value.workId);
 		if (current.value.stage !== "needs-human" || current.value.decision?.id !== stored.value.decision?.id) {
-			return yield* new FleetFailure({ message: "Decision changed", reason: "stale" });
+			return yield* new Conflict({ message: "Decision changed" });
 		}
 		const acknowledged = current.value.attempts.find((saved) => saved.operationId === attempt.operationId) ?? attempt;
 		const receipts = yield* releaseReceipts(state, { ...acknowledged, terminalReceipts: recoveredReceipts });
@@ -34,7 +34,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 			observations.push(observation);
 		}
 		if (observations.some((item) => ["accepted", "running"].includes(item.execution))) {
-			return yield* new FleetFailure({ message: "Confirm terminal execution before releasing ownership", reason: "denied" });
+			return yield* new Forbidden({ message: "Confirm terminal execution before releasing ownership" });
 		}
 		const observation = observations[0];
 		const attempts = current.value.attempts.map((saved) =>

@@ -2,11 +2,12 @@ import { Effect, Result } from "effect";
 import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
 import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { failureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { requestConflictRepair } from "#engine/requestConflictRepair.ts";
-import { MovedPrHead } from "#host/movedPrHead.ts";
+import { isFleetError } from "#errors.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -82,26 +83,30 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 			return repair;
 		}
 		if (
-			observed.failure instanceof MovedPrHead
+			failureContext(observed.failure).head !== undefined
 			&& !executing(record)
 			&& (record.stage === "delivering" || (record.review?.verdict === "approved" && record.review.head === result.head))
 		) {
 			const work = yield* state.board.get(record.workId);
 			current = yield* invalidateMergeReadiness(state, stored);
-			return yield* refreshReviewResult(state)(current, work, result, observed.failure.head).pipe(
-				Effect.catchTag("FleetFailure", (error) =>
-					waitingDecision(error.message, "Inspect the current PR result before retrying or releasing this work", error.attentionOwner),
+			return yield* refreshReviewResult(state)(current, work, result, failureContext(observed.failure).head).pipe(
+				Effect.catchIf(isFleetError, (error) =>
+					waitingDecision(
+						error.message,
+						"Inspect the current PR result before retrying or releasing this work",
+						failureContext(error).attentionOwner,
+					),
 				),
 			);
 		}
-		if (observed.failure.reason === "integration" && record.decision !== undefined) {
+		if (observed.failure._tag === "ServiceUnavailable" && record.decision !== undefined) {
 			return stored;
 		}
 		current = yield* invalidateMergeReadiness(state, stored);
 		return yield* waitingDecision(
 			observed.failure.message,
 			"Inspect the adopted PR and its delivery evidence before retrying or releasing this work",
-			observed.failure.attentionOwner,
+			failureContext(observed.failure).attentionOwner,
 		);
 	}
 	if (executing(record) || record.review?.verdict !== "approved" || record.checks?.passed !== true) {

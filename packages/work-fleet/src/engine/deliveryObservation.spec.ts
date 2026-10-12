@@ -1,10 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { backlog } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
@@ -18,7 +19,9 @@ for (const owner of ["orchestrator", "automation"] as const) {
 			{
 				deliveryQuery: () =>
 					Effect.fail(
-						new FleetFailure({ attentionOwner: owner === "automation" ? owner : undefined, message: "Delivery unavailable", reason: "integration" }),
+						withFailureContext(new ServiceUnavailable({ message: "Delivery unavailable" }), {
+							attentionOwner: owner === "automation" ? owner : undefined,
+						}),
 					),
 			},
 			(fixture) =>
@@ -44,7 +47,7 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 		let unavailable = false;
 		let observation: unknown = { ...open, state };
 		const deliveryQuery = githubDelivery("/repository", () =>
-			unavailable ? Effect.fail(new FleetFailure({ message: "GitHub request failed", reason: "integration" })) : Effect.succeed(observation),
+			unavailable ? Effect.fail(new ServiceUnavailable({ message: "GitHub request failed" })) : Effect.succeed(observation),
 		);
 		return withEngine({ deliveryQuery, resultQuery: () => Effect.succeed(result) }, (fixture) =>
 			Effect.gen(function* () {

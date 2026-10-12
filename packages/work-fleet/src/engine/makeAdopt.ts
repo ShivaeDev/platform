@@ -1,4 +1,5 @@
 import { Effect, Result } from "effect";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";
@@ -6,7 +7,6 @@ import type { EngineState } from "#engine/makeState.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
-import { FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdopt(state: EngineState) {
 	const { integrations, save } = state;
@@ -23,7 +23,7 @@ export function makeAdopt(state: EngineState) {
 		}
 		const latest = stored.value.attempts.at(-1);
 		if (latest?.receipt === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Terminal execution lacks receipt", reason: "invalid" }));
+			return yield* Effect.fail(new BadRequest({ message: "Terminal execution lacks receipt" }));
 		}
 		const adopted = yield* integrations
 			.result(work, {

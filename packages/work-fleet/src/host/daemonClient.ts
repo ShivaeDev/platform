@@ -2,9 +2,10 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
+import { isFleetError } from "#errors.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
-import { FleetFailure } from "#policy.ts";
 
 export function daemonClient(port = DAEMON_PORT) {
 	return RpcClient.make(DaemonContract, { flatten: true }).pipe(
@@ -21,14 +22,13 @@ export function daemonRequest<A, E, R>(port: number, use: (client: Effect.Succes
 }
 
 export function daemonError(error: unknown, port: number) {
-	if (error instanceof FleetFailure) {
+	if (isFleetError(error)) {
 		return error;
 	}
 	const transport = error instanceof RpcClientError && error.reason._tag === "HttpError" && error.reason.kind === "TransportError";
-	return new FleetFailure({
+	return new ServiceUnavailable({
 		message: transport
 			? `No Fleet daemon is running at 127.0.0.1:${port}; start work-fleet serve <board-dir> --port ${port}`
 			: `Fleet daemon communication failed at 127.0.0.1:${port}: ${error instanceof Error ? error.message : String(error)}`,
-		reason: "integration",
 	});
 }

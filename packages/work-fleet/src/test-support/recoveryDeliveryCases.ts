@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { MOVED_PR_HEAD_REASON } from "#engine/deliveryFailure.ts";
 import { Fleet } from "#fleet.ts";
-import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
-import { FleetFailure } from "#policy.ts";
 import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryReview } from "#test/recoverySteps.ts";
@@ -13,7 +13,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 	function observeDelivery() {
 		return Effect.suspend(() => {
 			if (wrongDelivery) {
-				return Effect.fail(new FleetFailure({ message: "Synthetic delivery unavailable", reason: "integration" }));
+				return Effect.fail(new ServiceUnavailable({ message: "Synthetic delivery unavailable" }));
 			}
 			deliveries += 1;
 			return Effect.succeed({ head: HEAD, revision: HEAD, url: PR });

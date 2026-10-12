@@ -1,7 +1,8 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
-import { FleetFailure, type WorkResult } from "#policy.ts";
+import type { WorkResult } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
@@ -20,7 +21,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				result = { ...original, paths: ["src/one.ts", "src/two.ts"] };
 				fixture.editWork("one", "board-one-next");
 				fixture.approveWork("one", "board-one-next");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ message: expect.stringContaining("scope exceeds"), reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("scope exceeds") });
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
 				expect(yield* fixture.foreignReservations()).toEqual([{ backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 				expect(fixture.launched).toHaveLength(2);
@@ -32,8 +33,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		return withEngine(
 			{
 				denyDelivery: true,
-				resultQuery: () =>
-					unavailable ? Effect.fail(new FleetFailure({ message: "Ownership unavailable", reason: "integration" })) : Effect.succeed(original),
+				resultQuery: () => (unavailable ? Effect.fail(new ServiceUnavailable({ message: "Ownership unavailable" })) : Effect.succeed(original)),
 			},
 			(fixture) =>
 				Effect.gen(function* () {
@@ -46,8 +46,8 @@ describe("renewal refreshes adopted open PR ownership", () => {
 					fixture.editWork("one", "board-one-next");
 					fixture.approveWork("one", "board-one-next");
 					expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({
+						_tag: "Forbidden",
 						message: expect.stringContaining("ownership is unavailable"),
-						reason: "denied",
 					});
 					const retained = yield* fleet.get("one");
 					expect(retained.value.result).toEqual(original);
@@ -68,7 +68,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				result = { ...original, paths: ["src/two.ts"], pr: "https://example.invalid/pr/replacement" };
 				fixture.editWork("one", "board-one-next");
 				fixture.approveWork("one", "board-one-next");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ message: expect.stringContaining("identity changed"), reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("identity changed") });
 				expect((yield* fleet.get("one")).value.result).toEqual(original);
 				expect((yield* fixture.foreignReservations()).map(({ owner }) => owner)).toEqual([
 					"https://example.invalid/pr/one",
@@ -109,7 +109,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 				finishWorkers(fixture);
 				const denied = yield* fleet.reconcile("one");
 				result = { ...original, paths: ["src/one.ts", "src/two.ts"] };
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 				const decisionId = denied.value.decision?.id ?? "missing";
 				const responseId = fixture.respond(decisionId, "release");
 				expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");

@@ -1,8 +1,9 @@
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { executing, type FleetRecord } from "#model.ts";
-import { type DecisionResponse, FleetFailure } from "#policy.ts";
+import type { DecisionResponse } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function continueWorker(state: EngineState) {
@@ -17,7 +18,7 @@ export function continueWorker(state: EngineState) {
 			|| latest.status !== "completed"
 			|| executing(stored.value)
 		) {
-			return yield* Effect.fail(new FleetFailure({ message: "Confirm the exact question turn is terminal before continuing", reason: "denied" }));
+			return yield* Effect.fail(new Forbidden({ message: "Confirm the exact question turn is terminal before continuing" }));
 		}
 		return yield* makeLaunch(state)(stored, latest.role, prompt, { responses, sessionId: worker.sessionId });
 	});

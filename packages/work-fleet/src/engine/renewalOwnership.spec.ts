@@ -36,7 +36,7 @@ describe("renewal reconciles prior result ownership", () => {
 				yield* fleet.reconcile("one");
 				fixture.approveWork("one", "board-one-next");
 				const error = yield* Effect.flip(prepareWork("one"));
-				expect(error).toMatchObject({ _tag: "FleetFailure", message: expect.stringContaining("ownership is unavailable"), reason: "denied" });
+				expect(error).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("ownership is unavailable") });
 				const retained = yield* fleet.get("one");
 				expect(retained.value.history).toBeUndefined();
 				expect(retained.value.attempts).toHaveLength(1);
@@ -55,7 +55,7 @@ describe("renewal reconciles prior result ownership", () => {
 				yield* fleet.reconcile("one");
 				fixture.approveWork("one", "board-one-next");
 				fixture.failedObservations.add(submitted.value.attempts[0]?.receipt?.turnId ?? "missing");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
 				expect(fixture.launched).toHaveLength(1);
 			}),

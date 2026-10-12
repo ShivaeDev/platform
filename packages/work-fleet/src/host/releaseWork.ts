@@ -1,5 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
+import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { watchChanges } from "@shivaedev/work-board/files/changes.ts";
 import { ResponseConfig, Responses } from "@shivaedev/work-board/responses/service.ts";
 import { searchSnapshot } from "@shivaedev/work-board/search/snapshot.ts";
@@ -8,7 +9,6 @@ import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { executing } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
 	return releaseItems(host, workIds).pipe(Effect.provide(hostLayer(host, parts)));
@@ -39,14 +39,14 @@ function releaseItem(root: string) {
 			return yield* fleet.reconcile(workId);
 		}
 		if (stored.value.stage !== "needs-human" || executing(stored.value)) {
-			return yield* Effect.fail(new FleetFailure({ message: "Only terminal needs-human work can be released", reason: "denied" }));
+			return yield* Effect.fail(new Forbidden({ message: "Only terminal needs-human work can be released" }));
 		}
 		if (stored.value.decision?.published === undefined) {
 			stored = yield* fleet.reconcile(workId);
 		}
 		const decision = stored.value.decision;
 		if (decision?.published === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Publish the waiting decision before release", reason: "stale" }));
+			return yield* Effect.fail(new Conflict({ message: "Publish the waiting decision before release" }));
 		}
 		const responseId = yield* recordDecisionResponse(root, { ...decision, published: decision.published }, "release");
 		return yield* fleet.resolve(workId, decision.id, responseId);
