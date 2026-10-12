@@ -49,7 +49,9 @@ it.live("does not invent an unanswered verdict when transport fails after the kn
 	const registered = yield* Effect.promise(() => workspace.register());
 	const question = { ...registered, question: { ...registered.question, deadline: (yield* Clock.currentTimeMillis) - 1 } };
 	const rpc = waitReplies([Effect.succeed({ expired: false, question }), Effect.fail(new ServiceUnavailable({ message: "Connection lost." }))]);
-	expect((yield* Effect.flip(waitForResponse(rpc.read, () => undefined))).message).toContain(
+	const failure = yield* Effect.flip(waitForResponse(rpc.read, () => undefined));
+	expect(failure).toBeInstanceOf(ServiceUnavailable);
+	expect(failure.message).toContain(
 		"The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns.",
 	);
 	expect(rpc.calls()).toBe(2);

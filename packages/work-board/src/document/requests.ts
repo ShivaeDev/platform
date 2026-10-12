@@ -1,3 +1,4 @@
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { authoredQuestion } from "#attention/inbox.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
@@ -29,7 +30,7 @@ export function documentRequests(document: MetadataDocument, source: string, sna
 		const request = { id, open: active !== undefined, ...(active ? { preview } : {}) };
 		try {
 			if (snapshot.model.ids.get(item)?.length !== 1) {
-				throw new Error("Item identity is ambiguous; response history is unknown.");
+				throw new ServiceUnavailable({ message: "Item identity is ambiguous; response history is unknown. Give each item a unique ID, then retry." });
 			}
 			return { ...request, responses: responseHistory(snapshot, preview) };
 		} catch (error) {

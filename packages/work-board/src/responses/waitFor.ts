@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { WaitReading } from "#browser/responses/schema.ts";
 import { ResponseRejection, Unanswered } from "#rpc/rejections.ts";
 
@@ -39,7 +40,9 @@ export const waitForResponse = Effect.fn("WorkBoard.waitForResponse")(function* 
 			}
 			if ((yield* Clock.currentTimeMillis) >= (known?.question.question.deadline ?? leaseEnd)) {
 				return yield* Effect.fail(
-					new Error("The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns."),
+					new ServiceUnavailable({
+						message: "The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns.",
+					}),
 				);
 			}
 			if (!unavailable) {

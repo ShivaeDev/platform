@@ -7,8 +7,9 @@ import { responseWorkspace } from "#test/responseEdges.ts";
 
 let workspace: Effect.Success<ReturnType<typeof responseWorkspace>>;
 
-it("rejects unsafe agent server URLs before creating any HTTP request", () => {
+it.live("rejects unsafe agent server URLs through the typed error channel before creating any HTTP request", function* () {
 	for (const url of [
+		"not a URL",
 		"https://127.0.0.1:4747",
 		"http://remote.example",
 		"http://user:pass@localhost:4747",
@@ -16,19 +17,24 @@ it("rejects unsafe agent server URLs before creating any HTTP request", () => {
 		"http://localhost:4747/?q=1",
 		"http://localhost:4747/#fragment",
 	]) {
-		expect(() => agentRequest("question", { request: "item/request", url })).toThrow("Use a loopback Work Board URL, such as http://127.0.0.1:4747.");
+		expect(yield* Effect.flip(agentRequest("question", { request: "item/request", url }))).toMatchObject({
+			_tag: "BadRequest",
+			message: "Use a loopback Work Board URL, such as http://127.0.0.1:4747.",
+		});
 	}
 });
 
 it.live("reports malformed agent request references with the exact command correction", function* () {
 	workspace = yield* responseWorkspace();
 	const url = workspace.board.url;
-	expect((yield* Effect.flip(agentRequest("question", { request: "investigation.choices", url }))).message).toContain(
-		"Use question <item>/<request>.",
-	);
-	expect((yield* Effect.flip(agentRequest("wait", { request: "investigation.choices/direction", url }))).message).toContain(
-		"Use wait <item>/<request> --revision <reviewed SHA-256>, or wait <registered-question-id>.",
-	);
+	expect(yield* Effect.flip(agentRequest("question", { request: "investigation.choices", url }))).toMatchObject({
+		_tag: "BadRequest",
+		message: "Use question <item>/<request>.",
+	});
+	expect(yield* Effect.flip(agentRequest("wait", { request: "investigation.choices/direction", url }))).toMatchObject({
+		_tag: "BadRequest",
+		message: "Use wait <item>/<request> --revision <reviewed SHA-256>, or wait <registered-question-id>.",
+	});
 });
 
 it.live("previews, registers and reattaches agent shorthand to the same durable question through real HTTP", function* () {

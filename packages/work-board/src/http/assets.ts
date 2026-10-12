@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
-import { Data, Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { diagnosticsScript } from "#diagnostics/script.ts";
 import { historyScript } from "#history/script.ts";
 import { ageScript } from "#page/ageScript.ts";
@@ -43,7 +44,11 @@ export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, strin
 
 const MERMAID = "/_board/mermaid/";
 
-export class MermaidMissing extends Data.TaggedError("MermaidMissing")<{ readonly cause: unknown }> {}
+export class MermaidMissing extends Schema.TaggedError<MermaidMissing>()("MermaidMissing", { cause: Schema.Unknown }) {
+	override get message() {
+		return "The Mermaid assets could not be found. Reinstall Work Board and restart it.";
+	}
+}
 
 export const mermaidRoot = Effect.fn("WorkBoard.mermaidRoot")(function* () {
 	const path = yield* Path.Path;
@@ -51,12 +56,12 @@ export const mermaidRoot = Effect.fn("WorkBoard.mermaidRoot")(function* () {
 	return path.dirname(entry);
 });
 
-export function mermaidFile(mermaidRoot: string) {
+export function mermaidFile(root: string) {
 	return Effect.fn("WorkBoard.mermaidFile")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
-		const file = path.resolve(mermaidRoot, new URL(request.url, "http://127.0.0.1").pathname.slice(MERMAID.length));
-		if (!(file.startsWith(`${mermaidRoot}${path.sep}`) && file.endsWith(".mjs") && (yield* fs.exists(file)))) {
+		const file = path.resolve(root, new URL(request.url, "http://127.0.0.1").pathname.slice(MERMAID.length));
+		if (!(file.startsWith(`${root}${path.sep}`) && file.endsWith(".mjs") && (yield* fs.exists(file)))) {
 			return respond("Not found", "text/plain", 404);
 		}
 		return respond(yield* fs.readFile(file), "text/javascript");
@@ -72,7 +77,9 @@ function missingBundle(file: string) {
 
 const bundledPath = Effect.fn("WorkBoard.bundledPath")(function* (file: string) {
 	const path = yield* Path.Path;
-	const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
+	const module = yield* path
+		.fromFileUrl(new URL(import.meta.url))
+		.pipe(Effect.mapError(() => new InternalServerError({ message: "The browser asset location is invalid. Reinstall Work Board and restart it." })));
 	return path.resolve(path.dirname(module), "../../assets", file);
 });
 
