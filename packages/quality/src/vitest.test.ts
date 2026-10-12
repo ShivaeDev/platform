@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { TestProjectConfiguration } from "vitest/config";
 import { packageRoot, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
-import { inheritTags } from "#vitest.ts";
+import { inheritTags, testProjects } from "#vitest.ts";
 
 afterEach(removeSeededTrees);
 
@@ -44,7 +44,7 @@ function repository(options = ""): string {
 			testFile("src/flow.spec.ts", 'it("runs in Node", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
 			testFile("src/flow.dom.spec.tsx", 'it("runs in a DOM", () => {\n\texpect(typeof document).toBe("object");\n});'),
 			testFile("src/flow.typecheck.spec.ts", 'it("never runs", () => {\n\texpect.unreachable();\n});'),
-			testFile("e2e/smoke.spec.ts", 'it("belongs to another runner", () => {\n\texpect.unreachable();\n});'),
+			testFile("e2e/smoke.spec.ts", 'it("runs every suite", () => {\n\texpect(typeof document).toBe("undefined");\n});'),
 		]),
 	);
 }
@@ -59,7 +59,7 @@ function workspace(projects: string): string {
 				path: BAKERY,
 			},
 			{
-				content: `import { defineConfig } from "vitest/config";\nimport { inheritTags } from "${helper}";\nimport bakery from "${BAKERY}";\n\nconst projects = bakery.test.projects.map((project) => ({ ...project, extends: "${BAKERY}", root: "./packages/bakery" }));\n\nexport default defineConfig(async () => ({ test: { project: ["unit"], projects: ${projects} } }));\n`,
+				content: `import { defineConfig } from "vitest/config";\nimport { inheritTags, testProjects } from "${helper}";\nimport bakery from "${BAKERY}";\n\nconst projects = bakery.test.projects.map((project) => ({ ...project, extends: "${BAKERY}", root: "./packages/bakery" }));\n\nexport default defineConfig(async () => ({ test: { project: ["unit"], projects: ${projects} } }));\n`,
 				path: "vitest.config.ts",
 			},
 			testFile("packages/bakery/src/bread.test.ts", 'it("rises", { tags: ["bakery-story"] }, () => {\n\texpect(1).toBe(1);\n});'),
@@ -90,15 +90,25 @@ function vitest(root: string, ...args: readonly string[]) {
 }
 
 describe("testProjects", { timeout: 60_000 }, () => {
-	it("runs unit tests and specs in Node and .dom tests and specs in a DOM, and leaves out slow tests, type tests and excluded suites", () => {
-		expect(vitest(repository('{ exclude: ["e2e/**"] }'))).toMatchObject({
-			ran: ["src/a.test.ts passed", "src/b.dom.test.tsx passed", "src/flow.dom.spec.tsx passed", "src/flow.spec.ts passed"],
+	it("runs unit tests and specs in Node and .dom tests and specs in a DOM, and leaves out slow and type tests", () => {
+		expect(vitest(repository())).toMatchObject({
+			ran: [
+				"e2e/smoke.spec.ts passed",
+				"src/a.test.ts passed",
+				"src/b.dom.test.tsx passed",
+				"src/flow.dom.spec.tsx passed",
+				"src/flow.spec.ts passed",
+			],
 			status: 0,
 		});
 	});
 
-	it("runs every spec outside the excluded folders, so a folder of another runner is excluded", () => {
-		expect(vitest(repository()).ran).toContain("e2e/smoke.spec.ts failed");
+	it("runs every spec regardless of its folder", () => {
+		expect(vitest(repository()).ran).toContain("e2e/smoke.spec.ts passed");
+	});
+
+	it("rejects suite exclusions supplied by untyped callers", () => {
+		expect(() => Reflect.apply(testProjects, undefined, [{ exclude: ["e2e/**"] }])).toThrow("testProjects takes no options");
 	});
 
 	it("runs the slow tests alone when the slow project is asked for", () => {

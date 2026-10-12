@@ -6,7 +6,7 @@ import { commentsOf, type SourceComment } from "./scan.ts";
 
 const MaxPerFileOptions = Schema.Struct({
 	allow: Pragmas,
-	max: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
+	max: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(2)).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
 });
 
 const continues = (previous: SourceComment | undefined, comment: SourceComment): boolean =>
