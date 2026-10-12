@@ -7,3 +7,7 @@
 ### Changed
 
 - The configured home board, Work board/table with filters and selected detail, Overview and Inbox render in React from projection queries. Existing URLs, saved local views, inline answers and live updates use the shared query registry. Home reads retain targeted invalidation and change highlighting; visual previews refresh and diagram drawings return with Back navigation.
+
+### Fixed
+
+- Opening the current projection URL uses its typed query, including when retrying a failed view. Overview and Inbox keep their payload-free calls.
