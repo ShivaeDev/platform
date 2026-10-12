@@ -210,10 +210,9 @@ The rule only reports; nothing rewrites the import. Whoever writes the import pi
 
 #### Fences
 
-A fence is one prohibition, stated in the config without patterns:
+A fence is one prohibition. A package declares stronger promises than its manifest in `quality.fences.config.ts` beside `package.json`. Quality discovers this file at the root and in workspace members without a root-config list, independently of the source inventory:
 
 ```ts
-import { defineConfig } from "@shivaedev/quality/config.ts";
 import { external, folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
 
@@ -228,7 +227,7 @@ const fences = [
 		}),
 ];
 
-export default defineConfig({ rules: { "imports/fences": { options: { fences } } } });
+export default fences;
 ```
 
 A fence has a name, a reason, the modules it holds (`from`) and one prohibition:
@@ -239,7 +238,7 @@ A fence has a name, a reason, the modules it holds (`from`) and one prohibition:
 
 Targets are `packages(...)` (workspace packages by name, with or without their scope; a workspace package is a named `package.json` that `pnpm-workspace.yaml` or the root `package.json` `workspaces` includes, with `*`, `**`, `?`, `{a,b}` and `[...]` in its patterns, none of which match a folder whose name starts with `.` unless the pattern spells the dot, and a `packages` list or pattern the gate cannot read stops the run, and it holds every file below it that no deeper workspace package holds), `folders(...)`, `files(...)`, `modules(...)` (external packages by package name, and Node builtins), `scopes(...)` (every external package of a scope), `anyOf(...)`, `workspace` (every workspace package) and `anything`. Each takes `.except(...)`.
 
-The config does not compile without `demonstratedBy`, and the rule checks the examples against the policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
+The DSL does not compile without `demonstratedBy`, and the rule checks the examples against the combined discovered and config-supplied policy: each is a chain of imports from a file of the repository, which may end in `external(name)`. The illegal example must cross this fence and no other; the legal example must cross none. Every name a fence uses must exist: a package, a folder that holds checked files, a checked file, a subject of the unit. Two fences may not share a name, and each needs a reason. A policy that breaks any of this stops the run. Fences count type imports too.
 
 Fences guard shipped code, and [test code](./naming.md#test-code) ships nowhere, so a fence never holds it: a test file or a file under `test-support/` may import across every fence. There is no option to check them.
 
