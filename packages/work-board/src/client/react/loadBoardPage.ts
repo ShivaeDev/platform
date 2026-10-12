@@ -5,6 +5,8 @@ import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { documentQuery, pageQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
+import { loadProjection } from "./loadProjection.ts";
+import { projectionRoute } from "./projectionRoute.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 
@@ -20,12 +22,18 @@ export async function loadBoardPage({
 	const url = location.pathname + location.searchStr;
 	try {
 		const navigation = await loadQuery(registry, api.navigation.query({ current: "" }), { abortController });
+		const projection = projectionRoute(location.pathname, navigation.home);
+		if (projection) {
+			await loadProjection(registry, api, projection, url, abortController);
+			return undefined;
+		}
 		if (documentRoute(location.pathname, navigation.home)) {
 			try {
 				const data = await loadQuery(registry, documentQuery(api, url), { abortController });
-				if (!data.reading?.board) {
-					return undefined;
+				if (data.reading?.board) {
+					await loadProjection(registry, api, "board", url, abortController);
 				}
+				return undefined;
 			} catch (error) {
 				if (!(location.pathname === "/" && Predicate.isTagged(error, "NotFound"))) {
 					throw error;

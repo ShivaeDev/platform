@@ -6,6 +6,7 @@ import { documentQuery } from "#client/page/routeQuery.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
 import { LegacyMain } from "./LegacyMain.tsx";
 import type { MainLocation } from "./legacyPage.ts";
+import { ProjectionMain } from "./ProjectionMain.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import { useDocumentPage } from "./useDocumentPage.ts";
@@ -34,7 +35,10 @@ export function DocumentMain({
 	const data = terminal ? undefined : (fresh ?? retained);
 	const status = readStatus(failure?._tag, Option.isSome(query.cause));
 	const hostRef = useDocumentPage({ data, onPage, pending: query.pending, status, url });
-	if (data?.reading?.board || (url === "/" && failure?._tag === "NotFound")) {
+	if (data?.reading?.board) {
+		return <ProjectionMain api={api} onPage={onPage} route="board" url={url} />;
+	}
+	if (url === "/" && failure?._tag === "NotFound") {
 		return <LegacyMain api={api} initial={initial} onPage={onPage} url={url} />;
 	}
 	return (

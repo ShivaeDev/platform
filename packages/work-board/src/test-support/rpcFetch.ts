@@ -1,12 +1,27 @@
 import type { BrowserWindow } from "happy-dom";
 import type { PageRequests } from "./browser.ts";
 import { RpcStream } from "./RpcStream.ts";
-import { rpcRequest } from "./rpc.ts";
+import { type RpcRequest, rpcRequest } from "./rpc.ts";
 
 type Request = InstanceType<BrowserWindow["Request"]>;
 type Response = InstanceType<BrowserWindow["Response"]>;
 function nativeRequest(request: Request) {
 	return new URL(request.url).pathname.replace(/\/$/u, "") === "/_board/rpc";
+}
+function pageRead(call: RpcRequest | undefined, path: string) {
+	if (!call) {
+		return false;
+	}
+	if (call.tag === "work-board.inbox") {
+		return path === "/_board/inbox";
+	}
+	if (call.tag === "work-board.overview") {
+		return path === "/_board/overview";
+	}
+	return (
+		["work-board.page", "work-board.document", "work-board.board", "work-board.work"].includes(call.tag)
+		&& JSON.stringify(call.payload).includes(JSON.stringify(path))
+	);
 }
 async function answer(pageRequests: PageRequests, window: BrowserWindow) {
 	pageRequests.count += 1;
@@ -40,7 +55,7 @@ export async function rpcBefore(
 			throw new Error("Subscription transport unavailable");
 		}
 	}
-	if ((call?.tag === "work-board.page" || call?.tag === "work-board.document") && JSON.stringify(call.payload).includes(JSON.stringify(path))) {
+	if (pageRead(call, path)) {
 		return answer(pageRequests, window);
 	}
 	return undefined;
@@ -60,7 +75,7 @@ export async function rpcAfter(
 	if (call?.tag === "work-board.subscribe" && response !== null) {
 		return streams[0]?.response(window, response, call.id);
 	}
-	if ((call?.tag !== "work-board.page" && call?.tag !== "work-board.document") || !JSON.stringify(call.payload).includes(JSON.stringify(path))) {
+	if (!pageRead(call, path)) {
 		return undefined;
 	}
 	pageRequests.answered += 1;

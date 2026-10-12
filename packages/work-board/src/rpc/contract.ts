@@ -6,6 +6,7 @@ import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/navigation/schema.ts";
+import { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
@@ -60,6 +61,24 @@ const ReadDocument = query("document", {
 	rejections: documentRejections,
 	success: Document,
 });
+const ReadBoard = query("board", {
+	payload: { url: PageUrl },
+	reads: ({ url }) => pageKeys(url),
+	rejections: documentRejections,
+	success: BoardProjection,
+});
+const ReadWork = query("work", {
+	payload: { url: PageUrl },
+	reads: () => [workspace.list, index.list],
+	rejections: documentRejections,
+	success: WorkProjection,
+});
+const ReadOverview = query("overview", {
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: OverviewProjection,
+});
+const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
 const ReadNavigation = query("navigation", {
 	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
 	reads: () => [workspace.list, navigation.list],
@@ -85,7 +104,7 @@ const ReadWatcher = query("watcher", {
 });
 export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { InternalServerError }, success: LiveHint });
 export const workContract = contract("work-board", {
-	queries: [ReadPage, ReadDocument, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher],
+	queries: [ReadPage, ReadDocument, ReadBoard, ReadWork, ReadOverview, ReadInbox, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher],
 	streams: [Subscribe],
 }).middleware(RequestTracing);
 export const workRpcs = workContract.merge(responseContract).merge(handoffContract);

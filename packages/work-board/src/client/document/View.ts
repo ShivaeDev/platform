@@ -7,6 +7,7 @@ import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
 import { footnoteIds } from "#render/footnotes.ts";
+import { boardLayout } from "./boardLayout.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
 import { highlightDocument } from "./highlight.ts";
 import { documentLayout, documentSourceId } from "./layout.ts";
@@ -28,6 +29,7 @@ const components: Components = {
 };
 
 export interface DocumentViewProps {
+	readonly board?: readonly { readonly count: number; readonly title: string }[];
 	readonly context?: ReactNode;
 	readonly document: Document;
 	readonly idPrefix?: string;
@@ -53,7 +55,7 @@ function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, introduction }: DocumentViewProps) {
+export function DocumentView({ document, idPrefix = "", context, introduction, board }: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -64,6 +66,9 @@ export function DocumentView({ document, idPrefix = "", context, introduction }:
 		documentLinks(document.file, document.links),
 		documentHeadings(true).plugin,
 	];
+	if (board) {
+		rehypePlugins.push([boardLayout, board, document.modified, document.file, documentSourceId(document)]);
+	}
 	if (layout) {
 		rehypePlugins.push([documentLayout, documentSourceId(document)]);
 	}
