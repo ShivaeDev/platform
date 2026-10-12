@@ -3,6 +3,7 @@
 		"customConditions": ["source"],
 		"jsx": "react-jsx",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"skipLibCheck": true,
 		"types": ["node", "react", "react-dom"]
 	},
 	"extends": "@shivaedev/quality/tsconfig/base.json",

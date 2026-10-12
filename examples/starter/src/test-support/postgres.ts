@@ -1,4 +1,4 @@
-import { Config, Effect, Layer } from "effect";
+import { Config, Effect, Layer, Redacted } from "effect";
 import { HttpServer } from "effect/unstable/http";
 import { Migrator } from "effect/unstable/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
@@ -20,11 +20,14 @@ export const { effectApp } = makeEffectIt({
 	makeHarness: () =>
 		Effect.gen(function* () {
 			const database = yield* PostgresTestDatabase;
-			const context = yield* Layer.build(starterHost({ databaseUrl: database.url, port: 0 }));
+			const context = yield* Layer.build(
+				starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
+			);
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 			if (server.address._tag !== "TcpAddress") {
 				return yield* Effect.die("Expected a TCP server");
 			}
-			return { url: `http://127.0.0.1:${server.address.port}/rpc` };
+			const baseUrl = `http://127.0.0.1:${server.address.port}`;
+			return { baseUrl, url: `${baseUrl}/rpc` };
 		}),
 });
