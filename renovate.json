@@ -69,6 +69,7 @@
 			"matchPackageNames": ["better-auth", "@better-auth/**"]
 		}
 	],
+	"postUpdateOptions": ["pnpmDedupe"],
 	"prConcurrentLimit": 3,
 	"rebaseWhen": "conflicted",
 	"vulnerabilityAlerts": {
