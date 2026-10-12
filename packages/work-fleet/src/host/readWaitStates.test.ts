@@ -4,9 +4,10 @@ import { SqlClient } from "effect/unstable/sql";
 import pg from "pg";
 import { vi } from "vitest";
 import { readWaitStates } from "#host/readWaitStates.ts";
-import { storeState, withHost } from "#test/fleetHost.ts";
+import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
+import { storeState } from "#test/storeState.ts";
 
 describe("Fleet summary reads against PostgreSQL", () => {
 	const test = postgresTests("live");
@@ -35,4 +36,12 @@ describe("Fleet summary reads against PostgreSQL", () => {
 			}).pipe(Effect.provide(readOnlySql(fixture.host))),
 		);
 	});
+	test("waiting summaries retain a stable code beside reworded reason text", () =>
+		withHost({}, {}, (fixture) =>
+			Effect.gen(function* () {
+				const decision = { attentionOwner: "maintainer", code: "reviewed-pr-ready", reason: "A human can merge this reviewed change now." };
+				yield* storeState(fixture.host, "one", { decision, stage: "needs-human" });
+				expect(yield* readWaitStates(fixture.host, ["one"])).toEqual([{ decision, outcome: {}, stage: "needs-human", workId: "one" }]);
+			}).pipe(Effect.provide(readOnlySql(fixture.host))),
+		));
 });

@@ -22,6 +22,7 @@ export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work:
 	if (!briefApproved(work)) {
 		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved" }), {
 			attentionOwner: "maintainer",
+			code: "approval-required",
 		});
 	}
 });
@@ -29,13 +30,13 @@ export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work:
 export const authorizeBriefContext = Effect.fn("Fleet.authorizeBriefContext")(function* (record: FleetRecord, work: BoardWork) {
 	yield* authorizeBrief(work);
 	if (briefChanged(record, work)) {
-		return yield* withFailureContext(new Conflict({ message: CHANGED_BRIEF_REASON }), { attentionOwner: "maintainer" });
+		return yield* withFailureContext(new Conflict({ message: CHANGED_BRIEF_REASON }), { attentionOwner: "maintainer", code: "fleet-stale" });
 	}
 });
 
 export function stopChangedBrief(state: EngineState) {
 	return Effect.fn("Fleet.stopChangedBrief")(function* (stored: Versioned<FleetRecord>) {
-		if (stored.value.decision?.reason === CHANGED_BRIEF_REASON) {
+		if (stored.value.decision?.code === "fleet-stale" && stored.value.decision.reason === CHANGED_BRIEF_REASON) {
 			return stored;
 		}
 		const published = stored.value.decision?.published;
@@ -51,7 +52,14 @@ export function stopChangedBrief(state: EngineState) {
 					: [...(stored.value.supersededDecisions ?? []), { published, supersededAt: state.policy.now() }],
 		});
 		return yield* state
-			.decision(stopped, CHANGED_BRIEF_REASON, "Approve and prepare the current scope, or safely release this work", undefined, "maintainer")
+			.decision(
+				stopped,
+				"fleet-stale",
+				CHANGED_BRIEF_REASON,
+				"Approve and prepare the current scope, or safely release this work",
+				undefined,
+				"maintainer",
+			)
 			.pipe(Effect.flatMap(closeDecisions(state)));
 	});
 }

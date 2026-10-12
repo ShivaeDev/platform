@@ -30,7 +30,12 @@ export function makeReview(state: EngineState) {
 		const currentWork = yield* state.board.get(work.workId);
 		yield* authorizeBriefContext(stored.value, currentWork);
 		if (observation.execution !== "completed") {
-			return yield* decision(stored, `Reviewer turn ${observation.execution}`, "Inspect terminal reviewer evidence before retrying");
+			return yield* decision(
+				stored,
+				"reviewer-terminal",
+				`Reviewer turn ${observation.execution}`,
+				"Inspect terminal reviewer evidence before retrying",
+			);
 		}
 		const review = yield* readOrContinueReview(state)(stored, work, result, receipt, observation.output);
 		if (review === undefined) {

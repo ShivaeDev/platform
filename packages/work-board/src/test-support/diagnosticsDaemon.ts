@@ -2,7 +2,7 @@ import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import { listenOn } from "#serve.ts";
+import { listenOn } from "#server/serve.ts";
 
 export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (read: () => DiagnosticsSnapshot, port = 0) {
 	const handlers = DiagnosticsContract.toLayer({ "daemon.diagnostics": () => Effect.sync(read) });

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { Highlighter } from "./Highlighter.ts";
-import { renderMarkdown } from "./markdown.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
 
 it.live("resolves source-relative links with encoded filenames and leaves fragments and external links intact", function* () {
 	const html = yield* renderMarkdown(

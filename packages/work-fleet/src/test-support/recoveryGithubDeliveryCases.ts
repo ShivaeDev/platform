@@ -7,9 +7,9 @@ import { finishRecoveryReview } from "#test/recoverySteps.ts";
 
 export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 	return [
-		{ patch: { state: "UNKNOWN" }, reason: "PR delivery observation returned an unknown shape" },
-		{ patch: { url: `${PR}0` }, reason: "Delivery observation differs from the adopted PR" },
-		{ patch: { mergedAt: "2026-01-01" }, reason: "PR delivery evidence is inconsistent; inspect the adopted PR" },
+		{ code: "fleet-integration" as const, patch: { state: "UNKNOWN" }, reason: "PR delivery observation returned an unknown shape" },
+		{ code: "fleet-invalid" as const, patch: { url: `${PR}0` }, reason: "Delivery observation differs from the adopted PR" },
+		{ code: "fleet-invalid" as const, patch: { mergedAt: "2026-01-01" }, reason: "PR delivery evidence is inconsistent; inspect the adopted PR" },
 	].map((fault) => {
 		let restored = false;
 		let reads = 0;
@@ -22,6 +22,7 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 			}),
 		);
 		return {
+			code: fault.code,
 			enter: finishRecoveryReview,
 			name: fault.reason,
 			options: { deliveryQuery: delivery },
@@ -29,13 +30,12 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 				expect(reads).toBe(1);
 				expect(after.stage).toBe("completed");
 			},
-			reason: fault.reason,
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
 					reads = 0;
 				}),
-			sites: ["engine/makeDeliver.ts: observed.failure.message"],
+			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
 		};
 	});
 }

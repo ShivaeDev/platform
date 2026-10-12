@@ -31,6 +31,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 	});
 	return [
 		{
+			code: "integration-failure" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
 				yield* (yield* Fleet).reconcile("one");
@@ -43,11 +44,12 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 						: undefined,
 			},
 			progress,
-			reason: "The integration is unavailable; inspect runtime diagnostics",
+
 			restore,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "board-failure" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: invalid"));
@@ -55,14 +57,14 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			}),
 			name: "production Board deliverable metadata invalid",
 			progress,
-			reason: "Invalid fleet-deliverable; use report or omit the field for pull requests.",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					writeFileSync(join(ctx.root, "one.md"), ctx.source);
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-integration" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
 				yield* (yield* Fleet).reconcile("one");
@@ -75,11 +77,12 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 						: githubRead(["api", "synthetic"]).pipe(Effect.provide(failedCli.layer), Effect.andThen(Effect.die("Unexpected GitHub success"))),
 			},
 			progress,
-			reason: "GitHub evidence could not be read; check gh authentication and repository access",
+
 			restore,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
 				yield* (yield* Fleet).reconcile("one");
@@ -92,11 +95,11 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				}),
 			},
 			progress,
-			reason: "Work is no longer approved",
 			restore,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-denied" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
 				const fleet = yield* Fleet;
@@ -106,10 +109,10 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			}),
 			name: "repair waits for the active worker to finish",
 			progress,
-			reason: "Reconcile terminal execution before launching another turn",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-denied" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				const record = (yield* prepareWork("one")).value;
 				yield* ctx.fixture.replaceRecord({ ...record, stage: "repairing" });
@@ -120,8 +123,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				expect(after.stage).toBe("executing");
 				expect(after.attempts).toHaveLength(1);
 			},
-			reason: "Repair requires an existing worker receipt",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

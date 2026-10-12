@@ -6,8 +6,9 @@ import type { Attempt, FleetRecord } from "#model.ts";
 import { SessionService } from "#session/service.ts";
 import { codexServer, WireRejection, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
-import { type HostFixture, storeState, task, withHost } from "#test/fleetHost.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { prepared } from "#test/preparation.ts";
+import { storeState } from "#test/storeState.ts";
 
 const Params = Schema.Struct({ name: Schema.optional(Schema.String), threadId: Schema.String });
 export function namedRecord(workId: string, attempts: readonly Attempt[], context = "# Readable title"): FleetRecord {

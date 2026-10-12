@@ -4,12 +4,16 @@ import { Envelope } from "#providers/codexProtocol.ts";
 import { SessionFailure } from "#session/schema.ts";
 
 type Resume = (result: Effect.Effect<unknown, SessionFailure>) => void;
-const RpcError = Schema.Struct({ message: Schema.String });
+const RpcError = Schema.Struct({ code: Schema.optional(Schema.Number), message: Schema.String });
 function rejection(error: unknown) {
 	const decoded = Schema.decodeUnknownOption(RpcError)(error);
-	return decoded._tag === "Some"
-		? `Codex rejected the protocol request: ${decoded.value.message.slice(0, 500)}`
-		: "Codex rejected the protocol request";
+	return new SessionFailure({
+		capacity: capacity(error),
+		code: decoded._tag === "Some" && decoded.value.code === -32_001 ? "session-queue-full" : "session-rejected",
+		message:
+			decoded._tag === "Some" ? `Codex rejected the protocol request: ${decoded.value.message.slice(0, 500)}` : "Codex rejected the protocol request",
+		reason: "rejected",
+	});
 }
 export interface CodexConnection {
 	readonly closed: {
@@ -70,11 +74,7 @@ function openSocket(endpoint: CodexEndpoint) {
 				}
 				const pending = connection.pending.get(envelope.id);
 				connection.pending.delete(envelope.id);
-				pending?.(
-					envelope.error === undefined
-						? Effect.succeed(envelope.result)
-						: Effect.fail(new SessionFailure({ capacity: capacity(envelope.error), message: rejection(envelope.error), reason: "rejected" })),
-				);
+				pending?.(envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(rejection(envelope.error)));
 			} catch {
 				failPending(connection, failure("protocol", "Codex returned an invalid protocol envelope"));
 			}

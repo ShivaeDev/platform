@@ -1,4 +1,4 @@
-import { questionId, questionMarkdown, revisionOf } from "#responses/records.ts";
+import { questionId, questionMarkdown, revisionOf } from "#server/responses/records.ts";
 
 export const questionnaireSource = `---
 id: investigation.choices

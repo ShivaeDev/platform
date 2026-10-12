@@ -20,7 +20,8 @@ describe("report launch backpressure", () => {
 			return yield* withEngine(
 				{
 					now: () => now,
-					submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+					submissionFailure: () =>
+						reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 					workerGuidance: "Follow synthetic report conventions.",
 				},
 				(fixture) =>

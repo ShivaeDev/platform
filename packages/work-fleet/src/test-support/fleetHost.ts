@@ -2,9 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Layer, Redacted, Schema } from "effect";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { Effect, Layer, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { markdownBoard } from "#board/markdown.ts";
@@ -13,7 +11,6 @@ import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, loadHost, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
-import { recordColumns, recordInput, recordModel } from "#storage/model.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import type { CliRun } from "#test/fleetCli.ts";
 import { daemonCli } from "#test/readDaemon.ts";
@@ -39,10 +36,6 @@ const mainSource = Layer.succeed(MainSource)({
 	refresh: Effect.succeed(MAIN),
 	repositoryRoot: "/synthetic-repository",
 });
-
-function hostSql(host: FleetHost) {
-	return PgClient.layer({ maxConnections: 2, url: Redacted.make(host.databaseUrl) });
-}
 
 export function hostBoard(config?: string) {
 	const boardDir = mkdtempSync(join(tmpdir(), "fleet-config-"));
@@ -103,25 +96,6 @@ export function withHost<A, E, R>(
 			);
 		}),
 	);
-}
-
-export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
-	return Effect.gen(function* () {
-		const model = recordModel();
-		const repository = yield* makeRepository(model, {
-			idColumn: "work_id",
-			spanPrefix: "Fixture",
-			tableName: `${host.namespace}_records`,
-			versionColumn: "version",
-		});
-		const input = yield* Schema.decodeUnknownEffect(model.insert)({ ...recordInput(JSON.stringify(payload), recordColumns()), "work_id": workId });
-		const previous = yield* repository.findMany({ where: { "work_id": workId } });
-		if (previous[0] === undefined) {
-			yield* repository.insertVoid(input);
-		} else {
-			yield* repository.updateVoid({ ...previous[0], ...input });
-		}
-	}).pipe(Effect.provide(hostSql(host)), Effect.orDie);
 }
 
 export function waitProcess(

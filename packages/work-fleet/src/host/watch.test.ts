@@ -1,8 +1,9 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { storeState, withHost } from "#test/fleetHost.ts";
+import { withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { storeState } from "#test/storeState.ts";
 
 describe("work-fleet watch against PostgreSQL and HTTP", () => {
 	const test = postgresTests("live");

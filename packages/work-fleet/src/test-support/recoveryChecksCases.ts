@@ -21,10 +21,11 @@ const healthyChecks = JSON.stringify([
 ]);
 export function recoveryChecksCases(): readonly RecoveryCase[] {
 	return [
-		{ body: "invalid", endpoint: "check-runs", reason: "GitHub check runs are unavailable or invalid" },
-		{ body: "invalid", endpoint: "status?", reason: "GitHub commit statuses are unavailable or invalid" },
+		{ body: "invalid", code: "fleet-integration" as const, endpoint: "check-runs", reason: "GitHub check runs are unavailable or invalid" },
+		{ body: "invalid", code: "fleet-integration" as const, endpoint: "status?", reason: "GitHub commit statuses are unavailable or invalid" },
 		{
 			body: JSON.stringify([{ sha: MOVED, statuses: [] }]),
+			code: "fleet-integration" as const,
 			endpoint: "status?",
 			reason: "GitHub checks returned evidence for a different commit SHA",
 		},
@@ -41,6 +42,7 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 			}),
 		);
 		return {
+			code: fault.code,
 			enter: finishRecoveryReview,
 			name: fault.reason,
 			options: { checksQuery: checks },
@@ -49,14 +51,13 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 				expect(after.checks?.passed).toBe(true);
 				expect(after.stage).toBe("completed");
 			},
-			reason: fault.reason,
 			restore: (ctx: RecoveryContext) =>
 				Effect.sync(() => {
 					restored = true;
 					ctx.github.state.status = "MERGED";
 					requests = 0;
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		};
 	});
 }

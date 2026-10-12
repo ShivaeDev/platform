@@ -23,13 +23,31 @@
 		}
 	},
 	"exports": {
-		"./*.ts": {
-			"types": "./dist/*.d.ts",
-			"source": "./src/*.ts",
-			"import": "./dist/*.js",
-			"default": "./dist/*.js"
+		"./package.json": "./package.json",
+		"./channel.ts": {
+			"types": "./dist/channel.d.ts",
+			"source": "./src/channel.ts",
+			"import": "./dist/channel.js",
+			"default": "./dist/channel.js"
 		},
-		"./package.json": "./package.json"
+		"./frame.ts": {
+			"types": "./dist/frame.d.ts",
+			"source": "./src/frame.ts",
+			"import": "./dist/frame.js",
+			"default": "./dist/frame.js"
+		},
+		"./observe.ts": {
+			"types": "./dist/observe.d.ts",
+			"source": "./src/observe.ts",
+			"import": "./dist/observe.js",
+			"default": "./dist/observe.js"
+		},
+		"./publish.ts": {
+			"types": "./dist/publish.d.ts",
+			"source": "./src/publish.ts",
+			"import": "./dist/publish.js",
+			"default": "./dist/publish.js"
+		}
 	},
 	"files": [
 		"dist",

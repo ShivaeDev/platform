@@ -2,10 +2,10 @@ import { Effect, Layer, Schema } from "effect";
 import { afterEach, expect, vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
-import { templateHtml } from "#responses/templateHtml.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
+import { templateHtml } from "#server/responses/templateHtml.ts";
 import { RenderFailed } from "./failed.ts";
-import { Highlighter } from "./Highlighter.ts";
-import { renderMarkdown } from "./markdown.ts";
 
 vi.mock("shiki", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("shiki")>();

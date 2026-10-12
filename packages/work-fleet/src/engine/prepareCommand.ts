@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { inspectRenewal } from "#engine/inspectRenewal.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { PrepareWork } from "#fleet.ts";
@@ -13,7 +14,9 @@ export function prepareCommand(state: EngineState) {
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
 		if (!work.approved) {
-			return yield* Effect.fail(new Forbidden({ message: "Current Board revision needs maintainer approval" }));
+			return yield* Effect.fail(
+				withFailureContext(new Forbidden({ message: "Current Board revision needs maintainer approval" }), { code: "approval-required" }),
+			);
 		}
 		if (!input.prompt.trim() || input.preparation.ownedPaths.length === 0) {
 			return yield* Effect.fail(new BadRequest({ message: "Preparation needs fixed prompt and owned paths" }));

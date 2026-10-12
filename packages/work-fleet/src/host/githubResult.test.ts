@@ -1,6 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import { resolveHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -76,6 +77,7 @@ describe("GitHub worker result adoption", () => {
 		expect(result.kind).toBe("no-change");
 		const failure = yield* integrations.checks(work, result).pipe(Effect.flip);
 		expect(failureOwner(failure)).toBe("automation");
+		expect(failureCode(failure)).toBe("no-change-checks-unconfigured");
 		expect(failure).toMatchObject({
 			_tag: "ServiceUnavailable",
 			message: "No-change validation is not configured in this Fleet host; inspect the worker session",

@@ -8,33 +8,47 @@ import { finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts
 interface AdoptionFault {
 	readonly after?: Readonly<Record<string, unknown>>;
 	readonly before?: Readonly<Record<string, unknown>>;
+	readonly code: RecoveryCase["code"];
 	readonly files?: unknown;
 	readonly invalidJson?: boolean;
 	readonly output?: string;
 	readonly reason: string;
 }
 const faults: readonly AdoptionFault[] = [
-	{ output: `FLEET_HEAD: ${HEAD}\nFLEET_PR: https://github.com/other/repository/pull/7`, reason: "Reported PR must belong to the host repository" },
-	{ before: { base: { ref: "other", sha: HEAD } }, reason: "Reported PR must be open or merged and target the configured repository branch" },
-	{ before: { head: { sha: MOVED } }, reason: "PR head moved after the worker report" },
+	{
+		code: "foreign-pr" as const,
+		output: `FLEET_HEAD: ${HEAD}\nFLEET_PR: https://github.com/other/repository/pull/7`,
+		reason: "Reported PR must belong to the host repository",
+	},
+	{
+		before: { base: { ref: "other", sha: HEAD } },
+		code: "fleet-invalid" as const,
+		reason: "Reported PR must be open or merged and target the configured repository branch",
+	},
+	{ before: { head: { sha: MOVED } }, code: "worker-report-head-moved" as const, reason: "PR head moved after the worker report" },
 	{
 		before: { head: { sha: MOVED }, merged: true, state: "closed" },
+		code: "worker-report-merged-head-mismatch" as const,
 		reason: "Merged PR head differs from the reported head; inspect delivery before accepting this work",
 	},
-	{ before: { "changed_files": 2 }, reason: "PR changed paths moved during observation" },
-	{ files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
-	{ invalidJson: true, reason: "GitHub observation failed or returned invalid data" },
-	{ files: [[{ filename: "src/outside.ts" }]], reason: "Result needs evidence and known reserved scope" },
+	{ before: { "changed_files": 2 }, code: "fleet-stale" as const, reason: "PR changed paths moved during observation" },
+	{ code: "fleet-integration" as const, files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
+	{ code: "fleet-integration" as const, invalidJson: true, reason: "GitHub observation failed or returned invalid data" },
+	{ code: "fleet-invalid" as const, files: [[{ filename: "src/outside.ts" }]], reason: "Result needs evidence and known reserved scope" },
 ];
 export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 	return faults.map((fault) => {
 		const healthy = { "changed_files": 1, head: { sha: HEAD }, merged: false, state: "open" };
 		const before: Record<string, unknown> = { ...healthy, ...fault.before };
-		const after: Record<string, unknown> = { ...healthy, ...(fault.reason.includes("head") ? fault.before : fault.after) };
+		const after: Record<string, unknown> = {
+			...healthy,
+			...(["worker-report-head-moved", "worker-report-merged-head-mismatch"].includes(fault.code) ? fault.before : fault.after),
+		};
 		const options = { after, before, files: fault.files ?? [[{ filename: "src/one.ts" }]], invalidJson: fault.invalidJson ?? false };
 		const reader = resultFixture(options);
-		const staleReport = fault.reason.includes("head") && fault.reason !== "Result needs evidence and known reserved scope";
+		const staleReport = ["worker-report-head-moved", "worker-report-merged-head-mismatch"].includes(fault.code);
 		return {
+			code: fault.code,
 			enter: Effect.fnUntraced(function* (ctx) {
 				const output = fault.output ?? `FLEET_HEAD: ${HEAD}\nFLEET_PR: ${PR}`;
 				yield* finishRecoveryWorker(ctx, output);
@@ -56,7 +70,6 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 				}
 				expect(reader.requests.length).toBeGreaterThan(0);
 			},
-			reason: fault.reason,
 			restore: () =>
 				Effect.sync(() => {
 					Object.assign(before, healthy);
@@ -66,7 +79,7 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 					options.files = [[{ filename: "src/one.ts" }]];
 					options.invalidJson = false;
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		};
 	});
 }

@@ -10,6 +10,7 @@ export function reportContent(work: BoardWork, observation: SessionObservation) 
 	return new TextEncoder().encode(content).length > 256 * 1024
 		? Effect.fail(
 				new BoardFailure({
+					code: "report-too-large",
 					message: "Worker report exceeds Board’s 256 KiB context limit, including metadata and receipt; request a shorter report before retrying.",
 				}),
 			)

@@ -10,7 +10,8 @@ postgresTests("test")("retry of a wedged repair starts a fresh thread on the sam
 	let rejected = false;
 	let conflicting = true;
 	const rejection = new SessionFailure({
-		message: "turn already active for thread; active-turn resubmission limit reached",
+		code: "session-active-turn-exhausted",
+		message: "The provider cannot accept another operation on this thread.",
 		reason: "rejected",
 	});
 	return withEngine(
@@ -35,7 +36,14 @@ postgresTests("test")("retry of a wedged repair starts a fresh thread on the sam
 				finishWorkers(fixture);
 				yield* fleet.reconcile("one");
 				const blocked = yield* fleet.reconcile("one");
-				expect(blocked.value.decision?.reason).toContain("active-turn resubmission limit reached");
+				expect(blocked.value.decision?.code).toBe("session-active-turn-exhausted");
+				if (blocked.value.decision === undefined) {
+					return yield* Effect.die("Missing exhausted repair decision");
+				}
+				yield* fixture.replaceRecord({
+					...blocked.value,
+					decision: { ...blocked.value.decision, reason: "A fresh worker thread is needed to continue." },
+				});
 				expect(blocked.value.attempts.at(-1)).toMatchObject({ role: "repair", status: "failed" });
 				const decisionId = blocked.value.decision?.id ?? "missing";
 				const responseId = fixture.respond(decisionId, "retry");

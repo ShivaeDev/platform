@@ -11,7 +11,9 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
 ) {
 	if (!work.approved) {
-		return yield* Effect.fail(new Forbidden({ message: "Current Board revision needs maintainer approval" }));
+		return yield* Effect.fail(
+			withFailureContext(new Forbidden({ message: "Current Board revision needs maintainer approval" }), { code: "approval-required" }),
+		);
 	}
 	yield* qualifyDependencies(work.dependsOn, records, get);
 	const quota = policy.quota;
@@ -28,7 +30,10 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 		|| quota.available <= submitted
 	) {
 		return yield* Effect.fail(
-			withFailureContext(new Forbidden({ message: "Fresh available provider quota is required" }), { attentionOwner: "automation" }),
+			withFailureContext(new Forbidden({ message: "Fresh available provider quota is required" }), {
+				attentionOwner: "automation",
+				code: "provider-quota-unavailable",
+			}),
 		);
 	}
 });

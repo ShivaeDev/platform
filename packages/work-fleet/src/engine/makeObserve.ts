@@ -40,7 +40,7 @@ export function makeObserve(state: EngineState) {
 }
 
 function pausedByBrief(record: FleetRecord) {
-	return record.stage === "needs-human" && record.decision?.reason === "Board context changed";
+	return record.stage === "needs-human" && record.decision?.code === "fleet-stale" && record.decision.reason === "Board context changed";
 }
 
 function observable(record: FleetRecord, paused: boolean) {
@@ -58,12 +58,13 @@ function finishObservation(state: EngineState) {
 			return stored;
 		}
 		if (observation.execution !== "completed") {
-			return yield* decision(stored, terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
+			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
 		}
 		const question = reportedQuestion(observation.output);
 		if (question !== undefined) {
 			return yield* decision(
 				stored,
+				"worker-question",
 				question.question,
 				"Record an answer to continue this worker thread",
 				observation.receipt,

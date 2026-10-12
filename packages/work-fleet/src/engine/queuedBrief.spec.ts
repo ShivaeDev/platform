@@ -18,7 +18,9 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				launch,
 				now: () => now,
 				submissionFailure: (call) =>
-					reject && call === rejectedCall ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined,
+					reject && call === rejectedCall
+						? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" })
+						: undefined,
 				workerGuidance: "Follow synthetic worker conventions.",
 			},
 			(fixture, root, source) =>

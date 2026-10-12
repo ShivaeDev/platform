@@ -27,8 +27,17 @@ const movedDelivery = Effect.fn("Test.movedDelivery")(function* (legacy: boolean
 					attempts: approved.value.attempts.map((attempt) =>
 						attempt.role === "worker" ? { ...attempt, output: "" } : { ...attempt, reviewHead: undefined },
 					),
-					decision: { ...approved.value.decision, id: decisionId, links: [PR], reason: MOVED_PR_HEAD_REASON, recommendation: "Retry" },
+					decision: {
+						...approved.value.decision,
+						code: undefined,
+						id: decisionId,
+						links: [PR],
+						reason: MOVED_PR_HEAD_REASON,
+						recommendation: "Retry",
+					},
 				});
+				yield* fixture.upgradeDecisionCodes;
+				expect((yield* fleet.get("one")).value.decision?.code).toBe("pr-head-moved");
 				const responseId = fixture.respond(decisionId, "retry");
 				yield* fixture.restart(
 					Effect.gen(function* () {

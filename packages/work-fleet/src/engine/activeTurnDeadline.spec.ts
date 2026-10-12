@@ -10,7 +10,7 @@ import { postgresTests } from "#test/postgres.ts";
 const test = postgresTests("test", "isolated");
 
 test("a hung active turn backs off, reaches a durable human decision at five minutes and releases capacity", function* () {
-	const provider = yield* activeTurn();
+	const provider = yield* activeTurn("Another operation owns this thread.");
 	yield* withEngine({ concurrency: 1, decorateTransport: provider.decorateTransport, denyDelivery: true }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
@@ -37,13 +37,15 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			});
 			expect(blocked.attentionOwner).toBe("orchestrator");
 			expect(blocked.decision?.published).toBeDefined();
+			expect(blocked.decision?.code).toBe("session-active-turn");
 			expect(blocked.decision?.reason).toContain("active-turn wait deadline reached");
 			expect(blocked.attempts).toHaveLength(1);
 			expect(blocked.attempts[0]?.status).toBe("failed");
 			expect(blocked.attempts[0]?.receipt).toBeUndefined();
 			expect(executing(blocked)).toBe(false);
 			expect(provider.submissions).toHaveLength(3);
-			const intervals = provider.pollTimes.slice(1).map((time, index) => time - (provider.pollTimes[index] ?? time));
+			expect(provider.pollTimes.slice(0, 2)).toEqual([0, 0]);
+			const intervals = provider.pollTimes.slice(2).map((time, index) => time - (provider.pollTimes[index + 1] ?? time));
 			expect(intervals.slice(0, 5)).toEqual([2000, 4000, 8000, 16_000, 30_000]);
 			expect(intervals.slice(5).every((interval) => interval === 30_000)).toBe(true);
 			expect(provider.pollTimes.at(-1)).toBeLessThan(300_000);
