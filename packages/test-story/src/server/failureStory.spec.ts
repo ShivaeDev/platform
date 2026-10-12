@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { runStories } from "#test/runStories.ts";
 
-const STORIES = relative(process.cwd(), fileURLToPath(new URL("test-support/failingStories.ts", import.meta.url)));
+const STORIES = relative(process.cwd(), fileURLToPath(new URL("../test-support/failingStories.ts", import.meta.url)));
 
 const LARGE_BAKERY = "node_modules/.cache/test-story/failingstories.ts--bakery-story-writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
 
