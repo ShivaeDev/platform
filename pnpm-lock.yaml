@@ -249,8 +249,8 @@ catalogs:
       specifier: 24.19.1
       version: 24.19.1
     '@types/pg':
-      specifier: 8.20.0
-      version: 8.20.0
+      specifier: 8.23.1
+      version: 8.23.1
     '@types/react':
       specifier: 19.2.18
       version: 19.2.18
@@ -297,8 +297,8 @@ catalogs:
       specifier: 11.17.2
       version: 11.17.2
     pg:
-      specifier: 8.23.0
-      version: 8.23.0
+      specifier: 8.23.1
+      version: 8.23.1
     pg-boss:
       specifier: 12.36.0
       version: 12.36.0
@@ -616,7 +616,7 @@ importers:
         version: 24.19.1
       '@types/pg':
         specifier: 'catalog:'
-        version: 8.20.0
+        version: 8.23.1
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2
@@ -1322,7 +1322,7 @@ importers:
         version: 24.19.1
       '@types/pg':
         specifier: 'catalog:'
-        version: 8.20.0
+        version: 8.23.1
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2
@@ -1331,7 +1331,7 @@ importers:
         version: 4.0.0-rc.112
       pg:
         specifier: 'catalog:'
-        version: 8.23.0
+        version: 8.23.1
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -2969,6 +2969,9 @@ packages:
 
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
+
+  '@types/pg@8.23.1':
+    resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
 
   '@types/react-dom@19.2.4':
     resolution: {integrity: sha512-Bsc+QHgp+P/F02XDzNCY9jnZNCUuLki36KT7VKrTXXLdHf+vHMNZnW1rVu5DNW/rCK+fya3DATySbLM4yhtKUw==}
@@ -6690,6 +6693,12 @@ snapshots:
     dependencies:
       '@types/node': 24.19.1
       pg-protocol: 1.15.0
+      pg-types: 2.2.0
+
+  '@types/pg@8.23.1':
+    dependencies:
+      '@types/node': 24.19.1
+      pg-protocol: 1.16.1
       pg-types: 2.2.0
 
   '@types/react-dom@19.2.4(@types/react@19.2.18)':
