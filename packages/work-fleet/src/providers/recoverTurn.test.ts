@@ -59,13 +59,15 @@ for (const scenario of uncertainEvidence) {
 			recoveryGraceMs: 5000,
 			threadStart: () => ({}),
 		});
-		const result = yield* provider
+		const recovering = yield* provider
 			.reconcile({
 				...input,
 				...(scenario === "missing-session" ? { sessionId: undefined } : {}),
 				...(scenario === "missing-prompt" ? { resume: undefined } : {}),
 			})
-			.pipe(Effect.result);
+			.pipe(Effect.result, Effect.forkChild);
+		yield* TestClock.adjust("5 seconds");
+		const result = yield* Fiber.join(recovering);
 		expect(result._tag).toBe("Failure");
 		expect(requests).not.toContain("thread/start");
 		expect(requests).not.toContain("turn/start");

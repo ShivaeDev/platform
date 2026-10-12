@@ -14,10 +14,17 @@ export function recoverTurn(
 	graceMs?: number,
 ) {
 	const operations = new Map<string, Recovery>();
+	function resumeEmptyThread(input: ContinueSession, emptyThread: boolean) {
+		return emptyThread
+			? startTurn(input)
+			: Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
+	}
 	const recover = Effect.fn("Codex.recover")(function* (input: ReconcileSession & { readonly sessionId: string }) {
 		const deadline = (yield* Clock.currentTimeMillis) + (graceMs ?? 0);
+		let emptyThread = true;
 		while (true) {
-			const turnId = yield* operationTurn(input.sessionId, input.operationId);
+			const { empty, turnId } = yield* operationTurn(input.sessionId, input.operationId);
+			emptyThread = emptyThread && empty;
 			if (turnId !== undefined) {
 				return { sessionId: input.sessionId, turnId };
 			}
@@ -26,7 +33,7 @@ export function recoverTurn(
 			}
 			const remaining = deadline - (yield* Clock.currentTimeMillis);
 			if (remaining <= 0) {
-				return yield* startTurn({ ...input.resume, operationId: input.operationId, sessionId: input.sessionId });
+				return yield* resumeEmptyThread({ ...input.resume, operationId: input.operationId, sessionId: input.sessionId }, emptyThread);
 			}
 			yield* Effect.sleep(Math.min(250, remaining));
 		}
