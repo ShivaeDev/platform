@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
 import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startReview } from "#test/startReview.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 const movedDelivery = Effect.fn("Test.movedDelivery")(function* (legacy: boolean) {
 	const github = yield* mergedReviewGithub();

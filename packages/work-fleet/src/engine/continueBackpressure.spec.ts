@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 describe("continuation launch backpressure", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	for (const checksFailure of [false, true]) {
 		test(`a rejected continuation from ${checksFailure ? "needs-human" : "completed"} retries its saved message on the same thread`, () => {
 			let now = 100;

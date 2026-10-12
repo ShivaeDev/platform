@@ -2,13 +2,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { REPORT_LIMITS } from "#reportLimits.ts";
 import { withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { addedAttachment, attachmentBoard, turnDownload } from "#test/reportAttachments.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
 const cases = [
@@ -33,7 +32,7 @@ const cases = [
 ];
 
 describe("Unavailable report attachments", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 	for (const scenario of cases) {
 		test(`publishes report text and records ${scenario.name} without attachments`, function* () {
 			const download = yield* turnDownload(scenario.items(), scenario.reject);

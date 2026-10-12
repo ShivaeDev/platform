@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
-import { checkRule } from "#test/inputs.ts";
+import { checkRule, issuesOf } from "#test/inputs.ts";
 
 type Options = Parameters<typeof biomeOverrides.configure>[0];
 
@@ -48,8 +48,8 @@ describe("suppressions/biome-overrides with a package preset", () => {
 		]);
 	});
 
-	it("covers an undeclared preset weakening with the consumer's declaration", async () => {
-		expect(await withPreset(off("suspicious", "noConsole"), undefined, {}, declaring("lint/suspicious/noConsole", "**"))).toEqual([]);
+	it("rejects a blanket consumer declaration for an undeclared preset weakening", async () => {
+		expect(await issuesOf(biomeOverrides, declaring("lint/suspicious/noConsole", "**"))).toEqual([expect.stringContaining("Whole checks")]);
 	});
 
 	it("still needs a declaration for a weakening the consumer adds beyond the preset", async () => {
@@ -95,9 +95,11 @@ describe("suppressions/biome-overrides with a package preset", () => {
 		]);
 	});
 
-	it("reports a consumer declaration that repeats one the preset ships", async () => {
-		expect(await withPreset({ overrides: [configFiles] }, shipped, {}, declaring("lint/style/noDefaultExport", "**/*.config.ts"))).toEqual([
-			'biome.json Declares "lint/style/noDefaultExport" for "**/*.config.ts", which "@acme/lint/biome" already declares. Remove the declaration.',
+	it("reports a consumer declaration that repeats a narrow shipped exception", async () => {
+		const override = { includes: ["src/config.ts"], linter: { rules: { style: { noDefaultExport: "off" } } } };
+		const declarations = [{ includes: ["src/config.ts"], reason, rule: "lint/style/noDefaultExport" }];
+		expect(await withPreset({ overrides: [override] }, declarations, {}, declaring("lint/style/noDefaultExport", "src/config.ts"))).toEqual([
+			'biome.json Declares "lint/style/noDefaultExport" for "src/config.ts", which "@acme/lint/biome" already declares. Remove the declaration.',
 		]);
 	});
 

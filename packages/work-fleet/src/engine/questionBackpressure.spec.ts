@@ -1,16 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-it.effect.skipIf(storageDatabaseUrl === undefined)("a queue-full answer retries the exact response as a worker turn on its existing thread", () => {
+postgresTests("test")("a queue-full answer retries the exact response as a worker turn on its existing thread", () => {
 	let now = 100;
 	let reject = false;
 	return withFleetBoard(
@@ -46,7 +45,7 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queue-full answer retries 
 	);
 });
 
-it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer survives an approved brief edit with its original launch intent", () => {
+postgresTests("test")("a queued answer survives an approved brief edit with its original launch intent", () => {
 	let now = 100;
 	let reject = false;
 	const launch = { model: "initial-model" };

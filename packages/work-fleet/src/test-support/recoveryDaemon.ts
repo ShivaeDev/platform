@@ -14,22 +14,13 @@ import { withHost } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";
 import { answerReport } from "#test/report.ts";
+import { responseApplied } from "#test/responseApplied.ts";
 
 function schedulerReady(root: string, previous: number | null) {
 	return until(() =>
 		fleetHealth(root).pipe(
 			Effect.map((health) => health.lastSchedulerPass !== null && health.lastSchedulerPass !== previous),
 			Effect.provide(NodeServices.layer),
-		),
-	);
-}
-// The scheduler's startup reconcile can apply the response concurrently and acknowledge it in a later save, so a command sent before that acknowledgement races it.
-function responseApplied(client: Effect.Success<ReturnType<typeof daemonClient>>, responseId: string) {
-	return until(() =>
-		client("fleet.get", { workId: "one" }).pipe(
-			Effect.map(
-				(record) => record.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true) ?? false,
-			),
 		),
 	);
 }
@@ -94,7 +85,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 			const responseId = answerReport(fixture.host.boardDir, decision.published, action);
 			yield* serveRecovery(fixture.host, parts, (client) =>
 				Effect.gen(function* () {
-					yield* responseApplied(client, responseId);
+					yield* responseApplied(client("fleet.get", { workId: "one" }), client("fleet.get", { workId: "one" }), responseId);
 					const resolved = yield* client("fleet.get", { workId: "one" });
 					expect(resolved.responses).toContainEqual(
 						expect.objectContaining({ action, boardAcknowledged: true, decisionId: decision.id, responseId }),

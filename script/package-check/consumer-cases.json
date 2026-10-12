@@ -5,6 +5,12 @@
 			"fixtures": ["hooks-types.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": []
+		},
+		{
+			"entries": ["./router.ts"],
+			"fixtures": ["router-types.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": []
 		}
 	],
 	"platform": [
@@ -31,6 +37,12 @@
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]
+		},
+		{
+			"entries": ["./appHost.ts"],
+			"fixtures": ["host.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["host.ts"]
 		}
 	],
 	"pr-watch": [

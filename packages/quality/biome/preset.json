@@ -365,7 +365,8 @@
 				"useRegexpExec": "error",
 				"useRegexpTest": { "fix": "none", "level": "error" },
 				"useSortedClasses": {
-					"level": "off",
+					"fix": "safe",
+					"level": "error",
 					"options": {
 						"functions": ["cn", "clsx", "cva"]
 					}

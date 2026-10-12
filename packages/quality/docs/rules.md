@@ -4,7 +4,7 @@ Use the [README](../README.md) for the gate's mental model and workflow. Quality
 
 ## File size
 
-`structure/max-lines` keeps each module to one job: a source file may have 150 lines and [test code](./naming.md#test-code) 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test` (positive integer limits) and `testFiles`, `.gitignore` patterns of further folders whose files count as tests, such as a Playwright suite in `e2e/` (none by default). A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
+`structure/max-lines` keeps each module to one job: a source file may have 150 lines and [test code](./naming.md#test-code) 300, counted the way an editor numbers them. Declaration files are exempt. Its options are `source` and `test`: positive integer limits no greater than 150 and 300 respectively. Test code is identified by its conventional name or `test-support` folder; custom test-file patterns are rejected. A file over its limit counts one violation for each line above it: 168 lines under a limit of 150 count 18.
 
 ### Comments
 
@@ -18,7 +18,7 @@ A comment says why, never what the code already says or what it used to be. Seve
 | `comments/no-banner` | A banner, divider or region: a line that starts or ends with three or more of `- = * # ~ _ + / \ ─ ━ ═ ┄ ┈`, `#region`, `#endregion` | none |
 | `comments/no-todo` | `TODO`, `FIXME`, `XXX` and `@todo` | none |
 | `comments/no-environment-pragma` | A test environment set by a `@vitest-environment` or `@jest-environment` pragma (and its `-options`); name the file `*.dom.test.ts` instead, see [Vitest projects](./tooling.md#vitest-projects) | none |
-| `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max` (a nonnegative integer), `allow` |
+| `comments/max-per-file` | A file with more than `max` comments, 2 by default | `max` (an integer from 0 to 2), `allow` |
 
 The rules find comments with the TypeScript parser, so text inside strings, template literals, regular expressions and JSX never counts as a comment. They read the TypeScript and JavaScript modules among the sources and skip declaration files and the directives listed below. Each finding names the line its comment starts on.
 
@@ -79,9 +79,11 @@ A type test proves that an API rejects what its types forbid, and TypeScript ass
 
 #### Declared Biome overrides
 
-Quality ships reasons for its own internal Biome exceptions. The consumer declaration API below also accepts weakenings; that is an implementation gap against the whole-policy direction, recorded in the [roadmap](./roadmap.md). Extend the shared configuration and use the baseline for debt rather than creating a weaker policy. The following describes the validation surface for an existing consumer override. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
+Consumer declarations cover one lint rule or assist action on explicit file paths, with a reason. Globs, whole checks and rule groups cannot be declared. A `files/includes` declaration must retain `**` and add only negative patterns naming a concrete directory, such as `!**/test-support/generated`. These patterns may start with `**/` and use `*` for an intermediate directory, as in `!**/test-support/*/generated`. Every other segment names a directory without dots except an optional leading dot; the final segment must be a name. File patterns, nested `**` and wildcard suffixes are rejected. Shipped preset declarations describe Quality's internal policy and are not subject to the consumer scope restriction.
 
-| Setting | Declared as |
+Quality ships reasons for its own internal Biome exceptions. Extend the shared configuration and use the baseline for debt. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
+
+| Setting | Detected as |
 | --- | --- |
 | A lint rule at `off`, `warn` or `info`, as a string or a `level` | `lint/<group>/<rule>` |
 | A lint group at `off`, `warn` or `info`, or with `recommended: false` or `preset: "none"` | `lint/<group>` |
@@ -105,12 +107,12 @@ export default defineConfig({
 				declared: [
 					{
 						rule: "lint/style/noDefaultExport",
-						includes: ["*.config.ts"],
+						includes: ["scripts/tool.config.ts"],
 						reason: "Tools load their config files through the default export.",
 					},
 					{
 						rule: "lint/suspicious/noConsole",
-						includes: ["scripts/**"],
+						includes: ["scripts/report.ts"],
 						reason: "Scripts report to the terminal they run in.",
 					},
 				],
@@ -120,7 +122,7 @@ export default defineConfig({
 });
 ```
 
-A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. An `includes` list that keeps files out is declared as the whole list, so every pattern added to it needs the declaration to change too. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Patterns in a nested config are relative to its folder, so they are declared with the folder in front: `"src/**"` in `packages/web/biome.json` is declared as `"packages/web/src/**"`, and its top level as `"packages/web/**"`. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
+A declaration covers a setting when its `rule` and its `includes` match the setting's exactly, in any order. An `includes` list that keeps files out is declared as the whole list, so every pattern added to it needs the declaration to change too. A setting at the top level of the root config has the scope `["**"]`, and an `overrides` entry has its own `includes` (`["**"]` when it has none). Paths in a nested config are relative to its folder, so a rule scoped to `"src/a.ts"` in `packages/web/biome.json` is declared as `"packages/web/src/a.ts"`. Top-level and globbed rule scopes cannot be declared by consumers. A setting without a declaration is reported at its line in the Biome config; a declaration that no setting matches is reported against the root config, so the list cannot outlive the overrides it explains.
 
 #### Shared presets
 

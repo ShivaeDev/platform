@@ -1,11 +1,10 @@
-import { describe, expect } from "@effect/vitest";
+import { describe, expect, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
 import { Fleet } from "#fleet.ts";
 import { Decision, FleetFailure } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const ready: Decision = {
 	code: "foreign-pr",
@@ -27,7 +26,7 @@ describe("stable decision codes", () => {
 		expect(decisionAnswer({ ...ready, code: "fleet-integration" })).toContain(':::option{id="retry"}');
 		expect(Schema.is(Decision)({ ...ready, code: "unknown-code" })).toBe(false);
 	});
-	it.effect.skipIf(storageDatabaseUrl === undefined)("reworded merge readiness sends requested changes to the existing worker after restart", () =>
+	postgresTests("test")("reworded merge readiness sends requested changes to the existing worker after restart", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -52,7 +51,7 @@ describe("stable decision codes", () => {
 			}),
 		),
 	);
-	it.effect.skipIf(storageDatabaseUrl === undefined)("reworded saved release-only reason rejects retry after restart without republishing", () =>
+	postgresTests("test")("reworded saved release-only reason rejects retry after restart without republishing", () =>
 		withEngine({ resultQuery: () => Effect.fail(new FleetFailure({ code: "foreign-pr", message: ready.reason, reason: "invalid" })) }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");

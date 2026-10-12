@@ -1,13 +1,12 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("context-bound Fleet renewal", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("terminal context edits renew the same Board ID after restart without promoting old evidence", () =>
 		withEngine({ noChange: true }, (fixture) =>
 			Effect.gen(function* () {

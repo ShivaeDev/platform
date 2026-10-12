@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
 import { activeTurn } from "#test/activeTurn.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("a hung active turn backs off, reaches a durable human decision at five minutes and releases capacity", function* () {
 	const provider = yield* activeTurn("Another operation owns this thread.");

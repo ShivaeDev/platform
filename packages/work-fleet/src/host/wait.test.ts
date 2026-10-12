@@ -1,12 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { storeState, waitProcess, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 describe("work-fleet wait against PostgreSQL and HTTP", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 
 	test("the wait process exits distinctly on each terminal state and on timeout", function* () {
 		yield* withHost({}, {}, (fixture) =>

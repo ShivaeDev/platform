@@ -130,3 +130,53 @@ describe("suppressions/biome-overrides declarations", () => {
 		expect(await issuesOf(biomeOverrides, options)).toEqual([expect.stringContaining(field)]);
 	});
 });
+
+describe("narrow consumer Biome declarations", () => {
+	it.each([
+		["lint", ["src/a.ts"]],
+		["lint/style", ["src/a.ts"]],
+		["lint/domains/react", ["src/a.ts"]],
+		["format", ["src/a.ts"]],
+		["lint/style/noNonNullAssertion", ["**"]],
+		["lint/style/noNonNullAssertion", ["src/**"]],
+		["lint/style/noNonNullAssertion", ["src"]],
+		["files/includes", ["src/**"]],
+		["files/includes", ["**", "!**"]],
+		["files/includes", ["**", "!**/*.ts"]],
+		["files/includes", ["**", "!**/src/**/*.ts"]],
+		["files/includes", ["**", "!src/*.ts"]],
+		["files/includes", ["**", "!src/a.ts"]],
+		["files/includes", ["**", "!**/src/**"]],
+		["files/includes", ["**", "!**/src/*"]],
+		["files/includes", ["**", "!**/src/**/*"]],
+		["files/includes", ["**", "!**/src/**/generated"]],
+		["files/includes", ["**", "!**/src/{generated,fixtures}"]],
+		["files/includes", ["**", "!**/src/generated*"]],
+		["files/includes", ["**", "!**/src/../generated"]],
+		["files/includes", ["**", "!**/src//generated"]],
+		["files/includes", ["**", "!!src/generated"]],
+	])("rejects %s for %j", async (rule, includes) => {
+		expect(await issuesOf(biomeOverrides, { declared: [{ includes, reason, rule }] })).toEqual([expect.stringContaining("Whole checks")]);
+	});
+
+	it("accepts named generated-directory exclusions with a reason", async () => {
+		expect(
+			await issuesOf(biomeOverrides, {
+				declared: [
+					{
+						includes: ["**", "!**/test-support/generated", "!**/test-support/*/generated"],
+						reason: "Generated test clients are not source.",
+						rule: "files/includes",
+					},
+				],
+			}),
+		).toEqual([]);
+	});
+
+	it.each(["!generated", "!src/generated", "!**/generated", "!**/src/*/generated", "!**/.generated"])(
+		"accepts the concrete directory exclusion %s",
+		async (pattern) => {
+			expect(await issuesOf(biomeOverrides, { declared: [{ includes: ["**", pattern], reason, rule: "files/includes" }] })).toEqual([]);
+		},
+	);
+});

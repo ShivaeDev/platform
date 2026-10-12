@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Deferred, Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live", "isolated");
 
 describe("Fleet launch acknowledgement pacing", () => {
 	test("a slow thread acknowledgement is persisted after the pass, without concurrent recovery", function* () {

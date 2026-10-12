@@ -1,13 +1,12 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet delivery ownership", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("failed delivery observation retains ownership and recovers without a human retry", () =>
 		withEngine({ deliveryFailure: true }, (fixture) =>
 			Effect.gen(function* () {

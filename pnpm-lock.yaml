@@ -675,6 +675,9 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.41(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.1
@@ -915,10 +918,22 @@ importers:
 
   packages/platform:
     dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
+      '@shivaedev/effect-sql':
+        specifier: workspace:*
+        version: link:../effect-sql
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
@@ -1299,6 +1314,9 @@ importers:
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

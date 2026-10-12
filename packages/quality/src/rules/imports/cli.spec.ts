@@ -2,8 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality } from "#test/cli.ts";
-import { importTree } from "#test/imports.ts";
-import { config, linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
+import { importTree, linkWorkspace } from "#test/imports.ts";
+import { formatTree, qualityTree } from "#test/qualityTree.ts";
+import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const cliTimeout = 60_000;
 
@@ -13,16 +14,25 @@ const fenceConfig = [
 	'import { defineConfig } from "@shivaedev/quality/config.ts";',
 	'import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";',
 	'import { folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";',
+	"",
 	'const game = fence("game-keeps-out-of-cms").because("The game ships to players.").from(folders("packages/game/src")).mayNotImport(packages("cms"))',
 	'  .demonstratedBy({ illegal: ["packages/game/src/a.ts", "packages/cms/src/b.ts"], legal: ["packages/game/src/a.ts", "packages/game/src/b.ts"] });',
-	'export default defineConfig({ rules: { biome: "off", "imports/aliased": "off", "imports/fences": { options: { fences: [game] } }, "files/folder-names": "off", "files/named-after-export": "off", "files/other-names": "off", "manifests/sorted": "off", "tests/colocated": "off", "tests/follow": "off" } });',
+	'export default defineConfig({ rules: { "imports/fences": { options: { fences: [game] } } } });',
 ].join("\n");
 
 function seedFences(): string {
-	const root = importTree("fence");
+	const root = qualityTree([
+		{ content: '{ "type": "module", "devDependencies": { "@shivaedev/quality": "*" } }', path: "package.json" },
+		{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
+		{ content: '{ "name": "@demo/game", "dependencies": { "@demo/cms": "workspace:*" } }', path: "packages/game/package.json" },
+		{ content: '{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts" } }', path: "packages/cms/package.json" },
+		{ content: 'import { edit } from "@demo/cms";\n\nexport const play = edit;\n', path: "packages/game/src/play.ts" },
+		{ content: "export function run(): number {\n\treturn 1;\n}\n", path: "packages/game/src/run.ts" },
+		{ content: "export function edit(): number {\n\treturn 1;\n}\n", path: "packages/cms/src/edit.ts" },
+	]);
+	linkWorkspace(root, "@demo/cms", "packages/cms");
 	writeFileSync(join(root, "quality.config.ts"), fenceConfig);
-	linkPackage(root);
-	return root;
+	return formatTree(root);
 }
 
 function register(root: string, entries: readonly object[]): void {
@@ -33,7 +43,7 @@ function register(root: string, entries: readonly object[]): void {
 describe("the imports rules on the command line", { timeout: cliTimeout }, () => {
 	it("exit 2 when the import graph covers no modules, so a misdirected config cannot pass", () => {
 		const root = importTree("empty");
-		writeFileSync(join(root, "quality.config.ts"), 'export default { rules: { biome: "off" }, sources: ["docs"] };\n');
+		writeFileSync(join(root, "quality.config.ts"), 'export default { sources: ["docs"] };\n');
 		const result = quality(root, "lint");
 		expect(result.status).toBe(2);
 		expect(result.stderr).toContain("the import graph covers no modules");
@@ -43,7 +53,7 @@ describe("the imports rules on the command line", { timeout: cliTimeout }, () =>
 
 	it("rejects production imports of tests by default and asks for shared production code", () => {
 		const root = seedTree([
-			config('{ sources: ["src"], rules: { biome: "off" } }'),
+			config('{ sources: ["src"] }'),
 			{ content: 'import "./app.test.ts";\nimport "./test-support/fixture.ts";', path: "src/app.ts" },
 			{ content: 'import "./test-support/fixture.ts";', path: "src/app.test.ts" },
 			{ content: "export const fixture = 1;", path: "src/test-support/fixture.ts" },
@@ -63,7 +73,7 @@ describe("the imports rules on the command line", { timeout: cliTimeout }, () =>
 		);
 		const reason = "The play screen previews CMS drafts until the preview service lands.";
 		register(root, [{ file: "packages/game/src/play.ts", reason, rule: "imports/fences", subject: "game-keeps-out-of-cms" }]);
-		expect(quality(root, "lint").status).toBe(0);
+		expect(quality(formatTree(root), "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("quality: passed") });
 		register(root, [
 			{ file: "packages/game/src/play.ts", reason, rule: "imports/fences", subject: "game-keeps-out-of-cms" },
 			{ file: "packages/game/src/run.ts", reason, rule: "imports/fences", subject: "game-keeps-out-of-cms" },

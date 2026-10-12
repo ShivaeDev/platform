@@ -27,17 +27,31 @@ describe("config", () => {
 		]);
 	});
 
-	it("applies levels given as a string or with options", async () => {
+	it("keeps explicitly configured built-in and local rules at error", async () => {
 		const resolved = await resolve(
-			defineConfig({ local: [todo], rules: { "local/no-todo": "off", "structure/max-lines": { level: "warn", options: { source: 200 } } } }),
+			defineConfig({ local: [todo], rules: { "local/no-todo": "error", "structure/max-lines": { level: "error", options: { source: 100 } } } }),
 		);
-		const active = resolved._tag === "Valid" ? resolved.value.active.map((rule) => [rule.id, rule.level]) : [];
-		expect(active).toContainEqual(["structure/max-lines", "warn"]);
-		expect(active.map(([id]) => id)).not.toContain("local/no-todo");
+		expect(resolved._tag === "Valid" && resolved.value.active.map((rule) => [rule.id, rule.level])).toEqual(
+			[...builtInRules, todo].map((rule) => [rule.id, "error"]),
+		);
 	});
 
-	it("does not validate the options of a rule that is off", async () => {
-		expect(await issues({ rules: { "structure/max-lines": { level: "off", options: { source: "many" } } } })).toEqual([]);
+	it.each(["warn", "off"])("rejects %s for built-in and local rules in both setting forms", async (level) => {
+		for (const id of ["structure/max-lines", "local/no-todo"]) {
+			for (const setting of [level, { level, options: { source: "many" } }]) {
+				expect(await issues({ local: [todo], rules: { [id]: setting } })).toEqual([expect.stringContaining(id)]);
+			}
+		}
+	});
+
+	it.each([
+		{ exclude: ["src/legacy/**"] },
+		{ rules: { "structure/max-lines": { options: { source: 151 } } } },
+		{ rules: { "structure/max-lines": { options: { test: 301 } } } },
+		{ rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } } },
+		{ rules: { "comments/max-per-file": { options: { max: 3 } } } },
+	])("rejects policy weakening: %j", async (input) => {
+		expect(await issues(input)).not.toEqual([]);
 	});
 
 	it("rejects an unknown setting", async () => {

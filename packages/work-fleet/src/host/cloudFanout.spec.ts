@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
@@ -9,7 +8,7 @@ import { codexServer } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { hostProcess } from "#test/hostProcess.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 function records(fixture: HostFixture) {
 	return Effect.gen(function* () {
@@ -83,7 +82,7 @@ function fanoutStory() {
 }
 
 describe("Cloud fanout restarts against PostgreSQL", () => {
-	it.live.skipIf(storageDatabaseUrl === undefined)(
+	postgresTests("live")(
 		"SIGKILL with 100 lost turn acknowledgements recovers exactly one session per attempt",
 		fanoutStory,
 		// Each launch and recovery phase is bounded by the progress stall timer.

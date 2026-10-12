@@ -1,11 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { repairAttempts, reviewHeads, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
 import { BASE, HEAD, MOVED } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 for (const conflicting of [false, true]) {
 	test(`daemon reconciliation consumes retry text when conflict=${conflicting}`, () =>

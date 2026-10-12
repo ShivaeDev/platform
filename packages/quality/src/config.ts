@@ -3,7 +3,7 @@ import type { Rule } from "./rule.ts";
 
 export type Level = "error" | "warn" | "off";
 
-export type RuleSetting<TInput> = Level | { readonly level?: Level; readonly options?: TInput };
+export type RuleSetting<TInput> = "error" | { readonly level?: "error"; readonly options?: TInput };
 
 type InputOf<TCandidate> = TCandidate extends Rule<string, infer TInput> ? TInput : never;
 
@@ -15,7 +15,6 @@ export type BuiltInRules = typeof builtInRules;
 
 export interface QualityConfig<TLocal extends readonly Rule[] = readonly Rule[]> {
 	readonly baseline?: string;
-	readonly exclude?: readonly string[];
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;
 	readonly registry?: string;

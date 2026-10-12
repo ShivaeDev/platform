@@ -1,18 +1,17 @@
 import { NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { reportBoard } from "#test/report.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("report launch backpressure", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("a queued report retains its report prompt through restart and publishes its result", () =>
 		Effect.gen(function* () {
 			const root = yield* reportBoard;

@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type { SqlClient } from "effect/unstable/sql";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { queueRecovery } from "#test/queueRecovery.ts";
 import { quotaRecovery } from "#test/quotaRecovery.ts";
@@ -6,7 +7,7 @@ import { quotaRecovery } from "#test/quotaRecovery.ts";
 interface RecoveryCapacityCase {
 	readonly code: DecisionCode;
 	readonly name: string;
-	readonly run: () => Effect.Effect<unknown, unknown>;
+	readonly run: () => Effect.Effect<unknown, unknown, SqlClient.SqlClient>;
 }
 
 export const recoveryCapacityCases: readonly RecoveryCapacityCase[] = [

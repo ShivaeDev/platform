@@ -3,14 +3,15 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality, trees } from "#test/cli.ts";
 import { branchOff, commitAll, git } from "#test/git.ts";
-import { removeSeededTrees, seedTree } from "#test/tree.ts";
+import { qualityTree } from "#test/qualityTree.ts";
+import { linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const cliTimeout = 60_000;
 
 afterEach(removeSeededTrees);
 
 function baselined(): string {
-	const root = seedTree(trees.dirty);
+	const root = qualityTree(trees.dirty);
 	quality(root, "baseline", "write");
 	return branchOff(root);
 }
@@ -25,7 +26,7 @@ const HINT =
 describe("a baseline that grows", { timeout: cliTimeout }, () => {
 	it("fails lint on a finding it does not cover, ending with the command that records the rule again", () => {
 		const root = baselined();
-		appendFileSync(join(root, "src/longer.ts"), "7\n");
+		appendFileSync(join(root, "src/longer.ts"), "String(7);\n");
 		const result = quality(root, "lint");
 		expect(result.status).toBe(1);
 		expect(result.stdout.trimEnd().endsWith(HINT)).toBe(true);
@@ -33,7 +34,7 @@ describe("a baseline that grows", { timeout: cliTimeout }, () => {
 
 	it("passes lint once it is written again with more entries, which the diff then shows", () => {
 		const root = baselined();
-		writeFileSync(join(root, "src/new.ts"), "1\n2\n3\n4\n5\n");
+		writeFileSync(join(root, "src/new.ts"), "String(1);\nString(2);\nString(3);\nString(4);\nString(5);\n");
 		expect(quality(root, "lint").status).toBe(1);
 		expect(quality(root, "baseline", "write", "--rule", "structure/max-lines").status).toBe(0);
 		expect(quality(root, "lint").status).toBe(0);
@@ -53,16 +54,17 @@ describe("a baseline that grows", { timeout: cliTimeout }, () => {
 
 function shallowClone(): { readonly clone: string; readonly origin: string } {
 	const origin = baselined();
-	for (const content of ["2\n", "3\n", "4\n"]) {
+	for (const content of ["String(2);\n", "String(3);\n", "String(4);\n"]) {
 		writeFileSync(join(origin, "src/short.ts"), content);
 		commitAll(origin, "Work");
 	}
 	git(origin, "switch", "--quiet", "main");
-	writeFileSync(join(origin, "src/main.ts"), "1\n");
+	writeFileSync(join(origin, "src/main.ts"), "String(1);\n");
 	commitAll(origin, "Main moves on");
 	git(origin, "switch", "--quiet", "work");
 	const clone = seedTree([]);
 	git(clone, "clone", "--quiet", "--depth=2", "--no-single-branch", `file://${origin}`, ".");
+	linkPackage(clone);
 	return { clone, origin };
 }
 
@@ -130,7 +132,7 @@ describe("quality baseline prune finds the merge base it follows moves from", { 
 describe("quality baseline migrate", { timeout: cliTimeout }, () => {
 	it("moves a baseline in the earlier format to JSON Lines, after which lint passes", () => {
 		const legacy = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 7 }, "src/short.ts": { count: 1, measure: 5 } };
-		const root = seedTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);
+		const root = qualityTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);
 		expect(quality(root, "lint")).toMatchObject({ status: 2, stderr: expect.stringContaining("Run `quality baseline migrate`") });
 		expect(quality(root, "baseline", "migrate").stdout).toBe(
 			"quality: moved 2 entries from quality/baseline.json to quality/baseline.jsonl, dropping 1 fixed entry.\n",

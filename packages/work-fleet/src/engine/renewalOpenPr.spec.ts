@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { FleetFailure, type WorkResult } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const original: WorkResult = { head: "head-one", kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" };
 describe("renewal refreshes adopted open PR ownership", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("changed actual scope keeps its PR reservation when renewal is denied", () => {
 		let result = original;
 		return withEngine({ denyDelivery: true, resultQuery: () => Effect.succeed(result) }, (fixture) =>

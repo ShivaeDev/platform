@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("provider capacity retry persists automation ownership across restart and clears it after acceptance", () => {
 	let now = 100;
