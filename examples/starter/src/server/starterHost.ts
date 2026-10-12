@@ -6,7 +6,7 @@ import { Notes, Subscribe } from "#notes.ts";
 import { makeAuth } from "./auth.ts";
 import { databaseOptions } from "./databaseOptions.ts";
 import { NotesService } from "./NotesService.ts";
-import { CountWords, NoteJobs } from "./noteJobs.ts";
+import { noteProducer } from "./noteProducer.ts";
 
 const handlers = Notes.toLayer(
 	Effect.gen(function* () {
@@ -30,7 +30,7 @@ export function starterHost(config?: {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
 			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			const database = databaseOptions(auth, databaseUrl);
-			const producer = NoteJobs.layer({ connectionString: Redacted.value(databaseUrl), jobs: [CountWords] });
+			const producer = noteProducer(Redacted.value(databaseUrl));
 			return appHost({
 				config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 				group: Notes,

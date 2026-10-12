@@ -11,7 +11,7 @@ To try it inside this repository, first run `./script/update` at the root, then 
 
 Before copying outside the repository, run `pnpm --filter @shivaedev/starter check:published` at the root. The command creates temporary folders outside the workspace, installs the exact npm versions in `published-versions.json`, checks framework README imports, then runs the copied starter's typecheck, Vite build and PostgreSQL/authenticated HTTP round-trip tests. It uses the shared local test database prepared by `./script/update`; set `TEST_DATABASE_URL` to use another dedicated PostgreSQL database whose role can create disposable databases. Missing database access fails the check. Temporary copies are removed on completion or failure.
 
-The starter needs an effect-pg-boss release that accepts queue definitions in `jobs` for a producer-only Layer. The published-version check verifies this support through the starter typecheck and includes the worker's PostgreSQL/live-update round trip.
+The starter uses effect-pg-boss's published `clientFactory` option to create its producer queues before serving requests, with an empty `jobs` list so the host starts no consumer. The separate worker registers the handler. The published-version check includes their PostgreSQL/live-update round trip.
 
 Change the shared operations in `src/notes.ts`, the table and services in `src/server`, and the screen in `src/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm start` serves the built app on port 3000; run `pnpm worker` in a second process to handle jobs.
 
