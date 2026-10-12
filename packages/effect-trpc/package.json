@@ -30,7 +30,13 @@
 			"default": "./dist/*.js"
 		},
 		"./internal/*": null,
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./client/rejection.ts": {
+			"types": "./dist/rejectionDecoding.d.ts",
+			"source": "./src/rejectionDecoding.ts",
+			"import": "./dist/rejectionDecoding.js",
+			"default": "./dist/rejectionDecoding.js"
+		}
 	},
 	"files": [
 		"dist",
