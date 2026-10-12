@@ -33,9 +33,11 @@ const open = async (target) => {
   await router.navigate(target.pathname + target.search + target.hash);
   if (!sameRoute || target.href !== location.href) return;
   const native = session(window);
-  const page = document.getElementById("doc").hasAttribute("data-react-document") ? native.api.document.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)}) : native.api.page.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)});
+  const doc = document.getElementById("doc");
+  const kind = doc.dataset.projection || (doc.hasAttribute("data-react-document") ? "document" : "page");
+  const page = native.api[kind].query(kind === "overview" || kind === "inbox" ? undefined : { url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)});
   if (native.registry.get(page)._tag === "Failure") {
-    delete document.getElementById("doc").dataset.route;
+    delete doc.dataset.route;
     native.registry.refresh(page);
     await navigate(target, history.state?.workBoard ?? { id: newId() });
   }
