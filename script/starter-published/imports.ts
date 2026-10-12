@@ -32,6 +32,35 @@ function declarationImports(statement: ts.Statement, source: string): Documented
 	return imports;
 }
 
+function apiSectionLevel(line: string, current: number | undefined): number | undefined {
+	const heading = /^(?<level>#{1,6})\s+(?<title>.+)$/u.exec(line);
+	if (heading === null) {
+		return current;
+	}
+	const level = heading.groups?.level?.length ?? 0;
+	if (/^API\b/u.test(heading.groups?.title ?? "")) {
+		return level;
+	}
+	return current !== undefined && level <= current ? undefined : current;
+}
+
+function relativeModuleReferences(markdown: string): string[] {
+	const paths: string[] = [];
+	let apiLevel: number | undefined;
+	const prose = markdown.replace(/```[^\n]*\n[\s\S]*?```/gu, "");
+	for (const line of prose.split("\n")) {
+		apiLevel = apiSectionLevel(line, apiLevel);
+		let content = line;
+		if (apiLevel === undefined) {
+			content = line.startsWith("|") ? (line.split("|")[1] ?? "") : "";
+		}
+		for (const match of content.matchAll(/`(?<path>[\w-]+(?:\/[\w.-]+)*\.ts)`/gu)) {
+			paths.push(match.groups?.path ?? "");
+		}
+	}
+	return paths;
+}
+
 export function documentedImports(markdown: string, source: string, owner?: string): DocumentedImport[] {
 	const imports: DocumentedImport[] = [];
 	for (const block of markdown.matchAll(/```(?:ts|tsx|typescript)\n(?<code>[\s\S]*?)```/gu)) {
@@ -45,8 +74,8 @@ export function documentedImports(markdown: string, source: string, owner?: stri
 		imports.push({ name: match.groups?.name ?? "", source, specifier: match.groups?.specifier ?? "" });
 	}
 	if (owner !== undefined) {
-		for (const match of markdown.matchAll(/^\| `(?!@)(?<path>[\w./-]+\.ts)` \|/gmu)) {
-			imports.push({ source, specifier: `${owner}/${match.groups?.path}` });
+		for (const path of relativeModuleReferences(markdown)) {
+			imports.push({ source, specifier: `${owner}/${path}` });
 		}
 	}
 	return imports.filter((entry, index) => imports.findIndex((other) => JSON.stringify(other) === JSON.stringify(entry)) === index);
