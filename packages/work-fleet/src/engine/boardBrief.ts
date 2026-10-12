@@ -1,81 +1,65 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { workRevision } from "#board/workRevision.ts";
+import { closeDecisions } from "#engine/closeDecisions.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
-export function briefChanged(record: FleetRecord, work: BoardWork): boolean {
-	return record.boardContext === undefined ? record.boardRevision !== work.revision : record.boardContext !== work.context;
-}
+const CHANGED_BRIEF_REASON = "Board context changed";
 
-export function briefUpdate(record: FleetRecord, work: BoardWork): string {
-	return `The approved worker brief changed. Continue with the current brief and adjust the work to its criteria.\n\nPrevious brief:\n${record.boardContext ?? record.prompt}\n\nCurrent brief:\n${work.context}`;
+export function briefChanged(record: FleetRecord, work: BoardWork): boolean {
+	return workRevision(record.boardRevision, record.boardContext) !== workRevision(work.revision, work.context);
 }
 
 export function briefApproved(work: BoardWork): boolean {
-	return work.approved && work.status !== "done" && work.status !== "superseded";
+	return work.approved;
 }
 
 export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work: BoardWork) {
 	if (!briefApproved(work)) {
-		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved or is done or superseded" }), {
+		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved" }), {
 			attentionOwner: "maintainer",
 			code: "approval-required",
 		});
 	}
 });
 
-export function refreshBrief(state: EngineState) {
-	return Effect.fn("Fleet.refreshBrief")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
-		yield* authorizeBrief(work);
-		if (!briefChanged(stored.value, work) || stored.value.launchRetry !== undefined) {
+export const authorizeBriefContext = Effect.fn("Fleet.authorizeBriefContext")(function* (record: FleetRecord, work: BoardWork) {
+	yield* authorizeBrief(work);
+	if (briefChanged(record, work)) {
+		return yield* withFailureContext(new Conflict({ message: CHANGED_BRIEF_REASON }), { attentionOwner: "maintainer", code: "fleet-stale" });
+	}
+});
+
+export function stopChangedBrief(state: EngineState) {
+	return Effect.fn("Fleet.stopChangedBrief")(function* (stored: Versioned<FleetRecord>) {
+		if (stored.value.decision?.code === "fleet-stale" && stored.value.decision.reason === CHANGED_BRIEF_REASON) {
 			return stored;
 		}
-		return yield* state.save(stored, refreshedBrief(stored.value, work));
-	});
-}
-
-export function continueChangedBrief(state: EngineState) {
-	return Effect.fn("Fleet.continueChangedBrief")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
-		yield* authorizeBrief(work);
 		const published = stored.value.decision?.published;
-		return yield* state.save(stored, {
-			...changedBrief(stored.value, work),
-			decision: undefined,
-			decisionPublished: undefined,
+		const stopped = yield* state.save(stored, {
+			...stored.value,
+			checks: undefined,
+			mergeReadyAt: undefined,
+			mergeReadyHead: undefined,
+			review: undefined,
 			supersededDecisions:
 				published === undefined
 					? stored.value.supersededDecisions
 					: [...(stored.value.supersededDecisions ?? []), { published, supersededAt: state.policy.now() }],
 		});
+		return yield* state
+			.decision(
+				stopped,
+				"fleet-stale",
+				CHANGED_BRIEF_REASON,
+				"Approve and prepare the current scope, or safely release this work",
+				undefined,
+				"maintainer",
+			)
+			.pipe(Effect.flatMap(closeDecisions(state)));
 	});
-}
-
-export function refreshedBrief(record: FleetRecord, work: BoardWork): FleetRecord {
-	if (!briefChanged(record, work)) {
-		return record;
-	}
-	const prompt =
-		record.boardContext !== undefined && record.prompt.includes(record.boardContext)
-			? record.prompt.replace(record.boardContext, () => work.context)
-			: `${record.prompt}\n\n${briefUpdate(record, work)}`;
-	return {
-		...record,
-		areas: work.areas,
-		boardContext: work.context,
-		boardRevision: work.revision,
-		boardSourcePath: work.sourcePath,
-		checks: undefined,
-		mergeReadyAt: undefined,
-		mergeReadyHead: undefined,
-		prompt,
-		review: undefined,
-	};
-}
-
-export function changedBrief(record: FleetRecord, work: BoardWork): FleetRecord {
-	const refreshed = refreshedBrief(record, work);
-	return { ...refreshed, blocker: undefined, prompt: `${refreshed.prompt}\n\n${briefUpdate(record, work)}`, stage: "repairing" };
 }

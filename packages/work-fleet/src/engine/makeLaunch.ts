@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
-import { authorizeBrief, briefChanged, briefUpdate, refreshedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import type { BoardWork, DecisionResponse } from "#policy.ts";
+import type { DecisionResponse } from "#policy.ts";
 import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
@@ -17,9 +17,9 @@ export function makeLaunch(state: EngineState) {
 		prompt: string,
 		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
 	) {
-		let stored = input;
+		const stored = input;
 		const work = yield* board.get(stored.value.workId);
-		yield* authorizeBrief(work);
+		yield* authorizeBriefContext(stored.value, work);
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
@@ -29,8 +29,7 @@ export function makeLaunch(state: EngineState) {
 			sessionId,
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
-		const workerPrompt = launchPrompt(stored.value, work, prompt, retryPrompt, policy.workerGuidance);
-		stored = { ...stored, value: refreshedBrief(stored.value, work) };
+		const workerPrompt = launchPrompt(stored.value, prompt, retryPrompt, policy.workerGuidance);
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,
@@ -73,10 +72,9 @@ export function makeLaunch(state: EngineState) {
 	});
 }
 
-function launchPrompt(record: FleetRecord, work: BoardWork, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
+function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
 	const queuedPrompt = retryPrompt ?? prompt;
-	const currentPrompt = briefChanged(record, work) ? `${queuedPrompt}\n\n${briefUpdate(record, work)}` : queuedPrompt;
 	return retryPrompt === undefined
-		? withWorkerGuidance(record.deliverable === "report" ? reportPrompt(currentPrompt) : currentPrompt, guidance)
-		: currentPrompt;
+		? withWorkerGuidance(record.deliverable === "report" ? reportPrompt(queuedPrompt) : queuedPrompt, guidance)
+		: queuedPrompt;
 }

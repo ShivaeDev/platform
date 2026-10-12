@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
-import { acceptedBoardRevision } from "#acceptedBoardRevision.ts";
+import { workRevision } from "#board/workRevision.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
@@ -44,5 +44,7 @@ function dependencyAccepted(workId: string, current: BoardWork, records: readonl
 	const record = records.find((entry) => entry.workId === workId);
 	return record === undefined
 		? current.status === "done"
-		: record.stage === "completed" && record.outcome !== undefined && acceptedBoardRevision(record, current);
+		: record.stage === "completed"
+				&& record.outcome !== undefined
+				&& workRevision(record.boardRevision, record.boardContext) === workRevision(current.revision, current.context);
 }

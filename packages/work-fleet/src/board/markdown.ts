@@ -1,13 +1,14 @@
 import { Context, Effect, FileSystem, Layer, Path, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
+import { briefRevision } from "#board/briefRevision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments, boundSnapshot, snapshotDocument } from "#board/documents.ts";
 import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
+import { workRevision } from "#board/workRevision.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
@@ -35,7 +36,7 @@ const MarkdownBoard = defineService({
 				...(deliverable === "report" ? { deliverable: "report" as const } : {}),
 				context: found.source,
 				dependsOn: (found.parsed.fields.relationships ?? []).filter((relation) => relation.kind === "depends_on").map((relation) => relation.target),
-				revision: revisionOf(found.source),
+				revision: briefRevision(found.parsed),
 				sourcePath: path.join(realRoot, found.file),
 				workId,
 			};
@@ -52,7 +53,7 @@ const MarkdownBoard = defineService({
 				const relativeSource = path.relative(realRoot, work.sourcePath);
 				if (
 					work.workId !== workId
-					|| work.revision !== revisionOf(work.context)
+					|| workRevision(work.revision, work.context) !== briefRevision(parsed)
 					|| parsed.fields.id !== workId
 					|| boardDiagnostics(parsed).length > 0
 					|| relativeSource === "."
