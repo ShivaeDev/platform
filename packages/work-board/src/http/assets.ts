@@ -51,8 +51,8 @@ export const mermaidRoot = Effect.fn("WorkBoard.mermaidRoot")(function* () {
 	return path.dirname(entry);
 });
 
-export const mermaidFile = (mermaidRoot: string) =>
-	Effect.fn("WorkBoard.mermaidFile")(function* (request: HttpServerRequest.HttpServerRequest) {
+export function mermaidFile(mermaidRoot: string) {
+	return Effect.fn("WorkBoard.mermaidFile")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
 		const file = path.resolve(mermaidRoot, new URL(request.url, "http://127.0.0.1").pathname.slice(MERMAID.length));
@@ -61,12 +61,14 @@ export const mermaidFile = (mermaidRoot: string) =>
 		}
 		return respond(yield* fs.readFile(file), "text/javascript");
 	});
+}
 
 export const MERMAID_ROUTE: HttpRouter.PathInput = `${MERMAID}*`;
 
 export const NATIVE_ROUTE: HttpRouter.PathInput = "/_board/native.js";
-const NATIVE_MISSING =
-	"Work Board browser bundle assets/native.js is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.";
+function missingBundle(file: string) {
+	return `Work Board browser bundle assets/${file} is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.`;
+}
 
 const bundledPath = Effect.fn("WorkBoard.bundledPath")(function* (file: string) {
 	const path = yield* Path.Path;
@@ -74,23 +76,22 @@ const bundledPath = Effect.fn("WorkBoard.bundledPath")(function* (file: string) 
 	return path.resolve(path.dirname(module), "../../assets", file);
 });
 
-export const checkNativeAsset = Effect.fn("WorkBoard.checkNativeAsset")(function* () {
+const checkAssets = Effect.fn("WorkBoard.checkAssets")(function* (files: readonly string[]) {
 	const fs = yield* FileSystem.FileSystem;
-	if (!(yield* fs.exists(yield* bundledPath("native.js")))) {
-		yield* Effect.logWarning(NATIVE_MISSING);
+	for (const file of files) {
+		if (!(yield* fs.exists(yield* bundledPath(file)))) {
+			yield* Effect.logWarning(missingBundle(file));
+		}
 	}
 });
 
-export const nativeAsset = Effect.fn("WorkBoard.nativeAsset")(function* () {
-	const fs = yield* FileSystem.FileSystem;
-	return yield* fs.readFile(yield* bundledPath("native.js")).pipe(
-		Effect.map((body) => respond(body, "text/javascript")),
-		Effect.catchIf(
-			(error) => error.reason._tag === "NotFound",
-			() => Effect.succeed(respond(NATIVE_MISSING, "text/plain", 500)),
-		),
-	);
-});
+export function checkNativeAsset() {
+	return checkAssets(["native.js"]);
+}
+export function checkBrowserAssets() {
+	return checkAssets(["native.js", "react.js", "react.css"]);
+}
+export const nativeAsset = bundledAsset("native.js", "text/javascript");
 
 const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<typeof bundledAsset>]> = [
 	[NATIVE_ROUTE, nativeAsset],
@@ -101,7 +102,13 @@ const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<t
 function bundledAsset(file: string, contentType: string) {
 	return Effect.fn("WorkBoard.bundledAsset")(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		return respond(yield* fs.readFile(yield* bundledPath(file)), contentType);
+		return yield* fs.readFile(yield* bundledPath(file)).pipe(
+			Effect.map((body) => respond(body, contentType)),
+			Effect.catchIf(
+				(error) => error.reason._tag === "NotFound",
+				() => Effect.succeed(respond(missingBundle(file), "text/plain", 500)),
+			),
+		);
 	});
 }
 
