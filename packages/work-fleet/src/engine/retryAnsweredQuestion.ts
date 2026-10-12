@@ -22,14 +22,20 @@ export const retryAnsweredQuestion = Effect.fn("Fleet.retryAnsweredQuestion")(fu
 		attempts: current.value.attempts.map((item) =>
 			item.operationId === operationId ? { ...item, sessionUnusable: true, status: "failed" as const } : item,
 		),
+		checks: undefined,
 		prompt: [
 			previous.prompt,
+			previous.review?.repairPrompt,
+			previous.checks?.repairPrompt,
 			"Worker question:",
 			previous.decision.reason,
 			"Recorded answer:",
 			attempt.prompt,
 			`Continue on the same branch and PR${previous.result?.kind === "change" ? ` (${previous.result.pr})` : " created by the previous worker"}. Reuse that branch; do not create another branch or PR.`,
-		].join("\n\n"),
+		]
+			.filter(Boolean)
+			.join("\n\n"),
+		review: undefined,
 		stage: "repairing",
 	});
 	return true;
