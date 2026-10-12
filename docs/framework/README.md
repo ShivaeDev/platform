@@ -20,6 +20,7 @@ user-facing text, layout and deployment choices.
 | Declare queries and commands | [effect-contract](../../packages/effect-contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
 | Resolve identity and share errors | [platform](../../packages/platform/README.md) | Use its errors, RPC middleware and server modules; applications decide session and Origin policy. |
 | Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; applications own registry and session lifetime. |
+| Route React screens | [effect-react/router.ts](../../packages/effect-react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
 | Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
 | Run durable jobs | [effect-pg-boss](../../packages/effect-pg-boss/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
 | Test Effect code | [effect-test](../../packages/effect-test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |

@@ -137,6 +137,70 @@ create.dispatch({
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result. Disable duplicate submissions or give independent work distinct native action atoms. When one caller needs its own success or failure, run the actual RPC Effect through its runtime, as the editor's `save` does; shared atom state cannot identify one invocation's completion.
 
+### Route loaders with TanStack Router
+
+TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/router.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
+
+This example assumes an application-owned `api.get.query({ id })` returning `{ id, title }`, with a declared `NoteMissing` rejection:
+
+```tsx
+import { RegistryContext } from "@effect/atom-react";
+import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterProvider, useRouterState } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
+import { Predicate } from "effect";
+import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { loadQuery } from "@shivaedev/effect-react/router.ts";
+import { api } from "./notes-client.ts";
+
+const registry = AtomRegistry.make();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
+  component: Shell,
+});
+const note = createRoute({
+  getParentRoute: () => root,
+  path: "/notes/$id",
+  loader: (context) => loadQuery(context.context.registry, api.get.query(context.params), context),
+  component: Note,
+  errorComponent: Failure,
+});
+const router = createRouter({
+  context: { registry },
+  routeTree: root.addChildren([note]),
+  defaultPendingMs: Infinity,
+});
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+function Shell() {
+  const pending = useRouterState({ select: (state) => state.isLoading });
+  return <main>{pending && <p>Loading…</p>}<Outlet /></main>;
+}
+function Note() {
+  const row = note.useLoaderData();
+  return <h1>{row.title}</h1>;
+}
+function Failure({ error }: ErrorComponentProps) {
+  return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
+}
+export function App() {
+  return <RegistryContext.Provider value={registry}><RouterProvider router={router} /></RegistryContext.Provider>;
+}
+```
+
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The render fixture proves navigation between two note payloads, shared loader/component query execution, and a declared RPC failure reaching the error component as the original tagged error.
+
+`loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
+
+Install the optional router peer when using this entry point:
+
+```sh
+pnpm add @tanstack/react-router
+```
+
 ### 3. Once per feature: an editor and a create form
 
 The next module assumes `./invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/effect-contract/README.md) describes that binding.
@@ -295,6 +359,7 @@ const query = Atom.swr(atom, {
 | `editor.ts` | `useEditor`; `Editor`, `EditorConfig`. |
 | `create.ts` | `useCreate`; `Create`, `CreateConfig`. |
 | `resume-signal.ts` | `resumeSignal`; `ResumeSource`, `ResumeWindow`, `ResumeOptions`. |
+| `router.ts` | `loadQuery`. |
 | `save-state.ts` | `useSaveState`; `SaveState`. |
 | `field-rejection.ts` | `fieldRejectionOf`, `rejecting`; `FieldRejection`, `RejectField`, `FieldRejectionMapping`, `AtomServices`. |
 | `testing.ts` | `render`, `eventually`, `expectNoReactWarnings`; `Rendered`. |
