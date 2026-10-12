@@ -14,6 +14,7 @@ import { recoveryJournalCases } from "#test/recoveryJournalCases.ts";
 import { recoveryPreparationCases } from "#test/recoveryPreparationCases.ts";
 import { recoveryProducerCases } from "#test/recoveryProducerCases.ts";
 import { recoveryProviderCases } from "#test/recoveryProviderCases.ts";
+import { recoveryReadCase } from "#test/recoveryReadCase.ts";
 import { recoveryRecordCases } from "#test/recoveryRecordCases.ts";
 import { recoveryReportCases } from "#test/recoveryReportCases.ts";
 import { recoveryReviewCases } from "#test/recoveryReviewCases.ts";
@@ -23,6 +24,7 @@ import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
 export function recoveryCases() {
 	return [
+		recoveryReadCase(),
 		recoveryActiveTurnCase("session-active-turn"),
 		recoveryActiveTurnCase("session-active-turn-exhausted"),
 		...recoveryFallbackCases(),

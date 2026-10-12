@@ -2,7 +2,8 @@ import { Effect, Option } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
-import { executing, type FleetRecord } from "#model.ts";
+import { retryTerminal } from "#engine/retryTerminal.ts";
+import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
@@ -33,9 +34,11 @@ export function makeObserve(state: EngineState) {
 		const observation = yield* sessions.observe(receipt);
 		yield* validateReceipt(observation.receipt, receipt);
 		const attempts = stored.value.attempts.map((attempt) =>
-			attempt.operationId === latest.operationId ? { ...attempt, output: observation.output, receipt, status: observation.execution } : attempt,
+			attempt.operationId === latest.operationId
+				? { ...attempt, output: observation.output, readRetry: undefined, receipt, status: observation.execution }
+				: attempt,
 		);
-		stored = yield* save(stored, { ...stored.value, attempts });
+		stored = yield* save(stored, { ...stored.value, attempts, blocker: observationBlocker(stored.value, latest) });
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
 		}
@@ -51,6 +54,10 @@ const observationRecord = Effect.fn("Fleet.observationRecord")(function* (state:
 	// A completed submission persists its receipt before releasing the launching guard.
 	return yield* state.load(input.value.workId);
 });
+
+function observationBlocker(record: FleetRecord, attempt: Attempt) {
+	return attempt.readRetry === undefined ? record.blocker : undefined;
+}
 
 function pausedByBrief(record: FleetRecord) {
 	return record.stage === "needs-human" && record.decision?.code === "fleet-stale" && record.decision.reason === "Board context changed";
@@ -71,6 +78,9 @@ function finishObservation(state: EngineState) {
 			return stored;
 		}
 		if (observation.execution !== "completed") {
+			if (yield* retryTerminal(state, stored.value, observation)) {
+				return yield* state.load(stored.value.workId);
+			}
 			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
 		}
 		const question = reportedQuestion(observation.output);

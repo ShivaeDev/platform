@@ -41,6 +41,7 @@ export function makeLaunch(state: EngineState) {
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
+			providerFailures: stored.value.launchRetry?.rejections,
 			role: launchRole,
 			settings,
 			...(sessionId === undefined ? {} : { sessionId }),

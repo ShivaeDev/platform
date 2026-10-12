@@ -119,3 +119,26 @@ for (const overloaded of [false, true]) {
 		),
 	);
 }
+
+for (const message of ["Rejected credential", "Invalid API key", "Request refused by policy", "Selected model is at capacity"]) {
+	it.live(`an active thread cannot turn ${message} into contention replay`, () =>
+		Effect.scoped(
+			Effect.gen(function* () {
+				const methods: string[] = [];
+				const fixture = yield* codexServer((request) => {
+					methods.push(request.method);
+					return request.method === "turn/start"
+						? new WireRejection(message)
+						: { data: [{ id: "active", items: [], status: "inProgress" }], nextCursor: null };
+				});
+				yield* Effect.gen(function* () {
+					const provider = yield* SessionTransport;
+					const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
+					expect(error).toMatchObject({ code: "session-rejected", message: `Codex rejected the protocol request: ${message}`, reason: "rejected" });
+				}).pipe(Effect.provide(codexConfiguration(fixture.endpoint)));
+				expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
+				expect(methods).not.toContain("thread/turns/list");
+			}),
+		),
+	);
+}
