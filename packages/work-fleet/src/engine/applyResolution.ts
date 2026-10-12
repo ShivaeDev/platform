@@ -6,6 +6,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
+import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
@@ -41,8 +42,9 @@ function retryOrRelease(state: EngineState) {
 	) {
 		const current = yield* resolveExecution(state, stored, action);
 		if (action === "retry") {
-			if (current.value.decision?.reason === "Reviewed PR is ready to merge" && current.value.result?.kind === "change" && body.trim()) {
-				return yield* requestRework(state)(current, body, responses);
+			const rework = yield* retryRework(state)(current, responses, body);
+			if (rework !== undefined) {
+				return rework;
 			}
 			const refreshed = yield* retryChangedBrief(state)(current, responses);
 			if (refreshed !== undefined) {
@@ -56,6 +58,27 @@ function retryOrRelease(state: EngineState) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
 		return yield* state.save(current, { ...current.value, blocker: undefined, decision: undefined, responses, stage });
+	});
+}
+
+function retryRework(state: EngineState) {
+	return Effect.fn("Fleet.retryRework")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[], body: string) {
+		const record = stored.value;
+		if (record.result?.kind !== "change" || executing(record)) {
+			return undefined;
+		}
+		const latest = record.attempts.at(-1);
+		let changes = body.trim();
+		if (record.decision?.reason === CONFLICTING_PR_REASON) {
+			changes = ["GitHub reports a conflict with main. Fetch and merge main, resolve the conflicts, and retain the requested changes.", changes]
+				.filter(Boolean)
+				.join("\n\n");
+		} else if (latest?.sessionUnusable) {
+			changes = [latest.prompt ?? record.prompt, changes].filter(Boolean).join("\n\n");
+		} else if (record.decision?.reason !== "Reviewed PR is ready to merge" || !changes) {
+			return undefined;
+		}
+		return yield* requestRework(state)(stored, changes, responses);
 	});
 }
 
