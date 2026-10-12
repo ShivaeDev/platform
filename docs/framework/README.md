@@ -1,5 +1,7 @@
 # Native Effect application framework
 
+Start a new app with the [quickstart](./quickstart.md) and [copyable starter](../../examples/starter).
+
 Platform gives an Effect application one path from its data schemas to services,
 persistence, operations and client state. Shared conventions remove repeated
 wiring while keeping native Effect dependencies, errors, scopes and interruption
@@ -59,7 +61,7 @@ automatic relationship loading are outside the default path.
 
 ## Composing a feature
 
-The [PostgreSQL order feature](./composed-example.md) is the reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. It is a test fixture, not a copyable app; an app template is still needed. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
+The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
 - [Request context](./request-context.md) explains session resolution, Origin

@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - examples/*
 
 overrides:
   # `@prisma-next/cli-telemetry` asks for `^1.2.3`; 1.2.4 and 1.2.5 dropped the

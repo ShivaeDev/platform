@@ -405,6 +405,100 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@24.19.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.2)(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
 
+  examples/starter:
+    dependencies:
+      '@effect/atom-react':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(react@19.2.8)(scheduler@0.27.0)
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../../packages/effect-contract
+      '@shivaedev/effect-form':
+        specifier: workspace:*
+        version: link:../../packages/effect-form
+      '@shivaedev/effect-react':
+        specifier: workspace:*
+        version: link:../../packages/effect-react
+      '@shivaedev/effect-service':
+        specifier: workspace:*
+        version: link:../../packages/effect-service
+      '@shivaedev/effect-sql':
+        specifier: workspace:*
+        version: link:../../packages/effect-sql
+      '@shivaedev/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.41(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      class-variance-authority:
+        specifier: 'catalog:'
+        version: 0.7.1
+      clsx:
+        specifier: 'catalog:'
+        version: 2.1.1
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.8(react@19.2.8)
+      tailwind-merge:
+        specifier: 'catalog:'
+        version: 3.7.0
+    devDependencies:
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../../packages/effect-test
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../../packages/effect-test-sql
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../../packages/quality
+      '@tailwindcss/vite':
+        specifier: 'catalog:'
+        version: 4.3.3(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.4(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 6.0.5(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      happy-dom:
+        specifier: 'catalog:'
+        version: 20.11.2
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.3
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@24.19.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.2)(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/effect-changes:
     devDependencies:
       '@shivaedev/quality':
@@ -5325,7 +5419,7 @@ snapshots:
   '@effect/vitest@4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)':
     dependencies:
       effect: 4.0.0-rc.112
-      vitest: 4.1.11(@types/node@24.19.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.2)(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+      vitest: 4.1.11(@types/node@24.19.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.2)(vite@8.2.0(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   '@electric-sql/pglite-socket@0.1.3(@electric-sql/pglite@0.4.3)':
     dependencies:
