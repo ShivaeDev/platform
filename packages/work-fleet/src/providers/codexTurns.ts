@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { type Item, ItemsResponse, type Turn, TurnsResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
 import { makeWaitUntilIdle } from "#providers/makeWaitUntilIdle.ts";
+import { readActiveTurn } from "#providers/readActiveTurn.ts";
 import { reportLimit } from "#reportLimits.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 
@@ -103,5 +104,12 @@ export function codexTurns(rpc: CodexRequest) {
 	function readOutput(receipt: SessionReceipt) {
 		return readItems(receipt).pipe(Effect.map(finalOutput));
 	}
-	return { findTurn, operationTurn, readItems, readOutput, waitUntilIdle };
+	return {
+		findTurn,
+		hasActiveTurn: readActiveTurn((sessionId, cursor) => turns(sessionId, cursor, false)),
+		operationTurn,
+		readItems,
+		readOutput,
+		waitUntilIdle,
+	};
 }

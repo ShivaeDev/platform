@@ -1,3 +1,4 @@
+import { recoveryActiveTurnCase } from "#test/recoveryActiveTurnCase.ts";
 import { recoveryAdmissionCases } from "#test/recoveryAdmissionCases.ts";
 import { recoveryAdoptionCases } from "#test/recoveryAdoptionCases.ts";
 import { recoveryBoardReportCases } from "#test/recoveryBoardReportCases.ts";
@@ -22,6 +23,7 @@ import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
 export function recoveryCases() {
 	return [
+		recoveryActiveTurnCase(),
 		...recoveryFallbackCases(),
 		...recoveryScopeCases(),
 		...recoveryAdmissionCases(),

@@ -27,6 +27,7 @@ export const DecisionCode = Schema.Literals([
 	"result-identity-changed",
 	"reviewed-pr-ready",
 	"reviewer-terminal",
+	"session-active-turn",
 	"session-ambiguous",
 	"session-persistence",
 	"session-protocol",
