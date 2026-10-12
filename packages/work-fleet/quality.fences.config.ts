@@ -8,6 +8,7 @@ export default [
 		.mayNotImport(
 			packages("work-board").except(
 				files(
+					"packages/work-board/src/integration/metadata.ts",
 					"packages/work-board/src/server/integration/board.ts",
 					"packages/work-board/src/server/integration/responses.ts",
 					"packages/work-board/src/server/integration/attention.ts",
