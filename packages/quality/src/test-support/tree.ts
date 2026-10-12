@@ -28,6 +28,18 @@ export function linkPackage(root: string): void {
 	symlinkSync(packageRoot, join(root, "node_modules", "@shivaedev", "quality"), "dir");
 }
 
+export const DEFAULT_FILES: readonly SeedFile[] = [
+	{ content: "node_modules/\n", path: ".gitignore" },
+	{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
+	{ content: "export function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" },
+];
+
+export function defaultTree(...files: readonly SeedFile[]): string {
+	const root = seedTree(DEFAULT_FILES, files);
+	linkPackage(root);
+	return root;
+}
+
 export function removeSeededTrees(): void {
 	for (const root of seeded.splice(0)) {
 		rmSync(root, { force: true, recursive: true });

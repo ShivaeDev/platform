@@ -59,7 +59,7 @@ export function refreshedBrief(record: FleetRecord, work: BoardWork): FleetRecor
 	}
 	const prompt =
 		record.boardContext !== undefined && record.prompt.includes(record.boardContext)
-			? record.prompt.replace(record.boardContext, work.context)
+			? record.prompt.replace(record.boardContext, () => work.context)
 			: `${record.prompt}\n\n${briefUpdate(record, work)}`;
 	return {
 		...record,

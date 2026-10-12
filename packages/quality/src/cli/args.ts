@@ -37,9 +37,9 @@ baseline migrate  Move a baseline from the earlier JSON format (--from, quality/
 hooks install     Install the git pre-commit hook, shared by every worktree, that runs hooks pre-commit. Keeps a hook that is not quality's
                   unless --force replaces it.
 hooks uninstall   Remove quality's pre-commit hook. Keeps a hook that is not quality's.
-hooks pre-commit  What the hook runs: baseline tighten for staged files when preCommit.tighten is set, lint, then each preCommit.run command.
+hooks pre-commit  What the hook runs: lint, then package.json scripts typecheck and quality:commit when present.
 
---config <file>  Config file; its directory is the repository root. Defaults to ./quality.config.ts.
+--config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 

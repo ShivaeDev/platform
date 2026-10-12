@@ -75,16 +75,12 @@ effectApp("preserves valid history and infers no removals when a current source 
 	expect(result.html).not.toContain("1 removed");
 });
 
-effectApp(
-	"declines an oversized complete workspace rather than retaining a partial snapshot",
-	function* () {
-		notes.write("huge.md", "界".repeat(MAX_BYTES / 2));
-		const result = yield* query("observe");
-		expect(result.snapshot).toBeNull();
-		expect(result.reason).toContain("2 MiB");
-	},
-	{ timeout: 30_000 },
-);
+effectApp("declines an oversized complete workspace rather than retaining a partial snapshot", function* () {
+	notes.write("huge.md", "界".repeat(MAX_BYTES / 2));
+	const result = yield* query("observe");
+	expect(result.snapshot).toBeNull();
+	expect(result.reason).toContain("2 MiB");
+});
 
 effectApp("bounds native query bodies before accepting retained source data", function* () {
 	const status = yield* Effect.promise(() =>

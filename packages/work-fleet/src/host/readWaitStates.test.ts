@@ -35,7 +35,7 @@ describe("Fleet summary reads against PostgreSQL", () => {
 				}
 			}).pipe(Effect.provide(readOnlySql(fixture.host))),
 		);
-	}, 30_000);
+	});
 	test("waiting summaries retain a stable code beside reworded reason text", () =>
 		withHost({}, {}, (fixture) =>
 			Effect.gen(function* () {

@@ -39,14 +39,14 @@ const persistentStory = Effect.fn("DaemonFollowTest.persistentStory")(function* 
 			Effect.gen(function* () {
 				yield* untilOutput(watcher, "marker released\n");
 				yield* Effect.sleep("1 second");
+				const before = reads.failedCount();
 				yield* reads.breakReads;
-				const before = reads.count();
 				const results = yield* Effect.promise(() => Promise.all([waiter.done, watcher.done]));
 				for (const result of results) {
 					expect(result.code).toBe(1);
 					expect(result.stderr).toContain("Fleet daemon could not read work states after 20 consecutive attempts");
 				}
-				expect(reads.count() - before).toBe(20);
+				expect(reads.failedCount() - before).toBe(20);
 			}),
 		),
 	);

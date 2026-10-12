@@ -148,6 +148,13 @@ describe("quality fix", { timeout: cliTimeout }, () => {
 		);
 	});
 
+	it("returns on code where Biome's noProcessGlobal fix never settles", async () => {
+		const neverSettles: SeedFile = { content: "export const n = Number(globalThis.process.env.N);\n", path: "src/n.ts" };
+		const root = repository(preset, neverSettles);
+		expect(await qualityWithin(cliTimeout / 2, root, "fix")).toMatchObject({ status: 0 });
+		expect(readFileSync(join(root, neverSettles.path), "utf8")).toBe(neverSettles.content);
+	});
+
 	it("returns on a switch where the fixes of useExhaustiveSwitchCases and noUselessSwitchCase undo each other", async () => {
 		const partialSwitch: SeedFile = {
 			content:
