@@ -1,7 +1,8 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import * as SqlClient from "effect/unstable/sql/SqlClient";
+import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { State } from "#host/waitOutcome.ts";
+import { recordColumns, recordJson, recordModel } from "#storage/model.ts";
 
 export interface ReadOptions {
 	readonly namespace: string;
@@ -9,22 +10,30 @@ export interface ReadOptions {
 
 export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* (options: ReadOptions, ids?: readonly string[]) {
 	const read = Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
-		const where = ids === undefined ? sql`true` : sql.in("work_id", ids);
-		const rows = yield* sql<{ readonly value: unknown }>`select jsonb_strip_nulls(jsonb_build_object(
-			'workId', work_id, 'stage', payload->'stage', 'blocker', payload->'blocker',
-			'attentionOwner', payload->'attentionOwner',
-			'checks', case when payload->'checks'->'pending' is not null then jsonb_build_object('pending', payload->'checks'->'pending') end,
-			'decision', case when payload->'decision'->>'reason' is not null
-				then jsonb_strip_nulls(jsonb_build_object('reason', payload->'decision'->'reason', 'attentionOwner', payload->'decision'->'attentionOwner')) end,
-			'outcome', jsonb_strip_nulls(jsonb_build_object('url', payload->'outcome'->'url', 'evidence', payload->'outcome'->'evidence'))
-		)) as value from ${sql(`${options.namespace}_records`)} where ${where} order by work_id`.pipe(
-			Effect.catch((error) => {
-				const cause = error.reason.cause;
-				return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "42P01" ? Effect.succeed([]) : Effect.fail(error);
-			}),
+		const repository = yield* makeRepository(recordModel(), {
+			idColumn: "work_id",
+			spanPrefix: "FleetReader",
+			tableName: `${options.namespace}_records`,
+		});
+		const rows = yield* repository
+			.findMany({
+				orderBy: { direction: "asc", field: "work_id" },
+				select: ["work_id", "stage", "blocker", "attentionOwner", "checks", "decision", "outcome"],
+			})
+			.pipe(
+				Effect.catchTag("SqlError", (error) => {
+					const cause = error.reason.cause;
+					return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "42P01" ? Effect.succeed([]) : Effect.fail(error);
+				}),
+			);
+		return yield* Effect.forEach(
+			rows.filter((row) => ids === undefined || ids.includes(row.work_id)),
+			(row) =>
+				recordJson(row, recordColumns()).pipe(
+					Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(State))),
+					Effect.map((state) => ({ ...state, outcome: state.outcome ?? {} })),
+				),
 		);
-		return yield* Effect.forEach(rows, (row) => Schema.decodeUnknownEffect(State)(row.value));
 	});
 	return yield* read;
 });

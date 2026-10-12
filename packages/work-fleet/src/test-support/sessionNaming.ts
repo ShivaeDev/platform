@@ -21,6 +21,7 @@ export function sessionNaming(count: number) {
 				return stored;
 			}),
 		foreignReservations: () => Effect.succeed([]),
+		hasLaunchRetry: () => Effect.sync(() => [...records.values()].some(({ value }) => value.launchRetry !== undefined)),
 		insert: (value) => Effect.succeed({ value, version: 1 }),
 		list: () =>
 			Effect.sync(() => {
