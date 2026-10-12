@@ -4,8 +4,8 @@ This file owns Platform's module implementation, package tests and scope questio
 
 ## Built
 
-- [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker.
-
+- [x] `localRpcGuard` rejects unknown or non-loopback transport addresses before calling the handler and accepts known IPv4, IPv6 and mapped loopback addresses. [Injected-request evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/rpc-server/local.test.ts); this is separate from deployed host or proxy validation.
+- [x] `rpcBoundary` passes declared errors and successes through, normalizes unexpected failures and defects to a declared rejection with a redacted public message, retains the original cause off the wire, and preserves interruption, including mixed failure/cancellation causes. [Boundary evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/rpc-server/boundary.test.ts).
 - [x] Shared Schema tagged errors and field-rejection extraction, with native RPC JSON and tRPC rejection tests.
 - [x] Browser-safe native RPC middleware declarations and request-id, identity and optional-identity services, with compile-time checks on guarded handlers.
 - [x] Request-local session middleware, a Better Auth session-provider boundary and an explicit Origin policy. Tests cover concurrent identities, anonymous callers, provider failures and rejection before provider lookup.
@@ -15,6 +15,7 @@ This file owns Platform's module implementation, package tests and scope questio
 - [x] Node subscription cancellation from Web/procedure signals and simulated request/socket close events, with listener cleanup.
 - [x] A Better Auth Effect Prisma database adapter and Prisma/tRPC rollback harness. Real PostgreSQL tests cover shared transactions, failed transaction rollback, selected row operations and harness types; they require `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`.
 - [x] Packed-consumer checks for defining-module imports, types and core entries installed without optional peers.
+- [x] A local app host Layer and reusable database Layer, extracted from the PostgreSQL composition: migrations before services, guarded NDJSON RPC, session policy, static assets, scoped shutdown and commit-bound live delivery. The composed fixture covers two HTTP server processes and a worker.
 
 ## Next
 

@@ -40,6 +40,7 @@ stay in the repository.
   and scoped pg-boss workers in Effect applications.
 - [`@shivaedev/effect-test`](./packages/effect-test): Generic Effect Vitest
   runner with worker-scoped Layers and TestClock.
+- [`@shivaedev/effect-test-sql`](./packages/effect-test-sql): PostgreSQL test fixtures prepared once, per-test rollback and isolated databases for real commits.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
 - [`@shivaedev/test-story`](./packages/test-story): Tests that read like

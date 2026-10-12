@@ -9,6 +9,7 @@ import type { Migrator } from "effect/unstable/sql";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
+import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
 import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionPolicy, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
@@ -100,7 +101,12 @@ export function appHost<
 		TSession
 	>,
 ) {
-	const middleware = Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer());
+	// Named middleware types keep NodeNext declarations on the package aliases.
+	const middleware: Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> = Layer.mergeAll(
+		authenticatedLayer(options.sessions),
+		maybeAuthenticatedLayer(options.sessions),
+		requestTracingLayer(),
+	);
 	const routes = HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const wire = yield* RpcSerialization.RpcSerialization;

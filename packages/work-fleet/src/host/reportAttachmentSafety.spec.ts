@@ -67,6 +67,6 @@ describe("Unavailable report attachments", () => {
 					]);
 				}),
 			);
-		}, 30_000);
+		});
 	}
 });

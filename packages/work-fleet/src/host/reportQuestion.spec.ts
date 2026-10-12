@@ -45,4 +45,4 @@ test("report questions continue read-only research and record the final answer t
 			yield* fleetWork.pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 		}),
 	);
-}, 30_000);
+});
