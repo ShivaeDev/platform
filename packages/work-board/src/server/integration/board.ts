@@ -17,11 +17,20 @@ export type Diagnostic = InternalDiagnostic;
 export type ParsedMetadata = InternalParsedMetadata;
 export type Snapshot = InternalSnapshot;
 
+const snapshot: (
+	root: string,
+	home: string | undefined,
+	changes: Changes,
+	maintainer?: string,
+) => Effect.Effect<Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>> = searchSnapshot;
+
 export const board = {
 	listMarkdown,
 	markdownPath,
 	metadataModel,
 	metadataParse,
-	searchSnapshot,
+	searchSnapshot: snapshot,
 	watchChanges,
 } as const;
+
+import type { Effect, FileSystem, Path, PlatformError } from "effect";
