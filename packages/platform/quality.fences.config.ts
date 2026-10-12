@@ -2,13 +2,12 @@ import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
 import { anyOf, anything, external, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
 import platformManifest from "./package.json" with { type: "json" };
 
-const PLATFORM_CORE_FOLDERS = ["errors", "node-http", "rpc", "rpc-server", "runtime"].map((folder) => `packages/platform/src/${folder}`);
 const WORKSPACE_SCOPE = "@shivaedev/";
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
 
-const browserCode = folders("packages/platform/src/errors", "packages/platform/src/rpc");
+const browserCode = folders("packages/platform/src/core/errors", "packages/platform/src/core/rpc");
 
 export default [
 	fence("platform-client-stays-browser-safe")
@@ -16,14 +15,14 @@ export default [
 		.from(browserCode)
 		.mayNotReach(anything.except(browserCode, packages("effect-contract", "effect-form", "effect-react", "types"), modules("effect")))
 		.demonstratedBy({
-			illegal: ["packages/platform/src/rpc/identity.ts", external("node:fs")],
-			legal: ["packages/platform/src/rpc/identity.ts", external("effect")],
+			illegal: ["packages/platform/src/core/rpc/identity.ts", external("node:fs")],
+			legal: ["packages/platform/src/core/rpc/identity.ts", external("effect")],
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(
-			"The errors, node-http, rpc, rpc-server and runtime modules of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
+			"The core/ modules of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
 		)
-		.from(folders(...PLATFORM_CORE_FOLDERS))
+		.from(folders("packages/platform/src/core"))
 		.mayNotReach(
 			anyOf(
 				packages(...PLATFORM_OPTIONAL_PEERS.filter((name) => name.startsWith(WORKSPACE_SCOPE))),
@@ -32,7 +31,7 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/platform/src/runtime/make.ts", external("better-auth")],
-			legal: ["packages/platform/src/runtime/make.ts", external("effect")],
+			illegal: ["packages/platform/src/core/runtime/make.ts", external("better-auth")],
+			legal: ["packages/platform/src/core/runtime/make.ts", external("effect")],
 		}),
 ];
