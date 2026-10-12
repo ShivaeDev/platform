@@ -20,9 +20,9 @@ export const authPost = Effect.fn("StarterTest.authPost")(function* (baseUrl: st
 		.join("; ");
 });
 
-export function notesHttp(baseUrl: string, cookie = "") {
+export function notesHttp(baseUrl: string, cookie = "", origin = baseUrl) {
 	const protocol = RpcClient.layerProtocolHttp({
-		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: baseUrl })),
+		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin })),
 		url: `${baseUrl}/rpc`,
 	}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	return RpcClient.make(Notes).pipe(Effect.provide(protocol));

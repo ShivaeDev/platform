@@ -15,7 +15,7 @@ Change the shared operations in `src/notes.ts`, the table and services in `src/s
 
 The notes route loads an authenticated RPC query; the create command is also protected. Missing or revoked sessions return typed `Unauthorized` failures that the UI presents as a sign-in prompt. Each account sees its own notes. `SessionBoundary` replaces the query registry and drafts when the session changes. Better Auth's HTTP endpoints share the app host at `/api/auth/*`; Vite proxies both auth and RPC to that host during development.
 
-The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth setup is local to `src/server/auth.ts`; `src/server/migrations.ts` calls Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. The loopback host supports the documented `127.0.0.1` development and built-app URLs; deployment cookie and Origin policy remain application choices.
+The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth setup is local to `src/server/auth.ts`; `src/server/migrations.ts` calls Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. With `PUBLIC_URL` unset, auth supports the documented `127.0.0.1` HTTP development and built-app URLs.
 
 ## Add a job
 
@@ -25,10 +25,15 @@ After the worker writes, call `invalidateOnCommit` with the contract's invalidat
 
 ## Deploy
 
-Build with `pnpm build` and run the server with `pnpm start` and a separate worker with `pnpm worker`, using the same database and secret settings. A host such as Railway supplies `PORT`; connect its PostgreSQL service through `DATABASE_URL`. Set `BETTER_AUTH_SECRET` in the host's secret settings. Before deploying the starter, configure Better Auth's base URL, trusted origins and cookie policy, and the RPC session Origin policy in `src/server/auth.ts` for your public URL; the supplied auth configuration targets the documented loopback URLs.
+Set these environment variables on the server; the worker uses the same `DATABASE_URL`:
 
-Set `HOST=0.0.0.0` to bind the container's network interface and `TRUSTED_PROXY` to a comma-separated list of proxy peer addresses or CIDR ranges, such as `10.0.0.0/24,2001:db8::/32`. IPv4 and IPv6 are supported, including IPv4-mapped IPv6 peers. The corresponding `appHost` overrides are `config.host` and `config.trustedProxy`. Invalid addresses or ranges fail startup with a typed `ConfigError`; without these settings, the listener and RPC guard retain their loopback defaults.
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Your PostgreSQL connection URL. |
+| `BETTER_AUTH_SECRET` | A random secret of at least 32 characters, kept in the host's secret settings. |
+| `PUBLIC_URL` | Your public app URL, such as `https://app.example`. Its origin configures Better Auth's base URL, trusted origins and RPC session Origin policy. HTTPS enables secure cookies. Leave it unset for loopback HTTP development. |
+| `PORT` | The port supplied by your host; defaults to `3000`. |
+| `HOST` | `0.0.0.0` to listen on the container's network interface; defaults to loopback. |
+| `TRUSTED_PROXY` | A comma-separated list of proxy peer addresses or CIDR ranges, such as `10.0.0.0/24,2001:db8::/32`. IPv4, IPv6 and IPv4-mapped IPv6 peers are supported. Without it, the RPC guard retains its loopback default. |
 
-For Railway, use `TRUSTED_PROXY=100.64.0.0/10`, the observed source range of its edge proxy. Railway does not promise this range, and it also trusts other services in the same Railway project; see [Railway's networking specs](https://docs.railway.com/networking/public-networking/specs-and-limits).
-
-The RPC guard reads `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) only from a matching peer and requires any browser `Origin` to match that public authority. The application still owns its session Origin policy. Each `pnpm start` runs the supplied migrations before services and HTTP start; use the same migration table on every instance and choose `migrations.lockTimeout` for your deployment. No separate migration startup script is needed.
+For Railway, use `TRUSTED_PROXY=100.64.0.0/10`, the observed source range of its edge proxy. Railway does not promise this range, and it also trusts other services in the same Railway project; see [Railway's networking specs](https://docs.railway.com/networking/public-networking/specs-and-limits). A matching proxy peer must forward `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the public URL; any browser `Origin` must match that authority.
