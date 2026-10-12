@@ -11,6 +11,24 @@ import { FleetFailure } from "#policy.ts";
 
 const clientContract = contract("daemon", {
 	commands: [
+		command("release", {
+			invalidates: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],
+			payload: { workIds: Schema.Array(Schema.String) },
+			rejections: { FleetFailure },
+			success: Schema.Array(FleetRecord),
+		}),
+		command("decide", {
+			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
+			payload: { action: Schema.Literals(["retry", "release"]), workId: Schema.String },
+			rejections: { FleetFailure },
+			success: FleetRecord,
+		}),
+		command("name-threads", {
+			invalidates: () => [],
+			payload: {},
+			rejections: { FleetFailure },
+			success: Schema.Array(Schema.Struct({ error: Schema.Boolean, message: Schema.String })),
+		}),
 		command("dispatch", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
 			payload: { workId: Schema.String },

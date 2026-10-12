@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { launchReceipt } from "#engine/launchReceipt.ts";
-import type { FleetRecord } from "#model.ts";
+import { allAttempts, type FleetRecord } from "#model.ts";
 
 export const launchInput = Effect.fn("Fleet.launchInput")(function* (
 	record: FleetRecord,
@@ -15,14 +15,15 @@ export const launchInput = Effect.fn("Fleet.launchInput")(function* (
 	const retry = record.launchRetry === undefined ? undefined : record.attempts.at(-1);
 	const role = retry?.role === "worker" || retry?.role === "repair" ? retry.role : requestedRole;
 	const original = yield* launchReceipt(record, role);
+	const sessionId =
+		continuationSessionId
+		?? emptySession
+		?? (retry?.sessionId === original?.sessionId ? retry?.sessionId : undefined)
+		?? (role === "repair" ? original?.sessionId : undefined);
 	return {
 		prompt: retry?.prompt,
 		role,
-		sessionId:
-			continuationSessionId
-			?? emptySession
-			?? (retry?.sessionId === original?.sessionId ? retry?.sessionId : undefined)
-			?? (role === "repair" ? original?.sessionId : undefined),
+		sessionId: allAttempts(record).some((attempt) => attempt.sessionUnusable && attempt.sessionId === sessionId) ? undefined : sessionId,
 		settings: retry?.settings,
 	};
 });

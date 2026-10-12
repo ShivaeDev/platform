@@ -6,9 +6,9 @@ through React: a newer dispatch interrupts the earlier action, and an older
 completion cannot replace the latest rendered result.
 
 For Node request lifetimes,
-[`nodeSubscriptionSignal`](../../packages/platform/src/node-http/subscription-signal.ts) combines
+[`nodeSubscriptionSignal`](../../packages/platform/src/core/node-http/subscription-signal.ts) combines
 request and caller abort signals. Its
-[tests](../../packages/platform/src/node-http/subscription-signal.test.ts) cover disconnects,
+[tests](../../packages/platform/src/core/node-http/subscription-signal.test.ts) cover disconnects,
 completed requests and listener disposal.
 
 An HTTP host must forward the disconnect to the Web Request's AbortSignal for

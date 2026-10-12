@@ -10,7 +10,7 @@ import { watchChanges } from "#files/changes.ts";
 import { type HomeMissing, homeIn } from "#files/home.ts";
 import { handoffPage } from "#handoffs/page.ts";
 import type { HandoffsService } from "#handoffs/Service.ts";
-import { ASSET_HANDLERS, checkNativeAsset, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
+import { ASSET_HANDLERS, checkBrowserAssets, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#http/assets.ts";
 import { attachment } from "#http/attachment.ts";
 import { changesPage } from "#http/changesPage.ts";
 import { identity } from "#http/identity.ts";
@@ -44,7 +44,7 @@ function routes(options: BoardOptions) {
 		Effect.gen(function* () {
 			const home = yield* homeIn(options.root, options.home);
 			const mermaid = yield* mermaidRoot();
-			yield* checkNativeAsset();
+			yield* checkBrowserAssets();
 			const changes = yield* watchChanges(options.root);
 			const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
 				Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),

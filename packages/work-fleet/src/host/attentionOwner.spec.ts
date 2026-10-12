@@ -7,7 +7,6 @@ import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
-import { cliProcess } from "#test/fleetCli.ts";
 import { storeState, task, waitProcess, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";
@@ -78,8 +77,10 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			const old = yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 			const oldSource = readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8");
 			expect(oldSource).toContain('"response_from":["orchestrator"]');
-			const changed = yield* Effect.promise(() =>
-				cliProcess(["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile]),
+			const changed = yield* daemonCli(
+				fixture.host,
+				["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile],
+				fixture.parts,
 			);
 			expect(changed).toEqual({ code: 0, stdout: "one needs-human (waiting on maintainer)" });
 			const current = yield* Effect.gen(function* () {
@@ -92,7 +93,7 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			expect(readFileSync(join(fixture.host.boardDir, sourcePath), "utf8")).toContain('"response_from":["maintainer"]');
 			expect(readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8")).toBe(oldSource);
 			expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("## Waiting on maintainer\n\n### one");
-			expect(calls).toEqual(["initialize", "initialized"]);
+			expect(calls).toEqual([]);
 			expect(fixture.provider.launched).toHaveLength(1);
 		}),
 	);

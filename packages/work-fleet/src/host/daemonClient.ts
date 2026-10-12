@@ -16,6 +16,10 @@ export function daemonClient(port = DAEMON_PORT) {
 	);
 }
 
+export function daemonRequest<A, E, R>(port: number, use: (client: Effect.Success<ReturnType<typeof daemonClient>>) => Effect.Effect<A, E, R>) {
+	return Effect.scoped(daemonClient(port).pipe(Effect.flatMap(use))).pipe(Effect.mapError((error) => daemonError(error, port)));
+}
+
 export function daemonError(error: unknown, port: number) {
 	if (error instanceof FleetFailure) {
 		return error;
