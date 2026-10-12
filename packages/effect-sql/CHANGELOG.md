@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1 - 2026-10-12
+
+### Added
+
+- Repositories accept an optional `versionColumn`: inserts initialize it to zero, updates match the expected version and increment it atomically, and deletes require the expected version. Stale or missing rows fail with typed `OptimisticConcurrencyError`; returned updated models carry the new version. PostgreSQL tests cover concurrent writers, versioned deletion and void writes. Unversioned repositories retain native CRUD behavior.
+- `postgresChanges` in `postgresChanges.ts` binds `transact` to PostgreSQL LISTEN/NOTIFY using the writing transaction's SQL client. Each process delivers committed string or finite-number invalidation keys into local Reactivity. Rollback sends no notification.
+- The scoped listener uses a heartbeat to detect silent connection loss, resyncs live streams before cleanup on loss and again on recovery, and retries with a fresh subscription. Each native listener finalizer is bounded by `heartbeatTimeout`, so a stalled UNLISTEN does not block connection release, retry or process scope shutdown. UTF-8 payloads are split below PostgreSQL's 8,000-byte NOTIFY limit; an oversized individual key or unsupported key rolls back the transaction.
+- `BeforeCommit` and `CommittedSink` in `transact.ts` expose the SQL channel's binding seams.
+
+### Changed
+
+- Give the package an agent north star, a model-to-query usage guide, and dedicated north-star and roadmap docs; publish `docs/` alongside the README while keeping agent instructions out of npm.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.2.0 - 2026-10-04
 
 ### Changed
