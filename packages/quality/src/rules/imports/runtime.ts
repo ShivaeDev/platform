@@ -38,6 +38,6 @@ export const importsRuntime = defineRule({
 		return [...imports, ...inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared").flatMap(browserGlobals)];
 	},
 	description:
-		"In packages with src/client/ or src/server/, folder names define runtime boundaries. Shared code runs in either runtime without browser globals or Node built-ins.",
+		"Runtime folders define client, server and shared code. Executable packages without runtime folders and package-root tooling are server code.",
 	id: "imports/runtime",
 });

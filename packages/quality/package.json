@@ -33,6 +33,7 @@
 		"./tsconfig/base.json": "./tsconfig/base.json",
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json",
+		"./imports/isTooling.ts": null,
 		"./rules/imports/bundleInputs.ts": null
 	},
 	"bin": {
