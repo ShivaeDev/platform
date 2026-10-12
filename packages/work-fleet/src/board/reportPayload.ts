@@ -3,6 +3,7 @@ import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportPayloadFile } from "#board/reportPayloadFile.ts";
 import { BoardFailure, type BoardWork } from "#policy.ts";
 import type { ReportFile } from "#reportAttachments.ts";
+import { ReportFileFailure } from "#reportFileFailure.ts";
 import { REPORT_LIMITS } from "#reportLimits.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
@@ -21,34 +22,44 @@ function validFile(file: (typeof Payload.Type)["files"][number]) {
 		&& file.path.split("/").every((part) => part !== "" && part !== "." && part !== ".." && part !== ".git")
 	);
 }
-function decode(content: string) {
-	return Schema.decodeUnknownEffect(Schema.fromJsonString(Payload))(content).pipe(
-		Effect.filterOrFail(
-			(payload) => payload.files.every(validFile) && new Set(payload.files.map((file) => file.path)).size === payload.files.length,
-			() => new BoardFailure({ message: "Saved report payload contains invalid files" }),
-		),
-		Effect.map((payload) => ({
-			files: payload.files.map(({ path, base64 }) => ({ bytes: Buffer.from(base64, "base64"), path })),
-			output: payload.output,
-		})),
-		Effect.filterOrFail(
-			(payload) =>
-				payload.files.length <= REPORT_LIMITS.attachmentCount
-				&& payload.files.reduce((size, file) => size + file.bytes.length, 0) <= REPORT_LIMITS.attachmentBytes,
-			() => new BoardFailure({ message: "Saved report payload exceeds attachment limits" }),
-		),
-		Effect.mapError(() => new BoardFailure({ message: "Saved report publication payload is invalid; retain the completed attempt" })),
+const decode = Effect.fnUntraced(function* (content: string, payloadPath: string) {
+	const payload = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Payload))(content).pipe(
+		Effect.mapError((cause) => new ReportFileFailure({ cause, path: payloadPath, reason: `Saved report payload is invalid: ${cause.message}` })),
 	);
-}
+	const names = new Set<string>();
+	for (const file of payload.files) {
+		if (!validFile(file) || names.has(file.path)) {
+			return yield* Effect.fail(new ReportFileFailure({ path: file.path, reason: `Invalid or duplicate attachment in ${payloadPath}` }));
+		}
+		names.add(file.path);
+	}
+	const files = payload.files.map(({ path, base64 }) => ({ bytes: Buffer.from(base64, "base64"), path }));
+	if (files.length > REPORT_LIMITS.attachmentCount || files.reduce((size, file) => size + file.bytes.length, 0) > REPORT_LIMITS.attachmentBytes) {
+		return yield* Effect.fail(new ReportFileFailure({ path: payloadPath, reason: "Saved report payload exceeds attachment limits" }));
+	}
+	return { files, output: payload.output };
+});
 export function reportPayload(root: string, work: BoardWork, observation: SessionObservation) {
 	const { itemId } = reportIdentity(work, observation.receipt);
+	const payloadPath = `.fleet-reports/${itemId}.json`;
 	function saved(content: string | undefined) {
 		return content === undefined
-			? Effect.fail(new BoardFailure({ message: "Report publication payload could not be recovered or persisted; retry the same completed attempt" }))
-			: decode(content);
+			? Effect.fail(
+					new ReportFileFailure({
+						path: payloadPath,
+						reason: "Report payload could not be recovered or persisted; retry the same completed attempt",
+					}),
+				)
+			: decode(content, payloadPath);
+	}
+	function failure(error: ReportFileFailure) {
+		return new BoardFailure({ message: error.message });
 	}
 	return {
-		read: reportPayloadFile(root, itemId).pipe(Effect.flatMap((content) => (content === undefined ? Effect.succeed(undefined) : decode(content)))),
+		read: reportPayloadFile(root, itemId).pipe(
+			Effect.flatMap((content) => (content === undefined ? Effect.succeed(undefined) : decode(content, payloadPath))),
+			Effect.mapError(failure),
+		),
 		save: (payload: ReportPayload) =>
 			reportPayloadFile(
 				root,
@@ -57,6 +68,6 @@ export function reportPayload(root: string, work: BoardWork, observation: Sessio
 					files: payload.files.map(({ path, bytes }) => ({ base64: Buffer.from(bytes).toString("base64"), path })),
 					output: payload.output,
 				}),
-			).pipe(Effect.flatMap(saved)),
+			).pipe(Effect.flatMap(saved), Effect.mapError(failure)),
 	};
 }
