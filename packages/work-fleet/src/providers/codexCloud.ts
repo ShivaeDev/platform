@@ -1,4 +1,6 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, FileSystem, Layer, Schema } from "effect";
+import { ChildProcessSpawner } from "effect/unstable/process";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { codexCloudConnection } from "#providers/codexCloudConnection.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
@@ -49,8 +51,9 @@ function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 	};
 }
 
-export const codexCloudLayer = Layer.effect(SessionTransport)(
-	Effect.gen(function* () {
+const CodexCloud = defineService({
+	id: "Fleet/CodexCloud",
+	initialize: Effect.gen(function* () {
 		const config = yield* Schema.decodeUnknownEffect(CodexCloudConfiguration)(yield* CodexCloudConfig).pipe(
 			Effect.mapError(() => failure("unavailable", "Codex Cloud configuration needs an environment, workspace cwd and positive timeout")),
 		);
@@ -103,4 +106,7 @@ export const codexCloudLayer = Layer.effect(SessionTransport)(
 					: Effect.fail(failure("rejected", "Work cwd differs from the configured Codex Cloud workspace cwd")),
 		};
 	}),
-);
+	methods: (adapter) => adapter,
+	requires: [CodexCloudConfig, FileSystem.FileSystem, ChildProcessSpawner.ChildProcessSpawner],
+});
+export const codexCloudLayer = Layer.effect(SessionTransport)(CodexCloud).pipe(Layer.provide(CodexCloud.layer));

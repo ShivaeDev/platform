@@ -13,7 +13,7 @@ test("continuation refuses a missing worker receipt and an empty message", () =>
 			const fleet = yield* Fleet;
 			fixture.editWork("one", "changed-board");
 			expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
-			expect(yield* fleet.continue("one", " \n").pipe(Effect.flip)).toMatchObject({ reason: "invalid" });
+			expect(yield* fleet.continue("one", " \n").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
 			expect(yield* fleet.continue("one", "No worker").pipe(Effect.flip)).toMatchObject({ message: "Continue requires an existing worker receipt" });
 			expect(fixture.operations.size).toBe(0);
 		}),

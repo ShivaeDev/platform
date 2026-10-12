@@ -1,6 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { failureOwner } from "#engine/failureOwner.ts";
 import { resolveHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostIntegrations } from "#host/runtime.ts";
@@ -73,10 +74,11 @@ describe("GitHub worker result adoption", () => {
 		);
 		const result = yield* integrations.result(work, completed(NO_CHANGE));
 		expect(result.kind).toBe("no-change");
-		expect(yield* integrations.checks(work, result).pipe(Effect.flip)).toMatchObject({
-			attentionOwner: "automation",
+		const failure = yield* integrations.checks(work, result).pipe(Effect.flip);
+		expect(failureOwner(failure)).toBe("automation");
+		expect(failure).toMatchObject({
+			_tag: "ServiceUnavailable",
 			message: "No-change validation is not configured in this Fleet host; inspect the worker session",
-			reason: "integration",
 		});
 	});
 
@@ -87,6 +89,6 @@ describe("GitHub worker result adoption", () => {
 				hostIntegrations(resolveHost("/synthetic/board", { provider: "local" })).pipe(Layer.provide(Layer.succeed(MainSource)(fixture.main))),
 			),
 		);
-		expect(yield* integrations.result(work, completed()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+		expect(yield* integrations.result(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	});
 });

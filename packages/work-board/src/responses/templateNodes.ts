@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import type { RootContent } from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { Identity } from "#path/Identity.ts";
 
@@ -31,17 +32,19 @@ export function promptFrom(node: ContainerDirective, source: string) {
 		|| options.length > 32
 		|| (attrs.select === "text" ? options.length > 0 : options.length === 0)
 	) {
-		throw new Error("A question needs Markdown context and 1–32 direct options (or select=text without options), without nested questions.");
+		throw new BadRequest({
+			message: "A question needs Markdown context and 1–32 direct options (or select=text without options), without nested questions.",
+		});
 	}
 	const choices = options.map((option) => {
 		if (!isContainer(option) || option.children.some(hasControl) || option.children.length === 0) {
-			throw new Error("Options need Markdown descriptions and cannot nest response controls.");
+			throw new BadRequest({ message: "Options need Markdown descriptions and cannot nest response controls." });
 		}
 		const fields = Schema.decodeUnknownSync(OptionFields, { onExcessProperty: "error" })(option.attributes ?? {});
 		return { id: fields.id, source: option.children.map((child) => sliceNode(source, child)).join("\n\n") };
 	});
 	if (new Set(choices.map((option) => option.id)).size !== choices.length) {
-		throw new Error("Option IDs must be unique within each question.");
+		throw new BadRequest({ message: "Option IDs must be unique within each question." });
 	}
 	return {
 		prompt: {

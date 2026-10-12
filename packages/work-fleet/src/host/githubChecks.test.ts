@@ -58,20 +58,20 @@ it.effect("uses the adopted head after a newer push passes and rejects evidence 
 	expect(fixture.requests.every((request) => request.includes(ADOPTED_HEAD))).toBe(true);
 	fixture.reply(ADOPTED_HEAD, [[checkRun({ headSha: NEW_HEAD })]]);
 	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({
+		_tag: "ServiceUnavailable",
 		message: expect.stringContaining("different commit SHA"),
-		reason: "integration",
 	});
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	fixture.responses.set(`repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`, JSON.stringify([{ sha: NEW_HEAD, statuses: [] }]));
-	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 });
 
 it.effect("fails closed when GitHub is unavailable or returns malformed pages", function* () {
 	const fixture = githubFixture();
-	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	fixture.responses.set(`repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`, "{}");
-	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 });
 
 it.effect("decodes GitHub's wire field names and preserves its log URL", function* () {
@@ -128,7 +128,7 @@ it.effect("rejects unsupported results and malformed PR identities before GitHub
 		{ ...githubResult(), head: "main" },
 		{ ...githubResult(), pr: "https://example.invalid/pr/7" },
 	]) {
-		expect(yield* fixture.checks(result).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+		expect(yield* fixture.checks(result).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	}
 	expect(fixture.requests).toHaveLength(0);
 });

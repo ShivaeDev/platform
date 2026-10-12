@@ -66,7 +66,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 				expect(continued.value.stage).toBe("executing");
 				expect(continued.value.attempts[0]).toMatchObject({ prompt: "Check one more case", sessionId: "session-operation-1", status: "submitting" });
 				expect(continued.value.attempts[0]?.receipt).toBeUndefined();
-				expect(yield* fleet.continue("one", "Do not replay").pipe(Effect.flip)).toMatchObject({ reason: "denied" });
+				expect(yield* fleet.continue("one", "Do not replay").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				yield* fixture.restart(
 					Effect.gen(function* () {
 						const restarted = yield* Fleet;
@@ -88,13 +88,13 @@ describe("Fleet continuation against PostgreSQL", () => {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
-				expect(yield* fleet.continue("one", "Still running").pipe(Effect.flip)).toMatchObject({ reason: "denied" });
+				expect(yield* fleet.continue("one", "Still running").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				expect(fixture.operations.size).toBe(1);
 				finishWorkers(fixture);
 				const stopped = yield* fleet.reconcile("one");
 				const decisionId = stopped.value.decision?.id ?? "missing";
 				yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "release"));
-				expect(yield* fleet.continue("one", "Released").pipe(Effect.flip)).toMatchObject({ reason: "denied" });
+				expect(yield* fleet.continue("one", "Released").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				expect(fixture.operations.size).toBe(2);
 			}),
 		));

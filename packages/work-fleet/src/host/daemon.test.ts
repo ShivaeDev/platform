@@ -18,7 +18,7 @@ import { prepared } from "#test/preparation.ts";
 const peerReads = Effect.fn("DaemonTest.peerReads")(function* (url: string, index: number) {
 	const peer = yield* daemonClient(url, { "x-request-id": `peer-${index}` });
 	expect((yield* peer("fleet.get", { workId: "one" })).attempts).toHaveLength(1);
-	expect((yield* peer("fleet.get", { workId: "missing" }).pipe(Effect.flip)).reason).toBe("missing");
+	expect((yield* peer("fleet.get", { workId: "missing" }).pipe(Effect.flip))._tag).toBe("NotFound");
 }, Effect.scoped);
 
 const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: HostFixture) {

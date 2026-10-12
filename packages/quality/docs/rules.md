@@ -185,6 +185,14 @@ export default defineConfig({
 
 When the sources hold no module at all, the graph-building rules stop the run instead of passing on an empty graph. Point `sources` at the code; do not disable the checks to conceal an empty inventory. `imports/aliased` does not require a graph, and `imports/fences` does nothing when no fences are declared.
 
+#### Runtime folders
+
+`imports/runtime` adopts a package automatically when it has `src/client/` or `src/server/`, including folders outside `sources`. In an adopted package, code in `src/client/` is browser code, code in `src/server/` is server code, and code anywhere else is shared. A package without either folder retains its existing policies. Existing explicit fences keep running in either case.
+
+Client code may not import server code or Node built-ins. Shared code may import neither client nor server code and may neither import Node built-ins nor use browser globals. Client and server code may import shared code. The rule uses the resolved import graph, including type imports, re-exports, dynamic imports and literal `require()` calls; missing file targets still carry their runtime folder. Test files and `test-support/` are outside the shipped runtime policy.
+
+Browser-global checks report direct, shorthand and literal `globalThis` property uses, with lexical bindings respected. Property names, comments, strings and type annotations do not count as global value uses. Browser-specific globals come from TypeScript's DOM declarations, excluding the standard web APIs that Node also supplies. Worker browser APIs such as `indexedDB` and `caches` remain browser globals. Portable web APIs such as `URL`, `fetch` and `AbortController` remain available to shared code. This is a static source check, not proof of a deployment's runtime behavior. Each finding has the imported specifier or browser global as its subject. Move runtime-dependent code to its runtime folder or pass a value into shared code.
+
 #### Manifest dependencies
 
 `imports/manifest` discovers named workspace members from `pnpm-workspace.yaml` or the root manifest's `workspaces`, with no package scope convention or fence configuration. It discovers manifests across the repository, independently of `sources`, skipping files ignored by git and `node_modules`. Selecting only a member's `src` folder still checks its imports of members outside that selection against its own manifest. Each import of another member must appear in the importing member's `dependencies`, `peerDependencies` or `optionalDependencies`. The workspace root uses its own manifest for code outside a member. Self-imports and packages outside the workspace do not need a workspace declaration under this rule.

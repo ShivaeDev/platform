@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect";
-import { type BoardWork, FleetFailure, FleetIntegrations, type WorkResult } from "#policy.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { type BoardWork, FleetIntegrations, type WorkResult } from "#policy.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { mainObservation } from "#test/preparation.ts";
 export function engineIntegrations(options: EngineOptions, merged: string[]) {
@@ -30,7 +31,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 					?? Effect.gen(function* () {
 						if (options.deliveryFailure && !deliveryFailed) {
 							deliveryFailed = true;
-							return yield* Effect.fail(new FleetFailure({ message: "Delivery observation unavailable", reason: "integration" }));
+							return yield* Effect.fail(new ServiceUnavailable({ message: "Delivery observation unavailable" }));
 						}
 						if (options.denyDelivery) {
 							return undefined;
@@ -48,7 +49,7 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 						return options.resultQuery(board, observation);
 					}
 					if (options.resultUnavailable) {
-						return Effect.fail(new FleetFailure({ message: "Result ownership unavailable", reason: "integration" }));
+						return Effect.fail(new ServiceUnavailable({ message: "Result ownership unavailable" }));
 					}
 					let result = results.get(observation.receipt.turnId);
 					if (result === undefined) {

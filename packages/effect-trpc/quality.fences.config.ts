@@ -1,7 +1,7 @@
 import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
-import { anything, external, folders, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
+import { anything, external, files, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
-const browserCode = folders("packages/effect-trpc/src/client");
+const browserCode = files("packages/effect-trpc/src/rejectionDecoding.ts");
 
 export default [
 	fence("trpc-client-stays-browser-safe")
@@ -9,7 +9,7 @@ export default [
 		.from(browserCode)
 		.mayNotReach(anything.except(browserCode, packages("effect-contract", "effect-form", "effect-react", "types"), modules("effect")))
 		.demonstratedBy({
-			illegal: ["packages/effect-trpc/src/client/rejection.ts", external("@trpc/server")],
-			legal: ["packages/effect-trpc/src/client/rejection.ts", external("effect")],
+			illegal: ["packages/effect-trpc/src/rejectionDecoding.ts", external("@trpc/server")],
+			legal: ["packages/effect-trpc/src/rejectionDecoding.ts", external("effect")],
 		}),
 ];

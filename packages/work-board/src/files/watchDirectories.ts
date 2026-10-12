@@ -1,8 +1,7 @@
-import { Data, Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
+import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown, scanMarkdown } from "./list.ts";
-
-class WatchEnded extends Data.TaggedError("WatchEnded") {}
 
 const SETTLE = "100 millis";
 
@@ -63,7 +62,13 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 						return publish(paths);
 					}),
 				),
-				Effect.andThen(Effect.flatMap(Deferred.isDone(topology), (changed) => (changed ? Effect.void : Effect.fail(new WatchEnded())))),
+				Effect.andThen(
+					Effect.flatMap(Deferred.isDone(topology), (changed) =>
+						changed
+							? Effect.void
+							: Effect.fail(new ServiceUnavailable({ message: "The workspace watcher ended. Retrying the watch automatically." })),
+					),
+				),
 			);
 			yield* Effect.forkScoped(Effect.delay(setWatching(true), SETTLE));
 			yield* watch;

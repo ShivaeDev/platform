@@ -14,6 +14,7 @@ import { importFences } from "#rules/imports/fences.ts";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
+import { importsRuntime } from "#rules/imports/runtime.ts";
 import { storySetup } from "#rules/stories/setup.ts";
 import { biomeOverrides } from "#rules/suppressions/biome-overrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
@@ -43,6 +44,7 @@ export const builtInRules = [
 	biome,
 	importCycles,
 	importFences,
+	importsRuntime,
 	importsResolvable,
 	importsManifest,
 	importsAliased,
