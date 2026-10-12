@@ -37,7 +37,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 ### Host the application
 
-`appHost` is the server entry point for a local PostgreSQL app. Supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
+`appHost` is the server entry point for a PostgreSQL app. Supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
@@ -59,9 +59,11 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 `app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `errors/`, `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
 
-The listener binds `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `port` (0 selects an ephemeral port), `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
+The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
 RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. Contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+
+For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to the proxy's exact peer IP, or use `config.host` and `config.trustedProxy`. Only that peer may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. NDJSON and the application's session Origin policy still apply. Real forwarding-proxy tests cover trusted and untrusted peers, configuration overrides and typed refusals; they do not establish any hosting provider's proxy configuration. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
 
 A subscription handler reads `AppChanges` and returns `changes.stream(keys)` after its authorization check. Writes use `transact` and `invalidateOnCommit` from effect-sql: local streams receive committed invalidations and rollback emits none. For delivery between processes, set `config.changes: { channel: "app_changes" }`; the host binds PostgreSQL LISTEN/NOTIFY to the same SQL pool and resyncs streams when its listener recovers. The native heartbeat and retry options may be supplied in `changes`. A worker can provide `appDatabase({ migrations, config })` to its service Layer to share this database and delivery composition without starting HTTP.
 
@@ -154,7 +156,7 @@ A missing session produces `Option.none()` here. The same policy still rejects f
 
 For an HTTP RPC server that serves only the local machine, wrap its HTTP effect with `localRpcGuard` from `@shivaedev/platform/rpc-server/local.ts`. Provide the native `HttpServerRequest` and `RpcSerialization` services around the returned effect, using the same serialization as the RPC server. No session provider is required.
 
-The guard returns HTTP 403 before running the effect unless the transport reports a loopback peer address, the Host is a loopback host, any Origin matches the HTTP Host, and the content type matches the serialization. An absent peer address is rejected. Real Node HTTP tests cover accepted local requests and rejected Origin, Host and content-type requests, including a DNS-rebinding Host on a loopback connection.
+By default, the guard returns HTTP 403 before running the effect unless the transport reports a loopback peer address, the Host is a loopback host, any Origin matches the HTTP Host, and the content type matches the serialization. An absent peer address is rejected. Real Node HTTP tests cover accepted local requests and rejected Origin, Host and content-type requests, including a DNS-rebinding Host on a loopback connection. The optional second argument, `localRpcGuard(effect, trustedProxy)`, enables the same exact-peer forwarding policy as `appHost`.
 
 The same module exports `loopbackOnly(handler)` for local page routes and `sameOrigin(request)` for an HTTP Origin check. `loopbackOnly` checks Host and any known peer address; it permits an absent peer address so embedded Fetch page handlers remain usable. It does not check Origin or content type.
 
@@ -353,7 +355,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
-| `appHost.ts` | `appHost({ group, handlers, services, migrations, sessions, assets?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppDatabaseOptions`: scoped local HTTP and PostgreSQL composition. |
+| `appHost.ts` | `appHost({ group, handlers, services, migrations, sessions, assets?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. |

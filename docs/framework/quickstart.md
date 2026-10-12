@@ -12,3 +12,11 @@ To try it inside this repository, first run `./script/update` at the root, then 
 An npm-only copy requires published Platform and effect-react versions containing `appHost.ts` and `router.ts`. Those entry points are currently available in the workspace; verify the published versions before copying outside it.
 
 Change the shared operations in `src/notes.ts`, the table and services in `src/server`, and the screen in `src/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm start` serves the built app on port 3000.
+
+## Deploy
+
+Build with `pnpm build` and run with `pnpm start`. A host such as Railway supplies `PORT`; connect its PostgreSQL service through `DATABASE_URL`. Configure your session provider's auth secret in the host's secret settings (for example, `BETTER_AUTH_SECRET` for Better Auth). The starter has anonymous sessions and does not read an auth secret; add your application's session provider before serving private data.
+
+Set `HOST=0.0.0.0` to bind the container's network interface and `TRUSTED_PROXY` to the exact IP address of the proxy that connects to Node. The corresponding `appHost` overrides are `config.host` and `config.trustedProxy`. Without these settings, the listener and RPC guard retain their loopback defaults. Proxy trust accepts one address, including IPv4-mapped IPv6, rather than a wildcard or subnet.
+
+Configure the proxy to overwrite `X-Forwarded-Host` and `X-Forwarded-Proto` with the public authority and `http` or `https`, and preserve the browser's `Origin`. The RPC guard reads those forwarded values only from the configured peer and requires any Origin to match them. The application still owns its session Origin policy. Each `pnpm start` runs the supplied migrations before services and HTTP start; use the same migration table on every instance and choose `migrations.lockTimeout` for your deployment. No separate migration startup script is needed.
