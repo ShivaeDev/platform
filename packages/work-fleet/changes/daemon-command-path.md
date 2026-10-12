@@ -1,6 +1,7 @@
 ### Added
 
 - `work-fleet decide <work-id> retry|release` answers the current published Fleet decision through the daemon without looking up question or response IDs. The daemon contract adds `daemon.decide`, `daemon.release` and `daemon.name-threads`; host helpers expose scoped `daemonRequest`, `decideWork`, `releaseItems`, `withDecisionResponses`, `recordDecisionResponse` and `nameStoredThreads` for this path.
+- `host/actionCommands.ts` exports the native CLI definitions `continueCommand`, `releaseCommand`, `reassignCommand`, `nameThreadsCommand` and `decideCommand` for subcommand composition.
 
 ### Changed
 
