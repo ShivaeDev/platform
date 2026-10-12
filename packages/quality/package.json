@@ -32,7 +32,8 @@
 		"./biome": "./biome/preset.json",
 		"./tsconfig/base.json": "./tsconfig/base.json",
 		"./tsconfig/package.json": "./tsconfig/package.json",
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./rules/imports/bundleInputs.ts": null
 	},
 	"bin": {
 		"quality": "./dist/cli.js"
