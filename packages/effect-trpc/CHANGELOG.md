@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.1 - 2026-10-12
+
+### Added
+
+- Testing wrappers admit the per-test `Scope` supplied by `effect-test`, preserving compatibility with its scoped runner contract.
+- `@shivaedev/effect-trpc/rejectionDecoding.ts` exposes the existing runtime-independent `EncodedRejection`, `rejectionOf` and `decodeRejection` helpers from shared source code. The existing `@shivaedev/effect-trpc/client/rejection.ts` import path retains the same exports.
+
+### Changed
+
+- Document the package's purpose, usage, design priorities and roadmap; publish `docs/` and `README.md` while keeping agent instructions out of the package.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
+### Fixed
+
+- Redact subscription request-Layer construction defects and application-runtime acquisition failures through the configured error mapper.
+- Map the Platform `InternalServerError` and `ServiceUnavailable` rejection tags to HTTP 500 and 503 respectively.
+
 ## 0.6.0 - 2026-10-04
 
 ### Changed

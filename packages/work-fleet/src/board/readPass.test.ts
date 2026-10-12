@@ -2,8 +2,9 @@ import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import * as metadata from "@shivaedev/work-board/metadata/parse.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { briefRevision } from "#board/briefRevision.ts";
 import { withBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { approvedWorkIds } from "#host/admission.ts";
 import { resolveHost } from "#host/config.ts";
@@ -28,7 +29,7 @@ it.live("100 items share one read and parse per file across listing and concurre
 						for (let lookup = 0; lookup < 8; lookup += 1) {
 							const work = yield* board.get(id);
 							expect(work.approved).toBe(true);
-							expect(work.revision).toBe(revisionOf(work.context));
+							expect(work.revision).toBe(briefRevision(yield* workMetadata(work)));
 							expect((yield* workMetadata(work)).fields.id).toBe(id);
 						}
 					}),
@@ -63,7 +64,7 @@ it.effect("the next pass sees edits, additions, removals and duplicate identitie
 			Effect.gen(function* () {
 				const changed = yield* board.get("item.0");
 				expect(changed.approved).toBe(false);
-				expect(changed.revision).toBe(revisionOf(changed.context));
+				expect(changed.revision).toBe(briefRevision(metadataParse(changed.context)));
 				expect(changed.revision).not.toBe(first.revision);
 				expect((yield* Effect.result(board.get("item.1")))._tag).toBe("Failure");
 				expect((yield* board.get("item.new")).approved).toBe(true);

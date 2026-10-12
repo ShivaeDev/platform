@@ -1,11 +1,10 @@
 import { Clock, Effect, FileSystem } from "effect";
 import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
-import { makeResponse } from "@shivaedev/work-board/responses/make.ts";
-import { publish } from "@shivaedev/work-board/responses/publish.ts";
-import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
-import { Responses } from "@shivaedev/work-board/responses/service.ts";
+import { responses as responsesApi } from "@shivaedev/work-board/integration/responses.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardGateway, type Decision } from "#policy.ts";
+
+const { makeResponse, publish, Responses, responseMarkdown } = responsesApi;
 
 export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* (
 	root: string,

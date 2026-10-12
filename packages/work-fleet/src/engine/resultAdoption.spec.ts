@@ -59,7 +59,7 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 	});
 
 	for (const changedTask of [false, true]) {
-		test(`no-change after main moves ${changedTask ? "continues an approved edited task" : "completes for the same task revision"}`, () => {
+		test(`no-change after main moves ${changedTask ? "stops an approved edited task" : "completes for the same task revision"}`, () => {
 			const github = resultFixture({ mainHead: MOVED });
 			return withEngine({ resultQuery: github.adopt }, (fixture) =>
 				Effect.gen(function* () {
@@ -73,9 +73,10 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 					}
 					const reconciled = yield* fleet.reconcile("one");
 					if (changedTask) {
-						expect(reconciled.value.stage).toBe("executing");
-						expect(reconciled.value.decision).toBeUndefined();
-						expect(reconciled.value.attempts.at(-1)?.prompt).toContain("board-one-next");
+						expect(reconciled.value.stage).toBe("needs-human");
+						expect(reconciled.value.decision?.reason).toBe("Board context changed");
+						expect(reconciled.value.boardRevision).toBe("board-one");
+						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 						expect(reconciled.value.result).toBeUndefined();
 						expect(fixture.reviews).toHaveLength(0);
 					} else {

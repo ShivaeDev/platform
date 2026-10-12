@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.1 - 2026-10-12
+
+### Added
+
+- `makeLiveServer` in `makeLiveServer.ts` converts local Reactivity invalidations into native `LiveHint` streams for explicit read keys. Independent helpers keep their resync scopes separate. Each subscription starts with `Resync`; `resync` reconciles every active stream, including after a PostgreSQL listener loses its connection.
+- Declare typed streaming operations with Schema payloads and elements, rejections and read keys in native RPC contracts. Bound `run` returns a native Stream, with HTTP tests proving element delivery, declared failures and server subscription release on completion or client interruption.
+
+### Changed
+
+- Prefix generic type parameter names in contract, operation and collection declarations with `T` while preserving their types and runtime behavior.
+- Document the package's purpose, native RPC and freshness model, complete usage, design priorities and roadmap; publish `docs/` with the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.4.0 - 2026-10-05
 
 ### Added

@@ -1,8 +1,11 @@
 import { Schema } from "effect";
-import { FLEET_HEALTH_NAME, FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
+import type { FleetHealth as BoardFleetHealth } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { writePublished } from "#board/writePublished.ts";
 
-export function writeHealth(root: string, realRoot: string, snapshot: FleetHealth) {
+const { FLEET_HEALTH_NAME, FleetHealth } = diagnosticsApi;
+
+export function writeHealth(root: string, realRoot: string, snapshot: BoardFleetHealth) {
 	const Json = Schema.fromJsonString(FleetHealth);
 	const Previous = Schema.fromJsonString(
 		Schema.Struct({

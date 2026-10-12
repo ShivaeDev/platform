@@ -205,7 +205,7 @@ describe("local-only safety", () => {
 
 	effectApp("sends a policy that allows only the board's own scripts and forbids caching", function* () {
 		const response = yield* Effect.promise(() => get("/"));
-		expect(response.headers.get("content-security-policy")).toContain("script-src 'self';");
+		expect(response.headers.get("content-security-policy")).toContain("script-src 'self' 'wasm-unsafe-eval';");
 		expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
 		expect(response.headers.get("cache-control")).toBe("no-store");
 	});

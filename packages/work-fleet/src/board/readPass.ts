@@ -1,13 +1,15 @@
 import { join } from "node:path";
 import { Context, Effect, type FileSystem, type Path } from "effect";
-import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
+const { metadataModel } = boardApi;
+
 export class BoardSnapshot {
 	documents: readonly BoardDocument[];
-	model: ReturnType<typeof metadataModel>;
+	model: MetadataModel;
 	files: ReadonlyMap<string, BoardDocument>;
 	readonly problems: Map<string, BoardFailure>;
 
@@ -77,7 +79,7 @@ export const recordBoardSource = Effect.fn("FleetBoard.recordBoardSource")(funct
 	realRoot: string,
 	file: string,
 	source: string,
-	parsed?: ReturnType<typeof metadataParse>,
+	parsed?: ParsedMetadata,
 ) {
 	const pass = yield* ReadPass;
 	const read = pass?.active === true ? pass.reads.get(realRoot) : undefined;
@@ -85,12 +87,12 @@ export const recordBoardSource = Effect.fn("FleetBoard.recordBoardSource")(funct
 		const snapshot = yield* read;
 		const existing = snapshot.files.get(file);
 		if (existing?.source !== source) {
-			snapshot.record({ file, parsed: parsed ?? metadataParse(source), source });
+			snapshot.record({ file, parsed: parsed ?? boardApi.metadataParse(source), source });
 		}
 	}
 });
 
-export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work: BoardWork) {
+export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work: BoardWork): Effect.fn.Return<ParsedMetadata, BoardFailure> {
 	const pass = yield* ReadPass;
 	for (const [root, read] of pass?.active === true ? pass.reads : []) {
 		const snapshot = yield* read;
@@ -100,7 +102,7 @@ export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work
 			return document.parsed;
 		}
 	}
-	return metadataParse(work.context);
+	return boardApi.metadataParse(work.context);
 });
 
 export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass")(function* (publication: Effect.Effect<void>) {

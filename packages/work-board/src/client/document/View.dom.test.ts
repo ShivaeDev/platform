@@ -99,3 +99,21 @@ it.live("replaces rendered source without accumulating heading anchors and keeps
 	expect(view.container.querySelectorAll(".heading-anchor")).toHaveLength(2);
 	expect(view.container.querySelector(".diagram-source")?.textContent).toContain("invalid diagram");
 });
+
+it.live("retains each details block's open state when another block with the same summary is inserted before it", function* () {
+	const source = "# Details\n\n<details><summary>More</summary>First.</details>\n\n<details><summary>More</summary>Second.</details>\n";
+	const view = yield* Effect.promise(() => mountDocument(documentData(source)));
+	yield* Effect.promise(() => settledDocument(() => expect(view.container.querySelectorAll("details")).toHaveLength(2)));
+	view.container.querySelectorAll("details")[1]?.setAttribute("open", "");
+	const changed = source.replace("# Details", "# Details\n\n<details><summary>More</summary>Zero.</details>");
+	yield* Effect.promise(() => view.render(documentData(changed)));
+	yield* Effect.promise(() =>
+		settledDocument(() =>
+			expect([...view.container.querySelectorAll("details")].map((element) => [element.textContent, element.open])).toEqual([
+				["MoreZero.", false],
+				["MoreFirst.", false],
+				["MoreSecond.", true],
+			]),
+		),
+	);
+});

@@ -18,6 +18,12 @@ function fileData(file: MarkdownFile, current: string): NavigationFile {
 	};
 }
 
+function homeData(file: string, snapshot: Snapshot | undefined) {
+	const id = snapshot?.documents.find((document) => document.file === file)?.parsed.fields.id;
+	const unique = id !== undefined && snapshot?.unavailable.length === 0 && snapshot.model.ids.get(id)?.length === 1;
+	return { file, ...(unique ? { identity: id } : {}) };
+}
+
 interface Branch {
 	active: boolean;
 	count: number;
@@ -65,6 +71,7 @@ export function navigationData(files: readonly MarkdownFile[], current: string, 
 		parent.files.push(fileData(file, current));
 	}
 	return {
+		...(home === undefined ? {} : { home: homeData(home, snapshot) }),
 		inboxCount: inboxCount(snapshot),
 		records: { active: records.some((file) => file.current), count: records.length, files: records },
 		tree: folderData(root),

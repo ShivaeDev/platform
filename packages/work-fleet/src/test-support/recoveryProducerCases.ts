@@ -95,7 +95,6 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				}),
 			},
 			progress,
-
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},

@@ -1,0 +1,78 @@
+import assert from "node:assert/strict";
+import { constants } from "node:fs";
+import { mkdtemp, open, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { NodeServices } from "@effect/platform-node";
+import { Effect, Layer, Schema } from "effect";
+import { attention } from "@shivaedev/work-board/integration/attention.ts";
+import { board } from "@shivaedev/work-board/integration/board.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { publication } from "@shivaedev/work-board/integration/publication.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
+
+const { managedRequestReceipt, RequestReceipt } = attention;
+const { listMarkdown, markdownPath, metadataModel, metadataParse, searchSnapshot, watchChanges } = board;
+const { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, diagnostics, FleetHealth } = diagnosticsApi;
+const { directoryPath, validateDirectory } = publication;
+const { currentResponses, publish, questionFrom, questionId, questionMarkdown, ResponseConfig, Responses, revisionOf } = responses;
+
+const root = await mkdtemp(join(tmpdir(), "board-integration-"));
+try {
+  const realRoot = await realpath(root);
+  const directory = await open(root, constants.O_RDONLY | constants.O_DIRECTORY);
+  try {
+    await validateDirectory(directory, directoryPath(directory, realRoot), realRoot);
+  } finally {
+    await directory.close();
+  }
+  await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+    const source = "---\nid: decision.example\nkind: decision\nattention:\n  - id: choose\n    kind: decision\n    state: open\n    managed: true\n    response_from: [maintainer]\n    unblocks: [decision.example]\n    reason: Choose the next step\n---\n# Next step\n";
+    yield* publish(root, realRoot, "decision.example", source);
+    const sourcePath = "responses/decision.example.md";
+    assert.equal(yield* markdownPath(root, realRoot, sourcePath), join(realRoot, sourcePath));
+    assert((yield* listMarkdown(root, realRoot)).some((file) => file.path === sourcePath));
+    const revision = revisionOf(source);
+    const id = questionId("decision.example", "choose", revision, sourcePath);
+    const question = {
+      context: source, id,
+      question: { item: "decision.example", request: "choose", reviewedRevision: revision, source: sourcePath,
+        reason: "Choose the next step", registeredAt: 1, deadline: 1000 },
+    };
+    yield* publish(root, realRoot, id, questionMarkdown(question));
+    const questionDocument = { file: `responses/${id}.md`, parsed: metadataParse(questionMarkdown(question)) };
+    assert.deepEqual(questionFrom(questionDocument), question);
+    const changes = yield* watchChanges(root);
+    const read = yield* searchSnapshot(root, undefined, changes);
+    const index = read.pipe(Effect.provide(NodeServices.layer));
+    const responsesLayer = Responses.layer.pipe(Layer.provide(Layer.succeed(ResponseConfig, { root, changes, index, enabled: true })));
+    const answer = yield* Effect.gen(function* () {
+      const responses = yield* Responses;
+      const saved = yield* responses.record({ id: "answer.example", question: id, author: "Example reader", type: "answer", body: "Proceed." });
+      const reading = yield* responses.read(id);
+      assert.equal(currentResponses(reading.responses)[0]?.id, saved.id);
+      assert.equal(reading.question.context, source);
+      return saved;
+    }).pipe(Effect.provide(responsesLayer));
+    const receipt = Schema.decodeUnknownSync(RequestReceipt)({ disposition: "applied", question: id, reviewedRevision: revision, recordedAt: 2, response: answer.id });
+    const content = `---\n${JSON.stringify({ id: "receipt.example", kind: "result", request_receipt: receipt })}\n---\nAcknowledged.\n`;
+    yield* publish(root, realRoot, "receipt.example", content);
+    yield* (changes.refresh ?? Effect.void);
+    const snapshot = yield* index;
+    const document = snapshot.documents.find((entry) => entry.parsed.fields.id === "decision.example");
+    assert(document);
+    const request = document.parsed.fields.attention?.[0];
+    assert(request);
+    assert.deepEqual(managedRequestReceipt(document, request, metadataModel(snapshot.documents)), receipt);
+    const health = Schema.decodeUnknownSync(FleetHealth)({ version: 2, observedAt: 1, staleAfterMs: 1000, concurrency: 1,
+      running: 0, queued: 0, waiting: { automation: 0, maintainer: 0, orchestrator: 0 }, lastSchedulerPass: null, lastCapacityRejection: null });
+    const readDiagnostics = yield* diagnostics({ fleet: Effect.succeed(health), codex: Effect.succeed({ primary: null, secondary: null }),
+      github: Effect.succeed({ core: { limit: 1, remaining: 1, reset: 1 }, graphql: { limit: 1, remaining: 1, reset: 1 } }) });
+    assert.equal((yield* readDiagnostics).fleet.state, "ready");
+    assert(DiagnosticsContract.requests.has("daemon.diagnostics"));
+    assert.equal(DAEMON_PORT, 3457);
+    assert.equal(DAEMON_RPC_PATH, "/_fleet/rpc");
+  })).pipe(Effect.provide(NodeServices.layer)));
+} finally {
+  await rm(root, { recursive: true, force: true });
+}

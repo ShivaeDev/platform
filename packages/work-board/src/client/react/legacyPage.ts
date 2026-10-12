@@ -1,6 +1,6 @@
+import { captureFocus, restoreFocus } from "#client/formFocus.ts";
 import { remember } from "#client/reconcile/signature.ts";
 import { swap } from "#client/reconcile/swap.ts";
-import { captureFocus, restoreFocus } from "./formFocus.ts";
 export interface MainLocation {
 	readonly file: string;
 	readonly view: string;

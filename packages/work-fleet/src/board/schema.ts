@@ -1,7 +1,10 @@
 import { Schema } from "effect";
-import { RequestReceipt } from "@shivaedev/work-board/attention/RequestReceipt.ts";
-import { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
+import { attention } from "@shivaedev/work-board/integration/attention.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { SessionReceipt } from "#session/schema.ts";
+
+const { RequestReceipt } = attention;
+const { RecordedResponse } = responses;
 
 export const BoardReport = Schema.Struct({
 	itemId: Schema.String,

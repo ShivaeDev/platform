@@ -187,7 +187,9 @@ When the sources hold no module at all, the graph-building rules stop the run in
 
 #### Runtime folders
 
-`imports/runtime` adopts a package automatically when it has `src/client/` or `src/server/`, including folders outside `sources`. In an adopted package, code in `src/client/` is browser code, code in `src/server/` is server code, and code anywhere else is shared. A package without either folder retains its existing policies. Existing explicit fences keep running in either case.
+`imports/runtime` adopts a package automatically when it has `src/client/` or `src/server/`, including folders outside `sources`. In an adopted package, code in `src/client/` is browser code, code in `src/server/` is server code, and code anywhere else is shared except package-root tooling. A package with a nonempty `bin` entry and no runtime folders is server code throughout; runtime folders take precedence over `bin`. A Node library without a CLI uses `src/server/`. `engines.node` alone does not identify Node-only code. Other packages retain their existing source policies. Existing explicit fences keep running in either case.
+
+Package-root tooling is server code in every package, including the workspace root: top-level `script/`, `scripts/` and `tooling/` folders and top-level JavaScript or TypeScript config files. A tooling folder or config file nested under `src/` follows the source runtime policy.
 
 Client code may not import server code or Node built-ins. Shared code may import neither client nor server code and may neither import Node built-ins nor use browser globals. Client and server code may import shared code. The rule uses the resolved import graph, including type imports, re-exports, dynamic imports and literal `require()` calls; missing file targets still carry their runtime folder. Test files and `test-support/` are outside the shipped runtime policy.
 

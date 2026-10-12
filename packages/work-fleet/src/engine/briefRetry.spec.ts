@@ -10,7 +10,7 @@ import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 const test = postgresTests("test");
 
-test("retry of receiptless preparation prepares the current approved revision without another human decision", () =>
+test("retry of receiptless preparation cannot authorize an edited brief", () =>
 	withFleetBoard({}, (_fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -24,23 +24,25 @@ test("retry of receiptless preparation prepares the current approved revision wi
 			const current = `${source}\nNew approved criteria.\n`;
 			files.write("one.md", current);
 			const responseId = answerReport(root, decision.published, "retry");
-			const prepared = yield* fleet.resolve("one", decision.id, responseId);
-			expect(prepared.value.stage).toBe("prepared");
-			expect(prepared.value.boardContext).toBe(current);
-			expect(prepared.value.decision).toBeUndefined();
-			expect(prepared.value.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
-			expect((yield* fleet.dispatch("one")).value.attempts.at(-1)?.prompt).toContain(current);
+			const denied = yield* fleet.resolve("one", decision.id, responseId).pipe(Effect.result);
+			expect(denied._tag).toBe("Failure");
+			const prepared = yield* fleet.get("one");
+			expect(prepared.value.stage).toBe("needs-human");
+			expect(prepared.value.boardContext).toBe(source);
+			expect(prepared.value.decision).toEqual(decision);
+			expect(prepared.value.responses).toBeUndefined();
+			expect((yield* fleet.dispatch("one")).value.attempts).toEqual([]);
 		}),
 	));
 
-test("a quota rejection cannot consume the changed brief or lose the worker's pending answer", () =>
+test("a quota increase cannot authorize a changed brief or consume the worker's pending answer", () =>
 	withFleetBoard({ quota: 1 }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const { decision } = yield* askWorker(fixture);
-			const answer = yield* answerWorker(root, decision);
+			yield* answerWorker(root, decision);
 			const current = `${source}\nNew approved criteria.\n`;
 			boardHttpFiles(root).write("one.md", current);
 			const waiting = yield* fleet.reconcile("one");
@@ -50,11 +52,12 @@ test("a quota rejection cannot consume the changed brief or lose the worker's pe
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const continued = yield* (yield* Fleet).reconcile("one");
-					expect(continued.value.stage).toBe("executing");
-					expect(continued.value.boardContext).toBe(current);
-					expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);
-					expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
-					expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+					expect(continued.value.stage).toBe("needs-human");
+					expect(continued.value.decision?.reason).toBe("Board context changed");
+					expect(continued.value.boardContext).toBe(source);
+					expect(continued.value.responses).toBeUndefined();
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
+					expect(boardHttpFiles(root).receipts()).toHaveLength(1);
 				}),
 				(policy) => ({ ...policy, quota: { ...policy.quota, available: 100 } }),
 			);

@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles, boardOverview } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -27,7 +28,7 @@ test("new authored Board context renews SQL work and acknowledges its superseded
 			files.write("one.md", nextSource);
 			const renewed = yield* prepareWork("one");
 			expect(renewed.value.workId).toBe("one");
-			expect(renewed.value.boardRevision).toBe(revisionOf(nextSource));
+			expect(renewed.value.boardRevision).toBe(briefRevision(metadataParse(nextSource)));
 			expect(renewed.value.attempts).toEqual([]);
 			expect(renewed.value.result).toBeUndefined();
 			expect(renewed.value.history?.[0]?.attempts).toEqual(blocked.value.attempts.map((attempt) => ({ ...attempt, sessionCleanupComplete: true })));

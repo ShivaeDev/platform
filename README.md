@@ -71,6 +71,8 @@ No package has a root entry or a module that re-exports another. Published packa
 
 ## Development
 
+For a new application, follow the [framework quickstart](./docs/framework/quickstart.md) and copy `examples/starter`.
+
 Requirements:
 
 - Node.js 26.10.0 (the development runtime; published packages retain their Node 24 minimum)
@@ -85,7 +87,7 @@ corepack enable
 pnpm ready
 ```
 
-`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. This package workspace has no application server port. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
+`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`, using `postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`. A new service stores data in the named `development-postgres` volume. Setup never stops or removes an existing service or volume.
 

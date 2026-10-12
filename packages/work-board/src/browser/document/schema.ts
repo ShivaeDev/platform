@@ -1,11 +1,23 @@
 import { Schema } from "effect";
 import { QuestionPreview, RecordedResponse } from "#browser/responses/schema.ts";
 import { Metadata } from "#metadata/schema.ts";
+import { ReadingContext } from "./ReadingContext.ts";
 
 export const DocumentRequest = Schema.Struct({
 	id: Schema.String,
 	open: Schema.Boolean,
 	preview: Schema.optional(QuestionPreview),
+	prompts: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				id: Schema.String,
+				mode: Schema.Literals(["one", "many", "text"]),
+				options: Schema.Array(Schema.Struct({ id: Schema.String, source: Schema.String })),
+				source: Schema.String,
+			}),
+		),
+	),
+	promptUnavailable: Schema.optional(Schema.String),
 	responses: Schema.optional(Schema.Array(RecordedResponse)),
 	unavailable: Schema.optional(Schema.String),
 });
@@ -18,6 +30,7 @@ export const Document = Schema.Struct({
 	metadata: Metadata,
 	modified: Schema.Number,
 	questionActions: Schema.Record(Schema.String, Schema.String),
+	reading: Schema.optional(ReadingContext),
 	references: Schema.Record(Schema.String, Schema.String),
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,

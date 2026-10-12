@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
+import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/resolve.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { isTestCode } from "#naming/testName.ts";
@@ -58,17 +59,8 @@ async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage,
 	}
 }
 
-const TOOL_FOLDERS = new Set(["script", "scripts", "tooling"]);
-
-const CONFIG_FILE = /(?:^|\.)config\.[cm]?[jt]sx?$/u;
-
 function developmentFile(owner: WorkspacePackage, path: string): boolean {
-	if (isTestCode(path)) {
-		return true;
-	}
-	const local = posix.relative(owner.directory, path);
-	const [folder = ""] = local.split("/");
-	return TOOL_FOLDERS.has(folder) || (!local.includes("/") && CONFIG_FILE.test(local));
+	return isTestCode(path) || isTooling(owner.directory, path);
 }
 
 function developmentImport(policy: ManifestDependencies | undefined, owner: WorkspacePackage, path: string, runtime: ReadonlySet<string>) {

@@ -2,17 +2,19 @@ import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Fiber, Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
-import { DAEMON_PORT as DEFAULT_DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonRpc } from "#host/daemonRpc.ts";
+
+const { DAEMON_PORT: DEFAULT_DAEMON_PORT } = diagnosticsApi;
 
 export const DAEMON_HOST = "127.0.0.1";
 export const DAEMON_PORT = DEFAULT_DAEMON_PORT;
 
 class Scheduler extends Context.Service<Scheduler, Fiber.Fiber<void, unknown>>()("@shivaedev/work-fleet/DaemonScheduler") {}
 
-export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(host), port = DAEMON_PORT) {
+export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
 	const runtime = hostLayer(host, parts);
 	const scheduler = Layer.effect(Scheduler)(hostScheduler(host).pipe(Effect.forkScoped));
 	const listener = NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: DAEMON_HOST, port });
@@ -20,7 +22,7 @@ export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(
 	return scheduler.pipe(Layer.provideMerge(http), Layer.provide(runtime));
 }
 
-export function serveFleet(host: FleetHost, parts: HostParts = productionParts(host), port = DAEMON_PORT) {
+export function serveFleet(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
 	return Effect.scoped(
 		Effect.gen(function* () {
 			const context = yield* Layer.build(daemonLayer(host, parts, port));

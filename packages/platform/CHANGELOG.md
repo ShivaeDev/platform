@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.1 - 2026-10-12
+
+### Added
+
+- `appHost`, `appDatabase`, `AppChanges`, `AppHostOptions` and `AppDatabaseOptions` in `appHost.ts`: one scoped local HTTP/NDJSON RPC host with transport guard, session middleware, static assets, migrated PostgreSQL and commit-bound live hints; the database Layer also serves workers. The host requires the optional `@effect/platform-node` and `@effect/sql-pg` peers.
+- `AppHostOptions.config.host` / `HOST` and `config.trustedProxy` / `TRUSTED_PROXY` allow a non-loopback listener and same-origin HTTP/NDJSON RPC through an exact trusted proxy peer. `localRpcGuard(effect, trustedProxy?)` accepts the same proxy address; loopback defaults and typed RPC refusals are preserved.
+- `rpc-server/local.ts` exports `localRpcGuard(effect)` to reject local HTTP RPC requests before the handler runs unless their remote address and Host are loopback, their Origin is absent or matches the HTTP Host, and their content type matches the native RPC serialization. It needs no session provider. The module also exports `loopbackOnly(handler)` and `sameOrigin(request)` for local HTTP routes.
+- Export `InternalServerError` and `ServiceUnavailable` Schema errors from `errors/taxonomy.ts` for RPC contracts without authentication middleware.
+- Export `rpcBoundary(schema, { unexpected, message? })` and `RpcBoundaryOptions` from `rpc-server/boundary.ts`. Declared rejections keep their identity; unexpected failures and defects become one declared rejection with a redacted public message and the original server-only cause. Success and interruption remain intact.
+
+### Changed
+
+- Pin the optional `better-auth` peer dependency to 1.6.33, the current 1.6
+  release, up from 1.6.30.
+- Keep the existing core defining-module import paths through explicit exports while grouping their peer-free implementation under `src/core/` and enforcing its optional-peer boundary from the package manifest.
+- Prefix testing harness type parameters with `T`; their constraints, defaults and inferred types stay the same.
+- Document the package purpose, request boundaries, integrations and API with agent guidance, a north star and a roadmap; publish `docs/` alongside the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
+### Fixed
+
+- Declare `@shivaedev/types` as a dependency of the shipped testing entry point instead of a development-only dependency.
+
 ## 0.6.0 - 2026-10-04
 
 ### Changed

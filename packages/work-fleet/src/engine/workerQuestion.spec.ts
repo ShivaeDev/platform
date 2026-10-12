@@ -59,7 +59,7 @@ for (const type of ["clarify", "not_now"] as const) {
 		));
 }
 
-test("answers from different authors remain ambiguous through Board edits", () =>
+test("answers from different authors remain ambiguous through bookkeeping edits", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -73,7 +73,7 @@ test("answers from different authors remain ambiguous through Board edits", () =
 			expect(competing.value.blocker).toContain("Several Board answers compete");
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
-			yield* fs.writeFileString(path.join(root, "one.md"), `${source}\nChanged scope.\n`);
+			yield* fs.writeFileString(path.join(root, "one.md"), source.replace("kind: task", "kind: task\nstatus: done\nnext_action: Work completed."));
 			const stale = yield* fleet.reconcile("one");
 			expect(stale.value.stage).toBe("needs-human");
 			expect(stale.value.blocker).toContain("Several Board answers compete");
