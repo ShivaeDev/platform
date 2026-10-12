@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality, trees } from "#test/cli.ts";
 import { branchOff, commitAll, git } from "#test/git.ts";
-import { removeSeededTrees, seedTree } from "#test/tree.ts";
+import { qualityTree } from "#test/qualityTree.ts";
+import { removeSeededTrees } from "#test/tree.ts";
 
 const cliTimeout = 60_000;
 
@@ -14,11 +15,11 @@ function baseline(root: string): string {
 }
 
 function shrunkTwice(): string {
-	const root = seedTree(trees.dirty);
+	const root = qualityTree(trees.dirty);
 	quality(root, "baseline", "write");
 	branchOff(root);
-	writeFileSync(join(root, "src/long.ts"), "1\n");
-	writeFileSync(join(root, "src/longer.ts"), "1\n2\n3\n4\n5\n");
+	writeFileSync(join(root, "src/long.ts"), "String(1);\n");
+	writeFileSync(join(root, "src/longer.ts"), "String(1);\nString(2);\nString(3);\nString(4);\nString(5);\n");
 	return root;
 }
 
@@ -48,7 +49,7 @@ describe("quality baseline tighten", { timeout: cliTimeout }, () => {
 	});
 
 	it("leaves a baseline that changed files do not touch as it is", () => {
-		const root = seedTree(trees.dirty);
+		const root = qualityTree(trees.dirty);
 		quality(root, "baseline", "write");
 		branchOff(root);
 		expect(quality(root, "baseline", "tighten", "--staged").stdout).toBe("quality: quality/baseline.jsonl is current.\n");
@@ -57,7 +58,7 @@ describe("quality baseline tighten", { timeout: cliTimeout }, () => {
 
 describe("quality baseline prune", { timeout: cliTimeout }, () => {
 	it("carries the entry of a file moved since the merge base", () => {
-		const root = seedTree(trees.dirty);
+		const root = qualityTree(trees.dirty);
 		quality(root, "baseline", "write");
 		branchOff(root);
 		git(root, "mv", "src/longer.ts", "src/a-longer.ts");
@@ -73,9 +74,9 @@ describe("quality baseline prune", { timeout: cliTimeout }, () => {
 	});
 
 	it("still prunes outside git, and says that moves are not followed", () => {
-		const root = seedTree(trees.dirty);
+		const root = qualityTree(trees.dirty);
 		quality(root, "baseline", "write");
-		writeFileSync(join(root, "src/long.ts"), "1\n");
+		writeFileSync(join(root, "src/long.ts"), "String(1);\n");
 		const result = quality(root, "baseline", "prune");
 		expect(result).toMatchObject({ status: 0, stdout: "quality: removed 1 entry and lowered 0 entries in quality/baseline.jsonl.\n" });
 		expect(result.stderr).toContain("quality: moved files are not followed:");

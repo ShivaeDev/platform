@@ -28,8 +28,8 @@ integration(
 			table: `order_rows_${suffix}`,
 		};
 		const observer = ManagedRuntime.make(PgClient.layer({ url: Redacted.make(databaseUrl.value) }));
-		const processes: Array<Awaited<ReturnType<typeof startProcess>>> = [];
-		const clients: Array<Awaited<ReturnType<typeof processClient>>> = [];
+		const processes: Awaited<ReturnType<typeof startProcess>>[] = [];
+		const clients: Awaited<ReturnType<typeof processClient>>[] = [];
 		try {
 			const first = await startProcess(configuration);
 			processes.push(first);
