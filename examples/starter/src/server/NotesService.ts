@@ -5,7 +5,7 @@ import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Create } from "#notes.ts";
-import { makeNotesRepository } from "./noteRow.ts";
+import { makeNotesRepository } from "./makeNotesRepository.ts";
 
 function unavailable() {
 	return new ServiceUnavailable({ message: "Could not reach the notes database" });
