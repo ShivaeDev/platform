@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.19.0 - 2026-10-12
+
+### Added
+
+- `imports/runtime` infers browser code in `src/client/`, server code in `src/server/` and shared code elsewhere, for packages with either runtime folder. It rejects runtime-crossing imports and shared browser globals or Node built-ins while existing explicit fences remain active.
+- Shared browser-global checks include runtime destructuring defaults, reads from `globalThis` in variable bindings, parameter defaults and assignments, and class superclass expressions, while leaving locally bound names, type annotations, implements clauses and interface heritage outside the global value scan.
+- `importsManifest` in `rules/imports/manifest.ts` is a `Rule<"imports/manifest", undefined>` enabled by default. It checks workspace imports against the importing package's `dependencies`, `peerDependencies` and `optionalDependencies` without configuration or a package scope convention. Tests, `test-support`, package-root `script`, `scripts` and `tooling` folders and package-root config files may also use `devDependencies`. The rule checks type imports and unresolved workspace package names as well as resolved aliases and relative paths.
+- Workspace package discovery reads repository manifests independently of `sources`, so selecting only source folders preserves each member's dependency policy and checks imports of unselected workspace members. `workspacePackages` in `imports/workspace.ts` accepts an optional `root` alongside `files` and `readText` for repository discovery; readers without a root retain their supplied manifest inventory.
+- Discover `quality.fences.config.ts` beside the repository root and each workspace package manifest, combining its default array of import fences with existing config-supplied fences in the shared quality report. Invalid boundary files stop the gate.
+- Reject production imports of test files and anything under `test-support/` with the default `imports/no-test-code` rule, exported as `noTestCode` from `rules/imports/noTestCode.ts`. Shared code belongs in a production module that tests can import; the rule also checks type imports, re-exports and test assets and takes no registry exceptions.
+- Export `trackedPaths(directory)` and `ignoredTrackedPaths(directory)` from `inventory/trackedPaths.ts`, returning promises of absolute tracked paths and tracked paths matching Git ignore rules.
+
+### Changed
+
+- The Biome preset reports `useConsistentArrayType` and `useConsistentCurlyBraces` at error again. Their automatic fixes stay off: array shorthand can change locally defined types, and removing JSX string braces can change rendered text.
+- Run Biome 2.5.15. It reports `useArraySortCompare`, `noBaseToString` and GritQL formatting findings that 2.5.14 missed, so an upgrading repository can see new findings. It no longer flags a regular expression's `.test(value)` call under `useValidTestTitle`, so the report bridge stops correcting that case itself.
+- Enable Biome's `noSelfImport`, `noReactObjectTypeAsDefaultProp`, `noMisplacedListElements` and `usePromiseRejectErrors` rules in the shared preset. A repository now fails the gate on a module that imports itself, a React component whose prop default is an array, object or function literal, an `<li>` outside `<ul>`, `<ol>` or `<menu>`, and a promise rejected with something other than an `Error`.
+- The manifest dependency rule allows development dependencies in source modules explicitly blocked by package exports when runtime code cannot reach them in the scanned import graph. Public modules, transitive imports, re-exports, type references and executable entry points retain the runtime dependency boundary, including executables under tooling folders.
+- Quality uses its built-in defaults when `quality.config.ts` is absent. Existing configs still load and validate; a broken config or missing explicit `--config` path fails.
+- The explicitly installed pre-commit hook runs lint, then the manifest's `typecheck` and `quality:commit` scripts when present. It uses the declared npm, pnpm, yarn or bun package manager, defaulting to npm.
+- Recognize regex-literal tests, generator harness parameters and native Effect failure tag handlers in the shared Biome report bridge. Keep invalid test titles, done callbacks and nested component factories reportable.
+- Prefix generic binders in CLI baseline and fix helpers, CLI execution, config, decoding, engine session and violation helpers, and import project memoization with `T`, preserving their types and runtime behavior.
+- Align the package's agent guidance, README, north star, roadmap and topic references around one opinionated policy with minimal repository setup. Keep the accepted warning, off and consumer Biome-override APIs visible as implementation gaps rather than recommended adoption choices.
+- Explain the repository gate through a human introduction, an agent mental model and complete config, local-rule and boundary examples. Add package guidance, a north star and a roadmap, and move the detailed rule, naming, debt and shared-tooling references under `docs/`.
+- Publish `docs/` alongside the README; keep agent instructions outside the package tarball.
+- The Biome preset now reports a bare `process` global (`noProcessGlobal`) and a JSON import without `with { type: "json" }` (`useJsonImportAttributes`) as errors. Their automatic fixes stay disabled because Biome's own fixes hang or emit invalid syntax: `quality lint` reports them and the author repairs them by hand.
+- Report misused promises, missing explicit switch cases and loose null equality as errors in the shared Biome preset. Leave their fixes disabled so authors retain promise ownership, fallback behavior and checks for both null and undefined.
+- The Biome preset reports unsorted Tailwind classes at error and enables the `useSortedClasses` fix for class attributes and calls to `cn`, `clsx` and `cva`.
+- `testProjects` gives each test 30 seconds instead of Vitest's 5-second default, so tests that start servers, browsers or CLIs no longer time out on a busy CI runner.
+
+### Fixed
+
+- Runtime code in another workspace member also removes the development-dependency exemption from export-blocked bundle inputs it reaches. Cross-member imports from test code retain the exemption.
+- Reject empty import graphs even when no fences are configured, keeping source selection errors visible.
+- Report unconditional skipped tests as Biome errors again, with automatic unskipping disabled. Document the PostgreSQL URL gate as the only permitted skip convention; a skipped test proves nothing.
+- Keep tracked files checked even when Git ignore patterns match them, including Biome checks. A folder named `generated/` no longer exempts authored files from folder and asset naming checks; ignored, untracked output stays outside discovery.
+- Name code repairs in suppression, recommended-rule, empty-import-graph and conflicting-fix guidance instead of suggesting disabled rules or new weakening declarations.
+
+### Breaking
+
+- Removed `QualityConfig.preCommit` and the `PreCommit` type. Put extra repository checks in `package.json` as `quality:commit`; type checking is discovered from `typecheck`. Lower staged debt explicitly with `quality baseline tighten --staged`; the hook no longer changes or stages the baseline.
+- Config rejects `warn` and `off` rule levels, raised line/comment limits, `exclude`, and `structure/max-lines.testFiles`; `testProjects()` rejects suite-exclusion options. Remove these settings, keep the shared limits (or lower them), and record existing findings with `quality baseline write --rule <id>`. Keep only reasoned Biome exceptions for individual rules on explicit files or named directory exclusions; whole-check, group, file-glob and blanket declarations are rejected.
+
 ## 0.18.0 - 2026-10-06
 
 ### Added

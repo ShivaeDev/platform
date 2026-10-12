@@ -1,4 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
@@ -16,7 +16,7 @@ export interface ShellOptions {
 	readonly ready?: () => void;
 }
 export function BoardShell({ api, initial, ready }: ShellOptions) {
-	const location = useLocation();
+	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = legacyPage(initial).getElementById("doc");
 		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };

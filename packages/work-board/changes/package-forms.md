@@ -1,4 +1,0 @@
-### Changed
-
-- Browser form adapters expose `handoffForm`, `responseForm`, `responseFormSchema`, `ResponseSubmission`, `fieldFeedback` and `formOwner`; `responseFields` and `requestAuthor` discover the response controls. `questionnaireControls` now accepts an owner abort signal and no longer validates. `submitResponse` takes a decoded submission and propagates failed saves to the form result. Remove `inputFrom` and `submissionFields`; the form owns decoding and snapshots.
-- Run the static handoff, Inbox response and question forms on `@shivaedev/effect-form`. Schema decoding, field messages and captured submissions share the package model; reviewed-context checks and durable drafts retain their existing policy. Form registries and DOM bindings are released on navigation/pagehide and recreated on pageshow.

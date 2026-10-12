@@ -1,4 +1,3 @@
-import { browserGlobals } from "#imports/browserGlobals.ts";
 import { importGraph } from "#imports/graph.ts";
 import { builtinName } from "#imports/resolve.ts";
 import { type Runtime, runtimeOf } from "#imports/runtime.ts";
@@ -35,9 +34,14 @@ export const importsRuntime = defineRule({
 				},
 			];
 		});
-		return [...imports, ...inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared").flatMap(browserGlobals)];
+		const shared = inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared");
+		if (shared.length === 0) {
+			return imports;
+		}
+		const { browserGlobals } = await import("#imports/browserGlobals.ts");
+		return [...imports, ...shared.flatMap(browserGlobals)];
 	},
 	description:
-		"In packages with src/client/ or src/server/, folder names define runtime boundaries. Shared code runs in either runtime without browser globals or Node built-ins.",
+		"Runtime folders define client, server and shared code. Executable packages without runtime folders and package-root tooling are server code.",
 	id: "imports/runtime",
 });

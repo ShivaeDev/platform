@@ -2,6 +2,7 @@ import { Cause, Option } from "effect";
 import { useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { documentQuery } from "#client/page/routeQuery.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
 import { LegacyMain } from "./LegacyMain.tsx";
 import type { MainLocation } from "./legacyPage.ts";
@@ -20,7 +21,7 @@ export function DocumentMain({
 	readonly initial: string;
 	readonly onPage: (location: MainLocation) => void;
 }) {
-	const query = useQuery(api.document.query({ url }));
+	const query = useQuery(documentQuery(api, url));
 	const fresh = Option.getOrUndefined(query.data);
 	const [retained, setRetained] = useState<Document>();
 	useEffect(() => {

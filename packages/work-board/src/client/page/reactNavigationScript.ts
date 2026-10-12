@@ -1,7 +1,6 @@
 export function reactNavigationScript(): string {
 	return `
 const navigateReact = async (route, mine, id, entry, cached, target, status) => {
-      if (cached && document.querySelector("[data-legacy-main]") && document.getElementById("doc")) { applyPage(cached.page); restoreReading(cached.reading); }
       await new Promise((resolve, reject) => {
         const signal = controller.signal;
         const check = () => { if (document.getElementById("doc")?.dataset.route === route) { cleanup(); resolve(); } };
@@ -12,6 +11,7 @@ const navigateReact = async (route, mine, id, entry, cached, target, status) => 
         check();
       });
       if (mine !== version) return;
+      if (cached && document.querySelector("[data-legacy-main]") && document.getElementById("doc")?.dataset.view === "changes") applyPage(cached.page);
       const doc = document.getElementById("doc");
       displayedId = id;
       displayedRoute = route;
