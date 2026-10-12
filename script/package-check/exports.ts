@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { Effect } from "effect";
 import { command } from "#package-check/io.ts";
 import { bins, type Manifest, type Package, targets } from "#package-check/model.ts";
+import { importEntry } from "./imports.ts";
 
 export interface Entry {
 	readonly json: boolean;
@@ -20,9 +21,7 @@ function sourceTargets(value: unknown): string[] {
 }
 
 function blocked(manifest: Manifest, subpath: string): boolean {
-	return Object.entries(manifest.exports ?? {}).some(
-		([key, value]) => value === null && (key === subpath || (key.includes("*") && starOf(key, posix.normalize(subpath)) !== undefined)),
-	);
+	return importEntry(manifest.exports ?? {}, subpath) === null;
 }
 
 function specifierOf(manifest: Manifest, subpath: string): string {
@@ -55,8 +54,9 @@ export function exportTargets(manifest: Manifest, packed: ReadonlySet<string>): 
 }
 
 export function exportEntries(manifest: Manifest, packed: ReadonlySet<string>): Entry[] {
+	const executables = new Set(Object.values(bins(manifest)).map((bin) => posix.normalize(bin)));
 	return Object.entries(manifest.exports ?? {})
-		.filter(([, value]) => value !== null)
+		.filter(([, value]) => value !== null && !targets(value).some((target) => executables.has(posix.normalize(target))))
 		.flatMap(([key, value]) => {
 			const json = targets(value).some((target) => target.endsWith(".json"));
 			const subpaths = key.includes("*") ? exposedStars(manifest, key, value, packed).map((star) => key.replace("*", star)) : [key];

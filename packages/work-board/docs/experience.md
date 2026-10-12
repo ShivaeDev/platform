@@ -18,7 +18,7 @@ Documents keep a readable measure. Boards and evidence comparisons use available
 | Evidence | What supports this result? | Criteria beside artifacts, source revision, verified/claimed/missing distinctions |
 | Project brief | How does the whole plan fit together? | Narrative, metrics, roadmap, dependency sketch, related decisions |
 
-The prototype illustrates connected reading and coordination scenes. It is a design review artifact; use the roadmap and README to assess current behavior. All project names, counts, agent activity, timestamps, and evidence are fictional.
+After `pnpm --filter @shivaedev/work-board build`, serve the package folder with a local static server and open `docs/mockups/index.html`. The prototype illustrates connected reading and coordination scenes. It is a design review artifact; use the roadmap and README to assess current behavior. All project names, counts, agent activity, timestamps, and evidence are fictional.
 
 ## Navigation and interaction
 

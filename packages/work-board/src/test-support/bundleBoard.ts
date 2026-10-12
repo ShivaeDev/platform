@@ -2,8 +2,8 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, FileSystem, Layer, Logger, Scope } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { boardLayer } from "#board.ts";
-import { listenOn } from "#serve.ts";
+import { boardLayer } from "#server/board.ts";
+import { listenOn } from "#server/serve.ts";
 
 export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string, assets: readonly string[]) {
 	const logged: Array<{ readonly level: string; readonly message: unknown }> = [];

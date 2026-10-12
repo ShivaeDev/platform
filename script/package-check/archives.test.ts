@@ -8,7 +8,8 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { privateFixture } from "#package-check/test-support/privateFixture.ts";
 import { verifyArchives, workspaceArchives } from "./archives.ts";
-import type { Package } from "./model.ts";
+import { blockedEntries, exportEntries, exportTargets } from "./exports.ts";
+import type { Manifest, Package } from "./model.ts";
 
 it("shared archives reject different commits, missing packages, and modified tarballs", async () => {
 	const root = mkdtempSync(join(tmpdir(), "platform-archives-"));
@@ -54,4 +55,42 @@ it("private addons remain covered by packed consumers before a release is author
 	} finally {
 		fixture.remove();
 	}
+});
+
+it("checks mapped executables as packed targets without importing them as library entries", () => {
+	const manifest: Manifest = {
+		bin: { board: "./dist/server/cli.js" },
+		exports: {
+			"./*.ts": { import: "./dist/server/*.js", source: "./src/server/*.ts" },
+			"./board.ts": { import: "./dist/server/board.js", source: "./src/server/board.ts" },
+			"./cli.ts": { import: "./dist/server/cli.js", source: "./src/server/cli.ts" },
+		},
+		name: "board",
+		version: "1.0.0",
+	};
+	const packed = new Set(["src/server/cli.ts", "dist/server/cli.js", "src/server/board.ts", "dist/server/board.js"]);
+	assert(exportTargets(manifest, packed).includes("./dist/server/cli.js"));
+	const entries = exportEntries(manifest, packed);
+	assert(entries.some(({ specifier }) => specifier === "board/board.ts"));
+	assert(!entries.some(({ specifier }) => specifier === "board/cli.ts"));
+});
+
+it("keeps exact shared exports out of the blocked consumer entries under a private folder pattern", () => {
+	const manifest: Manifest = {
+		exports: {
+			"./*.ts": { import: "./dist/*.js", source: "./src/*.ts" },
+			"./browser/responses/*": null,
+			"./browser/responses/schema.ts": { import: "./dist/browser/responses/schema.js", source: "./src/browser/responses/schema.ts" },
+		},
+		name: "board",
+		version: "1.0.0",
+	};
+	const packed = new Set([
+		"src/browser/responses/form.ts",
+		"src/browser/responses/schema.ts",
+		"dist/browser/responses/form.js",
+		"dist/browser/responses/schema.js",
+	]);
+	assert(exportEntries(manifest, packed).some(({ specifier }) => specifier === "board/browser/responses/schema.ts"));
+	assert.deepEqual(blockedEntries(manifest, packed), ["board/browser/responses/form.ts"]);
 });

@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
 import { documentHeadings } from "./documentHeadings.ts";
-import { Highlighter } from "./Highlighter.ts";
-import { renderMarkdown } from "./markdown.ts";
 
 it.live("assigns unambiguous Unicode anchors across board fragments and ignores footnote headings", function* () {
 	const headings = documentHeadings();

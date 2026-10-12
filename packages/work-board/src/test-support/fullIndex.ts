@@ -1,9 +1,9 @@
 import { Effect, Option } from "effect";
-import { listMarkdown } from "#files/list.ts";
-import { type MetadataDocument, metadataModel } from "#metadata/model.ts";
-import type { Entry } from "#search/entries.ts";
-import { metadataEntries } from "#search/metadataEntries.ts";
-import { readDocument } from "#search/readDocument.ts";
+import { listMarkdown } from "#server/files/list.ts";
+import { type MetadataDocument, metadataModel } from "#server/metadata/model.ts";
+import type { Entry } from "#server/search/entries.ts";
+import { metadataEntries } from "#server/search/metadataEntries.ts";
+import { readDocument } from "#server/search/readDocument.ts";
 
 export const fullIndex = Effect.fn("Test.fullIndex")(function* (root: string, home?: string) {
 	const files = yield* listMarkdown(root, root);
