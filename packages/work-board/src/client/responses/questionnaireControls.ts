@@ -1,5 +1,6 @@
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
+import { answerRecovery, recoveryText } from "./answerRecovery.ts";
 import type { ResponseInput } from "./formSchema.ts";
 
 function restoreAnswers(fields: readonly HTMLFieldSetElement[], draft: ResponseInput, same: boolean) {
@@ -68,14 +69,13 @@ export function questionnaireControls(form: HTMLFormElement, signal: AbortSignal
 		restoreAnswers(fields, draft, same);
 		syncChoices();
 		const recovery = form.querySelector<HTMLPreElement>("#response-draft-recovery");
-		const retained =
-			!same && draft.answers
-				? `Earlier template answers (selections cleared; review before choosing again):\n${JSON.stringify(draft.answers, null, 2)}\n${draft.recovery ?? ""}`
-				: draft.recovery;
+		const retained = answerRecovery(draft, same);
+		const text = recoveryText(retained);
 		if (recovery) {
-			recovery.textContent = retained ?? "";
-			recovery.hidden = !retained;
+			recovery.textContent = text;
+			recovery.hidden = !text;
 		}
+
 		return retained;
 	}
 	for (const field of fields) {

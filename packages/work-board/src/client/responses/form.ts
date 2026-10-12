@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Equal, Layer } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
 import { fieldFeedback, type formOwner } from "#client/fieldFeedback.ts";
@@ -43,7 +43,7 @@ export function responseForm(
 		return controls.restore(values, form.dataset.revision ?? "");
 	}
 	const recovery = restore();
-	if (recovery !== model.values.value.recovery) {
+	if (!Equal.equals(recovery, model.values.value.recovery)) {
 		model.change("recovery", recovery);
 	}
 	const valid = fieldFeedback(
