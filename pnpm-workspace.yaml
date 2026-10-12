@@ -43,18 +43,18 @@ catalog:
   mermaid: 11.17.2
   ignore: 7.0.12
   sort-package-json: 4.0.0
-  "@prisma-next/adapter-postgres": 0.15.0
-  "@prisma-next/adapter-sqlite": 0.15.0
-  "@prisma-next/cli": 0.15.0
-  "@prisma-next/contract": 0.15.0
-  "@prisma-next/postgres": 0.15.0
-  "@prisma-next/sql-contract": 0.15.0
-  "@prisma-next/sql-orm-client": 0.15.0
-  "@prisma-next/sql-relational-core": 0.15.0
-  "@prisma-next/sql-runtime": 0.15.0
-  "@prisma-next/sqlite": 0.15.0
-  "@prisma-next/target-postgres": 0.15.0
-  "@prisma-next/target-sqlite": 0.15.0
+  "@prisma-next/adapter-postgres": 0.16.0
+  "@prisma-next/adapter-sqlite": 0.16.0
+  "@prisma-next/cli": 0.16.0
+  "@prisma-next/contract": 0.16.0
+  "@prisma-next/postgres": 0.16.0
+  "@prisma-next/sql-contract": 0.16.0
+  "@prisma-next/sql-orm-client": 0.16.0
+  "@prisma-next/sql-relational-core": 0.16.0
+  "@prisma-next/sql-runtime": 0.16.0
+  "@prisma-next/sqlite": 0.16.0
+  "@prisma-next/target-postgres": 0.16.0
+  "@prisma-next/target-sqlite": 0.16.0
   "@prisma/adapter-pg": 7.10.0
   "@prisma/client": 7.10.0
   prisma: 7.10.0
