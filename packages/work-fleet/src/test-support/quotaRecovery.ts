@@ -1,8 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { admit } from "#admit.ts";
+import { failureCode } from "#engine/failureCode.ts";
+import { failureContext, withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";
-import { FleetFailure } from "#policy.ts";
 import { boardWork } from "#test/boardWork.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
@@ -10,8 +12,11 @@ import { enginePolicy } from "#test/enginePolicy.ts";
 export const quotaRecovery = Effect.fn("Test.quotaRecovery")(function* () {
 	const work = boardWork("one", { one: "board-one" });
 	const denied = yield* admit(work, [], enginePolicy({ quota: 0 }), () => Effect.succeed(work)).pipe(Effect.flip);
-	expect(denied.code).toBe("provider-quota-unavailable");
-	const reworded = new FleetFailure({ ...denied, message: "The provider budget needs to refresh before another operation can start." });
+	expect(failureCode(denied)).toBe("provider-quota-unavailable");
+	const reworded = withFailureContext(
+		new Forbidden({ message: "The provider budget needs to refresh before another operation can start." }),
+		failureContext(denied),
+	);
 	let blocked = false;
 	return yield* withEngine(
 		{ noChange: true, refreshQuota: () => (blocked ? Effect.fail(reworded) : Effect.succeed(enginePolicy({}).quota)) },

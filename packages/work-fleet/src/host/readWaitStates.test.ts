@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import pg from "pg";
 import { vi } from "vitest";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 
 describe("Fleet summary reads against PostgreSQL", () => {
 	const test = postgresTests("live");

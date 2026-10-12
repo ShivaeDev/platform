@@ -1,11 +1,11 @@
 import { Effect, Result } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { authorizeBrief, refreshBrief } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
@@ -49,7 +49,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 					}
 					yield* save(current, {
 						...current.value,
-						admissionReady: !(error instanceof FleetFailure && error.reason === "denied"),
+						admissionReady: !(error instanceof Forbidden),
 						attentionOwner: failureOwner(error),
 						blocker: failureMessage(error),
 					});

@@ -42,6 +42,6 @@ it.live("rejects a failed gh process even when its stdout contains a valid resul
 	const { host, main } = resultFixture();
 	const cli = githubCli(responses, 1);
 	const adopt = githubResult(host, main, (args) => githubRead(args, main.repositoryRoot).pipe(Effect.provide(cli.layer)));
-	expect(yield* adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	expect(cli.commands).toHaveLength(1);
 });

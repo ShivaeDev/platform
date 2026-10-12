@@ -50,8 +50,10 @@ export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <
 	return yield* use(address.port);
 }, Effect.scoped);
 
-export function daemonCli(host: FleetHost, args: readonly string[]) {
-	return withReadDaemon(host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)]))).pipe(Effect.provide(NodeServices.layer));
+export function daemonCli(host: FleetHost, args: readonly string[], parts?: HostParts) {
+	return withReadDaemon(host, (port) => Effect.promise(() => cliProcess([...args, "--port", String(port)])), parts).pipe(
+		Effect.provide(NodeServices.layer),
+	);
 }
 
 function snapshotServer(onSnapshot: () => void) {

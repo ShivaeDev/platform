@@ -8,7 +8,6 @@ import { type HostFixture, storeState, task, withHost } from "#test/fleetHost.ts
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { readDaemonLayer, withReadDaemon } from "#test/readDaemon.ts";
-import { snapshotReads, untilReads } from "#test/snapshotReads.ts";
 
 const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fixture: HostFixture, port: number) {
 	yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
@@ -25,19 +24,22 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 });
 
 const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixture: HostFixture) {
+	const snapshot = Promise.withResolvers<void>();
 	const first = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(first, Exit.void));
-	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, fixture.parts), first);
+	const context = yield* Layer.buildWithScope(
+		readDaemonLayer(fixture.host, fixture.parts, 0, () => snapshot.resolve()),
+		first,
+	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (address._tag !== "TcpAddress") {
 		return yield* Effect.die("Expected a TCP daemon");
 	}
 	yield* storeState(fixture.host, "a", { stage: "executing" });
 	yield* storeState(fixture.host, "b", { stage: "executing" });
-	const reads = yield* snapshotReads(fixture.host);
 	yield* withFollower(fixture.configFile, "watch", [], { interval: 0.1, port: address.port }, (follower) =>
 		Effect.gen(function* () {
-			yield* untilReads(reads, 2);
+			yield* Effect.promise(() => snapshot.promise);
 			yield* storeState(fixture.host, "a", { stage: "released" });
 			yield* untilOutput(follower, "a released\n");
 			yield* Scope.close(first, Exit.void);

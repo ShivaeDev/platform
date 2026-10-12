@@ -9,6 +9,7 @@ import * as Argument from "effect/unstable/cli/Argument";
 import * as CliError from "effect/unstable/cli/CliError";
 import * as Command from "effect/unstable/cli/Command";
 import * as Flag from "effect/unstable/cli/Flag";
+import { continueCommand, decideCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
@@ -33,33 +34,6 @@ const dispatchCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Prepare the current approved revision of one Board item and launch it"));
 
-const continueCommand = Command.make(
-	"continue",
-	{ args: [Argument.string("id"), Argument.string("message").pipe(Argument.optional)] as const, board, config },
-	Effect.fn("WorkFleetCli.continue")(function* (input) {
-		const [{ continueWork }, { continuationMessage }] = yield* Effect.promise(() =>
-			Promise.all([import("#host/commands.ts"), import("#host/continuationMessage.ts")]),
-		);
-		const message = yield* continuationMessage(Option.getOrUndefined(input.args[1]));
-		const { value } = yield* continueWork(yield* host(input.board, input.config), input.args[0], message);
-		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
-	}),
-).pipe(
-	Command.withDescription("Continue terminal needs-human or completed work on its existing worker thread; read the message from stdin if omitted"),
-);
-
-const releaseCommand = Command.make(
-	"release",
-	{ board, config, workIds: Argument.string("id").pipe(Argument.variadic({ min: 1 })) },
-	Effect.fn("WorkFleetCli.release")(function* (input) {
-		const { releaseWork } = yield* Effect.promise(() => import("#host/releaseWork.ts"));
-		const released = yield* releaseWork(yield* host(input.board, input.config), input.workIds);
-		for (const { value } of released) {
-			yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
-		}
-	}),
-).pipe(Command.withDescription("Safely release terminal needs-human items and record their closing Board responses"));
-
 const statusCommand = Command.make(
 	"status",
 	{
@@ -81,31 +55,6 @@ const statusCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
 
-const reassignCommand = Command.make(
-	"reassign",
-	{
-		board,
-		config,
-		id: Argument.string("id"),
-		question: Argument.string("decision-id"),
-		to: Argument.choice("owner", ["maintainer", "orchestrator", "automation"]),
-	},
-	Effect.fn("WorkFleetCli.reassign")(function* (input) {
-		const { reassignWork } = yield* Effect.promise(() => import("#host/reassignWork.ts"));
-		const { value } = yield* reassignWork(yield* host(input.board, input.config), input.id, input.question, input.to);
-		yield* Console.log(`${value.workId} ${value.stage} (waiting on ${value.attentionOwner})`);
-	}),
-).pipe(Command.withDescription("Reassign the exact waiting decision to its next actor"));
-
-const nameThreadsCommand = Command.make(
-	"name-threads",
-	{ board, config },
-	Effect.fn("WorkFleetCli.nameThreads")(function* (input) {
-		const { nameThreads } = yield* Effect.promise(() => import("#host/nameThreads.ts"));
-		yield* nameThreads(yield* host(input.board, input.config));
-	}),
-).pipe(Command.withDescription("Name existing Fleet Cloud threads after their Board work, best-effort"));
-
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
 	Command.withSubcommands([
@@ -113,6 +62,7 @@ const cli = Command.make("work-fleet").pipe(
 		dispatchCommand,
 		continueCommand,
 		releaseCommand,
+		decideCommand,
 		statusCommand,
 		reassignCommand,
 		waitCommand,

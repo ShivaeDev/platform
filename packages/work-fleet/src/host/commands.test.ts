@@ -6,7 +6,6 @@ import { Fleet } from "#fleet.ts";
 import { admitApproved } from "#host/admission.ts";
 import { dispatchWork, hostLayer, runFleet } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { finishWorkers } from "#test/engine.ts";
@@ -14,6 +13,7 @@ import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 
 const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {
 	const deadline = (yield* Clock.currentTimeMillis) + timeoutMs;
@@ -75,7 +75,7 @@ describe("work-fleet host against PostgreSQL", () => {
 		yield* withHost(files, {}, (fixture) =>
 			Effect.gen(function* () {
 				const denied = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
-				expect(denied).toMatchObject({ message: 'b needs "fleet: approved" in its Board frontmatter', reason: "denied" });
+				expect(denied).toMatchObject({ _tag: "Forbidden", message: 'b needs "fleet: approved" in its Board frontmatter' });
 
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 				const first = yield* record(fixture.host, "a", fixture.parts);

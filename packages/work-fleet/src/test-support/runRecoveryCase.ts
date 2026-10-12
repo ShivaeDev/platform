@@ -52,7 +52,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 				Effect.flip,
 			),
 		);
-		expect(rejected).toMatchObject({ message: explanation, reason: "invalid" });
+		expect(rejected).toMatchObject({ _tag: "BadRequest", message: explanation });
 		expect((yield* fleet.get("one")).value).toEqual(stopped);
 		return;
 	}

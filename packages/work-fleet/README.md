@@ -16,7 +16,7 @@ Board owns authored work and its revision. Fleet stores preparation, attempts an
 
 ### Configure the host
 
-Put `fleet.config.json` in the Board folder. `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
+Put `fleet.config.json` in the Board folder. For `serve`, `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
 
 ```json
 {
@@ -121,13 +121,17 @@ A `depends_on` relationship waits on the orchestrator for an accepted Fleet outc
 | `work-fleet dispatch <work-id> [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. |
 | `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records. |
 | `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
-| `work-fleet release <work-id>... --board <board-dir>` | Releases terminal needs-human items and records closing responses on their Board decisions. |
-| `work-fleet reassign <work-id> <decision-id> <owner> --board <board-dir>` | Reassigns the exact current question to maintainer, orchestrator or automation. |
+| `work-fleet release <work-id>... [--port <port>]` | Releases terminal needs-human items and records closing responses on their Board decisions. |
+| `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]` | Reassigns the exact current question to maintainer, orchestrator or automation. |
 | `work-fleet wait <work-id> --timeout <seconds> [--port <port>]` | Subscribes to daemon snapshots until an outcome or timeout. |
 | `work-fleet watch [work-ids...] [--port <port>]` | Follows several items in one process and reports each outcome once. |
-| `work-fleet name-threads --board <board-dir>` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
+| `work-fleet continue <work-id> [message] [--port <port>]` | Continues terminal work on its existing worker thread; reads stdin when the message is omitted. |
+| `work-fleet decide <work-id> retry\|release [--port <port>]` | Records an answer to the current published Fleet decision and resolves it without looking up question or response IDs. |
+| `work-fleet name-threads [--port <port>]` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
 
-Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. `status`, `dispatch`, `wait` and `watch` connect to its loopback port (3457 by default) over RPC and open no PostgreSQL connection. Their retained `--board` and `--config` flags do not select a host; the running daemon owns its Board and configuration. Without a daemon, they exit 1 with the address and a command to start it. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
+Automatic admission does not re-approve an edited item that already has a record. Explicit dispatch reads the current approved revision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. All commands except `serve` connect to its loopback port (3457 by default) over RPC and open no PostgreSQL connection. Their retained `--board` and `--config` flags do not select a host; the running daemon owns its Board and configuration. Without a daemon, they exit 1 with the address and a command to start it. The host loop and approval behavior are exercised against PostgreSQL in `src/host/commands.test.ts`; `src/host/statusProcess.spec.ts` exercises status output and flags.
+
+`decide` requires an open published decision. Retry uses the runtime’s existing approval and revision checks; a worker question needs an answer or `continue` with a message instead. Release retains the runtime’s terminal-execution check. `src/host/daemonCommands.spec.ts` proves retry and release responses, Board acknowledgements, rejection of active items and reuse of the daemon’s pool against PostgreSQL over HTTP. The release, reassignment, continuation and thread-naming process tests exercise those commands through the daemon.
 
 `wait` prints a summary and exits with these codes:
 
@@ -139,7 +143,7 @@ Automatic admission does not re-approve an edited item that already has a record
 | `3` | Released. |
 | `4` | The requested timeout expired. |
 
-`--interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout and delayed creation against PostgreSQL over HTTP. `src/host/watchFailures.spec.ts` covers each command's missing-daemon message.
+`--interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting. `src/host/wait.test.ts` exercises the actual process, terminal summaries, timeout and delayed creation against PostgreSQL over HTTP. `src/host/watchFailures.spec.ts` covers every client command's missing-daemon message.
 
 `watch` prints one line per item when that item is completed, needs-human or released, then exits 0 after every item has reported. Duplicate IDs report once; unknown IDs remain pending. With no IDs, it follows the active items found by its first successful read and exits when those items have reported. Existing completed, needs-human and released items are excluded from that initial active set. `wait` and `watch` each use one scoped RPC subscription. The daemon shares one summary stream across followers, reading compact fields through its existing pool every half second only while at least one follower is subscribed. New followers receive the last good snapshot; after the last follower leaves, the next subscription starts with a fresh read. PostgreSQL read failures retain the last good snapshot and retry every half second; 20 consecutive failed attempts end all current followers with a clear message and exit 1. A reconnect receives a snapshot of the original selected set; printed outcomes remain deduplicated. Connection loss retries up to 20 consecutive attempts before exit 1. `--timeout <seconds>` exits 4 and writes a timeout message to stderr. `src/host/watch.test.ts`, `src/host/daemonClients.spec.ts`, `src/host/snapshotStream.test.ts` and `src/host/daemonFollow.spec.ts` cover output, HTTP restart resync, initial selection, PostgreSQL read recovery and failure bounds, and the poller subscription lifecycle.
 
@@ -175,7 +179,7 @@ A composed runtime enables health publication with `statusLayer(boardRoot, { con
 
 ### Release waiting work
 
-Every new Fleet decision records a stable `code` beside its human `reason`. Import the Schema literal union `DecisionCode` from `@shivaedev/work-fleet/DecisionCode.ts`; typed integration failures can supply a code, and uncoded failures receive a code from their failure kind. Release-only actions, report-correction retries, conflict repair and merge-ready reconciliation use codes. Conflict decisions use `pr-conflicting`; the recovery matrix rewords their text and proves retry still repairs the same PR. The public field is optional so existing integration implementations still type-check; Fleet assigns codes when it publishes decisions. PostgreSQL migration backfills saved current and archived decisions. `src/engine/reasonCodes.spec.ts` proves that rewording a release-only reason preserves its answer options and rejects retry after restart. `src/engine/recoveryMatrix.spec.ts` requires recovery coverage for every Schema code.
+Every new Fleet decision records a stable `code` beside its human `reason`. Import the Schema literal union `DecisionCode` from `@shivaedev/work-fleet/DecisionCode.ts`; Platform integration errors carry a code through `withFailureContext(error, { code })` from `@shivaedev/work-fleet/engine/failureContext.ts`; uncoded errors receive a code from their Platform error tag. Session and Board failures retain their optional code fields. Release-only actions, report-correction retries, conflict repair and merge-ready reconciliation use codes. Conflict decisions use `pr-conflicting`; the recovery matrix rewords their text and proves retry still repairs the same PR. Decision fields remain optional for existing stored records; Fleet assigns codes when it publishes decisions. PostgreSQL migration backfills saved current and archived decisions. `src/engine/reasonCodes.spec.ts` proves that rewording a release-only reason preserves its answer options and rejects retry after restart. `src/engine/recoveryMatrix.spec.ts` requires recovery coverage for every Schema code.
 
 The guided actions offer retry when Fleet can launch a new turn, review or delivery observation. Incompatible preparation, changed result identity, invalid adopted GitHub identity, oversized immutable reports, unconfigured stock-host no-change validation and report workers that published to GitHub offer only release, with a sentence explaining what must happen outside retry. Closing a published PR and deleting its branch retain publication evidence. Worker questions accept a recorded answer to continue the same thread, or a guided release answer to free terminal ownership.
 
@@ -196,8 +200,8 @@ The command records an explicit release response for each current waiting decisi
 Use `work-fleet continue <id> <message>` to send instructions to the existing worker thread of terminal work waiting on an owner or completed work. Omit the message argument to read it from stdin. The current Board revision still needs approval; running or released work is refused. Work waiting on a human merge can continue on the same worker thread; its reviewed head stays in history and its PR ownership remains until the new result is adopted.
 
 ```sh
-work-fleet continue work-id "Fix the failed checks on the existing PR" --board .work
-printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id --board .work
+work-fleet continue work-id "Fix the failed checks on the existing PR"
+printf '%s\n' "Check the remaining criterion" | work-fleet continue work-id
 work-fleet wait work-id --board .work
 ```
 
@@ -257,7 +261,7 @@ Cloud worker instructions include startup waiting, the configured environment sc
 
 ### Adopt a worker result
 
-Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open or merged in the host repository and target its configured branch; a different reported head or base/path movement during observation fails with a typed `FleetFailure`. A PR closed without merging waits on the orchestrator.
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open or merged in the host repository and target its configured branch; a different reported head or base/path movement during observation fails with a typed platform `BadRequest` or `Conflict`. A PR closed without merging waits on the orchestrator.
 
 A PR merged before adoption or during review still requires independent approval and checks for its reported head before Fleet accepts the observed merge as delivery. Retrying a failed adoption resumes the completed worker receipt; retrying after review reuses that review session. `src/engine/mergedAdoption.spec.ts`, `src/engine/mergedReview.spec.ts` and `src/engine/mergedReviewRecovery.spec.ts` cover these transitions against real PostgreSQL and a synthetic HTTP GitHub server.
 
@@ -311,6 +315,21 @@ yield* cycle;
 Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Its `result` implementation must re-read current result ownership and head each time it is called. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current Board revisions, with the completed-work bookkeeping exception described above. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` and `dependencyBookkeeping.spec.ts` cover those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.
+
+### Errors and service declarations
+
+Fleet commands and daemon streams declare `BadRequest`, `Conflict`, `Forbidden`, `NotFound` and `ServiceUnavailable` from `@shivaedev/platform/errors/taxonomy.ts`. Invalid input, stale state, denied actions, missing records and unavailable integrations use those tags respectively. The RPC boundary maps storage conflicts to `Conflict` and admission failures to `Forbidden`; clients retain declared tags and messages in the error channel. Internal recovery metadata carries moved PR heads, conflicting main revisions and attention ownership without adding fields to platform errors. `src/host/errorChannels.spec.ts` checks all five tags through real daemon HTTP; `src/host/streamErrors.spec.ts` checks subscription errors through in-process native RPC; `src/exposeFailure.test.ts` checks storage translation, internal ownership, defects and interruption. The moved-head and attention-owner engine specs cover their recovery behavior against PostgreSQL.
+
+`Fleet`, `SessionService`, `MarkdownBoard`, `PostgresFleetRepository`, `FleetSessionJournal`, `GitMainSource`, `HostIntegrations`, `CodexLocal`, `CodexCloud`, `ReportBoard`, `ProviderHealth` and `StatusPublication` use `defineService`. Their Layers declare dependencies and keep initialization state private. The daemon, provider, journal, Board publication and status tests exercise those implementations through the existing ports.
+
+The following native Context services remain hand-written:
+
+| Services | Why |
+| --- | --- |
+| `BoardGateway`, `FleetRepository`, `FleetIntegrations`, `SessionTransport`, `SessionJournal`, `MainSource`, `ReportInspection` | Interchangeable ports for host adapters and test fixtures. The implementations declare their dependencies through `defineService`; the ports do not own initialization. |
+| `FleetPolicy`, `CodexLocalConfig`, `CodexCloudConfig`, `BoardRoot`, `RepositoryNamespace`, `ReportInputs`, `ProviderHealthState`, `StatusHealth` | Configuration and supplied values, including optional health state and bound integration callbacks. |
+| `Health`, `HealthSnapshot`, `HealthPublication` | Shared references and Effects consumed by scheduler and diagnostics composition. |
+| `Scheduler` | A scoped fiber handle. The daemon Layer controls listener-before-scheduler startup and joins that fiber. |
 
 ## PostgreSQL test fixtures
 

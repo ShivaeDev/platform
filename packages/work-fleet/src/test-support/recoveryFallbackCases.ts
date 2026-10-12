@@ -1,7 +1,9 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { isFleetError } from "#errors.ts";
 import { Fleet } from "#fleet.ts";
-import { BoardFailure, FleetFailure } from "#policy.ts";
+import { BoardFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { REPORT } from "#test/githubResult.ts";
@@ -10,10 +12,13 @@ import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts
 
 export function recoveryFallbackCases(): readonly RecoveryCase[] {
 	const failures = [
-		...(["missing", "stale", "denied", "integration", "invalid"] as const).map((reason) => ({
-			code: `fleet-${reason}` as const,
-			failure: new FleetFailure({ message: reason === "denied" ? "Synthetic quota denial" : "Host-specific failure text", reason }),
-		})),
+		...([
+			{ code: "fleet-missing", failure: new NotFound({ message: "Host-specific failure text" }) },
+			{ code: "fleet-stale", failure: new Conflict({ message: "Host-specific failure text" }) },
+			{ code: "fleet-denied", failure: new Forbidden({ message: "Synthetic quota denial" }) },
+			{ code: "fleet-integration", failure: new ServiceUnavailable({ message: "Host-specific failure text" }) },
+			{ code: "fleet-invalid", failure: new BadRequest({ message: "Host-specific failure text" }) },
+		] as const),
 		...(["unavailable", "rejected", "ambiguous", "protocol", "persistence"] as const).map((reason) => ({
 			code: `session-${reason}` as const,
 			failure: new SessionFailure({ message: "Provider-specific failure text", reason }),
@@ -25,7 +30,7 @@ export function recoveryFallbackCases(): readonly RecoveryCase[] {
 		let armed = false;
 		let context: RecoveryContext | undefined;
 		function fallbackOptions(): EngineOptions {
-			if (failure instanceof FleetFailure) {
+			if (isFleetError(failure)) {
 				return {
 					resultQuery: (...args) => {
 						if (!restored) {

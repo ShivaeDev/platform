@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
-import { FleetFailure } from "#policy.ts";
 import { HEAD, PR, resultFixture } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryReview, finishRecoveryWorker } from "#test/recoverySteps.ts";
@@ -14,7 +14,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 	function readDelivery() {
 		return restored
 			? Effect.succeed({ headRefOid: HEAD, mergeCommit: { oid: HEAD }, mergedAt: "2026-01-01", state: "MERGED", url: PR })
-			: Effect.fail(new FleetFailure({ message: "PR delivery observation failed; check GitHub CLI access and response", reason: "integration" }));
+			: Effect.fail(new ServiceUnavailable({ message: "PR delivery observation failed; check GitHub CLI access and response" }));
 	}
 
 	return [

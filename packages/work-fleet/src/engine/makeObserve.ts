@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import type { FleetRecord } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
@@ -16,7 +16,7 @@ export function makeObserve(state: EngineState) {
 		}
 		const latest = stored.value.attempts.at(-1);
 		if (latest === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Execution lacks an intent", reason: "invalid" }));
+			return yield* Effect.fail(new BadRequest({ message: "Execution lacks an intent" }));
 		}
 		if (state.launching.has(latest.operationId)) {
 			return stored;

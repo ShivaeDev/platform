@@ -1,8 +1,10 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";
-import { Decision, FleetFailure } from "#policy.ts";
+import { Decision } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
@@ -52,7 +54,7 @@ describe("stable decision codes", () => {
 		),
 	);
 	postgresTests("test")("reworded saved release-only reason rejects retry after restart without republishing", () =>
-		withEngine({ resultQuery: () => Effect.fail(new FleetFailure({ code: "foreign-pr", message: ready.reason, reason: "invalid" })) }, (fixture) =>
+		withEngine({ resultQuery: () => Effect.fail(withFailureContext(new BadRequest({ message: ready.reason }), { code: "foreign-pr" })) }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
@@ -74,7 +76,7 @@ describe("stable decision codes", () => {
 						Effect.flip,
 					),
 				);
-				expect(failure).toMatchObject({ message: expect.stringContaining("Retry cannot move a PR"), reason: "invalid" });
+				expect(failure).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("Retry cannot move a PR") });
 			}),
 		),
 	);

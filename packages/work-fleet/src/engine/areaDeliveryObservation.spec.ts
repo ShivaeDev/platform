@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
-import { FleetFailure } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
@@ -14,8 +14,7 @@ test("delivery changes after the merge wait do not reclaim freed areas", () => {
 		{
 			areaMergeWaitMs: 5000,
 			backlog: 3,
-			deliveryQuery: () =>
-				changed ? Effect.fail(new FleetFailure({ message: "PR closed without merging", reason: "denied" })) : Effect.succeed(undefined),
+			deliveryQuery: () => (changed ? Effect.fail(new Forbidden({ message: "PR closed without merging" })) : Effect.succeed(undefined)),
 			now: () => now,
 		},
 		(fixture) =>
@@ -52,7 +51,7 @@ test("a PR that no longer has valid delivery evidence does not expire its area h
 	return withEngine(
 		{
 			areaMergeWaitMs: 5000,
-			deliveryQuery: () => (changed ? Effect.fail(new FleetFailure({ message: "PR head moved", reason: "stale" })) : Effect.succeed(undefined)),
+			deliveryQuery: () => (changed ? Effect.fail(new Conflict({ message: "PR head moved" })) : Effect.succeed(undefined)),
 			now: () => now,
 		},
 		(fixture) =>

@@ -1,8 +1,8 @@
 import { Effect, Stream } from "effect";
 import { DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
+import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
 import type { State } from "#host/waitOutcome.ts";
-import { FleetFailure } from "#policy.ts";
 
 export interface FollowOptions {
 	readonly intervalMs: number;
@@ -15,7 +15,7 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 	let ids = workIds;
 	let connected = false;
 	let failures = 0;
-	function connect(): Stream.Stream<readonly (typeof State.Type)[], FleetFailure> {
+	function connect(): Stream.Stream<readonly (typeof State.Type)[], FleetError> {
 		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { workIds: ids })))).pipe(
 			Stream.scoped,
 			Stream.map((states) => {
@@ -29,7 +29,7 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 			Stream.concat(Stream.fail(new Error("Fleet daemon subscription closed"))),
 			Stream.catch((error) => {
 				failures += 1;
-				if (!connected || error instanceof FleetFailure || failures >= 20) {
+				if (!connected || isFleetError(error) || failures >= 20) {
 					return Stream.fail(daemonError(error, port));
 				}
 				return Stream.unwrap(Effect.sleep(options.intervalMs).pipe(Effect.as(connect())));

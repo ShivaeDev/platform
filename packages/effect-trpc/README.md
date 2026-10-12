@@ -343,7 +343,7 @@ Import each name from its defining `@shivaedev/effect-trpc/<module>.ts`; there i
 | `errors.ts` | `fail`, `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `preconditionFailed`, `internalServerError` |
 | `rejection.ts` | `rejectWith`, `rejectionCode`, `RejectionError`, `DeclaredRejection`, `RejectWithOptions` |
 | `rejection-formatter.ts` | `rejectionFormatter`, `withRejection`, `RejectionData`, `RejectionErrorShape` |
-| `client/rejection.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
+| `rejectionDecoding.ts`, `client/rejection.ts` | `rejectionOf`, `decodeRejection`, `EncodedRejection` |
 | `testing/caller.ts` | `makeEffectCaller`, `makeEffectCallerFactory`, `EffectCaller`, `EffectCallerFactory` |
 | `testing/vitest.ts` | `makeTrpcIt`, `makeTrpcHarnessIt` |
 | `testing/types.ts` | `CallerOptions`, `CallerResult`, `MakeTrpcItOptions`, `MakeTrpcHarnessItOptions`, `TrpcIt`, `TrpcTest`, `TrpcTester`, `TrpcHarnessIt`, `TrpcHarnessTest`, `TrpcHarnessTester` |

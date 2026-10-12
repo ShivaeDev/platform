@@ -1,7 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
@@ -14,25 +17,19 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { type BoardGateway, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
 function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
-	return Effect.fail(
-		new FleetFailure({
-			attentionOwner: "automation",
-			code,
-			message,
-			reason: "integration",
-		}),
-	);
+	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code }));
 }
 
 export function hostIntegrations(host: FleetHost) {
-	return Layer.effect(FleetIntegrations)(
-		Effect.gen(function* () {
-			const main = yield* MainSource;
-			return FleetIntegrations.of({
+	const HostIntegrations = defineService({
+		id: "Fleet/HostIntegrations",
+		initialize: MainSource,
+		methods: (main) =>
+			FleetIntegrations.of({
 				checks: (_work, result) =>
 					result.kind === "no-change"
 						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
@@ -43,9 +40,10 @@ export function hostIntegrations(host: FleetHost) {
 					host.result === "github"
 						? githubResult(host, main)
 						: () => unconfigured("Worker result adoption is not configured in this Fleet host; inspect the worker session"),
-			});
-		}),
-	);
+			}),
+		requires: [MainSource],
+	});
+	return Layer.effect(FleetIntegrations)(HostIntegrations).pipe(Layer.provide(HostIntegrations.layer));
 }
 
 export function hostPolicy(host: FleetHost) {
@@ -90,7 +88,7 @@ export function fleetHostLayer<TProvider, TMain>(
 ) {
 	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provideMerge(hostSql(host)));
 	const sessions = SessionService.layer.pipe(
-		Layer.provide([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
+		Layer.provideMerge([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));

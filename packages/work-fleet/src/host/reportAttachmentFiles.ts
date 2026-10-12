@@ -2,7 +2,8 @@ import { constants, type Stats } from "node:fs";
 import { type FileHandle, lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Effect } from "effect";
-import { FleetFailure } from "#policy.ts";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { isFleetError } from "#errors.ts";
 import type { ReportFile } from "#reportAttachments.ts";
 import { REPORT_LIMITS, reportLimit } from "#reportLimits.ts";
 
@@ -74,9 +75,7 @@ async function readAttachment(root: string, { info, target }: AttachmentEntry, r
 export function reportAttachmentFiles(folder: string, names: readonly string[]) {
 	return Effect.tryPromise({
 		catch: (error) =>
-			error instanceof FleetFailure
-				? error
-				: new FleetFailure({ message: "Cloud report attachments must be regular files inside the scratch folder", reason: "invalid" }),
+			isFleetError(error) ? error : new BadRequest({ message: "Cloud report attachments must be regular files inside the scratch folder" }),
 		try: async () => {
 			const root = await realpath(folder);
 			const entries = await attachmentEntries(root, names);

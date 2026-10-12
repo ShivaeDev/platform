@@ -20,12 +20,22 @@ function unusedPort() {
 }
 
 describe("Fleet commands without a daemon", () => {
-	for (const command of ["status", "wait", "watch", "dispatch"]) {
+	for (const [command, args] of [
+		["status", []],
+		["wait", ["unknown"]],
+		["watch", ["unknown"]],
+		["dispatch", ["unknown"]],
+		["continue", ["unknown", "Continue work"]],
+		["release", ["unknown"]],
+		["reassign", ["unknown", "decision", "maintainer"]],
+		["name-threads", []],
+		["decide", ["unknown", "retry"]],
+	] as const) {
 		it.live(`${command} names the missing daemon and how to start it`, function* () {
 			const port = yield* Effect.promise(unusedPort);
 			let stderr = "";
 			const result = yield* Effect.promise(() =>
-				cliProcess([command, ...(command === "status" ? [] : ["unknown"]), "--port", String(port)], {
+				cliProcess([command, ...args, "--port", String(port)], {
 					onError: (text) => {
 						stderr += text;
 					},

@@ -1,12 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
-import { FleetFailure } from "#policy.ts";
 import { HEAD } from "#test/githubResult.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
 import { finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
-const readerUnavailable = new FleetFailure({ message: "Synthetic result reader unavailable", reason: "integration" });
+const readerUnavailable = new ServiceUnavailable({ message: "Synthetic result reader unavailable" });
 export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 	let context: RecoveryContext | undefined;
 	let invalidChecks = true;

@@ -17,7 +17,7 @@ test("current dependency revision requires fresh accepted completion while unrel
 			yield* prepareWork("dependent");
 			yield* prepareWork("two");
 			const fleet = yield* Fleet;
-			expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+			expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 			expect((yield* fleet.get("dependent")).value.blocker).toContain("board-one-changed");
 			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
 			yield* prepareWork("one");

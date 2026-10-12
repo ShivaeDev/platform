@@ -1,11 +1,12 @@
 import { Effect } from "effect";
+import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import { BoardGateway, type Decision, FleetFailure, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { BoardGateway, type Decision, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
@@ -24,9 +25,7 @@ export const makeState = Effect.gen(function* () {
 			.load(workId)
 			.pipe(
 				Effect.flatMap((stored) =>
-					stored === undefined
-						? Effect.fail(new FleetFailure({ message: `Unknown Board work ${workId}`, reason: "missing" }))
-						: Effect.succeed(stored),
+					stored === undefined ? Effect.fail(new NotFound({ message: `Unknown Board work ${workId}` })) : Effect.succeed(stored),
 				),
 			);
 	}

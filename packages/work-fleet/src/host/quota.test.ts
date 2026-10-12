@@ -27,7 +27,7 @@ describe("work-fleet quota", () => {
 
 	it.effect("an unknown rate limit shape is an integration failure", function* () {
 		const failure = yield* codexQuota(() => 0, Effect.succeed({ limits: [] }))().pipe(Effect.flip);
-		expect(failure.reason).toBe("integration");
+		expect(failure._tag).toBe("ServiceUnavailable");
 	});
 
 	it.effect("the unlimited policy always admits", function* () {

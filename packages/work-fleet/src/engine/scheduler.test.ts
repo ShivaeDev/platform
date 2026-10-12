@@ -103,7 +103,7 @@ describe("Fleet autonomous scheduling", () => {
 				yield* Deferred.await(entered);
 				const decision = (yield* fleet.get("one")).value.decision;
 				expect(decision).toBeDefined();
-				expect(yield* Effect.flip(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatchObject({ reason: "stale" });
+				expect(yield* Effect.flip(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatchObject({ _tag: "Conflict" });
 				yield* Deferred.succeed(release, undefined);
 				expect((yield* Fiber.join(pending)).value.stage).toBe("needs-human");
 				yield* fleet.resolve("one", decision?.id ?? "missing", fixture.respond(decision?.id ?? "missing", "release"));
