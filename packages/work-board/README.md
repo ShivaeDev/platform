@@ -163,7 +163,7 @@ Back restores selected text and expanded details. Recent documents opens a bound
 
 **Diagnostics** in the sidebar reads Codex usage windows labelled by duration, GitHub REST and GraphQL rate limits, and Fleet health through the Fleet daemon's `daemon.diagnostics` HTTP RPC query at `127.0.0.1:3457`. Set `--fleet-port <port>` or `BoardOptions.fleetPort` to select another daemon port. A stopped daemon leaves Diagnostics available with an explicit unavailable state and a start command; the next refresh retries. Board does not start provider commands or read Fleet's database or health file. The daemon reads Codex and GitHub with its existing CLI authentication, caches rate-limit observations for one minute across Board clients and reports each source's missing configuration or error independently.
 
-The view refreshes through the native page query every 15 seconds while visible. Pause updates holds the displayed state; resume and returning to a visible tab refresh it. The shared `DiagnosticsContract` and `DiagnosticsSnapshot` schemas live in `@shivaedev/work-board/diagnostics/daemonContract.ts`; the version 2 `FleetHealth` schema lives in `@shivaedev/work-board/diagnostics/health.ts`. The page shows the publisher's observation time, freshness, running and queued counts and waiting counts for maintainer, orchestrator and automation, concurrency cap, last scheduler pass and last observed provider capacity rejection. Stale snapshots show a Stale badge and dimmed counts. Reset times show relative time and the browser’s local clock; without JavaScript they use the server’s local clock. Communication failures and API-key accounts explain why their data is unavailable. A publisher clock ahead of Board is disclosed; absent scheduler/rejection observations remain unknown or unobserved.
+The view refreshes through `client.api.diagnostics.query()` every 15 seconds while visible. Pause updates holds the displayed state; resume and returning to a visible tab refresh it. The shared `DiagnosticsContract` and `DiagnosticsSnapshot` schemas live in `@shivaedev/work-board/diagnostics/daemonContract.ts`; the version 2 `FleetHealth` schema lives in `@shivaedev/work-board/diagnostics/health.ts`. The page shows the publisher's observation time, freshness, running and queued counts and waiting counts for maintainer, orchestrator and automation, concurrency cap, last scheduler pass and last observed provider capacity rejection. Stale snapshots show a Stale badge and dimmed counts. Reset times show relative time and the browser’s local clock; the Diagnostics view requires JavaScript. Communication failures and API-key accounts explain why their data is unavailable. A publisher clock ahead of Board is disclosed; absent scheduler/rejection observations remain unknown or unobserved.
 
 **Changes** starts remembering only through **Start remembering changes**. After review, **Mark current workspace seen** replaces the baseline; **Clear remembered history** turns it off. Opening a view and receiving live updates never mark it seen. Compare additions, removals, fields and source text against that one browser-local baseline. Unique IDs match moved items; plain-file renames are removed/added paths. The baseline is bounded to 2 MiB and 30 days, with expiry, corruption, incomplete reads and oversized workspaces disclosed. It holds Markdown, not image bytes.
 
@@ -276,7 +276,7 @@ The [handoff source reference](docs/delivery/handoff-examples.md) shows a comple
 
 #### Review the returned result
 
-A file with `kind: result` and a unique ID offers **Review returned result** at `/_board/result?item=<id>`. The page separates the report's authored status from linked work status, lists its criterion-level claims and missing provenance, and keeps the report, limitations and human feedback together. Reading through normal GET or the native page query leaves project files unchanged.
+A file with `kind: result` and a unique ID offers **Review returned result** at `/_board/result?item=<id>`. The page separates the report's authored status from linked work status, lists its criterion-level claims and missing provenance, and keeps the report, limitations and human feedback together. Reading through normal GET or the typed query leaves project files unchanged.
 
 The agent declares an explicit open `attention` request of kind `review` on the report. That request links into the existing response surface. A Markdown question packet can offer request revision or accept this exact report, with room for human rationale. These options are authored text, rather than reserved acceptance states. Preview and submit the response against the exact source you reviewed.
 
@@ -377,7 +377,7 @@ export async function registerReviewedQuestion(url: string, revision: string) {
   const client = browserClient(url);
   try {
     const page = await client.read(
-      client.api.page.query({ url: "/_board/item/work.search/" }),
+      client.api.document.query({ url: "/_board/item/work.search/" }),
     );
     const question = await client.mutate(
       client.responses.registerQuestion.run({
@@ -436,7 +436,7 @@ export async function prepareReviewedHandoff(
 
 Pass `preview.source` and `preview.reviewedRevision` only after reviewing the preview's context. `saved.prompt` is the short instruction to copy into the agent session, and `history` contains records plus paths whose history is unknown. Keep the same ID for a retry of identical direction; choose a new ID for new direction.
 
-Result reading uses the same page query as other workspace views:
+Result reading returns the report, linked criteria and revision-pinned feedback from its typed query:
 
 ```ts
 import { browserClient } from "@shivaedev/work-board/browser/client.ts";
@@ -445,7 +445,7 @@ export async function readReturnedResult(url: string, item: string) {
   const client = browserClient(url);
   try {
     return await client.read(
-      client.api.page.query({
+      client.api.result.query({
         url: `/_board/result?item=${encodeURIComponent(item)}`,
       }),
     );
@@ -463,7 +463,7 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document, projection and page contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; the configured home board, Work board/table and selected detail, Overview and Inbox render typed projection queries in React. Changes, Diagnostics, Start, Respond, Handoff and Result remain in `LegacyMain`. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
+Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and projection contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; the configured home board, Work board/table and selected detail, Overview and Inbox render typed projection queries in React. Changes, Diagnostics, Start, Respond, Handoff and Result also render typed query data in React. Their direct URLs load the shell and require JavaScript. The HTML page RPC is removed. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
 
 #### Headless addon API
 

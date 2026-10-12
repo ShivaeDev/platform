@@ -15,7 +15,7 @@ export interface ServerOptions {
 	readonly document?: (url: string) => Effect.Effect<Document, unknown>;
 	readonly home: string | undefined;
 	readonly index: Effect.Effect<Snapshot, unknown>;
-	readonly page: (url: string) => Effect.Effect<HttpServerResponse.HttpServerResponse, unknown>;
+	readonly writable?: boolean;
 }
 
 export const server = Effect.fn("WorkBoard.server")(function* (options: ServerOptions) {

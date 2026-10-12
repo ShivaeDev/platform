@@ -28,7 +28,7 @@ it.live("reports canceled atom reads as AbortError while keeping the server usab
 	yield* open();
 	const signal = AbortSignal.abort();
 	yield* Effect.promise(() =>
-		expect(client.read(client.api.page.query({ url: "/note.md" }), signal)).rejects.toMatchObject({
+		expect(client.read(client.api.document.query({ url: "/note.md" }), signal)).rejects.toMatchObject({
 			message: "Reading canceled",
 			name: "AbortError",
 		}),
@@ -39,7 +39,7 @@ it.live("reports canceled atom reads as AbortError while keeping the server usab
 it.live("reports canceled direct RPC reads as AbortError while keeping the server usable", function* () {
 	yield* open();
 	yield* Effect.promise(() =>
-		expect(client.run(client.api.page.run({ url: "/note.md" }), AbortSignal.abort())).rejects.toMatchObject({
+		expect(client.run(client.api.document.run({ url: "/note.md" }), AbortSignal.abort())).rejects.toMatchObject({
 			message: "Reading canceled",
 			name: "AbortError",
 		}),
@@ -47,12 +47,12 @@ it.live("reports canceled direct RPC reads as AbortError while keeping the serve
 	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
 });
 
-it.live("preserves the typed page read error when a real source file becomes unreadable", function* () {
+it.live("preserves the typed document read error when a real source file becomes unreadable", function* () {
 	yield* open();
 	chmodSync(join(notes.root, "note.md"), 0o000);
 	try {
 		yield* Effect.promise(() =>
-			expect(client.read(client.api.page.query({ url: "/note.md" }))).rejects.toMatchObject({
+			expect(client.read(client.api.document.query({ url: "/note.md" }))).rejects.toMatchObject({
 				_tag: "InternalServerError",
 			}),
 		);
@@ -66,7 +66,7 @@ it.live("rejects external or malformed native reading URLs with a precise schema
 	const activeClient = client;
 	for (const url of ["https://example.com/note.md", "//example.com/note.md", "/\\["]) {
 		const error: unknown = yield* Effect.promise(() =>
-			activeClient.run(activeClient.api.page.run({ url })).then(
+			activeClient.run(activeClient.api.document.run({ url })).then(
 				() => undefined,
 				(failure: unknown) => failure,
 			),

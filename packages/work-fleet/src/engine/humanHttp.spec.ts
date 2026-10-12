@@ -28,7 +28,11 @@ test("Board HTTP answer resumes the real SQL work through native RPC and restart
 			const { client: board, url } = yield* boardHttp(root);
 			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`));
 			expect(page.status).toBe(200);
-			expect(yield* Effect.tryPromise(() => page.text())).toContain("fleet-action");
+			expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
+			const data = yield* Effect.tryPromise(() =>
+				board.run(board.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
+			);
+			expect(data.request.prompts).toEqual(expect.arrayContaining([expect.objectContaining({ id: "fleet-action" })]));
 			const answer = yield* Effect.tryPromise(() =>
 				board.mutate(
 					board.responses.recordResponse.run({

@@ -27,7 +27,22 @@ export const Baseline = Schema.Struct({
 export type Baseline = typeof Baseline.Type;
 
 export const HistoryInput = Schema.Struct({ action: Schema.Literals(["check", "compare", "observe"]), baseline: Schema.NullOr(Schema.String) });
+const Source = Schema.Struct({ file: Schema.String, source: Schema.String });
+export const HistoryComparison = Schema.Struct({
+	changes: Schema.Array(
+		Schema.Struct({
+			after: Schema.optional(Source),
+			before: Schema.optional(Source),
+			kind: Schema.Literals(["added", "removed", "changed"]),
+			reasons: Schema.Array(Schema.String),
+		}),
+	),
+	issues: Schema.Array(Schema.String),
+	recordedAt: Schema.String,
+});
+export type HistoryComparison = typeof HistoryComparison.Type;
 export const HistoryOutput = Schema.Struct({
+	comparison: Schema.optional(HistoryComparison),
 	discardBaseline: Schema.Boolean,
 	html: Schema.String,
 	reason: Schema.String,

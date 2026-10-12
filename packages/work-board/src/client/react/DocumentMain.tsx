@@ -4,9 +4,9 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
-import { LegacyMain } from "./LegacyMain.tsx";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
+import { RemainingMain } from "./RemainingMain.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import { useDocumentPage } from "./useDocumentPage.ts";
@@ -15,11 +15,9 @@ export function DocumentMain({
 	api,
 	url,
 	onPage,
-	initial,
 }: {
 	readonly api: ShellApi;
 	readonly url: string;
-	readonly initial: string;
 	readonly onPage: (location: MainLocation) => void;
 }) {
 	const query = useQuery(documentQuery(api, url));
@@ -39,7 +37,7 @@ export function DocumentMain({
 		return <ProjectionMain api={api} onPage={onPage} route="board" url={url} />;
 	}
 	if (url === "/" && failure?._tag === "NotFound") {
-		return <LegacyMain api={api} initial={initial} onPage={onPage} url={url} />;
+		return <RemainingMain api={api} onPage={onPage} route="start" url={url} />;
 	}
 	return (
 		<>

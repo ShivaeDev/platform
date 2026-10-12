@@ -27,8 +27,7 @@ function query(action: typeof HistoryInput.Type.action, baseline: string | null 
 effectApp("offers explicit browser retention without storing anything on GET, then compares complete observed sources", function* () {
 	const page = yield* rawGet(board, "/_board/changes");
 	expect(page.status).toBe(200);
-	expect(page.body).toContain('id="history-mark" type="button" disabled');
-	expect(page.body).toContain('aria-current="page">Changes');
+	expect(page.body).toContain("/_board/react.js");
 	expect((yield* query("compare")).html).toContain("No previous snapshot");
 	const observed = yield* query("observe");
 	expect(observed.snapshot).toContain("# First");

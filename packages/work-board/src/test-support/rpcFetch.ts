@@ -12,6 +12,15 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 	if (!call) {
 		return false;
 	}
+	if (call.tag === "work-board.history") {
+		return path === "/_board/changes";
+	}
+	if (call.tag === "work-board.diagnostics") {
+		return path === "/_board/diagnostics";
+	}
+	if (call.tag === "work-board.start") {
+		return path === "/_board/start";
+	}
 	if (call.tag === "work-board.inbox") {
 		return path === "/_board/inbox";
 	}
@@ -19,7 +28,7 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 		return path === "/_board/overview";
 	}
 	return (
-		["work-board.page", "work-board.document", "work-board.board", "work-board.work"].includes(call.tag)
+		["work-board.document", "work-board.board", "work-board.work", "work-board.respond", "work-board.handoff", "work-board.result"].includes(call.tag)
 		&& JSON.stringify(call.payload).includes(JSON.stringify(path))
 	);
 }

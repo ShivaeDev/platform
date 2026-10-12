@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import type { Document } from "#browser/document/schema.ts";
 import { documentSourceId } from "#client/document/layout.ts";
 import { fileUrl } from "#files/url.ts";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 export function useDocumentPage({
 	data,
 	pending,

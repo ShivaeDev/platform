@@ -4,7 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { codexResponse, health, syntheticSources } from "#test/diagnostics.ts";
-import { diagnosticsHtml } from "./html.ts";
+import { renderDiagnostics as diagnosticsHtml, renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -18,7 +18,8 @@ it.live("links Diagnostics from the sidebar and renders all three sources throug
 	board = yield* startBoard(notes.root, "home.md", undefined, false, syntheticSources());
 	const response = yield* rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
-	expect(response.body).toContain('id="diagnostics-open" href="/_board/diagnostics" aria-current="page"');
+	expect(response.body).toContain("/_board/react.js");
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
 	for (const text of [
 		"24% used",
 		"63% used",
@@ -31,12 +32,11 @@ it.live("links Diagnostics from the sidebar and renders all three sources throug
 		"Waiting on orchestrator",
 		"Waiting on automation",
 	]) {
-		expect(response.body).toContain(text);
+		expect(body).toContain(text);
 	}
 	for (const [owner, count] of Object.entries(health.waiting)) {
-		expect(response.body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
+		expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
 	}
-	expect(response.body).toContain('data-view="diagnostics"');
 	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
 	expect((yield* rawGet(board, "/_board/diagnostics", "example.invalid")).status).toBe(403);
 });
@@ -55,10 +55,11 @@ it.live("source failures leave the page usable and escape their causes", functio
 	);
 	const response = yield* rawGet(board, "/_board/diagnostics");
 	expect(response.status).toBe(200);
-	expect(response.body).toContain("Not configured");
-	expect(response.body).toContain("Unavailable");
-	expect(response.body).toContain("&lt;script&gt;bad&lt;/script&gt;");
-	expect(response.body).toContain("3 / 8");
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
+	expect(body).toContain("Not configured");
+	expect(body).toContain("Unavailable");
+	expect(body).toContain("&lt;script&gt;bad&lt;/script&gt;");
+	expect(body).toContain("3 / 8");
 });
 
 it("shows Fleet freshness, unobserved scheduler and rejection, unknown Codex windows and exhausted limits", () => {
@@ -96,7 +97,7 @@ it("marks stale Fleet counts and uses the snapshot observation instead of the Bo
 	const fleet = html.slice(html.indexOf('data-source="fleet"'));
 	expect(fleet).toContain('data-state="stale"');
 	expect(fleet).toContain('class="diagnostics-status">Stale</span>');
-	expect(fleet).toContain(`Observed <time datetime="${new Date(health.observedAt).toISOString()}"`);
+	expect(fleet).toContain(`Observed <time dateTime="${new Date(health.observedAt).toISOString()}"`);
 	expect(fleet).not.toContain(new Date(readAt).toISOString());
 });
 

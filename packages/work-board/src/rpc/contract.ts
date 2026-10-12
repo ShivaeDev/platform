@@ -6,6 +6,8 @@ import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/navigation/schema.ts";
+import { ResultProjection } from "#browser/views/ResultProjection.ts";
+import { DiagnosticsProjection, HandoffProjection, RespondProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
 import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
@@ -44,7 +46,6 @@ const PageUrl = Schema.String.check(
 		}
 	}),
 );
-const Page = Schema.Struct({ html: Schema.String, status: Schema.Number });
 const Entry = Schema.Struct({
 	file: Schema.String,
 	href: Schema.String,
@@ -54,7 +55,6 @@ const Entry = Schema.Struct({
 	text: Schema.String,
 	title: Schema.String,
 });
-const ReadPage = query("page", { payload: { url: PageUrl }, reads: ({ url }) => pageKeys(url), rejections: { InternalServerError }, success: Page });
 const ReadDocument = query("document", {
 	payload: { url: PageUrl },
 	reads: ({ url }) => [...pageKeys(url), index.list],
@@ -79,6 +79,26 @@ const ReadOverview = query("overview", {
 	success: OverviewProjection,
 });
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
+const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
+const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
+const ReadRespond = query("respond", {
+	payload: { url: PageUrl },
+	reads: ({ url }) => [...pageKeys(url), index.list],
+	rejections: documentRejections,
+	success: RespondProjection,
+});
+const ReadHandoff = query("handoff", {
+	payload: { url: PageUrl },
+	reads: () => [workspace.list, index.list],
+	rejections: documentRejections,
+	success: HandoffProjection,
+});
+const ReadResult = query("result", {
+	payload: { url: PageUrl },
+	reads: () => [workspace.list, index.list],
+	rejections: documentRejections,
+	success: ResultProjection,
+});
 const ReadNavigation = query("navigation", {
 	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
 	reads: () => [workspace.list, navigation.list],
@@ -104,7 +124,22 @@ const ReadWatcher = query("watcher", {
 });
 export const Subscribe = stream("subscribe", { reads: () => [workspace.list], rejections: { InternalServerError }, success: LiveHint });
 export const workContract = contract("work-board", {
-	queries: [ReadPage, ReadDocument, ReadBoard, ReadWork, ReadOverview, ReadInbox, ReadNavigation, ReadSearch, ReadHistory, ReadWatcher],
+	queries: [
+		ReadDocument,
+		ReadBoard,
+		ReadWork,
+		ReadOverview,
+		ReadInbox,
+		ReadDiagnostics,
+		ReadStart,
+		ReadRespond,
+		ReadHandoff,
+		ReadResult,
+		ReadNavigation,
+		ReadSearch,
+		ReadHistory,
+		ReadWatcher,
+	],
 	streams: [Subscribe],
 }).middleware(RequestTracing);
 export const workRpcs = workContract.merge(responseContract).merge(handoffContract);

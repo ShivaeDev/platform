@@ -60,9 +60,9 @@ it.live("Board redacts a handler defect into a declared rejection while the serv
 		Effect.sync(() => browserClient(board.url)),
 		(value) => Effect.sync(() => value.registry.dispose()),
 	);
-	yield* Effect.promise(() => client.run(client.api.page.run({ url: "/note.md" })));
+	yield* Effect.promise(() => client.run(client.api.document.run({ url: "/note.md" })));
 	crash = true;
-	const rejection = yield* Effect.promise(() => client.run(client.api.page.run({ url: "/note.md" })).catch((error: unknown) => error));
+	const rejection = yield* Effect.promise(() => client.run(client.api.document.run({ url: "/note.md" })).catch((error: unknown) => error));
 	expect(rejection).toBeInstanceOf(InternalServerError);
 	expect(rejection).toMatchObject({ message: "Internal server error" });
 	if (!(rejection instanceof InternalServerError)) {
@@ -70,23 +70,15 @@ it.live("Board redacts a handler defect into a declared rejection while the serv
 	}
 	expect(rejection.cause).toBeUndefined();
 	expect(JSON.stringify(rejection)).not.toContain("private-value");
-	const documentRejection = yield* Effect.promise(() => client.run(client.api.document.run({ url: "/note.md" })).catch((error: unknown) => error));
-	expect(documentRejection).toBeInstanceOf(InternalServerError);
-	expect(documentRejection).toMatchObject({ message: "Internal server error" });
-	if (!(documentRejection instanceof InternalServerError)) {
-		throw new Error("Expected a declared document rejection");
-	}
-	expect(documentRejection.cause).toBeUndefined();
-	expect(JSON.stringify(documentRejection)).not.toContain("private-value");
 	const failures = spans
-		.filter((span) => ["RpcServer.work-board.page", "RpcServer.work-board.document"].includes(span.name))
+		.filter((span) => ["RpcServer.work-board.document"].includes(span.name))
 		.flatMap((span) => {
 			if (span.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
 				return [];
 			}
 			return span.status.exit.cause.reasons.filter(Cause.isFailReason).map((reason) => reason.error);
 		});
-	expect(failures).toHaveLength(2);
+	expect(failures).toHaveLength(1);
 	for (const traced of failures) {
 		expect(traced).toBeInstanceOf(InternalServerError);
 		if (!(traced instanceof InternalServerError && Cause.isCause(traced.cause))) {

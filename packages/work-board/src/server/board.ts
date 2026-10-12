@@ -2,30 +2,26 @@ import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scop
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
 import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
-import { Diagnostics, DiagnosticsSources } from "#diagnostics/source.ts";
+import { type Diagnostics, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { RenderFailed } from "#render/failed.ts";
 import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
-import { diagnosticsPage } from "#server/diagnostics/page.ts";
 import { readDocument } from "#server/document/read.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { type HomeMissing, homeIn } from "#server/files/home.ts";
-import { handoffPage } from "#server/handoffs/page.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
 import { ASSET_HANDLERS, checkBrowserAssets, MERMAID_ROUTE, type MermaidMissing, mermaidFile, mermaidRoot } from "#server/http/assets.ts";
 import { attachment } from "#server/http/attachment.ts";
-import { changesPage } from "#server/http/changesPage.ts";
 import { identity } from "#server/http/identity.ts";
 import { inbox } from "#server/http/inbox.ts";
 import { overview } from "#server/http/overview.ts";
 import { page } from "#server/http/page.ts";
-import { readPage } from "#server/http/readPage.ts";
-import { start } from "#server/http/start.ts";
+import { respond } from "#server/http/respond.ts";
 import { work } from "#server/http/work.ts";
+import { navHtml } from "#server/page/nav.ts";
+import { shell } from "#server/page/shell.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
-import { responsePage } from "#server/responses/page.ts";
 import type { Responses } from "#server/responses/service.ts";
-import { resultPage } from "#server/results/page.ts";
 import { server } from "#server/rpc/transport.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
 
@@ -67,50 +63,28 @@ function routes(options: BoardOptions) {
 				);
 			}
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
-			const healthPage = diagnosticsPage(
-				Effect.flatMap(Diagnostics, (service) => service.read()).pipe(Effect.provideContext(context)),
-				changes,
-				home,
-				index,
-			);
-			yield* serve("/_board/diagnostics", () => healthPage);
 			const inboxPage = inbox(index, changes, home);
 			yield* serve("/_board/inbox", inboxPage);
-			const startPage = start(changes, home, index);
-			yield* serve("/_board/start", startPage);
 			const workPage = work(index, changes, home);
-			const result = resultPage(index, changes, home);
-			yield* serve("/_board/result", result);
 			const overviewPage = overview(index, changes, home);
-			const historyPage = changesPage(changes, home, index);
 			yield* serve("/_board/work", workPage);
 			yield* serve("/_board/overview", overviewPage);
-			yield* serve("/_board/changes", historyPage);
 			for (const [route, asset] of ASSET_HANDLERS) {
 				yield* serve(route, asset);
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			const replyPage = responsePage(changes, home, options.responses === true, index);
-			yield* serve("/_board/respond", replyPage);
-			const handoff = handoffPage(changes, home, options.responses === true, index);
-			yield* serve("/_board/handoff", handoff);
+			for (const view of ["changes", "diagnostics", "start", "respond", "handoff", "result"] as const) {
+				yield* serve(`/_board/${view}`, () =>
+					Effect.gen(function* () {
+						const snapshot = yield* index;
+						const nav = navHtml(yield* changes.files, "", home, snapshot);
+						return respond(shell(view, nav, "", changes.realRoot, false, undefined, view === "respond" ? "response" : view, snapshot), "text/html");
+					}),
+				);
+			}
 			const pages = page({ home, root: options.root, writable: options.responses === true }, changes, index);
 			const items = identity(index, pages, changes, home);
 			yield* serve("/_board/item/*", items);
-			const reading = readPage<PlatformError.PlatformError, Services>(
-				{
-					"/_board/changes": () => historyPage(),
-					"/_board/diagnostics": () => healthPage,
-					"/_board/handoff": handoff,
-					"/_board/inbox": () => inboxPage(),
-					"/_board/overview": () => overviewPage(),
-					"/_board/respond": replyPage,
-					"/_board/result": result,
-					"/_board/start": () => startPage(),
-					"/_board/work": workPage,
-				},
-				(request) => (new URL(request.url, "http://127.0.0.1").pathname.startsWith("/_board/item/") ? items(request) : pages(request)),
-			);
 			const rpc = yield* server({
 				changes,
 				document: (url) =>
@@ -126,7 +100,7 @@ function routes(options: BoardOptions) {
 					),
 				home,
 				index: Effect.provideContext(index, context),
-				page: (url) => Effect.provideContext(reading(url), context),
+				writable: options.responses === true,
 			}).pipe(Effect.provideContext(context));
 			yield* serve("/_board/rpc", (request) => rpc.pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request)), "POST");
 			yield* serve("/", pages);

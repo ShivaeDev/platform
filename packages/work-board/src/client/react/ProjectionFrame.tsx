@@ -1,13 +1,14 @@
 import { Cause, Option } from "effect";
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import type * as Atom from "effect/unstable/reactivity/Atom";
-import { type ReactNode, useLayoutEffect, useRef } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { fileUrl } from "#files/url.ts";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { projectionChanges, type RenderedProjection } from "./projectionChanges.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
+import type { RemainingRoute } from "./remainingRoute.ts";
 import { shellIds } from "./shellIds.ts";
 
 export function ProjectionFrame<A, E>({
@@ -24,16 +25,22 @@ export function ProjectionFrame<A, E>({
 	readonly onPage: (location: MainLocation) => void;
 	readonly render: (data: A) => ReactNode;
 	readonly source?: (data: A) => string | undefined;
-	readonly route: ProjectionRoute;
+	readonly route: ProjectionRoute | RemainingRoute;
 	readonly url: string;
 }) {
 	const query = useQuery(atom);
 	const fresh = Option.getOrUndefined(query.data);
+	const [retained, setRetained] = useState<{ readonly data: A; readonly url: string }>();
+	useEffect(() => {
+		if (fresh !== undefined) {
+			setRetained({ data: fresh, url });
+		}
+	}, [fresh, url]);
 	const failure = Option.getOrUndefined(Option.flatMap(query.cause, Cause.findErrorOption));
 	const missing = typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "NotFound";
 	const conflict = typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "Conflict";
-	const data = missing || conflict ? undefined : fresh;
-	const main = data === undefined ? { file: "", status: missing ? 404 : 503, view: route === "board" ? "" : route } : location(data);
+	const data = missing || conflict ? undefined : (fresh ?? (retained?.url === url ? retained.data : undefined));
+	const main = data === undefined ? { file: "", status: failureStatus(missing, conflict), view: projectionView(route) } : location(data);
 	const expectedSource = data === undefined ? undefined : source?.(data);
 	const hostRef = useRef<HTMLElement>(null);
 	const renderedRef = useRef<RenderedProjection | undefined>(undefined);
@@ -97,7 +104,7 @@ export function ProjectionFrame<A, E>({
 			>
 				{data === undefined ? (
 					<p className="empty" role="status">
-						{loadingMessage(query.pending, missing)}
+						{loadingMessage(query.pending, missing, failure)}
 					</p>
 				) : (
 					render(data)
@@ -108,9 +115,26 @@ export function ProjectionFrame<A, E>({
 	);
 }
 
-function loadingMessage(pending: boolean, missing: boolean) {
+function loadingMessage(pending: boolean, missing: boolean, failure: unknown) {
 	if (pending) {
 		return "Opening view…";
 	}
+	if (typeof failure === "object" && failure !== null && "message" in failure && typeof failure.message === "string") {
+		return failure.message;
+	}
 	return missing ? "The board source is missing." : "This view could not be opened. Retry the link or reload the page.";
+}
+
+function projectionView(route: ProjectionRoute | RemainingRoute) {
+	if (route === "board") {
+		return "";
+	}
+	return route === "respond" ? "response" : route;
+}
+
+function failureStatus(missing: boolean, conflict: boolean) {
+	if (missing) {
+		return 404;
+	}
+	return conflict ? 409 : 503;
 }

@@ -35,8 +35,8 @@ export function AnswerForm({
 					Local author label <input autoComplete="nickname" maxLength={200} name="author" required />
 				</label>
 				<AnswerPrompts document={data} prompts={prompts} />
-				{prompts.length === 0 && body}
-				<AnswerDetails body={prompts.length > 0 ? body : null} records={records} />
+				{(prompts.length === 0 || data.metadata.kind !== "question") && body}
+				<AnswerDetails body={prompts.length > 0 && data.metadata.kind === "question" ? body : null} records={records} />
 				<pre hidden id={shellIds.responseDraftRecovery} />
 				<p>
 					Submit the whole packet together. Drafts stay in this browser for 30 days after the last edit, with a 2 MiB workspace limit. Saved responses
