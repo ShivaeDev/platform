@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Migrator } from "effect/unstable/sql";
 import { expectTypeOf, it } from "vitest";
@@ -20,4 +20,5 @@ it("host composition preserves application requirements and build failures", () 
 	expectTypeOf<Layer.Services<typeof incomplete>>().toEqualTypeOf<Required>();
 	expectTypeOf<Layer.Services<typeof complete>>().toEqualTypeOf<never>();
 	expectTypeOf<Extract<Layer.Error<typeof complete>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+	expectTypeOf<Extract<Layer.Error<typeof complete>, Config.ConfigError>>().toEqualTypeOf<Config.ConfigError>();
 });
