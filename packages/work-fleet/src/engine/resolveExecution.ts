@@ -19,5 +19,24 @@ export const resolveExecution = Effect.fn("Fleet.resolveExecution")(function* (
 	if (action === "release") {
 		yield* authorizeResolution(state, current.value, action);
 	}
+	const latest = current.value.attempts.at(-1);
+	if (
+		action === "retry"
+		&& latest?.status === "failed"
+		&& latest.role !== "reviewer"
+		&& latest.receipt === undefined
+		&& latest.sessionId !== undefined
+		&& current.value.decision?.code === "session-active-turn-exhausted"
+	) {
+		return {
+			...current,
+			value: {
+				...current.value,
+				attempts: current.value.attempts.map((attempt) =>
+					attempt.operationId === latest.operationId ? { ...attempt, sessionUnusable: true } : attempt,
+				),
+			},
+		};
+	}
 	return current;
 });

@@ -40,7 +40,13 @@ describe("every published Fleet decision has a recovery", () => {
 	it("a missing code row fails the matrix guard", () => {
 		const missing = rows.filter((scenario) => scenario.code !== "reviewed-pr-ready");
 		expect(uncoveredCodes(DecisionCode.literals, missing)).toEqual(["reviewed-pr-ready"]);
-		for (const code of ["session-queue-full", "provider-quota-unavailable", "session-active-turn"]) {
+		for (const code of [
+			"session-queue-full",
+			"provider-quota-unavailable",
+			"session-active-turn",
+			"session-active-turn-exhausted",
+			"pr-conflicting",
+		]) {
 			expect(
 				uncoveredCodes(
 					DecisionCode.literals,

@@ -1,9 +1,10 @@
 import { posix } from "node:path";
-import { importGraph } from "#imports/graph.ts";
+import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { builtinName } from "#imports/resolve.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
+import { bundleInputs } from "./bundleInputs.ts";
 
 const QUERY = /\?.*$/u;
 
@@ -20,6 +21,8 @@ function packageName(specifier: string): string {
 
 interface ManifestDependencies {
 	readonly development: ReadonlySet<string>;
+	readonly privateFiles: ReadonlySet<string>;
+	readonly runtime: ReadonlySet<string>;
 	readonly shipped: ReadonlySet<string>;
 }
 
@@ -34,7 +37,7 @@ function names(manifest: object, field: string): readonly string[] {
 	return Object.keys(value);
 }
 
-async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage): Promise<ManifestDependencies> {
+async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage, graph: ImportGraph): Promise<ManifestDependencies> {
 	const path = posix.join(owner.directory, "package.json");
 	try {
 		const text = await inputs.readText(path);
@@ -46,6 +49,7 @@ async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage)
 			throw new Error("the manifest must be an object");
 		}
 		return {
+			...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
 			development: new Set(names(manifest, "devDependencies")),
 			shipped: new Set(["dependencies", "peerDependencies", "optionalDependencies"].flatMap((field) => names(manifest, field))),
 		};
@@ -67,12 +71,20 @@ function developmentFile(owner: WorkspacePackage, path: string): boolean {
 	return TOOL_FOLDERS.has(folder) || (!local.includes("/") && CONFIG_FILE.test(local));
 }
 
+function developmentImport(policy: ManifestDependencies | undefined, owner: WorkspacePackage, path: string, runtime: ReadonlySet<string>) {
+	if (runtime.has(path)) {
+		return false;
+	}
+	return developmentFile(owner, path) || policy?.privateFiles.has(path);
+}
+
 export const importsManifest = defineRule({
 	check: async (inputs) => {
 		const graph = await importGraph(inputs);
 		const root: WorkspacePackage | undefined = (await inputs.readText("package.json")) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
-		const policies = new Map(await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner)] as const)));
+		const policies = new Map(await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph)] as const)));
+		const runtime = new Set([...policies.values()].flatMap((policy) => [...policy.runtime]));
 		const named = new Map(graph.packages.map((owner) => [owner.name, owner]));
 		const requests = [...graph.edges, ...graph.unresolved.filter((request) => request.missing === undefined)];
 		return requests.flatMap((request) => {
@@ -84,7 +96,7 @@ export const importsManifest = defineRule({
 				return [];
 			}
 			const policy = policies.get(owner);
-			const development = developmentFile(owner, request.from);
+			const development = developmentImport(policy, owner, request.from, runtime);
 			if (policy?.shipped.has(target.name) || (development && policy?.development.has(target.name))) {
 				return [];
 			}
@@ -92,12 +104,13 @@ export const importsManifest = defineRule({
 				{
 					file: request.from,
 					line: request.line,
-					message: `Imports workspace package "${target.name}" without declaring it in ${posix.join(owner.directory, "package.json")}. Add it to dependencies, peerDependencies or optionalDependencies, or remove the import.${development ? " Tooling and test code may also use devDependencies." : " devDependencies are only available to tests, test support and tooling."}`,
+					message: `Imports workspace package "${target.name}" without declaring it in ${posix.join(owner.directory, "package.json")}. Add it to dependencies, peerDependencies or optionalDependencies, or remove the import.${development ? " Tooling, test code and export-blocked bundle inputs may also use devDependencies." : " devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code."}`,
 					subject: target.name,
 				},
 			];
 		});
 	},
-	description: "Workspace imports follow the importing package's manifest; devDependencies are available only to tests, test support and tooling.",
+	description:
+		"Workspace imports follow the importing package's manifest; devDependencies are available only outside runtime code, including export-blocked bundle inputs.",
 	id: "imports/manifest",
 });

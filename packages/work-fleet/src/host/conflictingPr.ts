@@ -6,7 +6,7 @@ export class ConflictingPr extends FleetFailure {
 	readonly mainRevision: string;
 
 	constructor(mainRevision: string) {
-		super({ message: CONFLICTING_PR_REASON, reason: "stale" });
+		super({ code: "pr-conflicting", message: CONFLICTING_PR_REASON, reason: "stale" });
 		this.mainRevision = mainRevision;
 	}
 }

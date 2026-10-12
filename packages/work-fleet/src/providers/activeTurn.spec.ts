@@ -83,7 +83,7 @@ it.live("repeated busy races stop after three resubmissions with a definite reje
 				const provider = yield* SessionTransport;
 				const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
 				expect(error.reason).toBe("rejected");
-				expect(error.code).toBe("session-active-turn");
+				expect(error.code).toBe("session-active-turn-exhausted");
 				expect(error.message).toContain("active-turn resubmission limit reached");
 			}).pipe(Effect.provide(codexConfiguration(fixture.endpoint)));
 			expect(methods.filter((method) => method === "turn/start")).toHaveLength(4);

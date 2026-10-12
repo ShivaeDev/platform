@@ -39,7 +39,11 @@ export function startCodexTurn(rpc: CodexRequest, waitUntilIdle: ReturnType<type
 				return yield* error;
 			}
 			if (resubmissions >= 3) {
-				return yield* new SessionFailure({ ...error, message: `${error.message}; active-turn resubmission limit reached` });
+				return yield* new SessionFailure({
+					...error,
+					code: "session-active-turn-exhausted",
+					message: `${error.message}; active-turn resubmission limit reached`,
+				});
 			}
 			if (!(yield* waitUntilIdle(sessionId, deadline))) {
 				return yield* new SessionFailure({ ...error, message: `${error.message}; active-turn wait deadline reached` });

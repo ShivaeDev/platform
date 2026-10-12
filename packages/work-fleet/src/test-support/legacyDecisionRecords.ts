@@ -9,6 +9,7 @@ const history = [
 	{ decision: { code: "foreign-pr", published, reason: "Reworded saved decision" } },
 	{ decision: { reason: "Question text", worker: { sessionId: "thread", turnId: "turn" } } },
 	{ decision: { reason: "PR conflicts with main; inspect the conflict repair before retrying or releasing this work" } },
+	{ decision: { reason: "Codex rejected the protocol request: turn already active for thread; active-turn resubmission limit reached" } },
 ];
 export const legacyDecisionRecord = {
 	decision: { published, reason: "Reviewed PR is ready to merge" },
@@ -23,6 +24,7 @@ export const codedDecisionRecord = {
 		{ decision: { ...history[0]?.decision, code: "report-too-large" } },
 		history[1],
 		{ decision: { ...history[2]?.decision, code: "worker-question" } },
-		{ decision: { ...history[3]?.decision, code: "fleet-stale" } },
+		{ decision: { ...history[3]?.decision, code: "pr-conflicting" } },
+		{ decision: { ...history[4]?.decision, code: "session-active-turn-exhausted" } },
 	],
 };

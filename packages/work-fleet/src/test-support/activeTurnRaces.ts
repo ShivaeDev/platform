@@ -3,7 +3,7 @@ import { type CodexRequest, codexTurns } from "#providers/codexTurns.ts";
 import { startCodexTurn } from "#providers/startCodexTurn.ts";
 import { SessionFailure } from "#session/schema.ts";
 
-export function activeTurnRaces(sessionId: string) {
+export function activeTurnRaces(sessionId: string, exhaust = true) {
 	let reads = 0;
 	const rpc: CodexRequest = (method) =>
 		Effect.suspend(() => {
@@ -13,5 +13,5 @@ export function activeTurnRaces(sessionId: string) {
 			reads += 1;
 			return Effect.succeed({ data: [{ id: "steered-turn", items: [], status: reads % 2 === 1 ? "inProgress" : "completed" }], nextCursor: null });
 		});
-	return startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)(sessionId, { threadId: sessionId });
+	return startCodexTurn(rpc, exhaust ? codexTurns(rpc).waitUntilIdle : () => Effect.succeed(false))(sessionId, { threadId: sessionId });
 }

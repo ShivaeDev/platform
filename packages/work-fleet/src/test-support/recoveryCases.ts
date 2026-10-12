@@ -23,7 +23,8 @@ import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
 export function recoveryCases() {
 	return [
-		recoveryActiveTurnCase(),
+		recoveryActiveTurnCase("session-active-turn"),
+		recoveryActiveTurnCase("session-active-turn-exhausted"),
 		...recoveryFallbackCases(),
 		...recoveryScopeCases(),
 		...recoveryAdmissionCases(),

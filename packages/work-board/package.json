@@ -35,7 +35,39 @@
 			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./browser/react/*": null,
+		"./browser/entry.ts": null,
+		"./browser/fieldFeedback.ts": null,
+		"./browser/reconcile/*": null,
+		"./browser/legacyRuntime.ts": null,
+		"./browser/session.ts": null,
+		"./browser/handoffs/*": null,
+		"./browser/responses/*": null,
+		"./browser/handoffs/schema.ts": {
+			"types": "./dist/browser/handoffs/schema.d.ts",
+			"source": "./src/browser/handoffs/schema.ts",
+			"import": "./dist/browser/handoffs/schema.js",
+			"default": "./dist/browser/handoffs/schema.js"
+		},
+		"./browser/responses/schema.ts": {
+			"types": "./dist/browser/responses/schema.d.ts",
+			"source": "./src/browser/responses/schema.ts",
+			"import": "./dist/browser/responses/schema.js",
+			"default": "./dist/browser/responses/schema.js"
+		},
+		"./browser/responses/Prompt.ts": {
+			"types": "./dist/browser/responses/Prompt.d.ts",
+			"source": "./src/browser/responses/Prompt.ts",
+			"import": "./dist/browser/responses/Prompt.js",
+			"default": "./dist/browser/responses/Prompt.js"
+		},
+		"./browser/responses/answerBody.ts": {
+			"types": "./dist/browser/responses/answerBody.d.ts",
+			"source": "./src/browser/responses/answerBody.ts",
+			"import": "./dist/browser/responses/answerBody.js",
+			"default": "./dist/browser/responses/answerBody.js"
+		}
 	},
 	"bin": {
 		"work-board": "./dist/cli.js"
@@ -62,16 +94,9 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@effect/atom-react": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
-		"@shivaedev/effect-form": "workspace:*",
-		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
-		"@tanstack/react-router": "catalog:",
-		"class-variance-authority": "catalog:",
-		"clsx": "catalog:",
-		"lucide-react": "catalog:",
 		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",
 		"react": "catalog:",
@@ -82,17 +107,20 @@
 		"remark-gfm": "catalog:",
 		"remark-parse": "catalog:",
 		"shiki": "catalog:",
-		"tailwind-merge": "catalog:",
 		"unified": "catalog:",
 		"unist-util-visit": "catalog:",
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
+		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
+		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
+		"@tanstack/react-router": "catalog:",
 		"@types/hast": "catalog:",
 		"@types/mdast": "catalog:",
 		"@types/node": "catalog:",
@@ -100,9 +128,13 @@
 		"@types/react-dom": "catalog:",
 		"@typescript/native": "catalog:",
 		"@vitejs/plugin-react": "catalog:",
+		"class-variance-authority": "catalog:",
+		"clsx": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
+		"lucide-react": "catalog:",
+		"tailwind-merge": "catalog:",
 		"tailwindcss": "catalog:",
 		"typescript": "catalog:",
 		"vite": "catalog:",

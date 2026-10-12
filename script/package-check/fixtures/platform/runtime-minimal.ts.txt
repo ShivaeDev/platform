@@ -1,6 +1,7 @@
 import { InternalServerError, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts"
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts"
 import { nodeSubscriptionSignal } from "@shivaedev/platform/node-http/subscription-signal.ts"
+import { Identity } from "@shivaedev/platform/rpc/identity.ts"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts"
 import { localRpcGuard, loopbackOnly, sameOrigin } from "@shivaedev/platform/rpc-server/local.ts"
 import { Cause, Context, Effect, Layer, Option } from "effect"
@@ -9,11 +10,18 @@ import { RpcSerialization } from "effect/unstable/rpc"
 
 class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}
 
-const runtime = makePlatformRuntime(Layer.succeed(Greeting, "application"))
+const runtime = makePlatformRuntime(Layer.merge(
+	Layer.succeed(Greeting, "application"),
+	Layer.succeed(Identity, { id: "application" }),
+))
 const application: string = await runtime.runPromise(Greeting)
 const request: string = await runtime.runWithServices(
 	Context.make(Greeting, "request"),
 	() => runtime.runPromise(Greeting),
+)
+const identity = await runtime.runWithServices(
+	Context.make(Identity, { id: "consumer" }),
+	() => runtime.runPromise(Identity),
 )
 await runtime.dispose()
 
@@ -31,7 +39,7 @@ const guarded = await Effect.runPromise(localRpcGuard(Effect.succeed(HttpServerR
 ))
 const page = await Effect.runPromise(loopbackOnly(() => Effect.succeed(HttpServerResponse.empty()))(incoming))
 
-if (application !== "application" || request !== "request" || !subscription.signal.aborted || guarded.status !== 204 || page.status !== 204 || !sameOrigin(incoming)) {
+if (application !== "application" || request !== "request" || identity.id !== "consumer" || !subscription.signal.aborted || guarded.status !== 204 || page.status !== 204 || !sameOrigin(incoming)) {
 	throw new Error("The packed effect-only entries misbehaved")
 }
 
