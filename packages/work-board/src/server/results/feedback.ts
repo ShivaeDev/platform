@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { fileUrl } from "#files/url.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import type { RenderFailed } from "#render/failed.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { readResponses } from "#server/responses/read.ts";

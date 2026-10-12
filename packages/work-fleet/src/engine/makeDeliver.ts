@@ -2,7 +2,7 @@ import { Effect, Result } from "effect";
 import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
-import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -42,9 +42,6 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 	if (denied !== undefined) {
 		return denied;
 	}
-	if (briefChanged(record, work)) {
-		return yield* continueChangedBrief(state)(stored, work);
-	}
 	if (result.kind === "no-change") {
 		return record.stage === "delivering"
 			? yield* state.save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
@@ -54,7 +51,7 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 });
 
 function deniedDelivery(state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
-	return authorizeBrief(work).pipe(
+	return authorizeBriefContext(stored.value, work).pipe(
 		Effect.catch((error) =>
 			stored.value.decision === undefined
 				? state.decision(

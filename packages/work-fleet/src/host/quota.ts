@@ -1,9 +1,11 @@
 import { Effect, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { codexRateLimits } from "@shivaedev/work-board/diagnostics/codexRateLimits.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import type { FleetConfiguration } from "#policy.ts";
+
+const { codexRateLimits } = diagnosticsApi;
 
 type Quota = FleetConfiguration["quota"];
 

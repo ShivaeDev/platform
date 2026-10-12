@@ -34,6 +34,11 @@ describe("every published Fleet decision has a recovery", () => {
 		expect(uncovered([...decisionSites(root), ...added])).toEqual(['engine/new.ts: "new-code"']);
 		expect(uncovered(sourceDecisionSites("engine/new.ts", 'save(stored, {stage: "needs-human"});'))).toEqual(['engine/new.ts: stage: "needs-human"']);
 	});
+	it("a wrapped decision creation call remains in the inventory", () => {
+		expect(sourceDecisionSites("engine/new.ts", 'state\n .decision(stored, "new-code", "New reason", "Inspect");')).toEqual([
+			'engine/new.ts: "new-code"',
+		]);
+	});
 	it("every code in the Schema union has a matrix row", () => {
 		expect(uncoveredCodes(DecisionCode.literals)).toEqual([]);
 	});

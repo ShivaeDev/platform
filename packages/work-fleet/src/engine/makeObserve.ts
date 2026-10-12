@@ -2,23 +2,26 @@ import { Effect, Option } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
-import type { FleetRecord } from "#model.ts";
+import { executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeObserve(state: EngineState) {
-	const { sessions, load, save, decision, board, reportInspection } = state;
+	const { sessions, load, save } = state;
 	return Effect.fn("Fleet.makeObserve")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
-		if (stored.value.stage !== "executing") {
+		const paused = pausedByBrief(stored.value);
+		if (!observable(stored.value, paused)) {
 			return stored;
 		}
-		const latest = stored.value.attempts.at(-1);
+		const latest = paused
+			? stored.value.attempts.findLast((attempt) => ["submitting", "accepted", "running"].includes(attempt.status))
+			: stored.value.attempts.at(-1);
 		if (latest === undefined) {
 			return yield* Effect.fail(new BadRequest({ message: "Execution lacks an intent" }));
 		}
-		if (state.launching.has(latest.operationId)) {
+		if (state.launching.has(latest.operationId) || (paused && latest.receipt === undefined)) {
 			return stored;
 		}
 		const receipt = latest.receipt ?? (yield* reconcileAttempt(state)(stored, latest));
@@ -32,9 +35,27 @@ export function makeObserve(state: EngineState) {
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
 		}
+		return yield* finishObservation(state)(stored, observation, paused);
+	});
+}
+
+function pausedByBrief(record: FleetRecord) {
+	return record.stage === "needs-human" && record.decision?.code === "fleet-stale" && record.decision.reason === "Board context changed";
+}
+
+function observable(record: FleetRecord, paused: boolean) {
+	return record.stage === "executing" || (paused && executing(record));
+}
+
+function finishObservation(state: EngineState) {
+	const { board, decision, reportInspection, save } = state;
+	return Effect.fn("Fleet.finishObservation")(function* (stored: Versioned<FleetRecord>, observation: SessionObservation, paused: boolean) {
 		if (stored.value.deliverable === "report") {
 			const work = yield* board.get(stored.value.workId);
 			yield* Option.match(reportInspection, { onNone: () => Effect.void, onSome: (inspection) => inspection.check(work) });
+		}
+		if (paused) {
+			return stored;
 		}
 		if (observation.execution !== "completed") {
 			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
@@ -46,12 +67,11 @@ export function makeObserve(state: EngineState) {
 				"worker-question",
 				question.question,
 				"Record an answer to continue this worker thread",
-				receipt,
+				observation.receipt,
 				question.attentionOwner,
 			);
 		}
-		stored = yield* save(stored, { ...stored.value, stage: "adopting" });
-		return stored;
+		return yield* save(stored, { ...stored.value, stage: "adopting" });
 	});
 }
 

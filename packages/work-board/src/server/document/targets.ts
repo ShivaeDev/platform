@@ -9,7 +9,7 @@ import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { referencesOf } from "#server/metadata/referencesOf.ts";
 
-export function documentTargets(document: MetadataDocument, model: MetadataModel) {
+export function documentTargets(document: MetadataDocument, model: MetadataModel, additional: readonly string[] = []) {
 	const urls = new Set(document.links);
 	const tree: Root = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(document.parsed.body);
 	visit(tree, (node) => {
@@ -20,7 +20,7 @@ export function documentTargets(document: MetadataDocument, model: MetadataModel
 	return {
 		links: Object.fromEntries([...urls].map((url) => [url, resolveDocumentLink(url, document.file)])),
 		references: Object.fromEntries(
-			referencesOf(document).flatMap(({ target }) => {
+			[...referencesOf(document).map(({ target }) => target), ...additional].flatMap((target) => {
 				const href = referenceTarget(target, model);
 				return href ? [[target, href]] : [];
 			}),

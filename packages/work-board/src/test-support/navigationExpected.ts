@@ -54,6 +54,7 @@ export function navigationExpected() {
 		path: "packages",
 	};
 	return {
+		home: { file: "packages/README.md" },
 		inboxCount: 1,
 		records: {
 			active: false,

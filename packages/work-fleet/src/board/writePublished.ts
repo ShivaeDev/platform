@@ -1,8 +1,10 @@
 import { constants } from "node:fs";
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { Effect } from "effect";
-import { directoryPath, validateDirectory } from "@shivaedev/work-board/responses/publicationDirectory.ts";
+import { publication } from "@shivaedev/work-board/integration/publication.ts";
 import { BoardFailure } from "#policy.ts";
+
+const { directoryPath, validateDirectory } = publication;
 
 async function unchanged(folder: string, name: "status.md" | "health.json", content: string, owns: (source: string) => boolean): Promise<boolean> {
 	const previous = await open(`${folder}/${name}`, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK).catch((cause: unknown) => {

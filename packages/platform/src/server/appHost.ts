@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Context, type Duration, Effect, Layer, type Redacted } from "effect";
+import { Config, Context, type Duration, Effect, Layer, Option, type Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/unstable/http";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { type Rpc, type RpcGroup, RpcSerialization, RpcServer } from "effect/unstable/rpc";
@@ -67,6 +67,8 @@ export interface AppHostOptions<
 	readonly assets?: string;
 	readonly config?: AppDatabaseOptions<TMigrations>["config"] & {
 		readonly port?: number;
+		readonly host?: string;
+		readonly trustedProxy?: string;
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
@@ -104,10 +106,11 @@ export function appHost<
 	);
 	const routes = HttpRouter.use((router) =>
 		Effect.gen(function* () {
+			const trustedProxy = options.config?.trustedProxy ?? Option.getOrUndefined(yield* Config.string("TRUSTED_PROXY").pipe(Config.option));
 			const wire = yield* RpcSerialization.RpcSerialization;
 			const handler = yield* RpcServer.toHttpEffect(options.group);
 			yield* router.add("POST", "/rpc", (request) =>
-				localRpcGuard(handler).pipe(
+				localRpcGuard(handler, trustedProxy).pipe(
 					Effect.provideService(HttpServerRequest.HttpServerRequest, request),
 					Effect.provideService(RpcSerialization.RpcSerialization, wire),
 				),
@@ -119,7 +122,8 @@ export function appHost<
 	const server = Layer.unwrap(
 		Effect.gen(function* () {
 			const port = options.config?.port ?? (yield* Config.int("PORT").pipe(Config.withDefault(3000)));
-			return NodeHttpServer.layer(createServer, { host: "127.0.0.1", port });
+			const host = options.config?.host ?? (yield* Config.string("HOST").pipe(Config.withDefault("127.0.0.1")));
+			return NodeHttpServer.layer(createServer, { host, port });
 		}),
 	);
 	return HttpRouter.serve(Layer.merge(routes, assets), { disableLogger: true }).pipe(

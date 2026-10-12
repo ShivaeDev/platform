@@ -34,6 +34,10 @@ github_checks:
 
 component_management:
   individual_components:
+    - component_id: starter
+      name: "@shivaedev/starter"
+      paths:
+        - "examples/starter/src/**"
     - component_id: effect-changes
       name: "@shivaedev/effect-changes"
       paths:

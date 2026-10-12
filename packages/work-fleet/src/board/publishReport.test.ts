@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
@@ -23,7 +24,7 @@ it.effect("publishes a report into the current snapshot without rescanning and r
 				const published = yield* board.report(work, input);
 				const result = yield* board.get(published.itemId);
 				expect(result.context.endsWith(input.output)).toBe(true);
-				expect(result.revision).toBe(published.revision);
+				expect(revisionOf(result.context)).toBe(published.revision);
 				expect(result.sourcePath).toBe(join(fixture.root, published.sourcePath));
 				expect(yield* board.report(work, input)).toEqual(published);
 				return published;
@@ -31,7 +32,7 @@ it.effect("publishes a report into the current snapshot without rescanning and r
 		);
 		expect(fixture.scans()).toBe(1);
 		expect([...fixture.reads.values()]).toEqual([1]);
-		expect((yield* withBoardReadPass(board.get(report.itemId))).revision).toBe(report.revision);
+		expect(revisionOf((yield* withBoardReadPass(board.get(report.itemId))).context)).toBe(report.revision);
 		expect(fixture.scans()).toBe(3);
 	}).pipe(Effect.provide(fixture.board));
 });
@@ -57,3 +58,26 @@ it.effect("checks complete UTF-8 bytes including receipt overhead before publish
 		}),
 	).pipe(Effect.provide(fixture.board));
 });
+
+for (const wholeFileRevision of [false, true]) {
+	it.effect(
+		`${wholeFileRevision ? "saved whole-file" : "authored brief"} report publication survives bookkeeping edits and rejects changed briefs and forged identities`,
+		function* () {
+			const fixture = yield* boardReads(1);
+			yield* Effect.gen(function* () {
+				const board = yield* BoardGateway;
+				const work = yield* board.get("item.0");
+				const original = { ...work, revision: wholeFileRevision ? revisionOf(work.context) : work.revision };
+				yield* fixture.write("0.md", original.context.replace("id: item.0", "id: item.0\nstatus: done\nnext_action: Work completed."));
+				const report = yield* board.report(original, observation("Complete findings."));
+				expect(report.workRevision).toBe(original.revision);
+				expect(yield* board.report(original, observation("Complete findings."))).toEqual(report);
+				expect(revisionOf((yield* board.get(report.itemId)).context)).toBe(report.revision);
+				const forged = { ...original, context: original.context.replace("id: item.0", "id: other") };
+				expect((yield* Effect.result(board.report(forged, observation("Forged report.", "forged"))))._tag).toBe("Failure");
+				yield* fixture.write("0.md", `${original.context}\nChanged scope.\n`);
+				expect((yield* Effect.result(board.report(original, observation("Stale report.", "stale"))))._tag).toBe("Failure");
+			}).pipe(Effect.provide(fixture.board));
+		},
+	);
+}

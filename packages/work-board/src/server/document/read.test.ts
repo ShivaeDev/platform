@@ -48,6 +48,7 @@ it.live("returns Schema source, link targets, metadata and exact-context respons
 		"metadata",
 		"modified",
 		"questionActions",
+		"reading",
 		"references",
 		"requests",
 		"source",

@@ -1,14 +1,16 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
-import { watchChanges } from "@shivaedev/work-board/files/changes.ts";
-import { ResponseConfig, Responses } from "@shivaedev/work-board/responses/service.ts";
-import { searchSnapshot } from "@shivaedev/work-board/search/snapshot.ts";
+import { board } from "@shivaedev/work-board/integration/board.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { executing } from "#model.ts";
+
+const { searchSnapshot, watchChanges } = board;
+const { ResponseConfig, Responses } = responses;
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
 	return releaseItems(host, workIds).pipe(Effect.provide(hostLayer(host, parts)));

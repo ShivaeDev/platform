@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"customConditions": ["source"],
+		"jsx": "react-jsx",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"types": ["node", "react", "react-dom"]
+	},
+	"extends": "@shivaedev/quality/tsconfig/base.json",
+	"include": ["src", "vite.config.ts", "vitest.config.ts"]
+}

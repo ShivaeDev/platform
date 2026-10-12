@@ -1,21 +1,10 @@
 import { LineCounter, parseDocument } from "yaml";
-import type { Metadata } from "#metadata/schema.ts";
+import type { Diagnostic as PublicDiagnostic, ParsedMetadata as PublicParsedMetadata } from "#integration/metadata.ts";
 import { metadataFields } from "./fields.ts";
 import { metadataLocations } from "./locations.ts";
 
-export interface Diagnostic {
-	readonly field?: string;
-	readonly line: number;
-	readonly message: string;
-}
-export interface ParsedMetadata {
-	readonly body: string;
-	readonly bodyLine: number;
-	readonly diagnostics: readonly Diagnostic[];
-	readonly fields: Metadata;
-	readonly lines: Readonly<Record<string, number>>;
-	readonly raw?: string;
-}
+export type Diagnostic = PublicDiagnostic;
+export type ParsedMetadata = PublicParsedMetadata;
 
 export function metadataParse(source: string): ParsedMetadata {
 	const plain: ParsedMetadata = { body: source, bodyLine: 1, diagnostics: [], fields: {}, lines: {} };

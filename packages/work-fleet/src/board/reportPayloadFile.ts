@@ -3,9 +3,11 @@ import { constants } from "node:fs";
 import { type FileHandle, link, mkdir, open, realpath, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { directoryPath, validateDirectory } from "@shivaedev/work-board/responses/publicationDirectory.ts";
+import { publication } from "@shivaedev/work-board/integration/publication.ts";
 import { BoardFailure } from "#policy.ts";
 import { REPORT_LIMITS } from "#reportLimits.ts";
+
+const { directoryPath, validateDirectory } = publication;
 
 const MAX_BYTES = REPORT_LIMITS.attachmentBytes * 2 + 512 * 1024;
 function hasCode(cause: unknown, code: string) {

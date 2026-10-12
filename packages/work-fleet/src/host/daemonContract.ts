@@ -3,11 +3,13 @@ import { Rpc } from "effect/unstable/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
-import { DAEMON_RPC_PATH, DiagnosticsContract } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { FleetError, fleetRejections } from "#errors.ts";
 import { State } from "#host/waitOutcome.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
+
+const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
 
 const clientContract = contract("daemon", {
 	commands: [

@@ -1,27 +1,28 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { test as it } from "node:test";
+import { discoveryWorkspace } from "#ci/test-support/discoveryWorkspace.ts";
 import { testPackages } from "./testPackages.ts";
 
 it("workspace discovery includes new test packages and refuses to omit a test package without a config", () => {
-	const root = mkdtempSync(join(tmpdir(), "platform-discovery-"));
+	const workspace = discoveryWorkspace();
+	const { root } = workspace;
 	try {
-		for (const name of ["new-package", "type-only"]) {
-			mkdirSync(join(root, "packages", name), { recursive: true });
-			writeFileSync(
-				join(root, "packages", name, "package.json"),
-				JSON.stringify({ name, scripts: name === "type-only" ? {} : { test: "vitest run" } }),
-			);
-		}
+		workspace.package("new-package", { test: "vitest run" });
+		workspace.package("type-only", {});
 		assert.throws(() => testPackages(root), /new-package: add a Vitest config/u);
-		writeFileSync(join(root, "packages", "new-package", "vitest.config.ts"), "export default {};");
+		workspace.configured("packages", "new-package");
 		assert.deepEqual(
 			testPackages(root).map((pkg) => pkg.name),
 			["new-package"],
 		);
+		workspace.example("starter");
+		assert.throws(() => testPackages(root), /starter: add a Vitest config/u);
+		workspace.configured("examples", "starter");
+		assert.deepEqual(
+			testPackages(root).map((pkg) => pkg.name),
+			["starter", "new-package"],
+		);
 	} finally {
-		rmSync(root, { force: true, recursive: true });
+		workspace.close();
 	}
 });

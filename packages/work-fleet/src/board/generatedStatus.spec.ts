@@ -3,7 +3,7 @@ import { expect } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import * as metadata from "@shivaedev/work-board/metadata/parse.ts";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { approvedWorkIds } from "#host/admission.ts";
