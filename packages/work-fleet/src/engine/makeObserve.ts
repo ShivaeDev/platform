@@ -2,6 +2,7 @@ import { Effect, Option } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
+import { retryTerminal } from "#engine/retryTerminal.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -71,6 +72,9 @@ function finishObservation(state: EngineState) {
 			return stored;
 		}
 		if (observation.execution !== "completed") {
+			if (yield* retryTerminal(state, stored.value, observation)) {
+				return yield* state.load(stored.value.workId);
+			}
 			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
 		}
 		const question = reportedQuestion(observation.output);

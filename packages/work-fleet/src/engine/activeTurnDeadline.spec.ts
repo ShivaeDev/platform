@@ -9,9 +9,10 @@ import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("test", "isolated");
 
-test("a hung active turn backs off, reaches a durable human decision at five minutes and releases capacity", function* () {
+test("a hung active turn waits for five minutes then queues a fresh thread and releases capacity", function* () {
+	let now = 100;
 	const provider = yield* activeTurn("Another operation owns this thread.");
-	yield* withEngine({ concurrency: 1, decorateTransport: provider.decorateTransport, denyDelivery: true }, (fixture) =>
+	yield* withEngine({ concurrency: 1, decorateTransport: provider.decorateTransport, denyDelivery: true, now: () => now }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
 			yield* prepareWork("two");
@@ -29,16 +30,16 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			const blocked = yield* Effect.gen(function* () {
 				while (true) {
 					const current = (yield* fleet.get("one")).value;
-					if (current.stage === "needs-human" && current.decisionPublished) {
+					if (current.launchRetry !== undefined) {
 						return current;
 					}
 					yield* Effect.yieldNow;
 				}
 			});
-			expect(blocked.attentionOwner).toBe("orchestrator");
-			expect(blocked.decision?.published).toBeDefined();
-			expect(blocked.decision?.code).toBe("session-active-turn");
-			expect(blocked.decision?.reason).toContain("active-turn wait deadline reached");
+			expect(blocked.attentionOwner).toBe("automation");
+			expect(blocked.stage).toBe("repairing");
+			expect(blocked.decision).toBeUndefined();
+			expect(blocked.launchRetry?.retryAt).toBe(30_100);
 			expect(blocked.attempts).toHaveLength(1);
 			expect(blocked.attempts[0]?.status).toBe("failed");
 			expect(blocked.attempts[0]?.receipt).toBeUndefined();
@@ -53,7 +54,13 @@ test("a hung active turn backs off, reaches a durable human decision at five min
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;
-					expect((yield* restarted.get("one")).value.decision).toEqual(blocked.decision);
+					expect((yield* restarted.get("one")).value.launchRetry).toEqual(blocked.launchRetry);
+					now = 30_100;
+					const resumed = (yield* restarted.reconcile("one")).value;
+					expect(resumed.attempts.at(-1)?.receipt?.sessionId).not.toBe(blocked.history?.at(-1)?.attempts[0]?.receipt?.sessionId);
+					expect(resumed.stage).toBe("executing");
+					finishWorkers(fixture);
+					yield* restarted.reconcile("one");
 					const next = (yield* restarted.dispatch("two")).value;
 					expect(executing(next)).toBe(true);
 					expect(next.attempts[0]?.receipt).toBeDefined();

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { capacityRetry } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -8,6 +9,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
 import type { FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
+import { transientFailure } from "#session/transientFailure.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -25,6 +27,15 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		let current = yield* load(workId);
 		if (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage)) {
 			return current;
+		}
+		if (error instanceof SessionFailure && transientFailure(error)) {
+			const attempt = current.value.attempts.at(-1);
+			if (
+				current.value.launchRetry !== undefined
+				|| (attempt !== undefined && (yield* capacityRetry(state, current.value, attempt.operationId, error)))
+			) {
+				return yield* load(workId);
+			}
 		}
 		if (capacityFailure(error)) {
 			return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
