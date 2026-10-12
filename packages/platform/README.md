@@ -37,7 +37,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 ### Host the application
 
-`appHost` is the server entry point for a PostgreSQL app. Supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
+`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
@@ -65,7 +65,13 @@ Supply `routes` with an optional native `Layer<never, never, HttpRouter>` to reg
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
-RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. Contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. With a session policy, contracts declare `Authenticated`, `MaybeAuthenticated` and `RequestTracing` as needed; the host supplies their implementations. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+
+For local tools, use `sessions: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The guard requires a loopback peer and Host, absent or same-origin Origin, and NDJSON content type. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
+
+Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` retains its required migrations for existing typed callers. A service that needs SQL still requires a SQL Layer. Supply `appDatabase` through `services` when the application owns database composition, as Fleet's daemon does with its migration loader and namespace ledger. Real HTTP tests cover the custom route, session-free loopback guard and database-free startup; Fleet's PostgreSQL daemon tests cover the adopted composition.
+
+Set `config.maxConnections` on `appDatabase` or a migrated `appHost` to bound the pool. A daemon with long-lived RPC streams can use `config.disablePreemptiveShutdown: true` to let scope closure interrupt those streams before closing the listener; omitting it keeps Node's native graceful-shutdown default. Fleet's daemon tests cover one bounded pool and scoped provider and listener cleanup, including follower reconnection after shutdown.
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. NDJSON and the application's session Origin policy still apply. Real forwarding-proxy tests cover trusted and untrusted peers, configuration overrides and typed refusals; they do not establish any hosting provider's proxy configuration. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
 
@@ -359,7 +365,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
-| `appHost.ts` | `appHost({ group, handlers, services, migrations, sessions, assets?, routes?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
+| `appHost.ts` | `appHost({ group, handlers, services, migrations?, sessions, rpcPath?, assets?, routes?, config? })`, `appDatabase({ migrations, config? })`, `AppChanges`, `AppHostOptions`, `AppHttpHostOptions`, `AppDatabaseOptions`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
 | `errors/rejected-field.ts` | `rejectedField(unknown): Option<RejectedField>`; `RejectedField` is `{ field: string, message: string }`. |
 | `rpc/identity.ts` | `RequestId`: string service. `Identity`: `IdentityValue`, `{ id: string }`. `OptionalIdentity`: `Option<IdentityValue>`. |

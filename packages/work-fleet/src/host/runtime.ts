@@ -1,8 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { appDatabase } from "@shivaedev/platform/appHost.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
@@ -18,8 +17,10 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
+import { FleetRecord } from "#model.ts";
 import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
+import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
 function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
 	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code }));
@@ -74,9 +75,10 @@ export function hostPolicy(host: FleetHost) {
 }
 
 export function hostSql(host: FleetHost) {
-	return PgClient.layer({ applicationName: "work-fleet", maxConnections: host.maxConnections, url: Redacted.make(host.databaseUrl) }).pipe(
-		Layer.provideMerge(Reactivity.layer),
-	);
+	return appDatabase({
+		config: { applicationName: "work-fleet", databaseUrl: Redacted.make(host.databaseUrl), maxConnections: host.maxConnections },
+		migrations: { loader: fleetMigrations(host.namespace, FleetRecord), table: `${host.namespace}_migrations` },
+	});
 }
 
 export function fleetHostLayer<TProvider, TMain>(

@@ -28,7 +28,6 @@ const PostgresFleetRepository = defineService({
 			submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			...(namespace === undefined ? {} : { namespace }),
 		});
-		yield* store.initialize();
 		return store;
 	}),
 	methods: ({ initialize: _initialize, ...methods }) => methods,
