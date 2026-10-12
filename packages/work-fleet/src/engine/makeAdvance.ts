@@ -22,6 +22,13 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 			stored = yield* makeDeliver(state)(stored);
 		}
 		stored = yield* makeHuman(state)(stored);
+		if (
+			stored.value.stage === "executing"
+			&& stored.value.attempts.at(-1)?.receipt === undefined
+			&& briefChanged(stored.value, yield* state.board.get(workId))
+		) {
+			return yield* stopChangedBrief(state)(stored);
+		}
 		stored = yield* makeObserve(state)(stored);
 		if (!["completed", "released"].includes(stored.value.stage) && briefChanged(stored.value, yield* state.board.get(workId))) {
 			return yield* stopChangedBrief(state)(stored);
