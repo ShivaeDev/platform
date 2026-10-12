@@ -11,7 +11,8 @@
 		"dev": "node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "vitest run",
-		"typecheck": "tsc6 --noEmit"
+		"typecheck": "tsc6 --noEmit",
+		"worker": "node --conditions=source --env-file-if-exists=.env.local src/server/worker.ts"
 	},
 	"dependencies": {
 		"@effect/atom-react": "catalog:",
@@ -19,6 +20,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-pg-boss": "workspace:*",
 		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",

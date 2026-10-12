@@ -193,6 +193,10 @@ const sharedJobsLayer = (databaseUrl: string) =>
 
 Overlapping Layer builds with the same `clientCacheKey` share one started client. The later build replaces the registered worker, and the final scope release stops the shared client. A later build after that release starts a new client. Without a key, each build creates its own client. The application chooses whether to pass a key.
 
+### Separate producers and workers
+
+Pass a queue definition directly in `Jobs.layer({ jobs: [SendEmail] })` to create its queue and dead-letter queue without starting a consumer. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services.
+
 ### API
 
 Import the module that defines the name; the package has no root entry.
@@ -214,7 +218,7 @@ The application's service has two operations:
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus `jobs`, optional `clientCacheKey`, optional `clientFactory`, optional `onError` and optional `stop`. The factory type accepts constructor options and returns `PgBossClient`; `onError` has the type `(error: Error) => Effect.Effect<unknown, never, R>`; `stop` uses pg-boss `StopOptions`.
 
-`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services, the payload Schemas' `DecodingServices` and the callback's services. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
+`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer's requirement type includes the workers' services, the workers' payload Schemas' `DecodingServices` and the callback's services. `enqueue` includes the payload Schema's `EncodingServices` in its requirement type.
 
 `JobContext` has `id`, `name`, `signal`, `expireInSeconds` and `heartbeatSeconds`. `QueueHealth` has `name`, `activeCount`, `deadLetteredCount`, `failedCount`, `queuedCount` and `readyCount`. `JobsHealth` has `jobs` and the corresponding `activeTotal`, `deadLetteredTotal`, `failedTotal`, `queuedTotal` and `readyTotal` fields.
 

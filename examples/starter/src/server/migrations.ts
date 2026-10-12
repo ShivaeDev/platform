@@ -18,6 +18,11 @@ export function migrations(auth: StarterAuth) {
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql`alter table starter_notes add column "ownerId" text`;
 			}),
+			"004_note_word_count": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`alter table starter_notes add column "wordCount" integer`;
+				yield* sql`update starter_notes set "wordCount" = cardinality(regexp_split_to_array(trim(title), '[[:space:]]+'))`;
+			}),
 		}),
 		lockTimeout: "5 seconds" as const,
 		table: "starter_migrations",

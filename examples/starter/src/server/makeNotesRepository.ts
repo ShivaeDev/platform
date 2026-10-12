@@ -7,6 +7,7 @@ class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	ownerId: Schema.NullOr(Schema.String),
 	title: Note.fields.title,
+	wordCount: Note.fields.wordCount,
 }) {}
 
 export const makeNotesRepository = makeRepository(StoredNote, {
