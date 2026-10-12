@@ -34,6 +34,11 @@
 			"matchPackageNames": ["effect", "@effect/**"]
 		},
 		{
+			"allowedVersions": "<=4.0.0-rc.112",
+			"description": "Effect stays on 4.0.0-rc.112. Later releases move the unstable modules, rename Config, CLI and Schema APIs, and replace @effect/sql-pg's pg runtime with a native client that binds and decodes PostgreSQL values differently, so moving past it is a planned migration, not a routine update.",
+			"matchPackageNames": ["effect", "@effect/**"]
+		},
+		{
 			"description": "Prisma Classic packages must share one version.",
 			"groupName": "prisma",
 			"groupSlug": "prisma",
