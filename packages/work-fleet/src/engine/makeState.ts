@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
+import type { DecisionCode } from "#DecisionCode.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
@@ -54,6 +55,7 @@ export const makeState = Effect.gen(function* () {
 	}
 	const decision = Effect.fn("Fleet.decision")(function* (
 		stored: Versioned<FleetRecord>,
+		code: DecisionCode,
 		reason: string,
 		recommendation: string,
 		worker?: SessionReceipt,
@@ -61,6 +63,7 @@ export const makeState = Effect.gen(function* () {
 	) {
 		const value: Decision = {
 			attentionOwner,
+			code,
 			id: `${stored.value.workId}.${stored.version}`,
 			links: stored.value.result?.kind === "change" ? [stored.value.result.pr] : [],
 			reason,

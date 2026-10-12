@@ -2,6 +2,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
 import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import { githubRead } from "#host/githubRead.ts";
 import type { ChangeResult } from "#policy.ts";
@@ -31,7 +32,7 @@ function readPullRequest(cwd: string, pr: string) {
 export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetError> = readPullRequest) {
 	return Effect.fn("FleetHost.githubDelivery")(function* (result: typeof ChangeResult.Type) {
 		if (result.pr.match(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/[1-9]\d*$/u) === null) {
-			return yield* failure("Delivery requires the adopted GitHub PR URL");
+			return yield* withFailureContext(new BadRequest({ message: "Delivery requires the adopted GitHub PR URL" }), { code: "delivery-pr-required" });
 		}
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
 			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),

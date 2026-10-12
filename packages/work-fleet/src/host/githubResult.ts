@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { BadRequest, Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import { FilePages, type GithubRead, githubJson, PullRequest, Repository } from "#host/github.ts";
@@ -35,7 +36,7 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (host
 	const name = parts[2];
 	const number = Number(parts[4]);
 	if (!Number.isSafeInteger(number) || `${owner}/${name}`.toLowerCase() !== repository.nameWithOwner.toLowerCase()) {
-		return yield* new BadRequest({ message: "Reported PR must belong to the host repository" });
+		return yield* withFailureContext(new BadRequest({ message: "Reported PR must belong to the host repository" }), { code: "foreign-pr" });
 	}
 	const endpoint = `repos/${repository.nameWithOwner}/pulls/${number}`;
 	const before = yield* githubJson(PullRequest, read, ["api", endpoint]);
@@ -63,10 +64,13 @@ function validatePullRequest(pr: typeof PullRequest.Type, head: string, number: 
 	return pr.head.sha === head
 		? Effect.void
 		: Effect.fail(
-				new Conflict({
-					message: pr.merged
-						? "Merged PR head differs from the reported head; inspect delivery before accepting this work"
-						: "PR head moved after the worker report",
-				}),
+				withFailureContext(
+					new Conflict({
+						message: pr.merged
+							? "Merged PR head differs from the reported head; inspect delivery before accepting this work"
+							: "PR head moved after the worker report",
+					}),
+					{ code: pr.merged ? "worker-report-merged-head-mismatch" : "worker-report-head-moved" },
+				),
 			);
 }

@@ -76,9 +76,7 @@ function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnTy
 		});
 		yield* client("fleet.dispatch", { workId: "one" });
 		finishWorker(yield* started(client, "worker"));
-		yield* until(() =>
-			client("fleet.reconcile", { workId: "one" }).pipe(Effect.map((record) => record.decision?.reason === "Reviewed PR is ready to merge")),
-		);
+		yield* until(() => client("fleet.reconcile", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
 		return yield* client("fleet.get", { workId: "one" });
 	});
 	function answer(record: FleetRecord, body: string, author = "maintainer") {

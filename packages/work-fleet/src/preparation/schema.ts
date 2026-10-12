@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { DecisionCode } from "#DecisionCode.ts";
 
 const Text = Schema.String.check(Schema.isMinLength(1));
 export const RepositoryPath = Text.check(
@@ -40,12 +41,15 @@ export const MainObservation = Schema.Struct({
 });
 export type MainObservation = typeof MainObservation.Type;
 
+const ReprepareCode = DecisionCode.pick(["not-ancestor", "incomplete-observation", "incomplete-context", "relevant-change"]);
+
 export const PreparationAssessment = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Compatible"), preparation: Preparation }),
 	Schema.Struct({
 		_tag: Schema.Literal("Reprepare"),
+		code: Schema.optional(ReprepareCode),
 		paths: Schema.Array(RepositoryPath),
-		reason: Schema.Literals(["not-ancestor", "incomplete-observation", "incomplete-context", "relevant-change"]),
+		reason: ReprepareCode,
 	}),
 ]);
 export type PreparationAssessment = typeof PreparationAssessment.Type;

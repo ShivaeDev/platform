@@ -8,6 +8,7 @@ import { reportFiles } from "#board/reportFiles.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportLinks } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { isFleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
@@ -53,7 +54,9 @@ const ReportBoard = defineService({
 		function inspect(work: BoardWork) {
 			return check(work).pipe(
 				Effect.mapError(() => new ServiceUnavailable({ message: "Report publication could not be checked on GitHub" })),
-				Effect.flatMap((published) => (published ? Effect.fail(new BadRequest({ message: PUBLISHED_REPORT })) : Effect.void)),
+				Effect.flatMap((published) =>
+					published ? Effect.fail(withFailureContext(new BadRequest({ message: PUBLISHED_REPORT }), { code: "report-published" })) : Effect.void,
+				),
 			);
 		}
 		const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {

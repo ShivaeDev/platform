@@ -37,11 +37,18 @@ export function makeObserve(state: EngineState) {
 			yield* Option.match(reportInspection, { onNone: () => Effect.void, onSome: (inspection) => inspection.check(work) });
 		}
 		if (observation.execution !== "completed") {
-			return yield* decision(stored, terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
+			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
 		}
 		const question = reportedQuestion(observation.output);
 		if (question !== undefined) {
-			return yield* decision(stored, question.question, "Record an answer to continue this worker thread", receipt, question.attentionOwner);
+			return yield* decision(
+				stored,
+				"worker-question",
+				question.question,
+				"Record an answer to continue this worker thread",
+				receipt,
+				question.attentionOwner,
+			);
 		}
 		stored = yield* save(stored, { ...stored.value, stage: "adopting" });
 		return stored;

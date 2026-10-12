@@ -22,6 +22,7 @@ export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work:
 	if (!briefApproved(work)) {
 		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved or is done or superseded" }), {
 			attentionOwner: "maintainer",
+			code: "approval-required",
 		});
 	}
 });

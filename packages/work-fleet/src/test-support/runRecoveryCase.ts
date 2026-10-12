@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import type { DecisionCode } from "#DecisionCode.ts";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog, executing, type FleetRecord } from "#model.ts";
@@ -31,13 +32,9 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	if (decision?.published === undefined) {
 		return yield* Effect.die("Decision must be durably published");
 	}
-	if (typeof scenario.reason === "string") {
-		expect(decision.reason).toBe(scenario.reason);
-	} else {
-		expect(decision.reason).toMatch(scenario.reason);
-	}
+	expect(decision.code).toBe(scenario.code);
 	const document = readFileSync(join(context.root, decision.published.sourcePath), "utf8");
-	const explanation = decision.worker === undefined ? releaseOnly(decision.reason) : undefined;
+	const explanation = decision.worker === undefined ? releaseOnly(decision.code) : undefined;
 	if (decision.worker === undefined) {
 		expect(document).toContain(':::option{id="release"}');
 		expect(document.includes(':::option{id="retry"}')).toBe(explanation === undefined);
@@ -75,7 +72,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 			return updated;
 		}),
 	);
-	expect(recovered.value.decision?.reason).not.toBe(decision.reason);
+	expect(recovered.value.decision?.code).not.toBe(decision.code);
 	if (action === "release") {
 		expect(recovered.value.stage).toBe("released");
 		expect(context.fixture.settings).toHaveLength(submissionCalls);
@@ -97,8 +94,8 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	expect(repeated.value.attempts).toEqual(recovered.value.attempts);
 	expect(repeated.value.responses).toEqual(recovered.value.responses);
 });
-export const runRecoveryCase = Effect.fn("Test.runRecoveryCase")(function* (name: string, action: "retry" | "release") {
-	const scenario = recoveryCases().find((candidate) => candidate.name === name);
+export const runRecoveryCase = Effect.fn("Test.runRecoveryCase")(function* (code: DecisionCode, row: number, action: "retry" | "release") {
+	const scenario = recoveryCases().filter((candidate) => candidate.code === code)[row];
 	if (scenario === undefined) {
 		return yield* Effect.die("Missing matrix row");
 	}

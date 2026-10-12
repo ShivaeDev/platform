@@ -1,8 +1,10 @@
 import type { AttentionOwner } from "#attention.ts";
+import type { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 
 interface FailureContext {
 	readonly attentionOwner?: AttentionOwner | undefined;
+	readonly code?: DecisionCode | undefined;
 	readonly head?: string;
 	readonly mainRevision?: string;
 }

@@ -50,7 +50,8 @@ describe("worker guidance through PostgreSQL", () => {
 		return withEngine(
 			{
 				now: () => now,
-				submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+				submissionFailure: () =>
+					reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 				workerGuidance: GUIDANCE,
 			},
 			(fixture) =>

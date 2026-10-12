@@ -15,7 +15,8 @@ postgresTests("test")("a queue-full answer retries the exact response as a worke
 	return withFleetBoard(
 		{
 			now: () => now,
-			submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+			submissionFailure: () =>
+				reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 		},
 		(fixture, root) =>
 			Effect.gen(function* () {
@@ -52,7 +53,8 @@ postgresTests("test")("a queued answer survives an approved brief edit with its 
 		{
 			launch,
 			now: () => now,
-			submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+			submissionFailure: () =>
+				reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 		},
 		(fixture, root, source) =>
 			Effect.gen(function* () {

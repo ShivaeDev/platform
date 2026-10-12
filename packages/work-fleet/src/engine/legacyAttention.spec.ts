@@ -33,6 +33,7 @@ for (const receipt of ["lost", "known", "recovered"] as const) {
 					decision: {
 						...original,
 						attentionOwner: receipt === "recovered" ? "maintainer" : undefined,
+						code: undefined,
 						published: receipt === "lost" ? undefined : original.published,
 					},
 					decisionPublished: receipt !== "lost",
@@ -46,6 +47,7 @@ for (const receipt of ["lost", "known", "recovered"] as const) {
 						expect(migrated.attentionOwner).toBe("maintainer");
 						expect(decision?.attentionOwner).toBe("maintainer");
 						expect(decision?.id).toBe(original.id);
+						expect(decision?.code).toBe("worker-question");
 						expect(migrated.supersededDecisions).toBeUndefined();
 						expect(readFileSync(join(root, publication.sourcePath), "utf8")).toBe(source);
 						if (decision === undefined) {
@@ -80,7 +82,7 @@ for (const migrate of [false, true]) {
 				yield* fixture.replaceRecord({
 					...stopped,
 					attentionOwner: migrate ? undefined : "orchestrator",
-					decision: { ...original, attentionOwner: undefined },
+					decision: { ...original, attentionOwner: undefined, code: undefined },
 				});
 				if (migrate) {
 					yield* fixture.upgradeAttention;

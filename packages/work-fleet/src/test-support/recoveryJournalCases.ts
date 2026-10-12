@@ -6,17 +6,13 @@ import { finishRecoveryWorker } from "#test/recoverySteps.ts";
 
 export function recoveryJournalCases(): readonly RecoveryCase[] {
 	return [
-		journalCase("missing submission intent", "Submission intent was not persisted", "missing"),
-		journalCase(
-			"conflicting persisted receipt",
-			"Independent review or submission acknowledgement conflicts with the persisted exact receipt",
-			"conflict",
-		),
-		journalCase("receipt persistence conflict", "Receipt persistence failed; reconcile the existing operation", "write"),
-		journalCase("ambiguous submission naming intent", "Submission intent is missing or ambiguous", "name"),
+		journalCase("missing submission intent", "missing"),
+		journalCase("conflicting persisted receipt", "conflict"),
+		journalCase("receipt persistence conflict", "write"),
+		journalCase("ambiguous submission naming intent", "name"),
 	];
 }
-function journalCase(name: string, reason: string, fault: "missing" | "conflict" | "write" | "name"): RecoveryCase {
+function journalCase(name: string, fault: "missing" | "conflict" | "write" | "name"): RecoveryCase {
 	let context: RecoveryContext | undefined;
 	let restored = false;
 	let conflict = false;
@@ -45,6 +41,7 @@ function journalCase(name: string, reason: string, fault: "missing" | "conflict"
 		);
 	});
 	return {
+		code: "session-persistence",
 		enter: Effect.fnUntraced(function* (ctx) {
 			context = ctx;
 			yield* finishRecoveryWorker(ctx);
@@ -67,11 +64,11 @@ function journalCase(name: string, reason: string, fault: "missing" | "conflict"
 			expect(after.stage).toBe("reviewing");
 			expect(after.attempts.at(-1)?.role).toBe("reviewer");
 		},
-		reason,
+
 		restore: () =>
 			Effect.sync(() => {
 				restored = true;
 			}),
-		sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+		sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 	};
 }

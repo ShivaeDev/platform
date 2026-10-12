@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
@@ -17,7 +18,7 @@ export function refreshReviewResult(state: EngineState) {
 		}
 		const worker = reviewWorker(stored.value);
 		if (worker?.receipt === undefined) {
-			return yield* new BadRequest({ message: "Review lacks the adopted worker receipt" });
+			return yield* withFailureContext(new BadRequest({ message: "Review lacks the adopted worker receipt" }), { code: "worker-receipt-missing" });
 		}
 		const current = yield* integrations.result(work, {
 			execution: "completed",
@@ -30,7 +31,12 @@ export function refreshReviewResult(state: EngineState) {
 			return yield* new Conflict({ message: "Current PR result does not match the observed delivery head" });
 		}
 		if (!sameResultIdentity(current, result)) {
-			return yield* decision(stored, "Result identity changed during review", "Inspect ownership before adopting a replacement result");
+			return yield* decision(
+				stored,
+				"result-identity-changed",
+				"Result identity changed during review",
+				"Inspect ownership before adopting a replacement result",
+			);
 		}
 		if (current.head === result.head) {
 			return stored;

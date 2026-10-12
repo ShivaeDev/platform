@@ -4,6 +4,7 @@ import { Clock, Effect, Layer, Redacted } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { DecisionCode } from "#DecisionCode.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
@@ -20,8 +21,8 @@ import { hostReportBoard } from "#host/reportBoard.ts";
 import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 
-function unconfigured(message: string) {
-	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation" }));
+function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
+	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code }));
 }
 
 export function hostIntegrations(host: FleetHost) {
@@ -32,7 +33,7 @@ export function hostIntegrations(host: FleetHost) {
 			FleetIntegrations.of({
 				checks: (_work, result) =>
 					result.kind === "no-change"
-						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session")
+						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
 						: githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
 				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,

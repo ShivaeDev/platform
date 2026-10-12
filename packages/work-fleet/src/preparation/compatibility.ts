@@ -29,17 +29,17 @@ function relevantPath(preparation: Preparation, observation: MainObservation, pa
 export const assessPreparation = Effect.fn("Preparation.assessPreparation")(
 	(preparation: Preparation, observation: MainObservation): Effect.Effect<PreparationAssessment> => {
 		if (observation.fromRevision !== preparation.baseRevision || !observation.complete || observation.observedAt < preparation.observedAt) {
-			return Effect.succeed({ _tag: "Reprepare", paths: observation.changedPaths, reason: "incomplete-observation" });
+			return Effect.succeed({ _tag: "Reprepare", code: "incomplete-observation", paths: observation.changedPaths, reason: "incomplete-observation" });
 		}
 		if (!observation.ancestor) {
-			return Effect.succeed({ _tag: "Reprepare", paths: observation.changedPaths, reason: "not-ancestor" });
+			return Effect.succeed({ _tag: "Reprepare", code: "not-ancestor", paths: observation.changedPaths, reason: "not-ancestor" });
 		}
 		if (observation.revision !== preparation.baseRevision && !preparation.contextComplete) {
-			return Effect.succeed({ _tag: "Reprepare", paths: observation.changedPaths, reason: "incomplete-context" });
+			return Effect.succeed({ _tag: "Reprepare", code: "incomplete-context", paths: observation.changedPaths, reason: "incomplete-context" });
 		}
 		const paths = observation.changedPaths.filter((path) => relevantPath(preparation, observation, path));
 		if (paths.length > 0) {
-			return Effect.succeed({ _tag: "Reprepare", paths, reason: "relevant-change" });
+			return Effect.succeed({ _tag: "Reprepare", code: "relevant-change", paths, reason: "relevant-change" });
 		}
 		return Effect.succeed({
 			_tag: "Compatible",

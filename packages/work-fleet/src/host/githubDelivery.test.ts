@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 
@@ -31,7 +32,7 @@ it.effect("carries the conflicting main revision only for an open PR at the adop
 	const conflict = { ...open, baseRefOid: "main-revision", mergeable: "CONFLICTING" };
 	const error = yield* githubDelivery("/repository", () => Effect.succeed(conflict))(result).pipe(Effect.flip);
 	expect(error).toBeInstanceOf(Conflict);
-	expect(failureContext(error)).toMatchObject({ mainRevision: "main-revision" });
+	expect(failureContext(error)).toMatchObject({ code: "pr-conflicting", mainRevision: "main-revision" });
 	const moved = yield* githubDelivery("/repository", () => Effect.succeed({ ...conflict, headRefOid: "new-head" }))(result).pipe(Effect.flip);
 	expect(moved).toBeInstanceOf(Conflict);
 	expect(yield* githubDelivery("/repository", () => Effect.succeed({ ...conflict, ...merged }))(result)).toMatchObject({
@@ -60,7 +61,7 @@ it.effect("carries the observed head only when the adopted PR has consistent del
 	const headRefOid = "current-head";
 	const moved = yield* githubDelivery("/repository", () => Effect.succeed({ ...open, headRefOid }))(result).pipe(Effect.flip);
 	expect(moved).toBeInstanceOf(Conflict);
-	expect(failureContext(moved)).toEqual({ head: headRefOid });
+	expect(failureContext(moved)).toEqual({ code: "pr-head-moved", head: headRefOid });
 	const inconsistent = yield* githubDelivery("/repository", () => Effect.succeed({ ...open, headRefOid, mergedAt: merged.mergedAt }))(result).pipe(
 		Effect.flip,
 	);
@@ -88,7 +89,10 @@ it.effect("preserves read failures and rejects unsupported URLs before invoking 
 		return Effect.fail(new ServiceUnavailable({ message: "Read failed" }));
 	}
 	expect(yield* githubDelivery("/repository", read)(result).pipe(Effect.flip)).toMatchObject({ message: "Read failed" });
-	expect(yield* githubDelivery("/repository", read)({ ...result, pr: "--repo=example/repository" }).pipe(Effect.flip)).toMatchObject({
+	const invalid = yield* githubDelivery("/repository", read)({ ...result, pr: "--repo=example/repository" }).pipe(Effect.flip);
+	expect(failureCode(invalid)).toBe("delivery-pr-required");
+	expect(invalid).toMatchObject({
+		_tag: "BadRequest",
 		message: "Delivery requires the adopted GitHub PR URL",
 	});
 });

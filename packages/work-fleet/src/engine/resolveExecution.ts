@@ -26,7 +26,7 @@ export const resolveExecution = Effect.fn("Fleet.resolveExecution")(function* (
 		&& latest.role !== "reviewer"
 		&& latest.receipt === undefined
 		&& latest.sessionId !== undefined
-		&& /\bturn already active for thread\b.*\bactive-turn resubmission limit reached\b/iu.test(current.value.decision?.reason ?? "")
+		&& current.value.decision?.code === "session-active-turn-exhausted"
 	) {
 		return {
 			...current,
