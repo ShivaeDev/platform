@@ -11,12 +11,11 @@ function unavailable(cause: unknown) {
 	);
 }
 export function betterAuthSessions<TSession extends SessionShape>(getSession: GetSession<TSession>): SessionProvider<TSession> {
-	return {
-		get: Effect.fn("PlatformRpc.get")(function* (headers: Headers.Headers) {
-			const session = yield* Effect.tryPromise(() => getSession(new globalThis.Headers(headers))).pipe(
-				Effect.catch((error) => unavailable(error.cause)),
-			);
-			return Option.fromNullishOr(session);
-		}),
-	};
+	const betterAuthSession = Effect.fn("PlatformRpc.betterAuthSession")(function* (headers: Headers.Headers) {
+		const session = yield* Effect.tryPromise(() => getSession(new globalThis.Headers(headers))).pipe(
+			Effect.catch((error) => unavailable(error.cause)),
+		);
+		return Option.fromNullishOr(session);
+	});
+	return { get: betterAuthSession };
 }
