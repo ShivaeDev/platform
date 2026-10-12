@@ -11,7 +11,7 @@
 		"dev": "node --conditions=source --env-file-if-exists=.env.local src/dev.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc6 --noEmit"
 	},
 	"dependencies": {
 		"@effect/atom-react": "catalog:",
