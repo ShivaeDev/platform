@@ -1,10 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Stream } from "effect";
+import { invalidateOnCommit } from "@shivaedev/effect-sql/transact.ts";
 import { daemonClient } from "#host/daemonClient.ts";
-import { type HostFixture, storeState } from "#test/fleetHost.ts";
+import type { HostFixture } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { type snapshotReads, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
+import { storeState } from "#test/storeState.ts";
 
 const test = postgresTests("live");
 
@@ -12,16 +14,18 @@ type SnapshotReads = Effect.Success<ReturnType<typeof snapshotReads>>;
 
 function transientStory(command: "wait" | "watch") {
 	return Effect.fn("DaemonFollowTest.transientStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {
+		const client = yield* daemonClient(port);
 		yield* reads.breakReads;
 		return yield* withFollower(fixture.configFile, command, ["one"], { port }, (follower) =>
 			Effect.gen(function* () {
 				yield* untilReads(reads, 11);
 				yield* reads.restoreReads;
-				yield* untilReads(reads, 13);
+				const recovered = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
+				expect(recovered).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.breakReads;
 				const before = reads.count();
+				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
 				yield* untilReads(reads, before + 11);
-				const client = yield* daemonClient(port);
 				const cached = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
 				expect(cached).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.restoreReads;
@@ -40,6 +44,7 @@ const persistentStory = Effect.fn("DaemonFollowTest.persistentStory")(function* 
 				yield* Effect.sleep("1 second");
 				const before = reads.failedCount();
 				yield* reads.breakReads;
+				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
 				const results = yield* Effect.promise(() => Promise.all([waiter.done, watcher.done]));
 				for (const result of results) {
 					expect(result.code).toBe(1);
@@ -67,7 +72,8 @@ const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: Ho
 	yield* Deferred.await(ready);
 	yield* Fiber.interrupt(first);
 	const remaining = reads.count();
-	yield* untilReads(reads, remaining + 2);
+	yield* Effect.sleep("1200 millis");
+	expect(reads.count()).toBe(remaining);
 	yield* Fiber.interrupt(second);
 	yield* Effect.sleep("1 second");
 	const stopped = reads.count();
@@ -89,7 +95,7 @@ for (const command of ["wait", "watch"] as const) {
 
 test("a persistent PostgreSQL failure ends every wait and watch after 20 shared attempts", () => withSnapshotDaemon(persistentStory), 30_000);
 test(
-	"the shared poller stays idle without followers, stops after the last one and restarts with fresh state",
+	"the shared commit subscription never polls, stops after the last follower and restarts with fresh state",
 	() => withSnapshotDaemon(idleStory),
 	30_000,
 );

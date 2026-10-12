@@ -2,8 +2,9 @@ import { vi } from "@effect/vitest";
 import { Effect } from "effect";
 import pg from "pg";
 import type { FleetHost } from "#host/config.ts";
-import { type HostFixture, storeState, withHost } from "#test/fleetHost.ts";
+import { type HostFixture, withHost } from "#test/fleetHost.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
+import { storeState } from "#test/storeState.ts";
 
 export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (host: FleetHost) {
 	const query = pg.Client.prototype.query;

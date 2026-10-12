@@ -5,6 +5,7 @@ import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
+import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, ForeignReservationRow, recordColumns, recordInput, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
@@ -20,6 +21,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 >(schema: TSchema, options: FleetStoreOptions<TSchema["Type"]>) {
 	const sql = yield* SqlClient.SqlClient;
 	const namespace = options.namespace ?? "work_fleet";
+	const commit = yield* makeFleetTransaction;
 	const records = `${namespace}_records`;
 	const foreign = `${namespace}_foreign_reservations`;
 	const columns = recordColumns(schema);
@@ -80,37 +82,36 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 		if (record.workId !== workId) {
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}
-		return yield* sql
-			.withTransaction(
-				Effect.gen(function* () {
-					yield* lock;
-					const entry = yield* loadEntry(workId);
-					const previous = entry?.stored;
-					const actualVersion = previous?.version ?? null;
-					if (actualVersion !== expectedVersion) {
-						return yield* Effect.fail(new StorageConflict({ actualVersion, expectedVersion, workId }));
-					}
-					const reads = admissionReads(options, record, previous?.value, limits);
-					const entries = reads.records ? yield* list() : [];
-					const external = reads.foreign ? yield* foreignReservations() : [];
-					yield* checkRecordAdmission(options, record, previous?.value, entries, external, limits);
-					return yield* persist(workId, expectedVersion, record, encoded, entry);
-				}),
-			)
-			.pipe(
-				Effect.catchTag("OptimisticConcurrencyError", () =>
-					Effect.flatMap(load(workId), (actual) =>
-						Effect.fail(new StorageConflict({ actualVersion: actual?.version ?? null, expectedVersion, workId })),
-					),
+		return yield* commit(
+			records,
+			Effect.gen(function* () {
+				yield* lock;
+				const entry = yield* loadEntry(workId);
+				const previous = entry?.stored;
+				const actualVersion = previous?.version ?? null;
+				if (actualVersion !== expectedVersion) {
+					return yield* Effect.fail(new StorageConflict({ actualVersion, expectedVersion, workId }));
+				}
+				const reads = admissionReads(options, record, previous?.value, limits);
+				const entries = reads.records ? yield* list() : [];
+				const external = reads.foreign ? yield* foreignReservations() : [];
+				yield* checkRecordAdmission(options, record, previous?.value, entries, external, limits);
+				return yield* persist(workId, expectedVersion, record, encoded, entry);
+			}),
+		).pipe(
+			Effect.catchTag("OptimisticConcurrencyError", () =>
+				Effect.flatMap(load(workId), (actual) =>
+					Effect.fail(new StorageConflict({ actualVersion: actual?.version ?? null, expectedVersion, workId })),
 				),
-			);
+			),
+		);
 	});
 	return {
 		compareAndSet: (workId: string, expectedVersion: number, record: TSchema["Type"], limits?: AdmissionLimits) =>
 			write(workId, expectedVersion, record, limits),
 		foreignReservations,
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
-		initialize: () => migrateFleet(namespace, schema),
+		initialize: () => commit(records, migrateFleet(namespace, schema)),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,
@@ -119,14 +120,16 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				.findMany({ select: ["work_id", "version", "attempts", "history"] })
 				.pipe(Effect.flatMap((entries) => operationEntries(entries, operationId))),
 		releaseForeign: (owner: string) =>
-			sql.withTransaction(
+			commit(
+				foreign,
 				Effect.gen(function* () {
 					yield* lock;
 					yield* reservations.delete(owner);
 				}),
 			),
 		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
-			sql.withTransaction(
+			commit(
+				foreign,
 				Effect.gen(function* () {
 					yield* lock;
 					const existing = yield* reservations.findMany({ where: { owner } });

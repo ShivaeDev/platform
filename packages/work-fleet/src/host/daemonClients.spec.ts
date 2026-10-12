@@ -1,13 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/unstable/http";
+import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { admitApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
 import { cliProcess } from "#test/fleetCli.ts";
-import { type HostFixture, storeState, task, withHost } from "#test/fleetHost.ts";
+import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { readDaemonLayer, withReadDaemon } from "#test/readDaemon.ts";
+import { storeState } from "#test/storeState.ts";
 
 const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fixture: HostFixture, port: number) {
 	yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
@@ -40,7 +42,9 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	yield* withFollower(fixture.configFile, "watch", [], { interval: 0.1, port: address.port }, (follower) =>
 		Effect.gen(function* () {
 			yield* Effect.promise(() => snapshot.promise);
-			yield* storeState(fixture.host, "a", { stage: "released" });
+			yield* storeState(fixture.host, "a", { stage: "released" }).pipe(
+				Effect.provideService(Reactivity.Reactivity, Context.get(context, Reactivity.Reactivity)),
+			);
 			yield* untilOutput(follower, "a released\n");
 			yield* Scope.close(first, Exit.void);
 			yield* storeState(fixture.host, "b", { stage: "completed" });
