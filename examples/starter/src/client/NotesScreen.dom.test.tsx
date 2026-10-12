@@ -38,8 +38,15 @@ it("shares the route query, validates the form, retains a rejected title and ref
 	expect(view.container.querySelector("input")?.value).toBe("reserved");
 	await enter("First note");
 	await submit();
-	await eventually(() => expect(view.container.querySelector("li")?.textContent).toBe("First note"));
+	await eventually(() => expect(view.container.querySelector("li > p")?.textContent).toBe("First note"));
 	expect(view.container.querySelector("input")?.value).toBe("");
 	expect(view.container.querySelector("[role=alert]")).toBeNull();
 	expect(client.calls).toEqual(["list", "create", "list"]);
+	expect(view.container.querySelector("li")?.textContent).toContain("Counting words…");
+	await act(() => client.finishNote(1, 2));
+	await eventually(() => expect(view.container.querySelector("li")?.textContent).toContain("2 words"));
+	expect(client.calls.filter((call) => call === "list").length).toBeGreaterThan(2);
+	await act(() => client.finishNote(1, 1));
+	await eventually(() => expect(view.container.querySelector("li")?.textContent).toContain("1 word"));
+	expect(view.container.querySelector("li")?.textContent).not.toContain("1 words");
 });

@@ -422,6 +422,9 @@ importers:
       '@shivaedev/effect-form':
         specifier: workspace:*
         version: link:../../packages/effect-form
+      '@shivaedev/effect-pg-boss':
+        specifier: workspace:*
+        version: link:../../packages/effect-pg-boss
       '@shivaedev/effect-react':
         specifier: workspace:*
         version: link:../../packages/effect-react
