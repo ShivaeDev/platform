@@ -1,7 +1,8 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { applyReportPatch } from "#host/applyReportPatch.ts";
 import type { Item } from "#providers/codexProtocol.ts";
 import { REPORT_ATTACHMENT_DIRECTORY } from "#reportAttachments.ts";
+import { ReportFileFailure } from "#reportFileFailure.ts";
 import { REPORT_LIMITS, reportLimit } from "#reportLimits.ts";
 
 const Change = Schema.Struct({
@@ -30,64 +31,68 @@ function safeName(name: string) {
 		!(name.includes("\\") || /\p{Cc}/u.test(name)) && name.split("/").every((part) => part !== "" && part !== "." && part !== ".." && part !== ".git")
 	);
 }
-function update(state: Replay, change: Change, name: string, target: string) {
+const update = Effect.fnUntraced(function* (state: Replay, change: Change, name: string, target: string) {
 	const previous = state.contents.get(name);
 	if (previous === undefined) {
-		throw new Error("Attachment update has no retrievable add in this turn");
+		return yield* Effect.fail(new ReportFileFailure({ path: name, reason: "Attachment update has no retrievable add in this turn" }));
 	}
 	if (target !== name && state.contents.has(target)) {
-		throw new Error("Attachment move overwrites another attachment");
+		return yield* Effect.fail(new ReportFileFailure({ path: target, reason: "Attachment move overwrites another attachment" }));
 	}
-	const updated = applyReportPatch(previous, change.diff);
+	const updated = yield* applyReportPatch(previous, change.diff, name);
 	state.contents.delete(name);
 	state.contents.set(target, updated);
-}
-function applyChange(state: Replay, change: Change, name: string | undefined, target: string | undefined) {
+});
+const applyChange = Effect.fnUntraced(function* (state: Replay, change: Change, name: string | undefined, target: string | undefined) {
 	if (name === undefined || target === undefined || !safeName(name) || !safeName(target)) {
-		throw new Error("Unsafe attachment path or move outside the attachment directory");
+		return yield* Effect.fail(
+			new ReportFileFailure({ path: change.path, reason: "Unsafe attachment path or move outside the attachment directory" }),
+		);
 	}
 	if (change.kind.type === "delete") {
 		state.contents.delete(name);
 	} else if (change.kind.type === "add") {
 		if (state.contents.has(name)) {
-			throw new Error("Attachment was added more than once without deletion");
+			return yield* Effect.fail(new ReportFileFailure({ path: name, reason: "Attachment was added more than once without deletion" }));
 		}
 		state.contents.set(name, change.diff);
 	} else {
-		update(state, change, name, target);
+		yield* update(state, change, name, target);
 	}
 	state.unavailable.delete(name);
 	state.unavailable.delete(target);
-}
-function replayChange(state: Replay, change: Change) {
+});
+const replayChange = Effect.fnUntraced(function* (state: Replay, change: Change) {
 	const name = attachmentName(change.path);
 	const moved = change.kind.type === "update" ? change.kind.movePath : undefined;
 	const target = moved === null || moved === undefined ? name : attachmentName(moved);
 	if (name === undefined && target === undefined) {
 		return;
 	}
-	const label = target ?? name ?? "Attachment changes";
+	const label = target ?? name ?? change.path;
 	state.names.add(label);
 	if (state.names.size > REPORT_LIMITS.attachmentCount) {
-		throw reportLimit("attachmentCount");
+		return yield* Effect.fail(new ReportFileFailure({ path: label, reason: reportLimit("attachmentCount").message }));
 	}
 	state.diffBytes += Buffer.byteLength(change.diff, "utf8");
 	if (state.diffBytes > REPORT_LIMITS.diffBytes) {
-		throw reportLimit("diffBytes");
+		return yield* Effect.fail(new ReportFileFailure({ path: label, reason: reportLimit("diffBytes").message }));
 	}
-	try {
-		applyChange(state, change, name, target);
-	} catch (error) {
-		if (name !== undefined) {
-			state.contents.delete(name);
-		}
-		if (target !== undefined) {
-			state.contents.delete(target);
-		}
-		state.unavailable.set(label, error instanceof Error ? error.message : "Attachment could not be reconstructed");
-	}
-}
-export function reportFileReplay(items: readonly (typeof Item.Type)[]) {
+	yield* applyChange(state, change, name, target).pipe(
+		Effect.catchTag("ReportFileFailure", (error) =>
+			Effect.sync(() => {
+				if (name !== undefined) {
+					state.contents.delete(name);
+				}
+				if (target !== undefined) {
+					state.contents.delete(target);
+				}
+				state.unavailable.set(label, error.reason);
+			}),
+		),
+	);
+});
+export const reportFileReplay = Effect.fn("Fleet.reportFileReplay")(function* (items: readonly (typeof Item.Type)[]) {
 	const state: Replay = { contents: new Map(), diffBytes: 0, names: new Set(), unavailable: new Map() };
 	for (const item of items) {
 		if (item.type !== "fileChange" || (item.status !== undefined && item.status !== "completed")) {
@@ -99,11 +104,15 @@ export function reportFileReplay(items: readonly (typeof Item.Type)[]) {
 			continue;
 		}
 		for (const change of changes.value) {
-			replayChange(state, change);
+			yield* replayChange(state, change);
 		}
 	}
-	if ([...state.contents.values()].reduce((total, text) => total + Buffer.byteLength(text, "utf8"), 0) > REPORT_LIMITS.attachmentBytes) {
-		throw reportLimit("attachmentBytes");
+	let bytes = 0;
+	for (const [path, text] of state.contents) {
+		bytes += Buffer.byteLength(text, "utf8");
+		if (bytes > REPORT_LIMITS.attachmentBytes) {
+			return yield* Effect.fail(new ReportFileFailure({ path, reason: reportLimit("attachmentBytes").message }));
+		}
 	}
 	return state;
-}
+});

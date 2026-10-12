@@ -17,6 +17,7 @@ import { reportPublication, reportRepository } from "#host/reportPublication.ts"
 import { BoardFailure, BoardGateway, type BoardWork } from "#policy.ts";
 import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
 import { declaredAttachments, type ReportAttachments } from "#reportAttachments.ts";
+import { ReportFileFailure } from "#reportFileFailure.ts";
 import { SessionFailure, type SessionObservation } from "#session/schema.ts";
 
 export const PUBLISHED_REPORT = "Report worker published to GitHub";
@@ -25,7 +26,10 @@ function attachmentFailure(error: unknown) {
 	if (error instanceof BoardFailure) {
 		return error;
 	}
-	const message = isFleetError(error) || error instanceof SessionFailure ? error.message : "Cloud report attachments could not be downloaded";
+	const message =
+		isFleetError(error) || error instanceof SessionFailure || error instanceof ReportFileFailure
+			? error.message
+			: "Cloud report attachments could not be downloaded";
 	return new BoardFailure({ message });
 }
 
@@ -60,7 +64,11 @@ const ReportBoard = defineService({
 			);
 		}
 		const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {
-			const attachments = yield* files(observation).pipe(Effect.catch((error) => Effect.succeed(unavailableAttachments(observation, error))));
+			const attachments = yield* files(observation).pipe(
+				Effect.catch((error) =>
+					error instanceof ReportFileFailure ? Effect.fail(error) : Effect.succeed(unavailableAttachments(observation, error)),
+				),
+			);
 			const { itemId } = reportIdentity(work, observation.receipt);
 			const output = observation.output + reportLinks(itemId, attachments.files, attachments.unavailable);
 			yield* reportContent(work, { ...observation, output });

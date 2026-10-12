@@ -1,8 +1,11 @@
+import { Effect } from "effect";
+import { ReportFileFailure } from "#reportFileFailure.ts";
+
 function lines(text: string) {
 	return text.match(/[^\n]*\n|[^\n]+$/gu) ?? [];
 }
-function invalid(): never {
-	throw new Error("Update diff does not match the reconstructed attachment");
+function invalid(path: string) {
+	return Effect.fail(new ReportFileFailure({ path, reason: "Update diff does not match the reconstructed attachment" }));
 }
 interface Hunk {
 	readonly body: string[];
@@ -23,20 +26,20 @@ function readHunk(line: string): Hunk | undefined {
 				oldStart: Number(groups.oldStart),
 			};
 }
-function appendLine(hunk: Hunk, line: string) {
+const appendLine = Effect.fnUntraced(function* (hunk: Hunk, line: string, path: string) {
 	if (/^\\ No newline at end of file\n?$/u.test(line)) {
 		const previous = hunk.body.pop();
 		if (previous === undefined || !previous.endsWith("\n")) {
-			invalid();
+			return yield* invalid(path);
 		}
 		hunk.body.push(previous.slice(0, -1));
 	} else if (/^[ +-]/u.test(line)) {
 		hunk.body.push(line);
 	} else {
-		invalid();
+		return yield* invalid(path);
 	}
-}
-function hunks(diff: string) {
+});
+const hunks = Effect.fnUntraced(function* (diff: string, path: string) {
 	const result: Hunk[] = [];
 	let current: Hunk | undefined;
 	for (const line of lines(diff)) {
@@ -46,27 +49,27 @@ function hunks(diff: string) {
 		const header = readHunk(line);
 		if (header === undefined) {
 			if (current === undefined) {
-				invalid();
+				return yield* invalid(path);
 			}
-			appendLine(current, line);
+			yield* appendLine(current, line, path);
 		} else {
 			current = header;
 			result.push(header);
 		}
 	}
 	if (result.length === 0) {
-		invalid();
+		return yield* invalid(path);
 	}
 	return result;
-}
-function writeHunk(original: string[], output: string[], hunk: Hunk, start: number) {
+});
+const writeHunk = Effect.fnUntraced(function* (original: string[], output: string[], hunk: Hunk, start: number, path: string) {
 	let cursor = start;
 	let added = 0;
 	for (const line of hunk.body) {
 		const value = line.slice(1);
 		if (!line.startsWith("+")) {
 			if (original[cursor] !== value) {
-				invalid();
+				return yield* invalid(path);
 			}
 			cursor += 1;
 		}
@@ -76,33 +79,33 @@ function writeHunk(original: string[], output: string[], hunk: Hunk, start: numb
 		}
 	}
 	if (cursor - start !== hunk.oldCount || added !== hunk.newCount) {
-		invalid();
+		return yield* invalid(path);
 	}
 	return cursor;
-}
-function applyHunk(original: string[], output: string[], hunk: Hunk, cursor: number) {
+});
+const applyHunk = Effect.fnUntraced(function* (original: string[], output: string[], hunk: Hunk, cursor: number, path: string) {
 	const start = hunk.oldCount === 0 ? hunk.oldStart : hunk.oldStart - 1;
 	if (start < cursor || start > original.length) {
-		invalid();
+		return yield* invalid(path);
 	}
 	for (const line of original.slice(cursor, start)) {
 		output.push(line);
 	}
 	const newStart = hunk.newCount === 0 ? hunk.newStart : hunk.newStart - 1;
 	if (newStart !== output.length) {
-		invalid();
+		return yield* invalid(path);
 	}
-	return writeHunk(original, output, hunk, start);
-}
-export function applyReportPatch(content: string, diff: string) {
+	return yield* writeHunk(original, output, hunk, start, path);
+});
+export const applyReportPatch = Effect.fn("Fleet.applyReportPatch")(function* (content: string, diff: string, path = "Attachment") {
 	if (diff === "") {
 		return content;
 	}
 	const original = lines(content);
 	const output: string[] = [];
 	let cursor = 0;
-	for (const hunk of hunks(diff)) {
-		cursor = applyHunk(original, output, hunk, cursor);
+	for (const hunk of yield* hunks(diff, path)) {
+		cursor = yield* applyHunk(original, output, hunk, cursor, path);
 	}
 	return output.concat(original.slice(cursor)).join("");
-}
+});

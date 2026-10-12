@@ -6,6 +6,7 @@ import { markdownBoard } from "#board/markdown.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportPayload } from "#board/reportPayload.ts";
 import { reportPayloadFile } from "#board/reportPayloadFile.ts";
+import { exposeFailure } from "#exposeFailure.ts";
 import { BoardGateway } from "#policy.ts";
 import { reportBoard } from "#test/report.ts";
 
@@ -26,7 +27,15 @@ for (const [problem, content] of [
 			);
 			const { itemId } = reportIdentity(work, OBSERVATION.receipt);
 			yield* reportPayloadFile(root, itemId, content);
-			expect((yield* Effect.result(reportPayload(root, work, OBSERVATION).read))._tag).toBe("Failure");
+			const error = yield* exposeFailure(reportPayload(root, work, OBSERVATION).read).pipe(Effect.flip);
+			expect(error._tag).toBe("ServiceUnavailable");
+			let path = `.fleet-reports/${itemId}.json`;
+			if (problem === "unsafe names") {
+				path = "../outside";
+			} else if (problem === "invalid base64" || problem === "duplicate names") {
+				path = "evidence.txt";
+			}
+			expect(error.message).toContain(path);
 		}).pipe(Effect.provide(NodeServices.layer)),
 	);
 }
