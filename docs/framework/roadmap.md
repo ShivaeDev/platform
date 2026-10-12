@@ -97,8 +97,8 @@ remain part of that handoff.
   browser and native device paths must it support?
 - Should auth storage use native SQL or remain a separately supported
   integration? Request identity does not choose storage policy.
-- Which router needs per-request registries and hydration? Settle SSR isolation
-  from that host rather than inventing a generic router architecture.
+- What per-request registries and hydration does the TanStack Router host need?
+  Settle SSR isolation from that host; client loader fixtures do not establish it.
 - What delivery and reconciliation policy does the first multi-process
   deployment require? A live connection does not establish completed freshness.
 - Which edit justifies optimism or offline writes, and who owns conflict

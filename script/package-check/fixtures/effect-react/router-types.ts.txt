@@ -1,0 +1,12 @@
+import type { LoaderFnContext } from "@tanstack/react-router";
+import { Effect } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import { loadQuery } from "@shivaedev/effect-react/router.ts";
+
+const registry = AtomRegistry.make();
+const atom = Atom.make(Effect.succeed({ id: "first", title: "First note" }));
+export const loader = (context: LoaderFnContext): Promise<{ id: string; title: string }> => loadQuery(registry, atom, context);
+// @ts-expect-error The loader keeps the query's success type.
+export const wrong = (context: LoaderFnContext): Promise<number> => loadQuery(registry, atom, context);
+registry.dispose();
