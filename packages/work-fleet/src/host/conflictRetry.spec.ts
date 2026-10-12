@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
+import { CONFLICTING_PR_REASON } from "#engine/deliveryFailure.ts";
 import { repairAttempts, reviewHeads, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
 import { HEAD, MOVED } from "#test/githubResult.ts";
 import { postgresTests } from "#test/postgres.ts";

@@ -1,13 +1,15 @@
 import { Effect, Schema } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { FleetError } from "#errors.ts";
 import { CheckPages, githubCheckState, StatusPages } from "#host/githubCheckState.ts";
 import { githubRead } from "#host/githubRead.ts";
-import { FleetFailure, type WorkResult } from "#policy.ts";
+import type { WorkResult } from "#policy.ts";
 
 function failure(message: string) {
-	return new FleetFailure({ message, reason: "integration" });
+	return new ServiceUnavailable({ message });
 }
 
-export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<string, FleetFailure, R>) {
+export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<string, FleetError, R>) {
 	return Effect.fn("Fleet.githubChecks")(function* (result: WorkResult) {
 		if (result.kind !== "change") {
 			return yield* failure("GitHub checks need an adopted pull request");

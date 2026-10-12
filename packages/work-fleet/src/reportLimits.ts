@@ -1,4 +1,4 @@
-import { FleetFailure } from "#policy.ts";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 
 export const REPORT_LIMITS = {
 	attachmentBytes: 32 * 1024 * 1024,
@@ -15,5 +15,5 @@ const NAMES = {
 };
 
 export function reportLimit(limit: keyof typeof REPORT_LIMITS) {
-	return new FleetFailure({ message: `${NAMES[limit]} limit exceeded (${REPORT_LIMITS[limit]})`, reason: "invalid" });
+	return new BadRequest({ message: `${NAMES[limit]} limit exceeded (${REPORT_LIMITS[limit]})` });
 }

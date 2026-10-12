@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { CONFLICTING_PR_REASON } from "#engine/deliveryFailure.ts";
 import { Fleet } from "#fleet.ts";
-import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { BASE, REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";

@@ -50,7 +50,7 @@ describe("context-bound Fleet renewal", () => {
 					yield* prepareWork("one");
 					const fleet = yield* Fleet;
 					const submitted = yield* fleet.dispatch("one");
-					expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+					expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 					expect((yield* fleet.get("one")).value.attempts).toEqual(submitted.value.attempts);
 					expect((yield* fleet.get("one")).value.history).toBeUndefined();
 					expect(fixture.launched).toHaveLength(1);
@@ -65,9 +65,9 @@ describe("context-bound Fleet renewal", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const completed = yield* fleet.reconcile("one");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 				fixture.editWork("one", "board-one-next");
-				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+				expect(yield* Effect.flip(prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 				fixture.approveWork("one", "board-one-next");
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.stage).toBe("prepared");
@@ -93,7 +93,7 @@ describe("context-bound Fleet renewal", () => {
 				expect(
 					yield* Effect.flip(fixture.acknowledgeTurn(prior?.operationId ?? "missing", prior?.receipt ?? { sessionId: "missing", turnId: "missing" })),
 				).toMatchObject({ _tag: "SessionFailure", reason: "persistence" });
-				expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "FleetFailure", reason: "denied" });
+				expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "Forbidden" });
 				expect(fixture.launched).toHaveLength(2);
 				expect((yield* fleet.get("one")).value.attempts).toEqual([]);
 			}),

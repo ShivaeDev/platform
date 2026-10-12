@@ -1,9 +1,9 @@
 import { Effect } from "effect";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { AttentionOwner } from "#attention.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { FleetFailure } from "#policy.ts";
 
 export function reassignCommand(state: EngineState) {
 	return Effect.fn("Fleet.reassign")(
@@ -15,12 +15,12 @@ export function reassignCommand(state: EngineState) {
 					stored = yield* ensurePublication(state)(stored);
 					return yield* closeDecisions(state)(stored);
 				}
-				return yield* Effect.fail(new FleetFailure({ message: "The waiting decision changed", reason: "stale" }));
+				return yield* Effect.fail(new Conflict({ message: "The waiting decision changed" }));
 			}
 			stored = yield* ensurePublication(state)(stored);
 			const previous = stored.value.decision;
 			if (previous?.published === undefined) {
-				return yield* Effect.fail(new FleetFailure({ message: "Publish the current decision before reassignment", reason: "stale" }));
+				return yield* Effect.fail(new Conflict({ message: "Publish the current decision before reassignment" }));
 			}
 			if (stored.value.attentionOwner === attentionOwner && previous.attentionOwner === attentionOwner) {
 				return yield* closeDecisions(state)(stored);
@@ -40,9 +40,6 @@ export function reassignCommand(state: EngineState) {
 			stored = yield* ensurePublication(state)(stored);
 			return yield* closeDecisions(state)(stored);
 		},
-		(effect) =>
-			effect.pipe(
-				Effect.catchTag("StorageConflict", () => Effect.fail(new FleetFailure({ message: "The waiting decision changed", reason: "stale" }))),
-			),
+		(effect) => effect.pipe(Effect.catchTag("StorageConflict", () => Effect.fail(new Conflict({ message: "The waiting decision changed" })))),
 	);
 }

@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { connect, failure, initialize, request } from "#providers/codexRpc.ts";
 import { SessionTransport } from "#session/service.ts";
@@ -21,8 +22,9 @@ function loopback(endpoint: string) {
 export class CodexLocalConfig extends Context.Service<CodexLocalConfig, CodexLocalConfiguration>()("@shivaedev/work-fleet/CodexLocalConfig") {}
 
 // The installed CLI schema verifies these local methods; it provides no hosted transport contract.
-export const codexLocalLayer = Layer.effect(SessionTransport)(
-	Effect.gen(function* () {
+const CodexLocal = defineService({
+	id: "Fleet/CodexLocal",
+	initialize: Effect.gen(function* () {
 		const config = yield* Schema.decodeUnknownEffect(CodexLocalConfiguration)(yield* CodexLocalConfig).pipe(
 			Effect.mapError(() => failure("unavailable", "Local Codex configuration requires a finite positive request timeout")),
 		);
@@ -59,4 +61,7 @@ export const codexLocalLayer = Layer.effect(SessionTransport)(
 			}),
 		});
 	}),
-);
+	methods: (adapter) => adapter,
+	requires: [CodexLocalConfig],
+});
+export const codexLocalLayer = Layer.effect(SessionTransport)(CodexLocal).pipe(Layer.provide(CodexLocal.layer));

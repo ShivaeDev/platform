@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { conflictingPr } from "#engine/deliveryFailure.ts";
 import { Fleet } from "#fleet.ts";
-import { ConflictingPr } from "#host/conflictingPr.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
@@ -25,7 +25,7 @@ postgresTests("test")("retry of a wedged repair starts a fresh thread on the sam
 					return transport.startTurn(input);
 				},
 			}),
-			deliveryQuery: () => (conflicting ? Effect.fail(new ConflictingPr("main-revision")) : Effect.succeed(undefined)),
+			deliveryQuery: () => (conflicting ? Effect.fail(conflictingPr("main-revision")) : Effect.succeed(undefined)),
 		},
 		(fixture) =>
 			Effect.gen(function* () {

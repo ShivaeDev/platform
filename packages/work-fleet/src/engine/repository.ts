@@ -1,4 +1,6 @@
 import { Context, Effect, Layer } from "effect";
+import { SqlClient } from "effect/unstable/sql";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
@@ -12,25 +14,35 @@ export class FleetRepository extends Context.Service<
 	FleetRepository,
 	Omit<Store, "initialize" | "operationEntries"> & Partial<Pick<Store, "operationEntries">>
 >()("@shivaedev/work-fleet/FleetRepository") {}
+class RepositoryNamespace extends Context.Service<RepositoryNamespace, string | undefined>()("Fleet/RepositoryNamespace") {}
+const PostgresFleetRepository = defineService({
+	id: "Fleet/PostgresFleetRepository",
+	initialize: Effect.gen(function* () {
+		const namespace = yield* RepositoryNamespace;
+		const store = yield* makePostgresFleetStore(FleetRecord, {
+			admission: checkAreas,
+			admissionNeedsRecords: needsAreaRecords,
+			backlog,
+			executing,
+			requeue,
+			submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
+			...(namespace === undefined ? {} : { namespace }),
+		});
+		yield* store.initialize();
+		return store;
+	}),
+	methods: ({ initialize: _initialize, ...methods }) => methods,
+	requires: [SqlClient.SqlClient, RepositoryNamespace],
+});
+
 export function postgresFleetRepository(namespace?: string) {
-	return Layer.effect(FleetRepository)(
-		Effect.gen(function* () {
-			const store = yield* makePostgresFleetStore(FleetRecord, {
-				admission: checkAreas,
-				admissionNeedsRecords: needsAreaRecords,
-				backlog,
-				executing,
-				requeue,
-				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
-				...(namespace === undefined ? {} : { namespace }),
-			});
-			yield* store.initialize();
-			return store;
-		}),
+	return Layer.effect(FleetRepository)(PostgresFleetRepository).pipe(
+		Layer.provide(PostgresFleetRepository.layer.pipe(Layer.provide(Layer.succeed(RepositoryNamespace, namespace)))),
 	);
 }
-export const fleetSessionJournal = Layer.effect(SessionJournal)(
-	Effect.gen(function* () {
+const FleetSessionJournal = defineService({
+	id: "Fleet/SessionJournal",
+	initialize: Effect.gen(function* () {
 		const store = yield* FleetRepository;
 		const namingWork = new Map<string, string>();
 		function acknowledge(
@@ -75,7 +87,10 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 				),
 			);
 		}
-		return {
+		return { acknowledge, namingWork, store };
+	}),
+	methods: ({ acknowledge, namingWork, store }) =>
+		SessionJournal.of({
 			acknowledgeSession: (operationId: string, sessionId: string) => acknowledge(operationId, sessionId),
 			acknowledgeTurn: (
 				operationId: string,
@@ -91,9 +106,10 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 					const stored = workId === undefined ? undefined : yield* store.load(workId);
 					return yield* operationThreadName(stored?.value, operationId);
 				}).pipe(Effect.mapError((error) => new SessionFailure({ message: error.message, reason: "persistence" }))),
-		};
-	}),
-);
+		}),
+	requires: [FleetRepository],
+});
+export const fleetSessionJournal = Layer.effect(SessionJournal)(FleetSessionJournal).pipe(Layer.provide(FleetSessionJournal.layer));
 
 function rememberNamingWork(work: Map<string, string>, record: FleetRecord, operationId: string, sessionId: string, receipt?: SessionReceipt) {
 	const continued = allAttempts(record).some((attempt) => attempt.operationId !== operationId && attempt.sessionId === sessionId);

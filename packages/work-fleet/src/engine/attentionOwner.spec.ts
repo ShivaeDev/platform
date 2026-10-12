@@ -1,9 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
-import { FleetFailure } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
@@ -44,10 +45,8 @@ for (const owner of ["orchestrator", "automation"] as const) {
 			{
 				resultQuery: () =>
 					Effect.fail(
-						new FleetFailure({
+						withFailureContext(new ServiceUnavailable({ message: "Adoption is not configured" }), {
 							attentionOwner: owner === "automation" ? owner : undefined,
-							message: "Adoption is not configured",
-							reason: "integration",
 						}),
 					),
 			},
@@ -112,7 +111,7 @@ test("RPC reassignment publishes maintainer ownership, supersedes the old questi
 				expect(reassigned.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: old.published }]);
 				expect((yield* client("fleet.views", undefined)).waiting.maintainer).toHaveLength(1);
 				expect((yield* client("fleet.views", undefined)).waiting.orchestrator).toHaveLength(0);
-				expect(yield* fleet.resolve("one", old.decision.id, oldAnswer.id).pipe(Effect.flip)).toMatchObject({ reason: "stale" });
+				expect(yield* fleet.resolve("one", old.decision.id, oldAnswer.id).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 				const decision = reassigned.decision;
 				if (decision === undefined) {
 					return yield* Effect.die("Missing reassigned decision");

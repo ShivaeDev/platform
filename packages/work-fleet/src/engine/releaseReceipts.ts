@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 
 export function releaseReceipts(state: EngineState, attempt: Attempt) {
 	if (attempt.terminalReceipts !== undefined && attempt.terminalReceipts.length > 0) {
@@ -16,7 +16,7 @@ export function releaseReceipts(state: EngineState, attempt: Attempt) {
 		Effect.catch((error) =>
 			error.terminalReceipts !== undefined && error.terminalReceipts.length > 0
 				? Effect.succeed(error.terminalReceipts)
-				: Effect.fail(new FleetFailure({ message: error.message, reason: "integration" })),
+				: Effect.fail(new ServiceUnavailable({ message: error.message })),
 		),
 	);
 }

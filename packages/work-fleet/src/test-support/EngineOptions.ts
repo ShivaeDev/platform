@@ -1,8 +1,9 @@
 import type { Effect } from "effect";
 import type { SqlError } from "effect/unstable/sql/SqlError";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { FleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
-import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, FleetFailure, WorkResult } from "#policy.ts";
+import type { BoardFailure, BoardGateway, BoardWork, ChangeResult, Checks, Delivery, FleetConfiguration, WorkResult } from "#policy.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { ReportAttachments } from "#reportAttachments.ts";
 import type { LaunchSettings, SessionFailure, SessionObservation } from "#session/schema.ts";
@@ -17,13 +18,13 @@ export interface EngineOptions {
 	readonly checkRepair?: boolean;
 	readonly checksFailure?: boolean;
 	readonly checksGate?: Effect.Effect<void>;
-	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
+	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetError>;
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
 	readonly decorateBoard?: (board: typeof BoardGateway.Service) => typeof BoardGateway.Service;
 	readonly decorateTransport?: (transport: typeof SessionTransport.Service) => typeof SessionTransport.Service;
 	readonly deliveryFailure?: boolean;
-	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
+	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	readonly denyDelivery?: boolean;
 	readonly foreignBacklog?: boolean;
 	readonly launch?: LaunchSettings;
@@ -32,7 +33,7 @@ export interface EngineOptions {
 	readonly lostReviewAcknowledgement?: boolean;
 	readonly lostReviewContinuationAcknowledgement?: boolean;
 	readonly mainChanges?: readonly string[];
-	readonly mainQuery?: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
+	readonly mainQuery?: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
 	readonly noChange?: boolean;
 	readonly now?: () => number;
 	readonly operationCollision?: boolean;
@@ -43,8 +44,8 @@ export interface EngineOptions {
 	readonly rejectTurn?: boolean;
 	readonly repairs?: boolean;
 	readonly reportAttachmentsQuery?: (observation: SessionObservation) => Effect.Effect<ReportAttachments>;
-	readonly reportPublicationQuery?: (work: BoardWork) => Effect.Effect<boolean, FleetFailure>;
-	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
+	readonly reportPublicationQuery?: (work: BoardWork) => Effect.Effect<boolean, FleetError>;
+	readonly resultQuery?: (board: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
 	readonly resultUnavailable?: boolean;
 	readonly reviewExecution?: "failed" | "interrupted";
 	readonly reviewerGuidance?: string;

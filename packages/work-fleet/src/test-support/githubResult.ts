@@ -1,9 +1,10 @@
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { resolveHost } from "#host/config.ts";
 import type { GithubRead } from "#host/github.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
-import { type BoardWork, FleetFailure } from "#policy.ts";
+import type { BoardWork } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
 export const HEAD = "a".repeat(40);
@@ -57,7 +58,7 @@ function scriptedGithubRead(options: ResultOptions, requests: (readonly string[]
 		Effect.suspend(() => {
 			requests.push(args);
 			if (options.unavailable) {
-				return Effect.fail(new FleetFailure({ message: "GitHub unavailable", reason: "integration" }));
+				return Effect.fail(new ServiceUnavailable({ message: "GitHub unavailable" }));
 			}
 			if (options.invalidJson) {
 				return Effect.succeed("not json");

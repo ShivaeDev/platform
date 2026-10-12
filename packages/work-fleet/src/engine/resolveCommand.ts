@@ -1,11 +1,12 @@
 import { Effect } from "effect";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { applyResolution } from "#engine/applyResolution.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { readResolution } from "#engine/readResolution.ts";
 import type { FleetRecord } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
+
 export function resolveCommand(state: EngineState) {
 	const { board, policy, load } = state;
 	return Effect.fn("Fleet.resolve")(
@@ -15,7 +16,7 @@ export function resolveCommand(state: EngineState) {
 				return yield* ensurePublication(state)(stored).pipe(Effect.flatMap(closeDecisions(state)));
 			}
 			if (stored.value.decision?.id !== decisionId) {
-				return yield* Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" }));
+				return yield* Effect.fail(new Conflict({ message: "Decision changed" }));
 			}
 			const { action, published, response } = yield* readResolution(board, stored.value.decision, responseId);
 			const receipt = {
@@ -31,8 +32,7 @@ export function resolveCommand(state: EngineState) {
 			const responses = [...(stored.value.responses ?? []), receipt];
 			return yield* applyResolution(state)(stored, responses, action, response.body, responseId);
 		},
-		(effect) =>
-			effect.pipe(Effect.catchTag("StorageConflict", () => Effect.fail(new FleetFailure({ message: "Decision changed", reason: "stale" })))),
+		(effect) => effect.pipe(Effect.catchTag("StorageConflict", () => Effect.fail(new Conflict({ message: "Decision changed" })))),
 	);
 }
 

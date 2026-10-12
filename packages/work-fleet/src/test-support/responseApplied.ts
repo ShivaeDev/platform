@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { FleetFailure } from "#policy.ts";
+import { isFleetError } from "#errors.ts";
 import { until } from "#test/cloudRestart.ts";
 
 interface ResponseRecord {
@@ -10,7 +10,7 @@ export function responseApplied<E>(observe: Effect.Effect<ResponseRecord, E>, re
 	return until(() =>
 		observe.pipe(
 			Effect.catchIf(
-				(error) => error instanceof FleetFailure && error.reason === "stale",
+				(error) => isFleetError(error) && error._tag === "Conflict",
 				() => refresh,
 			),
 			Effect.map(
