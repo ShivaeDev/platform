@@ -1,17 +1,22 @@
 import { Effect } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { briefChanged } from "#engine/boardBrief.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { inspectRenewal } from "#engine/inspectRenewal.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { PrepareWork } from "#fleet.ts";
 import { executing, type FleetCycleSnapshot, type FleetRecord } from "#model.ts";
+import type { BoardWork } from "#policy.ts";
 
 export function prepareCommand(state: EngineState) {
 	const { store, board, policy, save } = state;
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
 		if (!work.approved) {
-			return yield* Effect.fail(new Forbidden({ message: "Current Board revision needs maintainer approval" }));
+			return yield* Effect.fail(
+				withFailureContext(new Forbidden({ message: "Current Board revision needs maintainer approval" }), { code: "approval-required" }),
+			);
 		}
 		if (!input.prompt.trim() || input.preparation.ownedPaths.length === 0) {
 			return yield* Effect.fail(new BadRequest({ message: "Preparation needs fixed prompt and owned paths" }));
@@ -35,7 +40,7 @@ export function prepareCommand(state: EngineState) {
 			return yield* store.insert(current);
 		}
 		existing = yield* ensurePublication(state)(existing);
-		yield* renewable(existing.value, work.revision);
+		yield* renewable(existing.value, work);
 		existing = yield* inspectRenewal(state)(existing, work);
 		if (existing.value.result?.kind === "change" && existing.value.outcome === undefined) {
 			yield* store.reserveForeign(existing.value.result.pr, { backlog: true, executing: false });
@@ -43,14 +48,14 @@ export function prepareCommand(state: EngineState) {
 		return yield* save(existing, { ...current, history: [...(existing.value.history ?? []), snapshot(existing.value, policy.now())] });
 	});
 }
-const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, revision: string) {
+const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, work: BoardWork) {
 	if (record.decision !== undefined && record.decision.published === undefined) {
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile the decision publication receipt before renewing preparation" }));
 	}
 	if (executing(record)) {
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile and confirm terminal execution before renewing preparation" }));
 	}
-	if (record.stage === "completed" && record.boardRevision === revision) {
+	if (record.stage === "completed" && !briefChanged(record, work)) {
 		return yield* Effect.fail(new Forbidden({ message: "Completed work needs a newly approved Board context before renewal" }));
 	}
 });

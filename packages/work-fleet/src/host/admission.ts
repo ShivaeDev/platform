@@ -72,10 +72,7 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const fleet = yield* Fleet;
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
-	const reapproved =
-		record !== undefined
-		&& ((record.stage === "prepared" && briefChanged(record, work))
-			|| (approval === "explicit" && (record.stage === "released" || briefChanged(record, work))));
+	const reapproved = record !== undefined && approval === "explicit" && (record.stage === "released" || briefChanged(record, work));
 	if (record !== undefined && !reapproved && !stalePreparation(record, work, snapshot)) {
 		return;
 	}

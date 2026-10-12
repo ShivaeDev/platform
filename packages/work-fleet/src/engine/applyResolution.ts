@@ -1,8 +1,6 @@
 import { Effect } from "effect";
-import { briefChanged, changedBrief, refreshedBrief } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
-import { CONFLICTING_PR_REASON, MOVED_PR_HEAD_REASON } from "#engine/deliveryFailure.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
@@ -45,14 +43,10 @@ function retryOrRelease(state: EngineState) {
 			if (rework !== undefined) {
 				return rework;
 			}
-			const refreshed = yield* retryChangedBrief(state)(current, responses);
-			if (refreshed !== undefined) {
-				return refreshed;
-			}
 		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
-			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.reason ?? "") : undefined;
+			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.code) : undefined;
 		if (reportFailure !== undefined) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
@@ -68,13 +62,13 @@ function retryRework(state: EngineState) {
 		}
 		const latest = record.attempts.at(-1);
 		let changes = body.trim();
-		if (record.decision?.reason === CONFLICTING_PR_REASON) {
+		if (record.decision?.code === "pr-conflicting") {
 			changes = ["GitHub reports a conflict with main. Fetch and merge main, resolve the conflicts, and retain the requested changes.", changes]
 				.filter(Boolean)
 				.join("\n\n");
 		} else if (latest?.sessionUnusable) {
 			changes = [latest.prompt ?? record.prompt, changes].filter(Boolean).join("\n\n");
-		} else if (record.decision?.reason !== "Reviewed PR is ready to merge" || !changes) {
+		} else if (record.decision?.code !== "reviewed-pr-ready" || !changes) {
 			return undefined;
 		}
 		return yield* requestRework(state)(stored, changes, responses);
@@ -107,31 +101,9 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
 }
 
-function retryChangedBrief(state: EngineState) {
-	return Effect.fn("Fleet.retryChangedBrief")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[]) {
-		const work = yield* state.board.get(stored.value.workId);
-		if (!briefChanged(stored.value, work)) {
-			return undefined;
-		}
-		if (executing(stored.value)) {
-			return yield* state.save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage: "executing" });
-		}
-		const hasWorker = stored.value.attempts.some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined);
-		const refreshed = hasWorker ? changedBrief(stored.value, work) : refreshedBrief(stored.value, work);
-		return yield* state.save(stored, {
-			...refreshed,
-			blocker: undefined,
-			decision: undefined,
-			responses,
-			stage: hasWorker ? "repairing" : "prepared",
-		});
-	});
-}
-
 function deliveryRetry(record: FleetRecord) {
 	return (
 		record.result?.kind === "change"
-		&& (record.decision?.reason === MOVED_PR_HEAD_REASON
-			|| (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
+		&& (record.decision?.code === "pr-head-moved" || (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
 	);
 }

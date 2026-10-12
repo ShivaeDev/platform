@@ -1,8 +1,10 @@
 import { Effect, Stream } from "effect";
-import { DAEMON_PORT } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
 import type { State } from "#host/waitOutcome.ts";
+
+const { DAEMON_PORT } = diagnosticsApi;
 
 export interface FollowOptions {
 	readonly intervalMs: number;

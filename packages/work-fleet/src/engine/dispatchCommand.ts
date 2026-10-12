@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
-import { authorizeBrief, refreshBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
@@ -13,24 +14,24 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (stored.value.stage !== "prepared") {
 			return stored;
 		}
-		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
-			return stored;
-		}
 		const work = yield* board.get(workId);
-		const authorized = yield* authorizeBrief(work).pipe(Effect.result);
+		const authorized = yield* authorizeBriefContext(stored.value, work).pipe(Effect.result);
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
 				stored,
+				failureCode(authorized.failure),
 				authorized.failure.message,
 				"Restore approval for work that is still needed, or release it",
 				undefined,
 				"maintainer",
 			);
 		}
-		stored = yield* refreshBrief(state)(stored, work);
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
 		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
 		if (assessment._tag === "Reprepare") {
-			return yield* decision(stored, assessment.reason, "Prepare the affected scope again before dispatch");
+			return yield* decision(stored, assessment.code ?? "fleet-invalid", assessment.reason, "Prepare the affected scope again before dispatch");
 		}
 		if (
 			assessment.preparation.baseRevision !== stored.value.preparation.baseRevision

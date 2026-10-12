@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { vi } from "vitest";
-import * as metadata from "@shivaedev/work-board/metadata/parse.ts";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { admitApproved } from "#host/admission.ts";

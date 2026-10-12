@@ -30,17 +30,23 @@ export function sourceDecisionSites(file: string, source: string) {
 		sites.push(`${file}: ${node.getText(tree).replace(/\s+/gu, " ")}`);
 	}
 	function creationReason(node: ts.CallExpression) {
-		const expression = node.expression.getText(tree);
-		if (expression === "decision" || expression === "state.decision") {
+		const expression = node.expression;
+		if (
+			(ts.isIdentifier(expression) && expression.text === "decision")
+			|| (ts.isPropertyAccessExpression(expression)
+				&& expression.name.text === "decision"
+				&& ts.isIdentifier(expression.expression)
+				&& expression.expression.text === "state")
+		) {
 			return node.arguments[1];
 		}
-		return expression === "waitingDecision" ? node.arguments[0] : undefined;
+		return ts.isIdentifier(expression) && expression.text === "waitingDecision" ? node.arguments[0] : undefined;
 	}
 	function decisionField(node: ts.PropertyAssignment) {
 		if (node.name.getText(tree) === "stage" && node.initializer.getText(tree) === '"needs-human"') {
 			return node;
 		}
-		if (node.name.getText(tree) !== "reason" || !ts.isObjectLiteralExpression(node.parent)) {
+		if (node.name.getText(tree) !== "code" || !ts.isObjectLiteralExpression(node.parent)) {
 			return undefined;
 		}
 		const parent = node.parent.parent;

@@ -63,7 +63,7 @@ async function respond(handle: (request: WireRequest) => unknown, body: Buffer) 
 		return undefined;
 	}
 	return result instanceof WireRejection
-		? { error: { code: -32_602, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
+		? { error: { code: result.code, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
 		: { id: message.id, result };
 }
 function sendReply(socket: Duplex, handle: (request: WireRequest) => unknown, body: Buffer) {
@@ -82,9 +82,11 @@ function offeredProtocols(header: string | undefined) {
 		.filter(Boolean);
 }
 export class WireRejection {
+	readonly code: number;
 	readonly message: string;
 	readonly data: unknown;
-	constructor(message: string, data?: unknown) {
+	constructor(message: string, data?: unknown, code = -32_602) {
+		this.code = code;
 		this.message = message;
 		this.data = data;
 	}

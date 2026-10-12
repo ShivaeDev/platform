@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
-import type { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
+import type { RecordedResponse } from "@shivaedev/work-board/integration/responses.ts";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
 
@@ -31,7 +31,7 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 		return { action: "continue", published, response } as const;
 	}
 	const action = yield* guidedAction(response);
-	const explanation = releaseOnly(decision.reason);
+	const explanation = releaseOnly(decision.code);
 	if (action === "retry" && explanation !== undefined) {
 		return yield* new BadRequest({ message: explanation });
 	}

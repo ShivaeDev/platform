@@ -1,9 +1,8 @@
 import { Effect } from "effect";
-import { codexLimits } from "@shivaedev/work-board/diagnostics/codexLimits.ts";
-import { DiagnosticsContract } from "@shivaedev/work-board/diagnostics/daemonContract.ts";
-import { githubLimits } from "@shivaedev/work-board/diagnostics/githubLimits.ts";
-import { DiagnosticsSources, diagnostics } from "@shivaedev/work-board/diagnostics/source.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { HealthSnapshot } from "#engine/health.ts";
+
+const { codexLimits, DiagnosticsContract, DiagnosticsSources, diagnostics, githubLimits } = diagnosticsApi;
 
 export const daemonDiagnostics = Effect.gen(function* () {
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);

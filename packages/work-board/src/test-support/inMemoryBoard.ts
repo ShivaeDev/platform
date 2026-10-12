@@ -13,11 +13,16 @@ import { entriesOf } from "#server/search/entries.ts";
 import { metadataEntries } from "#server/search/metadataEntries.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
-export function inMemoryBoard(files: Readonly<Record<string, string>>) {
+export interface BoardFixtureOptions {
+	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
+	readonly home: string | undefined;
+}
+
+export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const documents = Object.entries(files).map(([file, source]) => ({ file, parsed: metadataParse(source) }));
-			const home = documents[0]?.file;
+			const home = configuration ? configuration.home : documents[0]?.file;
 			const model = metadataModel(documents, [], home);
 			const entries = yield* Effect.promise(() =>
 				Promise.all(documents.map(({ file, parsed }) => entriesOf(parsed.body, file, file === home, parsed.bodyLine))),
@@ -44,14 +49,17 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 			const context = Context.merge(yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>(), services);
 			return yield* handlers({
 				...options,
-				document: (url) => readDocument({ ...options, home, writable: false })(url).pipe(Effect.provideContext(context)),
+				document: (url) =>
+					Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(
+						Effect.andThen(readDocument({ ...options, home, writable: false })(url)),
+						Effect.provideContext(context),
+					),
 				home,
 				page: (url) =>
-					page(
-						{ home, root: "/board" },
-						changes,
-						options.index,
-					)(HttpServerRequest.fromWeb(new Request(`http://127.0.0.1${url}`))).pipe(Effect.provideContext(context)),
+					Effect.suspend(() => configuration?.beforeRead?.("page", url) ?? Effect.void).pipe(
+						Effect.andThen(page({ home, root: "/board" }, changes, options.index)(HttpServerRequest.fromWeb(new Request(`http://127.0.0.1${url}`)))),
+						Effect.provideContext(context),
+					),
 			}).pipe(Effect.provideContext(context));
 		}),
 	).pipe(

@@ -16,6 +16,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 	return [
 		...(["failed", "interrupted"] as const).map(
 			(execution): RecoveryCase => ({
+				code: "worker-terminal" as const,
 				enter: Effect.fnUntraced(function* (ctx) {
 					yield* launchRecoveryWorker();
 					setLastObservation(ctx, { execution });
@@ -23,30 +24,37 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 				}),
 				name: `worker ${execution}`,
 				progress: newTurn,
-				reason: new RegExp(`Provider turn .* ${execution}`, "u"),
-				sites: ["engine/makeObserve.ts: terminalReason(observation)"],
+
+				sites: ['engine/makeObserve.ts: "worker-terminal"'],
 			}),
 		),
 		...["FLEET_QUESTION: Which scope?", "FLEET_MAINTAINER_QUESTION: Which scope?"].map(
 			(output): RecoveryCase => ({
+				code: "worker-question" as const,
 				enter: (ctx) => finishRecoveryWorker(ctx, output),
 				name: output.split(":")[0] ?? output,
 				progress: (ctx, before, after) => {
 					newTurn(ctx, before, after);
 					expect(after.attempts.at(-1)?.receipt?.sessionId).toBe(before.attempts.at(-1)?.receipt?.sessionId);
 				},
-				reason: "Which scope?",
-				sites: ["engine/makeObserve.ts: question.question"],
+
+				sites: ['engine/makeObserve.ts: "worker-question"'],
 			}),
 		),
 		...[
-			{ output: "Missing report", reason: "Worker report needs one final FLEET_PR line containing a GitHub PR URL or none" },
 			{
+				code: "worker-report-pr-invalid" as const,
+				output: "Missing report",
+				reason: "Worker report needs one final FLEET_PR line containing a GitHub PR URL or none",
+			},
+			{
+				code: "worker-report-head-invalid" as const,
 				output: "FLEET_HEAD: short\nFLEET_PR: none",
 				reason: "Worker report needs one FLEET_HEAD line with the exact full head SHA immediately before the final PR line",
 			},
 		].map(
 			(scenario): RecoveryCase => ({
+				code: scenario.code,
 				enter: Effect.fnUntraced(function* (ctx) {
 					yield* finishRecoveryWorker(ctx, scenario.output);
 					setLastObservation(ctx, { execution: "completed", output: scenario.output });
@@ -57,25 +65,26 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 					newTurn(ctx, before, after);
 					expect(after.attempts.at(-1)?.receipt?.sessionId).toBe(before.attempts.at(-1)?.receipt?.sessionId);
 				},
-				reason: scenario.reason,
-				sites: ["engine/workerReport.ts: failure.message"],
+
+				sites: ["engine/workerReport.ts: failureCode(failure)"],
 			}),
 		),
 		{
+			code: "session-rejected" as const,
 			enter: launchRecoveryWorker,
 			name: "provider rejects launch",
 			options: {
 				submissionFailure: () => (reject ? new SessionFailure({ message: "Synthetic provider refused submission", reason: "rejected" }) : undefined),
 			},
 			progress: newTurn,
-			reason: "Synthetic provider refused submission",
 			restore: () =>
 				Effect.sync(() => {
 					reject = false;
 				}),
-			sites: ["engine/submissionFailure.ts: error.message"],
+			sites: ["engine/submissionFailure.ts: failureCode(error)"],
 		},
 		{
+			code: "session-rejected" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryWorker(ctx, REPORT);
 				ctx.fixture.rejectNextTurn();
@@ -88,8 +97,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 				newTurn(ctx, before, after);
 				expect(after.attempts.at(-1)?.role).toBe("repair");
 			},
-			reason: "Provider rejected turn before acceptance",
-			sites: ["engine/submissionFailure.ts: error.message"],
+			sites: ["engine/submissionFailure.ts: failureCode(error)"],
 		},
 	];
 }

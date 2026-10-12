@@ -49,5 +49,5 @@ export function formOwner(dom: HTMLFormElement) {
 	}
 	document.addEventListener("board-page", unmounted);
 	window.addEventListener("pagehide", release);
-	return { registry, signal: controller.signal };
+	return { registry, release, signal: controller.signal };
 }

@@ -13,9 +13,10 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 	failure: FleetError,
 ) {
 	const record = stored.value;
-	const { mainRevision } = failureContext(failure);
+	const { code, mainRevision } = failureContext(failure);
 	if (
-		mainRevision === undefined
+		code !== "pr-conflicting"
+		|| mainRevision === undefined
 		|| executing(record)
 		|| record.review?.verdict !== "approved"
 		|| record.review.head !== record.result?.head
@@ -25,7 +26,7 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 	) {
 		return undefined;
 	}
-	const resolved = record.decision?.reason === "Reviewed PR is ready to merge" ? yield* makeHuman(state)(stored) : stored;
+	const resolved = record.decision?.code === "reviewed-pr-ready" ? yield* makeHuman(state)(stored) : stored;
 	if (resolved.value.stage === "released") {
 		return resolved;
 	}

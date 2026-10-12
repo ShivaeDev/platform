@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.2 - 2026-10-12
+
+### Added
+
+- `makeEffectIt` fixture testers accept Effect-returning bodies as well as generators, including table cases and tester variants. Both forms retain harness, service, clock and per-test Scope behavior.
+- Export `EffectTestBody<THarness, TProvided, A>` from `types.ts` to describe both fixture body forms.
+- `makeEffectIt` harnesses, wrappers, generator bodies and table bodies can use the per-test `Scope` already supplied by the runner. The worker Context and inferred Layer services stay unchanged; unrelated services still require a matching Layer.
+
+### Changed
+
+- Name descriptive generic type parameters with a `T` prefix, preserving test runner types and behavior.
+- Verify conditional skipping in an isolated Vitest fixture, with passing suite assertions for registration and body non-execution instead of a skipped suite test.
+- Explain the runner's purpose, service and test lifetimes, clock choices and typed readiness polling in the README, agent north star and package docs; publish `docs/` with the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.3.1 - 2026-10-06
 
 ### Fixed

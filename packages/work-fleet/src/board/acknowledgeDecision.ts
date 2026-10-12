@@ -1,13 +1,15 @@
 import { Effect } from "effect";
-import { managedRequestReceipt } from "@shivaedev/work-board/attention/managedRequestReceipt.ts";
-import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { publish } from "@shivaedev/work-board/responses/publish.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { attention } from "@shivaedev/work-board/integration/attention.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
+
+const { managedRequestReceipt } = attention;
+const { metadataModel } = boardApi;
+const { publish, revisionOf } = responses;
 
 export function acknowledgeDecision(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
 	return Effect.fn("FleetBoard.acknowledgeDecision")(function* (input: BoardDecisionAcknowledgement) {
@@ -28,7 +30,7 @@ export function acknowledgeDecision(root: string, realRoot: string, documents: E
 		const id = `request-receipt.${revisionOf(JSON.stringify(requestReceipt))}`;
 		const content = `---\n${JSON.stringify({ id, kind: "result", "request_receipt": requestReceipt })}\n---\n# Managed request acknowledgement\n\nThis immutable receipt acknowledges request handling; it grants no execution, acceptance or delivery authority.\n`;
 		const file = `responses/${id}.md`;
-		const receiptDocument = { file, parsed: metadataParse(content) };
+		const receiptDocument = { file, parsed: boardApi.metadataParse(content) };
 		const model = metadataModel([...all.filter((document) => document.file !== file), receiptDocument]);
 		if (!request || managedRequestReceipt(source, request, model) === undefined) {
 			return yield* Effect.fail(

@@ -1,5 +1,86 @@
 # Changelog
 
+## 0.12.0 - 2026-10-12
+
+### Added
+
+- Read optional `areas` frontmatter as an array of nonempty code-area labels for Fleet scheduling; retain invalid values with metadata diagnostics.
+- `checkBrowserAssets()` in `http/assets.ts` checks the native and React browser assets and logs each missing asset's build hint through Effect at startup. `checkNativeAsset()` retains its native-only check.
+- Public `integration/board.ts`, `integration/responses.ts`, `integration/attention.ts`, `integration/diagnostics.ts` and `integration/publication.ts` entry points for headless addons such as Work Fleet, with the existing document reading, response publication, request receipt and diagnostics behavior. `integration/metadata.ts` defines portable metadata types for consumer declarations.
+- Add a sidebar and top-bar Inbox with a live count for human-owned open next actions, open questions and Fleet work waiting on a person. Overview links to an Inbox summary; Work cards/tables show Waiting on you without changing recorded status columns. Missing and duplicated IDs remain visible with source links, and ages beyond 48 hours use days. Group Fleet decision sources and their question/response records under a collapsed sidebar section.
+- Standalone `kind: question` items accept optional label/description options and a recommended label. Their item pages support option buttons and free-text answers through the opted-in response publisher. An answer removes the question from the Inbox for its exact reviewed source; edits require a new answer and original source bytes stay unchanged. Closed or invalid questions keep readable answer history. Option buttons use equal widths and spacing; the answer form remembers the local author and puts response details behind a toggle.
+- Add a Diagnostics view with live native reads of Codex app-server usage windows, one-minute shared GitHub REST/GraphQL limit reads, and optional versioned Fleet health snapshots. Each source reports missing configuration and failures independently; Fleet freshness, concurrency, queues, human blockers and scheduler/capacity observations remain visible.
+- Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
+- `checkNativeAsset()` in `http/assets.ts` checks bundle availability and logs the missing-bundle warning through Effect.
+- `documentBody(document)` reads display prose from the existing registered-question format or the ordinary parsed document body.
+- The existing `page/diagrams.ts` and `page/swap.ts` entry points expose the related `diagrams` and `swap` browser script strings together.
+- A Vite React client bundle and Tailwind theme are served alongside the native client without changing the current pages.
+- The `rpc/handlers.ts` module exports `handlers(options: ServerOptions)`, an Effect that reads the Board services and returns the native RPC handler layer, so component tests can use the same handlers with an in-memory Markdown index.
+- `http/assets.ts` exports `ASSET_HANDLERS`, the static and bundled asset route/handler pairs used by the Board server.
+- The browser helpers `boardRouter()` and `cn(...inputs)` initialize the placeholder router and combine Tailwind classes for later client components.
+- The document query includes optional `reading` context described by the exported `ReadingContext` schema (source lines, frontmatter, backlinks, criterion claims, evidence source links and managed receipts) and optional request `prompts` and `promptUnavailable`. `DocumentView` accepts optional `context` and `introduction` React nodes for the document layout.
+- The navigation query includes optional `home` data with the configured board file and its unique identity, so the shell can select its reader without issuing a document query for a home board.
+- The native `document` query returns Markdown source, resolved links and references, metadata, source diagnostics, resolved questionnaire answer actions and validated request/response history without rendered HTML or syntax trees. `browser/document/schema.ts` defines the `Document` and `DocumentRequest` schemas; `browser/document/View.ts` exports `DocumentView` and `DocumentViewProps` for React reading with the existing Markdown plugins, client-side Shiki and a Mermaid code override. The existing page continues to use server rendering.
+- `document/read.ts` exports `readDocument(options)` and `DocumentOptions` for source reads. `ServerOptions.document` optionally supplies this reader; `render/documentLinks.ts` accepts query-provided targets and exports `resolveDocumentLink`. `codeBlocks` accepts `{ diagrams: false }` to retain Mermaid code for React rendering.
+- Defining modules also expose the shared `documentPlugins`, browser `highlightDocument` and `Mermaid` components, and server `documentTargets` and `documentRequests` data helpers.
+- `boardRouter(options?)` accepts shell query bindings and bootstrap HTML; its existing no-argument form remains available.
+- The native browser entry exposes `remember(element)`, `swap(current, incoming, highlight?)`, `legacyRuntime()` and its `RouterBridge` type to share page reconciliation and the legacy router bridge with the React shell.
+- `currentResponses(responses)` selects the latest response per author before applying explicit supersession, using recorded time and response identity to order ties. Managed request acknowledgements use the same selection, so a later answer from one author can close the question while different authors remain competing.
+
+### Changed
+
+- The React shell browser modules ship only inside the prebuilt bundles and are not importable from the package. Keep the router, UI helpers, icons, React atoms and Platform React/form adapters in development dependencies so installing the Board does not install them. The native bundle entry, session, reconciliation and form helpers are also excluded from package exports; the native client, document view and shared schemas remain available. Packed consumers start the command and serve both browser bundles without installing the bundle-only libraries.
+- Declare the live subscription through effect-contract and consume its bound native Stream. Native HTTP tests cover filesystem changes refreshing dependent reads through this subscription.
+- Diagnostics now reads health, owner waiting counts and rate-limit observations through the Fleet daemon HTTP RPC API, with explicit stopped-daemon state, retry on refresh and preserved health freshness.
+- Add `BoardOptions.fleetPort`, the `--fleet-port` CLI option, the `daemonDiagnostics(port)` client, and the shared `DiagnosticsContract`, `DiagnosticsSnapshot`, `DAEMON_PORT` and `DAEMON_RPC_PATH` definitions for the daemon query.
+- Document markup places the title, authored status and next action before source context and prose. Source context contains provenance, backlinks and reading tools; its disclosure defaults open at the desktop media query and closed at the narrow query. DOM tests cover this order, disclosure state and a viewport-height CSS placement bound, not measured browser layout or physical devices.
+- Item-page controls above the title have scrollable viewport-height caps. Question forms keep the text-column width and start margin; desktop grids allocate excess context height to the prose row. DOM style assertions cover these constraints.
+- The exposed rendering helpers accept optional introduction controls: `documentHtml` takes a fourth introduction HTML argument, `metadataHtml` takes a fourth summary flag, and `documentHeadings` takes a title-first flag. Existing arguments remain valid.
+- The exposed `itemIntroduction`, `itemContextScript` and `itemStyles` helpers supply the authored summary, responsive disclosure behavior and document layout styles.
+- Reading-state snapshots store context disclosure state separately from the existing detail-state array. Live document patches retain disclosure nodes and their open state; navigation and diagram regressions cover restored reading records and mounted details.
+- Re-read only changed Markdown paths after each settled watcher batch. Retain unchanged parsed documents and search entries, update dependent metadata diagnostics, and coalesce bursts larger than 256 events into one revision. Watcher recovery checks source bytes while retaining unchanged parses.
+- Record questions, responses, handoffs and managed decision receipts on macOS. The no-replace publisher keeps Linux descriptor anchoring and, on macOS, validates canonical paths and directory device/inode identity before and after publishing. Boundary changes found after a link or reconciliation report `Uncertain`, and a missing or replaced write directory is a `Conflict`.
+- Render the file sidebar as nested native folders with shared ancestry, keeping home first, logical reference URLs and folder collapse state through live updates.
+- Browser form adapters expose `handoffForm`, `responseForm`, `responseFormSchema`, `ResponseSubmission`, `fieldFeedback` and `formOwner`; `responseFields` and `requestAuthor` discover the response controls. `questionnaireControls` now accepts an owner abort signal and no longer validates. `submitResponse` takes a decoded submission and propagates failed saves to the form result. Remove `inputFrom` and `submissionFields`; the form owns decoding and snapshots.
+- Run the static handoff, Inbox response and question forms on `@shivaedev/effect-form`. Schema decoding, field messages and captured submissions share the package model; reviewed-context checks and durable drafts retain their existing policy. Form registries and DOM bindings are released on navigation/pagehide and recreated on pageshow.
+- Document and item pages render from the typed document query in the React shell, including reading tools, source context and standalone-question answer controls.
+- The Board opens as a React shell with TanStack Router and a sidebar rendered from the native navigation query through `effect-react`. Existing pages render in `LegacyMain`, with live updates, reading history and response drafts retained.
+- Board route loaders read document and workspace page queries through `effect-react` in the shell's native registry. Preloading shares cached reads with navigation, and the displayed page stays mounted while the next read settles.
+
+### Fixed
+
+- Missing `assets/react.js` and `assets/react.css` return the build command in a plain-text HTTP 500 response, like `assets/native.js`. Building the assets restores serving without restarting the Board.
+- Inbox questions and navigation counts include only requests addressed to the maintainer, selected by `--maintainer` (default `maintainer`), and unaddressed standalone questions. Questions for other responders remain available through their item, Responses and Work.
+- All native RPC requests require the RPC serialization's content type, including when responses are disabled, through Platform's shared local request guard.
+- Inbox ages and order follow current file modification times, including content-preserving touches and index restarts, while unchanged document identities stay reused. Place the sidebar Inbox above recent files and Getting started, and space Clear selection above the answer label.
+- Preserve Changes-view control state through live page refreshes so a ready Mark seen action stays available and an overlapping observation keeps its busy state.
+- Mark stale Fleet snapshots and dim their counts while displaying the publisher’s observation time. Label Codex windows by duration, show local and relative resets, explain unsupported snapshot versions and API-key account limits, and make Diagnostics available in the header.
+- Keep same-origin assets and unrecognized routes in browser navigation instead of intercepting them as reader pages. Preserve native returned-result navigation.
+- A missing browser bundle logs its build command once when the Board starts and returns the same message in the bundle's HTTP 500 response. Building the bundle restores serving without restarting the Board.
+- The native browser bundle carries a stable Work Board identifier for installed-package verification.
+- Registered question packets show the captured document's prose without rendering its front matter as a heading in the React shell, server fallback or native document view. Stored context and reviewed revisions retain the original bytes.
+- Open question packets offer an “Answer these questions” action beside the questions when responses are enabled. Static options read as prose, and Inbox question entries open the response form directly.
+- Same-document anchor navigation keeps the hosted main node and expanded details in place, including through Back and Forward history.
+- Show required author and unanswered prompt messages beside response controls and in the status line, clear corrected warnings, and keep the locally remembered author visible.
+- Keep response text, focus and cursor through source updates so typing can continue; retain browser drafts across reloads.
+- Show one answer action per question packet on the item page.
+- Document render tests await asynchronous Markdown updates without gaps outside React `act`.
+- Use Platform’s `rpcBoundary` for handler failures: callers receive a redacted declared rejection while the original cause stays in the server trace without being sent to the client.
+- The bound contract subscription declares `InternalServerError` and uses the shared request tracing and redacted handler boundary.
+- Retry a file listing when its revision changes during the read, so the search snapshot does not cache an older listing under the newer revision and omit newly registered questions.
+- Board validation, agent commands and waits, rendering and host initialization report Schema errors with recovery instructions; page RPC failures retain their declared rejection and message.
+- Keep Home, Inbox, Overview, Work, Changes and Diagnostics in fixed sidebar rows. Project files scroll independently and reveal the selected document; recent documents and favorites open in a bounded reading-history dialog. Below 768px, Files opens an overlay drawer with keyboard focus containment, Escape/backdrop dismissal and focus return. The new `page/sidebarScript.ts` module exports `sidebarScript()` to emit the drawer and selected-file scrolling client script.
+
+### Breaking
+
+- Fleet Diagnostics reads version 2 health snapshots and shows separate waiting counts for maintainer, orchestrator and automation.
+- The native navigation query takes `{ current: string }` with the selected document path and returns Schema data for the file tree, folder counts, Fleet records and Inbox count. The server sidebar and browser updates render that shared data with the existing layout.
+- Replace `ReadFailed` and `ResponseFailed.code` RPC rejections with Platform taxonomy classes. Response and handoff contracts declare `NotFound`, `PreconditionFailed`, `Forbidden`, `Conflict`, `BadRequest`, `ServiceUnavailable` and `InternalServerError`; publication uncertainty and wait deadlines use `PublicationUncertain` and `Unanswered` from `rpc/rejections.ts`, alongside the `ResponseRejection` schema/type and `responseRejections`.
+- The document contract declares `NotFound`, `Conflict`, `ServiceUnavailable` and `InternalServerError` through the `documentRejections` object and `DocumentRejection` schema exported by `rpc/rejections.ts`.
+- Remove `/_board/search`, `/_board/history` and `/events`. Use the existing search, history and subscription operations at `POST /_board/rpc`.
+- Resolve response and handoff methods through the native `Responses` and `HandoffsService` services and provide their Layers with `ResponseConfig`, instead of calling service factories. Document readers use `Responses` from Context instead of `DocumentOptions.responses`. `HandoffsService` lives in `handoffs/Service.ts`.
+- Import `Highlighter` from `render/Highlighter.ts` and call its `codeBlocks()` Effect for the rendering plugin. `THEMES` lives in `render/code.ts`.
+
 ## 0.11.0 - 2026-10-06
 
 ### Added

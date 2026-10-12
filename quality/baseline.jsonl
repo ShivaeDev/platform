@@ -413,7 +413,6 @@
 {"path":"packages/work-board/src/render/footnotes.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/render/footnotes.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/test-support/live.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"script/ci/testPackages.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/lib/postgres-test-environment.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/adapters/fs.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":7}
 {"path":"script/lint/adapters/fs.ts","rule":"biome/plugin","count":4}
@@ -425,8 +424,6 @@
 {"path":"script/lint/adapters/report.ts","rule":"biome/plugin","count":1}
 {"path":"script/lint/adapters/run.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lint/adapters/run.ts","rule":"files/named-after-export","count":1}
-{"path":"script/lint/inventory.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
-{"path":"script/lint/inventory.ts","rule":"biome/plugin","count":1}
 {"path":"script/lint/program.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"script/lint/program.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/rules/browser-safe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
@@ -441,8 +438,6 @@
 {"path":"script/lint/rules/specifiers.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
 {"path":"script/lint/rules/structure.ts","rule":"files/named-after-export","count":1}
 {"path":"script/lint/violation.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"script/lint/workspace.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"script/lint/workspace.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":1}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"script/package-check/archive.ts","rule":"biome/lint/nursery/useNamedCaptureGroup","count":3}
 {"path":"script/package-check/archive.ts","rule":"biome/plugin","count":3}

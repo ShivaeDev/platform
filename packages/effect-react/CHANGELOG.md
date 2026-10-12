@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.2 - 2026-10-12
+
+### Added
+
+- Publish `@shivaedev/effect-react/testing.ts` with `render`, `Rendered`, `eventually` and `expectNoReactWarnings` for happy-dom render tests using native atom registries and test RPC layers. `render` exposes its registry, supports rerendering and releases its root, registry and container on unmount. React DOM and Vitest are optional peers needed by the testing entry.
+- Add opt-in `useQuery(atom, { keepPreviousData: true })` to retain the last successful value while a changed query payload loads or fails. Query identity changes still reset displayed data by default, and registry changes clear it even with retention enabled. Native results, typed failures and interruption remain visible.
+- `@shivaedev/effect-react/router.ts` exports `loadQuery(registry, atom, loaderContext)` for TanStack Router loaders. It reads contract query atoms in the application's shared registry, throws typed failures as their original tagged errors, and releases an aborted loader's subscription. TanStack Router is an optional peer.
+
+### Changed
+
+- Document the package's purpose, native atom mental model, query/action usage, session ownership and editor/create workflows; publish the north star and package roadmap with the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+- The reference PostgreSQL order handlers use the shared server live helper and support composing PostgreSQL change delivery. The reference fixture proves commits from two HTTP server processes and a pg-boss worker, rollback silence, and live resync after listener loss.
+
+### Fixed
+
+- Keep the last successful query value during same-identity refreshes, including live invalidation, and after failed refreshes even when the native result has no retained success. `refreshing` reports pending work alongside displayed data.
+
 ## 0.2.1 - 2026-10-05
 
 ### Changed

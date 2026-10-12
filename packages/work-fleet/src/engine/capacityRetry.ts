@@ -9,7 +9,7 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 	operationId: string,
 	error: SessionFailure,
 ) {
-	if (error.reason !== "rejected" || /\brequest queue is full\b/iu.exec(error.message) === null) {
+	if (error.reason !== "rejected" || error.code !== "session-queue-full") {
 		return false;
 	}
 	const current = yield* state.load(previous.workId);

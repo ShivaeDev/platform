@@ -398,7 +398,7 @@ export async function registerReviewedQuestion(url: string, revision: string) {
 
 Call this function with a revision whose source/context you have reviewed and a server started with `--responses`. `api` binds reading operations; `responses` binds question and response operations. `read` resolves a query atom, `run` executes a query Effect, and `mutate` executes a command with its invalidation service. `handoffs` binds source/history queries and the preparation command. The client also exposes `registry` and `updates`; dispose the registry when its owner ends.
 
-`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. The React sidebar renders this query through `effect-react`, marks the selected file and retains the tree while a route change loads its next query.
+`client.api.navigation.query({ current: "notes/topic.md" })` returns navigation data rather than HTML. Pass the selected document's relative path, or `""` for a workspace view. `tree` contains ordered `files` and recursive `folders`, each with a descendant file `count` and an `active` flag. Files include their path, encoded href, display name, modification time and `current` flag. `records` holds the Fleet records separately with its count and active flag; `inboxCount` is a number or `null` when the index is unavailable. Optional `home` identifies the configured home board file and its unique identity. The React sidebar renders this query through `effect-react`, marks the selected file and retains the tree while a route change loads its next query.
 
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
@@ -463,7 +463,36 @@ RPC rejections use Platform taxonomy classes: `Forbidden` for disabled writes, `
 
 Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source, metadata and diagnostics, resolved links and references, file information, resolved question actions and request previews with response history. Identity URLs and `/` use the same document query. Missing and duplicate identities reject with `NotFound` and `Conflict`; incomplete history stays explicitly unavailable. The query sends no rendered HTML or syntax tree.
 
-Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router; its `LegacyMain` host displays the existing server-rendered pages. Hosts can mount `DocumentView` directly from source-query data.
+Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Its route loaders read document and page contract queries through `effect-react` in the shell's native registry; preloading and navigation share those reads. Document and item pages mount `DocumentView` from the typed document query; the configured home board and workspace views remain in `LegacyMain`. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
+
+#### Headless addon API
+
+Work Fleet uses five server entry points and one portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
+
+| Entry point | API object and members |
+| --- | --- |
+| `integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
+| `integration/metadata.ts` | Portable types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, also available through `integration/board.ts` |
+| `integration/responses.ts` | `responses`: `Responses`, `ResponseConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `ResponseOptions` |
+| `integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`; exported type `RequestReceipt` |
+| `integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
+| `integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+
+```ts
+import { NodeServices } from "@effect/platform-node";
+import { Effect } from "effect";
+import { board } from "@shivaedev/work-board/integration/board.ts";
+
+const read = Effect.scoped(Effect.gen(function* () {
+  const changes = yield* board.watchChanges("./notes");
+  const snapshot = yield* board.searchSnapshot("./notes", undefined, changes);
+  return yield* snapshot;
+})).pipe(Effect.provide(NodeServices.layer));
+```
+
+The snapshot retains parsed documents, identity diagnostics and unavailable paths. Compose `responses.Responses.layer` with `responses.ResponseConfig` containing that index, the same watcher, workspace root and explicit `enabled` write choice. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
+
+Fleet's production imports are fenced to these six entry points by `pnpm lint`; its test fixtures may still use Board modules directly. The packed-package consumer exercises the headless read, response and receipt path through these exports.
 
 #### CLI reference
 

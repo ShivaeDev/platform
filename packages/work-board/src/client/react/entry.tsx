@@ -24,6 +24,9 @@ if (container && bootstrap) {
 		started = true;
 		void legacyRuntime().then(({ connectRouter }) => {
 			connectRouter({
+				before: (listener) => {
+					router.subscribe("onBeforeNavigate", listener);
+				},
 				navigate: (url) =>
 					url === location.pathname + location.search + location.hash ? router.navigate({ state: true, to: url }) : router.navigate({ to: url }),
 				subscribe: (listener) => {
@@ -34,7 +37,7 @@ if (container && bootstrap) {
 		});
 	}
 	const reading = history.state?.workBoard;
-	const router = boardRouter({ api: native.api, initial, ready });
+	const router = boardRouter({ api: native.api, initial, ready, registry: native.registry });
 	if (reading) {
 		history.replaceState({ ...history.state, workBoard: reading }, "");
 	}
@@ -51,7 +54,7 @@ if (container && bootstrap) {
 			return;
 		}
 		native = session(window);
-		router.update({ context: { shell: { api: native.api, initial, ready } } });
+		router.update({ context: { shell: { api: native.api, initial, ready, registry: native.registry } } });
 		render();
 	});
 }

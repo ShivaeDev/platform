@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { useLayoutEffect, useRef } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { pageQuery } from "#client/page/routeQuery.ts";
 import { commitMain, legacyPage, type MainLocation } from "./legacyPage.ts";
 import type { ShellApi } from "./ShellApi.ts";
 export function LegacyMain({
@@ -15,7 +16,7 @@ export function LegacyMain({
 	readonly onPage: (location: MainLocation) => void;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
-	const query = useQuery(api.page.query({ url }));
+	const query = useQuery(pageQuery(api, url));
 	const bootstrapRef = useRef(initial);
 	useLayoutEffect(() => {
 		if (!hostRef.current) {
@@ -28,9 +29,14 @@ export function LegacyMain({
 		bootstrapRef.current = "";
 		const location = commitMain(hostRef.current, legacyPage(html));
 		if (location) {
+			const main = hostRef.current.querySelector<HTMLElement>("#doc");
+			if (main && Option.isSome(query.data)) {
+				main.dataset.route = url;
+				document.dispatchEvent(new Event("board-page"));
+			}
 			onPage(location);
 		}
-	}, [query.data, onPage]);
+	}, [query.data, onPage, url]);
 	return (
 		<>
 			<div data-legacy-main ref={hostRef} />

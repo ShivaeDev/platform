@@ -13,6 +13,7 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 	let moved = false;
 	return [
 		{
+			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				const prepared = yield* prepareWork("one");
 				yield* ctx.fixture.replaceRecord({ ...prepared.value, stage: "executing" });
@@ -23,10 +24,10 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				expect(after.attempts).toHaveLength(1);
 				expect(after.stage).toBe("executing");
 			},
-			reason: "Execution lacks an intent",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
 				yield* finishRecoveryWorker(ctx, "Findings");
@@ -43,10 +44,10 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
 				expect(after.stage).toBe("executing");
 			},
-			reason: "Report execution lacks a completed receipt",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "worker-receipt-missing" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryWorker(ctx);
 				setLastObservation(ctx, { execution: "completed" });
@@ -58,10 +59,10 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "review without adopted worker receipt",
-			reason: "Review lacks the adopted worker receipt",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-stale" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				context = ctx;
 				yield* finishRecoveryReview(ctx);
@@ -82,12 +83,11 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				expect(after.result?.head).toBe(MOVED);
 				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
 			},
-			reason: "Current PR result does not match the observed delivery head",
 			restore: () =>
 				Effect.sync(() => {
 					moved = false;
 				}),
-			sites: ["engine/makeDeliver.ts: error.message"],
+			sites: ["engine/makeDeliver.ts: failureCode(error)"],
 		},
 	];
 }

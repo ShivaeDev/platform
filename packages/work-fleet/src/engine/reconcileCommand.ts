@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
@@ -16,7 +16,7 @@ function capacityFailure(error: unknown) {
 		error instanceof StorageAdmission
 		|| error instanceof StorageQuota
 		|| error instanceof StorageCapacity
-		|| (error instanceof Forbidden && error.message.includes("quota"))
+		|| failureCode(error) === "provider-quota-unavailable"
 	);
 }
 export function reconcileCommand(state: EngineState, advance: ReturnType<typeof makeAdvance>) {
@@ -32,6 +32,7 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		current = yield* persistTerminalReceipts(state, current, error instanceof SessionFailure ? error.terminalReceipts : undefined);
 		return yield* decision(
 			current,
+			failureCode(error),
 			failureMessage(error),
 			"Inspect this specific integration failure and retry the existing work",
 			undefined,

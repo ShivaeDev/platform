@@ -9,7 +9,7 @@ import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
 for (const rejectedCall of ["session", "turn"] as const) {
-	postgresTests("test")(`a queued initial ${rejectedCall} retains its launch intent when its approved brief changes`, () => {
+	postgresTests("test")(`a queued initial ${rejectedCall} stops before resubmission when its authored brief changes`, () => {
 		let now = 100;
 		let reject = true;
 		const launch = { model: "initial-model" };
@@ -18,7 +18,9 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				launch,
 				now: () => now,
 				submissionFailure: (call) =>
-					reject && call === rejectedCall ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined,
+					reject && call === rejectedCall
+						? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" })
+						: undefined,
 				workerGuidance: "Follow synthetic worker conventions.",
 			},
 			(fixture, root, source) =>
@@ -39,19 +41,14 @@ for (const rejectedCall of ["session", "turn"] as const) {
 					yield* fixture.restart(cycle);
 					const accepted = (yield* fleet.get("one")).value;
 					const attempt = accepted.attempts.at(-1);
-					expect(accepted.stage).toBe("executing");
-					expect(accepted.boardContext).toBe(current);
+					expect(accepted.stage).toBe("needs-human");
+					expect(accepted.decision?.reason).toBe("Board context changed");
+					expect(accepted.boardContext).toBe(source);
 					expect(accepted.launchRetry).toBeUndefined();
-					expect(attempt).toMatchObject({ role: "worker", settings: { model: "initial-model" } });
-					expect(attempt?.prompt).toContain(`${failed?.prompt}\n\nThe approved worker brief changed.`);
-					expect(attempt?.prompt).toContain(`Previous brief:\n${source}`);
-					expect(attempt?.prompt).toContain(`Current brief:\n${current}`);
-					expect(attempt?.prompt?.match(/Follow synthetic worker conventions\./gu)).toHaveLength(1);
-					expect(accepted.attempts.at(-2)).toEqual(failed);
-					expect(fixture.launched).toHaveLength(rejectedCall === "turn" ? 1 : 2);
-					if (rejectedCall === "turn") {
-						expect(attempt?.receipt?.sessionId).toBe(failed?.sessionId);
-					}
+					expect(attempt).toEqual(failed);
+					expect(accepted.attempts).toEqual(queued.attempts);
+					expect(fixture.launched).toHaveLength(1);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 1 : 0);
 				}),
 		);
 	});

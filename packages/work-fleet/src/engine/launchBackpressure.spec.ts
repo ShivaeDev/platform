@@ -21,7 +21,7 @@ describe("Fleet launch backpressure", () => {
 				{
 					now: () => now,
 					submissionFailure: (call) =>
-						reject && call === rejectedCall ? new SessionFailure({ message: QUEUE_FULL, reason: "rejected" }) : undefined,
+						reject && call === rejectedCall ? new SessionFailure({ code: "session-queue-full", message: QUEUE_FULL, reason: "rejected" }) : undefined,
 				},
 				(fixture) =>
 					Effect.gen(function* () {
@@ -63,7 +63,10 @@ describe("Fleet launch backpressure", () => {
 		let now = 100;
 		let reject = true;
 		return withEngine(
-			{ now: () => now, submissionFailure: () => (reject ? new SessionFailure({ message: QUEUE_FULL, reason: "rejected" }) : undefined) },
+			{
+				now: () => now,
+				submissionFailure: () => (reject ? new SessionFailure({ code: "session-queue-full", message: QUEUE_FULL, reason: "rejected" }) : undefined),
+			},
 			(fixture) =>
 				Effect.gen(function* () {
 					yield* prepareWork("one");
@@ -90,14 +93,14 @@ describe("Fleet launch backpressure", () => {
 		);
 	});
 	test("a permanent rejection reaches needs-human without stopping other launches", () =>
-		withEngine({ rejectTurn: true }, (fixture) =>
+		withEngine({ submissionFailure: () => new SessionFailure({ code: "session-rejected", message: QUEUE_FULL, reason: "rejected" }) }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				yield* prepareWork("two");
 				const fleet = yield* Fleet;
 				expect((yield* cycle).dispatched).toHaveLength(2);
 				expect((yield* fleet.get("one")).value).toMatchObject({
-					decision: { reason: "Provider rejected turn before acceptance" },
+					decision: { code: "session-rejected", reason: QUEUE_FULL },
 					stage: "needs-human",
 				});
 				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
@@ -118,21 +121,23 @@ describe("Fleet launch backpressure", () => {
 		));
 	test("retry checks current Board context and replaces capacity waiting with the human blocker", () => {
 		let now = 100;
-		return withEngine({ now: () => now, submissionFailure: () => new SessionFailure({ message: QUEUE_FULL, reason: "rejected" }) }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* cycle;
-				fixture.editWork("one", "changed-board");
-				now = 30_100;
-				yield* fixture.restart(cycle);
-				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-				const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
-				expect(status).toContain("Waiting on maintainer (1)");
-				expect(status).toContain("Work is no longer approved or is done or superseded");
-				expect(status).not.toContain("Waiting for provider capacity");
-				expect(fixture.launched).toHaveLength(1);
-			}),
+		return withEngine(
+			{ now: () => now, submissionFailure: () => new SessionFailure({ code: "session-queue-full", message: QUEUE_FULL, reason: "rejected" }) },
+			(fixture) =>
+				Effect.gen(function* () {
+					yield* prepareWork("one");
+					const fleet = yield* Fleet;
+					yield* cycle;
+					fixture.editWork("one", "changed-board");
+					now = 30_100;
+					yield* fixture.restart(cycle);
+					expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+					const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
+					expect(status).toContain("Waiting on maintainer (1)");
+					expect(status).toContain("Work is no longer approved");
+					expect(status).not.toContain("Waiting for provider capacity");
+					expect(fixture.launched).toHaveLength(1);
+				}),
 		);
 	});
 });

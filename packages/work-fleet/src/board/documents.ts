@@ -1,12 +1,12 @@
 import { Effect, FileSystem, Path } from "effect";
-import { listMarkdown } from "@shivaedev/work-board/files/list.ts";
-import { markdownPath } from "@shivaedev/work-board/files/markdownPath.ts";
-import type { MetadataDocument } from "@shivaedev/work-board/metadata/model.ts";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import type { MetadataDocument } from "@shivaedev/work-board/integration/board.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
 import { boardDiagnostics } from "#board/fleetField.ts";
 import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";
 import { STATUS_MARKER } from "#board/statusMarkdown.ts";
 import { BoardFailure } from "#policy.ts";
+
+const { listMarkdown, markdownPath } = boardApi;
 
 export type BoardDocument = MetadataDocument & { readonly source: string };
 
@@ -41,7 +41,7 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 		if (file === "fleet/status.md" && source.startsWith(`${STATUS_MARKER}\n`)) {
 			return undefined;
 		}
-		const parsed = metadataParse(source);
+		const parsed = boardApi.metadataParse(source);
 		const diagnostics = boardDiagnostics(parsed);
 		if (diagnostics.length > 0) {
 			problems.set(

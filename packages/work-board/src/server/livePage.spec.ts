@@ -123,7 +123,7 @@ describe("live page", () => {
 		rmSync(join(notes.root, "plan.md"));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc .empty")?.textContent).toBe("No markdown file at plan.md.")));
 		expect(page.document.querySelector('#files a[href="/plan.md"]')).toBeNull();
-		expect(status()).toBe("live");
+		yield* Effect.promise(() => waitFor(() => expect(status()).toBe("live")));
 	});
 
 	effectApp("newer invalidation replaces a held read and the late result cannot overwrite it", function* () {

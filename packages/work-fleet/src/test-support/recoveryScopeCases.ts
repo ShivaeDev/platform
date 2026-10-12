@@ -17,6 +17,39 @@ function restore(context: RecoveryContext) {
 export function recoveryScopeCases(): readonly RecoveryCase[] {
 	return [
 		{
+			code: "fleet-stale" as const,
+			enter: Effect.fnUntraced(function* (context) {
+				yield* prepareWork("one");
+				writeFileSync(join(context.root, "one.md"), `${context.source}\nChanged criteria.\n`);
+				yield* (yield* Fleet).dispatch("one");
+			}),
+			name: "authored brief changed before dispatch",
+			progress: (_context, _before, after) => {
+				expect(after.attempts).toHaveLength(1);
+				expect(after.stage).toBe("executing");
+			},
+			restore,
+			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
+		},
+		{
+			code: "fleet-stale" as const,
+			enter: Effect.fnUntraced(function* (context) {
+				yield* launchRecoveryWorker();
+				writeFileSync(join(context.root, "one.md"), `${context.source}\nChanged criteria.\n`);
+				setLastObservation(context, { execution: "completed", output: REPORT });
+				yield* (yield* Fleet).reconcile("one");
+			}),
+			name: "authored brief changed during execution",
+			progress: (_context, before, after) => {
+				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
+				expect(after.attempts.at(-1)?.role).toBe("reviewer");
+				expect(after.stage).toBe("reviewing");
+			},
+			restore,
+			sites: ['engine/boardBrief.ts: "fleet-stale"', "engine/reconcileCommand.ts: failureCode(error)"],
+		},
+		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* prepareWork("one");
 				revoke(context);
@@ -27,11 +60,11 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts).toHaveLength(1);
 				expect(after.stage).toBe("executing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
 			restore,
-			sites: ["engine/dispatchCommand.ts: authorized.failure.message"],
+			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
 		},
 		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* launchRecoveryWorker();
 				revoke(context);
@@ -44,9 +77,8 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 				expect(after.stage).toBe("reviewing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
 			restore,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

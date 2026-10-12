@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1 - 2026-10-12
+
+### Added
+
+- `submitter.fail` accepts nested path tuples, and `errorAt` shows typed handler rejections beside Schema messages for individual array elements.
+- Optional typed `arrayKeys` selectors keep element rejections with their keys through insertion, removal and reorder, including late save responses. Changed or removed inputs discard their rejection; arrays without selectors use index paths.
+- `Form.errorAt(path)` reads nested Schema feedback beneath a top-level field, including individual array entries, without adding nested field state. Top-level touch/submission controls visibility; `error(name)` retains aggregated Schema, handler and advisory messages. `messageAtPath(issue, path)` selects the first Schema message at or beneath a path; `schemaFeedback(decoded)` adapts a decoded result atom to aggregated and nested messages.
+
+### Changed
+
+- Document the package's purpose, form model, examples, API and boundaries; publish the README and `docs/` while keeping agent guidance out of the package.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
 ## 0.2.0 - 2026-10-04
 
 ### Changed
