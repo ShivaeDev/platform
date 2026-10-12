@@ -1,11 +1,12 @@
 import { Config, Effect, Layer, Redacted } from "effect";
+import { HttpStaticServer } from "effect/unstable/http";
 import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes, Subscribe } from "#notes.ts";
 import { makeAuth } from "./auth.ts";
 import { databaseOptions } from "./databaseOptions.ts";
 import { NotesService } from "./NotesService.ts";
-import { CountWords, NoteJobs } from "./noteJobs.ts";
+import { noteProducer } from "./noteProducer.ts";
 
 const handlers = Notes.toLayer(
 	Effect.gen(function* () {
@@ -29,14 +30,12 @@ export function starterHost(config?: {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
 			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			const database = databaseOptions(auth, databaseUrl);
-			const producer = NoteJobs.layer({ connectionString: Redacted.value(databaseUrl), jobs: [CountWords] });
+			const producer = noteProducer(Redacted.value(databaseUrl));
 			return appHost({
-				assets: { root: "dist", spa: true },
 				config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 				group: Notes,
-				handlers,
+				handlers: Layer.mergeAll(handlers, routes, HttpStaticServer.layer({ root: "dist", spa: true })),
 				migrations: database.migrations,
-				routes,
 				services: NotesService.layer.pipe(Layer.provideMerge(producer)),
 				sessions,
 			});

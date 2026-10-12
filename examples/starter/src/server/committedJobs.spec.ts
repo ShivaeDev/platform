@@ -45,6 +45,8 @@ effectApp(
 		}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(context), Effect.result);
 		expect(Result.isFailure(rollback) && rollback.failure).toBe("rollback");
 		expect(yield* sql`select count(*)::int as count from pgboss.job where name = 'count-note-words'`).toEqual([{ count: 1 }]);
+		yield* Effect.sleep("1200 millis");
+		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
 		yield* Layer.build(noteWorker({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
 		yield* Effect.promise(() =>
 			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, wordCount: 4 }]), { timeout: 5000 }),

@@ -8,6 +8,7 @@
 	},
 	"scripts": {
 		"build": "vite build",
+		"check:published": "node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"dev": "node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "vitest run",
