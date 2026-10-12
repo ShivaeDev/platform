@@ -31,22 +31,9 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### 1. Once per repository: connect the shared policy
 
-Put this in `quality.config.ts`:
+A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. The default baseline and registry paths are `quality/baseline.jsonl` and `quality/registry.json`.
 
-```ts
-import { defineConfig } from "@shivaedev/quality/config.ts";
-
-export default defineConfig({
-	preCommit: { run: ["pnpm typecheck"], tighten: true },
-	sources: ["src"],
-});
-```
-
-This supplies the source location and the repository's type-check command, while keeping Quality's rule settings at their defaults. The hook can also lower staged debt as it is repaired. The config's folder is the root for paths and commands. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
-
-`defineConfig` checks the config's types. The CLI also validates it: an unknown rule id fails before checks run, and enabled built-in rules reject unknown options. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md) and [naming reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/naming.md) explain the shared checks. Their option inventory describes accepted inputs; you do not need to fill it out to adopt the policy.
-
-Create a root `biome.json` too:
+Create a root `biome.json`:
 
 ```json
 {
@@ -56,15 +43,40 @@ Create a root `biome.json` too:
 
 Quality's `biome` rule asks for this shared configuration and reports Biome's error findings through the same baseline as the other rules. Quality ships the reasons for its own disabled Biome rules and selected disabled fixes. Extend it rather than copying the rule settings; record existing findings in the baseline instead of weakening the checks.
 
-For an existing repository, inspect the report, record the debt it should keep and install the optional commit check:
+Add the daily commands to `package.json`:
+
+```json
+{
+	"scripts": {
+		"format": "quality fix",
+		"lint": "quality lint",
+		"typecheck": "tsc --noEmit"
+	}
+}
+```
+
+The optional pre-commit hook runs Quality's lint, then the `typecheck` script when it exists, then an optional `quality:commit` script for repository checks. It uses the manifest's `packageManager` (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Add `quality:commit` only when the repository has extra commit checks.
+
+Inspect the report and install the optional commit check explicitly:
 
 ```sh
 quality lint
-quality baseline write
 quality hooks install
 ```
 
-`baseline write` records error-level findings when there is no baseline. It refuses to regenerate an existing baseline without `--rule <id>`. `hooks install` writes the repository's pre-commit hook; the config above makes it tighten staged debt, run lint and then run `pnpm typecheck`. A hook Quality did not write is kept unless `--force` replaces it.
+Installing the package does not install a hook. `hooks install` writes the repository's pre-commit hook. A hook Quality did not write is kept unless `--force` replaces it. For an existing repository, `quality baseline write` records error-level findings when there is no baseline; it refuses to regenerate an existing baseline without `--rule <id>`.
+
+Add a config only when the repository needs to supply facts such as source locations or import boundaries:
+
+```ts
+import { defineConfig } from "@shivaedev/quality/config.ts";
+
+export default defineConfig({ sources: ["src"] });
+```
+
+When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+
+`defineConfig` checks the config's types. The CLI also validates it: a broken config, unknown rule id or invalid options fails before checks run. An explicit `--config` path must exist. The [rule reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/rules.md) and [naming reference](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/naming.md) explain the shared checks. Their option inventory describes accepted inputs; you do not need to fill it out to adopt the policy.
 
 ### 2. When architecture needs it: describe an import boundary
 
@@ -107,13 +119,13 @@ quality lint
 
 Lint reports the rule's guidance and each finding's file and line when available. Fix sorts manifests, applies Biome's enabled lint fixes and formatting, then repeats until a round changes nothing, for at most five rounds. It applies unsafe lint fixes too, so review the diff. It leaves object key order and the preset's disabled fixes to the author; passing `fix` does not mean lint passes.
 
-When you fix debt without the installed hook, lower the entries of changed files yourself:
+When you fix debt, lower the entries of changed files:
 
 ```sh
 quality baseline tighten
 ```
 
-`tighten` lowers entries for files changed since `HEAD`; `--staged` restricts those updates to staged files. `prune` considers every baseline entry. Both only lower or remove counts and can carry entries when git detects tracked moves. They count files on disk, so a manually run `tighten --staged` needs the unstaged changes stashed first. Quality's installed hook leaves partly staged files' entries for a later commit.
+`tighten` lowers entries for files changed since `HEAD`; `--staged` restricts those updates to staged files. `prune` considers every baseline entry. Both only lower or remove counts and can carry entries when git detects tracked moves. They count files on disk, so `tighten --staged` needs the unstaged changes stashed first.
 
 When a Quality upgrade adds a check, or a reviewed change needs to record one rule's findings again:
 
@@ -129,7 +141,7 @@ Import names from their defining module; there is no root entry. The package's `
 
 | Module | Exports |
 | --- | --- |
-| `config.ts` | `defineConfig`, `QualityConfig`, `PreCommit`, `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules` |
+| `config.ts` | `defineConfig`, `QualityConfig`, `Level`, `RuleSetting`, `RuleSettings`, `BuiltInRules` |
 | `rule.ts` | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
 | `standard-schema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
 | `imports/fences/dsl.ts` | `fence` |
@@ -142,14 +154,13 @@ Import names from their defining module; there is no root entry. The package's `
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `sources` | `["."]` | Directories or files the source rules check, relative to the config. |
+| `sources` | `["."]` | Directories or files the source rules check, relative to the repository root. |
 | `exclude` | `[]` | Paths outside the inventory, in `.gitignore` syntax. |
 | `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions. |
 | `baseline` | `quality/baseline.jsonl` | Counts of existing findings. |
 | `registry` | `quality/registry.json` | Permanent exceptions with reasons. |
 | `local` | `[]` | Exposed extension API for rules made with `defineRule`; not required for adoption. |
 | `rules` | Every rule at `error` | Options by rule id, such as import boundaries. The API also accepts a level or `{ level, options }`; see configuration limits. |
-| `preCommit` | `{ run: [], tighten: false }` | Additional shell commands after lint and optional staged baseline tightening. |
 
 #### Local rules
 
@@ -207,7 +218,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({ test: testProjects({ exclude: ["e2e/**"] }) });
 ```
 
-`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The `exclude` globs keep another runner's suites out of all three projects.
+`testProjects` runs unit tests and specs in Node and `.dom` tests and specs in happy-dom by default. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. The `exclude` globs keep another runner's suites out of all three projects.
 
 #### PostgreSQL URL gate
 

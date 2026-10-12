@@ -1,18 +1,23 @@
 import { Context, Effect, Layer } from "effect";
+import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";
 import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
-import { checkAreas, requeue } from "#scheduling/areas.ts";
+import { checkAreas, needsAreaRecords, requeue } from "#scheduling/areas.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import { SessionJournal } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 
 type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
-export class FleetRepository extends Context.Service<FleetRepository, Omit<Store, "initialize">>()("@shivaedev/work-fleet/FleetRepository") {}
+export class FleetRepository extends Context.Service<
+	FleetRepository,
+	Omit<Store, "initialize" | "operationEntries"> & Partial<Pick<Store, "operationEntries">>
+>()("@shivaedev/work-fleet/FleetRepository") {}
 export function postgresFleetRepository(namespace?: string) {
 	return Layer.effect(FleetRepository)(
 		Effect.gen(function* () {
 			const store = yield* makePostgresFleetStore(FleetRecord, {
 				admission: checkAreas,
+				admissionNeedsRecords: needsAreaRecords,
 				backlog,
 				executing,
 				requeue,
@@ -37,13 +42,7 @@ export const fleetSessionJournal = Layer.effect(SessionJournal)(
 			},
 		) {
 			return Effect.gen(function* () {
-				const records = yield* store.list();
-				const matches = records.flatMap((record) =>
-					allAttempts(record.value)
-						.filter((attempt) => attempt.operationId === operationId)
-						.map(() => record),
-				);
-				const stored = matches.length === 1 ? matches[0] : undefined;
+				const stored = yield* operationRecord(store, operationId);
 				if (stored === undefined) {
 					return yield* Effect.fail(new SessionFailure({ message: "Submission intent was not persisted", reason: "persistence" }));
 				}

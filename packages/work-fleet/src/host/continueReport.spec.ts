@@ -54,4 +54,4 @@ test("manual continuation archives a completed report and adopts the continued r
 			yield* execution.pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 		}),
 	);
-}, 30_000);
+});

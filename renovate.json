@@ -20,6 +20,14 @@
 			"matchPackageNames": ["@shivaedev/**"]
 		},
 		{
+			"description": "Patch updates collect into one pull request that Renovate opens and refreshes once a day. The package groups below keep their own pull request but follow the same daily window.",
+			"groupName": "patch updates",
+			"groupSlug": "patch-updates",
+			"matchUpdateTypes": ["patch"],
+			"schedule": ["before 6am"],
+			"updateNotScheduled": false
+		},
+		{
 			"description": "Effect packages release together and must share one version, so they move in one update.",
 			"groupName": "effect stack",
 			"groupSlug": "effect-stack",
@@ -36,6 +44,19 @@
 			"groupName": "prisma next",
 			"groupSlug": "prisma-next",
 			"matchPackageNames": ["@prisma-next/**"]
+		},
+		{
+			"description": "`@types/pg` describes the `pg` runtime, so both move in one update and never drift apart. The update runs whenever either side has one instead of waiting for the daily patch window.",
+			"groupName": "pg",
+			"groupSlug": "pg",
+			"matchPackageNames": ["pg", "@types/pg"],
+			"schedule": ["at any time"],
+			"updateNotScheduled": true
+		},
+		{
+			"allowedVersions": "!/^1\\.2\\.[45]$/",
+			"description": "`@vercel/detect-agent` 1.2.4 and 1.2.5 dropped the provenance attestation that `trustPolicy: no-downgrade` requires, so pnpm refuses them. The workspace pins 1.2.3 until an attested release lands; drop this rule with that pin.",
+			"matchPackageNames": ["@vercel/detect-agent"]
 		},
 		{
 			"allowedVersions": "<1.7.0",

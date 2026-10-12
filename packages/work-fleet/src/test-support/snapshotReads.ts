@@ -6,7 +6,23 @@ import { type HostFixture, storeState, withHost } from "#test/fleetHost.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 
 export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (host: FleetHost) {
-	const queries = vi.spyOn(pg.Client.prototype, "query");
+	const query = pg.Client.prototype.query;
+	let failures = 0;
+	function isSnapshot(text: unknown): boolean {
+		return typeof text === "string" && text.includes('"checks"') && !text.includes('"history"') && text.includes(`${host.namespace}_records`);
+	}
+	const queries = vi.spyOn(pg.Client.prototype, "query").mockImplementation(function (this: pg.Client, ...args) {
+		const [text, values, callback] = args;
+		if (isSnapshot(text) && typeof callback === "function") {
+			return query.call(this, text, values, (error, result) => {
+				if (error) {
+					failures += 1;
+				}
+				callback(error, result);
+			});
+		}
+		return query.apply(this, args);
+	});
 	const control = new pg.Pool({ connectionString: host.databaseUrl });
 	let broken = false;
 	function rename(from: string, to: string) {
@@ -15,25 +31,23 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 	yield* Effect.addFinalizer(() =>
 		Effect.gen(function* () {
 			if (broken) {
-				yield* rename("unavailable_payload", "payload");
+				yield* rename("unavailable_stage", "stage");
 			}
 			yield* Effect.promise(() => control.end());
 			queries.mockRestore();
 		}),
 	);
 	return {
-		breakReads: rename("payload", "unavailable_payload").pipe(
+		breakReads: rename("stage", "unavailable_stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = true;
 				}),
 			),
 		),
-		count: () =>
-			queries.mock.calls.filter(
-				([query]) => typeof query === "string" && query.includes("jsonb_strip_nulls") && query.includes(`${host.namespace}_records`),
-			).length,
-		restoreReads: rename("unavailable_payload", "payload").pipe(
+		count: () => queries.mock.calls.filter(([text]) => isSnapshot(text)).length,
+		failedCount: () => failures,
+		restoreReads: rename("unavailable_stage", "stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = false;

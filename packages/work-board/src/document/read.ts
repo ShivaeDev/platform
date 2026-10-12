@@ -8,6 +8,7 @@ import { metadataModel } from "#metadata/model.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { readingActions } from "#responses/readingActions.ts";
 import type { Snapshot } from "#search/snapshot.ts";
+import { documentBody } from "./body.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
 
@@ -73,7 +74,7 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			modified: file.modified,
 			questionActions: Object.fromEntries(questionActions ?? []),
 			requests: documentRequests(document, source, { ...snapshot, documents, model }),
-			source: parsed.body,
+			source: documentBody(document),
 			unavailable: snapshot.unavailable,
 			writable,
 		} satisfies Document;

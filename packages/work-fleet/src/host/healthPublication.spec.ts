@@ -1,8 +1,11 @@
 import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
+import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
+import * as status from "#board/writeStatus.ts";
 import { capacityRejected, HealthSnapshot } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
@@ -87,6 +90,29 @@ test("failed health publication leaves execution usable and retries on the next 
 			yield* Effect.sync(heal);
 			yield* cycle;
 			expect(yield* fleetHealth(root)).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
+		}).pipe(
+			Effect.provide(
+				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),
+			),
+		),
+	));
+
+test("publishes the final PostgreSQL state once after a batch of Fleet calls", () =>
+	withFleetBoard({}, (_fixture, root) =>
+		Effect.gen(function* () {
+			const writes = vi.spyOn(status, "writeStatus");
+			yield* Effect.addFinalizer(() => Effect.sync(() => writes.mockRestore()));
+			yield* withBoardReadPass(
+				Effect.gen(function* () {
+					yield* prepareWork("one");
+					const fleet = yield* Fleet;
+					yield* fleet.list();
+					yield* fleet.dispatch("one");
+					expect(writes).not.toHaveBeenCalled();
+				}),
+			);
+			expect(writes).toHaveBeenCalledTimes(1);
+			expect(yield* fleetHealth(root)).toMatchObject({ queued: 0, running: 1 });
 		}).pipe(
 			Effect.provide(
 				statusLayer(root, { concurrency: 8, staleAfterMs: 60_000 }).pipe(Layer.provideMerge(healthLayer(root)), Layer.provide(NodeServices.layer)),

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { StorageCapacity, StorageQuota } from "#storage/errors.ts";
-import type { AdmissionLimits, Versioned } from "#storage/model.ts";
+import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
+import type { AdmissionLimits, ForeignReservation, Versioned } from "#storage/model.ts";
 export function acquires<A>(predicate: ((record: A) => boolean) | undefined, record: A, previous: A | undefined): boolean {
 	return predicate?.(record) === true && (previous === undefined || !predicate(previous));
 }
@@ -43,4 +44,39 @@ export const checkQuota = Effect.fn("FleetStore.checkQuota")(function* <A>(
 	if (submitted > quota.available) {
 		return yield* Effect.fail(new StorageQuota({ ...quota, reason: "exhausted", submitted }));
 	}
+});
+
+export const checkRecordAdmission = Effect.fn("FleetStore.checkRecordAdmission")(function* <A extends { readonly workId: string }>(
+	options: FleetStoreOptions<A>,
+	record: A,
+	previous: A | undefined,
+	entries: readonly Versioned<A>[],
+	external: readonly ForeignReservation[],
+	limits: AdmissionLimits,
+) {
+	yield* options.admission?.(
+		record,
+		previous,
+		entries.map(({ value }) => value),
+		limits,
+	) ?? Effect.void;
+	const others = entries.filter(({ value }) => value.workId !== record.workId);
+	const acquiringExecution = acquires(options.executing, record, previous);
+	yield* checkCapacity(
+		"execution",
+		limits.maxExecuting,
+		options.executing,
+		acquiringExecution,
+		others,
+		external.filter((entry) => entry.executing).length,
+	);
+	yield* checkCapacity(
+		"backlog",
+		limits.maxBacklog,
+		options.backlog,
+		acquiringExecution || acquires(options.backlog, record, previous),
+		others,
+		external.filter((entry) => entry.backlog).length,
+	);
+	yield* checkQuota(limits.quota, options.submissions, record, previous, others);
 });

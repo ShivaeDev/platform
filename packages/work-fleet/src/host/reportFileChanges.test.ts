@@ -33,6 +33,25 @@ it.live("replays ordered additions, updates, moves and deletes and ignores unrel
 	}).pipe(Effect.provide(NodeServices.layer)),
 );
 
+it.live("keeps the original attachment path for both null and omitted move targets", () =>
+	Effect.gen(function* () {
+		const result = yield* reportFileChanges(
+			[
+				addedAttachment("file.txt", "old\n"),
+				change("file.txt", "update", "@@ -1 +1 @@\n-old\n+updated\n"),
+				{
+					changes: [{ diff: "@@ -1 +1 @@\n-updated\n+final\n", kind: { type: "update" }, path: `${REPORT_ATTACHMENT_DIRECTORY}file.txt` }],
+					id: "omitted-move",
+					type: "fileChange",
+				},
+			],
+			"",
+		);
+		expect(result.unavailable).toEqual([]);
+		expect(result.files.map(({ path, bytes }) => ({ path, text: new TextDecoder().decode(bytes) }))).toEqual([{ path: "file.txt", text: "final\n" }]);
+	}).pipe(Effect.provide(NodeServices.layer)),
+);
+
 it.live("retains a good file and records failed updates, unsafe paths and missing promised files", () =>
 	Effect.gen(function* () {
 		const result = yield* reportFileChanges(

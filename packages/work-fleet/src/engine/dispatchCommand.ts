@@ -31,7 +31,12 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (assessment._tag === "Reprepare") {
 			return yield* decision(stored, assessment.reason, "Prepare the affected scope again before dispatch");
 		}
-		stored = yield* save(stored, { ...stored.value, preparation: assessment.preparation });
+		if (
+			assessment.preparation.baseRevision !== stored.value.preparation.baseRevision
+			|| assessment.preparation.observedAt !== stored.value.preparation.observedAt
+		) {
+			stored = yield* save(stored, { ...stored.value, preparation: assessment.preparation });
+		}
 		return yield* launch(stored, "worker", stored.value.prompt).pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {

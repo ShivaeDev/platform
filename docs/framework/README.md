@@ -23,6 +23,7 @@ user-facing text, layout and deployment choices.
 | Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
 | Run durable jobs | [effect-pg-boss](../../packages/effect-pg-boss/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
 | Test Effect code | [effect-test](../../packages/effect-test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
+| Isolate PostgreSQL tests | [effect-test-sql](../../packages/effect-test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |
 
 The Prisma and tRPC integrations serve applications using those stacks:
@@ -57,7 +58,7 @@ automatic relationship loading are outside the default path.
 
 ## Composing a feature
 
-The [PostgreSQL order feature](./composed-example.md) is the reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
+The [PostgreSQL order feature](./composed-example.md) is the reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. It is a test fixture, not a copyable app; an app template is still needed. Its test also proves that a rolled-back write publishes nothing. Use each package's README for its mental model and API. The [SQLite order fixture](./order-example.md) adds session and save-race scenarios with its own evidence limits.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport.
 - [Request context](./request-context.md) explains session resolution, Origin
