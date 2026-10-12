@@ -94,3 +94,17 @@ it("keeps exact shared exports out of the blocked consumer entries under a priva
 	assert(exportEntries(manifest, packed).some(({ specifier }) => specifier === "board/browser/responses/schema.ts"));
 	assert.deepEqual(blockedEntries(manifest, packed), ["board/browser/responses/form.ts"]);
 });
+
+it("checks an exact blocked entry when the defining module has an explicit public alias", () => {
+	const manifest: Manifest = {
+		exports: {
+			"./loadQuery.ts": null,
+			"./router.ts": { import: "./dist/loadQuery.js", source: "./src/loadQuery.ts" },
+		},
+		name: "router",
+		version: "1.0.0",
+	};
+	const packed = new Set(["src/loadQuery.ts", "dist/loadQuery.js"]);
+	assert.deepEqual(exportEntries(manifest, packed), [{ json: false, specifier: "router/router.ts" }]);
+	assert.deepEqual(blockedEntries(manifest, packed), ["router/loadQuery.ts"]);
+});

@@ -4,7 +4,7 @@ import { anyOf, anything, external, files, folders, modules, packages } from "@s
 const boardCode = folders("packages/work-board/src").except(folders("packages/work-board/src/server"));
 const markdownCode = folders("packages/work-board/src/client/document", "packages/work-board/src/render");
 const browserDependencies = anyOf(
-	folders("packages/platform/src/core/errors", "packages/platform/src/core/rpc"),
+	folders("packages/platform/src/errors", "packages/platform/src/rpc"),
 	files("packages/effect-trpc/src/rejectionDecoding.ts"),
 );
 

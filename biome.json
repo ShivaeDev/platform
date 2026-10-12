@@ -6,7 +6,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/testing/any-test-layer.ts"],
+			"includes": ["packages/effect-test/src/any-test-layer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
 			"linter": {
 				"rules": {
 					"suspicious": {

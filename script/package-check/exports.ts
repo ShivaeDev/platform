@@ -65,12 +65,16 @@ export function exportEntries(manifest: Manifest, packed: ReadonlySet<string>): 
 }
 
 export function blockedEntries(manifest: Manifest, packed: ReadonlySet<string>): string[] {
-	return patterns(manifest).flatMap(([key, value]) =>
+	const exact = Object.entries(manifest.exports ?? {})
+		.filter(([key, value]) => !key.includes("*") && value === null)
+		.map(([key]) => specifierOf(manifest, key));
+	const masked = patterns(manifest).flatMap(([key, value]) =>
 		stars(manifest, value, packed)
 			.map((star) => key.replace("*", star))
 			.filter((subpath) => blocked(manifest, subpath))
 			.map((subpath) => specifierOf(manifest, subpath)),
 	);
+	return [...new Set([...exact, ...masked])];
 }
 
 export function packedFiles(pkg: Package) {
