@@ -1,18 +1,12 @@
-import { createServer } from "node:http";
-import { NodeHttpServer } from "@effect/platform-node";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, ManagedRuntime, Option, Redacted } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { type Headers, HttpServer } from "effect/unstable/http";
 import { SqlClient } from "effect/unstable/sql";
-import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
-import { authenticatedLayer } from "@shivaedev/platform/rpc-server/session.ts";
+import { type AppDatabaseOptions, appHost } from "@shivaedev/platform/appHost.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
-import { OrderLive } from "./OrderLive.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderHandlers } from "./orderHandlers.ts";
-import { repositoryLayer } from "./repository.ts";
+import { orderMigrations, repositoryLayer } from "./repository.ts";
 
 export interface ServerOptions {
 	readonly applicationName?: string;
@@ -42,44 +36,42 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 		);
 	}
 	const { handlers, publications, delivered, reads } = orderHandlers(read, options.beforeCommit);
-	const base = Layer.merge(pool(), Reactivity.layer);
-	const live = OrderLive.layer.pipe(Layer.provideMerge(base));
-	const delivery =
-		options.channel === undefined
-			? Layer.empty
-			: Layer.unwrap(
-					Effect.gen(function* () {
-						const client = yield* PgClient.PgClient;
-						const hints = yield* OrderLive;
-						return postgresChanges({
-							channel: options.channel ?? "orders",
-							client,
-							heartbeatInterval: "100 millis",
-							heartbeatTimeout: "300 millis",
-							resync: hints.resync,
-							retryDelay: "50 millis",
-						});
-					}),
-				);
-	const service = OrderService.layer.pipe(Layer.provide(repositoryLayer(table, ledger)), Layer.provideMerge(delivery.pipe(Layer.provideMerge(live))));
 	const sessions = new Map([
 		["Bearer alice-session", "alice"],
 		["Bearer bob-session", "bob"],
 	]);
-	const authentication = authenticatedLayer({
+	const policy = {
 		origin: () => true,
 		provider: {
-			get: (headers) => Effect.succeed(Option.map(Option.fromUndefinedOr(sessions.get(headers.authorization ?? "")), (id) => ({ user: { id } }))),
+			get: (headers: Headers.Headers) =>
+				Effect.succeed(Option.map(Option.fromUndefinedOr(sessions.get(headers.authorization ?? "")), (id) => ({ user: { id } }))),
 		},
-	});
-	const routes = RpcServer.layerHttp({ group: LiveOrders, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, authentication, RpcSerialization.layerNdjson]),
-	);
+	};
+	const changes: NonNullable<AppDatabaseOptions["config"]> =
+		options.channel === undefined
+			? {}
+			: {
+					changes: {
+						channel: options.channel,
+						heartbeatInterval: "100 millis",
+						heartbeatTimeout: "300 millis",
+						retryDelay: "50 millis",
+					},
+				};
 	const runtime = ManagedRuntime.make(
-		HttpRouter.serve(routes, { disableLogger: true }).pipe(
-			Layer.provideMerge(service),
-			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
-		),
+		appHost({
+			config: {
+				...(options.applicationName === undefined ? {} : { applicationName: options.applicationName }),
+				databaseUrl: Redacted.make(databaseUrl),
+				port: 0,
+				...changes,
+			},
+			group: LiveOrders,
+			handlers,
+			migrations: { loader: orderMigrations(table), table: ledger },
+			services: OrderService.layer.pipe(Layer.provide(repositoryLayer(table))),
+			sessions: policy,
+		}),
 	);
 	async function close() {
 		try {
