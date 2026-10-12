@@ -29,6 +29,10 @@ describe("every published Fleet decision has a recovery", () => {
 		expect(uncovered([...decisionSites(root), ...added])).toEqual(['engine/new.ts: "New reason"']);
 		expect(uncovered(sourceDecisionSites("engine/new.ts", 'save(stored, {stage: "needs-human"});'))).toEqual(['engine/new.ts: stage: "needs-human"']);
 	});
+	it("a wrapped decision creation call remains in the inventory", () => {
+		expect(sourceDecisionSites("engine/new.ts", 'state\n .decision(stored, "New reason", "Inspect");')).toEqual(['engine/new.ts: "New reason"']);
+	});
+
 	it("production integration and persistence failure reasons have matrix rows", () => {
 		const reasons = new Set(scenarios.flatMap((scenario) => (typeof scenario.reason === "string" ? [scenario.reason] : [])));
 		expect(decisionReasons(root).filter((reason) => !reasons.has(reason))).toEqual([]);
