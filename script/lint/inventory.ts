@@ -25,37 +25,45 @@ interface Entry {
 	readonly path: string;
 }
 
-const WALKED_ZONES = ["packages", "script"];
+const WALKED_ZONES = ["packages", "examples", "script"];
 const SOURCE_PATH = /\.tsx?$/u;
-const WORKSPACE_MANIFEST = /^packages\/[^/]+\/package\.json$/u;
+const WORKSPACE_MANIFEST = /^(?:packages|examples)\/[^/]+\/package\.json$/u;
 const INVENTORY_CONCURRENCY = 16;
 
-export const basename = (path: string): string => path.split("/").pop() ?? "";
+export function basename(path: string): string {
+	return path.split("/").pop() ?? "";
+}
 
-export const isDeclaration = (path: string): boolean => path.endsWith(".d.ts");
+export function isDeclaration(path: string): boolean {
+	return path.endsWith(".d.ts");
+}
 
-const posix = (path: string): string => path.replaceAll("\\", "/");
+function posix(path: string): string {
+	return path.replaceAll("\\", "/");
+}
 
-const readText = (entry: Entry): Effect.Effect<TextFile, FilesystemFailure, FileSystem.FileSystem> =>
-	Effect.map(readRequiredText(entry.absolute), (raw) => ({ path: entry.path, raw }));
+function readText(entry: Entry): Effect.Effect<TextFile, FilesystemFailure, FileSystem.FileSystem> {
+	return Effect.map(readRequiredText(entry.absolute), (raw) => ({ path: entry.path, raw }));
+}
 
-const toSource = ({ path, raw }: TextFile): SourceFile => ({ lines: raw.split("\n"), path });
+function toSource({ path, raw }: TextFile): SourceFile {
+	return { lines: raw.split("\n"), path };
+}
 
-export const collectInventory = (root: string): Effect.Effect<Inventory, FilesystemFailure, FileSystem.FileSystem> =>
-	Effect.gen(function* () {
-		const ignores = yield* ignoreScopeAt(root);
-		const zones = yield* Effect.all(
-			WALKED_ZONES.map((zone) => walk(join(root, zone), ignores)),
-			{ concurrency: INVENTORY_CONCURRENCY },
-		);
-		const entries: readonly Entry[] = zones.flat().map((absolute) => ({ absolute, path: posix(relative(root, absolute)) }));
-		const texts = yield* Effect.all(entries.filter((entry) => SOURCE_PATH.test(entry.path)).map(readText), { concurrency: INVENTORY_CONCURRENCY });
-		const manifestEntries = [
-			{ absolute: join(root, "package.json"), path: "package.json" },
-			...entries.filter((entry) => WORKSPACE_MANIFEST.test(entry.path)),
-		];
-		const manifests = yield* Effect.all(manifestEntries.map(readText), { concurrency: INVENTORY_CONCURRENCY });
-		const workspaceCatalog = yield* readRequiredText(join(root, "pnpm-workspace.yaml"));
-		const codecov = yield* readRequiredText(join(root, "codecov.yml"));
-		return { codecov, manifests, root, sources: texts.map(toSource), workspaceCatalog };
-	});
+export const collectInventory = Effect.fn("Lint.collectInventory")(function* (root: string) {
+	const ignores = yield* ignoreScopeAt(root);
+	const zones = yield* Effect.all(
+		WALKED_ZONES.map((zone) => walk(join(root, zone), ignores)),
+		{ concurrency: INVENTORY_CONCURRENCY },
+	);
+	const entries: readonly Entry[] = zones.flat().map((absolute) => ({ absolute, path: posix(relative(root, absolute)) }));
+	const texts = yield* Effect.all(entries.filter((entry) => SOURCE_PATH.test(entry.path)).map(readText), { concurrency: INVENTORY_CONCURRENCY });
+	const manifestEntries = [
+		{ absolute: join(root, "package.json"), path: "package.json" },
+		...entries.filter((entry) => WORKSPACE_MANIFEST.test(entry.path)),
+	];
+	const manifests = yield* Effect.all(manifestEntries.map(readText), { concurrency: INVENTORY_CONCURRENCY });
+	const workspaceCatalog = yield* readRequiredText(join(root, "pnpm-workspace.yaml"));
+	const codecov = yield* readRequiredText(join(root, "codecov.yml"));
+	return { codecov, manifests, root, sources: texts.map(toSource), workspaceCatalog };
+});

@@ -33,5 +33,5 @@ export default defineConfig({
 			},
 		},
 	},
-	sources: ["packages", "script"],
+	sources: ["packages", "examples", "script"],
 });
