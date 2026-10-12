@@ -17,7 +17,7 @@ const Manifest = Schema.Struct({
 	type: Schema.String,
 	version: Schema.String,
 });
-const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
+const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest), { propertyOrder: "original" });
 
 export function registryDependencies(dependencies: Readonly<Record<string, string>>, versions: Readonly<Record<string, string>>) {
 	return Object.fromEntries(
@@ -45,13 +45,16 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 			scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
 		},
 		null,
-		2,
+		"\t",
 	)}\n`;
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
 	if (path === "package.json") {
 		return prepareManifest(content, versions);
+	}
+	if (path === "biome.json") {
+		return content.replace('"root": false', '"root": true');
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)) {
 		return content.replaceAll('"source", ', "").replaceAll('["source"]', "[]");

@@ -26,6 +26,7 @@ it("creates a named app in a new parent path, installs, and prints the environme
 	expect(result.status).toBe(0);
 	const app = join(root, "apps/my-app");
 	expect(JSON.parse(readFileSync(join(app, "package.json"), "utf8"))).toMatchObject({ name: "my-app" });
+	expect(readFileSync(join(app, "package.json"), "utf8")).toMatch(/^\{\n\t"name": "my-app",/u);
 	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
 	for (const step of [
 		"Created apps/my-app.",

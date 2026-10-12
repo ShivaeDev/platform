@@ -24,7 +24,7 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 		let content = Buffer.from(entry.content, "base64");
 		if (entry.path === "package.json") {
 			const manifest = yield* decodeName(content.toString());
-			content = Buffer.from(`${JSON.stringify({ ...manifest, name }, null, 2)}\n`);
+			content = Buffer.from(`${JSON.stringify({ ...manifest, name }, null, "\t")}\n`);
 		}
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
 		yield* fs.writeFile(path, content);

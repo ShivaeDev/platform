@@ -21,6 +21,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	const { starter } = source;
 	const files = await source.pack();
 	const manifest = JSON.parse(files["package.json"] ?? "{}");
+	expect(files["package.json"]).toMatch(/^\{\n\t"name":/u);
 	const versions = JSON.parse(readFileSync(join(starter, "published-versions.json"), "utf8"));
 	for (const deps of [manifest.dependencies, manifest.devDependencies]) {
 		for (const [name, version] of Object.entries(deps)) {
@@ -31,7 +32,14 @@ it("packages the real starter with registry dependencies, standalone configurati
 		}
 	}
 	expect(manifest.scripts["check:published"]).toBeUndefined();
+	expect(manifest.scripts.lint).toBe("quality lint");
+	expect(manifest.scripts.format).toBe("quality fix");
+	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
+	expect(files["quality.config.ts"]).toBeUndefined();
+	expect(files["quality/baseline.jsonl"]).toBeUndefined();
 	expect(manifest.scripts.dev).not.toContain("--conditions=source");
+	expect(JSON.parse(files["biome.json"] ?? "{}")).toMatchObject({ root: true });
+	expect(files["biome.json"]).toBe(readFileSync(join(starter, "biome.json"), "utf8").replace('"root": false', '"root": true'));
 	for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
 		expect(files[path]).not.toContain('"source"');
 	}

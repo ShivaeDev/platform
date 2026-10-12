@@ -51,7 +51,7 @@ const program = Effect.gen(function* () {
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL)),
 	);
 	yield* runStarter(starter, database);
-	yield* Effect.log("Published starter passed typecheck, build and real PostgreSQL/authenticated HTTP round trips.");
+	yield* Effect.log("Published starter passed quality lint, typecheck, build and real PostgreSQL/authenticated HTTP round trips.");
 });
 
 NodeRuntime.runMain(program.pipe(Effect.scoped, Effect.provide(NodeServices.layer)));

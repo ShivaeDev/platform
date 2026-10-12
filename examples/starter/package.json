@@ -10,6 +10,8 @@
 		"build": "vite build",
 		"check:published": "node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"dev": "node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
+		"format": "quality fix",
+		"lint": "quality lint",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "vitest run",
 		"typecheck": "tsc6 --noEmit",

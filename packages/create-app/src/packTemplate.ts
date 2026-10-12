@@ -29,7 +29,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: String(cause) }),
 					try: () =>
-						["package.json", "tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)
+						["biome.json", "package.json", "tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)
 							? Buffer.from(prepareFile(path, source.toString(), versions))
 							: source,
 				});
