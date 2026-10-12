@@ -2,6 +2,8 @@
 
 ## Built
 
+- PostgreSQL tests use effect-test-sql with the Fleet migrations prepared once per worker fixture. Ordinary storage and engine tests roll back; concurrent storage, migration and daemon/process scenarios use clones for real commits. `src/storage/fixtureIsolation.spec.ts` covers Fleet records, reservations and scope-finalizer rollback, and commits visible through a second connection without changing the shared fixture.
+
 - Every Fleet client command uses local HTTP RPC without client PostgreSQL connections. Item-based `decide` records retry or release answers on published decisions through the daemon, then resolves them under existing runtime policy. PostgreSQL command tests cover response acknowledgements and shared pool reuse. The followers subscribe before their initial snapshot and resync after reconnect while retaining their selected set and output. HTTP and PostgreSQL regressions cover command output, exit codes, explicit dispatch, daemon restart and missing-daemon errors.
 
 - The local daemon shares one bounded PostgreSQL pool and provider connection set between scheduling and native HTTP RPC. Platform request tracing supplies per-call request ids. PostgreSQL and HTTP regressions cover completion, concurrent clients, resource closure and launch recovery after SIGKILL with a synthetic Cloud backend.

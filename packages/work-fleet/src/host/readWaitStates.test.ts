@@ -3,14 +3,13 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import pg from "pg";
 import { vi } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet summary reads against PostgreSQL", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 
 	test("100 items read in one query per poll without execution history", function* () {
 		yield* withHost({}, {}, (fixture) =>

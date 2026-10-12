@@ -1,15 +1,15 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { FleetRecord } from "#model.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { legacyStore } from "#test/legacyStore.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
-import { storageDatabaseUrl, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { withStorage } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live", "isolated");
 
 test("populated JSONB records migrate without changing records, versions, order or foreign reservations", () =>
 	withStorage((_unused, namespace) =>

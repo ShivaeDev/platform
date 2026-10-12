@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
 import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startReview } from "#test/startReview.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("restart after persisting the moved head launches one fresh reviewer before delivery", () =>
 	Effect.scoped(

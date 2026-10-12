@@ -3,18 +3,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
 import { storeState, task, waitProcess, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";
 import { statusRecord } from "#test/status.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { askWorker } from "#test/workerQuestion.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("CLI status groups all owners and wait names each owner without changing exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>

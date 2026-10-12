@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { legacyStore } from "#test/legacyStore.ts";
-import { storageDatabaseUrl, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { withStorage } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live", "isolated");
 
 test("migration persists owners on existing waits and preserves assigned owners and active records", () =>
 	withStorage((_store, namespace) =>

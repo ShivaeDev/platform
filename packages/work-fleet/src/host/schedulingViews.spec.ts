@@ -1,7 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
@@ -12,10 +11,10 @@ import { fleetHostLayer } from "#host/runtime.ts";
 import { renderStatus } from "#host/status.ts";
 import { waitFor } from "#host/wait.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-it.live.skipIf(storageDatabaseUrl === undefined)("area and dependency admission reasons reach status, wait and the generated Board view", () =>
+postgresTests("live")("area and dependency admission reasons reach status, wait and the generated Board view", () =>
 	withHost(
 		{
 			"a.md": task("first", "approved").replace("kind: task", "kind: task\nareas: [fleet/host]"),

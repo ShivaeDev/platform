@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { askWorker } from "#test/workerQuestion.ts";
 import { writeBarrier } from "#test/writeBarrier.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("reassignment recovers a failed supersession acknowledgement without publishing another question", () =>
 	withEngine({ acknowledgeFailure: true }, (fixture) =>

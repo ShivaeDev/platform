@@ -2,17 +2,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { type HostFixture, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
 import { answerReport } from "#test/report.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
 const OUTPUT = "  # Findings\n\nWhole report, including whitespace.\n";
@@ -50,7 +49,7 @@ const terminalViews = Effect.fn("ReportTest.terminalViews")(function* (fixture: 
 });
 
 describe("Fleet report host", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 	test("records the whole result and finishes without PR integrations", function* () {
 		yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 			Effect.gen(function* () {

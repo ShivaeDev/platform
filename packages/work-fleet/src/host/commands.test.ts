@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Clock, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved } from "#host/admission.ts";
 import { dispatchWork, hostLayer, runFleet } from "#host/commands.ts";
@@ -12,9 +11,9 @@ import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { finishWorkers } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 import { readOnlySql } from "#test/readOnlySql.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const until = Effect.fn("FleetHostTest.until")(function* (condition: () => boolean, timeoutMs = 20_000) {
 	const deadline = (yield* Clock.currentTimeMillis) + timeoutMs;
@@ -37,7 +36,7 @@ function record(host: FleetHost, workId: string, parts: Parameters<typeof hostLa
 }
 
 describe("work-fleet host against PostgreSQL", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 
 	test("run launches each approved Board revision once and wait reports the automation blocker", function* () {
 		const files = { "a.md": task("a", "approved"), "b.md": task("b"), "c.md": task("c", "draft") };

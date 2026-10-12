@@ -2,17 +2,16 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 	fixture: HostFixture,

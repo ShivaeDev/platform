@@ -1,12 +1,11 @@
 import { Effect } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 for (const type of ["clarify", "not_now"] as const) {
 	test(`native Maintainer waiting query shows ${type} response blockers while retaining its decision`, () =>

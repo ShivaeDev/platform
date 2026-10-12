@@ -2,7 +2,6 @@ import { NodeHttpClient, NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Cause, Context, Effect, Layer } from "effect";
 import { HttpClient, HttpServer } from "effect/unstable/http";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { RPC_PATH } from "#host/daemonContract.ts";
@@ -13,8 +12,8 @@ import { daemonResources } from "#test/daemonResources.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { type HostFixture, MAIN, task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const peerReads = Effect.fn("DaemonTest.peerReads")(function* (url: string, index: number) {
 	const peer = yield* daemonClient(url, { "x-request-id": `peer-${index}` });
@@ -107,10 +106,10 @@ const occupiedPortStory = Effect.fn("DaemonTest.occupiedPortStory")(function* (f
 }, Effect.scoped);
 
 describe("local Fleet daemon against PostgreSQL and HTTP", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 	test(
 		"HTTP operations share one bounded pool and provider lifetime and carry request ids",
-		() => withHost({}, { database: { maxConnections: 2, url: storageDatabaseUrl }, intervalSeconds: 60 }, resourceStory),
+		() => withHost({}, { database: { maxConnections: 2 }, intervalSeconds: 60 }, resourceStory),
 		30_000,
 	);
 	test("rejects browser cross-origin, rebinding hosts and non-NDJSON requests before RPC", () => withHost({}, {}, originStory), 30_000);

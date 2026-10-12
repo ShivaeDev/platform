@@ -1,11 +1,12 @@
 import { Effect, Exit } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { competingStorage } from "#test/competingStorage.ts";
-import { makeTestStore, record, storageDatabaseUrl, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { makeTestStore, record, withStorage } from "#test/storage.ts";
 
-const integration = it.live.skipIf(storageDatabaseUrl === undefined);
+const integration = postgresTests("live");
+const isolated = postgresTests("live", "isolated");
 
 integration("persists submission intent and exact accepted receipts across restart without releasing ownership", () =>
 	withStorage((store, namespace) =>
@@ -31,7 +32,7 @@ integration("persists submission intent and exact accepted receipts across resta
 	),
 );
 
-integration("serializes competing writes and rejects the stale one without losing the other decision", () =>
+isolated("serializes competing writes and rejects the stale one without losing the other decision", () =>
 	withStorage((store) =>
 		Effect.gen(function* () {
 			const prepared = yield* store.insert(record("board-a"));
@@ -73,7 +74,7 @@ integration("Schema rejects corrupted durable records", () =>
 	),
 );
 
-integration("repository version predicate rejects a writer that races after Fleet's version check", () =>
+isolated("repository version predicate rejects a writer that races after Fleet's version check", () =>
 	withStorage((_unused, namespace) =>
 		Effect.gen(function* () {
 			const store = yield* competingStorage(namespace);

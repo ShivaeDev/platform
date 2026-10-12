@@ -1,12 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { activeTurn } from "#test/activeTurn.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live", "isolated");
 
 test("a follow-up rejected while a steered turn is active waits and continues the same durable attempt", function* () {
 	const provider = yield* activeTurn();

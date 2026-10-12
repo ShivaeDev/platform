@@ -1,13 +1,12 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { deniedDecision } from "#test/deniedDecision.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("applied action persists across acknowledgement failure and repeated resolve after restart repairs only acknowledgement", () =>
 	withEngine({ acknowledgeFailure: true, denyDelivery: true }, (fixture) =>
