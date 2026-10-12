@@ -39,7 +39,7 @@ export interface Pass<TFailure, TRequirements> {
 }
 
 export interface Settling<TFailure, TRequirements> {
-	readonly passes: ReadonlyArray<Pass<TFailure, TRequirements>>;
+	readonly passes: readonly Pass<TFailure, TRequirements>[];
 	readonly snapshot: Effect.Effect<ReadonlyMap<string, string>, TFailure, TRequirements>;
 }
 
@@ -47,7 +47,7 @@ function changedBy(root: string, args: readonly string[]): Effect.Effect<number,
 	return Effect.map(biome(root, args), (report) => report.summary.changed);
 }
 
-function biomePasses(root: string): ReadonlyArray<Pass<SetupFailure, never>> {
+function biomePasses(root: string): readonly Pass<SetupFailure, never>[] {
 	return [
 		{
 			label: "with fixes",
@@ -58,7 +58,7 @@ function biomePasses(root: string): ReadonlyArray<Pass<SetupFailure, never>> {
 }
 
 function round<TFailure, TRequirements>(
-	passes: ReadonlyArray<Pass<TFailure, TRequirements>>,
+	passes: readonly Pass<TFailure, TRequirements>[],
 	index: number,
 	afterEachPass: Effect.Effect<void, TFailure, TRequirements>,
 ): Effect.Effect<number, TFailure, TRequirements> {

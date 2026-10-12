@@ -15,7 +15,7 @@ function start(name: string, options: ServerOptions) {
 			const url = new URL(databaseUrl.value);
 			url.pathname = `/${name}`;
 			const server = await startServer(url.toString(), options);
-			const views: Array<Awaited<ReturnType<typeof mountView>>> = [];
+			const views: Awaited<ReturnType<typeof mountView>>[] = [];
 			return {
 				...server,
 				close: async () => {
