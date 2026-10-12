@@ -70,7 +70,7 @@ describe("makePlatformRuntime", () => {
 	it("does not reuse development cache entries in production", async () => {
 		const { stdout } = await promisify(execFile)(
 			process.execPath,
-			["--conditions=source", fileURLToPath(new URL("../test-support/runtimeProduction.ts", import.meta.url))],
+			["--conditions=source", fileURLToPath(import.meta.resolve("#test/runtimeProduction.ts"))],
 			{ env: { "NODE_ENV": "production" } },
 		);
 		expect(stdout.trim()).toBe("distinct");
