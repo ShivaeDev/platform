@@ -79,7 +79,7 @@ A type test proves that an API rejects what its types forbid, and TypeScript ass
 
 #### Declared Biome overrides
 
-Consumer declarations cover one lint rule or assist action on explicit file paths, with a reason. Globs, whole checks and rule groups cannot be declared. A `files/includes` declaration must retain `**` and add only negative patterns naming a concrete directory, such as `!**/test-support/generated`. Shipped preset declarations describe Quality's internal policy and are not subject to the consumer scope restriction.
+Consumer declarations cover one lint rule or assist action on explicit file paths, with a reason. Globs, whole checks and rule groups cannot be declared. A `files/includes` declaration must retain `**` and add only negative patterns naming a concrete directory, such as `!**/test-support/generated`. These patterns may start with `**/` and use `*` for an intermediate directory, as in `!**/test-support/*/generated`. Every other segment names a directory without dots except an optional leading dot; the final segment must be a name. File patterns, nested `**` and wildcard suffixes are rejected. Shipped preset declarations describe Quality's internal policy and are not subject to the consumer scope restriction.
 
 Quality ships reasons for its own internal Biome exceptions. Extend the shared configuration and use the baseline for debt. `suppressions/biome-overrides` reads `biome.json` or `biome.jsonc` at the root, every nested `biome.json` and `biome.jsonc` among the checked files, and the configs each of them `extends`, resolved the way Biome resolves them (see [Shared presets](#shared-presets)). These settings count as overrides, at the top level and in every `overrides` entry:
 
