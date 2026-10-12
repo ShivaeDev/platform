@@ -1,5 +1,6 @@
 import type { Redacted } from "effect";
 import { Config, Effect, Layer } from "effect";
+import { HttpStaticServer } from "effect/unstable/http";
 import { appHost } from "@shivaedev/platform/appHost.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes } from "#notes.ts";
@@ -27,12 +28,10 @@ export function starterHost(config?: {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
 			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			return appHost({
-				assets: { root: "dist", spa: true },
 				config: { databaseUrl, ...(config?.port === undefined ? {} : { port: config.port }) },
 				group: Notes,
-				handlers,
+				handlers: Layer.mergeAll(handlers, routes, HttpStaticServer.layer({ root: "dist", spa: true })),
 				migrations: migrations(auth),
-				routes,
 				services: NotesService.layer,
 				sessions,
 			});
