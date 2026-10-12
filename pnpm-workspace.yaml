@@ -63,8 +63,8 @@ catalog:
   "@types/mdast": 4.0.4
   "@types/node": 24.19.1
   "@types/pg": 8.20.0
-  "@trpc/client": 11.18.0
-  "@trpc/server": 11.18.0
+  "@trpc/client": 11.19.0
+  "@trpc/server": 11.19.0
   superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.0-rc.112
