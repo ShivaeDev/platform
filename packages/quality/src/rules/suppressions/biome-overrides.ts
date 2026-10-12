@@ -5,16 +5,12 @@ import { Declaration, matches, type Scoped, scoped, scopeText } from "#rules/sup
 import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
 
 const GLOB = /[*!?[\]{}]/u;
+const DIRECTORY = /^\.?[^./\\*!?[\]{}]+$/u;
 const INDIVIDUAL = /^(?:lint|assist)\/(?!domains\/)[a-zA-Z]+\/[a-zA-Z]+$/u;
 
 function namedExclusion(pattern: string): boolean {
-	return (
-		pattern.startsWith("!")
-		&& pattern
-			.slice(1)
-			.split("/")
-			.some((part) => part !== "" && part !== "." && part !== ".." && !GLOB.test(part))
-	);
+	const segments = pattern.slice(pattern.startsWith("!**/") ? 4 : 1).split("/");
+	return pattern.startsWith("!") && DIRECTORY.test(segments.at(-1) ?? "") && segments.every((segment) => segment === "*" || DIRECTORY.test(segment));
 }
 
 const ConsumerDeclaration = Declaration.check(

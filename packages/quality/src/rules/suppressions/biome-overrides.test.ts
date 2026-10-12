@@ -143,6 +143,18 @@ describe("narrow consumer Biome declarations", () => {
 		["files/includes", ["src/**"]],
 		["files/includes", ["**", "!**"]],
 		["files/includes", ["**", "!**/*.ts"]],
+		["files/includes", ["**", "!**/src/**/*.ts"]],
+		["files/includes", ["**", "!src/*.ts"]],
+		["files/includes", ["**", "!src/a.ts"]],
+		["files/includes", ["**", "!**/src/**"]],
+		["files/includes", ["**", "!**/src/*"]],
+		["files/includes", ["**", "!**/src/**/*"]],
+		["files/includes", ["**", "!**/src/**/generated"]],
+		["files/includes", ["**", "!**/src/{generated,fixtures}"]],
+		["files/includes", ["**", "!**/src/generated*"]],
+		["files/includes", ["**", "!**/src/../generated"]],
+		["files/includes", ["**", "!**/src//generated"]],
+		["files/includes", ["**", "!!src/generated"]],
 	])("rejects %s for %j", async (rule, includes) => {
 		expect(await issuesOf(biomeOverrides, { declared: [{ includes, reason, rule }] })).toEqual([expect.stringContaining("Whole checks")]);
 	});
@@ -160,4 +172,11 @@ describe("narrow consumer Biome declarations", () => {
 			}),
 		).toEqual([]);
 	});
+
+	it.each(["!generated", "!src/generated", "!**/generated", "!**/src/*/generated", "!**/.generated"])(
+		"accepts the concrete directory exclusion %s",
+		async (pattern) => {
+			expect(await issuesOf(biomeOverrides, { declared: [{ includes: ["**", pattern], reason, rule: "files/includes" }] })).toEqual([]);
+		},
+	);
 });
