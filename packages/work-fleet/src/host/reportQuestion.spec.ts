@@ -2,15 +2,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 const SOURCE = "---\nid: one\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("report questions continue read-only research and record the final answer turn", function* () {
 	yield* withHost({ "one.md": SOURCE }, {}, (fixture) =>

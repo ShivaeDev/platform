@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
@@ -10,10 +9,10 @@ import { SessionFailure } from "#session/schema.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { task, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 for (const rejectedCall of ["session", "turn"] as const) {
-	it.live.skipIf(storageDatabaseUrl === undefined)(`host admission stops a queued initial ${rejectedCall} after an authored brief edit`, () => {
+	postgresTests("live")(`host admission stops a queued initial ${rejectedCall} after an authored brief edit`, () => {
 		let now = 100;
 		let reject = true;
 		const launch = { model: "initial-model" };

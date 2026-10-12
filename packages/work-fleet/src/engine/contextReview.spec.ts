@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 for (const timing of ["between passes", "while the reviewer finishes"] as const) {
 	test(`approved criteria edited ${timing} stop further work before the old review is accepted`, function* () {

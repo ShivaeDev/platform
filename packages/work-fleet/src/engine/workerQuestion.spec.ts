@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect, FileSystem, Path } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("concurrent answers commit one continuation and recover its lost acknowledgement after restart", () =>
 	withFleetBoard({ lostContinuationAcknowledgement: true }, (fixture, root) =>

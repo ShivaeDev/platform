@@ -675,6 +675,9 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.41(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.1
@@ -1311,6 +1314,9 @@ importers:
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

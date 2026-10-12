@@ -1,12 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { StorageAdmission } from "#storage/errors.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
-import { record, StorageRecord, storageDatabaseUrl, storageOptions, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { StorageRecord } from "#test/StorageRecord.ts";
+import { record, storageOptions, withStorage } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("custom admission reads current records by default and still runs when it opts out of the snapshot", () =>
 	withStorage((base, namespace) =>

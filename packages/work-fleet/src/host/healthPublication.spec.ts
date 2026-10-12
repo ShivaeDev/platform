@@ -2,7 +2,6 @@ import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { vi } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import * as status from "#board/writeStatus.ts";
@@ -11,13 +10,13 @@ import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
 import { blockedHealth } from "#test/health.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { blockedStatus } from "#test/status.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { healthLayer } from "./healthLayer.ts";
 import { statusLayer } from "./statusLayer.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 test("publishes an idle scheduler pass from one snapshot without an extra list request", () =>
 	withFleetBoard({}, (_fixture, root) =>
 		Effect.gen(function* () {

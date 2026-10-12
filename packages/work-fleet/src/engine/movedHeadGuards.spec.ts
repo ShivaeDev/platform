@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
 import { HEAD, MOVED } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startReview } from "#test/startReview.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 for (const contextChanged of [false, true]) {
 	test(`a moved head with ${contextChanged ? "changed Board context" : "paths outside the reserved scope"} requires a decision before another review`, () =>

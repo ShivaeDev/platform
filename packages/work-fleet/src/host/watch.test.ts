@@ -1,12 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { storeState, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 describe("work-fleet watch against PostgreSQL and HTTP", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 
 	test("streams each selected outcome once, including late records and multiline details", function* () {
 		yield* withHost(

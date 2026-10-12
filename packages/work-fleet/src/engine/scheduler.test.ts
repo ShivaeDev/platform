@@ -1,10 +1,9 @@
 import { describe, expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle, run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const awaitStage = Effect.fn("Fleet.awaitStage")(function* (workId: string, stage: string) {
 	const fleet = yield* Fleet;
@@ -13,7 +12,7 @@ const awaitStage = Effect.fn("Fleet.awaitStage")(function* (workId: string, stag
 	}
 });
 describe("Fleet autonomous scheduling", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live", "isolated");
 	test("a cycle reconciles existing work without also reconciling its new dispatch", () =>
 		withEngine({}, (fixture) =>
 			Effect.gen(function* () {

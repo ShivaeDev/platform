@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
@@ -8,10 +7,10 @@ import { renderStatus } from "#host/status.ts";
 import { executing } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const QUEUE_FULL = "Codex rejected the protocol request: App-server request queue is full. Please retry.";
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 describe("Fleet launch backpressure", () => {
 	for (const rejectedCall of ["session", "turn"] as const) {

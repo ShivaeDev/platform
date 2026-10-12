@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { SessionJournal } from "#session/service.ts";
 import { namedAttempt, namedRecord } from "#test/namedCloudHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withOperationStorage } from "#test/withOperationStorage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("projected operation lookup retains current and archived ambiguity without acknowledging either record", () =>
 	withOperationStorage((store) =>

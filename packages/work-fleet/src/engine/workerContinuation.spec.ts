@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, FileSystem } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("interruption before provider submission retains the answer intent without replaying it after restart", function* () {
 	const entered = yield* Deferred.make<void>();

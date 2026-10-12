@@ -13,6 +13,7 @@ This roadmap owns the package's hooks, form coordination and session-registry im
 - [x] `useCreate` starting a fresh form after success while retaining fields edited during schema decoding or the request; submissions through the form API settle the hooks too.
 - [x] Tagged field-rejection mapping, a typed custom mapper and compile-time requirements for rejection field types that exceed the form's names; other save failures remain separately available.
 - [x] A resume module using effect-contract's shared implementation, with visible browser events, an injected native source, listener disposal and native stale-while-revalidate policy covered by tests.
+- [x] TanStack Router query loaders sharing the native registry, with tagged RPC failures, refresh waiting and abort handling. Render tests cover shared query execution, the route error component and previous data during navigation.
 
 ## Next
 
@@ -23,5 +24,5 @@ This roadmap owns the package's hooks, form coordination and session-registry im
 ## Open questions
 
 - Do consumers need an independently scoped action helper, or are distinct native atoms and actual Effects enough for imperative per-invocation outcomes? Keep native shared-action semantics unless a demonstrated use case requires more.
-- Should an SSR registry/hydration adapter belong here or in a router/host integration? The framework owns choosing and validating a host; this package's surface depends on that decision.
+- What per-request registry and hydration wiring does the TanStack Router host need for SSR? Client render fixtures do not establish SSR isolation.
 - Which hook configuration values should be allowed to change without replacing the form? A rule for changing schemas, runtimes, save functions or initial values needs consumer evidence and explicit lifetime tests.

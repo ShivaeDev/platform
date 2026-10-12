@@ -1,14 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
 import { Fleet } from "#fleet.ts";
 import { acceptDependency } from "#test/acceptDependency.ts";
 import { dependencySource, withDependencyBoard } from "#test/dependencyBoard.ts";
 import { prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 for (const noChange of [false, true]) {
 	for (const [field, source, accepted] of [

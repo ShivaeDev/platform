@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 const GOAL = "---\nid: goal.example\nkind: goal\n---\n# Example goal\n\n| Lane | Work |\n| --- | --- |\n";
 function linked(source: string) {
 	return source.replace("kind: task\n", "kind: task\nrelationships:\n  - kind: implements\n    target: goal.example\n");

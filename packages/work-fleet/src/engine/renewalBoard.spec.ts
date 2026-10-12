@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles, boardOverview } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 test("new authored Board context renews SQL work and acknowledges its superseded question", () =>
 	withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root, source) =>
 		Effect.gen(function* () {

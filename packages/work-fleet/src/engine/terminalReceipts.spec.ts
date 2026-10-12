@@ -1,14 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 import { duplicateTurns } from "#test/duplicateTurns.ts";
 import { type EngineFixture, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 const REASON = "Multiple Codex turns match one operation; retain reservation";
 
 function decorated(native: ReturnType<typeof duplicateTurns>, fault: string, restored: () => boolean) {

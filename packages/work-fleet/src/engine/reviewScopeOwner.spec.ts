@@ -1,16 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, FileSystem, Path } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { type EngineFixture, finishWorkers, prepareWork } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 const assertMaintainerScopeApproval = Effect.fn("FleetTest.assertMaintainerScopeApproval")(function* (record: FleetRecord, root: string) {
 	const fs = yield* FileSystem.FileSystem;

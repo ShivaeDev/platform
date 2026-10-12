@@ -1,12 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { acceptDependency } from "#test/acceptDependency.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("current dependency revision requires fresh accepted completion while unrelated work dispatches", () =>
 	withEngine({ noChange: true }, (fixture) =>

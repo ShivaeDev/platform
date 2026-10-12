@@ -1,15 +1,14 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { dependencySource } from "#test/dependencyBoard.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerReport } from "#test/report.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 for (const [field, source] of [
 	["status", dependencySource.replace("status: planned", "status: done")],

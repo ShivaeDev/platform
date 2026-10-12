@@ -1,14 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepareBookkeepingPhase } from "#test/prepareBookkeepingPhase.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 for (const field of ["criteria", "body"]) {
 	for (const phase of ["preparation", "execution", "review", "decision"]) {

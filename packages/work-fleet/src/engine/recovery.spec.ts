@@ -1,12 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 describe("Fleet recovery", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("rebuilding services adopts a lost turn acknowledgement without duplicate launch or human action", () =>
 		withEngine({ lostAcknowledgement: true }, (fixture) =>
 			Effect.gen(function* () {

@@ -1,13 +1,12 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("Fleet admission path", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test", "isolated");
 	test("refreshes an unrelated main change while preserving prior validation revision", () =>
 		withEngine({}, () =>
 			Effect.gen(function* () {

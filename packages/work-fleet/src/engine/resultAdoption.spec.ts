@@ -1,11 +1,10 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import { HEAD, MOVED, NO_CHANGE, PR, REPORT, resultFixture } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 function finishReport(provider: Pick<EngineProvider, "observations">, output: string) {
 	for (const [turn, observation] of provider.observations) {
@@ -14,7 +13,7 @@ function finishReport(provider: Pick<EngineProvider, "observations">, output: st
 }
 
 describe("host result adoption through Fleet and PostgreSQL", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 
 	test("persists the observed PR number, exact head and paths before independent review", () => {
 		const github = resultFixture({ after: { "changed_files": 1 }, before: { "changed_files": 1 }, files: [[{ filename: "src/one.ts" }]] });
