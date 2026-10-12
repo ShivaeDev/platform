@@ -70,10 +70,7 @@ export function codexTurns(rpc: CodexRequest) {
 			);
 		}
 		const turnId = matching[0]?.id;
-		if (turnId === undefined && !empty) {
-			return yield* Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
-		}
-		return turnId;
+		return { empty, turnId };
 	});
 	const readItems = Effect.fn("Codex.readItems")(function* (receipt: SessionReceipt, byteLimit?: number) {
 		let cursor: string | null = null;

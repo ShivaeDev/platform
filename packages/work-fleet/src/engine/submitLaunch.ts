@@ -1,6 +1,7 @@
 import { Effect, Fiber } from "effect";
 import { capacityRetry } from "#engine/capacityRetry.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { retryAnsweredQuestion } from "#engine/retryAnsweredQuestion.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { FleetRecord } from "#model.ts";
 import type { SessionFailure, SessionReceipt } from "#session/schema.ts";
@@ -12,6 +13,9 @@ const handleFailure = Effect.fn("Fleet.handleFailure")(function* (
 	error: SessionFailure,
 ) {
 	if (yield* capacityRetry(state, previous, operationId, error)) {
+		return;
+	}
+	if (yield* retryAnsweredQuestion(state, previous, operationId, error)) {
 		return;
 	}
 	yield* submissionFailure(state, previous.workId, operationId, error, "Restore provider access and retry this approved work");

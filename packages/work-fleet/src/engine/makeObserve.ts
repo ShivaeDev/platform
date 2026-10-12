@@ -10,7 +10,11 @@ import type { Versioned } from "#storage/model.ts";
 export function makeObserve(state: EngineState) {
 	const { sessions, load, save } = state;
 	return Effect.fn("Fleet.makeObserve")(function* (input: Versioned<FleetRecord>) {
-		let stored = input;
+		const current = yield* observationRecord(state, input);
+		if (current === undefined) {
+			return input;
+		}
+		let stored = current;
 		const paused = pausedByBrief(stored.value);
 		if (!observable(stored.value, paused)) {
 			return stored;
@@ -38,6 +42,15 @@ export function makeObserve(state: EngineState) {
 		return yield* finishObservation(state)(stored, observation, paused);
 	});
 }
+
+const observationRecord = Effect.fn("Fleet.observationRecord")(function* (state: EngineState, input: Versioned<FleetRecord>) {
+	const pending = input.value.attempts.at(-1);
+	if (pending !== undefined && state.launching.has(pending.operationId)) {
+		return undefined;
+	}
+	// A completed submission persists its receipt before releasing the launching guard.
+	return yield* state.load(input.value.workId);
+});
 
 function pausedByBrief(record: FleetRecord) {
 	return record.stage === "needs-human" && record.decision?.code === "fleet-stale" && record.decision.reason === "Board context changed";
