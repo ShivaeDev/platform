@@ -5,12 +5,12 @@ import { Effect } from "effect";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
-import { readOnlySql } from "#host/readOnlySql.ts";
 import { fleetStatus, renderStatus } from "#host/status.ts";
 import { WAIT_EXIT, waitFor } from "#host/wait.ts";
 import { type HostFixture, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
+import { readOnlySql } from "#test/readOnlySql.ts";
 import { answerReport } from "#test/report.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
