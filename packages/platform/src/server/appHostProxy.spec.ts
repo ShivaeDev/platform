@@ -20,6 +20,9 @@ it.runIf(database._tag === "Some").each([
 	},
 	{ accepted: false, config: undefined, env: {}, host: "127.0.0.1", name: "no trust" },
 	{ accepted: false, config: { trustedProxy: "127.0.0.3" }, env: { "TRUSTED_PROXY": "127.0.0.2" }, host: "127.0.0.1", name: "wrong configured peer" },
+	{ accepted: true, config: undefined, env: { "TRUSTED_PROXY": "127.0.0.2/31" }, host: "127.0.0.1", name: "environment range" },
+	{ accepted: true, config: { trustedProxy: "192.0.2.1, 127.0.0.2/31, 2001:db8::/32" }, env: {}, host: "127.0.0.1", name: "configured list" },
+	{ accepted: false, config: { trustedProxy: "127.0.0.0/31" }, env: {}, host: "127.0.0.1", name: "peer just outside range" },
 ])("forwards real HTTP RPC with $name", async ({ config, env, accepted, host }) => {
 	if (database._tag === "None") {
 		throw new Error("PostgreSQL URL is required");
