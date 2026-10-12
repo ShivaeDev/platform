@@ -54,6 +54,11 @@
 			"updateNotScheduled": true
 		},
 		{
+			"allowedVersions": "!/^1\\.2\\.[45]$/",
+			"description": "`@vercel/detect-agent` 1.2.4 and 1.2.5 dropped the provenance attestation that `trustPolicy: no-downgrade` requires, so pnpm refuses them. The workspace pins 1.2.3 until an attested release lands; drop this rule with that pin.",
+			"matchPackageNames": ["@vercel/detect-agent"]
+		},
+		{
 			"allowedVersions": "<1.7.0",
 			"description": "Better Auth stays on 1.6. Platform pins it as an exact peer, so moving to 1.7 is a planned migration, not a routine update.",
 			"matchPackageNames": ["better-auth", "@better-auth/**"]
