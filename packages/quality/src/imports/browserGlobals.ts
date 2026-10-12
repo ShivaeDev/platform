@@ -14,9 +14,23 @@ function unbound(checker: ts.TypeChecker, node: ts.Identifier): boolean {
 	return (checker.getSymbolAtLocation(node)?.declarations ?? []).length === 0;
 }
 
+function globalThisRoot(expression: ts.Expression, checker: ts.TypeChecker): boolean {
+	let root = expression;
+	while (
+		ts.isParenthesizedExpression(root)
+		|| ts.isAsExpression(root)
+		|| ts.isTypeAssertionExpression(root)
+		|| ts.isNonNullExpression(root)
+		|| ts.isSatisfiesExpression(root)
+	) {
+		root = root.expression;
+	}
+	return ts.isIdentifier(root) && root.text === "globalThis" && unbound(checker, root);
+}
+
 function qualifiedName(node: ts.PropertyAccessExpression | ts.ElementAccessExpression, checker: ts.TypeChecker): string | undefined {
 	const root = node.expression;
-	if (!(ts.isIdentifier(root) && root.text === "globalThis" && unbound(checker, root))) {
+	if (!globalThisRoot(root, checker)) {
 		return undefined;
 	}
 	if (ts.isPropertyAccessExpression(node)) {
@@ -50,18 +64,40 @@ function globalName(node: ts.Node, checker: ts.TypeChecker): string | undefined 
 	return unbound(checker, node) ? node.text : undefined;
 }
 
+function propertyName(node: ts.Node): readonly string[] {
+	if (ts.isComputedPropertyName(node) && ts.isStringLiteral(node.expression)) {
+		return [node.expression.text];
+	}
+	return ts.isIdentifier(node) || ts.isStringLiteral(node) ? [node.text] : [];
+}
+
+function destructuringOf(
+	node: ts.Node,
+): { readonly pattern: ts.ObjectBindingPattern | ts.ObjectLiteralExpression; readonly root: ts.Expression } | undefined {
+	if ((ts.isVariableDeclaration(node) || ts.isParameter(node)) && ts.isObjectBindingPattern(node.name) && node.initializer !== undefined) {
+		return { pattern: node.name, root: node.initializer };
+	}
+	if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isObjectLiteralExpression(node.left)) {
+		return { pattern: node.left, root: node.right };
+	}
+	return undefined;
+}
+
 function destructuredNames(node: ts.Node, checker: ts.TypeChecker): readonly string[] {
-	if (!(ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name)) || node.initializer === undefined) {
+	const destructuring = destructuringOf(node);
+	if (destructuring === undefined) {
 		return [];
 	}
-	const root = node.initializer;
-	if (!(ts.isIdentifier(root) && root.text === "globalThis" && unbound(checker, root))) {
+	const { pattern, root } = destructuring;
+	if (!globalThisRoot(root, checker)) {
 		return [];
 	}
-	return node.name.elements.flatMap((element) => {
-		const name = element.propertyName ?? element.name;
-		return element.dotDotDotToken === undefined && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? [name.text] : [];
-	});
+	if (ts.isObjectBindingPattern(pattern)) {
+		return pattern.elements.flatMap((element) => (element.dotDotDotToken === undefined ? propertyName(element.propertyName ?? element.name) : []));
+	}
+	return pattern.properties.flatMap((property) =>
+		ts.isShorthandPropertyAssignment(property) || ts.isPropertyAssignment(property) ? propertyName(property.name) : [],
+	);
 }
 
 function superclassesOf(node: ts.HeritageClause): readonly ts.Expression[] {

@@ -37,6 +37,40 @@ describe("shared browser globals", () => {
 	});
 
 	it.each([
+		"function title({ document } = globalThis) { return document.title; }",
+		"const title = ({ document } = globalThis) => document.title;",
+		'function title({ "document": view } = globalThis) { return view.title; }',
+		"let document; ({ document } = globalThis);",
+		"let view; ({ document: view } = globalThis);",
+		'let view; ({ "document": view } = globalThis);',
+		"let title; ({ document: { title } } = globalThis);",
+		'function title({ ["document"]: view } = globalThis) { return view.title; }',
+		'let view; ({ ["document"]: view } = globalThis);',
+		"function title({ document } = (globalThis)) { return document.title; }",
+		"let document; ({ document } = (globalThis));",
+		"let document; ({ document } = globalThis as typeof globalThis);",
+	])("finds globals read by parameter and assignment destructuring: %s", (text) => {
+		expect(subjects(text)).toEqual(["document"]);
+	});
+
+	it("respects a locally bound globalThis in parameter defaults and assignments", () => {
+		expect(subjects("function title(globalThis: unknown, { document } = globalThis) { return document.title; }")).toEqual([]);
+		expect(subjects("export const globalThis = options; let document; ({ document } = globalThis);")).toEqual([]);
+		expect(subjects("{ const globalThis = options; let document; ({ document } = globalThis); }")).toEqual([]);
+		expect(subjects("function title(globalThis: unknown, { document } = (globalThis)) { return document.title; }")).toEqual([]);
+	});
+
+	it("does not confuse local destructuring keys, portable globals or rest bindings with browser reads", () => {
+		expect(subjects("function title({ document } = options) { return document.title; } let document; ({ document } = options);")).toEqual([]);
+		expect(
+			subjects(
+				"function read({ URL, ...document } = globalThis) { return [URL, document]; } let URL, document; ({ URL, ...document } = globalThis);",
+			),
+		).toEqual([]);
+		expect(subjects('const document = "URL"; let value; ({ [document]: value } = globalThis);')).toEqual([]);
+	});
+
+	it.each([
 		"const { value = window } = options;",
 		"const { document: value = window } = options;",
 		"const [value = window] = options;",
