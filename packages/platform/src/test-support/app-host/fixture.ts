@@ -63,9 +63,9 @@ export function sessions(lookups: string[]): SessionPolicy<SessionShape> {
 	};
 }
 
-export function call(url: string, token: string, reject = false) {
+export function call(url: string, token: string, reject = false, headers: Readonly<Record<string, string>> = {}) {
 	const protocol = RpcClient.layerProtocolHttp({
-		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", token)),
+		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ ...headers, authorization: token })),
 		url: `${url}/rpc`,
 	}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	return Effect.runPromise(
