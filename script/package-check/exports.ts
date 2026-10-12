@@ -55,8 +55,9 @@ export function exportTargets(manifest: Manifest, packed: ReadonlySet<string>): 
 }
 
 export function exportEntries(manifest: Manifest, packed: ReadonlySet<string>): Entry[] {
+	const executables = new Set(Object.values(bins(manifest)).map((bin) => posix.normalize(bin)));
 	return Object.entries(manifest.exports ?? {})
-		.filter(([, value]) => value !== null)
+		.filter(([, value]) => value !== null && !targets(value).some((target) => executables.has(posix.normalize(target))))
 		.flatMap(([key, value]) => {
 			const json = targets(value).some((target) => target.endsWith(".json"));
 			const subpaths = key.includes("*") ? exposedStars(manifest, key, value, packed).map((star) => key.replace("*", star)) : [key];
