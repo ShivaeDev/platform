@@ -1,5 +1,6 @@
 import { navigationHistoryScript } from "./navigationHistoryScript.ts";
 import { reactNavigationScript } from "./reactNavigationScript.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 export function navigationScript(): string {
 	return `
@@ -32,7 +33,7 @@ const open = async (target) => {
   await router.navigate(target.pathname + target.search + target.hash);
   if (!sameRoute || target.href !== location.href) return;
   const native = session(window);
-  const page = document.getElementById("doc").hasAttribute("data-react-document") ? native.api.document.query({ url: target.pathname + target.search }) : native.api.page.query({ url: target.pathname + target.search });
+  const page = document.getElementById("doc").hasAttribute("data-react-document") ? native.api.document.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)}) : native.api.page.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)});
   if (native.registry.get(page)._tag === "Failure") {
     delete document.getElementById("doc").dataset.route;
     native.registry.refresh(page);
@@ -72,7 +73,7 @@ const navigate = async (target, entry, hashOnly = false) => {
   try {
     if (router) { await navigateReact(route, mine, id, entry, cached, target, status); return; }
     const native = session(window);
-    const response = await native.read(native.api.page.query({ url: target.pathname + target.search }), controller.signal);
+    const response = await native.read(native.api.page.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)}), controller.signal);
     const page = new DOMParser().parseFromString(response.html, "text/html");
     if (mine !== version) return;
     if (!applyPage(page, Boolean(cached))) throw new Error("Invalid page");

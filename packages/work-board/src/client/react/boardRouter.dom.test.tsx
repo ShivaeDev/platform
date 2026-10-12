@@ -4,6 +4,7 @@ import { act } from "react";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { documentQuery } from "#client/page/routeQuery.ts";
 import { setupResponses } from "#client/responses/setup.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
@@ -17,8 +18,8 @@ const files = {
 };
 it.live("renders a fixture Board tree through the navigation query with the selected file and ancestry", function* () {
 	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api) => {
-			const router = boardRouter({ api, initial: "" });
+		renderBoard(files, (api, registry) => {
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/deep/review.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -38,8 +39,8 @@ it.live("renders a fixture Board tree through the navigation query with the sele
 it.live("changes the React main area through TanStack Router while retaining the mounted shell", function* () {
 	let router: ReturnType<typeof boardRouter> | undefined;
 	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api) => {
-			router = boardRouter({ api, initial: "" });
+		renderBoard(files, (api, registry) => {
+			router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/design.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -63,8 +64,8 @@ it.live("changes the React main area through TanStack Router while retaining the
 });
 it.live("renders a document from its typed query with React context tools", function* () {
 	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api) => {
-			const router = boardRouter({ api, initial: "" });
+		renderBoard(files, (api, registry) => {
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/notes/design.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -86,9 +87,9 @@ it.live("retains form text and focus when a hosted page query refreshes", functi
 	};
 	let refresh: (() => void) | undefined;
 	const view = yield* Effect.promise(() =>
-		renderBoard(source, (api) => {
-			refresh = () => view.registry.refresh(api.document.query({ url: "/question.md" }));
-			const router = boardRouter({ api, initial: "" });
+		renderBoard(source, (api, registry) => {
+			refresh = () => view.registry.refresh(documentQuery(api, "/question.md"));
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
 			return <RouterProvider router={router} />;
 		}),

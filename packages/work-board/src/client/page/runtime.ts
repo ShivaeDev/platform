@@ -1,5 +1,6 @@
 import { itemContextScript } from "./itemContextScript.ts";
 import { preferencesScript } from "./preferencesScript.ts";
+import { routeQueryOptions } from "./routeQuery.ts";
 
 export const client = `
 import "/_board/diagnostics.js";
@@ -66,7 +67,7 @@ const watchPage = () => {
   active = selection;
   releasePage?.();
   pageFailure = "";
-  const atom = doc.hasAttribute("data-react-document") ? native.api.document.query({ url: path }) : native.api.page.query({ url: path });
+  const atom = doc.hasAttribute("data-react-document") ? native.api.document.query({ url: path }, ${JSON.stringify(routeQueryOptions)}) : native.api.page.query({ url: path }, ${JSON.stringify(routeQueryOptions)});
   releasePage = native.registry.subscribe(atom, (value) => {
     pageWaiting = value.waiting || value._tag === "Initial";
     if (value._tag === "Failure") pageFailure = resolvedDocumentFailure(value.cause) ? "" : "refresh failed";

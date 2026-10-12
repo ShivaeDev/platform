@@ -26,8 +26,8 @@ function expectProse(container: HTMLElement) {
 
 it.live.each([DECISION_PATH, questionPath])("reads packet prose in the React shell at %s", function* (path) {
 	const view = yield* Effect.promise(() =>
-		renderBoard(packetFiles, (api) => {
-			const router = boardRouter({ api, initial: "" });
+		renderBoard(packetFiles, (api, registry) => {
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/${path}`] }) });
 			return <RouterProvider router={router} />;
 		}),
