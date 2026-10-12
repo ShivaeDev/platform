@@ -5,6 +5,7 @@ import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
 import { draft } from "./draft.ts";
 import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
+import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
 import {
 	type Config,
@@ -30,7 +31,7 @@ export const make = <F extends Fields, A, E, R, ER>(schema: Schema.Struct<F>, co
 	const checks: ReadonlyMap<string, unknown> = new Map(Object.entries(config.checks ?? {}));
 	const decode = SchemaParser.decodeUnknownEffect(schema, { errors: "all" });
 
-	const editing = draft(initialValues);
+	const editing = draft(initialValues, config.persistedDraft ? persistence(schema, config.persistedDraft) : undefined);
 	const { values } = editing;
 	const status = statusOf();
 	const noted = trackRejections(holder(values), config.arrayKeys, status);

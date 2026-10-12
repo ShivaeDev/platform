@@ -135,14 +135,14 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-contract": "workspace:*"
+		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/effect-form": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
-		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-pg-boss": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
@@ -165,7 +165,6 @@
 	},
 	"peerDependencies": {
 		"@effect/atom-react": "catalog:",
-		"@shivaedev/effect-form": "workspace:*",
 		"@tanstack/react-router": "catalog:",
 		"effect": "catalog:",
 		"react": "catalog:",
@@ -173,9 +172,6 @@
 		"vitest": "catalog:"
 	},
 	"peerDependenciesMeta": {
-		"@shivaedev/effect-form": {
-			"optional": true
-		},
 		"@tanstack/react-router": {
 			"optional": true
 		},

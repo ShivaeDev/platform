@@ -152,6 +152,47 @@ Call `receive` with encoded values from a refreshed or saved row. Encode domain 
 
 The form does not replace submitted encoded input with its decoded representation. A trimmed name can be accepted as saved while the input still contains its spaces. Receive the normalized saved row when the application wants that representation on screen. `useEditor` from `effect-react` performs that composition.
 
+### Persist input across reloads
+
+Opt in with `persistedDraft`. The application chooses a key for one logical editing session. Keep that key stable across server revisions so a refresh can find the same draft; choose a new key when the encoded field shape changes. Stored input includes its baseline and edited field names, so edited fields survive reload while untouched fields adopt the latest received values.
+
+For a core form, supply the storage provider explicitly:
+
+```ts
+const order = make(fields, {
+  initialValues: { name: "Paper", quantity: "300" },
+  onSubmit: Effect.succeed,
+  persistedDraft: { key: "order:123", storage: () => window.localStorage },
+  runtime,
+});
+```
+
+For a React form, call `usePersistedDraft` before creating the form. It defaults to browser `localStorage` and attaches the current `SessionBoundary` draft owner:
+
+```tsx
+import { useState } from "react";
+import { usePersistedDraft } from "@shivaedev/effect-form/react.ts";
+
+function OrderEditor() {
+  const persistedDraft = usePersistedDraft({ key: "order:123" });
+  const [form] = useState(() => make(fields, {
+    initialValues: { name: "Paper", quantity: "300" },
+    onSubmit: Effect.succeed,
+    persistedDraft,
+    runtime,
+  }));
+  return <OrderFields form={form} />;
+}
+```
+
+`OrderFields` is the application's field UI. Keep this component mounted for one record; remount it when its identity changes. `useEditor` and `useCreate` from `effect-react` accept `persistedDraft: { key }` directly and attach the same owner. Replacing or ending a `SessionBoundary` session drops its tracked drafts, including screens already unmounted, and disables writes from its old forms. Ordinary unmounts and React effect replay preserve stored drafts. A stored draft with a different session generation is discarded when read.
+
+Each stored record defaults to at most 256 KiB of UTF-8 JSON and seven days since its last write. Set `maxBytes` and `maxAgeMs` to finite positive limits to change those bounds. Oversized, expired, malformed or incompatible records are dropped when encountered. Persistence requires JSON-compatible encoded input; invalid input such as an empty required string or an unfinished numeric string still persists. Storage access, serialization and quota failures leave the form usable.
+
+Edits and received values update the stored draft. Revert removes it. A successful submit clears accepted input; edits made after the submitted snapshot remain persisted. A failed submit keeps the draft.
+
+Outside React, pass a `session` from `draftSession(id)` in `@shivaedev/effect-form/draftSession.ts` and call its `drop()` when the application replaces that session. Core forms without a session owner use only the application's key. `DraftSessionContext` supplies the owner to React integrations.
+
 ### Field feedback and advisory checks
 
 An untouched invalid field initially has no visible message. Invalid submission reveals schema messages, and editing a field updates its feedback. A server rejection clears on an edit; a rejection that arrives after the field has changed does not attach to the new value.
@@ -218,7 +259,9 @@ Import the module that defines a name; there is no root entry.
 | --- | --- |
 | `@shivaedev/effect-form/form.ts` | `make(schema, config)` |
 | `@shivaedev/effect-form/shape.ts` | `Fields`, `Name`, `Encoded`, `Decoded`, `Services`, `Checks`, `Config`, `Form`, `Submitter`, `FieldFailure`, `Invalid` |
-| `@shivaedev/effect-form/react.ts` | `useField`, `useSubmit`, `useDirty`, `Field`, `Submit` |
+| `@shivaedev/effect-form/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`, `BrowserDraftConfig`, `Field`, `Submit` |
+| `@shivaedev/effect-form/persistence.ts` | `PersistedDraftConfig`, `DraftStorage`; `persistence` and `Persistence` for composing storage machinery |
+| `@shivaedev/effect-form/draftSession.ts` | `draftSession(id)`, `DraftSession` |
 | `@shivaedev/effect-form/optional.ts` | `emptyAsNull` |
 | `@shivaedev/effect-form/messages.ts` | `FieldMessages`, `messagesByField`, `messageAt`, `messageAtPath`, `schemaFeedback`, `withoutField`, `literalChoices`, `noMessages` |
 
@@ -231,6 +274,7 @@ Import the module that defines a name; there is no root entry.
 | `onSubmit` | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot |
 | `checks` | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined` |
 | `debounce` | Optional Effect `Duration.Input` for checks |
+| `persistedDraft` | Optional `{ key, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies storage and session ownership |
 
 The returned form exposes:
 
@@ -253,7 +297,7 @@ The returned form exposes:
 
 `useField(form, name)` returns `name`, `value`, `error`, `choices`, `onChange(value)` and `onBlur()`. `useSubmit(form)` returns `result`, `run()` and `submitting`. `useDirty(form)` returns a boolean.
 
-The wildcard module export also exposes `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`), `status.ts` (`statusOf`), and the conversion helpers `Holder`, `holder`, `fieldOf`, `choicesOf` and `checkOf` in `shape.ts`. The examples use the form API instead of composing that machinery directly.
+The explicit module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`), `status.ts` (`statusOf`), and the conversion helpers `Holder`, `holder`, `fieldOf`, `choicesOf` and `checkOf` in `shape.ts`. The examples use the form API instead of composing that machinery directly.
 
 ### Install and limits
 
@@ -272,5 +316,5 @@ The React mounting example also uses the application's `react-dom`. React and `@
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.
-- Decide in the application when to receive normalized rows, how to render general failures, and how to reset drafts on identity changes.
+- Decide in the application when to receive normalized rows and how to render general failures. Attach a draft owner when persisted input must end with the session.
 - The package and composed DOM/HTTP fixtures do not establish application adoption, SSR isolation or mobile lifecycle behavior.

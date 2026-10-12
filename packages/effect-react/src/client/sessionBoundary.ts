@@ -1,6 +1,8 @@
 import { RegistryContext } from "@effect/atom-react";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
+import { draftSession } from "@shivaedev/effect-form/draftSession.ts";
+import { DraftSessionContext } from "@shivaedev/effect-form/react.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession) => TClient;
@@ -74,7 +76,19 @@ export function SessionBoundary<TSession, TClient>({
 	signedOut,
 	children,
 }: SessionBoundaryProps<TSession, TClient>): ReactNode {
+	const id = session === undefined ? undefined : identify(session);
+	const [drafts, setDrafts] = useState(() => (id === undefined ? undefined : draftSession(id)));
+	let current = drafts;
+	if (current?.id !== id) {
+		current?.drop();
+		current = id === undefined ? undefined : draftSession(id);
+		setDrafts(current);
+	}
 	return session === undefined
 		? createElement(Fragment, null, signedOut)
-		: createElement(Generation<TSession, TClient>, { children, connect, key: identify(session), recheck, session });
+		: createElement(
+				DraftSessionContext.Provider,
+				{ value: current },
+				createElement(Generation<TSession, TClient>, { children, connect, key: id, recheck, session }),
+			);
 }

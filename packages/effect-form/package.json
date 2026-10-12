@@ -88,6 +88,18 @@
 			"source": "./src/trackRejections.ts",
 			"import": "./dist/trackRejections.js",
 			"default": "./dist/trackRejections.js"
+		},
+		"./persistence.ts": {
+			"types": "./dist/persistence.d.ts",
+			"source": "./src/persistence.ts",
+			"import": "./dist/persistence.js",
+			"default": "./dist/persistence.js"
+		},
+		"./draftSession.ts": {
+			"types": "./dist/draftSession.d.ts",
+			"source": "./src/draftSession.ts",
+			"import": "./dist/draftSession.js",
+			"default": "./dist/draftSession.js"
 		}
 	},
 	"files": [
