@@ -8,7 +8,7 @@
 	},
 	"scripts": {
 		"build": "vite build",
-		"dev": "node --conditions=source --env-file-if-exists=.env.local src/dev.ts",
+		"dev": "node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "vitest run",
 		"typecheck": "tsc6 --noEmit"
