@@ -73,7 +73,7 @@ describe("Fleet report host", () => {
 				yield* terminalViews(fixture, WAIT_EXIT.completed, "Completed (1)");
 			}),
 		);
-	}, 30_000);
+	});
 	test("empty output needs a human and creates no result", function* () {
 		yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 			Effect.gen(function* () {
@@ -96,5 +96,5 @@ describe("Fleet report host", () => {
 				expect(fixture.provider.launched).toHaveLength(2);
 			}),
 		);
-	}, 30_000);
+	});
 });

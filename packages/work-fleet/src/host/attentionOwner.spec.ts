@@ -39,7 +39,7 @@ test("CLI status groups all owners and wait names each owner without changing ex
 			});
 		}),
 	);
-}, 30_000);
+});
 
 test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>
@@ -63,7 +63,7 @@ test("terminal publication blockers remain grouped by owner with their original 
 			expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
 		}),
 	);
-}, 30_000);
+});
 
 test("CLI reassignment publishes a new maintainer question and refreshes the generated Board", function* () {
 	const calls: string[] = [];
@@ -98,4 +98,4 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			expect(fixture.provider.launched).toHaveLength(1);
 		}),
 	);
-}, 30_000);
+});

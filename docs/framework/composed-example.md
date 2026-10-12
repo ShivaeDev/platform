@@ -1,6 +1,6 @@
 # Reference composition on PostgreSQL and HTTP
 
-The order feature is the reference composition for Platform's native application path. Its executable fixture joins Schema, a migrated PostgreSQL repository, a service, authenticated native HTTP RPC, atom queries, an encoded form editor and live updates. It is a small test application that readers can follow across the package boundaries.
+The order feature is the reference composition for Platform's native application path. Its executable fixture joins Schema, a migrated PostgreSQL repository, a service, authenticated native HTTP RPC, atom queries, an encoded form editor and live updates. It is a test fixture, not a copyable application. Until an app template exists, use it to study the tested boundaries and each package's README to build application wiring; its test gates, session provider and Origin policy are fixture choices.
 
 ## Code to read
 

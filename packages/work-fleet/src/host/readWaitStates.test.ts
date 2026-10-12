@@ -35,5 +35,5 @@ describe("Fleet summary reads against PostgreSQL", () => {
 				}
 			}).pipe(Effect.provide(readOnlySql(fixture.host))),
 		);
-	}, 30_000);
+	});
 });

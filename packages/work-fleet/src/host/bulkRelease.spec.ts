@@ -21,7 +21,7 @@ test("bulk CLI release closes changed done and deferred decisions and records on
 	yield* withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, { local: { endpoint: server.endpoint } }, (fixture) =>
 		withReadDaemon(fixture.host, (port) => bulkReleaseStory(fixture, port), fixture.parts),
 	);
-}, 30_000);
+});
 
 function waitingDecision(fixture: HostFixture, id: string) {
 	return Effect.gen(function* () {

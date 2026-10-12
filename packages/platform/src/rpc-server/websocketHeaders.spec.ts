@@ -47,4 +47,4 @@ it("WebSocket RPC decides origin and session from the upgrade request, not messa
 	} finally {
 		provider.database.close();
 	}
-}, 20_000);
+});

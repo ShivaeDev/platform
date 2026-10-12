@@ -62,7 +62,7 @@ integration("PostgreSQL integration", () => {
 				}).pipe(Effect.provide(live)),
 			),
 		);
-	}, 20_000);
+	});
 });
 
 integration("PostgreSQL operational boundaries", () => {
@@ -100,7 +100,7 @@ integration("PostgreSQL operational boundaries", () => {
 		} finally {
 			await admin.stop();
 		}
-	}, 20_000);
+	});
 
 	it("preserves the operation, queue and pg-boss error after the real database client closes", async () => {
 		const queueName = `closed-database-${crypto.randomUUID()}`;
@@ -142,5 +142,5 @@ integration("PostgreSQL operational boundaries", () => {
 				}).pipe(Effect.provide(live)),
 			),
 		);
-	}, 20_000);
+	});
 });

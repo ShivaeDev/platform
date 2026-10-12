@@ -4,6 +4,7 @@ This file owns the package's implementation inventory and open API choices. The 
 
 ## Built
 
+- [x] `makePgBoss` retains its literal service identity in `PgBossDefinition` and its Layer type, so a different jobs Layer does not satisfy the required service. [Compiler evidence](https://github.com/ShivaeDev/platform/blob/main/packages/effect-pg-boss/src/service.typecheck.test.ts).
 - [x] Object payload Schema definitions, decoded enqueue types and queue workers. Type tests reject primitive schemas, missing fields and encoded values passed as decoded payloads.
 - [x] Encoding at enqueue and decoding before the handler. The PostgreSQL test round-trips a transformed payload and checks that malformed stored data reaches the dead-letter queue without calling the domain handler.
 - [x] Queue and schedule registration, with dead-letter queues, default retry settings and UTC schedule registration. Fake-client tests verify the supplied settings and a retry-limit override.
