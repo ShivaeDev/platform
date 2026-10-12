@@ -8,7 +8,7 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { privateFixture } from "#package-check/test-support/privateFixture.ts";
 import { verifyArchives, workspaceArchives } from "./archives.ts";
-import { exportEntries, exportTargets } from "./exports.ts";
+import { blockedEntries, exportEntries, exportTargets } from "./exports.ts";
 import type { Manifest, Package } from "./model.ts";
 
 it("shared archives reject different commits, missing packages, and modified tarballs", async () => {
@@ -73,4 +73,24 @@ it("checks mapped executables as packed targets without importing them as librar
 	const entries = exportEntries(manifest, packed);
 	assert(entries.some(({ specifier }) => specifier === "board/board.ts"));
 	assert(!entries.some(({ specifier }) => specifier === "board/cli.ts"));
+});
+
+it("keeps exact shared exports out of the blocked consumer entries under a private folder pattern", () => {
+	const manifest: Manifest = {
+		exports: {
+			"./*.ts": { import: "./dist/*.js", source: "./src/*.ts" },
+			"./browser/responses/*": null,
+			"./browser/responses/schema.ts": { import: "./dist/browser/responses/schema.js", source: "./src/browser/responses/schema.ts" },
+		},
+		name: "board",
+		version: "1.0.0",
+	};
+	const packed = new Set([
+		"src/browser/responses/form.ts",
+		"src/browser/responses/schema.ts",
+		"dist/browser/responses/form.js",
+		"dist/browser/responses/schema.js",
+	]);
+	assert(exportEntries(manifest, packed).some(({ specifier }) => specifier === "board/browser/responses/schema.ts"));
+	assert.deepEqual(blockedEntries(manifest, packed), ["board/browser/responses/form.ts"]);
 });

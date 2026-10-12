@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { Effect } from "effect";
 import { command } from "#package-check/io.ts";
 import { bins, type Manifest, type Package, targets } from "#package-check/model.ts";
+import { importEntry } from "./imports.ts";
 
 export interface Entry {
 	readonly json: boolean;
@@ -20,9 +21,7 @@ function sourceTargets(value: unknown): string[] {
 }
 
 function blocked(manifest: Manifest, subpath: string): boolean {
-	return Object.entries(manifest.exports ?? {}).some(
-		([key, value]) => value === null && (key === subpath || (key.includes("*") && starOf(key, posix.normalize(subpath)) !== undefined)),
-	);
+	return importEntry(manifest.exports ?? {}, subpath) === null;
 }
 
 function specifierOf(manifest: Manifest, subpath: string): string {
