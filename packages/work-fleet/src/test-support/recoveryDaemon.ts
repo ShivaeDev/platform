@@ -7,13 +7,22 @@ import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import type { Decision } from "#policy.ts";
-import { FleetIntegrations } from "#policy.ts";
+import { FleetFailure, FleetIntegrations } from "#policy.ts";
 import { until } from "#test/cloudRestart.ts";
 import { daemonClient } from "#test/daemonClient.ts";
 import { withHost } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";
 import { answerReport } from "#test/report.ts";
+
+function retryRecordConflict<A, E, R>(operation: Effect.Effect<A, E, R>) {
+	return operation.pipe(
+		Effect.retry({
+			times: 5,
+			while: (error) => error instanceof FleetFailure && error.message === "Work changed during this observation; load the current record",
+		}),
+	);
+}
 
 function schedulerReady(root: string, previous: number | null) {
 	return until(() =>
@@ -25,7 +34,7 @@ function schedulerReady(root: string, previous: number | null) {
 }
 function responseApplied(client: Effect.Success<ReturnType<typeof daemonClient>>, responseId: string) {
 	return until(() =>
-		client("fleet.reconcile", { workId: "one" }).pipe(
+		retryRecordConflict(client("fleet.reconcile", { workId: "one" })).pipe(
 			Effect.map((record) => record.responses?.some((response) => response.responseId === responseId) ?? false),
 		),
 	);
@@ -69,7 +78,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 						prompt: "Implement scoped work",
 						workId: "one",
 					});
-					const dispatched = yield* client("fleet.dispatch", { workId: "one" });
+					const dispatched = yield* retryRecordConflict(client("fleet.dispatch", { workId: "one" }));
 					expect(dispatched.decision).toBeUndefined();
 					expect(dispatched.stage).toBe("executing");
 					const [turn, observation] = [...fixture.provider.observations.entries()][0] ?? [];
@@ -77,7 +86,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 						return yield* Effect.die("Missing worker");
 					}
 					fixture.provider.observations.set(turn, { ...observation, execution: "failed" });
-					const stopped = yield* client("fleet.reconcile", { workId: "one" });
+					const stopped = yield* retryRecordConflict(client("fleet.reconcile", { workId: "one" }));
 					if (stopped.decision?.published === undefined) {
 						return yield* Effect.die("Missing published decision");
 					}
@@ -100,7 +109,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 					const resolved = yield* client("fleet.get", { workId: "one" });
 					expect(resolved.stage).toBe(action === "release" ? "released" : "prepared");
 					if (action === "retry") {
-						const fresh = yield* client("fleet.dispatch", { workId: "one" });
+						const fresh = yield* retryRecordConflict(client("fleet.dispatch", { workId: "one" }));
 						expect(fresh.attempts).toHaveLength(2);
 						expect(fresh.stage).toBe("executing");
 						expect(fresh.decision).toBeUndefined();

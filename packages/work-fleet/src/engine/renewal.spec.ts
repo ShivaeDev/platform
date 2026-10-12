@@ -44,6 +44,29 @@ describe("context-bound Fleet renewal", () => {
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
+	test("an authored stop observes the existing terminal turn without resuming before explicit renewal", () =>
+		withEngine({ noChange: true }, (fixture) =>
+			Effect.gen(function* () {
+				const fleet = yield* Fleet;
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				fixture.editWork("one", "board-one-next");
+				const stopped = yield* fleet.reconcile("one");
+				expect(stopped.value.decision?.reason).toBe("Board context changed");
+				finishWorkers(fixture);
+				const observed = yield* fleet.reconcile("one");
+				expect(observed.value.stage).toBe("needs-human");
+				expect(observed.value.decision).toEqual(stopped.value.decision);
+				expect(observed.value.boardRevision).toBe("board-one");
+				expect(observed.value.attempts[0]?.status).toBe("completed");
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
+				fixture.approveWork("one", "board-one-next");
+				const renewed = yield* prepareWork("one");
+				expect(renewed.value.stage).toBe("prepared");
+				expect(renewed.value.history?.[0]?.attempts[0]?.receipt).toEqual(stopped.value.attempts[0]?.receipt);
+			}),
+		));
+
 	for (const lostAcknowledgement of [false, true]) {
 		test(`running or ambiguous submission cannot renew (lost acknowledgement ${lostAcknowledgement})`, () =>
 			withEngine({ lostAcknowledgement }, (fixture) =>

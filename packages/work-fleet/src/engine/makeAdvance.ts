@@ -22,6 +22,7 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 			stored = yield* makeDeliver(state)(stored);
 		}
 		stored = yield* makeHuman(state)(stored);
+		stored = yield* makeObserve(state)(stored);
 		if (!["completed", "released"].includes(stored.value.stage) && briefChanged(stored.value, yield* state.board.get(workId))) {
 			return yield* stopChangedBrief(state)(stored);
 		}
@@ -35,7 +36,6 @@ function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaun
 		if (["completed", "released", "prepared", "needs-human"].includes(stored.value.stage)) {
 			return stored;
 		}
-		stored = yield* makeObserve(state)(stored);
 		const work = yield* state.board.get(stored.value.workId);
 		yield* authorizeBriefContext(stored.value, work);
 		stored = yield* makeAdopt(state)(stored, work);
