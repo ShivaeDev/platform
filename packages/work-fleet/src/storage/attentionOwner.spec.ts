@@ -3,6 +3,7 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
+import { legacyStore } from "#test/legacyStore.ts";
 import { storageDatabaseUrl, withStorage } from "#test/storage.ts";
 
 const test = it.live.skipIf(storageDatabaseUrl === undefined);
@@ -11,7 +12,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 	withStorage((_store, namespace) =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			yield* sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 4`;
+			yield* legacyStore(namespace);
 			const payloads = [
 				{ stage: "needs-human", workId: "question" },
 				{ blocker: "execution capacity is occupied (limit 1)", stage: "prepared", workId: "blocked" },
@@ -27,7 +28,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 			for (const payload of payloads) {
 				yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${payload.workId}, 1, ${JSON.stringify(payload)}::jsonb)`;
 			}
-			yield* migrateFleet(namespace);
+			yield* migrateFleet(namespace, undefined, true);
 			const rows = yield* sql<{
 				readonly owner: string | null;
 				readonly decisionOwner: string | null;
@@ -46,7 +47,7 @@ test("migration persists owners on existing waits and preserves assigned owners 
 				{ decisionOwner: "maintainer", owner: "maintainer", version: 2, workId: "ready" },
 				{ decisionOwner: null, owner: "automation", version: 2, workId: "retry" },
 			]);
-			yield* migrateFleet(namespace);
+			yield* migrateFleet(namespace, undefined, true);
 			expect((yield* sql`select version from ${sql(`${namespace}_records`)} where work_id = 'question'`)[0]?.version).toBe(2);
 		}),
 	));

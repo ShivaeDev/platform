@@ -34,6 +34,7 @@ export const Fleet = defineService({
 		continue: continueCommand(state, state.launch),
 		dispatch: dispatchCommand(state, state.launch),
 		get: (workId: string) => state.load(workId),
+		hasLaunchRetry: () => state.store.hasLaunchRetry(),
 		list: () => state.store.list(),
 		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state)), Effect.flatMap(cleanupSessions(state))),
 		reassign: reassignCommand(state),

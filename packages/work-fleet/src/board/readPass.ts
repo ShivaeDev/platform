@@ -29,18 +29,22 @@ export class BoardSnapshot {
 type Read = Effect.Effect<BoardSnapshot, BoardFailure>;
 interface Pass {
 	active: boolean;
+	readonly publications: Set<Effect.Effect<void>>;
 	readonly reads: Map<string, Read>;
 }
 const ReadPass = Context.Reference<Pass | undefined>("@shivaedev/work-fleet/board/ReadPass", { defaultValue: () => undefined });
 
 export function withBoardReadPass<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return Effect.suspend(() => {
-		const pass: Pass = { active: true, reads: new Map() };
+		const pass: Pass = { active: true, publications: new Set(), reads: new Map() };
 		return effect.pipe(
 			Effect.provideService(ReadPass, pass),
 			Effect.ensuring(
-				Effect.sync(() => {
+				Effect.gen(function* () {
 					pass.active = false;
+					for (const publication of pass.publications) {
+						yield* publication;
+					}
 				}),
 			),
 		);
@@ -97,4 +101,13 @@ export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work
 		}
 	}
 	return metadataParse(work.context);
+});
+
+export const publishAfterBoardPass = Effect.fn("FleetBoard.publishAfterBoardPass")(function* (publication: Effect.Effect<void>) {
+	const pass = yield* ReadPass;
+	if (pass?.active === true) {
+		pass.publications.add(publication);
+	} else {
+		yield* publication;
+	}
 });

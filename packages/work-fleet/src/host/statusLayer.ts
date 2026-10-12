@@ -1,6 +1,7 @@
 import { Clock, Console, Effect, FileSystem, Layer, Ref, Semaphore } from "effect";
 import type { FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
 import { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
+import { publishAfterBoardPass } from "#board/readPass.ts";
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { Health, HealthPublication, HealthSnapshot } from "#engine/health.ts";
@@ -48,11 +49,11 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 				yield* publish;
 			}
 			function after<A, E, R>(effect: Effect.Effect<A, E, R>) {
-				return effect.pipe(Effect.ensuring(publish));
+				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish)));
 			}
 			return Layer.mergeAll(
 				Layer.succeed(HealthSnapshot)(readSnapshot(snapshot)),
-				Layer.succeed(HealthPublication)(publish),
+				Layer.succeed(HealthPublication)(publishAfterBoardPass(publish)),
 				Layer.succeed(Fleet)({
 					...fleet,
 					continue: (workId, message) => after(fleet.continue(workId, message)),

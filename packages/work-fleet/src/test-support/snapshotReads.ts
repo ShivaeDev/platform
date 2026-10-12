@@ -9,7 +9,7 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 	const query = pg.Client.prototype.query;
 	let failures = 0;
 	function isSnapshot(text: unknown): boolean {
-		return typeof text === "string" && text.includes("jsonb_strip_nulls") && text.includes(`${host.namespace}_records`);
+		return typeof text === "string" && text.includes('"checks"') && !text.includes('"history"') && text.includes(`${host.namespace}_records`);
 	}
 	const queries = vi.spyOn(pg.Client.prototype, "query").mockImplementation(function (this: pg.Client, ...args) {
 		const [text, values, callback] = args;
@@ -31,14 +31,14 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 	yield* Effect.addFinalizer(() =>
 		Effect.gen(function* () {
 			if (broken) {
-				yield* rename("unavailable_payload", "payload");
+				yield* rename("unavailable_stage", "stage");
 			}
 			yield* Effect.promise(() => control.end());
 			queries.mockRestore();
 		}),
 	);
 	return {
-		breakReads: rename("payload", "unavailable_payload").pipe(
+		breakReads: rename("stage", "unavailable_stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = true;
@@ -47,7 +47,7 @@ export const snapshotReads = Effect.fn("SnapshotTest.snapshotReads")(function* (
 		),
 		count: () => queries.mock.calls.filter(([text]) => isSnapshot(text)).length,
 		failedCount: () => failures,
-		restoreReads: rename("unavailable_payload", "payload").pipe(
+		restoreReads: rename("unavailable_stage", "stage").pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					broken = false;
