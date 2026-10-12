@@ -1,6 +1,8 @@
-import type { ParsedMetadata } from "@shivaedev/work-board/metadata/parse.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import type { ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { fleetDeliverable } from "#board/fleetField.ts";
+
+const { revisionOf } = responses;
 
 export function briefRevision(parsed: ParsedMetadata): string {
 	return revisionOf(

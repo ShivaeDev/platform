@@ -1,5 +1,5 @@
 import { parse } from "yaml";
-import type { Diagnostic, ParsedMetadata } from "@shivaedev/work-board/metadata/parse.ts";
+import type { Diagnostic, ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
 
 const APPROVAL = "fleet";
 const LAUNCH = "fleet-launch";

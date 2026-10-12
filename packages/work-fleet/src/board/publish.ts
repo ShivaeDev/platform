@@ -1,13 +1,14 @@
 import { relative } from "node:path";
 import { Clock, Effect } from "effect";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { publish } from "@shivaedev/work-board/responses/publish.ts";
-import { questionFrom, questionId, questionMarkdown, revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardFailure, type BoardWork, type Decision } from "#policy.ts";
+
+const { publish, questionFrom, questionId, questionMarkdown, revisionOf } = responses;
 
 function quoted(text: string): string {
 	const fence = "~".repeat(Math.max(3, ...Array.from(text.matchAll(/~+/gu), (match) => match[0].length + 1)));
@@ -48,7 +49,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		const workSourcePath = relative(realRoot, work.sourcePath);
 		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links, ...(input.worker === undefined ? [] : [input.worker])]))}`;
 		const context = decisionSource(itemId, work, input);
-		const parsed = metadataParse(context);
+		const parsed = boardApi.metadataParse(context);
 		if (new TextEncoder().encode(context).length > 256 * 1024 || parsed.diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
 		}

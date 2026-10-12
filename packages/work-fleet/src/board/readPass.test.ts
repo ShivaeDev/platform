@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { vi } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import * as metadata from "@shivaedev/work-board/metadata/parse.ts";
+import { board as metadata } from "@shivaedev/work-board/integration/board.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { withBoardReadPass, workMetadata } from "#board/readPass.ts";

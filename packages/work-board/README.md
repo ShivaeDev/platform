@@ -465,6 +465,35 @@ Read `client.api.document.run({ url: "/notes.md" })` to get Markdown body source
 
 Pass that data as the `document` prop of `DocumentView` from `@shivaedev/work-board/browser/document/View.ts`. The view uses the Board's GFM, directive, heading and footnote plugins with raw HTML, browser-side Shiki and a Mermaid code override. `idPrefix` scopes footnotes when a host displays several documents. The Board shell is a React app with TanStack Router. Document and item pages mount `DocumentView` from the typed document query; the configured home board and workspace views remain in `LegacyMain`. The optional `reading` data supplies source context, backlinks, criterion claims and managed receipts; request `prompts` supply answer controls. Hosts can mount `DocumentView` directly from source-query data, or pass `context` and `introduction` React nodes for its document layout.
 
+#### Headless addon API
+
+Work Fleet uses five server entry points and one portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
+
+| Entry point | API object and members |
+| --- | --- |
+| `integration/board.ts` | `board`: `metadataParse`, `metadataModel`, `listMarkdown`, `markdownPath`, `watchChanges`, `searchSnapshot`; exported types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, `MarkdownFile`, `Changes`, `Snapshot` |
+| `integration/metadata.ts` | Portable types `Diagnostic`, `ParsedMetadata`, `MetadataDocument`, `MetadataModel`, also available through `integration/board.ts` |
+| `integration/responses.ts` | `responses`: `Responses`, `ResponseConfig`, `readResponses`, `currentResponses`, `makeResponse`, `publish`, `revisionOf`, `questionId`, `questionFrom`, `questionMarkdown`, `responseMarkdown`, `DraftInput`, `Question`, `Reading`, `RecordedResponse`; exported types `DraftInput`, `Question`, `Reading`, `RecordedResponse`, `ResponseOptions` |
+| `integration/attention.ts` | `attention`: `RequestReceipt`, `managedRequestReceipt`; exported type `RequestReceipt` |
+| `integration/diagnostics.ts` | `diagnostics`: `FleetHealth`, `CapacityRejection`, `FLEET_HEALTH_NAME`, `fleetHealth`, `DiagnosticsContract`, `DAEMON_PORT`, `DAEMON_RPC_PATH`, `DiagnosticsSources`, `SourceFailure`, `diagnostics`, `codexRateLimits`, `codexLimits`, `githubLimits`; exported types `FleetHealth`, `CapacityRejection`, `SourceFailure` |
+| `integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+
+```ts
+import { NodeServices } from "@effect/platform-node";
+import { Effect } from "effect";
+import { board } from "@shivaedev/work-board/integration/board.ts";
+
+const read = Effect.scoped(Effect.gen(function* () {
+  const changes = yield* board.watchChanges("./notes");
+  const snapshot = yield* board.searchSnapshot("./notes", undefined, changes);
+  return yield* snapshot;
+})).pipe(Effect.provide(NodeServices.layer));
+```
+
+The snapshot retains parsed documents, identity diagnostics and unavailable paths. Compose `responses.Responses.layer` with `responses.ResponseConfig` containing that index, the same watcher, workspace root and explicit `enabled` write choice. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
+
+Fleet's production imports are fenced to these six entry points by `pnpm lint`; its test fixtures may still use Board modules directly. The packed-package consumer exercises the headless read, response and receipt path through these exports.
+
 #### CLI reference
 
 | Server argument | Default | Meaning |

@@ -1,7 +1,7 @@
 import { Clock, Console, Context, Effect, FileSystem, Layer, type Option, Ref, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import type { FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
-import { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
+import type { FleetHealth } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { publishAfterBoardPass } from "#board/readPass.ts";
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
@@ -9,6 +9,8 @@ import { Health, HealthPublication, HealthSnapshot } from "#engine/health.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
+
+const { SourceFailure } = diagnosticsApi;
 
 class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
 

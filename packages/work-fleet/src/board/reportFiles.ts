@@ -3,10 +3,12 @@ import { constants } from "node:fs";
 import { type FileHandle, link, mkdir, open, realpath, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { directoryPath, validateDirectory } from "@shivaedev/work-board/responses/publicationDirectory.ts";
+import { publication } from "@shivaedev/work-board/integration/publication.ts";
 import { reportFileName, reportLinks } from "#board/reportLinks.ts";
 import { BoardFailure } from "#policy.ts";
 import type { ReportFile } from "#reportAttachments.ts";
+
+const { directoryPath, validateDirectory } = publication;
 
 function exists(cause: unknown) {
 	return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
