@@ -422,14 +422,15 @@
 				"useCollapsedIf": "error",
 				"useComponentExportOnlyModules": "error",
 				"useConsistentArrayType": {
-					"level": "off",
+					"fix": "none",
+					"level": "error",
 					"options": {
 						"syntax": "shorthand"
 					}
 				},
 				"useConsistentArrowReturn": "error",
 				"useConsistentBuiltinInstantiation": "error",
-				"useConsistentCurlyBraces": "off",
+				"useConsistentCurlyBraces": { "fix": "none", "level": "error" },
 				"useConsistentEnumValueType": "error",
 				"useConsistentMemberAccessibility": {
 					"level": "error",
