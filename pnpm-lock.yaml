@@ -741,6 +741,9 @@ importers:
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
+      '@shivaedev/effect-form':
+        specifier: workspace:*
+        version: link:../effect-form
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -754,9 +757,6 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)
-      '@shivaedev/effect-form':
-        specifier: workspace:*
-        version: link:../effect-form
       '@shivaedev/effect-pg-boss':
         specifier: workspace:*
         version: link:../effect-pg-boss

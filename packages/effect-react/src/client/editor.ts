@@ -2,12 +2,14 @@ import { type Effect, Option, type Schema } from "effect";
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import type * as Atom from "effect/unstable/reactivity/Atom";
 import { useCallback, useEffect, useState } from "react";
+import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/effect-form/react.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import type { AtomServices, FieldRejectionMapping } from "#field-rejection.ts";
 import { submission } from "#submission.ts";
 import { type QueryState, useQuery } from "./resultState.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError> = {
+	readonly persistedDraft?: BrowserDraftConfig | undefined;
 	readonly query: Atom.Atom<AsyncResult.AsyncResult<TRow, TQueryError>>;
 	readonly fields: Schema.Struct<TFields>;
 	readonly values: (row: TRow) => Encoded<TFields>;
@@ -26,6 +28,7 @@ interface Held<TFields extends Fields, TRow, TSaveError, TRuntimeError> {
 export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError>(
 	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError>,
 ): Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> {
+	const persistedDraft = usePersistedDraft(config.persistedDraft);
 	const query = useQuery(config.query);
 	const row = Option.getOrUndefined(query.data);
 	const [held, hold] = useState<Held<TFields, TRow, TSaveError, TRuntimeError> | undefined>(undefined);
@@ -35,6 +38,7 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 			form: submission({
 				fields: config.fields,
 				initialValues: config.values(row),
+				persistedDraft,
 				rejectField: config.rejectField,
 				runtime: config.runtime,
 				save: config.save,

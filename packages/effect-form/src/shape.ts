@@ -4,6 +4,7 @@ import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
 import type { AtomRegistry } from "effect/unstable/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/unstable/reactivity/Reactivity";
 import type { FieldMessages } from "./messages.ts";
+import type { PersistedDraftConfig } from "./persistence.ts";
 
 export type Fields = Schema.Struct.Fields;
 
@@ -51,6 +52,7 @@ export interface Config<TFields extends Fields, A, E, R, TRuntimeError> {
 		submitter: Submitter<Name<TFields>>,
 		submitted: Encoded<TFields>,
 	) => Effect.Effect<A, E, R | Scope.Scope | AtomRegistry | Reactivity>;
+	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 }
 

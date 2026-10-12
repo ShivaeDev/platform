@@ -30,6 +30,8 @@ An **editor** joins a query atom, an effect-form field schema and a save Effect.
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
+`useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use effect-form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [effect-form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/effect-form#persist-input-across-reloads) for direct form hooks and limits.
+
 ### 1. Once per application: own the registry
 
 For a screen without a session boundary, wrap it in the native provider:
