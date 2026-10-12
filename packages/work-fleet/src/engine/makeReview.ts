@@ -56,7 +56,7 @@ function recordObservation(attempts: readonly Attempt[], observation: SessionObs
 	const { receipt } = observation;
 	return attempts.map((attempt) =>
 		attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
-			? { ...attempt, output: observation.output, status: observation.execution }
+			? { ...attempt, output: observation.output, readRetry: undefined, status: observation.execution }
 			: attempt,
 	);
 }

@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { capacityRetry } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -7,9 +6,9 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
+import { readRetry } from "#engine/readRetry.ts";
 import type { FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
-import { transientFailure } from "#session/transientFailure.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -28,14 +27,9 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		if (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage)) {
 			return current;
 		}
-		if (error instanceof SessionFailure && transientFailure(error)) {
-			const attempt = current.value.attempts.at(-1);
-			if (
-				current.value.launchRetry !== undefined
-				|| (attempt !== undefined && (yield* capacityRetry(state, current.value, attempt.operationId, error)))
-			) {
-				return yield* load(workId);
-			}
+		const retrying = yield* readRetry(state, current, error);
+		if (retrying !== undefined) {
+			return retrying;
 		}
 		if (capacityFailure(error)) {
 			return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
@@ -53,6 +47,11 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 	return Effect.fn("Fleet.reconcile")(function* (
 		workId: string,
 	): Effect.fn.Return<Versioned<FleetRecord>, Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>>> {
+		const current = yield* load(workId);
+		const retry = current.value.attempts.at(-1)?.readRetry;
+		if (current.value.stage !== "needs-human" && retry !== undefined && state.policy.now() < retry.retryAt) {
+			return current;
+		}
 		return yield* advance(workId).pipe(Effect.catch((error) => handleFailure(workId, error)));
 	});
 }
