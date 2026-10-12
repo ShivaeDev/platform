@@ -1,8 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { briefRevision } from "#board/briefRevision.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttp, boardHttpFiles, boardInbox, boardOverview } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -55,7 +53,7 @@ for (const status of ["planned", "deferred"]) {
 		));
 }
 
-test("concurrent retries prepare the current approved brief and acknowledge the original answer after restart", () =>
+test("concurrent retries cannot authorize a changed brief or consume the original answer", () =>
 	withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -75,18 +73,21 @@ test("concurrent retries prepare the current approved brief and acknowledge the 
 				{ concurrency: "unbounded" },
 			);
 			const prepared = (yield* fleet.get("one")).value;
-			expect(prepared.stage).toBe("repairing");
-			expect(prepared.boardRevision).toBe(briefRevision(metadataParse(currentSource)));
-			expect(prepared.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
+			expect(prepared.stage).toBe("needs-human");
+			expect(prepared.boardContext).toBe(source);
+			expect(prepared.decision).toEqual(decision);
+			expect(prepared.responses).toBeUndefined();
 
-			expect(yield* boardOverview(root)).not.toContain("data-attention-item=");
+			expect(yield* boardOverview(root)).toContain("data-attention-item=");
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;
-					yield* restarted.resolve("one", decision.id, answer);
-					const continued = yield* restarted.reconcile("one");
-					expect(continued.value.stage).toBe("executing");
-					expect(continued.value.attempts.at(-1)?.prompt).toContain("Changed criteria.");
+					const denied = yield* restarted.resolve("one", decision.id, answer).pipe(Effect.result);
+					expect(denied._tag).toBe("Failure");
+					const stopped = yield* restarted.reconcile("one");
+					expect(stopped.value.stage).toBe("needs-human");
+					expect(stopped.value.decision?.reason).toBe("Board context changed");
+					expect(stopped.value.responses).toBeUndefined();
 				}),
 			);
 			expect(files.receipts()).toHaveLength(1);
@@ -94,23 +95,22 @@ test("concurrent retries prepare the current approved brief and acknowledge the 
 		}),
 	));
 
-test("a worker answer arrives with the current approved brief after the task changes", () =>
+test("a worker answer cannot continue its thread after an authored brief edit", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const { decision } = yield* askWorker(fixture);
-			const answer = yield* answerWorker(root, decision);
+			yield* answerWorker(root, decision);
 			const current = `${source}\nChanged criteria.\n`;
 			boardHttpFiles(root).write("one.md", current);
 			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("executing");
-			expect(continued.value.boardContext).toBe(current);
-			expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);
-			expect(continued.value.attempts.at(-1)?.prompt).toContain("Previous brief:");
-			expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
-			expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
+			expect(continued.value.stage).toBe("needs-human");
+			expect(continued.value.decision?.reason).toBe("Board context changed");
+			expect(continued.value.boardContext).toBe(source);
+			expect(continued.value.responses).toBeUndefined();
+			expect(continued.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 		}),
 	));

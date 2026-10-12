@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { validateResult } from "#completion.ts";
-import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import { type BoardWork, FleetFailure, type WorkResult } from "#policy.ts";
@@ -10,10 +10,7 @@ export function refreshReviewResult(state: EngineState) {
 	const { integrations, save, board, decision, policy } = state;
 	return Effect.fn("Fleet.refreshReviewResult")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult, head = result.head) {
 		const currentWork = yield* board.get(work.workId);
-		yield* authorizeBrief(currentWork);
-		if (briefChanged(stored.value, currentWork)) {
-			return yield* continueChangedBrief(state)(stored, currentWork);
-		}
+		yield* authorizeBriefContext(stored.value, currentWork);
 		const worker = reviewWorker(stored.value);
 		if (worker?.receipt === undefined) {
 			return yield* new FleetFailure({ message: "Review lacks the adopted worker receipt", reason: "invalid" });

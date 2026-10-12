@@ -43,7 +43,7 @@ for (const stage of ["preparation", "execution", "review"] as const) {
 		));
 }
 
-test("criteria edited during execution reach the same worker at its next terminal turn without adopting the old result", () =>
+test("criteria edited during execution stop adoption and further worker turns", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -51,19 +51,16 @@ test("criteria edited during execution reach the same worker at its next termina
 			const dispatched = yield* fleet.dispatch("one");
 			const current = source.replace("kind: task\n", "kind: task\ncriteria:\n  - id: persistence\n    text: Preserve transactions.\n");
 			boardHttpFiles(root).write("one.md", current);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+			const stopped = yield* fleet.reconcile("one");
+			expect(stopped.value.stage).toBe("needs-human");
+			expect(stopped.value.decision?.reason).toBe("Board context changed");
+			expect(stopped.value.boardContext).toBe(source);
+			expect(stopped.value.result).toBeUndefined();
+			expect(stopped.value.attempts[0]?.receipt).toEqual(dispatched.value.attempts[0]?.receipt);
 			finishWorkers(fixture);
-			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("executing");
-			expect(continued.value.boardContext).toBe(current);
-			expect(continued.value.result).toBeUndefined();
-			expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(dispatched.value.attempts[0]?.receipt?.sessionId);
-			expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
-			expect(continued.value.attempts.at(-1)?.prompt).toContain(source);
-			expect(continued.value.decision).toBeUndefined();
+			expect((yield* fleet.reconcile("one")).value.decision).toEqual(stopped.value.decision);
 			expect(fixture.launched).toHaveLength(1);
-			finishWorkers(fixture);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 		}),
 	));
 

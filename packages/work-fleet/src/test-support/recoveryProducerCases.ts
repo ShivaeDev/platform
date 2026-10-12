@@ -92,7 +92,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				}),
 			},
 			progress,
-			reason: "Work is no longer approved or is done",
+			reason: "Work is no longer approved",
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
 		},

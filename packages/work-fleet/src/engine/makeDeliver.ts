@@ -1,12 +1,11 @@
 import { Effect, Result } from "effect";
 import type { AttentionOwner } from "#attention.ts";
 import { validateChecks, validateReview } from "#completion.ts";
-import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas, invalidateMergeReadiness } from "#engine/mergeReadiness.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { requestConflictRepair } from "#engine/requestConflictRepair.ts";
-import { settleDone } from "#engine/settleDone.ts";
 import { MovedPrHead } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
@@ -36,15 +35,9 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 ) {
 	const record = stored.value;
 	const work = yield* state.board.get(record.workId);
-	if (work.status === "done") {
-		return yield* settleDone(state)(stored);
-	}
 	const denied = yield* deniedDelivery(state, stored, work);
 	if (denied !== undefined) {
 		return denied;
-	}
-	if (briefChanged(record, work)) {
-		return yield* continueChangedBrief(state)(stored, work);
 	}
 	if (result.kind === "no-change") {
 		return record.stage === "delivering"
@@ -55,7 +48,7 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 });
 
 function deniedDelivery(state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
-	return authorizeBrief(work).pipe(
+	return authorizeBriefContext(stored.value, work).pipe(
 		Effect.catch((error) =>
 			stored.value.decision === undefined
 				? state.decision(stored, error.message, "Restore approval for work that is still needed, or release it", undefined, "maintainer")

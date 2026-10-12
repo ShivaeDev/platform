@@ -10,7 +10,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 const test = it.effect.skipIf(storageDatabaseUrl === undefined);
 
 for (const timing of ["between passes", "while the reviewer finishes"] as const) {
-	test(`approved criteria edited ${timing} discard the old review and continue the worker`, function* () {
+	test(`approved criteria edited ${timing} stop further work before the old review is accepted`, function* () {
 		const observing = yield* Deferred.make<void>();
 		const resume = yield* Deferred.make<void>();
 		const betweenPasses = timing === "between passes";
@@ -37,21 +37,22 @@ for (const timing of ["between passes", "while the reviewer finishes"] as const)
 					finishWorkers(fixture);
 					yield* Deferred.succeed(resume, undefined);
 					const continued = reconciliation === undefined ? yield* fleet.reconcile("one") : yield* Fiber.join(reconciliation);
-					expect(continued.value.stage).toBe("executing");
+					expect(continued.value.stage).toBe("needs-human");
+					expect(continued.value.decision?.reason).toBe("Board context changed");
 					expect(continued.value.review).toBeUndefined();
 					expect(continued.value.checks).toBeUndefined();
 					expect(continued.value.outcome).toBeUndefined();
-					expect(continued.value.boardContext).toBe(current);
-					expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(worker.value.attempts[0]?.receipt?.sessionId);
-					expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
-					expect(continued.value.decision).toBeUndefined();
+					expect(continued.value.boardContext).toBe(source);
+					expect(continued.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
+					expect(continued.value.attentionOwner).toBe("maintainer");
 					expect(fixture.launched).toHaveLength(2);
 				}),
 		);
 	});
 }
 
-test("an approved brief edit while waiting for a merge resumes the worker and supersedes the old merge question", () =>
+test("an authored brief edit while waiting for a merge stops work and supersedes the merge question", () =>
 	withFleetBoard({ denyDelivery: true }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -65,10 +66,11 @@ test("an approved brief edit while waiting for a merge resumes the worker and su
 			const current = `${source}\nUpdated acceptance criteria.\n`;
 			boardHttpFiles(root).write("one.md", current);
 			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.stage).toBe("needs-human");
+			expect(continued.value.decision?.reason).toBe("Board context changed");
 			expect(continued.value.review).toBeUndefined();
 			expect(continued.value.checks).toBeUndefined();
-			expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 			expect(continued.value.result).toEqual(waiting.value.result);
 			const acknowledged = yield* fleet.reconcile("one");
 			expect(acknowledged.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);

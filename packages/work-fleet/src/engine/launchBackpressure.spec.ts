@@ -130,7 +130,7 @@ describe("Fleet launch backpressure", () => {
 				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 				const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
 				expect(status).toContain("Waiting on maintainer (1)");
-				expect(status).toContain("Work is no longer approved or is done");
+				expect(status).toContain("Work is no longer approved");
 				expect(status).not.toContain("Waiting for provider capacity");
 				expect(fixture.launched).toHaveLength(1);
 			}),

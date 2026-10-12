@@ -21,7 +21,7 @@ const expected = {
 	"before-thread": { recoverable: false, sessions: 0, turnRequests: 0, turns: 0 },
 	"before-turn": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
 	"before-turn-request": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
-	"changed-context": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
+	"changed-context": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
 	"late-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
 	"retry": { recoverable: true, sessions: 1, turnRequests: 2, turns: 1 },
 	"revoked-approval": { recoverable: false, sessions: 1, turnRequests: 0, turns: 0 },
@@ -82,22 +82,16 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(after.attempts).toHaveLength(1);
 	expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
 	if (!recoverable) {
-		expect(after).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
+		const owner = boundary === "changed-context" ? "maintainer" : "orchestrator";
+		expect(after).toMatchObject({ attentionOwner: owner, decision: { attentionOwner: owner } });
+		if (boundary === "changed-context") {
+			expect(after.decision?.reason).toBe("Board context changed");
+		}
 		expect(after.attempts[0]?.status).toBe("submitting");
 		yield* cannotRenew(fixture, after);
 	}
 	if (recoverable) {
 		expect(after.attempts[0]?.receipt).toEqual({ sessionId: "synthetic-session", turnId: "synthetic-turn" });
-	}
-	if (boundary === "changed-context") {
-		expect(after.stage).toBe("executing");
-		expect(after.decision).toBeUndefined();
-		expect(backend.requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
-			input: [{ text: expect.stringContaining("Current brief:") }],
-		});
-		expect(backend.requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
-			input: [{ text: expect.stringContaining("Changed scope") }],
-		});
 	}
 	if (boundary === "retry") {
 		expect(after.decision).toBeUndefined();
@@ -107,7 +101,9 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 	expect(backend.turns).toBe(expected[boundary].turns);
 	expect(backend.requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
 	expect(backend.requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
-	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(before.attempts[0]?.sessionId !== undefined);
+	expect(backend.requests.some((request) => request.method === "thread/turns/list")).toBe(
+		boundary !== "changed-context" && before.attempts[0]?.sessionId !== undefined,
+	);
 });
 
 function restartStory(boundary: Boundary) {

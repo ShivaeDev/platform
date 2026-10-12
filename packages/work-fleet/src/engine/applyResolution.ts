@@ -1,11 +1,9 @@
 import { Effect } from "effect";
-import { briefChanged, changedBrief, refreshedBrief } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
-import { settleDone } from "#engine/settleDone.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
@@ -21,9 +19,6 @@ export function applyResolution(state: EngineState) {
 		body: string,
 		responseId: string,
 	) {
-		if (action !== "release" && (yield* state.board.get(stored.value.workId)).status === "done") {
-			return yield* settleDone(state)(stored);
-		}
 		if (action === undefined) {
 			const blocker =
 				responses.at(-1)?.type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`;
@@ -44,14 +39,13 @@ function retryOrRelease(state: EngineState) {
 		body: string,
 	) {
 		const current = yield* resolveExecution(state, stored, action);
-		if (action === "retry") {
-			if (current.value.decision?.reason === "Reviewed PR is ready to merge" && current.value.result?.kind === "change" && body.trim()) {
-				return yield* requestRework(state)(current, body, responses);
-			}
-			const refreshed = yield* retryChangedBrief(state)(current, responses);
-			if (refreshed !== undefined) {
-				return refreshed;
-			}
+		if (
+			action === "retry"
+			&& current.value.decision?.reason === "Reviewed PR is ready to merge"
+			&& current.value.result?.kind === "change"
+			&& body.trim()
+		) {
+			return yield* requestRework(state)(current, body, responses);
 		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
@@ -87,27 +81,6 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 		return "reviewing";
 	}
 	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
-}
-
-function retryChangedBrief(state: EngineState) {
-	return Effect.fn("Fleet.retryChangedBrief")(function* (stored: Versioned<FleetRecord>, responses: readonly DecisionResponse[]) {
-		const work = yield* state.board.get(stored.value.workId);
-		if (!briefChanged(stored.value, work)) {
-			return undefined;
-		}
-		if (executing(stored.value)) {
-			return yield* state.save(stored, { ...stored.value, blocker: undefined, decision: undefined, responses, stage: "executing" });
-		}
-		const hasWorker = stored.value.attempts.some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined);
-		const refreshed = hasWorker ? changedBrief(stored.value, work) : refreshedBrief(stored.value, work);
-		return yield* state.save(stored, {
-			...refreshed,
-			blocker: undefined,
-			decision: undefined,
-			responses,
-			stage: hasWorker ? "repairing" : "prepared",
-		});
-	});
 }
 
 function deliveryRetry(record: FleetRecord) {

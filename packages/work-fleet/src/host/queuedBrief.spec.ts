@@ -13,7 +13,7 @@ import { task, withHost } from "#test/fleetHost.ts";
 import { storageDatabaseUrl } from "#test/storage.ts";
 
 for (const rejectedCall of ["session", "turn"] as const) {
-	it.live.skipIf(storageDatabaseUrl === undefined)(`host admission preserves a queued initial ${rejectedCall} through an approved brief edit`, () => {
+	it.live.skipIf(storageDatabaseUrl === undefined)(`host admission stops a queued initial ${rejectedCall} after an authored brief edit`, () => {
 		let now = 100;
 		let reject = true;
 		const launch = { model: "initial-model" };
@@ -47,29 +47,23 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				expect((yield* fleet.get("one")).value).toEqual(queued);
 				yield* dispatchApproved(fixture.host, "one");
 				yield* cycle;
-				expect((yield* fleet.get("one")).value).toEqual(queued);
+				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
 				expect(provider.launched).toHaveLength(1);
 				now = 30_100;
 				yield* admitApproved(fixture.host);
-				expect((yield* fleet.get("one")).value).toEqual(queued);
+				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
 				yield* cycle;
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("executing");
-				expect(accepted.boardContext).toBe(current);
+				expect(accepted.stage).toBe("needs-human");
+				expect(accepted.decision?.reason).toBe("Board context changed");
+				expect(accepted.boardContext).toBe(source);
 				expect(accepted.launchRetry).toBeUndefined();
-				expect(accepted.attempts).toHaveLength(2);
-				expect(accepted.attempts[0]).toEqual(failed);
+				expect(accepted.attempts).toEqual(queued.attempts);
 				expect(accepted.history).toEqual(queued.history);
-				expect(attempt).toMatchObject({ role: "worker", settings: { model: "initial-model" } });
-				expect(attempt?.prompt).toContain(`${failed?.prompt}\n\nThe approved worker brief changed.`);
-				expect(attempt?.prompt).toContain(`Previous brief:\n${source}`);
-				expect(attempt?.prompt).toContain(`Current brief:\n${current}`);
-				expect(provider.launched).toHaveLength(rejectedCall === "turn" ? 1 : 2);
-				if (rejectedCall === "turn") {
-					expect(failed?.sessionId).toBeDefined();
-					expect(attempt?.receipt?.sessionId).toBe(failed?.sessionId);
-				}
+				expect(attempt).toEqual(failed);
+				expect(provider.launched).toHaveLength(1);
+				expect(provider.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 1 : 0);
 			}).pipe(
 				Effect.provide(
 					hostLayer(fixture.host, {

@@ -1,10 +1,9 @@
 import { Effect, Result } from "effect";
-import { authorizeBrief, refreshBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { settleDone } from "#engine/settleDone.ts";
 import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
@@ -14,14 +13,8 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (stored.value.stage !== "prepared") {
 			return stored;
 		}
-		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
-			return stored;
-		}
 		const work = yield* board.get(workId);
-		if (work.status === "done") {
-			return yield* settleDone(state)(stored);
-		}
-		const authorized = yield* authorizeBrief(work).pipe(Effect.result);
+		const authorized = yield* authorizeBriefContext(stored.value, work).pipe(Effect.result);
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
 				stored,
@@ -31,7 +24,9 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 				"maintainer",
 			);
 		}
-		stored = yield* refreshBrief(state)(stored, work);
+		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
 		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
 		if (assessment._tag === "Reprepare") {
 			return yield* decision(stored, assessment.reason, "Prepare the affected scope again before dispatch");

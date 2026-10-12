@@ -1,11 +1,10 @@
 import { Effect } from "effect";
 import { validateReview } from "#completion.ts";
-import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
-import { settleDone } from "#engine/settleDone.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, Review, WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -19,10 +18,7 @@ export function makeReview(state: EngineState) {
 		if (result === undefined || stored.value.stage !== "reviewing") {
 			return stored;
 		}
-		yield* authorizeBrief(work);
-		if (reviewOutdated(stored.value, work)) {
-			return yield* continueChangedBrief(state)(stored, work);
-		}
+		yield* authorizeBriefContext(stored.value, work);
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
@@ -32,13 +28,7 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		const currentWork = yield* state.board.get(work.workId);
-		if (currentWork.status === "done") {
-			return yield* settleDone(state)(stored);
-		}
-		yield* authorizeBrief(currentWork);
-		if (briefChanged(stored.value, currentWork)) {
-			return yield* continueChangedBrief(state)(stored, currentWork);
-		}
+		yield* authorizeBriefContext(stored.value, currentWork);
 		if (observation.execution !== "completed") {
 			return yield* decision(stored, `Reviewer turn ${observation.execution}`, "Inspect terminal reviewer evidence before retrying");
 		}
@@ -70,11 +60,4 @@ function finishReview(state: EngineState) {
 		}
 		return yield* save(refreshed, { ...refreshed.value, stage: review.verdict === "changes" ? "repairing" : "validating" });
 	});
-}
-
-function reviewOutdated(record: FleetRecord, work: BoardWork) {
-	return (
-		briefChanged(record, work)
-		&& !record.attempts.some((attempt) => attempt.role === "reviewer" && ["submitting", "accepted", "running"].includes(attempt.status))
-	);
 }

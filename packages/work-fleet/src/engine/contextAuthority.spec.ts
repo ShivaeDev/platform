@@ -22,10 +22,10 @@ test("unapproved work retains an open answer without launching another turn", ()
 			boardHttpFiles(root).write("one.md", current);
 			const held = yield* fleet.reconcile("one");
 			expect(held.value.stage).toBe("needs-human");
-			expect(held.value.blocker).toContain("no longer approved or is done");
+			expect(held.value.blocker).toContain("no longer approved");
 			expect(held.value.responses).toBeUndefined();
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
-			boardHttpFiles(root).write("one.md", `${source}\nCurrent approved criteria.\n`);
+			boardHttpFiles(root).write("one.md", source);
 			const continued = yield* fleet.reconcile("one");
 			expect(continued.value.stage).toBe("executing");
 			expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);

@@ -45,7 +45,7 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queue-full answer retries 
 	);
 });
 
-it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer survives an approved brief edit with its original launch intent", () => {
+it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer stops at an authored brief edit without submitting its launch intent", () => {
 	let now = 100;
 	let reject = false;
 	const launch = { model: "initial-model" };
@@ -74,23 +74,21 @@ it.effect.skipIf(storageDatabaseUrl === undefined)("a queued answer survives an 
 				now = 30_099;
 				yield* fixture.restart(cycle);
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
-				expect((yield* fleet.get("one")).value.launchRetry).toEqual(queued.launchRetry);
+				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
 				now = 30_100;
 				yield* fixture.restart(cycle);
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("executing");
-				expect(accepted.boardContext).toBe(current);
+				expect(accepted.stage).toBe("needs-human");
+				expect(accepted.decision?.reason).toBe("Board context changed");
+				expect(accepted.boardContext).toBe(source);
 				expect(accepted.launchRetry).toBeUndefined();
-				expect(attempt).toMatchObject({ receipt: { sessionId: decision.worker?.sessionId }, role: "worker", settings: { model: "initial-model" } });
-				expect(attempt?.prompt).toBe(
-					`${answer.body}\n\nThe approved worker brief changed. Continue with the current brief and adjust the work to its criteria.\n\nPrevious brief:\n${source}\n\nCurrent brief:\n${current}`,
-				);
-				expect(accepted.attempts.at(-2)).toEqual(failed);
+				expect(attempt).toEqual(failed);
+				expect(accepted.attempts).toEqual(queued.attempts);
 				expect(accepted.responses).toEqual(queued.responses);
 				expect(accepted.history ?? []).toEqual([]);
 				expect(fixture.launched).toHaveLength(1);
-				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);
+				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 			}),
 	);
 });

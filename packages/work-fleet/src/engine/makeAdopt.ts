@@ -1,6 +1,6 @@
 import { Effect, Result } from "effect";
 import { validateResult } from "#completion.ts";
-import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
@@ -14,10 +14,7 @@ export function makeAdopt(state: EngineState) {
 		if (stored.value.stage !== "adopting") {
 			return stored;
 		}
-		yield* authorizeBrief(work);
-		if (briefChanged(stored.value, work)) {
-			return yield* continueChangedBrief(state)(stored, work);
-		}
+		yield* authorizeBriefContext(stored.value, work);
 		if (stored.value.deliverable === "report") {
 			return yield* completeReport(state)(stored, work);
 		}
