@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog } from "#model.ts";
 import { type EngineFixture, finishWorkers, withEngine } from "#test/engine.ts";
 import { BASE, HEAD, PR } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { reportWorker } from "#test/reportWorker.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 function retryAdoption(fixture: EngineFixture, decisionId: string, responseId: string) {
 	return fixture.restart(

@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { backlog, executing } from "#model.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 const result = { head: "reviewed-head", kind: "change", paths: ["src/one.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
 const open = { headRefOid: result.head, mergeCommit: null, mergedAt: null, state: "OPEN", url: result.pr };
 const merged = { ...open, mergeCommit: { oid: "merged-revision" }, mergedAt: "2026-01-01T00:00:00Z", state: "MERGED" };

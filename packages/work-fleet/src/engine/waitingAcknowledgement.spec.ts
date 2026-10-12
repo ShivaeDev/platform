@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { settled, WAIT_EXIT } from "#host/waitOutcome.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("released work waits visibly on the orchestrator until its Board acknowledgement succeeds", () =>
 	withEngine({ acknowledgeFailure: true, denyDelivery: true }, (fixture) =>

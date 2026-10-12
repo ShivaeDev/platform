@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import { prepareWork } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerReport } from "#test/report.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("retry of receiptless preparation prepares the current approved revision without another human decision", () =>
 	withFleetBoard({}, (_fixture, root, source) =>

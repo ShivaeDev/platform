@@ -1,12 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 describe("launch failure ownership", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("provider unavailability after session acknowledgement keeps retries on the existing attempt", () =>
 		withEngine({ unavailableTurn: true }, (fixture) =>
 			Effect.gen(function* () {

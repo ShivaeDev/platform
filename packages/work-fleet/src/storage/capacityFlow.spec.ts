@@ -1,9 +1,10 @@
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { record, storageDatabaseUrl, submitAgainstQuota, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { record, submitAgainstQuota, withStorage } from "#test/storage.ts";
 
-const integration = it.live.skipIf(storageDatabaseUrl === undefined);
+const integration = postgresTests("live");
+const isolated = postgresTests("live", "isolated");
 
 integration("releases execution capacity when execution turns terminal", () =>
 	withStorage((store) =>
@@ -16,7 +17,7 @@ integration("releases execution capacity when execution turns terminal", () =>
 	),
 );
 
-integration("atomically admits only one submission against a shared remaining quota observation", () =>
+isolated("atomically admits only one submission against a shared remaining quota observation", () =>
 	withStorage((store) =>
 		Effect.gen(function* () {
 			const first = yield* store.insert(record("board-a"));

@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { HEAD, NO_CHANGE, REPORT, resultFixture } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startWorkerReport, workerReportReply } from "#test/workerReport.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test", "isolated");
 
 test("a repair report receives its correction on the existing worker thread without archiving the cycle", () => {
 	const github = resultFixture({ after: { "changed_files": 1 }, before: { "changed_files": 1 }, files: [[{ filename: "src/one.ts" }]] });

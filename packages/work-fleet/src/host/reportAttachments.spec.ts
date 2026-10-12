@@ -2,19 +2,18 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { PUBLISHED_REPORT } from "#host/reportBoard.ts";
 import { withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { attachmentBoard, attachmentItems, expectReportAttachments, turnDownload } from "#test/reportAttachments.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
 const OUTPUT = "The report stays private to Board.";
 
 describe("Report attachments", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 	for (const attachments of [true, false]) {
 		test(`completes a report ${attachments ? "with downloaded text and encoded binary files beside the result" : "without attachments"}`, function* () {
 			const download = yield* turnDownload(attachments ? attachmentItems() : []);

@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { withEngine } from "#test/engine.ts";
 import { PR, resultFixture } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startWorkerReport, workerReportReply } from "#test/workerReport.ts";
 
 describe("report correction after worker guidance changes", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	for (const nextGuidance of ["Follow changed synthetic conventions.", undefined]) {
 		test(`a second malformed report needs a human after restart with guidance ${nextGuidance === undefined ? "removed" : "changed"}`, () =>
 			withEngine({ resultQuery: resultFixture().adopt, workerGuidance: "Follow original synthetic conventions." }, (fixture) =>

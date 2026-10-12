@@ -1,12 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
 import { repairAttempts, withApprovedPrDaemon } from "#test/approvedPrDaemon.ts";
 import { BASE, MOVED } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("daemon relaunches a conflicting approved PR once per main revision across restart", () =>
 	withApprovedPrDaemon((fixture) =>

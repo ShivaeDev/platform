@@ -1,16 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { FleetFailure } from "#policy.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 for (const owner of ["orchestrator", "maintainer"] as const) {
 	test(`persists ${owner} worker question routing through restart`, () =>

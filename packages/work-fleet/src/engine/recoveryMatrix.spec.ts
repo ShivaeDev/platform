@@ -1,14 +1,13 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect } from "@effect/vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { describe, expect, it } from "@effect/vitest";
 import { decisionReasons, sourceDecisionReasons } from "#test/decisionReasons.ts";
 import { decisionSites, sourceDecisionSites } from "#test/decisionSites.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { recoveryCases } from "#test/recoveryCases.ts";
 import { recoveryDaemon } from "#test/recoveryDaemon.ts";
 import { runRecoveryCase } from "#test/runRecoveryCase.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const scenarios = recoveryCases();
@@ -90,9 +89,9 @@ describe("every published Fleet decision has a recovery", () => {
 			),
 		).toEqual([]);
 	});
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	for (const action of ["retry", "release"] as const) {
-		it.live.skipIf(storageDatabaseUrl === undefined)(
+		postgresTests("live")(
 			`HTTP daemon closes before the ${action} answer and restarts against the same PostgreSQL records`,
 			() => recoveryDaemon(action),
 			30_000,

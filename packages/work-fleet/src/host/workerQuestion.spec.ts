@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { boardHttp } from "#test/boardHttp.ts";
 import { task, waitProcess, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("worker questions appear on Board, wait exits needs-human, and an answer continues the thread once across restart", function* () {
 	yield* withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>

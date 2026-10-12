@@ -1,10 +1,9 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { type EngineFixture, finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const recover = Effect.fnUntraced(function* (fixture: EngineFixture, gate: Deferred.Deferred<void>, action: "retry" | "release") {
 	yield* prepareWork("one");
@@ -33,7 +32,7 @@ const recover = Effect.fnUntraced(function* (fixture: EngineFixture, gate: Defer
 });
 
 for (const action of ["retry", "release"] as const) {
-	it.live.skipIf(storageDatabaseUrl === undefined)(
+	postgresTests("live", "isolated")(
 		`lost thread acknowledgement ${action} fences a late session before any turn starts`,
 		function* () {
 			const gate = yield* Deferred.make<void>();
@@ -87,7 +86,7 @@ const acknowledgementWins = Effect.fnUntraced(function* (
 	expect(fixture.operations.size).toBe(1);
 });
 
-it.live.skipIf(storageDatabaseUrl === undefined)(
+postgresTests("live", "isolated")(
 	"acknowledgement winning the retirement race retains execution until terminal observation",
 	function* () {
 		const gates = {

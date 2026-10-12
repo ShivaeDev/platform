@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
@@ -11,8 +10,8 @@ import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, 
 import { daemonClient } from "#test/daemonClient.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
 import { hostProcess } from "#test/hostProcess.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { retryInterrupted } from "#test/retryInterrupted.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const expected = {
 	"acknowledged-turn": { recoverable: true, sessions: 1, turnRequests: 1, turns: 1 },
@@ -130,7 +129,7 @@ function restartStory(boundary: Boundary) {
 }
 
 describe("Cloud daemon restarts against PostgreSQL and HTTP", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 	for (const boundary of [
 		"before-thread",
 		"after-thread",

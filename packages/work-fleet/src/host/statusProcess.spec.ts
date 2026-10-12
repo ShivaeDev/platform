@@ -1,13 +1,12 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { dispatchWork } from "#host/commands.ts";
 import { task, withHost } from "#test/fleetHost.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("work-fleet status process against PostgreSQL", () => {
-	const test = it.live.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("live");
 
 	test("--board loads the host file and status filters stored work as text or JSON", function* () {
 		yield* withHost({ "a.md": task("a", "approved"), "b.md": task("b", "approved") }, {}, (fixture) =>
