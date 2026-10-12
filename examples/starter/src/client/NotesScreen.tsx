@@ -1,10 +1,23 @@
 import { Option } from "effect";
+import { useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { Button } from "./Button.tsx";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteCreate } from "./NoteCreate.tsx";
 
-export function NotesScreen({ client }: { readonly client: NotesClient }) {
+export function NotesScreen({ client, onSignOut }: { readonly client: NotesClient; readonly onSignOut?: () => Promise<string | undefined> }) {
+	const [signingOut, setSigningOut] = useState(false);
+	const [failure, setFailure] = useState<string>();
+	async function signOut() {
+		setSigningOut(true);
+		try {
+			setFailure(await onSignOut?.());
+		} catch {
+			setFailure("Could not sign out. Try again.");
+		} finally {
+			setSigningOut(false);
+		}
+	}
 	const query = useQuery(client.api.list.query());
 	const rows = Option.getOrElse(query.data, () => []);
 	return (
@@ -13,6 +26,12 @@ export function NotesScreen({ client }: { readonly client: NotesClient }) {
 				<p className="font-medium text-muted-foreground text-sm">Your first app</p>
 				<h1 className="font-semibold text-3xl tracking-tight">Notes</h1>
 				<p className="text-muted-foreground">A small place for things worth keeping.</p>
+				{onSignOut !== undefined && (
+					<Button disabled={signingOut} onClick={() => void signOut()} variant="outline">
+						Sign out
+					</Button>
+				)}
+				{failure !== undefined && <p role="alert">{failure}</p>}
 			</header>
 			<section aria-label="Add a note" className="rounded-lg border bg-card p-5 shadow-sm">
 				<NoteCreate client={client} />

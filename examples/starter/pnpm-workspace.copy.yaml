@@ -16,13 +16,16 @@ catalog:
   "@tailwindcss/vite": 4.3.3
   "@tanstack/react-router": 1.170.41
   "@types/node": 24.19.1
+  "@types/pg": 8.20.0
   "@types/react": 19.2.18
   "@types/react-dom": 19.2.4
   "@vitejs/plugin-react": 6.0.5
   class-variance-authority: 0.7.1
+  better-auth: 1.6.33
   clsx: 2.1.1
   effect: 4.0.0-rc.112
   happy-dom: 20.11.2
+  pg: 8.23.0
   react: 19.2.8
   react-dom: 19.2.8
   tailwind-merge: 3.7.0

@@ -5,6 +5,7 @@ import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -23,4 +24,4 @@ export const Create = command("create", {
 	rejections: { Invalid: fieldRejection(NoteFields), ServiceUnavailable },
 	success: Note.json,
 });
-export const Notes = contract("notes", { commands: [Create], queries: [List] });
+export const Notes = contract("notes", { commands: [Create], queries: [List] }).middleware(Authenticated);

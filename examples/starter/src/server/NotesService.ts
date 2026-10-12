@@ -15,15 +15,18 @@ export const NotesService = defineService({
 	id: "starter/NotesService",
 	initialize: makeNotesRepository,
 	methods: (repository) => ({
-		create: ({ title }: typeof Create.payload.Type) =>
+		create: ({ title }: typeof Create.payload.Type, ownerId: string) =>
 			Effect.gen(function* () {
 				const trimmed = title.trim();
 				if (trimmed === "") {
 					return yield* Create.reject.Invalid({ field: "title", message: "Enter a title" });
 				}
-				return yield* repository.insert({ title: trimmed }).pipe(Effect.mapError(unavailable));
+				return yield* repository.insert({ ownerId, title: trimmed }).pipe(Effect.mapError(unavailable));
 			}).pipe(transact({ onSqlError: unavailable })),
-		list: () => repository.findMany({ orderBy: { direction: "desc", field: "id" } }).pipe(Effect.mapError(unavailable)),
+		list: (ownerId: string) =>
+			repository
+				.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title"], where: { ownerId } })
+				.pipe(Effect.mapError(unavailable)),
 	}),
 	requires: [SqlClient.SqlClient, Reactivity.Reactivity],
 });

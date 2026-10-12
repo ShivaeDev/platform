@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
@@ -22,11 +22,19 @@ test("the host migrates before services, serves assets and guarded typed RPC, an
 	const lifecycle: string[] = [];
 	const lookups: string[] = [];
 	const { loader, services } = feature(table, lifecycle);
-	const environment = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "DATABASE_URL": destination(), "PORT": "0" } }));
+	const environment = ConfigProvider.layer(
+		ConfigProvider.fromEnv({ env: { "DATABASE_URL": destination(), "PORT": "0", "TRUSTED_PROXY": "127.0.0.0/8,::1" } }),
+	);
 	const runtime = ManagedRuntime.make(
-		appHost({ assets: assets.path, group: Api, handlers, migrations: { loader, table: ledger }, services, sessions: sessions(lookups) }).pipe(
-			Layer.provide(environment),
-		),
+		appHost({
+			assets: { root: assets.path, spa: true },
+			group: Api,
+			handlers,
+			migrations: { loader, table: ledger },
+			routes: HttpRouter.add("GET", "/health", HttpServerResponse.text("Ready")),
+			services,
+			sessions: sessions(lookups),
+		}).pipe(Layer.provide(environment)),
 	);
 	let url = "";
 	try {
@@ -39,6 +47,8 @@ test("the host migrates before services, serves assets and guarded typed RPC, an
 		expect(server.address.hostname).toBe("127.0.0.1");
 		expect(lifecycle).toEqual(["started"]);
 		expect(await (await fetch(url)).text()).toBe("<main>Hosted app</main>");
+		expect(await (await fetch(`${url}/health`)).text()).toBe("Ready");
+		expect(await (await fetch(`${url}/sign-in`, { headers: { accept: "text/html" } })).text()).toBe("<main>Hosted app</main>");
 		const success = await Promise.all([call(url, "alice"), call(url, "bob")]);
 		expect(success.map((result) => Result.isSuccess(result) && result.success)).toEqual(["Hello, alice", "Hello, bob"]);
 		for (const [token, reject, expected] of [

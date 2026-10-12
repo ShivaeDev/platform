@@ -65,7 +65,7 @@ export interface AppHostOptions<
 	TMigrations,
 	TSession extends SessionShape,
 > extends AppDatabaseOptions<TMigrations> {
-	readonly assets?: string;
+	readonly assets?: string | Parameters<typeof HttpStaticServer.layer>[0];
 	readonly config?: AppDatabaseOptions<TMigrations>["config"] & {
 		readonly port?: number;
 		readonly host?: string;
@@ -73,6 +73,7 @@ export interface AppHostOptions<
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
+	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter>;
 	readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements>;
 	readonly sessions: SessionPolicy<TSession>;
 }
@@ -124,7 +125,10 @@ export function appHost<
 					);
 				}),
 			).pipe(Layer.provide(Layer.merge(options.handlers, middleware)), Layer.provide(RpcSerialization.layerNdjson));
-			const assets = options.assets === undefined ? Layer.empty : HttpStaticServer.layer({ root: options.assets });
+			const assets =
+				options.assets === undefined
+					? Layer.empty
+					: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
 			const application = options.services.pipe(Layer.provideMerge(appDatabase(options)));
 			const server = Layer.unwrap(
 				Effect.gen(function* () {
@@ -133,7 +137,7 @@ export function appHost<
 					return NodeHttpServer.layer(createServer, { host, port });
 				}),
 			);
-			return HttpRouter.serve(Layer.merge(routes, assets), { disableLogger: true }).pipe(
+			return HttpRouter.serve(Layer.mergeAll(routes, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
 				Layer.provideMerge(application),
 				Layer.provideMerge(server),
 				Layer.provide(NodeServices.layer),

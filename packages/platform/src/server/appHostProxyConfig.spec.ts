@@ -1,5 +1,5 @@
 import { Cause, Config, ConfigProvider, Effect, Exit, Layer, ManagedRuntime, Redacted, Schema } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Migrator } from "effect/unstable/sql";
 import { expect, it } from "vitest";
@@ -36,6 +36,7 @@ it.each([
 				group: Api,
 				handlers: Api.toLayer({ ping: () => Effect.succeed("pong") }),
 				migrations: { loader: Migrator.fromRecord({ "001_never": Effect.sync(() => lifecycle.push("migrated")) }) },
+				routes: HttpRouter.use(() => Effect.sync(() => lifecycle.push("routed"))),
 				services: Layer.effectDiscard(Effect.sync(() => lifecycle.push("started"))),
 				sessions: sessions([]),
 			}).pipe(

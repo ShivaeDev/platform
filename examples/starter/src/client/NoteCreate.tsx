@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { Option, Predicate } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/effect-form/react.ts";
 import { useCreate } from "@shivaedev/effect-react/create.ts";
@@ -44,7 +44,7 @@ export function NoteCreate({ client }: { readonly client: NotesClient }) {
 			)}
 			{Option.isSome(create.failure) && (
 				<p className="text-destructive text-sm" role="alert">
-					Could not add the note. Try again.
+					{Predicate.isTagged(create.failure.value, "Unauthorized") ? "Sign in to add a note." : "Could not add the note. Try again."}
 				</p>
 			)}
 			<p aria-live="polite" className="text-muted-foreground text-sm">
