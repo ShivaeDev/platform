@@ -17,6 +17,7 @@ function restore(context: RecoveryContext) {
 export function recoveryScopeCases(): readonly RecoveryCase[] {
 	return [
 		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* prepareWork("one");
 				revoke(context);
@@ -27,11 +28,12 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts).toHaveLength(1);
 				expect(after.stage).toBe("executing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
+
 			restore,
-			sites: ["engine/dispatchCommand.ts: authorized.failure.message"],
+			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
 		},
 		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* launchRecoveryWorker();
 				revoke(context);
@@ -44,9 +46,9 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 				expect(after.stage).toBe("reviewing");
 			},
-			reason: "Work is no longer approved or is done or superseded",
+
 			restore,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

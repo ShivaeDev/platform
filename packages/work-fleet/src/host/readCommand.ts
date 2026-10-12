@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { FleetFailure } from "#policy.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 
 export function readCommand(command: string, args: readonly string[], cwd?: string, input?: string) {
 	return Effect.scoped(
@@ -14,12 +14,12 @@ export function readCommand(command: string, args: readonly string[], cwd?: stri
 			);
 			const output = yield* process.stdout.pipe(Stream.decodeText, Stream.mkString);
 			if ((yield* process.exitCode) !== 0) {
-				return yield* Effect.fail(new FleetFailure({ message: `${command} could not read report evidence`, reason: "integration" }));
+				return yield* Effect.fail(new ServiceUnavailable({ message: `${command} could not read report evidence` }));
 			}
 			return output;
 		}),
 	).pipe(
 		Effect.timeout("60 seconds"),
-		Effect.mapError(() => new FleetFailure({ message: `${command} could not read report evidence`, reason: "integration" })),
+		Effect.mapError(() => new ServiceUnavailable({ message: `${command} could not read report evidence` })),
 	);
 }

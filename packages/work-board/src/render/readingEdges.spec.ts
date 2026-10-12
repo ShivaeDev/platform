@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { Highlighter } from "#render/Highlighter.ts";
-import { renderMarkdown } from "#render/markdown.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
 import { TEXT_QUESTION } from "#test/coverageEdges.ts";
 
 function render(source: string) {

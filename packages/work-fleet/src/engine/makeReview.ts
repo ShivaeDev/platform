@@ -39,7 +39,12 @@ export function makeReview(state: EngineState) {
 			return yield* continueChangedBrief(state)(stored, currentWork);
 		}
 		if (observation.execution !== "completed") {
-			return yield* decision(stored, `Reviewer turn ${observation.execution}`, "Inspect terminal reviewer evidence before retrying");
+			return yield* decision(
+				stored,
+				"reviewer-terminal",
+				`Reviewer turn ${observation.execution}`,
+				"Inspect terminal reviewer evidence before retrying",
+			);
 		}
 		const review = yield* readOrContinueReview(state)(stored, work, result, receipt, observation.output);
 		if (review === undefined) {

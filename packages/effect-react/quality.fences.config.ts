@@ -21,7 +21,7 @@ export default [
 		.from(folders("packages/effect-react/src"))
 		.mayNotImport(packages(...SERVER))
 		.demonstratedBy({
-			illegal: ["packages/effect-react/src/result-state.ts", "packages/effect-sql/src/repository.ts"],
-			legal: ["packages/effect-react/src/result-state.ts", external("effect")],
+			illegal: ["packages/effect-react/src/client/resultState.ts", "packages/effect-sql/src/repository.ts"],
+			legal: ["packages/effect-react/src/client/resultState.ts", external("effect")],
 		}),
 ];

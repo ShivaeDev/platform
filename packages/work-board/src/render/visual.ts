@@ -1,6 +1,7 @@
 import { Option, Schema } from "effect";
 import type { Paragraph, RootContent } from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { MetricFields, ProgressFields } from "./visualFields.ts";
 
 function textOf(node: RootContent): string {
@@ -31,7 +32,7 @@ function provenance(node: ContainerDirective): boolean {
 function fields<A>(schema: Schema.ConstraintDecoder<A, never>, node: ContainerDirective): A {
 	const parsed = Schema.decodeUnknownOption(schema, { onExcessProperty: "error" })(node.attributes ?? {});
 	if (Option.isNone(parsed)) {
-		throw new Error("Invalid or unknown attributes.");
+		throw new BadRequest({ message: "Invalid or unknown attributes. Use the supported fields for this visual directive." });
 	}
 	return parsed.value;
 }
@@ -39,7 +40,7 @@ function fields<A>(schema: Schema.ConstraintDecoder<A, never>, node: ContainerDi
 function metric(node: ContainerDirective) {
 	const { unit, value } = fields(MetricFields, node);
 	if (!provenance(node)) {
-		throw new Error("Name a source with a Source: Markdown link.");
+		throw new BadRequest({ message: "Name a source with a Source: Markdown link." });
 	}
 	node.children.splice(1, 0, paragraph(value === undefined || value === "unknown" ? "Not recorded" : `${value} ${unit}`, "visual-value"));
 }
@@ -47,11 +48,11 @@ function metric(node: ContainerDirective) {
 function progress(node: ContainerDirective, label: string) {
 	const { completed, total } = fields(ProgressFields, node);
 	if (!provenance(node)) {
-		throw new Error("Name a source with a Source: Markdown link.");
+		throw new BadRequest({ message: "Name a source with a Source: Markdown link." });
 	}
 	const known = typeof completed === "number" && typeof total === "number";
 	if (known && completed > total) {
-		throw new Error("Completed count exceeds total.");
+		throw new BadRequest({ message: "Completed count exceeds total. Reduce completed or correct total." });
 	}
 	function display(value: number | "unknown" | undefined) {
 		return typeof value === "number" ? String(value) : "Not recorded";
@@ -72,10 +73,10 @@ function timeline(node: ContainerDirective) {
 	const lists = node.children.filter((child) => child.type === "list");
 	const [list] = lists;
 	if (lists.length !== 1 || !list?.ordered || list.children.length === 0 || list.children.length > 100) {
-		throw new Error("Use one ordered list with 1–100 entries.");
+		throw new BadRequest({ message: "Use one ordered list with 1–100 entries." });
 	}
 	if (list.children.some((item) => !hasLink(item) || textOf(item).trim().length === 0)) {
-		throw new Error("Each timeline entry needs text and a source link.");
+		throw new BadRequest({ message: "Each timeline entry needs text and a source link." });
 	}
 	list.data = { ...list.data, hProperties: { className: ["visual-timeline-entries"] } };
 }
@@ -83,7 +84,7 @@ function timeline(node: ContainerDirective) {
 export function renderVisual(node: ContainerDirective) {
 	const [first] = node.children;
 	if (first?.type !== "paragraph" || textOf(first).trim().length === 0 || textOf(first).toLowerCase().startsWith("source:")) {
-		throw new Error("Start with a Markdown label paragraph.");
+		throw new BadRequest({ message: "Start with a Markdown label paragraph." });
 	}
 	const label = textOf(first).trim();
 	if (node.name === "metric") {

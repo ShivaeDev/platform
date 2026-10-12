@@ -6,8 +6,6 @@ import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
-import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
-import { MOVED_PR_HEAD_REASON } from "#host/movedPrHead.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -53,7 +51,7 @@ function retryOrRelease(state: EngineState) {
 		}
 		const stage = resolutionStage(current.value, action);
 		const reportFailure =
-			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.reason ?? "") : undefined;
+			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.code) : undefined;
 		if (reportFailure !== undefined) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
@@ -69,13 +67,13 @@ function retryRework(state: EngineState) {
 		}
 		const latest = record.attempts.at(-1);
 		let changes = body.trim();
-		if (record.decision?.reason === CONFLICTING_PR_REASON) {
+		if (record.decision?.code === "pr-conflicting") {
 			changes = ["GitHub reports a conflict with main. Fetch and merge main, resolve the conflicts, and retain the requested changes.", changes]
 				.filter(Boolean)
 				.join("\n\n");
 		} else if (latest?.sessionUnusable) {
 			changes = [latest.prompt ?? record.prompt, changes].filter(Boolean).join("\n\n");
-		} else if (record.decision?.reason !== "Reviewed PR is ready to merge" || !changes) {
+		} else if (record.decision?.code !== "reviewed-pr-ready" || !changes) {
 			return undefined;
 		}
 		return yield* requestRework(state)(stored, changes, responses);
@@ -132,7 +130,6 @@ function retryChangedBrief(state: EngineState) {
 function deliveryRetry(record: FleetRecord) {
 	return (
 		record.result?.kind === "change"
-		&& (record.decision?.reason === MOVED_PR_HEAD_REASON
-			|| (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
+		&& (record.decision?.code === "pr-head-moved" || (!executing(record) && record.review?.verdict === "approved" && record.checks?.passed === true))
 	);
 }

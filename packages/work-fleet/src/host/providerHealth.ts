@@ -1,12 +1,15 @@
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer, type Option } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { capacityRejected, Health } from "#engine/health.ts";
 import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
 
-export const providerHealth = Layer.effect(SessionTransport)(
-	Effect.gen(function* () {
+class ProviderHealthState extends Context.Service<ProviderHealthState, Option.Option<Health["Service"]>>()("Fleet/ProviderHealthState") {}
+const ProviderHealth = defineService({
+	id: "Fleet/ProviderHealth",
+	initialize: Effect.gen(function* () {
 		const transport = yield* SessionTransport;
-		const health = yield* Effect.serviceOption(Health);
+		const health = yield* ProviderHealthState;
 		const observed = new Set<string>();
 		function remember(key: string) {
 			observed.add(key);
@@ -23,7 +26,10 @@ export const providerHealth = Layer.effect(SessionTransport)(
 		function record<A>(effect: Effect.Effect<A, SessionFailure>) {
 			return effect.pipe(Effect.tapError((error) => (error.capacity === undefined ? Effect.void : rejected(error.capacity))));
 		}
-		return SessionTransport.of({
+		return { observed, record, rejected, remember, transport };
+	}),
+	methods: ({ transport, record, observed, remember, rejected }) =>
+		SessionTransport.of({
 			...transport,
 			observe: (receipt) =>
 				record(transport.observe(receipt)).pipe(
@@ -38,6 +44,14 @@ export const providerHealth = Layer.effect(SessionTransport)(
 				),
 			startSession: (input) => record(transport.startSession(input)),
 			startTurn: (input) => record(transport.startTurn(input)),
-		});
-	}),
+		}),
+	requires: [SessionTransport, ProviderHealthState],
+});
+
+export const providerHealth = Layer.unwrap(
+	Effect.map(Effect.serviceOption(Health), (health) =>
+		Layer.effect(SessionTransport)(ProviderHealth).pipe(
+			Layer.provide(ProviderHealth.layer.pipe(Layer.provide(Layer.succeed(ProviderHealthState, health)))),
+		),
+	),
 );

@@ -1,7 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { CONFLICTING_PR_REASON } from "#host/conflictingPr.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { BASE, REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
@@ -9,6 +8,7 @@ import { finishRecoveryReview, setLastObservation } from "#test/recoverySteps.ts
 
 export function recoveryConflictCase(): RecoveryCase {
 	return {
+		code: "pr-conflicting",
 		enter: Effect.fnUntraced(function* (context) {
 			yield* finishRecoveryReview(context);
 			context.github.state.mergeable = "CONFLICTING";
@@ -17,7 +17,14 @@ export function recoveryConflictCase(): RecoveryCase {
 			setLastObservation(context, { execution: "completed", output: REPORT });
 			yield* fleet.reconcile("one");
 			finishWorkers(context.fixture);
-			yield* fleet.reconcile("one");
+			const stopped = yield* fleet.reconcile("one");
+			if (stopped.value.decision === undefined) {
+				return yield* Effect.die("Missing conflict decision");
+			}
+			yield* context.fixture.replaceRecord({
+				...stopped.value,
+				decision: { ...stopped.value.decision, reason: "The branch must be reconciled with current main." },
+			});
 		}),
 		name: "conflict remains after automatic main repair",
 		progress: (_context, before, after) => {
@@ -31,11 +38,10 @@ export function recoveryConflictCase(): RecoveryCase {
 			expect(after.checks).toBeUndefined();
 			expect(after.conflictRepairs).toEqual([BASE]);
 		},
-		reason: CONFLICTING_PR_REASON,
 		restore: (context) =>
 			Effect.sync(() => {
 				context.github.state.mergeable = "MERGEABLE";
 			}),
-		sites: ["engine/makeDeliver.ts: observed.failure.message"],
+		sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
 	};
 }

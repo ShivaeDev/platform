@@ -8,7 +8,7 @@ import { postgresTests } from "#test/postgres.ts";
 const test = postgresTests("live", "isolated");
 
 test("a follow-up rejected while a steered turn is active waits and continues the same durable attempt", function* () {
-	const provider = yield* activeTurn();
+	const provider = yield* activeTurn("Another operation owns this thread.");
 	let merged = false;
 	yield* withEngine(
 		{

@@ -1,10 +1,12 @@
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { observeRenewal, priorBoardWork } from "#engine/observeRenewal.ts";
 import { reserveRenewal } from "#engine/reserveRenewal.ts";
+import type { FleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
-import { type BoardWork, FleetFailure } from "#policy.ts";
+import type { BoardWork } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function inspectRenewal(state: EngineState) {
@@ -23,9 +25,7 @@ export function inspectRenewal(state: EngineState) {
 		const worker = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
 		if (worker?.receipt === undefined) {
 			if (previous !== undefined) {
-				return yield* Effect.fail(
-					new FleetFailure({ message: "Existing PR has no exact worker receipt; reconcile ownership before renewal", reason: "denied" }),
-				);
+				return yield* Effect.fail(new Forbidden({ message: "Existing PR has no exact worker receipt; reconcile ownership before renewal" }));
 			}
 			return stored;
 		}
@@ -33,20 +33,12 @@ export function inspectRenewal(state: EngineState) {
 		const { observation, observed } = yield* observeRenewal(state)(stored, worker, worker.receipt);
 		const result = yield* integrations
 			.result(prior, observation)
-			.pipe(
-				Effect.mapError(
-					() => new FleetFailure({ message: "Existing worker result ownership is unavailable; reconcile before renewal", reason: "denied" }),
-				),
-			);
+			.pipe(Effect.mapError(() => new Forbidden({ message: "Existing worker result ownership is unavailable; reconcile before renewal" })));
 		yield* reserveRenewal(state)(previous, result);
-		const validation: Effect.Effect<void, FleetFailure> = validateResult(observed.value, result);
+		const validation: Effect.Effect<void, FleetError> = validateResult(observed.value, result);
 		yield* validation.pipe(
 			Effect.mapError(
-				() =>
-					new FleetFailure({
-						message: "Observed PR scope exceeds prior preparation; retained its reservation pending an ownership decision",
-						reason: "denied",
-					}),
+				() => new Forbidden({ message: "Observed PR scope exceeds prior preparation; retained its reservation pending an ownership decision" }),
 			),
 		);
 		return yield* save(observed, {
@@ -63,7 +55,7 @@ function inspectReportRenewal(stored: Versioned<FleetRecord>) {
 	}
 	const latest = stored.value.attempts.at(-1);
 	return stored.value.report === undefined && latest?.status === "completed" && latest.output?.trim()
-		? Effect.fail(new FleetFailure({ message: "Reconcile the completed report before renewing preparation", reason: "denied" }))
+		? Effect.fail(new Forbidden({ message: "Reconcile the completed report before renewing preparation" }))
 		: Effect.succeed(stored);
 }
 

@@ -75,7 +75,7 @@ const acknowledgementWins = Effect.fnUntraced(function* (
 	yield* Deferred.await(gates.turn);
 	yield* Deferred.succeed(gates.commit, undefined);
 	const rejected = yield* Fiber.join(retiring);
-	expect(rejected).toMatchObject({ _tag: "Failure", failure: { reason: "stale" } });
+	expect(rejected).toMatchObject({ _tag: "Failure", failure: { _tag: "Conflict" } });
 	expect((yield* fleet.get("one")).value.attempts[0]?.sessionId).toBe("session-operation-1");
 	expect((yield* fleet.get("one")).value.stage).toBe("needs-human");
 	while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {

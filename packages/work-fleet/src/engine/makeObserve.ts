@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import type { FleetRecord } from "#model.ts";
-import { FleetFailure } from "#policy.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
@@ -16,7 +16,7 @@ export function makeObserve(state: EngineState) {
 		}
 		const latest = stored.value.attempts.at(-1);
 		if (latest === undefined) {
-			return yield* Effect.fail(new FleetFailure({ message: "Execution lacks an intent", reason: "invalid" }));
+			return yield* Effect.fail(new BadRequest({ message: "Execution lacks an intent" }));
 		}
 		if (state.launching.has(latest.operationId)) {
 			return stored;
@@ -37,11 +37,18 @@ export function makeObserve(state: EngineState) {
 			yield* Option.match(reportInspection, { onNone: () => Effect.void, onSome: (inspection) => inspection.check(work) });
 		}
 		if (observation.execution !== "completed") {
-			return yield* decision(stored, terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
+			return yield* decision(stored, "worker-terminal", terminalReason(observation), "Inspect the terminal evidence and retry or safely release");
 		}
 		const question = reportedQuestion(observation.output);
 		if (question !== undefined) {
-			return yield* decision(stored, question.question, "Record an answer to continue this worker thread", receipt, question.attentionOwner);
+			return yield* decision(
+				stored,
+				"worker-question",
+				question.question,
+				"Record an answer to continue this worker thread",
+				receipt,
+				question.attentionOwner,
+			);
 		}
 		stored = yield* save(stored, { ...stored.value, stage: "adopting" });
 		return stored;

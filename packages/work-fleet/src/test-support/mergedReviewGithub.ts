@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import { Effect } from "effect";
+import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
-import { FleetFailure } from "#policy.ts";
 import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 
 interface GithubState {
@@ -84,7 +84,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 	const origin = `http://127.0.0.1:${address.port}`;
 	function read(path: string) {
 		return Effect.tryPromise({
-			catch: () => new FleetFailure({ message: "Synthetic GitHub read failed", reason: "integration" }),
+			catch: () => new ServiceUnavailable({ message: "Synthetic GitHub read failed" }),
 			try: async () => {
 				const response = await fetch(`${origin}${path}`);
 				if (!response.ok) {
@@ -104,7 +104,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 			adopt(...args).pipe(
 				Effect.flatMap((result) =>
 					state.legacyResult && state.status === "MERGED"
-						? Effect.fail(new FleetFailure({ message: "Reported PR must be open and target the configured repository branch", reason: "invalid" }))
+						? Effect.fail(new BadRequest({ message: "Reported PR must be open and target the configured repository branch" }))
 						: Effect.succeed(result),
 				),
 			),

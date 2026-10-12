@@ -67,10 +67,417 @@
 			"source": "./src/browser/responses/answerBody.ts",
 			"import": "./dist/browser/responses/answerBody.js",
 			"default": "./dist/browser/responses/answerBody.js"
-		}
+		},
+		"./client/*": null,
+		"./server/*": null,
+		"./attention/*.ts": {
+			"types": "./dist/server/attention/*.d.ts",
+			"source": "./src/server/attention/*.ts",
+			"import": "./dist/server/attention/*.js",
+			"default": "./dist/server/attention/*.js"
+		},
+		"./attention/RequestReceipt.ts": {
+			"types": "./dist/attention/RequestReceipt.d.ts",
+			"source": "./src/attention/RequestReceipt.ts",
+			"import": "./dist/attention/RequestReceipt.js",
+			"default": "./dist/attention/RequestReceipt.js"
+		},
+		"./diagnostics/*.ts": {
+			"types": "./dist/server/diagnostics/*.d.ts",
+			"source": "./src/server/diagnostics/*.ts",
+			"import": "./dist/server/diagnostics/*.js",
+			"default": "./dist/server/diagnostics/*.js"
+		},
+		"./diagnostics/daemonContract.ts": {
+			"types": "./dist/diagnostics/daemonContract.d.ts",
+			"source": "./src/diagnostics/daemonContract.ts",
+			"import": "./dist/diagnostics/daemonContract.js",
+			"default": "./dist/diagnostics/daemonContract.js"
+		},
+		"./diagnostics/health.ts": {
+			"types": "./dist/diagnostics/health.d.ts",
+			"source": "./src/diagnostics/health.ts",
+			"import": "./dist/diagnostics/health.js",
+			"default": "./dist/diagnostics/health.js"
+		},
+		"./diagnostics/source.ts": {
+			"types": "./dist/diagnostics/source.d.ts",
+			"source": "./src/diagnostics/source.ts",
+			"import": "./dist/diagnostics/source.js",
+			"default": "./dist/diagnostics/source.js"
+		},
+		"./diagnostics/script.ts": {
+			"types": "./dist/client/diagnostics/script.d.ts",
+			"source": "./src/client/diagnostics/script.ts",
+			"import": "./dist/client/diagnostics/script.js",
+			"default": "./dist/client/diagnostics/script.js"
+		},
+		"./diagnostics/resetLabel.ts": {
+			"types": "./dist/diagnostics/resetLabel.d.ts",
+			"source": "./src/diagnostics/resetLabel.ts",
+			"import": "./dist/diagnostics/resetLabel.js",
+			"default": "./dist/diagnostics/resetLabel.js"
+		},
+		"./document/*.ts": {
+			"types": "./dist/server/document/*.d.ts",
+			"source": "./src/server/document/*.ts",
+			"import": "./dist/server/document/*.js",
+			"default": "./dist/server/document/*.js"
+		},
+		"./files/*.ts": {
+			"types": "./dist/server/files/*.d.ts",
+			"source": "./src/server/files/*.ts",
+			"import": "./dist/server/files/*.js",
+			"default": "./dist/server/files/*.js"
+		},
+		"./files/url.ts": {
+			"types": "./dist/files/url.d.ts",
+			"source": "./src/files/url.ts",
+			"import": "./dist/files/url.js",
+			"default": "./dist/files/url.js"
+		},
+		"./handoffs/*.ts": {
+			"types": "./dist/server/handoffs/*.d.ts",
+			"source": "./src/server/handoffs/*.ts",
+			"import": "./dist/server/handoffs/*.js",
+			"default": "./dist/server/handoffs/*.js"
+		},
+		"./history/*.ts": {
+			"types": "./dist/server/history/*.d.ts",
+			"source": "./src/server/history/*.ts",
+			"import": "./dist/server/history/*.js",
+			"default": "./dist/server/history/*.js"
+		},
+		"./history/script.ts": {
+			"types": "./dist/client/history/script.d.ts",
+			"source": "./src/client/history/script.ts",
+			"import": "./dist/client/history/script.js",
+			"default": "./dist/client/history/script.js"
+		},
+		"./history/schema.ts": {
+			"types": "./dist/history/schema.d.ts",
+			"source": "./src/history/schema.ts",
+			"import": "./dist/history/schema.js",
+			"default": "./dist/history/schema.js"
+		},
+		"./http/*.ts": {
+			"types": "./dist/server/http/*.d.ts",
+			"source": "./src/server/http/*.ts",
+			"import": "./dist/server/http/*.js",
+			"default": "./dist/server/http/*.js"
+		},
+		"./metadata/*.ts": {
+			"types": "./dist/server/metadata/*.d.ts",
+			"source": "./src/server/metadata/*.ts",
+			"import": "./dist/server/metadata/*.js",
+			"default": "./dist/server/metadata/*.js"
+		},
+		"./metadata/schema.ts": {
+			"types": "./dist/metadata/schema.d.ts",
+			"source": "./src/metadata/schema.ts",
+			"import": "./dist/metadata/schema.js",
+			"default": "./dist/metadata/schema.js"
+		},
+		"./navigation/*.ts": {
+			"types": "./dist/server/navigation/*.d.ts",
+			"source": "./src/server/navigation/*.ts",
+			"import": "./dist/server/navigation/*.js",
+			"default": "./dist/server/navigation/*.js"
+		},
+		"./page/*.ts": {
+			"types": "./dist/server/page/*.d.ts",
+			"source": "./src/server/page/*.ts",
+			"import": "./dist/server/page/*.js",
+			"default": "./dist/server/page/*.js"
+		},
+		"./page/sidebarScript.ts": {
+			"types": "./dist/client/page/sidebarScript.d.ts",
+			"source": "./src/client/page/sidebarScript.ts",
+			"import": "./dist/client/page/sidebarScript.js",
+			"default": "./dist/client/page/sidebarScript.js"
+		},
+		"./page/searchResultsScript.ts": {
+			"types": "./dist/client/page/searchResultsScript.d.ts",
+			"source": "./src/client/page/searchResultsScript.ts",
+			"import": "./dist/client/page/searchResultsScript.js",
+			"default": "./dist/client/page/searchResultsScript.js"
+		},
+		"./page/swap.ts": {
+			"types": "./dist/client/page/scripts.d.ts",
+			"source": "./src/client/page/scripts.ts",
+			"import": "./dist/client/page/scripts.js",
+			"default": "./dist/client/page/scripts.js"
+		},
+		"./page/visualViewport.ts": {
+			"types": "./dist/client/page/visualViewport.d.ts",
+			"source": "./src/client/page/visualViewport.ts",
+			"import": "./dist/client/page/visualViewport.js",
+			"default": "./dist/client/page/visualViewport.js"
+		},
+		"./page/stateScript.ts": {
+			"types": "./dist/client/page/stateScript.d.ts",
+			"source": "./src/client/page/stateScript.ts",
+			"import": "./dist/client/page/stateScript.js",
+			"default": "./dist/client/page/stateScript.js"
+		},
+		"./page/searchScript.ts": {
+			"types": "./dist/client/page/searchScript.d.ts",
+			"source": "./src/client/page/searchScript.ts",
+			"import": "./dist/client/page/searchScript.js",
+			"default": "./dist/client/page/searchScript.js"
+		},
+		"./page/visualScript.ts": {
+			"types": "./dist/client/page/visualScript.d.ts",
+			"source": "./src/client/page/visualScript.ts",
+			"import": "./dist/client/page/visualScript.js",
+			"default": "./dist/client/page/visualScript.js"
+		},
+		"./page/itemContextScript.ts": {
+			"types": "./dist/client/page/itemContextScript.d.ts",
+			"source": "./src/client/page/itemContextScript.ts",
+			"import": "./dist/client/page/itemContextScript.js",
+			"default": "./dist/client/page/itemContextScript.js"
+		},
+		"./page/libraryScript.ts": {
+			"types": "./dist/client/page/libraryScript.d.ts",
+			"source": "./src/client/page/libraryScript.ts",
+			"import": "./dist/client/page/libraryScript.js",
+			"default": "./dist/client/page/libraryScript.js"
+		},
+		"./page/ageScript.ts": {
+			"types": "./dist/client/page/ageScript.d.ts",
+			"source": "./src/client/page/ageScript.ts",
+			"import": "./dist/client/page/ageScript.js",
+			"default": "./dist/client/page/ageScript.js"
+		},
+		"./page/navigationScript.ts": {
+			"types": "./dist/client/page/navigationScript.d.ts",
+			"source": "./src/client/page/navigationScript.ts",
+			"import": "./dist/client/page/navigationScript.js",
+			"default": "./dist/client/page/navigationScript.js"
+		},
+		"./page/readingStateScript.ts": {
+			"types": "./dist/client/page/readingStateScript.d.ts",
+			"source": "./src/client/page/readingStateScript.ts",
+			"import": "./dist/client/page/readingStateScript.js",
+			"default": "./dist/client/page/readingStateScript.js"
+		},
+		"./page/formReadingScript.ts": {
+			"types": "./dist/client/page/formReadingScript.d.ts",
+			"source": "./src/client/page/formReadingScript.ts",
+			"import": "./dist/client/page/formReadingScript.js",
+			"default": "./dist/client/page/formReadingScript.js"
+		},
+		"./page/diagrams.ts": {
+			"types": "./dist/client/page/scripts.d.ts",
+			"source": "./src/client/page/scripts.ts",
+			"import": "./dist/client/page/scripts.js",
+			"default": "./dist/client/page/scripts.js"
+		},
+		"./page/client.ts": {
+			"types": "./dist/client/page/runtime.d.ts",
+			"source": "./src/client/page/runtime.ts",
+			"import": "./dist/client/page/runtime.js",
+			"default": "./dist/client/page/runtime.js"
+		},
+		"./responses/*.ts": {
+			"types": "./dist/server/responses/*.d.ts",
+			"source": "./src/server/responses/*.ts",
+			"import": "./dist/server/responses/*.js",
+			"default": "./dist/server/responses/*.js"
+		},
+		"./responses/current.ts": {
+			"types": "./dist/responses/current.d.ts",
+			"source": "./src/responses/current.ts",
+			"import": "./dist/responses/current.js",
+			"default": "./dist/responses/current.js"
+		},
+		"./responses/url.ts": {
+			"types": "./dist/responses/url.d.ts",
+			"source": "./src/responses/url.ts",
+			"import": "./dist/responses/url.js",
+			"default": "./dist/responses/url.js"
+		},
+		"./results/*.ts": {
+			"types": "./dist/server/results/*.d.ts",
+			"source": "./src/server/results/*.ts",
+			"import": "./dist/server/results/*.js",
+			"default": "./dist/server/results/*.js"
+		},
+		"./rpc/*.ts": {
+			"types": "./dist/server/rpc/*.d.ts",
+			"source": "./src/server/rpc/*.ts",
+			"import": "./dist/server/rpc/*.js",
+			"default": "./dist/server/rpc/*.js"
+		},
+		"./rpc/pageKeys.ts": {
+			"types": "./dist/rpc/pageKeys.d.ts",
+			"source": "./src/rpc/pageKeys.ts",
+			"import": "./dist/rpc/pageKeys.js",
+			"default": "./dist/rpc/pageKeys.js"
+		},
+		"./rpc/keys.ts": {
+			"types": "./dist/rpc/keys.d.ts",
+			"source": "./src/rpc/keys.ts",
+			"import": "./dist/rpc/keys.js",
+			"default": "./dist/rpc/keys.js"
+		},
+		"./rpc/contract.ts": {
+			"types": "./dist/rpc/contract.d.ts",
+			"source": "./src/rpc/contract.ts",
+			"import": "./dist/rpc/contract.js",
+			"default": "./dist/rpc/contract.js"
+		},
+		"./rpc/handoffContract.ts": {
+			"types": "./dist/rpc/handoffContract.d.ts",
+			"source": "./src/rpc/handoffContract.ts",
+			"import": "./dist/rpc/handoffContract.js",
+			"default": "./dist/rpc/handoffContract.js"
+		},
+		"./rpc/responseContract.ts": {
+			"types": "./dist/rpc/responseContract.d.ts",
+			"source": "./src/rpc/responseContract.ts",
+			"import": "./dist/rpc/responseContract.js",
+			"default": "./dist/rpc/responseContract.js"
+		},
+		"./rpc/rejections.ts": {
+			"types": "./dist/rpc/rejections.d.ts",
+			"source": "./src/rpc/rejections.ts",
+			"import": "./dist/rpc/rejections.js",
+			"default": "./dist/rpc/rejections.js"
+		},
+		"./search/*.ts": {
+			"types": "./dist/server/search/*.d.ts",
+			"source": "./src/server/search/*.ts",
+			"import": "./dist/server/search/*.js",
+			"default": "./dist/server/search/*.js"
+		},
+		"./views/*.ts": {
+			"types": "./dist/server/views/*.d.ts",
+			"source": "./src/server/views/*.ts",
+			"import": "./dist/server/views/*.js",
+			"default": "./dist/server/views/*.js"
+		},
+		"./views/savedScript.ts": {
+			"types": "./dist/client/views/savedScript.d.ts",
+			"source": "./src/client/views/savedScript.ts",
+			"import": "./dist/client/views/savedScript.js",
+			"default": "./dist/client/views/savedScript.js"
+		},
+		"./browser/escapeHtml.ts": {
+			"types": "./dist/browser/escapeHtml.d.ts",
+			"source": "./src/browser/escapeHtml.ts",
+			"import": "./dist/browser/escapeHtml.js",
+			"default": "./dist/browser/escapeHtml.js"
+		},
+		"./browser/document/schema.ts": {
+			"types": "./dist/browser/document/schema.d.ts",
+			"source": "./src/browser/document/schema.ts",
+			"import": "./dist/browser/document/schema.js",
+			"default": "./dist/browser/document/schema.js"
+		},
+		"./browser/navigation/schema.ts": {
+			"types": "./dist/browser/navigation/schema.d.ts",
+			"source": "./src/browser/navigation/schema.ts",
+			"import": "./dist/browser/navigation/schema.js",
+			"default": "./dist/browser/navigation/schema.js"
+		},
+		"./browser/navigation/html.ts": {
+			"types": "./dist/browser/navigation/html.d.ts",
+			"source": "./src/browser/navigation/html.ts",
+			"import": "./dist/browser/navigation/html.js",
+			"default": "./dist/browser/navigation/html.js"
+		},
+		"./serve-cli.ts": {
+			"types": "./dist/server/serve-cli.d.ts",
+			"source": "./src/server/serve-cli.ts",
+			"import": "./dist/server/serve-cli.js",
+			"default": "./dist/server/serve-cli.js"
+		},
+		"./serve.ts": {
+			"types": "./dist/server/serve.d.ts",
+			"source": "./src/server/serve.ts",
+			"import": "./dist/server/serve.js",
+			"default": "./dist/server/serve.js"
+		},
+		"./boardServices.ts": {
+			"types": "./dist/server/boardServices.d.ts",
+			"source": "./src/server/boardServices.ts",
+			"import": "./dist/server/boardServices.js",
+			"default": "./dist/server/boardServices.js"
+		},
+		"./board.ts": {
+			"types": "./dist/server/board.d.ts",
+			"source": "./src/server/board.ts",
+			"import": "./dist/server/board.js",
+			"default": "./dist/server/board.js"
+		},
+		"./cli.ts": {
+			"types": "./dist/server/cli.d.ts",
+			"source": "./src/server/cli.ts",
+			"import": "./dist/server/cli.js",
+			"default": "./dist/server/cli.js"
+		},
+		"./render/markdown.ts": {
+			"types": "./dist/server/render/markdown.d.ts",
+			"source": "./src/server/render/markdown.ts",
+			"import": "./dist/server/render/markdown.js",
+			"default": "./dist/server/render/markdown.js"
+		},
+		"./render/Highlighter.ts": {
+			"types": "./dist/server/render/Highlighter.d.ts",
+			"source": "./src/server/render/Highlighter.ts",
+			"import": "./dist/server/render/Highlighter.js",
+			"default": "./dist/server/render/Highlighter.js"
+		},
+		"./render/board.ts": {
+			"types": "./dist/server/render/board.d.ts",
+			"source": "./src/server/render/board.ts",
+			"import": "./dist/server/render/board.js",
+			"default": "./dist/server/render/board.js"
+		},
+		"./browser/client.ts": {
+			"types": "./dist/client/client.d.ts",
+			"source": "./src/client/client.ts",
+			"import": "./dist/client/client.js",
+			"default": "./dist/client/client.js"
+		},
+		"./browser/document/*.ts": {
+			"types": "./dist/client/document/*.d.ts",
+			"source": "./src/client/document/*.ts",
+			"import": "./dist/client/document/*.js",
+			"default": "./dist/client/document/*.js"
+		},
+		"./rpc/server.ts": {
+			"types": "./dist/server/rpc/transport.d.ts",
+			"source": "./src/server/rpc/transport.ts",
+			"import": "./dist/server/rpc/transport.js",
+			"default": "./dist/server/rpc/transport.js"
+		},
+		"./page/board.ts": {
+			"types": "./dist/server/page/boardHtml.d.ts",
+			"source": "./src/server/page/boardHtml.ts",
+			"import": "./dist/server/page/boardHtml.js",
+			"default": "./dist/server/page/boardHtml.js"
+		},
+		"./page/document.ts": {
+			"types": "./dist/server/page/documentHtml.d.ts",
+			"source": "./src/server/page/documentHtml.ts",
+			"import": "./dist/server/page/documentHtml.js",
+			"default": "./dist/server/page/documentHtml.js"
+		},
+		"./page/escape.ts": {
+			"types": "./dist/browser/escapeHtml.d.ts",
+			"source": "./src/browser/escapeHtml.ts",
+			"import": "./dist/browser/escapeHtml.js",
+			"default": "./dist/browser/escapeHtml.js"
+		},
+		"./page/boardHtml.ts": null,
+		"./page/documentHtml.ts": null,
+		"./rpc/transport.ts": null
 	},
 	"bin": {
-		"work-board": "./dist/cli.js"
+		"work-board": "./dist/server/cli.js"
 	},
 	"files": [
 		"dist",
@@ -87,7 +494,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && pnpm build:browser",
-		"build:browser": "esbuild src/browser/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --banner:js='/* @shivaedev/work-board native browser bundle */' --outfile=assets/native.js && esbuild src/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js && vite build",
+		"build:browser": "esbuild src/client/entry.ts --bundle --platform=browser --format=esm --conditions=source --minify --banner:js='/* @shivaedev/work-board native browser bundle */' --outfile=assets/native.js && esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:browser",

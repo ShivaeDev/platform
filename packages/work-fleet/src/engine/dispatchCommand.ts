@@ -1,10 +1,11 @@
 import { Effect, Result } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { authorizeBrief, refreshBrief } from "#engine/boardBrief.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { FleetFailure } from "#policy.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
@@ -21,6 +22,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
 				stored,
+				failureCode(authorized.failure),
 				authorized.failure.message,
 				"Restore approval for work that is still needed, or release it",
 				undefined,
@@ -30,7 +32,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		stored = yield* refreshBrief(state)(stored, work);
 		const assessment = yield* assessPreparation(stored.value.preparation, yield* integrations.main(stored.value.preparation));
 		if (assessment._tag === "Reprepare") {
-			return yield* decision(stored, assessment.reason, "Prepare the affected scope again before dispatch");
+			return yield* decision(stored, assessment.code ?? "fleet-invalid", assessment.reason, "Prepare the affected scope again before dispatch");
 		}
 		if (
 			assessment.preparation.baseRevision !== stored.value.preparation.baseRevision
@@ -47,7 +49,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 					}
 					yield* save(current, {
 						...current.value,
-						admissionReady: !(error instanceof FleetFailure && error.reason === "denied"),
+						admissionReady: !(error instanceof Forbidden),
 						attentionOwner: failureOwner(error),
 						blocker: failureMessage(error),
 					});

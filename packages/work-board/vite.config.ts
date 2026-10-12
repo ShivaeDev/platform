@@ -8,9 +8,9 @@ export default defineConfig({
 		emptyOutDir: false,
 		outDir: "assets",
 		rolldownOptions: {
-			external: ["#browser/entry.ts"],
-			input: "src/browser/react/entry.tsx",
-			output: { assetFileNames: "react.[ext]", entryFileNames: "react.js", paths: { "#browser/entry.ts": "/_board/native.js" } },
+			external: ["#client/entry.ts"],
+			input: "src/client/react/entry.tsx",
+			output: { assetFileNames: "react.[ext]", entryFileNames: "react.js", paths: { "#client/entry.ts": "/_board/native.js" } },
 		},
 	},
 	plugins: [tailwindcss(), react()],

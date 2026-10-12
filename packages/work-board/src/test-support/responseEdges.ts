@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { browserClient } from "#browser/client.ts";
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
-import { questionId, revisionOf } from "#responses/records.ts";
+import { browserClient } from "#client/client.ts";
+import { questionId, revisionOf } from "#server/responses/records.ts";
 import { type FileSystemWrapper, folder, startBoard } from "#test/board.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 

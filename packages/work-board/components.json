@@ -1,11 +1,11 @@
 {
 	"$schema": "https://ui.shadcn.com/schema.json",
 	"aliases": {
-		"components": "#browser/react/components",
-		"hooks": "#browser/react/hooks",
-		"lib": "#browser/react/lib",
-		"ui": "#browser/react/components/ui",
-		"utils": "#browser/react/lib/cn.ts"
+		"components": "#client/react/components",
+		"hooks": "#client/react/hooks",
+		"lib": "#client/react/lib",
+		"ui": "#client/react/components/ui",
+		"utils": "#client/react/lib/cn.ts"
 	},
 	"iconLibrary": "lucide",
 	"rsc": false,
@@ -13,7 +13,7 @@
 	"tailwind": {
 		"baseColor": "neutral",
 		"config": "",
-		"css": "src/browser/react/entry.css",
+		"css": "src/client/react/entry.css",
 		"cssVariables": true,
 		"prefix": ""
 	},

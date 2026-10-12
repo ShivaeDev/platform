@@ -10,6 +10,7 @@ export function recoveryAdmissionCases(): readonly RecoveryCase[] {
 	let restored = false;
 	return [
 		{
+			code: "approval-required" as const,
 			enter: Effect.fnUntraced(function* (current) {
 				context = current;
 				yield* finishRecoveryReview(current);
@@ -27,13 +28,12 @@ export function recoveryAdmissionCases(): readonly RecoveryCase[] {
 				},
 			},
 			progress: (_current, _before, after) => expect(after.stage).toBe("completed"),
-			reason: "Current Board revision needs maintainer approval",
 			restore: (current) =>
 				Effect.sync(() => {
 					restored = true;
 					current.github.state.status = "MERGED";
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

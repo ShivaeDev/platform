@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { RecordedResponse } from "#browser/responses/schema.ts";
-import { currentResponses } from "./current.ts";
+import { currentResponses } from "#responses/current.ts";
 
 function response(id: string, author: string, recordedAt: number, supersedes?: string): RecordedResponse {
 	return {

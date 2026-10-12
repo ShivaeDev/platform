@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { searchSnapshot } from "#search/snapshot.ts";
+import { searchSnapshot } from "#server/search/snapshot.ts";
 import { folder } from "#test/board.ts";
 import { incrementalIndex } from "#test/incrementalIndex.ts";
 

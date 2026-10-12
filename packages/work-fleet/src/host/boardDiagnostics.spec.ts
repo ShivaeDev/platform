@@ -5,10 +5,11 @@ import { Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/unstable/http";
 import { DiagnosticsSources } from "@shivaedev/work-board/diagnostics/source.ts";
 import { boardHttp } from "#test/boardHttp.ts";
-import { storeState, withHost } from "#test/fleetHost.ts";
+import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 import { statusRecord } from "#test/status.ts";
+import { storeState } from "#test/storeState.ts";
 
 const limits = {
 	codex: Effect.succeed({ primary: { resetsAt: null, usedPercent: 12, windowDurationMins: 300 }, secondary: null }),

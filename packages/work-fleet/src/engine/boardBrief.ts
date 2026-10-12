@@ -1,7 +1,9 @@
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
-import { type BoardWork, FleetFailure } from "#policy.ts";
+import type { BoardWork } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function briefChanged(record: FleetRecord, work: BoardWork): boolean {
@@ -18,10 +20,9 @@ export function briefApproved(work: BoardWork): boolean {
 
 export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work: BoardWork) {
 	if (!briefApproved(work)) {
-		return yield* new FleetFailure({
+		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved or is done or superseded" }), {
 			attentionOwner: "maintainer",
-			message: "Work is no longer approved or is done or superseded",
-			reason: "denied",
+			code: "approval-required",
 		});
 	}
 });

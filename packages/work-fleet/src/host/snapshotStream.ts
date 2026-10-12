@@ -1,10 +1,10 @@
 import { Stream } from "effect";
+import type { FleetError } from "#errors.ts";
 import type { State } from "#host/waitOutcome.ts";
-import type { FleetFailure } from "#policy.ts";
 
 type States = readonly (typeof State.Type)[];
 
-export function snapshotStream(snapshots: Stream.Stream<States, FleetFailure>, ids: readonly string[]) {
+export function snapshotStream(snapshots: Stream.Stream<States, FleetError>, ids: readonly string[]) {
 	return Stream.suspend(() => {
 		let selected = ids.length === 0 ? undefined : new Set(ids);
 		return snapshots.pipe(

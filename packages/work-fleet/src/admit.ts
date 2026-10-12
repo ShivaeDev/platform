@@ -1,6 +1,8 @@
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { allAttempts, type FleetRecord } from "#model.ts";
-import { type BoardFailure, type BoardWork, type FleetConfiguration, FleetFailure } from "#policy.ts";
+import type { BoardFailure, BoardWork, FleetConfiguration } from "#policy.ts";
 import { qualifyDependencies } from "#qualifyDependencies.ts";
 export const admit = Effect.fn("Fleet.admit")(function* (
 	work: BoardWork,
@@ -9,7 +11,9 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 	get: (workId: string) => Effect.Effect<BoardWork, BoardFailure>,
 ) {
 	if (!work.approved) {
-		return yield* Effect.fail(new FleetFailure({ message: "Current Board revision needs maintainer approval", reason: "denied" }));
+		return yield* Effect.fail(
+			withFailureContext(new Forbidden({ message: "Current Board revision needs maintainer approval" }), { code: "approval-required" }),
+		);
 	}
 	yield* qualifyDependencies(work.dependsOn, records, get);
 	const quota = policy.quota;
@@ -26,7 +30,10 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 		|| quota.available <= submitted
 	) {
 		return yield* Effect.fail(
-			new FleetFailure({ attentionOwner: "automation", message: "Fresh available provider quota is required", reason: "denied" }),
+			withFailureContext(new Forbidden({ message: "Fresh available provider quota is required" }), {
+				attentionOwner: "automation",
+				code: "provider-quota-unavailable",
+			}),
 		);
 	}
 });

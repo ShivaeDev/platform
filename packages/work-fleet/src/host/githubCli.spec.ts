@@ -22,7 +22,7 @@ it.live("rejects nonzero gh exit even when stdout contains green checks", functi
 	const fixture = githubFixture();
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	const cli = githubCli(fixture.responses, 1);
-	expect(yield* githubChecks(githubResult()).pipe(Effect.provide(cli.layer), Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* githubChecks(githubResult()).pipe(Effect.provide(cli.layer), Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	expect(cli.commands).toHaveLength(1);
 });
 
@@ -34,5 +34,5 @@ it.live("shares the scoped reader for PR observation and rejects a failed gh pro
 	expect(yield* githubRead(args, "/repository").pipe(Effect.provide(cli.layer))).toBe(output);
 	expect(cli.commands[0]).toMatchObject({ args, command: "gh", options: { cwd: "/repository" } });
 	const failed = githubCli(responses, 1);
-	expect(yield* githubRead(args, "/repository").pipe(Effect.provide(failed.layer), Effect.flip)).toMatchObject({ reason: "integration" });
+	expect(yield* githubRead(args, "/repository").pipe(Effect.provide(failed.layer), Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 });

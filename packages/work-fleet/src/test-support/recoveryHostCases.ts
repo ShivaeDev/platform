@@ -36,6 +36,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 	);
 	return [
 		{
+			code: "no-change-checks-unconfigured" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				context = ctx;
 				yield* finishRecoveryReview(ctx);
@@ -50,10 +51,10 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 					),
 				resultQuery: () => Effect.succeed({ evidence: ["Criteria already met"], head: HEAD, kind: "no-change" }),
 			},
-			reason: "No-change validation is not configured in this Fleet host; inspect the worker session",
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-integration" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				context = ctx;
 				yield* finishRecoveryWorker(ctx);
@@ -69,14 +70,14 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 				expect(after.stage).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
-			reason: "Worker result adoption is not configured in this Fleet host; inspect the worker session",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
+			code: "fleet-integration" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* launchRecoveryWorker();
 				now += 60_000;
@@ -89,12 +90,11 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 				expect(after.stage).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
-			reason: "Codex rate limits returned an unknown shape",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
 				}),
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
 }

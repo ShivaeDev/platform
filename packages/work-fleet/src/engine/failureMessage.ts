@@ -1,8 +1,9 @@
-import { BoardFailure, FleetFailure } from "#policy.ts";
+import { isFleetError } from "#errors.ts";
+import { BoardFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
 export function failureMessage(error: unknown): string {
-	if (error instanceof StorageAdmission || error instanceof FleetFailure || error instanceof SessionFailure || error instanceof BoardFailure) {
+	if (error instanceof StorageAdmission || isFleetError(error) || error instanceof SessionFailure || error instanceof BoardFailure) {
 		return error.message;
 	}
 	if (error instanceof StorageQuota) {

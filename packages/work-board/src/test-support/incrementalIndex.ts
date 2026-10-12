@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, PlatformError, PubSub, Ref } from "effect";
-import type { Change, Changes } from "#files/changes.ts";
-import { registerInvalidations, trackInvalidations } from "#files/invalidations.ts";
-import { listMarkdown } from "#files/list.ts";
-import { searchSnapshot } from "#search/snapshot.ts";
+import type { Change, Changes } from "#server/files/changes.ts";
+import { registerInvalidations, trackInvalidations } from "#server/files/invalidations.ts";
+import { listMarkdown } from "#server/files/list.ts";
+import { searchSnapshot } from "#server/search/snapshot.ts";
 import { fullIndex } from "./fullIndex.ts";
 
 export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (root: string, home?: string) {

@@ -1,9 +1,11 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
-import { ConflictingPr } from "#host/conflictingPr.ts";
+import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
+import type { FleetError } from "#errors.ts";
 import { githubRead } from "#host/githubRead.ts";
-import { MovedPrHead } from "#host/movedPrHead.ts";
-import { type ChangeResult, FleetFailure } from "#policy.ts";
+import type { ChangeResult } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
 	baseRefOid: Schema.optional(Schema.NonEmptyString),
@@ -16,7 +18,7 @@ const PullRequest = Schema.Struct({
 });
 
 function failure(message: string, reason: "integration" | "invalid" = "invalid") {
-	return new FleetFailure({ message, reason });
+	return reason === "integration" ? new ServiceUnavailable({ message }) : new BadRequest({ message });
 }
 
 function readPullRequest(cwd: string, pr: string) {
@@ -27,10 +29,10 @@ function readPullRequest(cwd: string, pr: string) {
 	);
 }
 
-export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetFailure> = readPullRequest) {
+export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => Effect.Effect<unknown, FleetError> = readPullRequest) {
 	return Effect.fn("FleetHost.githubDelivery")(function* (result: typeof ChangeResult.Type) {
 		if (result.pr.match(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/[1-9]\d*$/u) === null) {
-			return yield* failure("Delivery requires the adopted GitHub PR URL");
+			return yield* withFailureContext(new BadRequest({ message: "Delivery requires the adopted GitHub PR URL" }), { code: "delivery-pr-required" });
 		}
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(cwd, result.pr)).pipe(
 			Effect.mapError(() => failure("PR delivery observation returned an unknown shape", "integration")),
@@ -40,7 +42,7 @@ export function githubDelivery(cwd: string, read: (cwd: string, pr: string) => E
 			return { head: pr.headRefOid, revision: pr.mergeCommit.oid, url: pr.url };
 		}
 		if (pr.mergeable === "CONFLICTING" && pr.baseRefOid !== undefined) {
-			return yield* new ConflictingPr(pr.baseRefOid);
+			return yield* conflictingPr(pr.baseRefOid);
 		}
 		return undefined;
 	});
@@ -58,6 +60,6 @@ const validateDelivery = Effect.fn("FleetHost.validateDelivery")(function* (pr: 
 		return yield* failure("PR delivery evidence is inconsistent; inspect the adopted PR");
 	}
 	if (pr.headRefOid !== result.head) {
-		return yield* new MovedPrHead(pr.headRefOid);
+		return yield* movedPrHead(pr.headRefOid);
 	}
 });
