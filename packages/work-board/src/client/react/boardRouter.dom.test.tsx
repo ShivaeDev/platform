@@ -1,16 +1,21 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
-import { expect } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
 import { setupResponses } from "#client/responses/setup.ts";
+import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
+beforeEach(() => {
+	browserStorage();
+});
+afterEach(() => vi.unstubAllGlobals());
 const files = {
 	"home.md": "# Workspace\n\n## Plans\n",
 	"notes/deep/review.md": "# Review\n\nThe review page.\n",
