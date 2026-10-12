@@ -377,7 +377,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 `PlatformRuntime` exposes `runPromise(effect, { signal? })`, `runPromiseExit(effect, { signal? })`, `runWithServices(context, evaluate)`, `contextEffect`, `currentServices()` and `dispose()`. The harness exposes native Vitest methods plus `effectApp(name, body, options?)`; its tester also has `skip`, `skipIf`, `runIf`, `only`, `each` and `fails`.
 
-The export pattern also exposes the adapter's translation modules: `makeRowAdapter` and `RelationQuery` in `better-auth/row-adapter.ts`, `refineRelation` and `DynamicRelation` in `better-auth/relation.ts`, and `whereExpression`, `CleanedWhere`, `DynamicField` and `Expression` in `better-auth/where.ts`. Application storage setup uses `effectPrismaAdapter`.
+The exports also include the adapter's translation modules: `makeRowAdapter` and `RelationQuery` in `better-auth/row-adapter.ts`, `refineRelation` and `DynamicRelation` in `better-auth/relation.ts`, and `whereExpression`, `CleanedWhere`, `DynamicField` and `Expression` in `better-auth/where.ts`. Application storage setup uses `effectPrismaAdapter`.
 
 ### Install, setup and limits
 
@@ -385,7 +385,7 @@ The export pattern also exposes the adapter's translation modules: `makeRowAdapt
 pnpm add @shivaedev/platform effect@4.0.0-rc.112
 ```
 
-Effect is the only required peer. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
+Effect is the only required peer. The peer-free implementation lives in `src/core/`; explicit exports retain the defining-module import paths listed above. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
 
 Install the optional peers for the selected integration:
 

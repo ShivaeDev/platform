@@ -20,14 +20,177 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
+		},
+		"#errors/*.ts": {
+			"source": "./src/core/errors/*.ts",
+			"types": "./dist/core/errors/*.d.ts",
+			"default": "./dist/core/errors/*.js"
+		},
+		"#node-http/*.ts": {
+			"source": "./src/core/node-http/*.ts",
+			"types": "./dist/core/node-http/*.d.ts",
+			"default": "./dist/core/node-http/*.js"
+		},
+		"#rpc/*.ts": {
+			"source": "./src/core/rpc/*.ts",
+			"types": "./dist/core/rpc/*.d.ts",
+			"default": "./dist/core/rpc/*.js"
+		},
+		"#rpc-server/*.ts": {
+			"source": "./src/core/rpc-server/*.ts",
+			"types": "./dist/core/rpc-server/*.d.ts",
+			"default": "./dist/core/rpc-server/*.js"
+		},
+		"#runtime/*.ts": {
+			"source": "./src/core/runtime/*.ts",
+			"types": "./dist/core/runtime/*.d.ts",
+			"default": "./dist/core/runtime/*.js"
 		}
 	},
 	"exports": {
-		"./*.ts": {
-			"types": "./dist/*.d.ts",
-			"source": "./src/*.ts",
-			"import": "./dist/*.js",
-			"default": "./dist/*.js"
+		"./appHost.ts": {
+			"types": "./dist/appHost.d.ts",
+			"source": "./src/appHost.ts",
+			"import": "./dist/appHost.js",
+			"default": "./dist/appHost.js"
+		},
+		"./better-auth/adapter.ts": {
+			"types": "./dist/better-auth/adapter.d.ts",
+			"source": "./src/better-auth/adapter.ts",
+			"import": "./dist/better-auth/adapter.js",
+			"default": "./dist/better-auth/adapter.js"
+		},
+		"./better-auth/relation.ts": {
+			"types": "./dist/better-auth/relation.d.ts",
+			"source": "./src/better-auth/relation.ts",
+			"import": "./dist/better-auth/relation.js",
+			"default": "./dist/better-auth/relation.js"
+		},
+		"./better-auth/row-adapter.ts": {
+			"types": "./dist/better-auth/row-adapter.d.ts",
+			"source": "./src/better-auth/row-adapter.ts",
+			"import": "./dist/better-auth/row-adapter.js",
+			"default": "./dist/better-auth/row-adapter.js"
+		},
+		"./better-auth/where.ts": {
+			"types": "./dist/better-auth/where.d.ts",
+			"source": "./src/better-auth/where.ts",
+			"import": "./dist/better-auth/where.js",
+			"default": "./dist/better-auth/where.js"
+		},
+		"./errors/rejected-field.ts": {
+			"types": "./dist/core/errors/rejected-field.d.ts",
+			"source": "./src/core/errors/rejected-field.ts",
+			"import": "./dist/core/errors/rejected-field.js",
+			"default": "./dist/core/errors/rejected-field.js"
+		},
+		"./errors/taxonomy.ts": {
+			"types": "./dist/core/errors/taxonomy.d.ts",
+			"source": "./src/core/errors/taxonomy.ts",
+			"import": "./dist/core/errors/taxonomy.js",
+			"default": "./dist/core/errors/taxonomy.js"
+		},
+		"./node-http/subscription-signal.ts": {
+			"types": "./dist/core/node-http/subscription-signal.d.ts",
+			"source": "./src/core/node-http/subscription-signal.ts",
+			"import": "./dist/core/node-http/subscription-signal.js",
+			"default": "./dist/core/node-http/subscription-signal.js"
+		},
+		"./rpc/identity.ts": {
+			"types": "./dist/core/rpc/identity.d.ts",
+			"source": "./src/core/rpc/identity.ts",
+			"import": "./dist/core/rpc/identity.js",
+			"default": "./dist/core/rpc/identity.js"
+		},
+		"./rpc/middleware.ts": {
+			"types": "./dist/core/rpc/middleware.d.ts",
+			"source": "./src/core/rpc/middleware.ts",
+			"import": "./dist/core/rpc/middleware.js",
+			"default": "./dist/core/rpc/middleware.js"
+		},
+		"./rpc-server/adapters/better-auth-sessions.ts": {
+			"types": "./dist/core/rpc-server/adapters/better-auth-sessions.d.ts",
+			"source": "./src/core/rpc-server/adapters/better-auth-sessions.ts",
+			"import": "./dist/core/rpc-server/adapters/better-auth-sessions.js",
+			"default": "./dist/core/rpc-server/adapters/better-auth-sessions.js"
+		},
+		"./rpc-server/boundary.ts": {
+			"types": "./dist/core/rpc-server/boundary.d.ts",
+			"source": "./src/core/rpc-server/boundary.ts",
+			"import": "./dist/core/rpc-server/boundary.js",
+			"default": "./dist/core/rpc-server/boundary.js"
+		},
+		"./rpc-server/local.ts": {
+			"types": "./dist/core/rpc-server/local.d.ts",
+			"source": "./src/core/rpc-server/local.ts",
+			"import": "./dist/core/rpc-server/local.js",
+			"default": "./dist/core/rpc-server/local.js"
+		},
+		"./rpc-server/origin.ts": {
+			"types": "./dist/core/rpc-server/origin.d.ts",
+			"source": "./src/core/rpc-server/origin.ts",
+			"import": "./dist/core/rpc-server/origin.js",
+			"default": "./dist/core/rpc-server/origin.js"
+		},
+		"./rpc-server/redact-cause.ts": {
+			"types": "./dist/core/rpc-server/redact-cause.d.ts",
+			"source": "./src/core/rpc-server/redact-cause.ts",
+			"import": "./dist/core/rpc-server/redact-cause.js",
+			"default": "./dist/core/rpc-server/redact-cause.js"
+		},
+		"./rpc-server/redact.ts": {
+			"types": "./dist/core/rpc-server/redact.d.ts",
+			"source": "./src/core/rpc-server/redact.ts",
+			"import": "./dist/core/rpc-server/redact.js",
+			"default": "./dist/core/rpc-server/redact.js"
+		},
+		"./rpc-server/sensitive.ts": {
+			"types": "./dist/core/rpc-server/sensitive.d.ts",
+			"source": "./src/core/rpc-server/sensitive.ts",
+			"import": "./dist/core/rpc-server/sensitive.js",
+			"default": "./dist/core/rpc-server/sensitive.js"
+		},
+		"./rpc-server/session.ts": {
+			"types": "./dist/core/rpc-server/session.d.ts",
+			"source": "./src/core/rpc-server/session.ts",
+			"import": "./dist/core/rpc-server/session.js",
+			"default": "./dist/core/rpc-server/session.js"
+		},
+		"./rpc-server/tracing.ts": {
+			"types": "./dist/core/rpc-server/tracing.d.ts",
+			"source": "./src/core/rpc-server/tracing.ts",
+			"import": "./dist/core/rpc-server/tracing.js",
+			"default": "./dist/core/rpc-server/tracing.js"
+		},
+		"./rpc-server/transport.ts": {
+			"types": "./dist/core/rpc-server/transport.d.ts",
+			"source": "./src/core/rpc-server/transport.ts",
+			"import": "./dist/core/rpc-server/transport.js",
+			"default": "./dist/core/rpc-server/transport.js"
+		},
+		"./runtime/make.ts": {
+			"types": "./dist/core/runtime/make.d.ts",
+			"source": "./src/core/runtime/make.ts",
+			"import": "./dist/core/runtime/make.js",
+			"default": "./dist/core/runtime/make.js"
+		},
+		"./runtime/types.ts": {
+			"types": "./dist/core/runtime/types.d.ts",
+			"source": "./src/core/runtime/types.ts",
+			"import": "./dist/core/runtime/types.js",
+			"default": "./dist/core/runtime/types.js"
+		},
+		"./testing/types.ts": {
+			"types": "./dist/testing/types.d.ts",
+			"source": "./src/testing/types.ts",
+			"import": "./dist/testing/types.js",
+			"default": "./dist/testing/types.js"
+		},
+		"./testing/vitest.ts": {
+			"types": "./dist/testing/vitest.d.ts",
+			"source": "./src/testing/vitest.ts",
+			"import": "./dist/testing/vitest.js",
+			"default": "./dist/testing/vitest.js"
 		},
 		"./package.json": "./package.json"
 	},

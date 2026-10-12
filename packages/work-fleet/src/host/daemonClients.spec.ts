@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/unstable/http";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { admitApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, storeState, task, withHost } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { readDaemonLayer, withReadDaemon } from "#test/readDaemon.ts";
 import { snapshotReads, untilReads } from "#test/snapshotReads.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fixture: HostFixture, port: number) {
 	yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
@@ -50,7 +49,7 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	);
 }, Effect.scoped);
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test(
 	"HTTP dispatch prepares approved work, rejects unapproved work and re-approves edited revisions",

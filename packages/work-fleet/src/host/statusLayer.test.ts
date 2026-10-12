@@ -3,17 +3,17 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Layer } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle, run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { statusLayer } from "#host/statusLayer.ts";
 import { boardHttp } from "#test/boardHttp.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { blockedStatus } from "#test/status.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
+const isolated = postgresTests("live", "isolated");
 
 for (const denyDelivery of [false, true]) {
 	test(`scheduler publication follows ${denyDelivery ? "human intervention" : "completion"} and leaves authored status untouched`, () =>
@@ -52,7 +52,7 @@ for (const denyDelivery of [false, true]) {
 		));
 }
 
-test("run publishes a suspended validation stage without waiting for reconciliation to finish", function* () {
+isolated("run publishes a suspended validation stage without waiting for reconciliation to finish", function* () {
 	const entered = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	const checksGate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));

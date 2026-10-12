@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { RpcTest } from "effect/unstable/rpc";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 describe("native Fleet contract", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("commands and queries preserve exact session receipts and decision details", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.scoped(

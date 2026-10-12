@@ -1,16 +1,15 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
 const GUIDANCE = "Follow synthetic repository conventions.\nVerify changes locally.";
 
 describe("worker guidance through PostgreSQL", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	for (const workerGuidance of [undefined, GUIDANCE]) {
 		test(`first turns, repairs and manual continuations ${workerGuidance === undefined ? "omit" : "include"} guidance`, () =>
 			withEngine({ checkRepair: true, checksFailure: true, repairs: true, ...(workerGuidance === undefined ? {} : { workerGuidance }) }, (fixture) =>

@@ -1,14 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardFailure } from "#policy.ts";
 import { deniedDecision } from "#test/deniedDecision.ts";
 import { withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("permanently failed historical superseded acknowledgement never blocks current applied acknowledgement", () =>
 	withEngine(

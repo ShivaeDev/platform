@@ -1,13 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Stream } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { type HostFixture, storeState } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { type snapshotReads, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 type SnapshotReads = Effect.Success<ReturnType<typeof snapshotReads>>;
 

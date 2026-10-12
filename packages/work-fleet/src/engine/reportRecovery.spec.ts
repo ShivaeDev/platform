@@ -3,13 +3,12 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { reportBoard as attachmentReportBoard } from "#host/reportBoard.ts";
 import { BoardFailure } from "#policy.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerReport, lostReportReceipt, reportBoard } from "#test/report.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 function reportFiles(root: string) {
 	return readdirSync(join(root, "responses")).filter((file) => file.startsWith("fleet-report.") && file.endsWith(".md"));
@@ -18,7 +17,7 @@ function reportFiles(root: string) {
 const reconcileReport = Fleet.pipe(Effect.flatMap((fleet) => fleet.reconcile("one")));
 
 describe("report publication recovery", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("safe release allows renewal without adopting a PR or losing the archived report output", () =>
 		Effect.gen(function* () {
 			const root = yield* reportBoard;

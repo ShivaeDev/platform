@@ -4,8 +4,8 @@ This file owns Platform's module implementation, package tests and scope questio
 
 ## Built
 
-- [x] `localRpcGuard` rejects unknown or non-loopback transport addresses before calling the handler and accepts known IPv4, IPv6 and mapped loopback addresses. [Injected-request evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/rpc-server/local.test.ts); this is separate from deployed host or proxy validation.
-- [x] `rpcBoundary` passes declared errors and successes through, normalizes unexpected failures and defects to a declared rejection with a redacted public message, retains the original cause off the wire, and preserves interruption, including mixed failure/cancellation causes. [Boundary evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/rpc-server/boundary.test.ts).
+- [x] `localRpcGuard` rejects unknown or non-loopback transport addresses before calling the handler and accepts known IPv4, IPv6 and mapped loopback addresses. [Injected-request evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/core/rpc-server/local.test.ts); this is separate from deployed host or proxy validation.
+- [x] `rpcBoundary` passes declared errors and successes through, normalizes unexpected failures and defects to a declared rejection with a redacted public message, retains the original cause off the wire, and preserves interruption, including mixed failure/cancellation causes. [Boundary evidence](https://github.com/ShivaeDev/platform/blob/main/packages/platform/src/core/rpc-server/boundary.test.ts).
 - [x] Shared Schema tagged errors and field-rejection extraction, with native RPC JSON and tRPC rejection tests.
 - [x] Browser-safe native RPC middleware declarations and request-id, identity and optional-identity services, with compile-time checks on guarded handlers.
 - [x] Request-local session middleware, a Better Auth session-provider boundary and an explicit Origin policy. Tests cover concurrent identities, anonymous callers, provider failures and rejection before provider lookup.
@@ -27,4 +27,4 @@ This file owns Platform's module implementation, package tests and scope questio
 
 - Should the package keep the optional Better Auth storage adapter and Prisma/tRPC harness beside its native request-context modules, or should those compositions live with the integration packages? Both serve real boundary work, but they give this package a wider surface than its request-identity job alone.
 - If an application needs Better Auth storage on native Effect SQL, should Platform own that adapter or should the provider retain separate storage? The request middleware needs a session provider, not a particular database.
-- The export pattern makes Better Auth translation helpers importable beside the adapter. Are these helpers intended as supported consumer APIs, or should a future public API change narrow the surface to the adapter?
+- The exports make Better Auth translation helpers importable beside the adapter. Are these helpers intended as supported consumer APIs, or should a future public API change narrow the surface to the adapter?

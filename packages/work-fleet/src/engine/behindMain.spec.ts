@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
 import { checkRun, githubFixture } from "#test/githubChecks.ts";
 import { BASE, HEAD, MOVED, PR, REPORT, resultFixture } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("adopts and delivers an approved, conflict-free head behind main without repeating review or validation", () => {
 	const adopted = resultFixture({

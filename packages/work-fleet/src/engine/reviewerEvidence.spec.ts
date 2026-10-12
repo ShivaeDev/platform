@@ -1,10 +1,9 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { reviewerReply } from "#test/reviewerReply.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
 const approval = `FLEET_REVIEW: ${JSON.stringify({
 	evidence: ["Read the diff at head-one-0", "Required checks passed at head-one-0", "CI job logs and artifacts unavailable: HTTP 403"],
@@ -14,7 +13,7 @@ const approval = `FLEET_REVIEW: ${JSON.stringify({
 })}`;
 
 describe("reviewer evidence and verdict follow-up", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	test("accepts approval citing unavailable logs and passing exact-head checks", () =>
 		withEngine({ reviewRunning: true }, (fixture) =>
 			Effect.gen(function* () {

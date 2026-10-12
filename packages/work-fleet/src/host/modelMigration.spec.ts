@@ -3,16 +3,16 @@ import { Effect, Redacted } from "effect";
 import { HttpServer } from "effect/unstable/http";
 import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { daemonClient } from "#test/daemonClient.ts";
 import { MAIN, task, withHost } from "#test/fleetHost.ts";
+import { legacyStore } from "#test/legacyStore.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("daemon startup migrates populated JSONB records and continues serving reads and writes", () =>
 	withHost({ "three.md": task("three", "approved") }, {}, (fixture) =>
@@ -20,6 +20,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 			const values = migrationRecords();
 			yield* Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
+				yield* legacyStore(fixture.host.namespace);
 				yield* migrateFleet(fixture.host.namespace, undefined, true);
 				for (const value of values) {
 					yield* sql`insert into ${sql(`${fixture.host.namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;

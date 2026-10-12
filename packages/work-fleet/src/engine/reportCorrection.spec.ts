@@ -1,14 +1,13 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { withEngine } from "#test/engine.ts";
 import { HEAD, NO_CHANGE, PR, REPORT, resultFixture } from "#test/githubResult.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startWorkerReport, workerReportReply } from "#test/workerReport.ts";
 
 describe("worker report correction through PostgreSQL", () => {
-	const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+	const test = postgresTests("test");
 	for (const malformed of [
 		`FLEET_PR: ${PR}`,
 		`FLEET_HEAD: short\nFLEET_PR: ${PR}`,
