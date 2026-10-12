@@ -1,12 +1,13 @@
 import { Effect } from "effect";
-import type { Reading } from "@shivaedev/work-board/browser/responses/schema.ts";
-import { metadataModel } from "@shivaedev/work-board/metadata/model.ts";
-import { currentResponses } from "@shivaedev/work-board/responses/current.ts";
-import { readResponses } from "@shivaedev/work-board/responses/read.ts";
-import { questionId, revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { board } from "@shivaedev/work-board/integration/board.ts";
+import type { Reading } from "@shivaedev/work-board/integration/responses.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
+
+const { metadataModel } = board;
+const { currentResponses, questionId, readResponses, revisionOf } = responses;
 
 function currentResponse(reading: Reading): BoardDecisionReading {
 	const current = currentResponses(reading.responses);

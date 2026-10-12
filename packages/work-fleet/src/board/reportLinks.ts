@@ -1,6 +1,8 @@
 import { basename } from "node:path";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import type { ReportFile, UnavailableAttachment } from "#reportAttachments.ts";
+
+const { revisionOf } = responses;
 
 export function reportFileName(path: string) {
 	return `${revisionOf(path)}-${basename(path)}${path.endsWith(".md") ? ".attachment" : ""}`;

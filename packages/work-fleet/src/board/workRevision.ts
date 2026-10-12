@@ -1,7 +1,9 @@
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { revisionOf } from "@shivaedev/work-board/responses/records.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
+import { responses } from "@shivaedev/work-board/integration/responses.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 
+const { revisionOf } = responses;
+
 export function workRevision(revision: string, context?: string): string {
-	return context !== undefined && revision === revisionOf(context) ? briefRevision(metadataParse(context)) : revision;
+	return context !== undefined && revision === revisionOf(context) ? briefRevision(boardApi.metadataParse(context)) : revision;
 }

@@ -1,4 +1,4 @@
-import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 
 function headingAt(line: string, next: string): string | undefined {
@@ -10,7 +10,7 @@ function headingAt(line: string, next: string): string | undefined {
 }
 
 function firstHeading(context: string): string | undefined {
-	const lines = metadataParse(context).body.split(/\r?\n/u);
+	const lines = boardApi.metadataParse(context).body.split(/\r?\n/u);
 	let fence: string | undefined;
 	for (const [index, line] of lines.entries()) {
 		const marker = /^ {0,3}(?<fence>`{3,}|~{3,})/u.exec(line)?.groups?.fence;
