@@ -23,10 +23,13 @@ function schedulerReady(root: string, previous: number | null) {
 		),
 	);
 }
+// The scheduler's startup reconcile can apply the response concurrently and acknowledge it in a later save, so a command sent before that acknowledgement races it.
 function responseApplied(client: Effect.Success<ReturnType<typeof daemonClient>>, responseId: string) {
 	return until(() =>
 		client("fleet.reconcile", { workId: "one" }).pipe(
-			Effect.map((record) => record.responses?.some((response) => response.responseId === responseId) ?? false),
+			Effect.map(
+				(record) => record.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true) ?? false,
+			),
 		),
 	);
 }

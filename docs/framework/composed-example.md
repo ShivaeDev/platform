@@ -7,10 +7,10 @@ The order feature is the reference composition for Platform's native application
 | Module | Responsibility |
 | --- | --- |
 | [Contract](../../packages/effect-react/src/test-support/postgres-example/contract.ts) | One Schema domain, query and command declarations, read keys, typed failures and an authenticated native streaming RPC. |
-| [Repository](../../packages/effect-react/src/test-support/postgres-example/repository.ts) | Native Model fields, `makeRepository` and an initial migration through `migratePostgres`. |
+| [Repository](../../packages/effect-react/src/test-support/postgres-example/repository.ts) | Native Model fields, `makeRepository` and an application-owned numbered migration loader. |
 | [Service](../../packages/effect-react/src/test-support/postgres-example/OrderService.ts) | `defineService`, explicit owner authorization, normalized writes and commit-bound invalidation through `transact`. |
-| [Handlers](../../packages/effect-react/src/test-support/postgres-example/orderHandlers.ts) | Platform request identity passed into service calls; `makeLiveServer` turns committed invalidations into live hints. |
-| [Server](../../packages/effect-react/src/test-support/postgres-example/server.ts) | Real PostgreSQL pools, Platform's session middleware, native Node HTTP server and NDJSON RPC transport. |
+| [Handlers](../../packages/effect-react/src/test-support/postgres-example/orderHandlers.ts) | Platform request identity passed into service calls; the host's `AppChanges` turns committed invalidations into live hints. |
+| [Server](../../packages/effect-react/src/test-support/postgres-example/server.ts) | Platform's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport. |
 | [Client](../../packages/effect-react/src/test-support/postgres-example/makeClient.ts) | Native AtomRpc, contract binding and live invalidation. |
 | [Editor](../../packages/effect-react/src/test-support/postgres-example/OrderEditor.tsx) | `useEditor` connects the query to effect-form fields and decoded saves. |
 | [Tests](../../packages/effect-react/src/postgresExample.dom.spec.tsx) | Two independent client registries, rendered editors, commit visibility and rollback through actual HTTP. |
@@ -19,11 +19,11 @@ The order feature is the reference composition for Platform's native application
 
 The save handler reads `Identity` supplied by Platform's `Authenticated` middleware. It passes the user id to the service on every request; service initialization never retains a request's principal. The service checks the row's owner, updates it through the repository, records the order's invalidation keys, and returns through `transact`.
 
-`transact` binds the native SQL transaction to the `effect-changes` channel. The channel publishes to server Reactivity after the owning PostgreSQL transaction commits and discards keys on rollback. The authenticated `subscribe` RPC uses `makeLiveServer.stream` for the selected order's keys. Its initial `Resync` hint reconciles the client, and subsequent hints ask the client's existing query to read again over HTTP.
+`transact` binds the native SQL transaction to the `effect-changes` channel. The channel publishes to server Reactivity after the owning PostgreSQL transaction commits and discards keys on rollback. The authenticated `subscribe` RPC uses `AppChanges.stream` for the selected order's keys. Its initial `Resync` hint reconciles the client, and subsequent hints ask the client's existing query to read again over HTTP.
 
 The second client's registry, RPC client and editor are independent of the writer's. The writer's local command invalidation cannot refresh that registry. The live HTTP hint invalidates the second client's query; `useEditor` receives the fresh result and effect-form merges it into the open draft. Untouched fields adopt the received values, while edited fields keep local input. Revert restores the received baseline.
 
-The server can provide `postgresChanges` alongside its SQL and live services. Its pre-commit hook uses the writing transaction's SQL connection to send only invalidation keys through NOTIFY. Each server delivers LISTEN notifications to its own Reactivity; live hints ask clients to query again. The same binding is provided to a pg-boss worker that calls the order service.
+The server configures `appHost` with `config.changes` to bind `postgresChanges` alongside its SQL and live services. Its pre-commit hook uses the writing transaction's SQL connection to send only invalidation keys through NOTIFY. Each server delivers LISTEN notifications to its own Reactivity; live hints ask clients to query again. The pg-boss worker provides `appDatabase` with the same migration loader and channel before calling the order service.
 
 ## What the test proves
 
@@ -35,7 +35,7 @@ The two scenarios prove:
 - A later live update refreshes the second client's query and untouched quantity while preserving its unsaved name. Revert adopts the new remote baseline. Anonymous and cross-owner HTTP writes return typed failures and change neither PostgreSQL nor the publication count.
 - A typed rejection injected after the SQL update and recorded invalidation rolls back the transaction. The second pool sees the original row, no invalidation or additional stream hint is published, and the second client's query is not refetched and its editor remains unchanged.
 
-The gate immediately before commit is test infrastructure for controlling the transaction and injecting that rejection. The example's bearer-session provider and permissive Origin policy are also fixture choices. This evidence does not establish production session storage, browser cookie behavior, browser Fetch networking, SSR, deployment proxies, mobile lifecycle, durable delivery.
+The gate immediately before commit is test infrastructure for controlling the transaction and injecting that rejection. The example's bearer-session provider and permissive session Origin policy are fixture choices; the host's local RPC guard still checks transport Origin, Host and content type. This evidence does not establish production session storage, browser cookie behavior, browser Fetch networking, SSR, deployment proxies, mobile lifecycle, durable delivery.
 
 ## Delivery between processes
 

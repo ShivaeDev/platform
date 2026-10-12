@@ -19,16 +19,16 @@ const rules: readonly Rule[] = [todo, limited];
 export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defineConfig({
 	local: [todo, limited],
 	rules: {
-		"comments/max-per-file": { options: { allow: ["@license"], max: 3 } },
+		"comments/max-per-file": { options: { allow: ["@license"], max: 2 } },
 		"comments/no-jsdoc": { options: { allow: ["@license"] } },
-		"comments/no-todo": "off",
+		"comments/no-todo": "error",
 		"local/max-files": { options: { max: 3 } },
-		"local/no-todo": "warn",
-		"structure/max-lines": { level: "error", options: { source: 200, testFiles: ["e2e/"] } },
+		"local/no-todo": "error",
+		"structure/max-lines": { level: "error", options: { source: 100 } },
 		"suppressions/biome-overrides": {
 			options: { declared: [{ includes: ["src/legacy/**"], reason: "Migrating off the old API.", rule: "lint/style/noNonNullAssertion" }] },
 		},
-		"suppressions/no-double-cast": "warn",
+		"suppressions/no-double-cast": "error",
 	},
 	sources: ["src"],
 });
@@ -74,7 +74,7 @@ export const preCommitRemoved = defineConfig({
 });
 
 export const wrongLevel = defineConfig({
-	// @ts-expect-error Levels are error, warn and off.
+	// @ts-expect-error Every configured rule runs at error.
 	rules: { "structure/max-lines": "warning" },
 });
 
@@ -93,4 +93,24 @@ export const declaredTypeTests = defineConfig({
 export const adoptRemoved = defineConfig({
 	// @ts-expect-error A config no longer takes adopt; baseline write --rule records a rule's debt.
 	adopt: ["comments/no-todo"],
+});
+
+export const warningRemoved = defineConfig({
+	// @ts-expect-error Rules cannot be downgraded to warnings.
+	rules: { "structure/max-lines": "warn" },
+});
+
+export const offRemoved = defineConfig({
+	// @ts-expect-error Rules cannot be disabled with an object setting either.
+	rules: { "structure/max-lines": { level: "off" } },
+});
+
+export const exclusionsRemoved = defineConfig({
+	// @ts-expect-error Source exclusions cannot weaken the inventory.
+	exclude: ["src/legacy/**"],
+});
+
+export const testPatternsRemoved = defineConfig({
+	// @ts-expect-error Source files cannot be reclassified to use the test limit.
+	rules: { "structure/max-lines": { options: { testFiles: ["src/**"] } } },
 });

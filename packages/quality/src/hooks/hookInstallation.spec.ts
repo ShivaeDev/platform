@@ -26,7 +26,7 @@ function hookAt(root: string): string {
 
 describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 	it("explains how to initialize a repository before installing a hook", () => {
-		const root = seedTree([config('{ rules: { biome: "off" } }')]);
+		const root = seedTree([config("{}")]);
 		expect(quality(root, "hooks", "install")).toEqual({
 			status: 2,
 			stderr: `quality: ${root} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,

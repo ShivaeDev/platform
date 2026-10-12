@@ -48,6 +48,12 @@
 		}
 	},
 	"exports": {
+		"./appHost.ts": {
+			"types": "./dist/appHost.d.ts",
+			"source": "./src/appHost.ts",
+			"import": "./dist/appHost.js",
+			"default": "./dist/appHost.js"
+		},
 		"./better-auth/adapter.ts": {
 			"types": "./dist/better-auth/adapter.d.ts",
 			"source": "./src/better-auth/adapter.ts",
@@ -205,9 +211,13 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@prisma-next/adapter-postgres": "catalog:",
 		"@prisma-next/contract": "catalog:",
@@ -229,6 +239,8 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@prisma-next/sql-orm-client": "catalog:",
 		"@shivaedev/effect-prisma": "workspace:*",
@@ -238,6 +250,12 @@
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@effect/platform-node": {
+			"optional": true
+		},
+		"@effect/sql-pg": {
+			"optional": true
+		},
 		"@effect/vitest": {
 			"optional": true
 		},

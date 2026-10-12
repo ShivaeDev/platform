@@ -8,9 +8,7 @@ import { packageRoot } from "#test/tree.ts";
 
 const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });
 
-export const trees = Schema.decodeUnknownSync(
-	Schema.Struct({ clean: Schema.Array(SeedFile), dirty: Schema.Array(SeedFile), warned: Schema.Array(SeedFile) }),
-)(rawTrees);
+export const trees = Schema.decodeUnknownSync(Schema.Struct({ clean: Schema.Array(SeedFile), dirty: Schema.Array(SeedFile) }))(rawTrees);
 
 export interface Run {
 	readonly status: number | null;

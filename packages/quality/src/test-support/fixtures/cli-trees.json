@@ -1,29 +1,46 @@
 {
 	"clean": [
 		{
-			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\"] };\n",
+			"content": "export default { rules: { \"structure/max-lines\": { options: { source: 3, test: 5 } } }, sources: [\"src\"] };\n",
 			"path": "quality.config.ts"
 		},
-		{ "content": "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", "path": "src/full.ts" },
-		{ "content": "1\n2\n3\n4\n5\n", "path": "src/full.test.ts" },
-		{ "content": "1\n2\n3\n4\n5\n6\n7\n8\n", "path": "src/generated/out.d.ts" },
-		{ "content": "dist/\n", "path": ".gitignore" },
-		{ "content": "1\n2\n3\n4\n5\n6\n7\n8\n", "path": "src/dist/bundle.ts" }
+		{
+			"content": "export function full(): number {\n\treturn 1;\n}\n",
+			"path": "src/full.ts"
+		},
+		{
+			"content": "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\n",
+			"path": "src/full.test.ts"
+		},
+		{
+			"content": "export declare const VALUE_0: number;\nexport declare const VALUE_1: number;\nexport declare const VALUE_2: number;\nexport declare const VALUE_3: number;\nexport declare const VALUE_4: number;\nexport declare const VALUE_5: number;\nexport declare const VALUE_6: number;\nexport declare const VALUE_7: number;\n",
+			"path": "src/generated/out.d.ts"
+		},
+		{
+			"content": "dist/\n",
+			"path": ".gitignore"
+		},
+		{
+			"content": "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\nString(5);\nString(6);\nString(7);\n",
+			"path": "src/dist/bundle.ts"
+		}
 	],
 	"dirty": [
 		{
-			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { options: { source: 3 } } }, sources: [\"src\"] };\n",
+			"content": "export default { rules: { \"structure/max-lines\": { options: { source: 3 } } }, sources: [\"src\"] };\n",
 			"path": "quality.config.ts"
 		},
-		{ "content": "1\n2\n3\n4\n", "path": "src/long.ts" },
-		{ "content": "1\n2\n3\n4\n5\n6\n", "path": "src/longer.ts" },
-		{ "content": "1\n", "path": "src/short.ts" }
-	],
-	"warned": [
 		{
-			"content": "export default { rules: { biome: \"off\", \"structure/max-lines\": { level: \"warn\", options: { source: 3 } } }, sources: [\"src\"] };\n",
-			"path": "quality.config.ts"
+			"content": "String(0);\nString(1);\nString(2);\nString(3);\n",
+			"path": "src/long.ts"
 		},
-		{ "content": "1\n2\n3\n4\n", "path": "src/long.ts" }
+		{
+			"content": "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\nString(5);\n",
+			"path": "src/longer.ts"
+		},
+		{
+			"content": "String(0);\n",
+			"path": "src/short.ts"
+		}
 	]
 }
