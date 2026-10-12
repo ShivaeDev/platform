@@ -254,9 +254,28 @@ jobs:
           path: ${{ steps.setup.outputs.store-path }}
           key: ${{ steps.setup.outputs.consumer-cache-key }}
 
+  published-starter:
+    name: Packed starter
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/await-packages
+        with:
+          token: ${{ github.token }}
+      - run: pnpm db:setup
+      - name: Generate an app from the packed command and test packed workspace dependencies
+        run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
+
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers]
+    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter]
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 1
     steps:

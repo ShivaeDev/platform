@@ -9,7 +9,7 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 		["run", "build"],
 		["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts"],
 	]) {
-		yield* Effect.log(`Copied starter: pnpm ${args.join(" ")}`);
+		yield* Effect.log(`Generated starter: pnpm ${args.join(" ")}`);
 		const code = yield* spawner.exitCode(
 			ChildProcess.make("pnpm", args, {
 				cwd,
@@ -19,6 +19,6 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 				stdout: "inherit",
 			}),
 		);
-		yield* requireThat(code === 0, `Copied starter: pnpm ${args.join(" ")} failed (exit ${code}).`);
+		yield* requireThat(code === 0, `Generated starter: pnpm ${args.join(" ")} failed (exit ${code}).`);
 	}
 });
