@@ -5,6 +5,7 @@ export function responseFormSchema(hasPrompts: boolean) {
 	return Schema.Struct({
 		...DraftInput.fields,
 		body: hasPrompts ? DraftInput.fields.body : DraftInput.fields.body.check(Schema.isMinLength(1)),
+		recovery: Schema.optionalKey(Schema.Union([Schema.String, Schema.Undefined])),
 		revision: Revision,
 		type: Schema.String.pipe(Schema.decodeTo(ResponseKind)),
 	}).check(
@@ -21,3 +22,4 @@ export function responseFormSchema(hasPrompts: boolean) {
 }
 
 export type ResponseSubmission = ReturnType<typeof responseFormSchema>["Type"];
+export type ResponseInput = ReturnType<typeof responseFormSchema>["Encoded"];

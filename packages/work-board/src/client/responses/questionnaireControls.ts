@@ -1,8 +1,8 @@
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
-import type { Draft } from "./drafts.ts";
+import type { ResponseInput } from "./formSchema.ts";
 
-function restoreAnswers(fields: readonly HTMLFieldSetElement[], draft: Draft, same: boolean) {
+function restoreAnswers(fields: readonly HTMLFieldSetElement[], draft: ResponseInput, same: boolean) {
 	for (const field of fields) {
 		const answer = draft.answers?.find((entry) => entry.prompt === field.dataset.prompt);
 		for (const input of field.querySelectorAll<HTMLInputElement>("input")) {
@@ -63,7 +63,7 @@ export function questionnaireControls(form: HTMLFormElement, signal: AbortSignal
 					text: field.querySelector<HTMLTextAreaElement>("textarea")?.value ?? "",
 				}));
 	}
-	function restore(draft: Draft, revision: string) {
+	function restore(draft: ResponseInput, revision: string) {
 		const same = draft.revision === revision && (draft.question === undefined || draft.question === form.dataset.question);
 		restoreAnswers(fields, draft, same);
 		syncChoices();

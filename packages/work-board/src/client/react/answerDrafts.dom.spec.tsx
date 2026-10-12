@@ -1,0 +1,115 @@
+import { act } from "react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
+import { formDraft } from "#client/formDraft.ts";
+import { session } from "#client/session.ts";
+import { answerDraft, answerInput, answerPreview, responseClick } from "#test/answerDraft.tsx";
+import { browserStorage } from "#test/browserStorage.ts";
+
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
+beforeEach(() => {
+	browserStorage();
+	document.documentElement.dataset.workspace = "draft-fixture";
+});
+afterEach(() => {
+	window.dispatchEvent(new Event("pagehide"));
+	window.localStorage.clear();
+	delete document.documentElement.dataset.workspace;
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+});
+function draftKey() {
+	const form = document.querySelector("#response-form");
+	if (!(form instanceof HTMLFormElement)) {
+		throw new Error("Missing form");
+	}
+	return formDraft(form, "response").key;
+}
+function editAnswer() {
+	answerInput("author", "reviewer");
+	answerInput("body", "Direction in progress");
+}
+async function unmount(view: Awaited<ReturnType<typeof render>>) {
+	await view.unmount();
+	document.dispatchEvent(new Event("board-page"));
+}
+it("restores an answer after the React tree and its registries are recreated", async () => {
+	const first = await render(answerDraft());
+	editAnswer();
+	await unmount(first);
+	const reloaded = await render(answerDraft());
+	try {
+		expect(answerInput("body").value).toBe("Direction in progress");
+		expect(answerInput("author").value).toBe("reviewer");
+	} finally {
+		await unmount(reloaded);
+	}
+});
+it("retains an answer when a live update remounts the same item and request", async () => {
+	const view = await render(answerDraft());
+	try {
+		editAnswer();
+		const key = draftKey();
+		await view.render(answerDraft({ ...answerPreview, context: "Fresh live context" }, 1));
+		expect(draftKey()).toBe(key);
+		expect(answerInput("body").value).toBe("Direction in progress");
+	} finally {
+		await unmount(view);
+	}
+});
+it("retains an answer and requires a fresh preview when its source revision changes", async () => {
+	const view = await render(answerDraft());
+	try {
+		editAnswer();
+		responseClick("preview");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
+		const key = draftKey();
+		await view.render(answerDraft({ ...answerPreview, id: "question.revised", reviewedRevision: "b".repeat(64) }));
+		expect(draftKey()).toBe(key);
+		expect(answerInput("body").value).toBe("Direction in progress");
+		expect(document.getElementById("response-status")?.textContent).toContain("Source changed");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+		responseClick("preview");
+		expect(document.getElementById("response-preview-content")?.textContent).toContain("b".repeat(64));
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
+	} finally {
+		await unmount(view);
+	}
+});
+it("clears a successfully submitted answer from storage and the next mounted form", async () => {
+	const view = await render(answerDraft());
+	const native = session(window);
+	native.registry.dispose();
+	const mutate = vi.spyOn(native, "mutate").mockResolvedValue({ id: "question.fixture" });
+	try {
+		editAnswer();
+		const key = draftKey();
+		expect(window.localStorage.getItem(key)).toContain("Direction in progress");
+		responseClick("preview");
+		await act(async () => responseClick("submit"));
+		await eventually(() => expect(answerInput("body").value).toBe(""));
+		expect(mutate).toHaveBeenCalledTimes(2);
+		expect(window.localStorage.getItem(key)).toBeNull();
+		await view.render(answerDraft(answerPreview, 1));
+		expect(answerInput("body").value).toBe("");
+	} finally {
+		await unmount(view);
+	}
+});
+it("clears only the current request draft", async () => {
+	const view = await render(answerDraft());
+	try {
+		editAnswer();
+		const first = draftKey();
+		await view.render(answerDraft({ ...answerPreview, id: "question.other", request: "other" }, 1));
+		editAnswer();
+		const second = draftKey();
+		responseClick("clear");
+		expect(answerInput("body").value).toBe("");
+		expect(window.localStorage.getItem(second)).toBeNull();
+		expect(window.localStorage.getItem(first)).toContain("Direction in progress");
+	} finally {
+		await unmount(view);
+	}
+});

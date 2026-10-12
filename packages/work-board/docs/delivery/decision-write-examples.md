@@ -72,7 +72,7 @@ The existing CLI wait returns that one response, including typed answers, readab
 
 ## Changed context and superseding direction
 
-A source edit or move does not silently carry selections into another context. The UI preserves human text, clears choices and retains a copy of earlier answers for recovery. Drafts retain the existing 30-day/2-MiB browser-local workspace policy. An edit during a pending save remains a separate unsaved draft with its own identity.
+A source edit or move does not silently carry selections into another context. The UI preserves human text, clears choices and retains a copy of earlier answers for recovery. Drafts use effect-form’s seven-day/256-KiB browser-local per-draft policy. An edit during a pending save remains a separate unsaved draft with its own identity.
 
 An optional `supersedes` identity explicitly links a new response to an existing response for the same item's request, including an earlier source revision. This creates another immutable record rather than editing history. The UI qualifies old contexts and links superseding direction; it never infers task status, closes attention, claims criterion acceptance or launches an agent. Missing/moved source requires reviewing and registering the available context; historical records remain readable through their registered question identity. Ambiguous or malformed history is unknown, not an empty answer list. This includes syntactically damaged or unterminated frontmatter in `responses/`, even when the parser cannot recover its record kind. Ordinary malformed Markdown outside that record namespace does not establish a response or block feedback reads.
 
