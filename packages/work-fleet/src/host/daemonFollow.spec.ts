@@ -14,18 +14,18 @@ type SnapshotReads = Effect.Success<ReturnType<typeof snapshotReads>>;
 
 function transientStory(command: "wait" | "watch") {
 	return Effect.fn("DaemonFollowTest.transientStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {
+		const client = yield* daemonClient(port);
 		yield* reads.breakReads;
 		return yield* withFollower(fixture.configFile, command, ["one"], { port }, (follower) =>
 			Effect.gen(function* () {
 				yield* untilReads(reads, 11);
 				yield* reads.restoreReads;
-				yield* untilReads(reads, 12);
-				yield* Effect.sleep("100 millis");
+				const recovered = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
+				expect(recovered).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.breakReads;
 				const before = reads.count();
 				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
 				yield* untilReads(reads, before + 11);
-				const client = yield* daemonClient(port);
 				const cached = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
 				expect(cached).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
 				yield* reads.restoreReads;
