@@ -14,19 +14,13 @@ import { withHost } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";
 import { answerReport } from "#test/report.ts";
+import { responseApplied } from "#test/responseApplied.ts";
 
 function schedulerReady(root: string, previous: number | null) {
 	return until(() =>
 		fleetHealth(root).pipe(
 			Effect.map((health) => health.lastSchedulerPass !== null && health.lastSchedulerPass !== previous),
 			Effect.provide(NodeServices.layer),
-		),
-	);
-}
-function responseApplied(client: Effect.Success<ReturnType<typeof daemonClient>>, responseId: string) {
-	return until(() =>
-		client("fleet.reconcile", { workId: "one" }).pipe(
-			Effect.map((record) => record.responses?.some((response) => response.responseId === responseId) ?? false),
 		),
 	);
 }
@@ -96,7 +90,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 						return yield* Effect.die("Missing receipt");
 					}
 					const responseId = answerReport(fixture.host.boardDir, decision.published, action);
-					yield* responseApplied(client, responseId);
+					yield* responseApplied(client("fleet.reconcile", { workId: "one" }), client("fleet.get", { workId: "one" }), responseId);
 					const resolved = yield* client("fleet.get", { workId: "one" });
 					expect(resolved.stage).toBe(action === "release" ? "released" : "prepared");
 					if (action === "retry") {
