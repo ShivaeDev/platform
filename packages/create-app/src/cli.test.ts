@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,8 @@ import { Effect } from "effect";
 import { afterEach, beforeAll, expect, it } from "vitest";
 import { appFolder, cleanup } from "#test/cli.ts";
 import { packTemplate } from "./packTemplate.ts";
+
+const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 beforeAll(() =>
 	Effect.runPromise(
@@ -26,7 +29,7 @@ it("creates a named app in a new parent path, installs, and prints the environme
 	expect(readFileSync(join(app, "installation.json"), "utf8")).toBe('["install"]');
 	for (const step of [
 		"Created apps/my-app.",
-		'cd "apps/my-app"',
+		"cd 'apps/my-app'",
 		"cp .env.example .env.local",
 		"DATABASE_URL",
 		"BETTER_AUTH_SECRET",
@@ -35,6 +38,18 @@ it("creates a named app in a new parent path, installs, and prints the environme
 	]) {
 		expect(result.stdout).toContain(step);
 	}
+});
+
+it("prints a working cd command for parent paths with shell characters", () => {
+	const { root, run } = appFolder();
+	const folder = "parent 'quoted' $literal/my-app";
+	const result = run([folder]);
+	expect(result.status).toBe(0);
+	const cd = result.stdout.split("\n").find((line) => line.trimStart().startsWith("cd "));
+	expect(cd).toBeDefined();
+	const navigation = spawnSync("sh", ["-c", `${cd}\npwd`], { cwd: root, encoding: "utf8" });
+	expect(navigation.status).toBe(0);
+	expect(navigation.stdout.trim()).toBe(join(root, folder));
 });
 
 it("accepts an existing empty folder", () => {
@@ -80,6 +95,6 @@ it("provides help and reports the package version without generating an app", ()
 	const { root, run } = appFolder();
 	expect(run(["--help"])).toMatchObject({ status: 0 });
 	expect(run(["--help"]).stdout).toContain("folder");
-	expect(run(["--version"])).toMatchObject({ status: 0, stdout: "create-app v0.0.0\n" });
+	expect(run(["--version"])).toMatchObject({ status: 0, stdout: `create-app v${version}\n` });
 	expect(readdirSync(root)).toEqual(["bin"]);
 });

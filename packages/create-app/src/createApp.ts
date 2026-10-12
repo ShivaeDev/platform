@@ -34,7 +34,8 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	if (code !== 0) {
 		return yield* new CreateAppError({ message: `pnpm install failed (exit ${code}). Run pnpm install in ${folder} to retry.` });
 	}
+	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;
 	yield* Console.log(
-		`Created ${folder}.\n\nNext steps:\n  cd ${JSON.stringify(folder)}\n  cp .env.example .env.local\n  Set DATABASE_URL to your PostgreSQL database.\n  Set BETTER_AUTH_SECRET to a random secret of at least 32 characters.\n  pnpm dev`,
+		`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  cp .env.example .env.local\n  Set DATABASE_URL to your PostgreSQL database.\n  Set BETTER_AUTH_SECRET to a random secret of at least 32 characters.\n  pnpm dev`,
 	);
 });
