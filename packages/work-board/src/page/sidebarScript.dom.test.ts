@@ -4,7 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { waitFor } from "#test/live.ts";
-import { workspaceFixture } from "#test/workspaceFixture.ts";
+import { sidebarWorkspace } from "#test/sidebarFixture.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 const open = Effect.fn("Test.open")(function* (width: number) {
-	notes = folder(workspaceFixture());
+	notes = folder(sidebarWorkspace());
 	board = yield* startBoard(notes.root, "board.md");
 	page = yield* openPage(board, "/notes/topic-1.md", (window) => {
 		window.innerWidth = width;

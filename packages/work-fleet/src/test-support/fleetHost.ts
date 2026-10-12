@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Layer, Redacted } from "effect";
+import { Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
@@ -12,6 +13,7 @@ import { type FleetHost, type HostConfig, loadHost, resolveHost } from "#host/co
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
+import { recordColumns, recordInput, recordModel } from "#storage/model.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import type { CliRun } from "#test/fleetCli.ts";
 import { daemonCli } from "#test/readDaemon.ts";
@@ -101,14 +103,23 @@ export function withHost<A, E, R>(
 	);
 }
 
-// Wait reads only the stored payload, so terminal states are written directly instead of driving every integration.
 export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
 	return Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
 		yield* migrateFleet(host.namespace);
-		const value = JSON.stringify({ workId, ...payload });
-		yield* sql`insert into ${sql(`${host.namespace}_records`)} (work_id, version, payload) values (${workId}, 1, ${value}::jsonb)
-			on conflict (work_id) do update set version = ${sql(`${host.namespace}_records`)}.version + 1, payload = excluded.payload`;
+		const model = recordModel();
+		const repository = yield* makeRepository(model, {
+			idColumn: "work_id",
+			spanPrefix: "Fixture",
+			tableName: `${host.namespace}_records`,
+			versionColumn: "version",
+		});
+		const input = yield* Schema.decodeUnknownEffect(model.insert)({ ...recordInput(JSON.stringify(payload), recordColumns()), "work_id": workId });
+		const previous = yield* repository.findMany({ where: { "work_id": workId } });
+		if (previous[0] === undefined) {
+			yield* repository.insertVoid(input);
+		} else {
+			yield* repository.updateVoid({ ...previous[0], ...input });
+		}
 	}).pipe(Effect.provide(hostSql(host)), Effect.orDie);
 }
 

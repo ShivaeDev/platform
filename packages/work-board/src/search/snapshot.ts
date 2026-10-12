@@ -50,8 +50,12 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			: Effect.succeed(previous);
 	}
 	const read = Effect.gen(function* () {
-		const files = yield* changes.files;
-		const revision = yield* changes.revision;
+		let revision = yield* changes.revision;
+		let files = yield* changes.files;
+		while ((yield* changes.revision) !== revision) {
+			revision = yield* changes.revision;
+			files = yield* changes.files;
+		}
 		const hit = yield* Ref.get(cached);
 		const watching = yield* Ref.get(changes.watching);
 		if (hit?.revision === revision && hit.unavailable.length === 0 && watching) {

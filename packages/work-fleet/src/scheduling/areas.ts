@@ -32,6 +32,14 @@ function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): bool
 	);
 }
 
+export function needsAreaRecords(record: FleetRecord, previous: FleetRecord | undefined, limits: AdmissionLimits): boolean {
+	return (
+		limits.scheduling !== undefined
+		&& (record.areas?.length ?? 0) > 0
+		&& allAttempts(record).length > (previous === undefined ? 0 : allAttempts(previous).length)
+	);
+}
+
 export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	record: FleetRecord,
 	previous: FleetRecord | undefined,
@@ -39,7 +47,7 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	limits: AdmissionLimits,
 ) {
 	const scheduling = limits.scheduling;
-	if (scheduling === undefined || allAttempts(record).length <= (previous === undefined ? 0 : allAttempts(previous).length)) {
+	if (scheduling === undefined || !needsAreaRecords(record, previous, limits)) {
 		return;
 	}
 	const areas = record.areas ?? [];
