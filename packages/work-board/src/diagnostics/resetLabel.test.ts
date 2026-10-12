@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { resetLabel } from "./resetLabel.ts";
+import { resetLabel } from "#diagnostics/resetLabel.ts";
 
 it("distinguishes upcoming, elapsed and immediate resets with a local clock", () => {
 	const at = Date.UTC(2026, 9, 11, 14, 20);

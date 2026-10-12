@@ -1,4 +1,4 @@
-import type { Draft } from "#browser/responses/drafts.ts";
+import type { Draft } from "#client/responses/drafts.ts";
 
 export const edgeDraft: Draft = {
 	author: "reviewer",

@@ -22,5 +22,5 @@ fs.open = async (...args: Parameters<typeof fs.open>) => {
 	return handle;
 };
 syncBuiltinESMExports();
-const { publish } = await import("#responses/publish.ts");
+const { publish } = await import("#server/responses/publish.ts");
 await Effect.runPromise(publish(root, root, "response.interrupted", "Retained feedback"));

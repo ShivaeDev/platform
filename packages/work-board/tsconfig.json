@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"paths": {
-			"#browser/react/*": ["./src/browser/react/*"]
+			"#client/react/*": ["./src/client/react/*"]
 		},
 		"types": ["node", "vite/client"]
 	},

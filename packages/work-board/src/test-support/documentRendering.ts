@@ -3,8 +3,8 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, vi } from "vitest";
 import type { Document } from "#browser/document/schema.ts";
-import { DocumentView } from "#browser/document/View.ts";
-import { metadataParse } from "#metadata/parse.ts";
+import { DocumentView } from "#client/document/View.ts";
+import { metadataParse } from "#server/metadata/parse.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const cleanups: Array<() => Promise<void>> = [];

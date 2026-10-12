@@ -1,0 +1,87 @@
+import { Effect, Option, Ref, Semaphore } from "effect";
+import type { Changes } from "#server/files/changes.ts";
+import { invalidationsSince } from "#server/files/invalidations.ts";
+import type { MarkdownFile } from "#server/files/list.ts";
+import type { MetadataDocument, metadataModel } from "#server/metadata/model.ts";
+import { updateModel } from "#server/metadata/updateModel.ts";
+import type { Entry } from "./entries.ts";
+import { type IndexedDocument, readDocument } from "./readDocument.ts";
+import { updateEntries } from "./updateEntries.ts";
+
+export interface Snapshot {
+	readonly documents: readonly MetadataDocument[];
+	readonly entries: readonly Entry[];
+	readonly maintainer?: string;
+	readonly model: ReturnType<typeof metadataModel>;
+	readonly modified: ReadonlyMap<string, number>;
+	readonly revision: number;
+	readonly unavailable: readonly string[];
+}
+
+function shouldRead(
+	file: MarkdownFile,
+	previous: IndexedDocument | undefined,
+	listed: ReadonlyMap<string, MarkdownFile>,
+	dirty: ReadonlySet<string> | undefined,
+) {
+	return (
+		!previous
+		|| dirty === undefined
+		|| listed.get(file.path)?.modified !== file.modified
+		|| [...dirty].some((path) => path === file.path || file.path.startsWith(`${path}/`))
+	);
+}
+
+export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
+	root: string,
+	home: string | undefined,
+	changes: Changes,
+	maintainer = "maintainer",
+) {
+	const cached = yield* Ref.make<Snapshot | undefined>(undefined);
+	const semaphore = yield* Semaphore.make(1);
+	let records = new Map<string, IndexedDocument>();
+	let listed = new Map<string, MarkdownFile>();
+	const enrich = updateEntries();
+	function find(file: MarkdownFile, dirty: ReadonlySet<string> | undefined) {
+		const previous = records.get(file.path);
+		return shouldRead(file, previous, listed, dirty)
+			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous)), Option.getOrUndefined)
+			: Effect.succeed(previous);
+	}
+	const read = Effect.gen(function* () {
+		let revision = yield* changes.revision;
+		let files = yield* changes.files;
+		while ((yield* changes.revision) !== revision) {
+			revision = yield* changes.revision;
+			files = yield* changes.files;
+		}
+		const hit = yield* Ref.get(cached);
+		const watching = yield* Ref.get(changes.watching);
+		if (hit?.revision === revision && hit.unavailable.length === 0 && watching) {
+			return hit;
+		}
+		const dirty = hit && watching ? invalidationsSince(changes, hit.revision) : undefined;
+		const next = new Map<string, IndexedDocument>();
+		const documents: MetadataDocument[] = [];
+		const unavailable: string[] = [];
+		for (const file of files) {
+			const found = yield* find(file, dirty);
+			if (found) {
+				documents.push(found.document);
+				next.set(file.path, found);
+			} else {
+				unavailable.push(file.path);
+			}
+		}
+		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
+		const enriched = enrich(next, model);
+		const modified = new Map(files.map((file) => [file.path, file.modified]));
+		const snapshot = { documents, entries: enriched, maintainer, model, modified, revision, unavailable };
+		records = next;
+		listed = new Map(files.map((file) => [file.path, file]));
+		yield* Ref.set(cached, snapshot);
+		return snapshot;
+	});
+	return semaphore.withPermit(read);
+});
