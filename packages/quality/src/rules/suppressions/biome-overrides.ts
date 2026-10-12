@@ -4,8 +4,30 @@ import { biomeConfigs, type Chain } from "#rules/suppressions/biome/configs.ts";
 import { Declaration, matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
 import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
 
+const GLOB = /[*!?[\]{}]/u;
+const DIRECTORY = /^\.?[^./\\*!?[\]{}]+$/u;
+const INDIVIDUAL = /^(?:lint|assist)\/(?!domains\/)[a-zA-Z]+\/[a-zA-Z]+$/u;
+
+function namedExclusion(pattern: string): boolean {
+	const segments = pattern.slice(pattern.startsWith("!**/") ? 4 : 1).split("/");
+	return pattern.startsWith("!") && DIRECTORY.test(segments.at(-1) ?? "") && segments.every((segment) => segment === "*" || DIRECTORY.test(segment));
+}
+
+const ConsumerDeclaration = Declaration.check(
+	Schema.makeFilter(
+		({ includes, rule }) =>
+			rule === "files/includes"
+				? includes.includes("**") && includes.length > 1 && includes.every((pattern) => pattern === "**" || namedExclusion(pattern))
+				: INDIVIDUAL.test(rule) && includes.every((path) => !GLOB.test(path) && /[^/]+\.[^/]+$/u.test(path)),
+		{
+			message:
+				"Declare one lint rule or assist action for explicit files, or files/includes with ** and named directory exclusions. Whole checks, groups and blanket scopes cannot be weakened.",
+		},
+	),
+);
+
 const BiomeOverridesOptions = Schema.Struct({
-	declared: Schema.Array(Declaration).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	declared: Schema.Array(ConsumerDeclaration).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
 });
 
 interface Shipped extends Scoped {

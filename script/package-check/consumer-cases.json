@@ -31,6 +31,12 @@
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]
+		},
+		{
+			"entries": ["./appHost.ts"],
+			"fixtures": ["host.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["host.ts"]
 		}
 	],
 	"pr-watch": [

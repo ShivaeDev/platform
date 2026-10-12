@@ -29,10 +29,10 @@ describe("structure/max-lines fires", () => {
 		expect(findings.map((finding) => finding.message)).toEqual(["101 lines exceeds the 100-line limit.", "121 lines exceeds the 120-line limit."]);
 	});
 
-	it("on a helper outside test-support at the source limit, unless testFiles names its folder", async () => {
+	it("on every helper outside test-support at the source limit", async () => {
 		const sources = [source("src/a.test.ts", 151), source("e2e/flow.ts", 151), source("test/support.ts", 151)];
-		const findings = await checkRule(maxLines, { testFiles: ["e2e/"] }, { sources });
-		expect(findings.map((finding) => finding.file)).toEqual(["test/support.ts"]);
+		const findings = await checkRule(maxLines, undefined, { sources });
+		expect(findings.map((finding) => finding.file)).toEqual(["e2e/flow.ts", "test/support.ts"]);
 	});
 
 	it("counts a final line without a newline", async () => {
@@ -65,7 +65,13 @@ describe("structure/max-lines options", () => {
 		expect(await issuesOf(maxLines, { source: 0, test: 1.5 })).toHaveLength(2);
 	});
 
-	it("reject test patterns that are not strings", async () => {
-		expect(await issuesOf(maxLines, { testFiles: [1] })).toEqual([expect.stringContaining("testFiles")]);
+	it("reject custom test patterns", async () => {
+		expect(await issuesOf(maxLines, { testFiles: ["src/**"] })).toEqual([expect.stringContaining("testFiles")]);
+	});
+});
+
+describe("structure/max-lines shared limits", () => {
+	it("rejects raised source and test thresholds", async () => {
+		expect(await issuesOf(maxLines, { source: 151, test: 301 })).toHaveLength(2);
 	});
 });

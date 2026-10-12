@@ -915,10 +915,22 @@ importers:
 
   packages/platform:
     dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
+      '@shivaedev/effect-sql':
+        specifier: workspace:*
+        version: link:../effect-sql
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)

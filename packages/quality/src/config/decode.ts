@@ -12,7 +12,7 @@ const isRule = (value: unknown): value is Rule =>
 	&& "configure" in value
 	&& typeof value.configure === "function";
 
-const Level = Schema.Literals(["error", "warn", "off"]);
+const Level = Schema.Literal("error");
 
 const Setting = Schema.Union([Level, Schema.Struct({ level: Schema.optionalKey(Level), options: Schema.optionalKey(Schema.Unknown) })]);
 
@@ -30,7 +30,6 @@ const PreCommitRemoved = Schema.Never.annotate({
 const ConfigInput = Schema.Struct({
 	adopt: Schema.optionalKey(AdoptRemoved),
 	baseline: Schema.optionalKey(Schema.String),
-	exclude: Schema.optionalKey(Schema.Array(Schema.String)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
 	preCommit: Schema.optionalKey(PreCommitRemoved),

@@ -8,7 +8,7 @@ describe("interrupted quality checks", () => {
 	it("exits 130 without an internal error when a local rule waits for a remote check", async () => {
 		const root = seedTree([
 			config(
-				'{ rules: { biome: "off" }, local: [{ id: "local/remote", description: "Checks a remote service.", configure: async () => ({ _tag: "Ready", check: async () => { console.log("checking remote"); return new Promise(() => {}); } }) }] }',
+				'{ local: [{ id: "local/remote", description: "Checks a remote service.", configure: async () => ({ _tag: "Ready", check: async () => { console.log("checking remote"); return new Promise(() => {}); } }) }] }',
 			),
 		]);
 		expect(await interruptedQuality(root)).toEqual({ status: 130, stderr: "", stdout: "checking remote\n" });

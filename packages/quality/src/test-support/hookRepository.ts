@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
 import { qualityArgs, type Run } from "./cli.ts";
 import { commitAll, git, ISOLATED_ENV } from "./git.ts";
+import { formatTree } from "./qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, packageRoot, type SeedFile, seedTree } from "./tree.ts";
 
 export interface HookRepository {
@@ -19,7 +20,7 @@ export interface HookSetup {
 	readonly scripts?: Readonly<Record<string, string>>;
 }
 
-const CLEAN: SeedFile = { content: "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n", path: "src/full.ts" };
+const CLEAN: SeedFile = { content: "export function full(): number {\n\treturn 1;\n}\n", path: "src/full.ts" };
 
 const BIN = `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`;
 
@@ -29,7 +30,7 @@ function run(command: string, args: readonly string[], cwd: string): Run {
 }
 
 const CONFIG: SeedFile = {
-	content: 'export default { rules: { biome: "off", "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
+	content: 'export default { rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
 	path: "quality.config.ts",
 };
 
@@ -52,7 +53,13 @@ export function hookRepository({
 }: HookSetup = {}): HookRepository {
 	const root = seedTree(
 		[
-			...(configless ? [] : [CONFIG]),
+			...(configless
+				? []
+				: [
+						CONFIG,
+						{ content: "node_modules/\n", path: ".gitignore" },
+						{ content: '{ "extends": ["@shivaedev/quality/biome"] }\n', path: "biome.json" },
+					]),
 			{ content: `${JSON.stringify(sortPackageJson({ scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
 			...files,
 		].map((file) => ({
@@ -62,9 +69,8 @@ export function hookRepository({
 		[{ content: "node_modules/\n", path: ".gitignore" }],
 	);
 	withBin(join(root, folder));
-	if (configless) {
-		linkPackage(join(root, folder));
-	}
+	linkPackage(join(root, folder));
+	formatTree(join(root, folder));
 	git(root, "init", "--quiet");
 	commitAll(root, "Base");
 	return { folder, hook: join(root, ".git", "hooks", "pre-commit"), root };
@@ -88,7 +94,9 @@ export function withOwnHook(repository: HookRepository, script: string): HookRep
 
 export function withQualityAt(repository: HookRepository, path: string): string {
 	mkdirSync(dirname(join(repository.root, path)), { recursive: true });
-	symlinkSync(join(packageRoot, "src", "cli.ts"), join(repository.root, path));
+	writes(repository.root, path, 'import "@shivaedev/quality/cli.ts";\n');
+	writes(repository.root, "package.json", '{ "type": "module", "devDependencies": { "@shivaedev/quality": "*" } }\n');
+	formatTree(repository.root);
 	return join(repository.root, path);
 }
 
@@ -101,6 +109,7 @@ export function withBareWorktree(repository: HookRepository, name: string): stri
 export function withWorktree(repository: HookRepository, name: string): string {
 	const root = withBareWorktree(repository, name);
 	withBin(join(root, repository.folder));
+	linkPackage(join(root, repository.folder));
 	return root;
 }
 

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parserWarning, uncoveredParser } from "#test/biomeExceptions.ts";
 import { quality, qualityWithin } from "#test/cli.ts";
 import { git } from "#test/git.ts";
 import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
@@ -60,17 +61,18 @@ describe("the biome rule", { timeout: cliTimeout }, () => {
 		expect(result.stdout).toContain('error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome" from the root Biome config.');
 	});
 
-	it("leaves out a rule the repository declares at warn", () => {
+	it("honours a reasoned warning exception only for its declared file", () => {
 		const root = repository(
-			biome('{ "extends": ["@shivaedev/quality/biome"], "linter": { "rules": { "suspicious": { "noExplicitAny": "warn" } } } }'),
+			biome(
+				'{ "extends": ["@shivaedev/quality/biome"], "overrides": [{ "includes": ["src/parse.ts"], "linter": { "rules": { "suspicious": { "noExplicitAny": "warn" } } } }] }',
+			),
 			looseType,
 		);
-		const declared = '{ options: { declared: [{ includes: ["**"], reason: "Migrating.", rule: "lint/suspicious/noExplicitAny" }] } }';
-		writeFileSync(
-			join(root, "quality.config.ts"),
-			`export default {\n\trules: {\n\t\t"suppressions/biome-overrides": ${declared},\n\t},\n\tsources: ["src"],\n};\n`,
-		);
-		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: "quality: passed. 1 source file checked.\n" });
+		expect(quality(parserWarning(root), "lint")).toMatchObject({ status: 0, stdout: "quality: passed. 1 source file checked.\n" });
+		const uncovered = quality(uncoveredParser(root), "lint");
+		expect(uncovered.status).toBe(1);
+		expect(uncovered.stdout).toContain("src/other.ts:1  Unexpected any. Specify a different type.");
+		expect(uncovered.stdout).not.toContain("src/parse.ts:1  Unexpected any.");
 	});
 
 	it("exits 2 with Biome's message when Biome cannot read its config", () => {
