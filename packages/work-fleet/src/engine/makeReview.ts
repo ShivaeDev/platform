@@ -5,6 +5,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
+import { retryTerminal } from "#engine/retryTerminal.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, Review, WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -19,6 +20,9 @@ export function makeReview(state: EngineState) {
 			return stored;
 		}
 		yield* authorizeBriefContext(stored.value, work);
+		if (stored.value.launchRetry !== undefined && state.policy.now() < stored.value.launchRetry.retryAt) {
+			return stored;
+		}
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
@@ -30,6 +34,9 @@ export function makeReview(state: EngineState) {
 		const currentWork = yield* state.board.get(work.workId);
 		yield* authorizeBriefContext(stored.value, currentWork);
 		if (observation.execution !== "completed") {
+			if (yield* retryTerminal(state, stored.value, observation)) {
+				return yield* load(stored.value.workId);
+			}
 			return yield* decision(
 				stored,
 				"reviewer-terminal",
@@ -49,7 +56,7 @@ function recordObservation(attempts: readonly Attempt[], observation: SessionObs
 	const { receipt } = observation;
 	return attempts.map((attempt) =>
 		attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
-			? { ...attempt, output: observation.output, status: observation.execution }
+			? { ...attempt, output: observation.output, readRetry: undefined, status: observation.execution }
 			: attempt,
 	);
 }

@@ -36,6 +36,7 @@ export function obtainReview(state: EngineState) {
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
 			prompt,
+			providerFailures: stored.value.launchRetry?.rejections,
 			reviewHead: result.head,
 			role: "reviewer",
 			settings,
@@ -54,6 +55,7 @@ export function obtainReview(state: EngineState) {
 			{
 				...stored.value,
 				attempts: [...stored.value.attempts, attempt],
+				launchRetry: undefined,
 				mergeAreasReleased: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,

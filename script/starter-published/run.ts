@@ -7,7 +7,7 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 	for (const args of [
 		["run", "typecheck"],
 		["run", "build"],
-		["test", "src/server/starterHost.test.ts"],
+		["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts"],
 	]) {
 		yield* Effect.log(`Copied starter: pnpm ${args.join(" ")}`);
 		const code = yield* spawner.exitCode(

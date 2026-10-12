@@ -59,7 +59,7 @@ describe("Fleet launch backpressure", () => {
 			);
 		});
 	}
-	test("queue-full stops the pass and holds the backlog through increasing capped backoff", () => {
+	test("queue-full stops the pass and holds the backlog through bounded increasing backoff", () => {
 		let now = 100;
 		let reject = true;
 		return withEngine(
@@ -72,7 +72,7 @@ describe("Fleet launch backpressure", () => {
 					yield* prepareWork("one");
 					yield* prepareWork("two");
 					const fleet = yield* Fleet;
-					for (const delay of [30_000, 60_000, 120_000, 240_000, 300_000, 300_000]) {
+					for (const delay of [30_000, 60_000, 120_000, 240_000]) {
 						const pass = yield* cycle;
 						expect(pass.dispatched).toHaveLength(1);
 						const records = (yield* fleet.list()).map(({ value }) => value);

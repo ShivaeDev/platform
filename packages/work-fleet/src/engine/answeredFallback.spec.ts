@@ -8,6 +8,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
 
 postgresTests("test", "isolated")("a definitively wedged question thread continues with its answer and existing PR after restart", () => {
+	let now = 100;
 	let unusableSession: string | undefined;
 	const rejection = new SessionFailure({ code: "session-active-turn-exhausted", message: "Thread cannot accept another turn", reason: "rejected" });
 	return withFleetBoard(
@@ -16,6 +17,7 @@ postgresTests("test", "isolated")("a definitively wedged question thread continu
 				...transport,
 				startTurn: (input) => (input.sessionId === unusableSession ? Effect.fail(rejection) : transport.startTurn(input)),
 			}),
+			now: () => now,
 		},
 		(fixture, root) =>
 			Effect.gen(function* () {
@@ -37,6 +39,7 @@ postgresTests("test", "isolated")("a definitively wedged question thread continu
 				expect(queued.decision).toBeUndefined();
 				expect(queued.attempts.at(-1)).toMatchObject({ sessionUnusable: true, status: "failed" });
 				expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+				now = 30_100;
 				const resumed = (yield* fixture.restart(fleet.reconcile("one"))).value;
 				expect(resumed.stage).toBe("executing");
 				expect(resumed.result).toEqual(result);

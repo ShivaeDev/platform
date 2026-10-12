@@ -9,6 +9,7 @@ import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
 
 for (const repair of ["review", "checks"] as const) {
 	postgresTests("test", "isolated")(`an answered ${repair} repair question retains the repair instructions on a fresh thread after restart`, () => {
+		let now = 100;
 		let unusableSession: string | undefined;
 		let head = "initial-head";
 		const rejection = new SessionFailure({ code: "session-active-turn-exhausted", message: "Thread cannot accept another turn", reason: "rejected" });
@@ -25,6 +26,7 @@ for (const repair of ["review", "checks"] as const) {
 					...transport,
 					startTurn: (input) => (input.sessionId === unusableSession ? Effect.fail(rejection) : transport.startTurn(input)),
 				}),
+				now: () => now,
 				repairs: repair === "review",
 				resultQuery: () => Effect.succeed({ head, kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" }),
 			},
@@ -45,6 +47,7 @@ for (const repair of ["review", "checks"] as const) {
 					expect(queued.stage).toBe("repairing");
 					expect(queued.decision).toBeUndefined();
 					expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+					now = 30_100;
 					yield* fixture.restart(
 						Effect.gen(function* () {
 							const resumed = yield* Fleet;
