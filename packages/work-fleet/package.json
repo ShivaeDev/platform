@@ -57,7 +57,6 @@
 		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/work-board": "workspace:*",
-		"pg": "catalog:",
 		"yaml": "catalog:"
 	},
 	"devDependencies": {
@@ -71,6 +70,7 @@
 		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
+		"pg": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
