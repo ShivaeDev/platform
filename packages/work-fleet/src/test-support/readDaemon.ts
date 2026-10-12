@@ -32,7 +32,7 @@ export function readDaemonLayer(host: FleetHost, parts?: HostParts, port = 0, on
 				port,
 			}),
 		),
-		Layer.provide(runtime),
+		Layer.provideMerge(runtime),
 	);
 }
 
@@ -47,7 +47,7 @@ export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <
 	if (address._tag !== "TcpAddress") {
 		return yield* Effect.die("Expected a TCP daemon");
 	}
-	return yield* use(address.port);
+	return yield* use(address.port).pipe(Effect.provideContext(context));
 }, Effect.scoped);
 
 export function daemonCli(host: FleetHost, args: readonly string[], parts?: HostParts) {

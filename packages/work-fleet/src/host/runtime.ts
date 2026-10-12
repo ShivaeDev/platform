@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
+import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
@@ -73,7 +74,9 @@ export function hostPolicy(host: FleetHost) {
 }
 
 export function hostSql(host: FleetHost) {
-	return PgClient.layer({ applicationName: "work-fleet", maxConnections: host.maxConnections, url: Redacted.make(host.databaseUrl) });
+	return PgClient.layer({ applicationName: "work-fleet", maxConnections: host.maxConnections, url: Redacted.make(host.databaseUrl) }).pipe(
+		Layer.provideMerge(Reactivity.layer),
+	);
 }
 
 export function fleetHostLayer<TProvider, TMain>(
