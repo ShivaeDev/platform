@@ -1,11 +1,11 @@
-import { Clock, Context, Data, Effect, Schema } from "effect";
+import { Clock, Context, Effect, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { FleetHealth } from "./health.ts";
 
-export class SourceFailure extends Data.TaggedError("SourceFailure")<{
-	readonly kind: "not-configured" | "error";
-	readonly message: string;
-}> {}
+export class SourceFailure extends Schema.TaggedError<SourceFailure>()("SourceFailure", {
+	kind: Schema.Literals(["not-configured", "error"]),
+	message: Schema.String,
+}) {}
 
 export const UsageWindow = Schema.Struct({
 	resetsAt: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000))),

@@ -43,7 +43,7 @@ test("concurrent reassignment commits one new decision and rejects stale decisio
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
-			expect(yield* fleet.reassign("one", "missing", "maintainer").pipe(Effect.flip)).toMatchObject({ reason: "stale" });
+			expect(yield* fleet.reassign("one", "missing", "maintainer").pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 			yield* fleet.dispatch("one");
 			const old = yield* askWorker(fixture);
 			barrier.arm();
@@ -57,13 +57,13 @@ test("concurrent reassignment commits one new decision and rejects stale decisio
 			expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
 			for (const result of results) {
 				if (result._tag === "Failure") {
-					expect(result.failure).toMatchObject({ _tag: "FleetFailure", reason: "stale" });
+					expect(result.failure).toMatchObject({ _tag: "Conflict" });
 				}
 			}
 			const current = (yield* fleet.reconcile("one")).value;
 			expect(current.attentionOwner).toBe("maintainer");
 			expect(current.supersededDecisions).toHaveLength(1);
-			expect(yield* fleet.reassign("one", old.decision.id, "orchestrator").pipe(Effect.flip)).toMatchObject({ reason: "stale" });
+			expect(yield* fleet.reassign("one", old.decision.id, "orchestrator").pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 			expect(fixture.launched).toHaveLength(1);
 		}),
 	);
@@ -86,7 +86,7 @@ test("reassignment racing resolution commits one action and the loser reports a 
 			expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
 			for (const result of results) {
 				if (result._tag === "Failure") {
-					expect(result.failure).toMatchObject({ _tag: "FleetFailure", reason: "stale" });
+					expect(result.failure).toMatchObject({ _tag: "Conflict" });
 				}
 			}
 			const current = (yield* fleet.get("one")).value;

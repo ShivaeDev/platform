@@ -1,10 +1,11 @@
 import { Effect, Result } from "effect";
+import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import type { FleetError } from "#errors.ts";
 import { resultReport } from "#host/resultReport.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
-import { FleetFailure } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 const correctionPrompt = [
@@ -28,19 +29,19 @@ export const workerReportFailure = Effect.fn("Fleet.workerReportFailure")(functi
 		"PR head moved after the worker report",
 		"Merged PR head differs from the reported head; inspect delivery before accepting this work",
 	].includes(reason)
-		? new FleetFailure({ message: reason, reason: "stale" })
+		? new Conflict({ message: reason })
 		: undefined;
 });
 
 export function correctWorkerReport(state: EngineState) {
 	return Effect.fn("Fleet.correctWorkerReport")(function* (
 		stored: Versioned<FleetRecord>,
-		failure: FleetFailure,
+		failure: FleetError,
 		responses?: readonly DecisionResponse[],
 	) {
 		const latest = stored.value.attempts.at(-1);
 		if (latest?.receipt === undefined || latest.role === "reviewer" || latest.status !== "completed") {
-			return yield* new FleetFailure({ message: "Report execution lacks a completed receipt", reason: "invalid" });
+			return yield* new BadRequest({ message: "Report execution lacks a completed receipt" });
 		}
 		if (responses === undefined && latest.prompt?.startsWith(correctionPrompt)) {
 			return yield* state.decision(stored, failure.message, "Retry to request a corrected worker report or safely release");

@@ -259,7 +259,7 @@ Cloud worker instructions include startup waiting, the configured environment sc
 
 ### Adopt a worker result
 
-Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open or merged in the host repository and target its configured branch; a different reported head or base/path movement during observation fails with a typed `FleetFailure`. A PR closed without merging waits on the orchestrator.
+Select `"result": "github"` in the host's `fleet.config.json` to adopt a completed worker report through the authenticated `gh` CLI. The final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values. Adoption records the GitHub PR number, exact head and all paginated changed paths, including both paths of a rename. The PR must be open or merged in the host repository and target its configured branch; a different reported head or base/path movement during observation fails with a typed platform `BadRequest` or `Conflict`. A PR closed without merging waits on the orchestrator.
 
 A PR merged before adoption or during review still requires independent approval and checks for its reported head before Fleet accepts the observed merge as delivery. Retrying a failed adoption resumes the completed worker receipt; retrying after review reuses that review session. `src/engine/mergedAdoption.spec.ts`, `src/engine/mergedReview.spec.ts` and `src/engine/mergedReviewRecovery.spec.ts` cover these transitions against real PostgreSQL and a synthetic HTTP GitHub server.
 
@@ -313,6 +313,21 @@ yield* cycle;
 Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Its `result` implementation must re-read current result ownership and head each time it is called. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current authored brief revisions. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` and `dependencyBookkeeping.spec.ts` cover those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.
+
+### Errors and service declarations
+
+Fleet commands and daemon streams declare `BadRequest`, `Conflict`, `Forbidden`, `NotFound` and `ServiceUnavailable` from `@shivaedev/platform/errors/taxonomy.ts`. Invalid input, stale state, denied actions, missing records and unavailable integrations use those tags respectively. The RPC boundary maps storage conflicts to `Conflict` and admission failures to `Forbidden`; clients retain declared tags and messages in the error channel. Internal recovery metadata carries moved PR heads, conflicting main revisions and attention ownership without adding fields to platform errors. `src/host/errorChannels.spec.ts` checks all five tags through real daemon HTTP; `src/host/streamErrors.spec.ts` checks subscription errors through in-process native RPC; `src/exposeFailure.test.ts` checks storage translation, internal ownership, defects and interruption. The moved-head and attention-owner engine specs cover their recovery behavior against PostgreSQL.
+
+`Fleet`, `SessionService`, `MarkdownBoard`, `PostgresFleetRepository`, `FleetSessionJournal`, `GitMainSource`, `HostIntegrations`, `CodexLocal`, `CodexCloud`, `ReportBoard`, `ProviderHealth` and `StatusPublication` use `defineService`. Their Layers declare dependencies and keep initialization state private. The daemon, provider, journal, Board publication and status tests exercise those implementations through the existing ports.
+
+The following native Context services remain hand-written:
+
+| Services | Why |
+| --- | --- |
+| `BoardGateway`, `FleetRepository`, `FleetIntegrations`, `SessionTransport`, `SessionJournal`, `MainSource`, `ReportInspection` | Interchangeable ports for host adapters and test fixtures. The implementations declare their dependencies through `defineService`; the ports do not own initialization. |
+| `FleetPolicy`, `CodexLocalConfig`, `CodexCloudConfig`, `BoardRoot`, `RepositoryNamespace`, `ReportInputs`, `ProviderHealthState`, `StatusHealth` | Configuration and supplied values, including optional health state and bound integration callbacks. |
+| `Health`, `HealthSnapshot`, `HealthPublication` | Shared references and Effects consumed by scheduler and diagnostics composition. |
+| `Scheduler` | A scoped fiber handle. The daemon Layer controls listener-before-scheduler startup and joins that fiber. |
 
 ## PostgreSQL test fixtures
 

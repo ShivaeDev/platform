@@ -1,8 +1,8 @@
 import { Effect } from "effect";
+import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { RecordedResponse } from "@shivaedev/work-board/browser/responses/schema.ts";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
-import { FleetFailure } from "#policy.ts";
 
 export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	board: typeof BoardGateway.Service,
@@ -11,31 +11,29 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 ) {
 	const published = decision.published;
 	if (published === undefined) {
-		return yield* Effect.fail(new FleetFailure({ message: "Board decision publication must be reconciled first", reason: "stale" }));
+		return yield* Effect.fail(new Conflict({ message: "Board decision publication must be reconciled first" }));
 	}
 	const reading = yield* board.readDecision(published);
 	if (reading._tag !== "Response" || reading.response.id !== responseId) {
-		return yield* Effect.fail(
-			new FleetFailure({ message: "Board response is missing, ambiguous, superseded or belongs to changed context", reason: "stale" }),
-		);
+		return yield* Effect.fail(new Conflict({ message: "Board response is missing, ambiguous, superseded or belongs to changed context" }));
 	}
 	const response = reading.response;
 	if (response.response.question !== published.questionId || response.response.reviewedRevision !== published.revision) {
-		return yield* Effect.fail(new FleetFailure({ message: "Response does not match the exact Board question", reason: "stale" }));
+		return yield* Effect.fail(new Conflict({ message: "Response does not match the exact Board question" }));
 	}
 	if (response.response.type !== "answer") {
 		return { action: undefined, published, response };
 	}
 	if (decision.worker !== undefined && !releaseSelected(response)) {
 		if (response.body.trim().length === 0) {
-			return yield* Effect.fail(new FleetFailure({ message: "Record a nonempty answer for the worker", reason: "invalid" }));
+			return yield* Effect.fail(new BadRequest({ message: "Record a nonempty answer for the worker" }));
 		}
 		return { action: "continue", published, response } as const;
 	}
 	const action = yield* guidedAction(response);
 	const explanation = releaseOnly(decision.reason);
 	if (action === "retry" && explanation !== undefined) {
-		return yield* new FleetFailure({ message: explanation, reason: "invalid" });
+		return yield* new BadRequest({ message: explanation });
 	}
 	return { action, published, response } as const;
 });
@@ -45,9 +43,7 @@ const guidedAction = Effect.fn("Fleet.guidedAction")(function* (response: Record
 	const selected = answers[0]?.selected;
 	const action = selected?.[0];
 	if (answers.length !== 1 || selected?.length !== 1 || (action !== "retry" && action !== "release")) {
-		return yield* Effect.fail(
-			new FleetFailure({ message: "Choose one guided Fleet retry or release action; free text cannot authorize it", reason: "invalid" }),
-		);
+		return yield* Effect.fail(new BadRequest({ message: "Choose one guided Fleet retry or release action; free text cannot authorize it" }));
 	}
 	return action;
 });

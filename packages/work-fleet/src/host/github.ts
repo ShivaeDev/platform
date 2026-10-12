@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
-import { FleetFailure } from "#policy.ts";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { FleetError } from "#errors.ts";
 
 const Sha = Schema.String.check(Schema.isPattern(/^[a-f\d]{40}$/u));
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
@@ -21,11 +22,11 @@ export const FilePages = Schema.Array(
 );
 export const Repository = Schema.Struct({ nameWithOwner: Schema.String });
 
-export type GithubRead = (args: readonly string[]) => Effect.Effect<string, FleetFailure>;
+export type GithubRead = (args: readonly string[]) => Effect.Effect<string, FleetError>;
 
 export function githubJson<TSchema extends Schema.Top>(schema: TSchema, read: GithubRead, args: readonly string[]) {
 	return read(args).pipe(
 		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(schema))),
-		Effect.mapError(() => new FleetFailure({ message: "GitHub observation failed or returned invalid data", reason: "integration" })),
+		Effect.mapError(() => new ServiceUnavailable({ message: "GitHub observation failed or returned invalid data" })),
 	);
 }

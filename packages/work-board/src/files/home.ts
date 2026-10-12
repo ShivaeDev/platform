@@ -1,7 +1,7 @@
-import { Data, Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import { listMarkdown } from "./list.ts";
 
-export class HomeMissing extends Data.TaggedError("HomeMissing")<{ readonly message: string }> {}
+export class HomeMissing extends Schema.TaggedError<HomeMissing>()("HomeMissing", { message: Schema.String }) {}
 
 export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, home: string | undefined) {
 	if (home === undefined) {
@@ -9,7 +9,9 @@ export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, hom
 	}
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const missing = new HomeMissing({ message: `The home file ${home} is not a markdown file in ${root}` });
+	const missing = new HomeMissing({
+		message: `The home file ${home} is not a markdown file in ${root}. Choose an existing Markdown file with --home.`,
+	});
 	const realRoot = yield* fs.realPath(root);
 	const real = yield* Effect.option(fs.realPath(path.resolve(root, home)));
 	if (Option.isNone(real)) {
@@ -28,13 +30,16 @@ export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, hom
 	if (files.some((file) => file.path === relative)) {
 		return relative;
 	}
-	const inode = Option.getOrUndefined(target.value.ino);
-	const same = (info: FileSystem.File.Info) => inode !== undefined && info.dev === target.value.dev && Option.getOrUndefined(info.ino) === inode;
+	const targetInfo = target.value;
+	const inode = Option.getOrUndefined(targetInfo.ino);
+	function same(info: FileSystem.File.Info) {
+		return inode !== undefined && info.dev === targetInfo.dev && Option.getOrUndefined(info.ino) === inode;
+	}
 	const matches = yield* Effect.filter(files, (file) =>
 		Effect.map(Effect.option(fs.stat(path.join(realRoot, file.path))), (info) => Option.isSome(info) && same(info.value)),
 	);
 	const direct = yield* Effect.filter(matches, (file) =>
-		Effect.map(Effect.option(fs.realPath(path.join(realRoot, file.path))), (real) => Option.contains(real, path.join(realRoot, file.path))),
+		Effect.map(Effect.option(fs.realPath(path.join(realRoot, file.path))), (resolved) => Option.contains(resolved, path.join(realRoot, file.path))),
 	);
 	const chosen = matches.find((file) => file.path.toLowerCase() === relative.toLowerCase()) ?? direct[0] ?? matches[0];
 	return chosen === undefined ? yield* missing : chosen.path;

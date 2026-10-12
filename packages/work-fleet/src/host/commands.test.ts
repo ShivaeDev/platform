@@ -75,7 +75,7 @@ describe("work-fleet host against PostgreSQL", () => {
 		yield* withHost(files, {}, (fixture) =>
 			Effect.gen(function* () {
 				const denied = yield* dispatchWork(fixture.host, "b", fixture.parts).pipe(Effect.flip);
-				expect(denied).toMatchObject({ message: 'b needs "fleet: approved" in its Board frontmatter', reason: "denied" });
+				expect(denied).toMatchObject({ _tag: "Forbidden", message: 'b needs "fleet: approved" in its Board frontmatter' });
 
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 				const first = yield* record(fixture.host, "a", fixture.parts);

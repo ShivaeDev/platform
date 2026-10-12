@@ -3,6 +3,29 @@ import { decisionFlow } from "./decisionFlow.ts";
 import { decisionRoots } from "./decisionRoots.ts";
 import { decisionSymbol } from "./decisionSymbol.ts";
 
+function initializationField(binding: ts.BindingElement) {
+	const parameter = binding.parent.parent;
+	if (!(ts.isParameter(parameter) && ts.isArrowFunction(parameter.parent))) {
+		return [];
+	}
+	const methods = parameter.parent.parent;
+	if (!ts.isPropertyAssignment(methods) || methods.name.getText() !== "methods" || !ts.isObjectLiteralExpression(methods.parent)) {
+		return [];
+	}
+	const initialize = methods.parent.properties.find((property) => ts.isPropertyAssignment(property) && property.name.getText() === "initialize");
+	if (initialize === undefined || !ts.isPropertyAssignment(initialize) || !ts.isCallExpression(initialize.initializer)) {
+		return [];
+	}
+	const generator = initialize.initializer.arguments[0];
+	const returned = generator !== undefined && ts.isFunctionExpression(generator) ? generator.body.statements.at(-1) : undefined;
+	return returned !== undefined
+		&& ts.isReturnStatement(returned)
+		&& returned.expression !== undefined
+		&& ts.isObjectLiteralExpression(returned.expression)
+		? returned.expression.properties.filter((property) => property.name?.getText() === binding.name.getText())
+		: [];
+}
+
 export function decisionGraph(checker: ts.TypeChecker, trees: readonly ts.SourceFile[]) {
 	const production = new Set(trees);
 	const visited = new Set<ts.Node>();
@@ -21,6 +44,11 @@ export function decisionGraph(checker: ts.TypeChecker, trees: readonly ts.Source
 			return;
 		}
 		visited.add(node);
+		if (ts.isBindingElement(node)) {
+			for (const field of initializationField(node)) {
+				visit(field);
+			}
+		}
 		for (const declaration of references(node)) {
 			visit(declaration);
 		}

@@ -3,6 +3,7 @@ import type { ContainerDirective } from "mdast-util-directive";
 import remarkDirective from "remark-directive";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { metadataParse } from "#metadata/parse.ts";
 import { optionPrompt } from "./optionPrompt.ts";
@@ -28,10 +29,10 @@ function scopedPrompt(
 ) {
 	const result = promptFrom(node, source);
 	if (result.request !== undefined && !requests.some((entry) => entry.id === result.request)) {
-		throw new Error("A question's request= must name an attention request in this document.");
+		throw new BadRequest({ message: "A question's request= must name an attention request in this document." });
 	}
 	if (result.request === undefined && requests.filter((entry) => entry.state === "open").length > 1) {
-		throw new Error("Use request= on question directives when a document has several open attention requests.");
+		throw new BadRequest({ message: "Use request= on question directives when a document has several open attention requests." });
 	}
 	return result.request === undefined || result.request === request ? result.prompt : undefined;
 }
@@ -61,13 +62,13 @@ export function questionTemplate(context: string, request: string, file?: string
 			}
 		} else {
 			if (nestedControl(node)) {
-				throw new Error("Use top-level question containers with direct option children.");
+				throw new BadRequest({ message: "Use top-level question containers with direct option children." });
 			}
 			plain.push(sliceNode(source, node));
 		}
 	}
 	if (prompts.length > 32 || new Set(prompts.map((prompt) => prompt.id)).size !== prompts.length) {
-		throw new Error("Use at most 32 questions with unique IDs per attention request.");
+		throw new BadRequest({ message: "Use at most 32 questions with unique IDs per attention request." });
 	}
 	return withOptions(context, { context: plain.join("\n\n"), prompts });
 }
@@ -78,7 +79,7 @@ function withOptions(context: string, template: Template): Template {
 		return template;
 	}
 	if (template.prompts.length > 0) {
-		throw new Error("Use frontmatter options or Markdown question directives, rather than both.");
+		throw new BadRequest({ message: "Use frontmatter options or Markdown question directives, rather than both." });
 	}
 	return { ...template, prompts: [choice] };
 }

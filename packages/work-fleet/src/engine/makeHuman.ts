@@ -5,8 +5,9 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
+import { isFleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
-import { BoardFailure, FleetFailure } from "#policy.ts";
+import { BoardFailure } from "#policy.ts";
 import { StorageCapacity, StorageQuota } from "#storage/errors.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -34,7 +35,7 @@ export function makeHuman(state: EngineState) {
 		return yield* resolveCommand(state)(stored.value.workId, decision.id, reading.response.id).pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {
-					if (error instanceof FleetFailure || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota) {
+					if (isFleetError(error) || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota) {
 						return yield* state.save(stored, { ...stored.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
 					}
 					return yield* Effect.fail(error);

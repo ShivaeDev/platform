@@ -80,6 +80,12 @@ When a config exists, its folder is the root for paths and hook scripts. Without
 
 ### 2. When architecture needs it: describe an import boundary
 
+An app says where its code runs through folder names. A package adopts the runtime convention by having `src/client/` or `src/server/`; no config entry is needed. In that package, `src/client/` is browser code, `src/server/` is server code, and everything else is shared. Keep shared code wherever its topic belongs; there is no required `src/shared/` folder or runtime file suffix.
+
+`imports/runtime` rejects client imports of server code or Node built-ins. Shared code may import neither client nor server code, use browser globals such as `window`, `document` or `localStorage`, or import Node built-ins. Both client and server code may import shared code. The check includes type imports and re-exports and resolves aliases through the shared import graph. Locally bound names and property names are not browser globals; portable web APIs such as `URL`, `fetch` and `AbortController` remain available to shared code. Test files and `test-support/` ship nowhere and are outside this runtime policy.
+
+Adoption is per package: packages without either runtime folder retain their existing policies. Existing explicit fences continue to run in both adopted and legacy packages, so hand-kept browser, server and Markdown lists can remain until their package moves. Runtime folders are detected independently of `sources`, including empty folders; `sources` still selects the code that is checked.
+
 The manifest owns ordinary workspace dependencies. When a package promises more, put `quality.fences.config.ts` beside its `package.json`, exporting an array of fences as the default. Quality discovers this file at the repository root and in workspace packages, even when `sources` includes only their source folders. The root config does not list boundary files.
 
 A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. Quality validates all discovered fences together, so duplicate names or contradictory examples stop the run. An unreadable file or invalid default export also stops the run. Fences remain an internal `imports/fences` module of Quality and use its shared import graph, resolver and report.

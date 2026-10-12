@@ -1,10 +1,11 @@
 import { Clock, Effect, FileSystem } from "effect";
+import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeResponse } from "@shivaedev/work-board/responses/make.ts";
 import { publish } from "@shivaedev/work-board/responses/publish.ts";
 import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
 import { Responses } from "@shivaedev/work-board/responses/service.ts";
 import type { BoardDecision } from "#board/schema.ts";
-import { BoardGateway, type Decision, FleetFailure } from "#policy.ts";
+import { BoardGateway, type Decision } from "#policy.ts";
 
 export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* (
 	root: string,
@@ -16,7 +17,7 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 	const published = decision.published;
 	const reading = yield* board.readDecision(published);
 	if (reading._tag === "Stale" || reading._tag === "Ambiguous") {
-		return yield* Effect.fail(new FleetFailure({ message: "Reconcile the exact decision response before answering", reason: "stale" }));
+		return yield* Effect.fail(new Conflict({ message: "Reconcile the exact decision response before answering" }));
 	}
 	const id = `response.fleet-${action}.${published.questionId}`;
 	if (reading._tag === "Response" && reading.response.id === id) {

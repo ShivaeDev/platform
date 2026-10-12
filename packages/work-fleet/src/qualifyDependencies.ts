@@ -1,7 +1,8 @@
 import { Effect } from "effect";
+import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
 import type { FleetRecord } from "#model.ts";
-import { type BoardFailure, type BoardWork, FleetFailure } from "#policy.ts";
+import type { BoardFailure, BoardWork } from "#policy.ts";
 
 export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(function* (
 	references: readonly string[],
@@ -12,26 +13,17 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 		Effect.gen(function* () {
 			const [workId, criterion] = reference.split("#");
 			if (!workId) {
-				return yield* Effect.fail(new FleetFailure({ message: `Dependency reference is invalid: ${reference}`, reason: "denied" }));
+				return yield* Effect.fail(new Forbidden({ message: `Dependency reference is invalid: ${reference}` }));
 			}
 			const current = yield* get(workId).pipe(
-				Effect.mapError(
-					(error) =>
-						new FleetFailure({
-							message: `Dependency ${reference} is unavailable or ambiguous: ${error.message}`,
-							reason: "denied",
-						}),
-				),
+				Effect.mapError((error) => new Forbidden({ message: `Dependency ${reference} is unavailable or ambiguous: ${error.message}` })),
 			);
 			if (current.workId !== workId) {
-				return yield* Effect.fail(new FleetFailure({ message: `Dependency identity is ambiguous: ${reference}`, reason: "denied" }));
+				return yield* Effect.fail(new Forbidden({ message: `Dependency identity is ambiguous: ${reference}` }));
 			}
 			if (criterion !== undefined) {
 				return yield* Effect.fail(
-					new FleetFailure({
-						message: `Dependency ${reference} needs criterion-specific accepted evidence; a whole-work outcome cannot satisfy it`,
-						reason: "denied",
-					}),
+					new Forbidden({ message: `Dependency ${reference} needs criterion-specific accepted evidence; a whole-work outcome cannot satisfy it` }),
 				);
 			}
 			const hasFleetWork = records.some((record) => record.workId === workId);
@@ -39,9 +31,8 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 			const fallback = hasFleetWork ? "" : " or Board status done without Fleet work";
 			if (!accepted) {
 				return yield* Effect.fail(
-					new FleetFailure({
+					new Forbidden({
 						message: `waiting for dependency ${reference}: needs an accepted outcome for current Board revision ${current.revision}${fallback}`,
-						reason: "denied",
 					}),
 				);
 			}

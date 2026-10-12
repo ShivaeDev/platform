@@ -32,7 +32,7 @@ for (const noChange of [false, true]) {
 					const denied = yield* fixture.restart(prepareWork("one").pipe(Effect.result));
 					expect(denied).toMatchObject({
 						_tag: "Failure",
-						failure: { _tag: "FleetFailure", message: "Completed work needs a newly approved Board context before renewal", reason: "denied" },
+						failure: { _tag: "Forbidden", message: "Completed work needs a newly approved Board context before renewal" },
 					});
 					expect(yield* fleet.get("one")).toEqual(before);
 				}),

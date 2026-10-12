@@ -40,7 +40,10 @@ const MARKDOWN_MODULES = modules(
 	"mdast-util-directive",
 );
 const browserCode = anyOf(folders("packages/work-board/src/browser", "packages/work-board/src/path"), files(...BROWSER_FILES));
-const browserDependencies = folders("packages/platform/src/core/errors", "packages/platform/src/core/rpc", "packages/effect-trpc/src/client");
+const browserDependencies = anyOf(
+	folders("packages/platform/src/core/errors", "packages/platform/src/core/rpc"),
+	files("packages/effect-trpc/src/rejectionDecoding.ts"),
+);
 const markdownCode = anyOf(folders("packages/work-board/src/browser/document"), files(...BROWSER_FILES.filter((file) => file.includes("/render/"))));
 
 export default [

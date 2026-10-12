@@ -1,11 +1,12 @@
 import { Effect, Schema } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { FleetError } from "#errors.ts";
 import { readCommand } from "#host/readCommand.ts";
-import { FleetFailure } from "#policy.ts";
 
 const References = Schema.Array(Schema.Array(Schema.Struct({ ref: Schema.String })));
 const PullRequests = Schema.Array(Schema.Array(Schema.Struct({ htmlUrl: Schema.String }).pipe(Schema.encodeKeys({ htmlUrl: "html_url" }))));
 
-export function makeReportPublication<R>(read: (endpoint: string) => Effect.Effect<string, FleetFailure, R>) {
+export function makeReportPublication<R>(read: (endpoint: string) => Effect.Effect<string, FleetError, R>) {
 	return Effect.fn("Fleet.reportPublication")(
 		function* (repository: string, branch: string) {
 			const refs = yield* read(`repos/${repository}/git/matching-refs/heads/${encodeURIComponent(branch)}`).pipe(
@@ -16,7 +17,7 @@ export function makeReportPublication<R>(read: (endpoint: string) => Effect.Effe
 			).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(PullRequests))));
 			return refs.flat().some((ref) => ref.ref === `refs/heads/${branch}`) || prs.flat().length > 0;
 		},
-		Effect.mapError(() => new FleetFailure({ message: "Report publication could not be checked on GitHub", reason: "integration" })),
+		Effect.mapError(() => new ServiceUnavailable({ message: "Report publication could not be checked on GitHub" })),
 	);
 }
 
@@ -29,7 +30,7 @@ export const reportRepository = Effect.fn("Fleet.reportRepository")(function* (c
 	const repository = /^(?:https:\/\/github\.com\/|git@github\.com:)(?<repository>[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/u.exec(url)?.groups
 		?.repository;
 	if (repository === undefined) {
-		return yield* Effect.fail(new FleetFailure({ message: "Report publication checks need a GitHub remote", reason: "integration" }));
+		return yield* Effect.fail(new ServiceUnavailable({ message: "Report publication checks need a GitHub remote" }));
 	}
 	return repository;
 });

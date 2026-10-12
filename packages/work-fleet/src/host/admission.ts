@@ -1,4 +1,5 @@
 import { Effect, FileSystem, Schema } from "effect";
+import { BadRequest, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
@@ -8,7 +9,7 @@ import type { FleetHost } from "#host/config.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
 import type { FleetRecord } from "#model.ts";
-import { BoardGateway, type BoardWork, FleetFailure } from "#policy.ts";
+import { BoardGateway, type BoardWork } from "#policy.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import { workerPrompt } from "#prompt/worker.ts";
 import { LaunchSettings } from "#session/schema.ts";
@@ -47,10 +48,7 @@ const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork)
 	return yield* override === undefined
 		? Effect.succeed(undefined)
 		: Schema.decodeUnknownEffect(LaunchSettings)(override).pipe(
-				Effect.mapError(
-					() =>
-						new FleetFailure({ message: `${work.workId} has an invalid fleet-launch; use model, effort and serviceTier strings`, reason: "invalid" }),
-				),
+				Effect.mapError(() => new BadRequest({ message: `${work.workId} has an invalid fleet-launch; use model, effort and serviceTier strings` })),
 			);
 });
 
@@ -119,7 +117,7 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	const fleet = yield* Fleet;
 	const work = yield* (yield* BoardGateway).get(workId);
 	if (!work.approved) {
-		return yield* Effect.fail(new FleetFailure({ message: `${workId} needs "fleet: approved" in its Board frontmatter`, reason: "denied" }));
+		return yield* Effect.fail(new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` }));
 	}
 	yield* (yield* MainSource).refresh;
 	const existing = (yield* fleet.list()).find(({ value }) => value.workId === workId)?.value;

@@ -1,9 +1,11 @@
 import { Effect } from "effect";
+import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
-import { type BoardWork, FleetFailure } from "#policy.ts";
+import type { BoardWork } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
 
 const CHANGED_BRIEF_REASON = "Board context changed";
@@ -18,10 +20,8 @@ export function briefApproved(work: BoardWork): boolean {
 
 export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work: BoardWork) {
 	if (!briefApproved(work)) {
-		return yield* new FleetFailure({
+		return yield* withFailureContext(new Forbidden({ message: "Work is no longer approved" }), {
 			attentionOwner: "maintainer",
-			message: "Work is no longer approved",
-			reason: "denied",
 		});
 	}
 });
@@ -29,11 +29,7 @@ export const authorizeBrief = Effect.fn("Fleet.authorizeBrief")(function* (work:
 export const authorizeBriefContext = Effect.fn("Fleet.authorizeBriefContext")(function* (record: FleetRecord, work: BoardWork) {
 	yield* authorizeBrief(work);
 	if (briefChanged(record, work)) {
-		return yield* new FleetFailure({
-			attentionOwner: "maintainer",
-			message: CHANGED_BRIEF_REASON,
-			reason: "stale",
-		});
+		return yield* withFailureContext(new Conflict({ message: CHANGED_BRIEF_REASON }), { attentionOwner: "maintainer" });
 	}
 });
 

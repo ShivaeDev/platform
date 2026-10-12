@@ -3,11 +3,11 @@ import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import type { BoardReport } from "#board/schema.ts";
 import { reportBoard } from "#host/reportBoard.ts";
 import { makeReportPublication } from "#host/reportPublication.ts";
-import { FleetFailure } from "#policy.ts";
 import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
 import { REPORT_ATTACHMENT_DIRECTORY } from "#reportAttachments.ts";
 import { codexServer, type Handshake, requestCursor, WireRejection, type WireRequest } from "#test/codex.ts";
@@ -88,7 +88,7 @@ export function attachmentBoard(
 		if (endpoint.includes("/pulls?")) {
 			return Effect.succeed(JSON.stringify([[], published === "pr" ? [{ "html_url": "https://github.com/example/project/pull/1" }] : []]));
 		}
-		return Effect.fail(new FleetFailure({ message: "Unexpected GitHub read", reason: "integration" }));
+		return Effect.fail(new ServiceUnavailable({ message: "Unexpected GitHub read" }));
 	});
 	const board = reportBoard(root, (work) => check("example/project", `synthetic/${work.workId}`), download.read).pipe(
 		Layer.provide(markdownBoard(root)),

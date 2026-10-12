@@ -1,6 +1,7 @@
 import type { Root, RootContent } from "mdast";
 import type { ContainerDirective, LeafDirective, TextDirective } from "mdast-util-directive";
 import { SKIP, visit as visitNodes } from "unist-util-visit";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { renderVisual } from "./visual.ts";
 
 type Directive = ContainerDirective | LeafDirective | TextDirective;
@@ -17,17 +18,17 @@ function nested(node: RootContent): boolean {
 function failureOf(node: Directive, source: string): string | undefined {
 	try {
 		if (!names.has(node.name)) {
-			throw new Error(`Unknown visual directive ${node.name}.`);
+			throw new BadRequest({ message: `Unknown visual directive ${node.name}. Use metric, progress or timeline.` });
 		}
 		if (node.type !== "containerDirective") {
-			throw new Error("Use a ::: container directive.");
+			throw new BadRequest({ message: "Use a ::: container directive." });
 		}
 		const length = new TextEncoder().encode(source.slice(node.position?.start.offset, node.position?.end.offset)).byteLength;
 		if (length > 65_536) {
-			throw new Error("Visual directive exceeds 64 KiB.");
+			throw new BadRequest({ message: "Visual directive exceeds 64 KiB. Split it into smaller components." });
 		}
 		if (node.children.some((child) => nested(child))) {
-			throw new Error("Nested visual directives are not supported.");
+			throw new BadRequest({ message: "Nested visual directives are not supported. Move each component to the top level." });
 		}
 		renderVisual(node);
 		return undefined;

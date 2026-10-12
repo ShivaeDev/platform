@@ -13,13 +13,13 @@ overrides:
 catalog:
   "@tailwindcss/vite": 4.3.3
   "@tanstack/react-router": 1.170.41
-  "@vitejs/plugin-react": 6.0.5
+  "@vitejs/plugin-react": 6.1.1
   vite: 8.2.0
   tailwindcss: 4.3.3
   clsx: 2.1.1
   tailwind-merge: 3.7.0
   class-variance-authority: 0.7.1
-  lucide-react: 1.48.0
+  lucide-react: 1.52.0
   "@biomejs/biome": 2.5.15
   "@effect/vitest": 4.0.0-rc.112
   "@effect/atom-react": 4.0.0-rc.112
@@ -39,8 +39,8 @@ catalog:
   rehype-raw: 7.0.0
   unist-util-visit: 5.0.0
   unified: 11.0.5
-  happy-dom: 20.11.2
-  mermaid: 11.16.1
+  happy-dom: 20.14.5
+  mermaid: 11.17.2
   ignore: 7.0.12
   sort-package-json: 4.0.0
   "@prisma-next/adapter-postgres": 0.15.0
@@ -70,8 +70,8 @@ catalog:
   esbuild: 0.28.2
   better-auth: 1.6.33
   pg: 8.23.0
-  pg-boss: 12.23.1
-  satteri: 0.9.5
+  pg-boss: 12.36.0
+  satteri: 0.10.5
   shiki: 4.4.2
   typescript: npm:@typescript/typescript6@6.0.2
   yaml: 2.9.1

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { authoredQuestion } from "#attention/inbox.ts";
 import type { MetadataDocument } from "#metadata/model.ts";
 import { Responses } from "./service.ts";
@@ -21,7 +22,11 @@ export const readingActions = Effect.fn("WorkBoard.readingActions")(function* (
 	for (const request of requests) {
 		const question = yield* service.locate(item, request).pipe(Effect.option);
 		if (question._tag === "Some" && question.value.context === source) {
-			for (const prompt of questionTemplate(source, request).prompts) {
+			const template = yield* Effect.try({
+				catch: (cause) => new BadRequest({ message: cause instanceof Error ? cause.message : "Review the question template and retry." }),
+				try: () => questionTemplate(source, request),
+			}).pipe(Effect.option);
+			for (const prompt of template._tag === "Some" ? template.value.prompts : []) {
 				actions.set(`${request}/${prompt.id}`, responseUrl(item, request));
 				actions.set(`/${prompt.id}`, responseUrl(item, request));
 			}

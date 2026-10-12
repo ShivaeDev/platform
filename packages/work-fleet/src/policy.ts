@@ -1,6 +1,7 @@
 import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
 import { BoardDecision, type BoardDecisionAcknowledgement, type BoardDecisionReading, type BoardReport } from "#board/schema.ts";
+import type { FleetError } from "#errors.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { type LaunchSettings, SessionReceipt } from "#session/schema.ts";
@@ -46,11 +47,6 @@ export const DecisionResponse = Schema.Struct({
 	type: Schema.Literals(["answer", "clarify", "not_now"]),
 });
 export type DecisionResponse = typeof DecisionResponse.Type;
-export class FleetFailure extends Schema.TaggedError<FleetFailure>()("FleetFailure", {
-	attentionOwner: Schema.optional(AttentionOwner),
-	message: Schema.String,
-	reason: Schema.Literals(["missing", "stale", "denied", "integration", "invalid"]),
-}) {}
 export class BoardFailure extends Schema.TaggedError<BoardFailure>()("BoardFailure", { message: Schema.String }) {}
 export class BoardGateway extends Context.Service<
 	BoardGateway,
@@ -99,7 +95,7 @@ export interface FleetConfiguration {
 	readonly now: () => number;
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
-	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetFailure>;
+	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
 	readonly workerGuidance?: string;
@@ -108,9 +104,9 @@ export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration
 export class FleetIntegrations extends Context.Service<
 	FleetIntegrations,
 	{
-		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetFailure>;
-		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetFailure>;
-		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetFailure>;
-		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetFailure>;
+		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
+		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
+		readonly checks: (work: BoardWork, result: WorkResult) => Effect.Effect<Checks, FleetError>;
+		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}
