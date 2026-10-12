@@ -5,3 +5,7 @@
 ### Changed
 
 - Include `@shivaedev/effect-form` as a workspace dependency for shared draft ownership at the session boundary.
+
+### Fixed
+
+- Reconcile `SessionBoundary` draft ownership when a session replacement commits. A suspended, canceled transition preserves the visible session's draft and future persistence; committed replacements also clear old drafts while Activity is hidden.
