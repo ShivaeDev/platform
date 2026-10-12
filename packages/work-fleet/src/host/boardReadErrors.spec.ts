@@ -3,7 +3,6 @@ import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
@@ -13,9 +12,9 @@ import { fleetHostLayer } from "#host/runtime.ts";
 import { renderStatus } from "#host/status.ts";
 import { captureLogs } from "#test/captureLogs.ts";
 import { task, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 const invalid = task("broken", "approved").replace("kind: task", "kind: task\nnext_action: Inspect: evidence");
 const NAMED_PROBLEM = "Board metadata is invalid: broken.md (line 4: Nested mappings are not allowed in compact mappings";
 

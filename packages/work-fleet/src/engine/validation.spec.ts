@@ -1,12 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult, NEW_HEAD } from "#test/githubChecks.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("pending checks survive restart in validation, then deliver when the adopted SHA turns green", () => {
 	const github = githubFixture();

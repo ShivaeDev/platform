@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
@@ -10,10 +9,10 @@ import { codexServer } from "#test/codex.ts";
 import { finishWorkers } from "#test/engine.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 test("bulk CLI release closes changed done and deferred decisions and records one response per question", function* () {
 	const server = yield* codexServer(() => ({}));

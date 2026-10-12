@@ -1,11 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-it.live.skipIf(storageDatabaseUrl === undefined)("the retry projection sees another writer queue and clear work without restarting the reader", () =>
+postgresTests("live")("the retry projection sees another writer queue and clear work without restarting the reader", () =>
 	withEngine({}, (fixture) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;

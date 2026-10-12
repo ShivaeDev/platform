@@ -307,3 +307,11 @@ yield* cycle;
 Run this Effect program with your composed Fleet Layer. `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Its `result` implementation must re-read current result ownership and head each time it is called. Review and checks must name the exact adopted head; the reviewer must use a different session from the worker. `src/engine/completion.spec.ts` tests those requirements, repair and validated no-change with real PostgreSQL and synthetic integrations.
 
 Dependencies require accepted outcomes for their current Board revisions, with the completed-work bookkeeping exception described above. Criterion-specific references remain blocked. `src/engine/dependencies.spec.ts` and `dependencyBookkeeping.spec.ts` cover those boundaries. The core's native RPC commands and derived views are covered by `src/engine/rpc.spec.ts` and `src/engine/activeViews.spec.ts`. These library tests do not prove live provider execution or delivery.
+
+## PostgreSQL test fixtures
+
+Fleet's PostgreSQL tests use `makeEffectIt` with effect-test-sql. `src/test-support/postgres.ts` prepares Fleet's migrations once for each worker fixture; `postgresTests("test")` uses the test clock and `postgresTests("live")` uses the live clock. Ordinary tests run inside `withTestTransaction`, so Fleet records, reservations and scope-finalizer writes roll back. `src/storage/fixtureIsolation.spec.ts` proves these boundaries against real PostgreSQL.
+
+Use `postgresTests("live", "isolated")` or its test-clock equivalent for concurrent database operations, migration tests and exact sequence state. These scenarios need separate native transaction connections or real commits. `withHost` acquires a clone through `withIsolatedDatabase` and supplies its URL to the daemon and subprocesses. Host connections and processes close before the kit drops that clone. Storage race, migration, daemon and restart tests exercise these paths.
+
+The tests use `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL`, prepared by repository setup and CI. Local runs skip when it is absent; CI rejects its absence. Run `./script/update` to prepare the checkout, then `pnpm ready` for the complete PostgreSQL and packed-consumer checks.

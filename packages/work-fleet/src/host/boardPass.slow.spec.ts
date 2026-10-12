@@ -1,16 +1,15 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { vi } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
 import * as metadata from "@shivaedev/work-board/metadata/parse.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { admitApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
 import { task, withHost } from "#test/fleetHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-it.live.skipIf(storageDatabaseUrl === undefined)(
+postgresTests("live")(
 	"the first scheduler pass admits and launches 100 items in under five seconds",
 	function* () {
 		const files = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`${index}.md`, task(`item.${index}`, "approved")]));

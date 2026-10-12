@@ -1,9 +1,9 @@
 import { Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { record, storageDatabaseUrl, withStorage } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
+import { record, withStorage } from "#test/storage.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live", "isolated");
 test("concurrent foreign transfers of one PR occupy a single backlog slot", () =>
 	withStorage((store) =>
 		Effect.gen(function* () {

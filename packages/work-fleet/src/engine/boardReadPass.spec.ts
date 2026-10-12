@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Clock, Deferred, Effect, Fiber } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
 import { boardScheduler } from "#test/boardScheduler.ts";
 import { prepareWork, withEngine } from "#test/engine.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-it.effect.skipIf(storageDatabaseUrl === undefined)("a reconcile forked before sleep sees a Board edit made during the scheduler sleep", function* () {
+postgresTests("test", "isolated")("a reconcile forked before sleep sees a Board edit made during the scheduler sleep", function* () {
 	const fixture = yield* boardReads(1);
 	const board = yield* BoardGateway.pipe(Effect.provide(fixture.board));
 	yield* withEngine(

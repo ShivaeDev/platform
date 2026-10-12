@@ -1,14 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { dispatchWork } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
 import { SessionService } from "#session/service.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { namedAttempt, namedRecord, withNamedCloudHost } from "#test/namedCloudHost.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { postgresTests } from "#test/postgres.ts";
 
-const test = it.live.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("live");
 
 for (const prefix of [undefined, "Automation: "]) {
 	test(`names dispatched workers with the ${prefix === undefined ? "default" : "configured"} prefix and Board title`, () =>

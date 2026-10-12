@@ -4,20 +4,20 @@ import { dirname, join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, Redacted, Schema } from "effect";
-import { SqlClient } from "effect/unstable/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, loadHost, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
-import { migrateFleet } from "#storage/migrateFleet.ts";
 import { recordColumns, recordInput, recordModel } from "#storage/model.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import type { CliRun } from "#test/fleetCli.ts";
 import { daemonCli } from "#test/readDaemon.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 export const MAIN = { observedAt: 1, revision: "main-revision" };
 
@@ -52,60 +52,61 @@ export function hostBoard(config?: string) {
 	return boardDir;
 }
 
+function hostParts(boardDir: string, provider: EngineProvider["transport"]): HostParts {
+	return {
+		board: Layer.merge(
+			markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
+			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
+		),
+		main: mainSource,
+		provider,
+	};
+}
+
 export function withHost<A, E, R>(
 	files: Readonly<Record<string, string>>,
 	config: Partial<HostConfig>,
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
-	return Effect.acquireUseRelease(
-		Effect.sync(() => {
-			const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
-			const settings: HostConfig = {
-				database: { url: storageDatabaseUrl ?? "postgresql://integration-tests-disabled" },
-				intervalSeconds: 1,
-				namespace: `fh_${crypto.randomUUID().replaceAll("-", "")}`,
-				provider: "local",
-				quota: "unlimited",
-				...config,
-			};
-			const configFile = join(boardDir, CONFIG_FILE);
-			writeFileSync(configFile, JSON.stringify(settings));
-			for (const [file, source] of Object.entries(files)) {
-				writeFileSync(join(boardDir, file), source);
-			}
-			return { boardDir, configFile, host: resolveHost(boardDir, settings) };
-		}),
-		({ boardDir, configFile, host }) => {
-			const provider = engineProvider({}, []);
-			return use({
-				configFile,
-				host,
-				parts: {
-					board: Layer.merge(
-						markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
-						Layer.succeed(ReportInspection)({ check: () => Effect.void }),
-					),
-					main: mainSource,
-					provider: provider.transport,
+	return withIsolatedDatabase(
+		Effect.gen(function* () {
+			const database = yield* PostgresTestDatabase;
+			return yield* Effect.acquireUseRelease(
+				Effect.sync(() => {
+					const boardDir = mkdtempSync(join(tmpdir(), "fleet-host-"));
+					const settings: HostConfig = {
+						intervalSeconds: 1,
+						namespace: STORAGE_NAMESPACE,
+						provider: "local",
+						quota: "unlimited",
+						...config,
+						database: { ...config.database, url: Redacted.value(database.url) },
+					};
+					const configFile = join(boardDir, CONFIG_FILE);
+					writeFileSync(configFile, JSON.stringify(settings));
+					for (const [file, source] of Object.entries(files)) {
+						writeFileSync(join(boardDir, file), source);
+					}
+					return { boardDir, configFile, host: resolveHost(boardDir, settings) };
+				}),
+				({ boardDir, configFile, host }) => {
+					const provider = engineProvider({}, []);
+					return use({
+						configFile,
+						host,
+						parts: hostParts(boardDir, provider.transport),
+						provider,
+						write: (file, source) => writeFileSync(join(boardDir, file), source),
+					});
 				},
-				provider,
-				write: (file, source) => writeFileSync(join(boardDir, file), source),
-			});
-		},
-		({ boardDir, host }) =>
-			Effect.gen(function* () {
-				rmSync(boardDir, { force: true, recursive: true });
-				const sql = yield* SqlClient.SqlClient;
-				for (const suffix of ["records", "foreign_reservations", "migrations"]) {
-					yield* sql`drop table if exists ${sql(`${host.namespace}_${suffix}`)}`;
-				}
-			}).pipe(Effect.provide(hostSql(host)), Effect.orDie),
+				({ boardDir }) => Effect.sync(() => rmSync(boardDir, { force: true, recursive: true })),
+			);
+		}),
 	);
 }
 
 export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
 	return Effect.gen(function* () {
-		yield* migrateFleet(host.namespace);
 		const model = recordModel();
 		const repository = yield* makeRepository(model, {
 			idColumn: "work_id",

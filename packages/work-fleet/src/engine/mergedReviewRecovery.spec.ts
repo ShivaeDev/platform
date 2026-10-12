@@ -1,15 +1,14 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog } from "#model.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
 import { BASE, HEAD, PR } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { startReview } from "#test/startReview.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-const test = it.effect.skipIf(storageDatabaseUrl === undefined);
+const test = postgresTests("test");
 
 test("retry of a stored post-review open-PR failure completes after restart without another session", () =>
 	Effect.scoped(

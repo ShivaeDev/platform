@@ -1,12 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
+import { postgresTests } from "#test/postgres.ts";
 import { prepared } from "#test/preparation.ts";
-import { storageDatabaseUrl } from "#test/storage.ts";
 
-it.effect.skipIf(storageDatabaseUrl === undefined)("persists exact worker and reviewer launch inputs, including omitted reviewer settings", () =>
+postgresTests("test")("persists exact worker and reviewer launch inputs, including omitted reviewer settings", () =>
 	withEngine({ lostReviewAcknowledgement: true }, (fixture) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
