@@ -4,7 +4,7 @@ import { FleetRepository, fleetSessionJournal } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { BoardFailure, type BoardGateway, type BoardWork, type FleetConfiguration, FleetPolicy } from "#policy.ts";
-import { checkAreas, requeue } from "#scheduling/areas.ts";
+import { checkAreas, needsAreaRecords, requeue } from "#scheduling/areas.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { ForeignReservation } from "#storage/model.ts";
@@ -52,6 +52,7 @@ export function withEngine<A, E, TBoardError = never>(
 		Effect.gen(function* () {
 			const originalStore = yield* makePostgresFleetStore(FleetRecord, {
 				admission: checkAreas,
+				admissionNeedsRecords: needsAreaRecords,
 				backlog,
 				executing,
 				namespace,

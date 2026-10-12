@@ -5,6 +5,8 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { codedDecisionRecord, legacyDecisionRecord } from "#test/legacyDecisionRecords.ts";
+import { legacyStore } from "#test/legacyStore.ts";
+import { readDecisionRecords } from "#test/readDecisionRecords.ts";
 import { storageDatabaseUrl, withStorage } from "#test/storage.ts";
 
 it.live.skipIf(storageDatabaseUrl === undefined)(
@@ -13,20 +15,15 @@ it.live.skipIf(storageDatabaseUrl === undefined)(
 		withStorage((_store, namespace) =>
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
-				yield* sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 5`;
+				yield* legacyStore(namespace);
+				yield* migrateFleet(namespace, undefined, true);
 				yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values ('one', 1, ${JSON.stringify(legacyDecisionRecord)}::jsonb)`;
 				yield* migrateFleet(namespace);
-				function read() {
-					return sql<{
-						readonly payload: unknown;
-						readonly version: number;
-					}>`select payload, version from ${sql(`${namespace}_records`)} where work_id = 'one'`;
-				}
-				const rows = yield* read();
+				const rows = yield* readDecisionRecords(namespace);
 				expect(rows).toEqual([{ payload: codedDecisionRecord, version: 2 }]);
 				yield* migrateFleet(namespace);
 				yield* backfillDecisionCodes(namespace);
-				expect(yield* read()).toEqual(rows);
+				expect(yield* readDecisionRecords(namespace)).toEqual(rows);
 			}),
 		),
 );

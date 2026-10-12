@@ -52,18 +52,35 @@ function backfillCycle(cycle: Readonly<Record<string, unknown>>) {
 	return { ...cycle, decision: { ...decision, code } };
 }
 
+function backfillHistory(history: unknown) {
+	if (!Array.isArray(history)) {
+		return history;
+	}
+	const updated = history.map((entry: unknown) => (Schema.is(ObjectValue)(entry) ? backfillCycle(entry) : entry));
+	return updated.every((entry, index) => entry === history[index]) ? history : updated;
+}
+
+function readJson(value: string | null) {
+	return value === null ? Effect.succeed(undefined) : Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(value);
+}
+
+function writeJson(value: unknown) {
+	return value === undefined ? null : JSON.stringify(value);
+}
+
 export const backfillDecisionCodes = Effect.fn("FleetStore.backfillDecisionCodes")(function* (namespace: string) {
 	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ readonly workId: string; readonly payload: Readonly<Record<string, unknown>> }>`
-		select work_id as "workId", payload from ${sql(`${namespace}_records`)} order by work_id for update`;
+	const rows = yield* sql<{ readonly workId: string; readonly decision: string | null; readonly history: string | null }>`
+		select work_id as "workId", decision, history from ${sql(`${namespace}_records`)} order by work_id for update`;
 	for (const row of rows) {
-		const cycle = backfillCycle(row.payload);
-		const history = Array.isArray(row.payload.history) ? row.payload.history : [];
-		const updatedHistory = history.map((entry: unknown) => (Schema.is(ObjectValue)(entry) ? backfillCycle(entry) : entry));
-		if (cycle === row.payload && updatedHistory.every((entry, index) => entry === history[index])) {
+		const decision = yield* readJson(row.decision);
+		const history = yield* readJson(row.history);
+		const cycle = backfillCycle({ decision });
+		const updatedHistory = backfillHistory(history);
+		if (cycle.decision === decision && updatedHistory === history) {
 			continue;
 		}
-		const payload = { ...cycle, ...(row.payload.history === undefined ? {} : { history: updatedHistory }) };
-		yield* sql`update ${sql(`${namespace}_records`)} set version = version + 1, payload = ${JSON.stringify(payload)}::jsonb where work_id = ${row.workId}`;
+		yield* sql`update ${sql(`${namespace}_records`)} set version = version + 1,
+			decision = ${writeJson(cycle.decision)}, history = ${writeJson(updatedHistory)} where work_id = ${row.workId}`;
 	}
 });

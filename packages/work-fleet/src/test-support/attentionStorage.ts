@@ -3,6 +3,7 @@ import { SqlClient } from "effect/unstable/sql";
 import type { FleetRecord } from "#model.ts";
 import type { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
+import { legacyStore } from "#test/legacyStore.ts";
 
 type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof FleetRecord>>>;
 
@@ -32,12 +33,8 @@ export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(funct
 	return {
 		replaceRecord,
 		store,
-		upgradeAttention: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id >= 4`.pipe(
-			Effect.andThen(store.initialize()),
-			Effect.asVoid,
-			Effect.provideService(SqlClient.SqlClient, sql),
-		),
-		upgradeDecisionCodes: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 5`.pipe(
+		upgradeAttention: legacyStore(namespace).pipe(Effect.andThen(store.initialize()), Effect.asVoid, Effect.provideService(SqlClient.SqlClient, sql)),
+		upgradeDecisionCodes: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 6`.pipe(
 			Effect.andThen(store.initialize()),
 			Effect.asVoid,
 			Effect.provideService(SqlClient.SqlClient, sql),

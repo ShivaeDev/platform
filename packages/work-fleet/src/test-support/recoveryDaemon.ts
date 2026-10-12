@@ -25,8 +25,10 @@ function schedulerReady(root: string, previous: number | null) {
 }
 function responseApplied(client: Effect.Success<ReturnType<typeof daemonClient>>, responseId: string) {
 	return until(() =>
-		client("fleet.reconcile", { workId: "one" }).pipe(
-			Effect.map((record) => record.responses?.some((response) => response.responseId === responseId) ?? false),
+		client("fleet.get", { workId: "one" }).pipe(
+			Effect.map(
+				(record) => record.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true) ?? false,
+			),
 		),
 	);
 }
@@ -88,19 +90,18 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 			if (decision.published === undefined) {
 				return yield* Effect.die("Missing receipt");
 			}
+			const responseId = answerReport(fixture.host.boardDir, decision.published, action);
 			yield* serveRecovery(fixture.host, parts, (client) =>
 				Effect.gen(function* () {
-					const stored = yield* client("fleet.get", { workId: "one" });
-					expect(stored.decision).toEqual(decision);
-					if (decision.published === undefined) {
-						return yield* Effect.die("Missing receipt");
-					}
-					const responseId = answerReport(fixture.host.boardDir, decision.published, action);
 					yield* responseApplied(client, responseId);
 					const resolved = yield* client("fleet.get", { workId: "one" });
-					expect(resolved.stage).toBe(action === "release" ? "released" : "prepared");
-					if (action === "retry") {
-						const fresh = yield* client("fleet.dispatch", { workId: "one" });
+					expect(resolved.responses).toContainEqual(
+						expect.objectContaining({ action, boardAcknowledged: true, decisionId: decision.id, responseId }),
+					);
+					if (action === "release") {
+						expect(resolved.stage).toBe("released");
+					} else {
+						const fresh = resolved.stage === "prepared" ? yield* client("fleet.dispatch", { workId: "one" }) : resolved;
 						expect(fresh.attempts).toHaveLength(2);
 						expect(fresh.stage).toBe("executing");
 						expect(fresh.decision).toBeUndefined();
