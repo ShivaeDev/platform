@@ -1,26 +1,14 @@
 import { Effect, Schema } from "effect";
-import type { Fence } from "#imports/fences/model.ts";
-import { compilePolicy } from "#imports/fences/policy.ts";
-import { importGraph } from "#imports/graph.ts";
+import { checkFences } from "#imports/fences/check.ts";
+import { Declarations } from "#imports/fences/declarations.ts";
 import { defineRule } from "#rule.ts";
 
-function isFence(value: unknown): value is Fence {
-	return typeof value === "object" && value !== null && "_tag" in value && value._tag === "Fence";
-}
-
 const FencesOptions = Schema.Struct({
-	fences: Schema.Array(Schema.declare(isFence, { expected: "a fence made with fence()" })).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	fences: Declarations.pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
 });
 
 export const importFences = defineRule({
-	check: async ({ options, ...inputs }) => {
-		if (options.fences.length === 0) {
-			return [];
-		}
-		const graph = await importGraph(inputs);
-		const policy = compilePolicy(options.fences, { files: inputs.files, packages: graph.packages });
-		return policy.flatMap((compiled) => compiled.evaluate(graph));
-	},
+	check: ({ options, ...inputs }) => checkFences(inputs, options.fences),
 	description:
 		"Imports of shipped code respect the fences the repository declares; a test file ships nowhere, so no fence holds it. Move the code to the side of the fence its imports belong to.",
 	id: "imports/fences",

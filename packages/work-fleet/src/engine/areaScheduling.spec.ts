@@ -110,6 +110,8 @@ test("restart preserves waiting order and racing dispatchers do not double launc
 						[restarted.dispatch("dependent"), restarted.dispatch("two"), restarted.dispatch("two")].map((work) => work.pipe(Effect.result)),
 						{ concurrency: "unbounded" },
 					);
+					// Racing preparation writes can require the scheduler's next pass.
+					yield* cycle;
 					expect((yield* restarted.get("two")).value.stage).toBe("executing");
 					expect((yield* restarted.get("dependent")).value.stage).toBe("prepared");
 					expect((yield* restarted.get("two")).value.attempts).toHaveLength(1);
