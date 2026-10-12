@@ -41,17 +41,29 @@ export const copyStarter = Effect.fn("Published.copyStarter")(function* (root: s
 				!["node_modules", "dist", "coverage", "pnpm-lock.yaml"].includes(basename(path))
 				&& (!basename(path).startsWith(".env") || basename(path) === ".env.example"),
 			recursive: true,
+			verbatimSymlinks: true,
 		}),
 	);
-	const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(StarterManifest))(yield* fs.readFileString(join(consumer, "package.json")));
+	const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(StarterManifest), { propertyOrder: "original" })(
+		yield* fs.readFileString(join(consumer, "package.json")),
+	);
 	const { "check:published": _check, ...scripts } = manifest.scripts;
-	yield* writeJson(join(consumer, "package.json"), {
-		...manifest,
-		dependencies: registryDependencies(manifest.dependencies, versions),
-		devDependencies: registryDependencies(manifest.devDependencies, versions),
-		scripts,
-	});
+	yield* fs.writeFileString(
+		join(consumer, "package.json"),
+		`${JSON.stringify(
+			{
+				...manifest,
+				dependencies: registryDependencies(manifest.dependencies, versions),
+				devDependencies: registryDependencies(manifest.devDependencies, versions),
+				scripts,
+			},
+			null,
+			"\t",
+		)}\n`,
+	);
 	yield* fs.rename(join(consumer, "pnpm-workspace.copy.yaml"), join(consumer, "pnpm-workspace.yaml"));
+	const biome = join(consumer, "biome.json");
+	yield* fs.writeFileString(biome, (yield* fs.readFileString(biome)).replace('"root": false', '"root": true'));
 	for (const file of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
 		const path = join(consumer, file);
 		const source = yield* fs.readFileString(path);
