@@ -6,7 +6,8 @@ import { AppChanges, appHost } from "#appHost.ts";
 import { post, sessions } from "#test/app-host/fixture.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
-const options = { config: { port: 0 }, group: Ping, handlers: pingHandlers, services: Layer.empty, sessions: sessions([]) };
+const common = { config: { port: 0 }, group: Ping, handlers: pingHandlers, services: Layer.empty };
+const options = { ...common, sessions: sessions([]) };
 const noEnvironment = ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }));
 
 it("omitting migrations serves RPC without database configuration or SQL services", async () => {
@@ -49,9 +50,9 @@ it("rpcPath serves the native client at the chosen route instead of /rpc", async
 it("loopback policy serves without sessions and refuses origin, Host, content type and proxy forwarding", async () => {
 	const runtime = ManagedRuntime.make(
 		appHost({
-			...options,
+			...common,
 			config: { port: 0, trustedProxy: "127.0.0.1" },
-			sessions: "loopback",
+			policy: "loopback",
 		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "TRUSTED_PROXY": "127.0.0.1" } })))),
 	);
 	try {

@@ -91,7 +91,7 @@ export function fleetHostLayer<TProvider, TMain>(
 		readonly provider: Layer.Layer<SessionTransport, TProvider>;
 	},
 ) {
-	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provideMerge(hostSql(host)));
+	const repository = postgresFleetRepository(host.namespace);
 	const sessions = SessionService.layer.pipe(
 		Layer.provideMerge([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
@@ -99,5 +99,6 @@ export function fleetHostLayer<TProvider, TMain>(
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
+		Layer.provideMerge(hostSql(host)),
 	);
 }

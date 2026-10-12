@@ -19,16 +19,20 @@ export function daemonHostOptions(host: FleetHost, parts: HostParts = production
 		config: { disablePreemptiveShutdown: true, host: DAEMON_HOST, port },
 		group: DaemonContract,
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
+		policy: "loopback" as const,
 		rpcPath: RPC_PATH,
 		services: hostLayer(host, parts),
-		sessions: "loopback" as const,
 	};
 }
 
 export function daemonLayer(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
-	const http = appHost(daemonHostOptions(host, parts, port));
+	const http = daemonHttpLayer(daemonHostOptions(host, parts, port));
 	const scheduler = Layer.effect(Scheduler)(hostScheduler(host).pipe(Effect.forkScoped));
 	return scheduler.pipe(Layer.provideMerge(http));
+}
+
+export function daemonHttpLayer(options: ReturnType<typeof daemonHostOptions>) {
+	return appHost({ ...options, services: Layer.empty }).pipe(Layer.provideMerge(options.services));
 }
 
 export function serveFleet(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {

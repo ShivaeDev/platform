@@ -7,8 +7,9 @@ import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
-import type { AppHostOptions } from "./appHost.ts";
+import type { AppHostOptions, AppLocalHostOptions } from "./appHost.ts";
 import type { databaseLayer } from "./databaseLayer.ts";
+import type { HostOptions, HostPolicy } from "./hostOptions.ts";
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -17,25 +18,21 @@ export function appHostHttp<
 	TServices,
 	TServiceError,
 	TServiceRequirements,
-	TMigrations,
 	TSession extends SessionShape,
 >(
-	options: Omit<
-		AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>,
-		"migrations"
-	>,
+	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & HostPolicy<TSession>,
 ) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const trustedProxy =
-				options.sessions === "loopback"
+				options.policy === "loopback"
 					? undefined
 					: (options.config?.trustedProxy ?? Option.getOrUndefined(yield* Config.string("TRUSTED_PROXY").pipe(Config.option)));
 			if (trustedProxy !== undefined) {
 				yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
 			}
 			const middleware =
-				options.sessions === "loopback"
+				options.policy === "loopback"
 					? requestTracingLayer()
 					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer());
 			const routes = HttpRouter.use((router) =>
@@ -89,17 +86,9 @@ export function migratedHost<
 	TMigrations,
 	TSession extends SessionShape,
 >(
-	options: AppHostOptions<
-		TRpcs,
-		THandlers,
-		THandlerError,
-		THandlerRequirements,
-		TServices,
-		TServiceError,
-		TServiceRequirements,
-		TMigrations,
-		TSession
-	>,
+	options:
+		| AppHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations, TSession>
+		| AppLocalHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TMigrations>,
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
 ) {
 	return appHostHttp({ ...options, services: options.services.pipe(Layer.provideMerge(database)) });

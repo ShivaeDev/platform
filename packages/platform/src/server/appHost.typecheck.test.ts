@@ -1,4 +1,5 @@
 import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
+import { Headers } from "effect/unstable/http";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expectTypeOf, it } from "vitest";
@@ -17,7 +18,7 @@ const options = {
 const incomplete = appHost({ ...options, services: Layer.empty });
 const complete = appHost({ ...options, services: Layer.effect(Required, Effect.fail(new BuildFailure())) });
 const sqlHandlers = Api.toLayer({ read: () => SqlClient.SqlClient.pipe(Effect.as("ready")) });
-const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, services: Layer.empty, sessions: "loopback" });
+const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, policy: "loopback", services: Layer.empty });
 const withDatabase = appHost({ ...options, handlers: sqlHandlers, services: Layer.empty });
 const typedOptions: AppHostOptions<
 	RpcGroup.Rpcs<typeof Api>,
@@ -31,6 +32,7 @@ const typedOptions: AppHostOptions<
 	{ readonly user: { readonly id: string } }
 > = { ...options, services: Layer.empty };
 const typedHost = appHost(typedOptions);
+const providerSession = typedOptions.sessions.provider.get(Headers.empty);
 it("host composition preserves application requirements and build failures", () => {
 	expectTypeOf<Layer.Services<typeof incomplete>>().toEqualTypeOf<Required>();
 	expectTypeOf<Layer.Services<typeof complete>>().toEqualTypeOf<never>();
@@ -39,4 +41,5 @@ it("host composition preserves application requirements and build failures", () 
 	expectTypeOf<Layer.Services<typeof withoutDatabase>>().toEqualTypeOf<SqlClient.SqlClient>();
 	expectTypeOf<Layer.Services<typeof withDatabase>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Services<typeof typedHost>>().toEqualTypeOf<Required>();
+	expectTypeOf<Effect.Success<typeof providerSession>>().toEqualTypeOf<Option.Option<{ readonly user: { readonly id: string } }>>();
 });

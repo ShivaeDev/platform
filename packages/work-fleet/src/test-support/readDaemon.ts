@@ -1,10 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer, Stream } from "effect";
 import { HttpServer } from "effect/unstable/http";
-import { appHost } from "@shivaedev/platform/appHost.ts";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { daemonHostOptions } from "#host/daemon.ts";
+import { daemonHostOptions, daemonHttpLayer } from "#host/daemon.ts";
 import { ClientContract } from "#host/daemonContract.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { engineProvider } from "#test/engineProvider.ts";
@@ -26,7 +25,7 @@ export function readDaemonLayer(host: FleetHost, parts?: HostParts, port = 0, on
 		port,
 	);
 	const handlers = onSnapshot === undefined ? options.handlers : observeSnapshots(options.handlers, onSnapshot);
-	return appHost({ ...options, handlers });
+	return daemonHttpLayer({ ...options, handlers });
 }
 
 export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <A, E, R>(
