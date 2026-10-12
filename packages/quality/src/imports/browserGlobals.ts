@@ -25,6 +25,11 @@ function qualifiedName(node: ts.PropertyAccessExpression | ts.ElementAccessExpre
 	return ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text : undefined;
 }
 
+function bindingName(node: ts.Identifier): boolean {
+	const parent = node.parent;
+	return ts.isBindingElement(parent) && (parent.name === node || parent.propertyName === node);
+}
+
 function globalName(node: ts.Node, checker: ts.TypeChecker): string | undefined {
 	if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
 		return qualifiedName(node, checker);
@@ -33,7 +38,7 @@ function globalName(node: ts.Node, checker: ts.TypeChecker): string | undefined 
 		return undefined;
 	}
 	const parent = node.parent;
-	if (ts.isBindingElement(parent) || ts.isLabeledStatement(parent) || ts.isBreakStatement(parent) || ts.isContinueStatement(parent)) {
+	if (bindingName(node) || ts.isLabeledStatement(parent) || ts.isBreakStatement(parent) || ts.isContinueStatement(parent)) {
 		return undefined;
 	}
 	if ((ts.isPropertyAccessExpression(parent) && parent.name === node) || (ts.isPropertyAssignment(parent) && parent.name === node)) {
@@ -59,6 +64,13 @@ function destructuredNames(node: ts.Node, checker: ts.TypeChecker): readonly str
 	});
 }
 
+function superclassesOf(node: ts.HeritageClause): readonly ts.Expression[] {
+	if (node.token !== ts.SyntaxKind.ExtendsKeyword || !(ts.isClassDeclaration(node.parent) || ts.isClassExpression(node.parent))) {
+		return [];
+	}
+	return node.types.map((base) => base.expression);
+}
+
 export function browserGlobals(file: SourceFile): readonly Finding[] {
 	const parsed = parse(file);
 	if (parsed === undefined) {
@@ -68,6 +80,12 @@ export function browserGlobals(file: SourceFile): readonly Finding[] {
 	const checker = checkerOf(source);
 	const findings: Finding[] = [];
 	function visit(node: ts.Node): void {
+		if (ts.isHeritageClause(node)) {
+			for (const expression of superclassesOf(node)) {
+				visit(expression);
+			}
+			return;
+		}
 		if (ts.isTypeNode(node) || ts.isImportDeclaration(node) || ts.isExportSpecifier(node)) {
 			return;
 		}

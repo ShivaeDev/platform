@@ -36,6 +36,36 @@ describe("shared browser globals", () => {
 		expect(subjects("const { document: view, localStorage } = options;")).toEqual([]);
 	});
 
+	it.each([
+		"const { value = window } = options;",
+		"const { document: value = window } = options;",
+		"const [value = window] = options;",
+		"function read({ value = window }) { return value; }",
+		"function read([value = window]) { return value; }",
+	])("finds browser globals in runtime destructuring defaults: %s", (text) => {
+		expect(subjects(text)).toEqual(["window"]);
+	});
+
+	it("respects local bindings in destructuring defaults", () => {
+		expect(subjects("const window = {}; const { document: value = window } = options;")).toEqual([]);
+		expect(subjects("function read(window: unknown, { value = window }) { return value; }")).toEqual([]);
+	});
+
+	it.each([
+		["export class View extends HTMLElement {}", "HTMLElement"],
+		["export class View extends window.HTMLElement {}", "window"],
+		["export const View = class extends globalThis.HTMLElement {};", "HTMLElement"],
+		["export class View extends factory(document) {}", "document"],
+	])("finds browser-dependent class superclasses: %s", (text, name) => {
+		expect(subjects(text)).toEqual([name]);
+	});
+
+	it("keeps superclass type arguments, implements clauses and interface heritage outside the runtime scan", () => {
+		expect(subjects("export class View extends Base<Window> implements HTMLElement {} interface BrowserView extends HTMLElement {}")).toEqual([]);
+		expect(subjects("export class View implements window.HTMLElement {} interface BrowserView extends window.HTMLElement {}")).toEqual([]);
+		expect(subjects("const HTMLElement = Base; export class View extends HTMLElement {}")).toEqual([]);
+	});
+
 	it("respects local bindings, parameters, imports and their lexical scope", () => {
 		expect(
 			subjects(
