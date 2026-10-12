@@ -28,9 +28,14 @@ export function LegacyMain({
 		bootstrapRef.current = "";
 		const location = commitMain(hostRef.current, legacyPage(html));
 		if (location) {
+			const main = hostRef.current.querySelector<HTMLElement>("#doc");
+			if (main && Option.isSome(query.data)) {
+				main.dataset.route = url;
+				document.dispatchEvent(new Event("board-page"));
+			}
 			onPage(location);
 		}
-	}, [query.data, onPage]);
+	}, [query.data, onPage, url]);
 	return (
 		<>
 			<div data-legacy-main ref={hostRef} />

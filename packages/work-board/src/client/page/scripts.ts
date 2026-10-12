@@ -71,7 +71,8 @@ const forget = (root) => {
 
 export const renderDiagrams = (root, selector = "figure.diagram:not([data-state=drawn])") => {
   forget(root);
-  return Promise.all([...root.querySelectorAll(selector)].map(draw));
+  for (const figure of root.querySelectorAll("figure.diagram[data-react-diagram]")) diagramTools(figure);
+  return Promise.all([...root.querySelectorAll(selector)].filter((figure) => !figure.hasAttribute("data-react-diagram")).map(draw));
 };
 
 const themeChanged = () => {

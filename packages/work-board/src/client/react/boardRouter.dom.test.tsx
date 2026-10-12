@@ -35,7 +35,7 @@ it.live("renders a fixture Board tree through the navigation query with the sele
 		yield* Effect.promise(() => view.unmount());
 	}
 });
-it.live("changes the hosted main area through TanStack Router while retaining the mounted shell", function* () {
+it.live("changes the React main area through TanStack Router while retaining the mounted shell", function* () {
 	let router: ReturnType<typeof boardRouter> | undefined;
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api) => {
@@ -47,7 +47,7 @@ it.live("changes the hosted main area through TanStack Router while retaining th
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Design")));
 		const header = view.container.querySelector("header.bar");
-		const host = view.container.querySelector("[data-legacy-main]");
+		const host = view.container.querySelector("main[data-react-document]");
 		yield* Effect.promise(() =>
 			act(async () => {
 				await router?.navigate({ to: "/notes/deep/review.md" });
@@ -55,13 +55,13 @@ it.live("changes the hosted main area through TanStack Router while retaining th
 		);
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Review")));
 		expect(view.container.querySelector("header.bar")).toBe(header);
-		expect(view.container.querySelector("[data-legacy-main]")).toBe(host);
+		expect(view.container.querySelector("main[data-react-document]")).toBe(host);
 		expect(router?.state.location.pathname).toBe("/notes/deep/review.md");
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 	}
 });
-it.live("renders an unmigrated document through LegacyMain with the existing server-rendered tools", function* () {
+it.live("renders a document from its typed query with React context tools", function* () {
 	const view = yield* Effect.promise(() =>
 		renderBoard(files, (api) => {
 			const router = boardRouter({ api, initial: "" });
@@ -71,9 +71,9 @@ it.live("renders an unmigrated document through LegacyMain with the existing ser
 	);
 	try {
 		yield* Effect.promise(() =>
-			eventually(() => expect(view.container.querySelector("[data-legacy-main] #doc article.doc")?.textContent).toContain("The design page.")),
+			eventually(() => expect(view.container.querySelector("[data-react-document] article.doc")?.textContent).toContain("The design page.")),
 		);
-		expect(view.container.querySelector("[data-legacy-main] .item-context summary")?.textContent).toBe("Context and tools");
+		expect(view.container.querySelector("[data-react-document] .item-context summary")?.textContent).toBe("Context and tools");
 		expect(view.container.querySelector("#favorite-toggle")).not.toBeNull();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
@@ -87,7 +87,7 @@ it.live("retains form text and focus when a hosted page query refreshes", functi
 	let refresh: (() => void) | undefined;
 	const view = yield* Effect.promise(() =>
 		renderBoard(source, (api) => {
-			refresh = () => view.registry.refresh(api.page.query({ url: "/question.md" }));
+			refresh = () => view.registry.refresh(api.document.query({ url: "/question.md" }));
 			const router = boardRouter({ api, initial: "" });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
 			return <RouterProvider router={router} />;

@@ -9,6 +9,7 @@ import { metadataParse } from "#server/metadata/parse.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { documentBody } from "./body.ts";
+import { readingContext } from "./readingContext.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
 
@@ -65,14 +66,20 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}
 		const questionActions = yield* readingActions(document, source, writable, identity);
+		const reading = readingContext(document, model, file.path === home);
 		return {
-			...documentTargets(document, model),
+			...documentTargets(
+				document,
+				model,
+				Object.values(reading.receipts).map((receipt) => receipt.question),
+			),
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
 			file: file.path,
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,
 			modified: file.modified,
 			questionActions: Object.fromEntries(questionActions ?? []),
+			reading,
 			requests: documentRequests(document, source, { ...snapshot, documents, model }),
 			source: documentBody(document),
 			unavailable: snapshot.unavailable,

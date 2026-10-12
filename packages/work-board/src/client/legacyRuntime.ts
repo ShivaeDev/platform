@@ -1,4 +1,5 @@
 export interface RouterBridge {
+	readonly before: (listener: () => void) => void;
 	readonly navigate: (url: string) => Promise<void>;
 	readonly subscribe: (listener: () => void) => void;
 }

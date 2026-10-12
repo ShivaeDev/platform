@@ -1,3 +1,6 @@
+import { navigationHistoryScript } from "./navigationHistoryScript.ts";
+import { reactNavigationScript } from "./reactNavigationScript.ts";
+
 export function navigationScript(): string {
 	return `
 import { applyPage, capturePage } from "/_board/page-state.js";
@@ -9,6 +12,7 @@ import { session } from "/_board/native.js";
 let router;
 export const connectRouter = (control) => {
   router = control;
+  router.before(() => saveCurrent(false));
   let resolved = location.href;
   router.subscribe(() => {
     if (location.href === resolved) return;
@@ -28,57 +32,21 @@ const open = async (target) => {
   await router.navigate(target.pathname + target.search + target.hash);
   if (!sameRoute || target.href !== location.href) return;
   const native = session(window);
-  const page = native.api.page.query({ url: target.pathname + target.search });
+  const page = document.getElementById("doc").hasAttribute("data-react-document") ? native.api.document.query({ url: target.pathname + target.search }) : native.api.page.query({ url: target.pathname + target.search });
   if (native.registry.get(page)._tag === "Failure") {
+    delete document.getElementById("doc").dataset.route;
     native.registry.refresh(page);
     await navigate(target, history.state?.workBoard ?? { id: newId() });
   }
 };
-const cache = new Map();
-const readingKey = "work-board:reading:" + document.documentElement.dataset.workspace;
-let savedReading = {};
-try {
-  const saved = JSON.parse(sessionStorage.getItem(readingKey) ?? "{}");
-  if (saved && typeof saved === "object" && !Array.isArray(saved)) savedReading = saved;
-} catch {}
-let count = 0;
-const newId = () => Date.now() + "-" + ++count;
-let displayedId = history.state?.workBoard?.id ?? newId();
-let displayedRoute = location.pathname + location.search;
-let version = 0;
-let controller;
-export const pageVersion = () => version;
-const stateWith = (id, reading = null) => ({ ...history.state, workBoard: { id, reading } });
-history.replaceState(stateWith(displayedId, history.state?.workBoard?.reading), "");
-history.scrollRestoration = "manual";
-document.getElementById("doc").dataset.scheme = document.documentElement.dataset.scheme;
-refreshLibrary(true);
-revealCurrentFile(true);
-document.getElementById("home-open").setAttribute("aria-current", location.pathname === "/" ? "page" : "false");
-const initialReading = savedReading[displayedId] ?? history.state.workBoard.reading;
-requestAnimationFrame(() => {
-  if (initialReading) restoreReading(initialReading);
-  else scrollToPassage(location.hash);
-  reportMissingPassage();
-});
+${navigationHistoryScript()}
 
-const saveCurrent = (write = true) => {
-  const snapshot = capturePage();
-  cache.delete(displayedId);
-  cache.set(displayedId, snapshot);
-  delete savedReading[displayedId];
-  savedReading[displayedId] = snapshot.reading;
-  savedReading = Object.fromEntries(Object.entries(savedReading).slice(-30));
-  try { sessionStorage.setItem(readingKey, JSON.stringify(savedReading)); } catch {}
-  if (cache.size > 30) cache.delete(cache.keys().next().value);
-  if (write && history.state?.workBoard?.id === displayedId) history.replaceState(stateWith(displayedId, snapshot.reading), "");
-};
-window.addEventListener("pagehide", () => saveCurrent(false));
+${reactNavigationScript()}
 
 const navigate = async (target, entry, hashOnly = false) => {
   const route = target.pathname + target.search;
   const sameDocument = route === displayedRoute;
-  saveCurrent(!entry);
+  if (!router) saveCurrent(!entry);
   const id = entry?.id ?? newId();
   if (!entry) history.pushState(stateWith(id), "", target);
   else if (history.state?.workBoard?.id !== id) history.replaceState(stateWith(id, entry.reading), "");
@@ -95,13 +63,14 @@ const navigate = async (target, entry, hashOnly = false) => {
     return;
   }
   const cached = cache.get(id);
-  if (cached) {
+  if (cached && !router) {
     applyPage(cached.page);
     displayedId = id;
     displayedRoute = route;
     restoreReading(cached.reading);
   } else status.textContent = "Opening document…";
   try {
+    if (router) { await navigateReact(route, mine, id, entry, cached, target, status); return; }
     const native = session(window);
     const response = await native.read(native.api.page.query({ url: target.pathname + target.search }), controller.signal);
     const page = new DOMParser().parseFromString(response.html, "text/html");

@@ -5,6 +5,7 @@ import type { MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import { requestSource } from "#server/responses/requestSource.ts";
+import { questionTemplate } from "#server/responses/template.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
 export function documentRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
@@ -32,7 +33,12 @@ export function documentRequests(document: MetadataDocument, source: string, sna
 			if (snapshot.model.ids.get(item)?.length !== 1) {
 				throw new ServiceUnavailable({ message: "Item identity is ambiguous; response history is unknown. Give each item a unique ID, then retry." });
 			}
-			return { ...request, responses: responseHistory(snapshot, preview) };
+			const responses = responseHistory(snapshot, preview);
+			try {
+				return { ...request, prompts: questionTemplate(source, id, document.file).prompts, responses };
+			} catch (error) {
+				return { ...request, promptUnavailable: error instanceof Error ? error.message : String(error), responses };
+			}
 		} catch (error) {
 			return { ...request, unavailable: error instanceof Error ? error.message : String(error) };
 		}

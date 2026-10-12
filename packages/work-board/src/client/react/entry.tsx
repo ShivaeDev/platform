@@ -24,6 +24,9 @@ if (container && bootstrap) {
 		started = true;
 		void legacyRuntime().then(({ connectRouter }) => {
 			connectRouter({
+				before: (listener) => {
+					router.subscribe("onBeforeNavigate", listener);
+				},
 				navigate: (url) =>
 					url === location.pathname + location.search + location.hash ? router.navigate({ state: true, to: url }) : router.navigate({ to: url }),
 				subscribe: (listener) => {

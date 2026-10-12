@@ -5,12 +5,38 @@ type Drawing = { readonly source: string; readonly svg: string } | { readonly so
 export function Mermaid({ source }: { readonly source: string }) {
 	const id = useId().replace(/[^a-z\d_-]/giu, "");
 	const [drawing, setDrawing] = useState<Drawing>();
+	const [theme, setTheme] = useState(() => document.documentElement.dataset.scheme ?? "light");
+	useEffect(() => {
+		function sync() {
+			setTheme(document.documentElement.dataset.scheme ?? "light");
+		}
+		document.addEventListener("board-theme", sync);
+		return () => document.removeEventListener("board-theme", sync);
+	}, []);
 	useEffect(() => {
 		let current = true;
 		async function draw() {
 			try {
 				const { default: mermaid } = await import("mermaid");
-				mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true });
+				function token(name: string) {
+					return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+				}
+				mermaid.initialize({
+					securityLevel: "strict",
+					startOnLoad: false,
+					suppressErrorRendering: true,
+					theme: "base",
+					themeVariables: {
+						background: token("--bg"),
+						darkMode: theme === "dark",
+						fontFamily: token("--sans"),
+						lineColor: token("--muted"),
+						primaryBorderColor: token("--border"),
+						primaryColor: token("--surface"),
+						primaryTextColor: token("--text"),
+						textColor: token("--text"),
+					},
+				});
 				const { svg } = await mermaid.render(`document-diagram-${id}`, source);
 				if (current) {
 					setDrawing({ source, svg });
@@ -25,15 +51,12 @@ export function Mermaid({ source }: { readonly source: string }) {
 		return () => {
 			current = false;
 		};
-	}, [id, source]);
-	const shown = drawing?.source === source ? drawing : undefined;
-	let state = "pending";
-	if (shown) {
-		state = "svg" in shown ? "drawn" : "failed";
-	}
+	}, [id, source, theme]);
+	const shown = drawing?.source === source || (drawing && "svg" in drawing) ? drawing : undefined;
+	const state = drawingState(shown, source);
 	return createElement(
 		"figure",
-		{ className: "diagram", "data-state": state },
+		{ className: "diagram", "data-error": shown && "error" in shown ? shown.error : undefined, "data-react-diagram": "", "data-state": state },
 		shown && "svg" in shown
 			? createElement("div", {
 					className: "diagram-svg",
@@ -48,4 +71,14 @@ export function Mermaid({ source }: { readonly source: string }) {
 		createElement("pre", { className: "diagram-source" }, source),
 		shown && "error" in shown ? createElement("p", { "data-diagram-error": "", role: "status" }, `Diagram could not be drawn: ${shown.error}`) : null,
 	);
+}
+
+function drawingState(shown: Drawing | undefined, source: string): string {
+	if (!shown) {
+		return "pending";
+	}
+	if ("error" in shown) {
+		return "failed";
+	}
+	return shown.source === source ? "drawn" : "redrawing";
 }
