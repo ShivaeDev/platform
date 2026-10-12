@@ -6,17 +6,21 @@ import { render } from "@shivaedev/effect-react/testing.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
 import { inMemoryBoard } from "./inMemoryBoard.ts";
 
-function boardClient(files: Readonly<Record<string, string>>) {
+function boardClient(files: Readonly<Record<string, string>>, options?: { readonly home: string | undefined }) {
 	class Client extends AtomRpc.Service<Client>()("WorkBoard/RenderTest", {
 		group: workRpcs,
 		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
-		protocol: inMemoryBoard(files),
+		protocol: inMemoryBoard(files, options),
 	}) {}
 	return bind(workContract, Client);
 }
 
 export type BoardTestApi = ReturnType<typeof boardClient>;
 
-export function renderBoard(files: Readonly<Record<string, string>>, component: (api: BoardTestApi) => ReactNode) {
-	return render(component(boardClient(files)));
+export function renderBoard(
+	files: Readonly<Record<string, string>>,
+	component: (api: BoardTestApi) => ReactNode,
+	options?: { readonly home: string | undefined },
+) {
+	return render(component(boardClient(files, options)));
 }

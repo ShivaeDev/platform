@@ -3,6 +3,19 @@ import { anyOf, anything, external, files, folders, modules, packages } from "@s
 
 const boardCode = folders("packages/work-board/src").except(folders("packages/work-board/src/server"));
 const markdownCode = folders("packages/work-board/src/client/document", "packages/work-board/src/render");
+const markdownDependencies = modules(
+	"react-markdown",
+	"rehype-raw",
+	"remark-directive",
+	"remark-gfm",
+	"unified",
+	"unist-util-visit",
+	"shiki",
+	"mermaid",
+	"hast",
+	"mdast",
+	"mdast-util-directive",
+);
 const browserDependencies = anyOf(
 	folders("packages/platform/src/errors", "packages/platform/src/rpc"),
 	files("packages/effect-trpc/src/rejectionDecoding.ts"),
@@ -16,6 +29,7 @@ export default [
 			anything.except(
 				boardCode,
 				browserDependencies,
+				markdownDependencies,
 				packages("effect-contract", "effect-form", "effect-react", "types"),
 				modules(
 					"effect",
@@ -43,22 +57,10 @@ export default [
 			anything.except(
 				boardCode,
 				browserDependencies,
+				markdownDependencies,
 				packages("effect-contract", "effect-form", "types"),
 				modules("effect"),
-				modules(
-					"react",
-					"react-markdown",
-					"rehype-raw",
-					"remark-directive",
-					"remark-gfm",
-					"unified",
-					"unist-util-visit",
-					"shiki",
-					"mermaid",
-					"hast",
-					"mdast",
-					"mdast-util-directive",
-				),
+				modules("react"),
 			),
 		)
 		.demonstratedBy({

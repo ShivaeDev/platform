@@ -1,5 +1,7 @@
 import { navigationHtml as renderNavigation } from "#browser/navigation/html.ts";
 import { setupHandoffs } from "#client/handoffs/setup.ts";
+import { resolvedDocumentFailure as documentFailure } from "#client/page/resolvedDocumentFailure.ts";
+import { attachResponses as attachResponseForm } from "#client/responses/attach.ts";
 import { setupResponses } from "#client/responses/setup.ts";
 
 export const navigationHtml = renderNavigation;
@@ -20,3 +22,6 @@ export const swap = reconcile;
 
 import { legacyRuntime as loadLegacy } from "./legacyRuntime.ts";
 export const legacyRuntime = loadLegacy;
+
+export const attachResponses = attachResponseForm;
+export const resolvedDocumentFailure = documentFailure;

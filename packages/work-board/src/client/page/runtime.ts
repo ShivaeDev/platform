@@ -1,4 +1,5 @@
 import { itemContextScript } from "./itemContextScript.ts";
+import { preferencesScript } from "./preferencesScript.ts";
 
 export const client = `
 import "/_board/diagnostics.js";
@@ -12,7 +13,8 @@ import { applyNavigation, applyPage } from "/_board/page-state.js";
 import "/_board/navigation.js";
 import { remember, swap } from "/_board/swap.js";
 import { refreshLibrary } from "/_board/library.js";
-import { session } from "/_board/native.js";
+import { revealCurrentFile } from "/_board/sidebar.js";
+import { resolvedDocumentFailure, session } from "/_board/native.js";
 
 document.documentElement.dataset.js = "true";
 ${itemContextScript()}
@@ -57,16 +59,18 @@ const watchNavigation = () => {
 };
 const watchPage = () => {
   watchNavigation();
+  const doc = document.getElementById("doc");
   const path = location.pathname + location.search;
-  if (path === active) return;
-  active = path;
+  const selection = path + (doc.hasAttribute("data-react-document") ? ":document" : ":page");
+  if (selection === active) return;
+  active = selection;
   releasePage?.();
   pageFailure = "";
-  const atom = native.api.page.query({ url: path });
+  const atom = doc.hasAttribute("data-react-document") ? native.api.document.query({ url: path }) : native.api.page.query({ url: path });
   releasePage = native.registry.subscribe(atom, (value) => {
     pageWaiting = value.waiting || value._tag === "Initial";
-    if (value._tag === "Failure") pageFailure = "refresh failed";
-    if (value._tag === "Success" && !value.waiting && active === location.pathname + location.search) {
+    if (value._tag === "Failure") pageFailure = resolvedDocumentFailure(value.cause) ? "" : "refresh failed";
+    if (value._tag === "Success" && !value.waiting && active === selection && path === location.pathname + location.search) {
       if (document.querySelector("[data-board-react-root]")) { pageFailure = ""; show(); return; }
       const next = new DOMParser().parseFromString(value.value.html, "text/html");
       pageFailure = applyPage(next, true) ? "" : "refresh failed";
@@ -84,7 +88,7 @@ native.registry.subscribe(native.updates.status, show);
 native.registry.subscribe(native.updates.paused, (paused) => { show(); if (!paused) document.dispatchEvent(new Event("board-updates-resumed")); });
 };
 document.addEventListener("board-page", () => { tick(); renderDiagrams(document); refreshLibrary(); });
-document.addEventListener("board-index-change", () => { tick(); refreshLibrary(); });
+document.addEventListener("board-index-change", () => { tick(); refreshLibrary(); revealCurrentFile(); });
 observe();
 toggle.disabled = false;
 toggle.addEventListener("click", () => native.registry.set(native.updates.paused, !native.registry.get(native.updates.paused)));
@@ -103,46 +107,4 @@ window.addEventListener("pageshow", (event) => {
 
 renderDiagrams(document);
 `;
-export const preferences = `
-import { setupSidebar } from "/_board/sidebar.js";
-const root = document.documentElement;
-const key = "work-board:appearance:" + root.dataset.workspace;
-const theme = document.getElementById("theme");
-const density = document.getElementById("density");
-const status = document.getElementById("preference-status");
-const system = matchMedia("(prefers-color-scheme: dark)");
-let saved = {};
-try {
-  const value = JSON.parse(localStorage.getItem(key) ?? "{}");
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) saved = value;
-} catch {
-  status.textContent = "Preferences apply to this page only.";
-}
-
-theme.value = ["light", "dark"].includes(saved.theme) ? saved.theme : "system";
-density.value = saved.density === "compact" ? "compact" : "comfortable";
-const sidebar = setupSidebar(typeof saved.closed === "boolean" && saved.closed);
-
-const appearance = () => {
-  root.dataset.theme = theme.value;
-  root.dataset.scheme = theme.value === "system" ? (system.matches ? "dark" : "light") : theme.value;
-  root.dataset.density = density.value;
-  document.dispatchEvent(new Event("board-theme"));
-};
-
-const save = () => {
-  appearance();
-  try {
-    localStorage.setItem(key, JSON.stringify({ theme: theme.value, density: density.value, closed: sidebar.closed() }));
-    status.textContent = "";
-  } catch {
-    status.textContent = "Preferences apply to this page only.";
-  }
-};
-
-theme.addEventListener("change", save);
-density.addEventListener("change", save);
-document.addEventListener("board-sidebar", save);
-system.addEventListener("change", appearance);
-appearance();
-`;
+export const preferences = preferencesScript();

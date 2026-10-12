@@ -13,11 +13,11 @@ import { entriesOf } from "#server/search/entries.ts";
 import { metadataEntries } from "#server/search/metadataEntries.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
-export function inMemoryBoard(files: Readonly<Record<string, string>>) {
+export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: { readonly home: string | undefined }) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const documents = Object.entries(files).map(([file, source]) => ({ file, parsed: metadataParse(source) }));
-			const home = documents[0]?.file;
+			const home = configuration ? configuration.home : documents[0]?.file;
 			const model = metadataModel(documents, [], home);
 			const entries = yield* Effect.promise(() =>
 				Promise.all(documents.map(({ file, parsed }) => entriesOf(parsed.body, file, file === home, parsed.bodyLine))),
