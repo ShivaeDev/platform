@@ -5,6 +5,12 @@
 			"fixtures": ["hooks-types.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": []
+		},
+		{
+			"entries": ["./router.ts"],
+			"fixtures": ["router-types.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": []
 		}
 	],
 	"platform": [
