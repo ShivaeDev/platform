@@ -504,6 +504,12 @@
 			"source": "./src/server/integration/publication.ts",
 			"import": "./dist/server/integration/publication.js",
 			"default": "./dist/server/integration/publication.js"
+		},
+		"./integration/metadata.ts": {
+			"types": "./dist/integration/metadata.d.ts",
+			"source": "./src/integration/metadata.ts",
+			"import": "./dist/integration/metadata.js",
+			"default": "./dist/integration/metadata.js"
 		}
 	},
 	"bin": {
