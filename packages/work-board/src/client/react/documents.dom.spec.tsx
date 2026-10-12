@@ -21,10 +21,10 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 	function* (url) {
 		const queries: unknown[] = [];
 		const view = yield* Effect.promise(() =>
-			renderBoard(files, (api) => {
+			renderBoard(files, (api, registry) => {
 				const page = vi.spyOn(api.page, "query");
 				queries.push(page);
-				const router = boardRouter({ api, initial: "<main id='doc'>Old HTML</main>" });
+				const router = boardRouter({ api, initial: "<main id='doc'>Old HTML</main>", registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 				return <RouterProvider router={router} />;
 			}),
@@ -53,8 +53,8 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 
 it.live.each(["/missing.md", "/_board/item/missing/"])("shows a failed initial document read at %s in React", function* (url) {
 	const view = yield* Effect.promise(() =>
-		renderBoard(files, (api) => {
-			const router = boardRouter({ api, initial: "" });
+		renderBoard(files, (api, registry) => {
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -77,8 +77,8 @@ it.live("keeps response history readable when a question's prompt template is in
 	const question =
 		'---\nid: question.invalid\nkind: question\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
 	const view = yield* Effect.promise(() =>
-		renderBoard({ ...files, "question.md": question }, (api) => {
-			const router = boardRouter({ api, initial: "" });
+		renderBoard({ ...files, "question.md": question }, (api, registry) => {
+			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/question.md"] }) });
 			return <RouterProvider router={router} />;
 		}),
@@ -99,9 +99,9 @@ it.live("renders the default document at the root when no home board is configur
 	const view = yield* Effect.promise(() =>
 		renderBoard(
 			files,
-			(api) => {
+			(api, registry) => {
 				pageQuery = vi.spyOn(api.page, "query");
-				const router = boardRouter({ api, initial: "" });
+				const router = boardRouter({ api, initial: "", registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
 				return <RouterProvider router={router} />;
 			},
