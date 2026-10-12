@@ -1,5 +1,6 @@
 import { Context, Effect, FileSystem, Layer, Path, type PlatformError, type Scope } from "effect";
 import { HttpRouter, HttpServerRequest, type HttpServerResponse } from "effect/unstable/http";
+import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import { Diagnostics, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { RenderFailed } from "#render/failed.ts";
@@ -134,8 +135,12 @@ function routes(options: BoardOptions) {
 	);
 }
 
-type BoardError = HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
-type BoardServices = FileSystem.FileSystem | HttpRouter.HttpRouter | Path.Path | HttpRouter.Request<"Error", PlatformError.PlatformError>;
+type BoardError = InternalServerError | HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
+type BoardServices =
+	| FileSystem.FileSystem
+	| HttpRouter.HttpRouter
+	| Path.Path
+	| HttpRouter.Request<"Error", InternalServerError | PlatformError.PlatformError>;
 
 export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError, BoardServices> {
 	return routes(options).pipe(Layer.provide(Highlighter.layer));

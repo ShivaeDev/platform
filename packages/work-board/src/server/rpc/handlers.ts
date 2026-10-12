@@ -1,4 +1,5 @@
 import { Clock, Effect, Layer, Ref, Stream } from "effect";
+import type { HttpServerResponse } from "effect/unstable/http";
 import { InternalServerError, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import { requestTracingLayer } from "@shivaedev/platform/rpc-server/tracing.ts";
@@ -15,6 +16,17 @@ import type { ServerOptions } from "./transport.ts";
 const readBoundary = rpcBoundary(InternalServerError, { unexpected: (message) => new InternalServerError({ message }) });
 const documentBoundary = rpcBoundary(DocumentRejection, { unexpected: (message) => new InternalServerError({ message }) });
 const responseBoundary = rpcBoundary(ResponseRejection, { unexpected: (message) => new InternalServerError({ message }) });
+
+function readablePage(response: HttpServerResponse.HttpServerResponse) {
+	if (response.status >= 500 || response.body._tag !== "Uint8Array") {
+		return Effect.fail(
+			new InternalServerError({
+				message: `Page response is unreadable (status ${response.status}, body ${response.body._tag}). Retry the page; if it still fails, restart Work Board.`,
+			}),
+		);
+	}
+	return Effect.succeed({ html: new TextDecoder().decode(response.body.body), status: response.status });
+}
 
 export const handlers = Effect.fn("WorkBoard.handlers")(function* ({ changes, document, home, index, page }: ServerOptions) {
 	const handoffs = yield* HandoffsService;
@@ -36,16 +48,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* ({ changes, do
 				Effect.gen(function* () {
 					return navigationData(yield* changes.files, current, home, yield* index);
 				}).pipe(readBoundary),
-			"work-board.page": ({ url }) =>
-				Effect.suspend(() => page(url)).pipe(
-					Effect.flatMap((response) => {
-						if (response.status >= 500 || response.body._tag !== "Uint8Array") {
-							return Effect.fail(new Error(`Page response is unreadable (status ${response.status}, body ${response.body._tag})`));
-						}
-						return Effect.succeed({ html: new TextDecoder().decode(response.body.body), status: response.status });
-					}),
-					readBoundary,
-				),
+			"work-board.page": ({ url }) => Effect.suspend(() => page(url)).pipe(Effect.flatMap(readablePage), readBoundary),
 			"work-board.prepareHandoff": (input) => Effect.suspend(() => handoffs.prepare(input)).pipe(responseBoundary),
 			"work-board.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),
 			"work-board.recordResponse": (input) => Effect.suspend(() => responses.record(input)).pipe(responseBoundary),

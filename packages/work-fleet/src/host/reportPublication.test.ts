@@ -23,7 +23,7 @@ it.live("checks exact refs and all PR pages using only GitHub GET requests", fun
 for (const response of ["{}", "not json"]) {
 	it.effect("fails closed on malformed remote evidence", function* () {
 		expect(yield* makeReportPublication(() => Effect.succeed(response))("example/project", "synthetic/research").pipe(Effect.flip)).toMatchObject({
-			reason: "integration",
+			_tag: "ServiceUnavailable",
 		});
 	});
 }

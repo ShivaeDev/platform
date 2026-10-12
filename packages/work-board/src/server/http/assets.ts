@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
-import { Data, Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
+import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { diagnosticsScript } from "#client/diagnostics/script.ts";
 import { historyScript } from "#client/history/script.ts";
 import { ageScript } from "#client/page/ageScript.ts";
@@ -42,7 +43,11 @@ export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, strin
 
 const MERMAID = "/_board/mermaid/";
 
-export class MermaidMissing extends Data.TaggedError("MermaidMissing")<{ readonly cause: unknown }> {}
+export class MermaidMissing extends Schema.TaggedError<MermaidMissing>()("MermaidMissing", { cause: Schema.Unknown }) {
+	override get message() {
+		return "The Mermaid assets could not be found. Reinstall Work Board and restart it.";
+	}
+}
 
 export const mermaidRoot = Effect.fn("WorkBoard.mermaidRoot")(function* () {
 	const path = yield* Path.Path;
@@ -71,7 +76,9 @@ function missingBundle(file: string) {
 
 const bundledPath = Effect.fn("WorkBoard.bundledPath")(function* (file: string) {
 	const path = yield* Path.Path;
-	const module = yield* path.fromFileUrl(new URL(import.meta.url)).pipe(Effect.orDie);
+	const module = yield* path
+		.fromFileUrl(new URL(import.meta.url))
+		.pipe(Effect.mapError(() => new InternalServerError({ message: "The browser asset location is invalid. Reinstall Work Board and restart it." })));
 	return path.resolve(path.dirname(module), "../../../assets", file);
 });
 

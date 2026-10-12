@@ -29,9 +29,8 @@ function treeDecisionReasons(tree: ts.SourceFile, reachable?: ReadonlySet<ts.Nod
 				node.text.includes("quota")
 				&& ts.isPropertyAssignment(node.parent)
 				&& ts.isObjectLiteralExpression(node.parent.parent)
-				&& node.parent.parent.properties.some(
-					(property) => ts.isPropertyAssignment(property) && property.name.getText() === "reason" && property.initializer.getText() === '"denied"',
-				)
+				&& ts.isNewExpression(node.parent.parent.parent)
+				&& node.parent.parent.parent.expression.getText() === "Forbidden"
 			) {
 				return;
 			}
@@ -90,7 +89,7 @@ function messageInitializer(node: ts.Node, tree: ts.SourceFile) {
 	return node.name.getText(tree) === "message"
 		&& ts.isObjectLiteralExpression(node.parent)
 		&& ts.isNewExpression(node.parent.parent)
-		&& /(?:Fleet|Board|Session)Failure$/u.test(node.parent.parent.expression.getText())
+		&& /^(?:BoardFailure|SessionFailure|BadRequest|Conflict|Forbidden|NotFound|ServiceUnavailable)$/u.test(node.parent.parent.expression.getText())
 		? node.initializer
 		: undefined;
 }

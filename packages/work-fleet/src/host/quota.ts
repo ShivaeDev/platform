@@ -1,7 +1,9 @@
 import { Effect, Schema } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { codexRateLimits } from "@shivaedev/work-board/diagnostics/codexRateLimits.ts";
+import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
-import { type FleetConfiguration, FleetFailure } from "#policy.ts";
+import type { FleetConfiguration } from "#policy.ts";
 
 type Quota = FleetConfiguration["quota"];
 
@@ -20,10 +22,8 @@ export function unlimitedQuota(now: () => number): Effect.Effect<Quota> {
 
 export function codexQuota(
 	now: () => number,
-	read: Effect.Effect<unknown, FleetFailure> = codexRateLimits().pipe(
-		Effect.mapError((error) => new FleetFailure({ message: error.message, reason: "integration" })),
-	),
-): () => Effect.Effect<Quota, FleetFailure> {
+	read: Effect.Effect<unknown, FleetError> = codexRateLimits().pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
+): () => Effect.Effect<Quota, FleetError> {
 	let cached: Quota | undefined;
 	return () =>
 		Effect.gen(function* () {
@@ -31,7 +31,7 @@ export function codexQuota(
 				return cached;
 			}
 			const limits = yield* Schema.decodeUnknownEffect(RateLimits)(yield* read).pipe(
-				Effect.mapError(() => new FleetFailure({ message: "Codex rate limits returned an unknown shape", reason: "integration" })),
+				Effect.mapError(() => new ServiceUnavailable({ message: "Codex rate limits returned an unknown shape" })),
 			);
 			const observedAt = now();
 			cached = { available: limits.ordinaryUsageAllowed ? ORDINARY_USAGE : 0, expiresAt: observedAt + OBSERVATION_MS, observedAt };
@@ -39,6 +39,6 @@ export function codexQuota(
 		});
 }
 
-export function hostQuota(host: FleetHost, now: () => number): () => Effect.Effect<Quota, FleetFailure> {
+export function hostQuota(host: FleetHost, now: () => number): () => Effect.Effect<Quota, FleetError> {
 	return host.quota === "unlimited" ? () => unlimitedQuota(now) : codexQuota(now);
 }

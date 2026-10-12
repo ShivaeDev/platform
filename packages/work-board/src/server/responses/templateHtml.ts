@@ -1,19 +1,19 @@
 import { Effect } from "effect";
 import { escapeHtml } from "#browser/escapeHtml.ts";
+import { RenderFailed } from "#render/failed.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { optionControls } from "./optionControls.ts";
-import { optionPrompt } from "./optionPrompt.ts";
 import { questionTemplate } from "./template.ts";
 
 export const templateHtml = Effect.fn("WorkBoard.templateHtml")(function* (context: string, request: string, file: string) {
-	const template = questionTemplate(context, request, file);
+	const template = yield* Effect.try({ catch: (cause) => new RenderFailed({ cause }), try: () => questionTemplate(context, request, file) });
 	function render(source: string) {
 		return renderMarkdown(source, { file, safe: true });
 	}
 	const background = yield* render(template.context);
 	const fields = metadataParse(context).fields;
-	const choicePrompt = optionPrompt(fields);
+	const choicePrompt = fields.kind === "question" && !fields.question && fields.options !== undefined ? template.prompts.at(0) : undefined;
 	if (choicePrompt) {
 		return { background, controls: optionControls(choicePrompt, fields), hasPrompts: true };
 	}

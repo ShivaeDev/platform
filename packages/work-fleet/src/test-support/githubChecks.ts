@@ -1,7 +1,8 @@
 import { Effect, Schema } from "effect";
+import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { CheckPages, StatusPages } from "#host/githubCheckState.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
-import { FleetFailure, type WorkResult } from "#policy.ts";
+import type { WorkResult } from "#policy.ts";
 
 export const ADOPTED_HEAD = "a".repeat(40);
 export const NEW_HEAD = "b".repeat(40);
@@ -43,9 +44,7 @@ export function githubFixture(repository = "example/project") {
 		return Effect.suspend(() => {
 			requests.push(endpoint);
 			const response = responses.get(endpoint);
-			return response === undefined
-				? Effect.fail(new FleetFailure({ message: "Synthetic GitHub request failed", reason: "integration" }))
-				: Effect.succeed(response);
+			return response === undefined ? Effect.fail(new ServiceUnavailable({ message: "Synthetic GitHub request failed" })) : Effect.succeed(response);
 		});
 	}
 	return { checks: makeGithubChecks(read), read, reply, requests, responses };

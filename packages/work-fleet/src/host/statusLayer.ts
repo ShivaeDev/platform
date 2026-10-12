@@ -1,4 +1,5 @@
-import { Clock, Console, Effect, FileSystem, Layer, Ref, Semaphore } from "effect";
+import { Clock, Console, Context, Effect, FileSystem, Layer, type Option, Ref, Semaphore } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import type { FleetHealth } from "@shivaedev/work-board/diagnostics/health.ts";
 import { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
 import { publishAfterBoardPass } from "#board/readPass.ts";
@@ -9,10 +10,14 @@ import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
 
+class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
+
 export function statusLayer(root: string, healthConfig?: { readonly concurrency: number; readonly staleAfterMs: number }) {
-	return Layer.unwrap(
-		Effect.gen(function* () {
+	const StatusPublication = defineService({
+		id: "Fleet/StatusPublication",
+		initialize: Effect.gen(function* () {
 			const fleet = yield* Fleet;
+			const health = yield* StatusHealth;
 			const fs = yield* FileSystem.FileSystem;
 			const realRoot = yield* fs.realPath(root);
 			const lock = yield* Semaphore.make(1);
@@ -29,7 +34,6 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 						records.map(({ value }) => value),
 					).pipe(Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)));
 					if (healthConfig !== undefined) {
-						const health = yield* Effect.serviceOption(Health);
 						const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
 						const nextHealth: FleetHealth = {
 							observedAt: yield* Clock.currentTimeMillis,
@@ -48,24 +52,35 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 			if (healthConfig !== undefined) {
 				yield* publish;
 			}
+			return { fleet, publish, snapshot };
+		}),
+		methods: ({ fleet, publish, snapshot }) => {
 			function after<A, E, R>(effect: Effect.Effect<A, E, R>) {
 				return effect.pipe(Effect.ensuring(publishAfterBoardPass(publish)));
 			}
-			return Layer.mergeAll(
-				Layer.succeed(HealthSnapshot)(readSnapshot(snapshot)),
-				Layer.succeed(HealthPublication)(publishAfterBoardPass(publish)),
-				Layer.succeed(Fleet)({
-					...fleet,
-					continue: (workId, message) => after(fleet.continue(workId, message)),
-					dispatch: (workId) => after(fleet.dispatch(workId)),
-					list: () => after(fleet.list()),
-					prepare: (input) => after(fleet.prepare(input)),
-					reassign: (workId, decisionId, attentionOwner) => after(fleet.reassign(workId, decisionId, attentionOwner)),
-					reconcile: (workId) => after(fleet.reconcile(workId)),
-					resolve: (workId, decisionId, responseId) => after(fleet.resolve(workId, decisionId, responseId)),
-				}),
-			);
-		}),
+			return {
+				...fleet,
+				continue: (workId: string, message: string) => after(fleet.continue(workId, message)),
+				dispatch: (workId: string) => after(fleet.dispatch(workId)),
+				list: () => after(fleet.list()),
+				prepare: (input: Parameters<typeof fleet.prepare>[0]) => after(fleet.prepare(input)),
+				publishHealth: () => publishAfterBoardPass(publish),
+				readHealth: () => readSnapshot(snapshot),
+				reassign: (...args: Parameters<typeof fleet.reassign>) => after(fleet.reassign(...args)),
+				reconcile: (workId: string) => after(fleet.reconcile(workId)),
+				resolve: (...args: Parameters<typeof fleet.resolve>) => after(fleet.resolve(...args)),
+			};
+		},
+		requires: [Fleet, FileSystem.FileSystem, StatusHealth],
+	});
+	return Layer.unwrap(
+		Effect.map(Effect.serviceOption(Health), (health) =>
+			Layer.unwrap(
+				Effect.map(StatusPublication, ({ readHealth, publishHealth, ...fleet }) =>
+					Layer.mergeAll(Layer.succeed(HealthSnapshot, readHealth()), Layer.succeed(HealthPublication, publishHealth()), Layer.succeed(Fleet, fleet)),
+				),
+			).pipe(Layer.provide(StatusPublication.layer.pipe(Layer.provide(Layer.succeed(StatusHealth, health))))),
+		),
 	);
 }
 

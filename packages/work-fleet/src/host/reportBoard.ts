@@ -1,5 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
+import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { BadRequest, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { reportContent } from "#board/reportContent.ts";
 import { reportFiles } from "#board/reportFiles.ts";
@@ -7,10 +9,11 @@ import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportLinks } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
+import { isFleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { reportPublication, reportRepository } from "#host/reportPublication.ts";
-import { BoardFailure, BoardGateway, type BoardWork, FleetFailure } from "#policy.ts";
+import { BoardFailure, BoardGateway, type BoardWork } from "#policy.ts";
 import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
 import { declaredAttachments, type ReportAttachments } from "#reportAttachments.ts";
 import { SessionFailure, type SessionObservation } from "#session/schema.ts";
@@ -21,8 +24,7 @@ function attachmentFailure(error: unknown) {
 	if (error instanceof BoardFailure) {
 		return error;
 	}
-	const message =
-		error instanceof FleetFailure || error instanceof SessionFailure ? error.message : "Cloud report attachments could not be downloaded";
+	const message = isFleetError(error) || error instanceof SessionFailure ? error.message : "Cloud report attachments could not be downloaded";
 	return new BoardFailure({ message });
 }
 
@@ -34,6 +36,49 @@ function unavailableAttachments(observation: SessionObservation, error: unknown)
 	};
 }
 
+class ReportInputs extends Context.Service<
+	ReportInputs,
+	{
+		readonly root: string;
+		readonly check: (work: BoardWork) => Effect.Effect<boolean, unknown>;
+		readonly files: (observation: SessionObservation) => Effect.Effect<ReportAttachments, unknown>;
+	}
+>()("Fleet/ReportInputs") {}
+
+const ReportBoard = defineService({
+	id: "Fleet/ReportBoard",
+	initialize: Effect.gen(function* () {
+		const board = yield* BoardGateway;
+		const { root, check, files } = yield* ReportInputs;
+		function inspect(work: BoardWork) {
+			return check(work).pipe(
+				Effect.mapError(() => new ServiceUnavailable({ message: "Report publication could not be checked on GitHub" })),
+				Effect.flatMap((published) => (published ? Effect.fail(new BadRequest({ message: PUBLISHED_REPORT })) : Effect.void)),
+			);
+		}
+		const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {
+			const attachments = yield* files(observation).pipe(Effect.catch((error) => Effect.succeed(unavailableAttachments(observation, error))));
+			const { itemId } = reportIdentity(work, observation.receipt);
+			const output = observation.output + reportLinks(itemId, attachments.files, attachments.unavailable);
+			yield* reportContent(work, { ...observation, output });
+			return yield* reportPayload(root, work, observation).save({ files: attachments.files, output });
+		});
+		const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
+			const { itemId } = reportIdentity(work, observation.receipt);
+			const existing = yield* reportPayload(root, work, observation).read;
+			const payload = existing ?? (yield* collect(work, observation));
+			const reportObservation = { ...observation, output: payload.output };
+			yield* reportContent(work, reportObservation);
+			yield* reportFiles(root, itemId, payload.files);
+			return yield* board.report(work, reportObservation);
+		}, Effect.mapError(attachmentFailure));
+
+		return { inspect, report };
+	}),
+	methods: ({ inspect, report }) => ({ check: inspect, report }),
+	requires: [BoardGateway, ReportInputs],
+});
+
 export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileError>(
 	root: string,
 	check: (work: BoardWork) => Effect.Effect<boolean, TCheckError, TCheckServices>,
@@ -42,34 +87,21 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const services = yield* Effect.context<TCheckServices | TFileServices>();
-			const board = yield* BoardGateway;
-			function inspect(work: BoardWork) {
-				return check(work).pipe(
-					Effect.provide(services),
-					Effect.mapError(() => new FleetFailure({ message: "Report publication could not be checked on GitHub", reason: "integration" })),
-					Effect.flatMap((published) => (published ? Effect.fail(new FleetFailure({ message: PUBLISHED_REPORT, reason: "invalid" })) : Effect.void)),
-				);
-			}
-			const collect = Effect.fn("Fleet.collect")(function* (work: BoardWork, observation: SessionObservation) {
-				const attachments = yield* files(observation).pipe(
-					Effect.provide(services),
-					Effect.catch((error) => Effect.succeed(unavailableAttachments(observation, error))),
-				);
-				const { itemId } = reportIdentity(work, observation.receipt);
-				const output = observation.output + reportLinks(itemId, attachments.files, attachments.unavailable);
-				yield* reportContent(work, { ...observation, output });
-				return yield* reportPayload(root, work, observation).save({ files: attachments.files, output });
+			const inputs = Layer.succeed(ReportInputs, {
+				check: (work) => check(work).pipe(Effect.provide(services)),
+				files: (observation) => files(observation).pipe(Effect.provide(services)),
+				root,
 			});
-			const report = Effect.fn("Fleet.report")(function* (work: BoardWork, observation: SessionObservation) {
-				const { itemId } = reportIdentity(work, observation.receipt);
-				const existing = yield* reportPayload(root, work, observation).read;
-				const payload = existing ?? (yield* collect(work, observation));
-				const reportObservation = { ...observation, output: payload.output };
-				yield* reportContent(work, reportObservation);
-				yield* reportFiles(root, itemId, payload.files);
-				return yield* board.report(work, reportObservation);
-			}, Effect.mapError(attachmentFailure));
-			return Layer.merge(Layer.succeed(ReportInspection)({ check: inspect }), Layer.succeed(BoardGateway)({ ...board, report }));
+			return Layer.unwrap(
+				Effect.gen(function* () {
+					const board = yield* BoardGateway;
+					const reports = yield* ReportBoard;
+					return Layer.merge(
+						Layer.succeed(ReportInspection)({ check: reports.check }),
+						Layer.succeed(BoardGateway)({ ...board, report: reports.report }),
+					);
+				}),
+			).pipe(Layer.provide(ReportBoard.layer.pipe(Layer.provide(inputs))));
 		}),
 	);
 }

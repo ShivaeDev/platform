@@ -89,7 +89,8 @@ describe("the home file", () => {
 	effectApp("must exist, or the board does not start", function* () {
 		yield* board.stop();
 		expect(yield* Effect.flip(startBoard(notes.root, "missing.md"))).toMatchObject({
-			message: `The home file missing.md is not a markdown file in ${notes.root}`,
+			_tag: "HomeMissing",
+			message: `The home file missing.md is not a markdown file in ${notes.root}. Choose an existing Markdown file with --home.`,
 		});
 		board = yield* startBoard(notes.root, "plan.md");
 	});

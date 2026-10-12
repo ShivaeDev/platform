@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { FleetFailure } from "#policy.ts";
+import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { responseApplied } from "#test/responseApplied.ts";
 
 it.live("recovery polling reloads stale observations and still waits for its exact response receipt", function* () {
@@ -10,7 +10,7 @@ it.live("recovery polling reloads stale observations and still waits for its exa
 	const observe = Effect.suspend(() => {
 		observations += 1;
 		return observations === 1
-			? Effect.fail(new FleetFailure({ message: "Work changed during this observation", reason: "stale" }))
+			? Effect.fail(new Conflict({ message: "Work changed during this observation" }))
 			: Effect.succeed({ responses: [{ boardAcknowledged: true, responseId: "answer" }] });
 	});
 	const refresh = Effect.sync(() => {
@@ -23,7 +23,7 @@ it.live("recovery polling reloads stale observations and still waits for its exa
 });
 
 it.live("recovery polling preserves unrelated failures without reloading", function* () {
-	const failure = new FleetFailure({ message: "Provider unavailable", reason: "integration" });
+	const failure = new ServiceUnavailable({ message: "Provider unavailable" });
 	let reloads = 0;
 	const refresh = Effect.sync(() => {
 		reloads += 1;

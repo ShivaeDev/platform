@@ -32,15 +32,12 @@ describe("every published Fleet decision has a recovery", () => {
 		const reasons = new Set(scenarios.flatMap((scenario) => (typeof scenario.reason === "string" ? [scenario.reason] : [])));
 		expect(decisionReasons(root).filter((reason) => !reasons.has(reason))).toEqual([]);
 		expect(
-			sourceDecisionReasons("host/new.ts", 'new FleetFailure({message: "New integration reason", reason: "invalid"});').filter(
-				(reason) => !reasons.has(reason),
-			),
+			sourceDecisionReasons("host/new.ts", 'new BadRequest({message: "New integration reason"});').filter((reason) => !reasons.has(reason)),
 		).toEqual(["New integration reason"]);
 		expect(
-			sourceDecisionReasons(
-				"host/new.ts",
-				'const NEW_REASON = "New integration reason"; new FleetFailure({message: NEW_REASON, reason: "invalid"});',
-			).filter((reason) => !reasons.has(reason)),
+			sourceDecisionReasons("host/new.ts", 'const NEW_REASON = "New integration reason"; new BadRequest({message: NEW_REASON});').filter(
+				(reason) => !reasons.has(reason),
+			),
 		).toEqual(["New integration reason"]);
 	});
 	for (const [file, original] of [

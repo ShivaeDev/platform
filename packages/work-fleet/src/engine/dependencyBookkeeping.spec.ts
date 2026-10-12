@@ -77,7 +77,7 @@ for (const [edit, source] of [
 				write(source);
 				yield* prepareWork("dependent");
 				const fleet = yield* Fleet;
-				expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ reason: "denied" });
+				expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				expect((yield* fleet.get("dependent")).value.blocker).toContain("needs an accepted outcome");
 			}),
 		));
@@ -96,7 +96,7 @@ for (const changedAction of [false, true]) {
 				yield* prepareWork("dependent");
 				const fleet = yield* Fleet;
 				if (changedAction) {
-					expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ reason: "denied" });
+					expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				} else {
 					expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
 				}

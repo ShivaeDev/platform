@@ -1,4 +1,4 @@
-import { Clock, Context, Effect, FileSystem, Path, Semaphore } from "effect";
+import { Clock, Context, Effect, FileSystem, Path, Schema, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
@@ -25,6 +25,12 @@ export interface ResponseOptions {
 }
 export class ResponseConfig extends Context.Service<ResponseConfig, ResponseOptions>()("WorkBoard/ResponseConfig") {}
 
+function invalidResponse(cause: unknown): Conflict {
+	return Schema.is(Conflict)(cause)
+		? cause
+		: new Conflict({ message: cause instanceof Error ? cause.message : "The response is invalid. Review the questions and try again." });
+}
+
 export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
@@ -49,7 +55,7 @@ export const Responses = defineService({
 					yield* enabled;
 					const result = yield* read(draft.question);
 					const input = yield* Effect.try({
-						catch: (cause) => new Conflict({ message: String(cause) }),
+						catch: invalidResponse,
 						try: () => validatedInput(draft, result.question.context, result.question.question.request, result.question.question.source),
 					});
 					const existing = result.responses.find((candidate) => candidate.id === input.id);
@@ -84,7 +90,10 @@ export const Responses = defineService({
 		function history(preview: Parameters<typeof responseHistory>[1]) {
 			return Effect.flatMap(snapshot, (data) =>
 				Effect.try({
-					catch: (cause) => new ServiceUnavailable({ message: String(cause) }),
+					catch: (cause) =>
+						Schema.is(ServiceUnavailable)(cause)
+							? cause
+							: new ServiceUnavailable({ message: "Response history could not be read. Check the source diagnostics and retry." }),
 					try: () => responseHistory(data, preview),
 				}),
 			);

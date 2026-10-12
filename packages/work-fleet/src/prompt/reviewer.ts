@@ -1,5 +1,7 @@
 import { Effect, Schema } from "effect";
-import { FleetFailure, type Review, type WorkResult } from "#policy.ts";
+import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { FleetError } from "#errors.ts";
+import type { Review, WorkResult } from "#policy.ts";
 import { cloudStartup } from "#prompt/worker.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 
@@ -46,17 +48,17 @@ export function reviewerPrompt(input: {
 export const readReviewerVerdict = Effect.fn("Fleet.readReviewerVerdict")(function* (
 	output: string,
 	receipt: SessionReceipt,
-): Effect.fn.Return<Review, FleetFailure> {
+): Effect.fn.Return<Review, FleetError> {
 	const lines = output.split("\n").filter((entry) => entry.trim().startsWith(REVIEW_MARKER));
 	const line = lines.length === 1 ? lines[0] : undefined;
 	if (line === undefined || output.trim().split("\n").at(-1)?.trim() !== line.trim()) {
-		return yield* new FleetFailure({ message: "Reviewer must end with one machine-readable verdict", reason: "invalid" });
+		return yield* new BadRequest({ message: "Reviewer must end with one machine-readable verdict" });
 	}
 	const verdict = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(ReviewerVerdict))(line.trim().slice(REVIEW_MARKER.length).trim()).pipe(
-		Effect.mapError(() => new FleetFailure({ message: "Reviewer verdict is malformed or lacks evidence", reason: "invalid" })),
+		Effect.mapError(() => new BadRequest({ message: "Reviewer verdict is malformed or lacks evidence" })),
 	);
 	if ((verdict.verdict === "changes") !== verdict.findings.length > 0) {
-		return yield* new FleetFailure({ message: "Reviewer changes require findings; approval requires no findings", reason: "invalid" });
+		return yield* new BadRequest({ message: "Reviewer changes require findings; approval requires no findings" });
 	}
 	return { ...verdict, receipt, repairPrompt: verdict.findings.join("\n"), verdict: verdict.verdict === "approve" ? "approved" : "changes" };
 });

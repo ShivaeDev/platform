@@ -61,7 +61,7 @@ describe("reviewer prompt and verdict", () => {
 		`${report(verdict)}\nMore text`,
 	]) {
 		it.effect(`rejects invalid output ${JSON.stringify(output)}`, function* () {
-			expect(yield* readReviewerVerdict(output, receipt).pipe(Effect.flip)).toMatchObject({ reason: "invalid" });
+			expect(yield* readReviewerVerdict(output, receipt).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
 		});
 	}
 });

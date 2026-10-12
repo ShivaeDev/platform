@@ -1,7 +1,7 @@
-import { Data, Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option, Path, Schema } from "effect";
 import { listMarkdown } from "./list.ts";
 
-export class HomeMissing extends Data.TaggedError("HomeMissing")<{ readonly message: string }> {}
+export class HomeMissing extends Schema.TaggedError<HomeMissing>()("HomeMissing", { message: Schema.String }) {}
 
 export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, home: string | undefined) {
 	if (home === undefined) {
@@ -9,7 +9,9 @@ export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, hom
 	}
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const missing = new HomeMissing({ message: `The home file ${home} is not a markdown file in ${root}` });
+	const missing = new HomeMissing({
+		message: `The home file ${home} is not a markdown file in ${root}. Choose an existing Markdown file with --home.`,
+	});
 	const realRoot = yield* fs.realPath(root);
 	const real = yield* Effect.option(fs.realPath(path.resolve(root, home)));
 	if (Option.isNone(real)) {

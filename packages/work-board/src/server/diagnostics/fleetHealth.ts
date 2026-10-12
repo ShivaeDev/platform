@@ -20,12 +20,18 @@ function readFailure(error: unknown): SourceFailure {
 async function readSnapshot(file: FileHandle): Promise<FleetHealth> {
 	const stat = await file.stat();
 	if (!stat.isFile() || stat.size > 64 * 1024) {
-		throw new Error("Snapshot must be a regular file under 64 KiB");
+		throw new SourceFailure({
+			kind: "error",
+			message: "Snapshot must be a regular file under 64 KiB. Ask Fleet to publish a supported health snapshot.",
+		});
 	}
 	const source = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(await file.readFile("utf8"));
 	const { version } = Schema.decodeUnknownSync(Schema.Struct({ version: Schema.Int }))(source);
 	if (version !== 2) {
-		throw new SourceFailure({ kind: "error", message: `Fleet health snapshot version ${version} is not supported by this Board` });
+		throw new SourceFailure({
+			kind: "error",
+			message: `Fleet health snapshot version ${version} is not supported by this Board. Use compatible Board and Fleet versions.`,
+		});
 	}
 	return Schema.decodeUnknownSync(FleetHealth)(source);
 }
