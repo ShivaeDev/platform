@@ -10,8 +10,9 @@ for (const kind of ["symlink", "directory", "fifo", "escape", "parent-symlink"] 
 		Effect.gen(function* () {
 			const { folder, name } = yield* reconstructedAttachment(kind);
 			expect(yield* reportAttachmentFiles(folder, [name]).pipe(Effect.flip)).toMatchObject({
-				_tag: "BadRequest",
-				message: "Cloud report attachments must be regular files inside the scratch folder",
+				_tag: "ReportFileFailure",
+				path: name,
+				reason: kind === "escape" ? "Attachment path escapes scratch folder" : "Attachment is not a regular file inside scratch folder",
 			});
 		}).pipe(Effect.provide(NodeServices.layer)),
 	);

@@ -31,7 +31,7 @@ it.live("reuses identical bytes after a lost acknowledgement and refuses replace
 		const root = yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
 		const suffix = yield* reportFiles(root, ID, [FILE]);
 		expect(yield* reportFiles(root, ID, [FILE])).toBe(suffix);
-		expect(yield* reportFiles(root, ID, [{ ...FILE, bytes: Uint8Array.of(42) }]).pipe(Effect.flip)).toMatchObject({ _tag: "BoardFailure" });
+		expect(yield* reportFiles(root, ID, [{ ...FILE, bytes: Uint8Array.of(42) }]).pipe(Effect.flip)).toMatchObject({ _tag: "ReportFileFailure" });
 		const folder = join(root, "responses", `${ID}.attachments`);
 		expect(readdirSync(folder)).toEqual([NAME]);
 		expect(readFileSync(join(folder, NAME))).toEqual(Buffer.from(BINARY_FILE));
@@ -42,7 +42,7 @@ for (const boundary of ["root", "responses", "attachments", "file"]) {
 	it.live(`refuses symlinks at the ${boundary} boundary`, () =>
 		Effect.gen(function* () {
 			const { outside, workspace } = yield* linkedReportBoundary(boundary, ID, NAME);
-			expect(yield* reportFiles(workspace, ID, [FILE]).pipe(Effect.flip)).toMatchObject({ _tag: "BoardFailure" });
+			expect(yield* reportFiles(workspace, ID, [FILE]).pipe(Effect.flip)).toMatchObject({ _tag: "ReportFileFailure" });
 			expect(readdirSync(outside)).toEqual(boundary === "root" ? ["linked-root"] : []);
 		}).pipe(Effect.provide(NodeServices.layer)),
 	);

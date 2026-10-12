@@ -3,102 +3,91 @@ import { constants } from "node:fs";
 import { type FileHandle, link, mkdir, open, realpath, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { publication } from "@shivaedev/work-board/integration/publication.ts";
 import { reportFileName, reportLinks } from "#board/reportLinks.ts";
-import { BoardFailure } from "#policy.ts";
 import type { ReportFile } from "#reportAttachments.ts";
+import { type ReportDirectory, validateReportDirectory, withReportDirectory } from "#reportFileDirectory.ts";
+import { hasFileCode, ReportFileFailure, reportFileIo, withReportFile } from "#reportFileFailure.ts";
 
-const { directoryPath, validateDirectory } = publication;
-
-function exists(cause: unknown) {
-	return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
+function ensureDirectory(path: string, label: string) {
+	return reportFileIo(label, () => mkdir(path, { mode: 0o700 })).pipe(
+		Effect.catchTag("ReportFileFailure", (error) => (hasFileCode(error.cause, "EEXIST") ? Effect.void : Effect.fail(error))),
+	);
 }
-async function ensureDirectory(path: string) {
-	await mkdir(path, { mode: 0o700 }).catch((cause: unknown) => {
-		if (!exists(cause)) {
-			throw cause;
-		}
-	});
+function existingFile(path: string, bytes: Uint8Array, label: string) {
+	return withReportFile(
+		label,
+		() => open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK),
+		(existing) =>
+			Effect.gen(function* () {
+				if (
+					!(
+						(yield* reportFileIo(label, () => existing.stat())).isFile()
+						&& Buffer.from(bytes).equals(yield* reportFileIo(label, () => existing.readFile()))
+					)
+				) {
+					return yield* Effect.fail(new ReportFileFailure({ path: label, reason: "Attachment identity already contains different bytes" }));
+				}
+				yield* reportFileIo(label, () => existing.sync());
+			}),
+	);
 }
-async function publishFile(directory: FileHandle, folder: string, name: string, bytes: Uint8Array) {
+const publishFile = Effect.fnUntraced(function* (directory: FileHandle, folder: string, name: string, bytes: Uint8Array, label: string) {
 	const temporary = `${folder}/.${randomUUID()}.tmp`;
-	const file = await open(temporary, "wx", 0o600);
-	try {
-		await file.writeFile(bytes);
-		await file.sync();
-	} finally {
-		await file.close();
-	}
-	try {
-		await link(temporary, `${folder}/${name}`).catch(async (cause: unknown) => {
-			if (!exists(cause)) {
-				throw cause;
-			}
-			const existing = await open(`${folder}/${name}`, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-			try {
-				if (!((await existing.stat()).isFile() && Buffer.from(bytes).equals(await existing.readFile()))) {
-					throw new Error("Attachment identity already contains different bytes");
-				}
-				await existing.sync();
-			} finally {
-				await existing.close();
-			}
-		});
-		await directory.sync();
-	} finally {
-		await unlink(temporary);
-	}
-}
+	yield* Effect.acquireUseRelease(
+		reportFileIo(label, () => open(temporary, "wx", 0o600)),
+		(file) =>
+			Effect.gen(function* () {
+				yield* reportFileIo(label, () => file.writeFile(bytes));
+				yield* reportFileIo(label, () => file.sync());
+				yield* reportFileIo(label, () => link(temporary, `${folder}/${name}`)).pipe(
+					Effect.catchTag("ReportFileFailure", (error) =>
+						hasFileCode(error.cause, "EEXIST") ? existingFile(`${folder}/${name}`, bytes, label) : Effect.fail(error),
+					),
+				);
+				yield* reportFileIo(label, () => directory.sync());
+			}),
+		(file) => reportFileIo(label, () => file.close()).pipe(Effect.onExit(() => reportFileIo(label, () => unlink(temporary)))),
+	);
+});
 
-export function reportFiles(root: string, itemId: string, files: readonly ReportFile[]) {
-	return Effect.tryPromise({
-		catch: () => new BoardFailure({ message: "Report attachments could not be recorded beside the result; retry the same completed attempt" }),
-		try: async () => {
-			if (files.length === 0) {
-				return "";
-			}
-			if (!/^fleet-report\.[a-f\d]+$/u.test(itemId)) {
-				throw new Error("Invalid report identity");
-			}
-			const realRoot = await realpath(root);
-			const workspace = await open(root, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-			try {
-				const base = directoryPath(workspace, realRoot);
-				await validateDirectory(workspace, base, realRoot);
-				await ensureDirectory(`${base}/responses`);
-				await workspace.sync();
-				const expectedResponses = join(realRoot, "responses");
-				const responses = await open(`${base}/responses`, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-				try {
-					const parent = directoryPath(responses, expectedResponses);
-					await validateDirectory(responses, parent, expectedResponses);
-					const folderName = `${itemId}.attachments`;
-					await ensureDirectory(`${parent}/${folderName}`);
-					await responses.sync();
-					const expected = join(expectedResponses, folderName);
-					const directory = await open(`${parent}/${folderName}`, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-					try {
-						const folder = directoryPath(directory, expected);
-						for (const file of files) {
-							await validateDirectory(workspace, base, realRoot);
-							await validateDirectory(responses, parent, expectedResponses);
-							await validateDirectory(directory, folder, expected);
-							const name = reportFileName(file.path);
-							await publishFile(directory, folder, name, file.bytes);
-						}
-						await validateDirectory(directory, folder, expected);
-						await validateDirectory(workspace, base, realRoot);
-						await validateDirectory(responses, parent, expectedResponses);
-						return reportLinks(itemId, files);
-					} finally {
-						await directory.close();
-					}
-				} finally {
-					await responses.close();
+function publishAttachments(workspace: ReportDirectory, responses: ReportDirectory, itemId: string, files: readonly ReportFile[], label: string) {
+	const folderName = `${itemId}.attachments`;
+	return Effect.gen(function* () {
+		yield* ensureDirectory(`${responses.folder}/${folderName}`, label);
+		yield* reportFileIo(label, () => responses.file.sync());
+		return yield* withReportDirectory(label, `${responses.folder}/${folderName}`, join(responses.expected, folderName), (directory) =>
+			Effect.gen(function* () {
+				for (const file of files) {
+					yield* validateReportDirectory(file.path, workspace);
+					yield* validateReportDirectory(file.path, responses);
+					yield* validateReportDirectory(file.path, directory);
+					yield* publishFile(directory.file, directory.folder, reportFileName(file.path), file.bytes, file.path);
 				}
-			} finally {
-				await workspace.close();
-			}
-		},
+				yield* validateReportDirectory(label, directory);
+				yield* validateReportDirectory(label, workspace);
+				yield* validateReportDirectory(label, responses);
+				return reportLinks(itemId, files);
+			}),
+		);
 	});
 }
+
+export const reportFiles = Effect.fn("Fleet.reportFiles")(function* (root: string, itemId: string, files: readonly ReportFile[]) {
+	if (files.length === 0) {
+		return "";
+	}
+	const label = `responses/${itemId}.attachments`;
+	if (!/^fleet-report\.[a-f\d]+$/u.test(itemId)) {
+		return yield* Effect.fail(new ReportFileFailure({ path: label, reason: "Invalid report identity" }));
+	}
+	const realRoot = yield* reportFileIo(label, () => realpath(root));
+	return yield* withReportDirectory(label, root, realRoot, (workspace) =>
+		Effect.gen(function* () {
+			yield* ensureDirectory(`${workspace.folder}/responses`, label);
+			yield* reportFileIo(label, () => workspace.file.sync());
+			return yield* withReportDirectory(label, `${workspace.folder}/responses`, join(realRoot, "responses"), (responses) =>
+				publishAttachments(workspace, responses, itemId, files, label),
+			);
+		}),
+	);
+});
