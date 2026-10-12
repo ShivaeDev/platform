@@ -21,15 +21,20 @@ export function recoveryConflictCase(): RecoveryCase {
 		}),
 		name: "conflict remains after automatic main repair",
 		progress: (_context, before, after) => {
-			expect(after.stage).toBe("completed");
-			expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
+			expect(after.stage).toBe("executing");
+			expect(after.attempts).toHaveLength(before.attempts.length + 1);
+			expect(after.attempts.slice(0, -1)).toEqual(before.attempts);
+			expect(after.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: before.attempts[0]?.sessionId });
+			expect(after.attempts.at(-1)?.prompt).toContain("Fetch and merge main");
+			expect(after.result).toEqual(before.result);
+			expect(after.review).toBeUndefined();
+			expect(after.checks).toBeUndefined();
 			expect(after.conflictRepairs).toEqual([BASE]);
 		},
 		reason: CONFLICTING_PR_REASON,
 		restore: (context) =>
 			Effect.sync(() => {
 				context.github.state.mergeable = "MERGEABLE";
-				context.github.state.status = "MERGED";
 			}),
 		sites: ["engine/makeDeliver.ts: observed.failure.message"],
 	};
