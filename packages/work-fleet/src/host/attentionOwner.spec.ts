@@ -7,10 +7,11 @@ import { Fleet } from "#fleet.ts";
 import { dispatchWork, hostLayer } from "#host/commands.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { codexServer } from "#test/codex.ts";
-import { storeState, task, waitProcess, withHost } from "#test/fleetHost.ts";
+import { task, waitProcess, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { daemonCli } from "#test/readDaemon.ts";
 import { statusRecord } from "#test/status.ts";
+import { storeState } from "#test/storeState.ts";
 import { askWorker } from "#test/workerQuestion.ts";
 
 const test = postgresTests("live");

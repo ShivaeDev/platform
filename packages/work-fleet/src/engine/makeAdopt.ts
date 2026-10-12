@@ -3,6 +3,7 @@ import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import { authorizeBrief, briefChanged, continueChangedBrief } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";
+import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import type { FleetRecord } from "#model.ts";
@@ -34,7 +35,7 @@ export function makeAdopt(state: EngineState) {
 			})
 			.pipe(Effect.result);
 		if (Result.isFailure(adopted)) {
-			const failure = yield* workerReportFailure(stored.value, adopted.failure.message);
+			const failure = yield* workerReportFailure(stored.value, failureCode(adopted.failure));
 			if (failure !== undefined) {
 				return yield* correctWorkerReport(state)(stored, failure);
 			}

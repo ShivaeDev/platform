@@ -1,0 +1,27 @@
+import assert from "node:assert/strict"
+import { Schema } from "effect"
+import { browserClient } from "@shivaedev/work-board/browser/client.ts"
+import { DocumentView } from "@shivaedev/work-board/browser/document/View.ts"
+import { Document } from "@shivaedev/work-board/browser/document/schema.ts"
+import { Navigation } from "@shivaedev/work-board/browser/navigation/schema.ts"
+import { HandoffInput } from "@shivaedev/work-board/browser/handoffs/schema.ts"
+import { DraftInput } from "@shivaedev/work-board/browser/responses/schema.ts"
+import { ASSET_HANDLERS } from "@shivaedev/work-board/http/assets.ts"
+import { client, preferences } from "@shivaedev/work-board/page/client.ts"
+import { diagrams } from "@shivaedev/work-board/page/diagrams.ts"
+import { swap } from "@shivaedev/work-board/page/swap.ts"
+import { workContract } from "@shivaedev/work-board/rpc/contract.ts"
+import { serveBoard } from "@shivaedev/work-board/serve.ts"
+
+assert.equal(typeof browserClient, "function")
+assert.equal(typeof DocumentView, "function")
+assert.equal(typeof serveBoard, "function")
+for (const schema of [Document, Navigation, HandoffInput, DraftInput]) assert(Schema.isSchema(schema))
+assert(workContract)
+assert(client.includes("/_board/native.js"))
+assert(preferences.includes("setupSidebar"))
+assert(diagrams.includes("mermaid.esm.min.mjs"))
+assert(swap.includes("/_board/native.js"))
+for (const route of ["/_board/native.js", "/_board/react.js", "/_board/react.css"]) {
+  assert(ASSET_HANDLERS.some(([path]) => path === route), `${route} must remain served`)
+}

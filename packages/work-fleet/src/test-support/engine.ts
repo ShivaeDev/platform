@@ -40,6 +40,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly sessionName: (operationId: string) => Effect.Effect<string, unknown>;
 	readonly unavailableWork: (workId: string, unavailable: boolean) => void;
 	readonly upgradeAttention: Effect.Effect<void, unknown>;
+	readonly upgradeDecisionCodes: Effect.Effect<void, unknown>;
 	readonly work: (id: string) => BoardWork;
 }
 export function withEngine<A, E, TBoardError = never>(
@@ -58,7 +59,12 @@ export function withEngine<A, E, TBoardError = never>(
 				requeue,
 				submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 			});
-			const { replaceRecord, store, upgradeAttention } = yield* attentionStorage(originalStore, namespace, options.writeGate, options.writeFailure);
+			const { replaceRecord, store, upgradeAttention, upgradeDecisionCodes } = yield* attentionStorage(
+				originalStore,
+				namespace,
+				options.writeGate,
+				options.writeFailure,
+			);
 			const reviews: string[] = [];
 			const provider = engineProvider(options, reviews);
 			const revisions = new Map<string, string>();
@@ -128,6 +134,7 @@ export function withEngine<A, E, TBoardError = never>(
 					}
 				},
 				upgradeAttention,
+				upgradeDecisionCodes,
 				work: (id: string) => boardWork(id, approved, revisions, dependencies, areas, statuses),
 			};
 			return yield* use(fixture).pipe(Effect.provide(fleetLayer()));

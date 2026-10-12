@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { boardOf } from "#render/board.ts";
-import { Highlighter } from "#render/Highlighter.ts";
-import { renderMarkdown } from "#render/markdown.ts";
-import { entriesOf } from "#search/entries.ts";
+import { boardOf } from "#server/render/board.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
+import { entriesOf } from "#server/search/entries.ts";
 
 function render(source: string) {
 	return renderMarkdown(source, { file: "nested/home.md" }).pipe(Effect.provide(Highlighter.layer));

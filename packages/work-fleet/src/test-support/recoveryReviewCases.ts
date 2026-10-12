@@ -5,7 +5,6 @@ import { HEAD } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
-const EXECUTION_EXPRESSION = "observation.execution";
 const newReview: NonNullable<RecoveryCase["progress"]> = (_ctx, before, after) => {
 	expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
 	expect(after.attempts.at(-1)).toMatchObject({ role: "reviewer", status: "running" });
@@ -17,6 +16,7 @@ function verdict(value: unknown) {
 export const recoveryReviewCases: readonly RecoveryCase[] = [
 	...(["failed", "interrupted"] as const).map(
 		(execution): RecoveryCase => ({
+			code: "reviewer-terminal" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryWorker(ctx);
 				setLastObservation(ctx, { execution });
@@ -24,19 +24,20 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 			}),
 			name: `reviewer ${execution}`,
 			progress: newReview,
-			reason: `Reviewer turn ${execution}`,
-			sites: [`engine/makeReview.ts: \`Reviewer turn \${${EXECUTION_EXPRESSION}}\``],
+			sites: ['engine/makeReview.ts: "reviewer-terminal"'],
 		}),
 	),
 	...[
-		{ output: "No verdict", reason: "Reviewer must end with one machine-readable verdict" },
-		{ output: "FLEET_REVIEW: broken", reason: "Reviewer verdict is malformed or lacks evidence" },
+		{ code: "fleet-invalid" as const, output: "No verdict", reason: "Reviewer must end with one machine-readable verdict" },
+		{ code: "fleet-invalid" as const, output: "FLEET_REVIEW: broken", reason: "Reviewer verdict is malformed or lacks evidence" },
 		{
+			code: "fleet-invalid" as const,
 			output: verdict({ evidence: ["Inspected"], findings: ["Unfixed"], head: HEAD, verdict: "approve" }),
 			reason: "Reviewer changes require findings; approval requires no findings",
 		},
 	].map(
 		(scenario): RecoveryCase => ({
+			code: scenario.code,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryWorker(ctx);
 				for (let turn = 0; turn < 2; turn += 1) {
@@ -46,11 +47,11 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 			}),
 			name: scenario.reason,
 			progress: newReview,
-			reason: scenario.reason,
-			sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		}),
 	),
 	{
+		code: "fleet-invalid" as const,
 		enter: Effect.fnUntraced(function* (ctx) {
 			yield* finishRecoveryWorker(ctx);
 			setLastObservation(ctx, {
@@ -61,7 +62,7 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 		}),
 		name: "review head is not the result head",
 		progress: newReview,
-		reason: "Independent review must bind evidence to the actual head",
-		sites: ["engine/reconcileCommand.ts: failureMessage(error)"],
+
+		sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 	},
 ];

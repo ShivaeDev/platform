@@ -12,8 +12,7 @@ export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function
 		Effect.retry({ schedule: Schedule.spaced("500 millis"), times: 19 }),
 		Effect.mapError(() => new ServiceUnavailable({ message: "Fleet daemon could not read work states after 20 consecutive attempts" })),
 	);
-	const snapshots = yield* Stream.tick("500 millis").pipe(
-		Stream.mapEffect(() => read),
+	const snapshots = yield* sql.reactive([`${host.namespace}_records`], read).pipe(
 		Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
 		Stream.share({ capacity: 1, replay: 1, strategy: "sliding" }),
 	);

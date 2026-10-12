@@ -1,7 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { MOVED_PR_HEAD_REASON } from "#engine/deliveryFailure.ts";
 import { Fleet } from "#fleet.ts";
 import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
@@ -23,6 +22,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 	return [
 		...(["missing", "stale"] as const).map(
 			(evidence): RecoveryCase => ({
+				code: "pr-head-moved" as const,
 				enter: Effect.fnUntraced(function* (ctx) {
 					yield* finishRecoveryReview(ctx);
 					const fleet = yield* Fleet;
@@ -45,11 +45,12 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 					expect(after.mergeReadyAt).toBeUndefined();
 					expect(ctx.fixture.reviews).toEqual([HEAD, MOVED]);
 				},
-				reason: MOVED_PR_HEAD_REASON,
-				sites: ["engine/makeDeliver.ts: observed.failure.message", "engine/makeDeliver.ts: reason"],
+
+				sites: ["engine/makeDeliver.ts: failureCode(observed.failure)", "engine/makeDeliver.ts: code"],
 			}),
 		),
 		{
+			code: "reviewed-pr-ready" as const,
 			enter: finishRecoveryReview,
 			name: "ready for human merge",
 			progress: (_ctx, before, after) => {
@@ -60,10 +61,10 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				expect(after.review).toBeUndefined();
 				expect(after.checks).toBeUndefined();
 			},
-			reason: "Reviewed PR is ready to merge",
-			sites: ['engine/mergeReadiness.ts: "Reviewed PR is ready to merge"'],
+			sites: ['engine/mergeReadiness.ts: "reviewed-pr-ready"'],
 		},
 		{
+			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryReview(ctx);
 				ctx.github.state.status = "CLOSED";
@@ -74,14 +75,14 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				expect(after.stage).toBe("completed");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			},
-			reason: "PR was closed without merging; inspect the closed PR before retrying or releasing this work",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					ctx.github.state.status = "MERGED";
 				}),
-			sites: ["engine/makeDeliver.ts: observed.failure.message", "engine/makeDeliver.ts: reason"],
+			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)", "engine/makeDeliver.ts: code"],
 		},
 		{
+			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* finishRecoveryReview(ctx);
 				ctx.github.state.head = MOVED;
@@ -94,14 +95,14 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
 				expect(after.attempts.at(-1)).toMatchObject({ reviewHead: MOVED, role: "reviewer" });
 			},
-			reason: "Result needs evidence and known reserved scope",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					ctx.github.state.paths = ["src/one.ts"];
 				}),
-			sites: ["engine/makeDeliver.ts: error.message"],
+			sites: ["engine/makeDeliver.ts: failureCode(error)"],
 		},
 		{
+			code: "delivery-head-mismatch" as const,
 			enter: finishRecoveryReview,
 			name: "delivery differs from reviewed head",
 			options: {
@@ -116,14 +117,14 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				expect(after.stage).toBe("completed");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			},
-			reason: "Delivered revision differs from reviewed head",
 			restore: () =>
 				Effect.sync(() => {
 					wrongDelivery = false;
 				}),
-			sites: ['engine/makeDeliver.ts: "Delivered revision differs from reviewed head"'],
+			sites: ['engine/makeDeliver.ts: "delivery-head-mismatch"'],
 		},
 		{
+			code: "fleet-integration" as const,
 			enter: finishRecoveryReview,
 			name: "delivery integration unavailable",
 			options: { deliveryQuery: observeDelivery },
@@ -131,12 +132,11 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				expect(deliveries).toBe(1);
 				expect(after.stage).toBe("completed");
 			},
-			reason: "Synthetic delivery unavailable",
 			restore: () =>
 				Effect.sync(() => {
 					wrongDelivery = false;
 				}),
-			sites: ["engine/makeDeliver.ts: observed.failure.message"],
+			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
 		},
 	];
 }

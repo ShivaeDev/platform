@@ -12,6 +12,7 @@
 - Opt-in managed decision requests can be acknowledged by immutable, exact-context `request_receipt` records. Applied receipts require the unique current answer; superseded receipts retire the old request without fabricating a reply. The overview and response surface exclude qualified acknowledged requests while preserving their original source. Authored requests remain source-driven, and receipts grant no execution, acceptance or delivery authority.
 - `checkNativeAsset()` in `http/assets.ts` checks bundle availability and logs the missing-bundle warning through Effect.
 - `documentBody(document)` reads display prose from the existing registered-question format or the ordinary parsed document body.
+- The existing `page/diagrams.ts` and `page/swap.ts` entry points expose the related `diagrams` and `swap` browser script strings together.
 - A Vite React client bundle and Tailwind theme are served alongside the native client without changing the current pages.
 - The `rpc/handlers.ts` module exports `handlers(options: ServerOptions)`, an Effect that reads the Board services and returns the native RPC handler layer, so component tests can use the same handlers with an in-memory Markdown index.
 - `http/assets.ts` exports `ASSET_HANDLERS`, the static and bundled asset route/handler pairs used by the Board server.

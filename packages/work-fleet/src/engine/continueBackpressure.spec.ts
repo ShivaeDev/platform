@@ -19,7 +19,8 @@ describe("continuation launch backpressure", () => {
 					launch,
 					now: () => now,
 					resultQuery: (_board, observation) => Effect.succeed({ evidence: [observation.output], head: "current-main", kind: "no-change" }),
-					submissionFailure: () => (reject ? new SessionFailure({ message: "Request queue is full", reason: "rejected" }) : undefined),
+					submissionFailure: () =>
+						reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
 				},
 				(fixture) =>
 					Effect.gen(function* () {

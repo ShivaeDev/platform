@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type { DecisionCode } from "#DecisionCode.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
@@ -12,11 +13,11 @@ export interface RecoveryContext {
 	readonly source: string;
 }
 export interface RecoveryCase {
+	readonly code: DecisionCode;
 	readonly enter: (context: RecoveryContext) => Effect.Effect<unknown, unknown, typeof Fleet.Identifier>;
 	readonly name: string;
 	readonly options?: EngineOptions;
 	readonly progress?: (context: RecoveryContext, before: FleetRecord, after: FleetRecord) => void;
-	readonly reason: string | RegExp;
 	readonly restore?: (context: RecoveryContext) => Effect.Effect<unknown, unknown, typeof Fleet.Identifier>;
 	readonly sites: readonly string[];
 }

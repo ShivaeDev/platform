@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { DecisionCode } from "#DecisionCode.ts";
 
 export const ProviderCapacity = Schema.Literals(["rateLimitExceeded", "flexUnavailable", "serverOverloaded"]);
 
@@ -17,6 +18,7 @@ export type SessionObservation = typeof SessionObservation.Type;
 
 export class SessionFailure extends Schema.TaggedError<SessionFailure>()("SessionFailure", {
 	capacity: Schema.optional(ProviderCapacity),
+	code: Schema.optional(DecisionCode),
 	message: Schema.String,
 	reason: Schema.Literals(["unavailable", "rejected", "ambiguous", "protocol", "persistence"]),
 	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),

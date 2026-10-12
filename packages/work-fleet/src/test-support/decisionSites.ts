@@ -40,7 +40,7 @@ export function sourceDecisionSites(file: string, source: string) {
 		if (node.name.getText(tree) === "stage" && node.initializer.getText(tree) === '"needs-human"') {
 			return node;
 		}
-		if (node.name.getText(tree) !== "reason" || !ts.isObjectLiteralExpression(node.parent)) {
+		if (node.name.getText(tree) !== "code" || !ts.isObjectLiteralExpression(node.parent)) {
 			return undefined;
 		}
 		const parent = node.parent.parent;

@@ -1,0 +1,48 @@
+import { Effect } from "effect";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MarkdownAsync } from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import type { PluggableList } from "unified";
+import type { documentHeadings } from "#render/documentHeadings.ts";
+import { documentLinks } from "#render/documentLinks.ts";
+import { documentPlugins } from "#render/documentPlugins.ts";
+import { RenderFailed } from "#render/failed.ts";
+import { footnoteIds } from "#render/footnotes.ts";
+import { Highlighter } from "./Highlighter.ts";
+
+export interface RenderOptions {
+	readonly file?: string;
+	readonly headings?: ReturnType<typeof documentHeadings>;
+	readonly idPrefix?: string;
+	readonly questionActions?: ReadonlyMap<string, string>;
+	readonly safe?: boolean;
+}
+
+export const renderMarkdown = Effect.fn("WorkBoard.renderMarkdown")(function* (source: string, options: RenderOptions = {}) {
+	const highlighter = yield* Highlighter;
+	const plugins: PluggableList = [...(options.safe ? [] : [rehypeRaw]), yield* highlighter.codeBlocks()];
+	if (options.idPrefix !== undefined) {
+		plugins.push(footnoteIds(options.idPrefix));
+	}
+	if (options.file !== undefined) {
+		plugins.push(documentLinks(options.file));
+	}
+	if (options.headings !== undefined) {
+		plugins.push(options.headings.plugin);
+	}
+	const html = yield* Effect.tryPromise({
+		catch: (cause) => new RenderFailed({ cause }),
+		try: async () =>
+			renderToStaticMarkup(
+				await MarkdownAsync({
+					children: source,
+					components: { img: ({ node: _node, ...props }) => createElement("img", { ...props, loading: "lazy" }) },
+					rehypePlugins: plugins,
+					remarkPlugins: documentPlugins(options.questionActions),
+					skipHtml: options.safe,
+				}),
+			),
+	});
+	return html;
+});

@@ -1,17 +1,17 @@
 import { Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
 import { HttpServerRequest } from "effect/unstable/http";
-import { readDocument } from "#document/read.ts";
-import type { Change, Changes } from "#files/changes.ts";
-import { HandoffsService } from "#handoffs/Service.ts";
-import { page } from "#http/page.ts";
-import { metadataModel } from "#metadata/model.ts";
-import { metadataParse } from "#metadata/parse.ts";
-import { Highlighter } from "#render/Highlighter.ts";
-import { ResponseConfig, Responses } from "#responses/service.ts";
-import { handlers } from "#rpc/handlers.ts";
-import { entriesOf } from "#search/entries.ts";
-import { metadataEntries } from "#search/metadataEntries.ts";
-import type { Snapshot } from "#search/snapshot.ts";
+import { readDocument } from "#server/document/read.ts";
+import type { Change, Changes } from "#server/files/changes.ts";
+import { HandoffsService } from "#server/handoffs/Service.ts";
+import { page } from "#server/http/page.ts";
+import { metadataModel } from "#server/metadata/model.ts";
+import { metadataParse } from "#server/metadata/parse.ts";
+import { Highlighter } from "#server/render/Highlighter.ts";
+import { ResponseConfig, Responses } from "#server/responses/service.ts";
+import { handlers } from "#server/rpc/handlers.ts";
+import { entriesOf } from "#server/search/entries.ts";
+import { metadataEntries } from "#server/search/metadataEntries.ts";
+import type { Snapshot } from "#server/search/snapshot.ts";
 
 export function inMemoryBoard(files: Readonly<Record<string, string>>) {
 	return Layer.unwrap(

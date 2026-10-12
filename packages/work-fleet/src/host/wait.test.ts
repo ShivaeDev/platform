@@ -1,8 +1,10 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { WAIT_EXIT } from "#host/wait.ts";
-import { storeState, waitProcess, withHost } from "#test/fleetHost.ts";
+import { type HostFixture, waitProcess, withHost } from "#test/fleetHost.ts";
+import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
+import { storeState } from "#test/storeState.ts";
 
 describe("work-fleet wait against PostgreSQL and HTTP", () => {
 	const test = postgresTests("live");
@@ -32,14 +34,16 @@ describe("work-fleet wait against PostgreSQL and HTTP", () => {
 		);
 	}, 60_000);
 
-	test("wait keeps polling until Fleet first records the work", function* () {
-		yield* withHost({}, {}, (fixture) =>
-			Effect.gen(function* () {
-				const waiting = waitProcess(fixture.configFile, "late");
-				yield* Effect.sleep("3 seconds");
-				yield* storeState(fixture.host, "late", { stage: "released" });
-				expect(yield* Effect.promise(() => waiting)).toEqual({ code: WAIT_EXIT.released, stdout: "late released" });
-			}),
-		);
-	});
+	test("wait follows a commit when Fleet first records the work", () => withHost({}, {}, lateStory));
+});
+
+const lateStory = Effect.fn("WaitTest.lateStory")(function* (fixture: HostFixture) {
+	yield* withFollower(fixture.configFile, "wait", ["late"], {}, (follower) =>
+		Effect.gen(function* () {
+			yield* Effect.promise(() => follower.ready);
+			yield* storeState(fixture.host, "late", { stage: "released" });
+			yield* untilOutput(follower, "late released");
+			expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: WAIT_EXIT.released, stdout: "late released" });
+		}),
+	);
 });

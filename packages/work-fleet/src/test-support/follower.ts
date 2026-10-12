@@ -41,6 +41,8 @@ export function withFollower<A, E, R>(
 					process.execPath,
 					[
 						"--conditions=source",
+						"--import",
+						fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url)),
 						cli,
 						command,
 						...ids,
@@ -63,13 +65,14 @@ export function withFollower<A, E, R>(
 				});
 				const done = new Promise<FollowRun>((resolve, reject) => {
 					child.on("error", reject);
-					child.on("close", (code) =>
-						resolve({
-							code,
-							stderr: stderr.trim(),
-							stdout: stdout.trim(),
-						}),
-					);
+					function finish(code: number | null) {
+						if (code === 97) {
+							reject(new Error("Fleet client attempted a direct PostgreSQL connection"));
+						} else {
+							resolve({ code, stderr: stderr.trim(), stdout: stdout.trim() });
+						}
+					}
+					child.on("close", finish);
 				});
 				return { child, done, output: () => stdout, ready: options.port === undefined ? ready.promise : Promise.resolve() };
 			}),

@@ -3,11 +3,12 @@ import { codexAdapter } from "#providers/codexAdapter.ts";
 import { failure } from "#providers/codexRpc.ts";
 import type { CodexRequest } from "#providers/codexTurns.ts";
 import type { ContinueSession } from "#session/schema.ts";
+import { SessionFailure } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 
 const Page = Schema.Struct({ cursor: Schema.NullOr(Schema.String) });
 
-export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
+export const activeTurn = Effect.fn("Test.activeTurn")(function* (message = "Codex rejected the protocol request: turn already active for thread") {
 	const waiting = yield* Deferred.make<void>();
 	const submissions: unknown[] = [];
 	const pollTimes: number[] = [];
@@ -21,7 +22,9 @@ export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
 				pollTimes.push(yield* Clock.currentTimeMillis);
 				return { data: [{ id: "finished-turn", items: [], status: "completed" }], nextCursor: "active-page" };
 			}
-			yield* Deferred.succeed(waiting, undefined);
+			if (pollTimes.length >= 2) {
+				yield* Deferred.succeed(waiting, undefined);
+			}
 			return { data: [{ id: "steered-turn", items: [], status: active ? "inProgress" : "completed" }], nextCursor: null };
 		});
 	}
@@ -29,7 +32,7 @@ export const activeTurn = Effect.fn("Test.activeTurn")(function* () {
 		return Effect.gen(function* () {
 			submissions.push(params);
 			if (active) {
-				return yield* failure("rejected", "Codex rejected the protocol request: turn already active for thread");
+				return yield* new SessionFailure({ code: "session-rejected", message, reason: "rejected" });
 			}
 			const receipt = yield* transport.startTurn(input);
 			return { turn: { id: receipt.turnId } };

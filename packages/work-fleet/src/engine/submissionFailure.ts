@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { SessionFailure } from "#session/schema.ts";
 
@@ -20,6 +21,7 @@ export const submissionFailure = Effect.fn("Fleet.submissionFailure")(function* 
 	);
 	yield* state.decision(
 		yield* state.save(current, { ...current.value, attempts }),
+		failureCode(error),
 		error.message,
 		unresolvedSession ? "Reconcile the acknowledged session before retrying" : recommendation,
 	);

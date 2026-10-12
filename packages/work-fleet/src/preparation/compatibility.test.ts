@@ -30,6 +30,7 @@ it.effect("requires preparation for source, runner, dependency, quality and scop
 	for (const path of paths) {
 		expect(yield* assessPreparation(prepared(), mainObservation({ changedPaths: [path] }))).toEqual({
 			_tag: "Reprepare",
+			code: "relevant-change",
 			paths: [path],
 			reason: "relevant-change",
 		});

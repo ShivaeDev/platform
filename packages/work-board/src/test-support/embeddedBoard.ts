@@ -1,8 +1,8 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
-import { boardLayer } from "#board.ts";
-import { listenOn } from "#serve.ts";
+import { boardLayer } from "#server/board.ts";
+import { listenOn } from "#server/serve.ts";
 
 export const embeddedBoard = Effect.fn("Test.embeddedBoard")(function* (root: string) {
 	const health = HttpRouter.use((router) => router.add("GET", "/health", Effect.succeed(HttpServerResponse.text("healthy"))));
