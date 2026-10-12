@@ -39,7 +39,7 @@ catalog:
   rehype-raw: 7.0.0
   unist-util-visit: 5.0.0
   unified: 11.0.5
-  happy-dom: 20.11.2
+  happy-dom: 20.14.5
   mermaid: 11.16.1
   ignore: 7.0.12
   sort-package-json: 4.0.0
