@@ -4,15 +4,15 @@ This file owns `effect-trpc` implementation status and local next work. The [fra
 
 ## Built
 
-- Generator queries and mutations over an application runtime and request services, including context supplied by tRPC middleware and request-Layer extensions that consume base services. `src/adapter.test.ts` covers runtime execution; `src/procedure.typecheck.test.ts` rejects missing services.
+- Generator queries and mutations over an application runtime and request services, including context supplied by tRPC middleware and request-Layer extensions that consume base services. `src/server/adapter.test.ts` covers runtime execution; `src/server/EffectProcedureBuilder.typecheck.test.ts` rejects missing services.
 - Effect Schema input and output decoding with encoded/decoded caller and resolver types. Adapter runtime tests and procedure type tests cover the distinction, including subscription output decoding.
-- Stream subscriptions with request services, scoped finalizers and interruption when a caller signal aborts. `src/adapter.test.ts` observes values, stream instrumentation and finalization; `src/internal/runtime.test.ts` covers pure interruption's transport error.
-- Explicit tRPC errors, application error mapping and redaction of unmapped failures and defects. Adapter/runtime tests cover resolver, request-Layer, mapper and Effect-instrumentation defects; `src/httpRejections.spec.ts` checks opaque serialized failures.
-- Tagged declared rejection encoding, taxonomy code mapping, custom code selection and formatter composition. `src/rejection.test.ts` and `src/httpRejections.spec.ts` cover fields, messages, encodings, HTTP statuses and mixed batches.
-- Input-validation field paths and the reserved `invalidInput` mark. `src/inputRejections.spec.ts` covers dotted paths, array indexes, whole-input issues and stripping forged marks; `src/rejection.typecheck.test.ts` rejects reserved fields.
+- Stream subscriptions with request services, scoped finalizers and interruption when a caller signal aborts. `src/server/adapter.test.ts` observes values, stream instrumentation and finalization; `src/server/internal/runtime.test.ts` covers pure interruption's transport error.
+- Explicit tRPC errors, application error mapping and redaction of unmapped failures and defects. Adapter/runtime tests cover resolver, request-Layer, mapper and Effect-instrumentation defects; `src/server/httpRejections.spec.ts` checks opaque serialized failures.
+- Tagged declared rejection encoding, taxonomy code mapping, custom code selection and formatter composition. `src/server/rejection.test.ts` and `src/server/httpRejections.spec.ts` cover fields, messages, encodings, HTTP statuses and mixed batches.
+- Input-validation field paths and the reserved `invalidInput` mark. `src/server/inputRejections.spec.ts` covers dotted paths, array indexes, whole-input issues and stripping forged marks; `src/server/rejection.typecheck.test.ts` rejects reserved fields.
 - Client rejection reading and schema decoding, including malformed carriers and unknown tags. HTTP rejection tests and rejection type tests cover values, class instances and synchronous decoder requirements.
-- Reuse of `effect-contract` operation error schemas with generated and reused rejection classes. `src/contractRejections.spec.ts` also checks opaque failures for an operation without declared rejections.
-- An Effect-shaped caller and application-defined test harness built on `effect-test`. `src/testing/vitest.test.ts` covers runtime service overrides, alternate contexts, table cases and harness services; its type tests preserve caller and harness types.
+- Reuse of `effect-contract` operation error schemas with generated and reused rejection classes. `src/server/contractRejections.spec.ts` also checks opaque failures for an operation without declared rejections.
+- An Effect-shaped caller and application-defined test harness built on `effect-test`. `src/server/testing/vitest.test.ts` covers runtime service overrides, alternate contexts, table cases and harness services; its type tests preserve caller and harness types.
 
 ## Next
 

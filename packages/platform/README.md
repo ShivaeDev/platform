@@ -206,7 +206,7 @@ export const save = storageSave.pipe(expose);
 
 `storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so an RPC server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
 
-The native HTTP RPC fixture in `src/rpc-server/unauthenticatedRejections.spec.ts` proves decoded taxonomy types, redacted fallback messages and the original server trace cause without session middleware. Work Board's `src/rpc/rejectionTypes.spec.ts` proves its adoption through real loopback HTTP.
+The native HTTP RPC fixture in `src/server/rpc-server/unauthenticatedRejections.spec.ts` proves decoded taxonomy types, redacted fallback messages and the original server trace cause without session middleware. Work Board's `src/server/rpc/rejectionTypes.spec.ts` proves its adoption through real loopback HTTP.
 
 ### Request diagnostics
 
@@ -385,7 +385,7 @@ The exports also include the adapter's translation modules: `makeRowAdapter` and
 pnpm add @shivaedev/platform effect@4.0.0-rc.112
 ```
 
-Effect is the only required peer. The peer-free implementation lives in `src/core/`; explicit exports retain the defining-module import paths listed above. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
+Effect is the only required peer. The peer-free implementation lives in the shared `src/errors/` and `src/rpc/` folders and the `src/server/node-http/`, `src/server/rpc-server/` and `src/server/runtime/` folders; explicit exports retain the defining-module import paths listed above. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
 
 Install the optional peers for the selected integration:
 

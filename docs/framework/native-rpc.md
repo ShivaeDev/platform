@@ -72,7 +72,7 @@ Invalidation does not automatically broadcast changes to other clients.
 - [Contract round trips](../../packages/effect-contract/src/contract.test.ts):
   declared operations return handler results and preserve rejections through a
   native client; middleware can deny a request.
-- [Public error round trips](../../packages/platform/src/core/errors/roundTrip.spec.ts):
+- [Public error round trips](../../packages/platform/src/errors/roundTrip.spec.ts):
   taxonomy errors cross native RPC JSON as decoded instances with their fields.
 - [Compile assertions](../../packages/effect-contract/src/compilerFixtures.spec.ts):
   incorrect payloads, incorrect handler results and undeclared rejections are
