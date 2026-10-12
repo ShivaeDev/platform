@@ -2,7 +2,7 @@ import { HttpServerResponse } from "effect/unstable/http";
 
 const POLICY = [
 	"default-src 'self'",
-	"script-src 'self'",
+	"script-src 'self' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data: https:",
 	"object-src 'none'",

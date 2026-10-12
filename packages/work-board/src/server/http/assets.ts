@@ -105,6 +105,14 @@ const BUNDLED_ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, ReturnType<t
 	["/_board/react.css", bundledAsset("react.css", "text/css")],
 ];
 
+const reactChunk = Effect.fn("WorkBoard.reactChunk")(function* (request: HttpServerRequest.HttpServerRequest) {
+	const name = new URL(request.url, "http://127.0.0.1").pathname.slice("/_board/react-assets/".length);
+	if (!/^[a-zA-Z\d_-]+\.js$/u.test(name)) {
+		return respond("Not found", "text/plain", 404);
+	}
+	return yield* bundledAsset(`react-assets/${name}`, "text/javascript")();
+});
+
 function bundledAsset(file: string, contentType: string) {
 	return Effect.fn("WorkBoard.bundledAsset")(function* () {
 		const fs = yield* FileSystem.FileSystem;
@@ -121,4 +129,5 @@ function bundledAsset(file: string, contentType: string) {
 export const ASSET_HANDLERS = [
 	...ASSETS.map(([route, body, type]) => [route, () => Effect.succeed(respond(body, type))] as const),
 	...BUNDLED_ASSETS,
+	["/_board/react-assets/*", reactChunk] as const,
 ];

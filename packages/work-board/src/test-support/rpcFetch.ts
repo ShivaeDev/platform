@@ -40,7 +40,7 @@ export async function rpcBefore(
 			throw new Error("Subscription transport unavailable");
 		}
 	}
-	if (call?.tag === "work-board.page" && JSON.stringify(call.payload).includes(JSON.stringify(path))) {
+	if ((call?.tag === "work-board.page" || call?.tag === "work-board.document") && JSON.stringify(call.payload).includes(JSON.stringify(path))) {
 		return answer(pageRequests, window);
 	}
 	return undefined;
@@ -60,7 +60,7 @@ export async function rpcAfter(
 	if (call?.tag === "work-board.subscribe" && response !== null) {
 		return streams[0]?.response(window, response, call.id);
 	}
-	if (call?.tag !== "work-board.page" || !JSON.stringify(call.payload).includes(JSON.stringify(path))) {
+	if ((call?.tag !== "work-board.page" && call?.tag !== "work-board.document") || !JSON.stringify(call.payload).includes(JSON.stringify(path))) {
 		return undefined;
 	}
 	pageRequests.answered += 1;

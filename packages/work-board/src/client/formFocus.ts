@@ -1,4 +1,4 @@
-interface FormFocus {
+export interface FormFocus {
 	readonly direction: "forward" | "backward" | "none" | null;
 	readonly end: number | null;
 	readonly name: string;

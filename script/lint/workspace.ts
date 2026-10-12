@@ -7,25 +7,27 @@ export interface WorkspacePackage {
 	readonly root: string;
 }
 
-const PACKAGE_ROOT = /^(packages\/[^/]+)\/package\.json$/u;
+const PACKAGE_ROOT = /^(?<root>(?:packages|examples)\/[^/]+)\/package\.json$/u;
 
 const decodeName = jsonDecoder(Schema.Struct({ name: Schema.optional(Schema.String) }));
 
-const packageAt = (path: string, raw: string): readonly WorkspacePackage[] => {
-	const root = PACKAGE_ROOT.exec(path)?.[1];
+function packageAt(path: string, raw: string): readonly WorkspacePackage[] {
+	const root = PACKAGE_ROOT.exec(path)?.groups?.root;
 	const decoded = decodeName(raw);
 	if (root === undefined || Result.isFailure(decoded) || decoded.success.name === undefined) {
 		return [];
 	}
 	return [{ name: decoded.success.name, root }];
-};
+}
 
-export const workspacePackages = (inventory: Inventory): readonly WorkspacePackage[] =>
-	inventory.manifests.flatMap((manifest) => packageAt(manifest.path, manifest.raw));
+export function workspacePackages(inventory: Inventory): readonly WorkspacePackage[] {
+	return inventory.manifests.flatMap((manifest) => packageAt(manifest.path, manifest.raw));
+}
 
-export const packageOf = (packages: readonly WorkspacePackage[], path: string): WorkspacePackage | undefined =>
-	packages.reduce<WorkspacePackage | undefined>(
+export function packageOf(packages: readonly WorkspacePackage[], path: string): WorkspacePackage | undefined {
+	return packages.reduce<WorkspacePackage | undefined>(
 		(found, candidate) =>
 			path.startsWith(`${candidate.root}/`) && (found === undefined || candidate.root.length > found.root.length) ? candidate : found,
 		undefined,
 	);
+}

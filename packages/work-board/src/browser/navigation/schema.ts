@@ -19,6 +19,7 @@ export class NavigationFolder extends Schema.Class<NavigationFolder>("Navigation
 }) {}
 
 export const Navigation = Schema.Struct({
+	home: Schema.optional(Schema.Struct({ file: Schema.String, identity: Schema.optional(Schema.String) })),
 	inboxCount: Schema.NullOr(Schema.Number),
 	records: Schema.Struct({ active: Schema.Boolean, count: Schema.Number, files: Schema.Array(NavigationFile) }),
 	tree: NavigationFolder,

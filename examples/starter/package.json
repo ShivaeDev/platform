@@ -1,0 +1,54 @@
+{
+	"name": "@shivaedev/starter",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#*": "./src/*"
+	},
+	"scripts": {
+		"build": "vite build",
+		"dev": "node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
+		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
+		"test": "vitest run",
+		"typecheck": "tsc6 --noEmit"
+	},
+	"dependencies": {
+		"@effect/atom-react": "catalog:",
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
+		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-react": "workspace:*",
+		"@shivaedev/effect-service": "workspace:*",
+		"@shivaedev/effect-sql": "workspace:*",
+		"@shivaedev/platform": "workspace:*",
+		"@tanstack/react-router": "catalog:",
+		"class-variance-authority": "catalog:",
+		"clsx": "catalog:",
+		"effect": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"tailwind-merge": "catalog:"
+	},
+	"devDependencies": {
+		"@effect/vitest": "catalog:",
+		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/effect-test-sql": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@tailwindcss/vite": "catalog:",
+		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"happy-dom": "catalog:",
+		"tailwindcss": "catalog:",
+		"typescript": "catalog:",
+		"vite": "catalog:",
+		"vitest": "catalog:"
+	},
+	"packageManager": "pnpm@12.8.1",
+	"engines": {
+		"node": ">=24"
+	}
+}

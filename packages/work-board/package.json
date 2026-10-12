@@ -35,6 +35,42 @@
 			"import": "./dist/*.js",
 			"default": "./dist/*.js"
 		},
+		"./integration/board.ts": {
+			"types": "./dist/server/integration/board.d.ts",
+			"source": "./src/server/integration/board.ts",
+			"import": "./dist/server/integration/board.js",
+			"default": "./dist/server/integration/board.js"
+		},
+		"./integration/responses.ts": {
+			"types": "./dist/server/integration/responses.d.ts",
+			"source": "./src/server/integration/responses.ts",
+			"import": "./dist/server/integration/responses.js",
+			"default": "./dist/server/integration/responses.js"
+		},
+		"./integration/attention.ts": {
+			"types": "./dist/server/integration/attention.d.ts",
+			"source": "./src/server/integration/attention.ts",
+			"import": "./dist/server/integration/attention.js",
+			"default": "./dist/server/integration/attention.js"
+		},
+		"./integration/diagnostics.ts": {
+			"types": "./dist/server/integration/diagnostics.d.ts",
+			"source": "./src/server/integration/diagnostics.ts",
+			"import": "./dist/server/integration/diagnostics.js",
+			"default": "./dist/server/integration/diagnostics.js"
+		},
+		"./integration/publication.ts": {
+			"types": "./dist/server/integration/publication.d.ts",
+			"source": "./src/server/integration/publication.ts",
+			"import": "./dist/server/integration/publication.js",
+			"default": "./dist/server/integration/publication.js"
+		},
+		"./integration/metadata.ts": {
+			"types": "./dist/integration/metadata.d.ts",
+			"source": "./src/integration/metadata.ts",
+			"import": "./dist/integration/metadata.js",
+			"default": "./dist/integration/metadata.js"
+		},
 		"./package.json": "./package.json",
 		"./browser/react/*": null,
 		"./browser/entry.ts": null,
@@ -475,41 +511,13 @@
 		"./page/boardHtml.ts": null,
 		"./page/documentHtml.ts": null,
 		"./rpc/transport.ts": null,
-		"./integration/board.ts": {
-			"types": "./dist/server/integration/board.d.ts",
-			"source": "./src/server/integration/board.ts",
-			"import": "./dist/server/integration/board.js",
-			"default": "./dist/server/integration/board.js"
-		},
-		"./integration/responses.ts": {
-			"types": "./dist/server/integration/responses.d.ts",
-			"source": "./src/server/integration/responses.ts",
-			"import": "./dist/server/integration/responses.js",
-			"default": "./dist/server/integration/responses.js"
-		},
-		"./integration/attention.ts": {
-			"types": "./dist/server/integration/attention.d.ts",
-			"source": "./src/server/integration/attention.ts",
-			"import": "./dist/server/integration/attention.js",
-			"default": "./dist/server/integration/attention.js"
-		},
-		"./integration/diagnostics.ts": {
-			"types": "./dist/server/integration/diagnostics.d.ts",
-			"source": "./src/server/integration/diagnostics.ts",
-			"import": "./dist/server/integration/diagnostics.js",
-			"default": "./dist/server/integration/diagnostics.js"
-		},
-		"./integration/publication.ts": {
-			"types": "./dist/server/integration/publication.d.ts",
-			"source": "./src/server/integration/publication.ts",
-			"import": "./dist/server/integration/publication.js",
-			"default": "./dist/server/integration/publication.js"
-		},
-		"./integration/metadata.ts": {
-			"types": "./dist/integration/metadata.d.ts",
-			"source": "./src/integration/metadata.ts",
-			"import": "./dist/integration/metadata.js",
-			"default": "./dist/integration/metadata.js"
+		"./browser/document/layout.ts": null,
+		"./browser/document/Details.ts": null,
+		"./browser/document/ReadingContext.ts": {
+			"types": "./dist/browser/document/ReadingContext.d.ts",
+			"source": "./src/browser/document/ReadingContext.ts",
+			"import": "./dist/browser/document/ReadingContext.js",
+			"default": "./dist/browser/document/ReadingContext.js"
 		}
 	},
 	"bin": {

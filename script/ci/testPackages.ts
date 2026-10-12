@@ -6,10 +6,11 @@ const Manifest = Schema.Struct({ name: Schema.String, scripts: Schema.optional(S
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
 
 export function testPackages(root: string) {
-	return readdirSync(join(root, "packages"))
+	return ["packages", "examples"]
+		.flatMap((zone) => (existsSync(join(root, zone)) ? readdirSync(join(root, zone)).map((name) => join(zone, name)) : []))
 		.sort()
 		.flatMap((name) => {
-			const directory = join(root, "packages", name);
+			const directory = join(root, name);
 			const path = join(directory, "package.json");
 			if (!existsSync(path)) {
 				return [];

@@ -2,6 +2,8 @@ import { useLocation } from "@tanstack/react-router";
 import { Option } from "effect";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import { DocumentMain } from "./DocumentMain.tsx";
+import { documentRoute } from "./documentRoute.ts";
 import { Header } from "./Header.tsx";
 import { LegacyMain } from "./LegacyMain.tsx";
 import { legacyPage, type MainLocation } from "./legacyPage.ts";
@@ -19,6 +21,10 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 		const doc = legacyPage(initial).getElementById("doc");
 		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };
 	});
+	const [bootstrapHome] = useState(() => {
+		const doc = legacyPage(initial).getElementById("doc");
+		return doc?.classList.contains("board-view") ? { file: doc.dataset.file ?? "", identity: doc.dataset.identity } : undefined;
+	});
 	const query = useQuery(api.navigation.query({ current: main.view ? "" : main.file }), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
 	const onPage = useCallback(
@@ -26,7 +32,14 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 		[],
 	);
 	useEffect(() => {
-		ready?.();
+		function start() {
+			if (document.getElementById("doc")?.dataset.route) {
+				ready?.();
+			}
+		}
+		start();
+		document.addEventListener("board-page", start);
+		return () => document.removeEventListener("board-page", start);
 	}, [ready]);
 	useEffect(() => {
 		function sync() {
@@ -53,7 +66,11 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 				<div className="sidebar-backdrop" hidden id={shellIds.sidebarBackdrop} />
 				<div className="page">
 					<Header count={data?.inboxCount ?? null} main={main} />
-					<LegacyMain api={api} initial={initial} onPage={onPage} url={location.pathname + location.searchStr} />
+					{documentRoute(location.pathname, data ? data.home : bootstrapHome) ? (
+						<DocumentMain api={api} initial={initial} onPage={onPage} url={location.pathname + location.searchStr} />
+					) : (
+						<LegacyMain api={api} initial={initial} onPage={onPage} url={location.pathname + location.searchStr} />
+					)}
 				</div>
 			</div>
 			{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

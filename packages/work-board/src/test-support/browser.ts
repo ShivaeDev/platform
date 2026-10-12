@@ -121,7 +121,9 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		)
 	) {
 		if ((yield* Clock.currentTimeMillis) >= deadline) {
-			throw new Error("The React shell did not initialize");
+			throw new Error(
+				`The React shell did not initialize: ${page.virtualConsolePrinter.readAsString()} · ${window.document.getElementById("doc")?.textContent}`,
+			);
 		}
 		yield* Effect.sleep("10 millis");
 	}

@@ -227,7 +227,7 @@ effectApp("retries the same route after a navigation request fails", function* (
 		const fetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
 			const call = await rpcCall(window, input, init);
-			if (fail && call?.tag === "work-board.page" && JSON.stringify(call.payload).includes(JSON.stringify("/flow.md"))) {
+			if (fail && call?.tag === "work-board.document" && JSON.stringify(call.payload).includes(JSON.stringify("/flow.md"))) {
 				return rpcFailure(window, call, new InternalServerError({ message: "Page rendering is unavailable." }));
 			}
 			return fetch(input, init);
@@ -240,5 +240,5 @@ effectApp("retries the same route after a navigation request fails", function* (
 	fail = false;
 	click('#files a[href="/flow.md"]');
 	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
-	expect(page.document.getElementById("navigation-status")?.textContent).toBe("");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toBe("")));
 });
