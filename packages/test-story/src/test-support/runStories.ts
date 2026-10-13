@@ -1,6 +1,6 @@
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { createVitest } from "vitest/node";
+import * as VitestNode from "vitest/node";
 import type { GenreTag } from "#genreTags.ts";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
@@ -29,8 +29,7 @@ export async function runStories({ include, tags = [], tagsFilter = [], testName
 	const stderr = new PassThrough();
 	const warnings: string[] = [];
 	stderr.on("data", (chunk: Buffer) => warnings.push(chunk.toString()));
-	const vitest = await createVitest(
-		"test",
+	const vitest = await VitestNode.createVitest(
 		{
 			config: false,
 			include: [include],

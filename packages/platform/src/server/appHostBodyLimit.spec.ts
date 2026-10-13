@@ -1,7 +1,7 @@
 import { request } from "node:http";
-import { Cause, Config, ConfigProvider, Effect, Exit, FileSystem, Layer, ManagedRuntime, Schema } from "effect";
-import { HttpIncomingMessage, HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { ByteSize, Cause, Config, ConfigProvider, Effect, Exit, Layer, ManagedRuntime, Schema } from "effect";
+import { HttpIncomingMessage, HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";
@@ -88,7 +88,7 @@ it("the bounded reader retains cached text and array-buffer reads", async () => 
 			const text = yield* bounded.text;
 			const bytes = yield* bounded.arrayBuffer;
 			return HttpServerResponse.text(`${text}\n${new TextDecoder().decode(bytes)}\n${yield* bounded.text}`);
-		}).pipe(Effect.provideService(HttpIncomingMessage.MaxBodySize, FileSystem.Size(128)));
+		}).pipe(Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(128)));
 	});
 	const runtime = ManagedRuntime.make(
 		appHost({

@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { recordColumns, recordJson } from "#storage/model.ts";
 
 export const readDecisionRecords = Effect.fn("Test.readDecisionRecords")(function* (namespace: string) {

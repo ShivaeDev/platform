@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createElement, useId } from "react";
 import { useDirty, useField, useSubmit } from "@shivaedev/effect-form/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";

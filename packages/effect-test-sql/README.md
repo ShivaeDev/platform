@@ -31,13 +31,13 @@ Define the tester in test support:
 ```ts
 import { expect } from "vitest";
 import { Config, Effect, Redacted } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
 
 const layer = makePostgresTestLayer({
-  url: Redacted.make(Effect.runSync(Config.string("TEST_DATABASE_URL"))),
+  url: Redacted.make(Effect.runSync(Config.String("TEST_DATABASE_URL"))),
   migrations: {
     lockTimeout: "5 seconds",
     loader: Migrator.fromRecord({

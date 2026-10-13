@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { Effect, Schema } from "effect"
-import { Model } from "effect/unstable/schema"
+import { Model } from "effect/schema"
 import { assertModelColumns } from "@shivaedev/effect-test-sql/assertModelColumns.ts"
 import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts"
 

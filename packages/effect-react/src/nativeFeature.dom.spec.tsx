@@ -1,10 +1,10 @@
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Effect, Layer, Option, Schema } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
-import { Model } from "effect/unstable/schema";
-import { SqlClient } from "effect/unstable/sql";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
+import { Model } from "effect/schema";
+import { SqlClient } from "effect/sql";
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";

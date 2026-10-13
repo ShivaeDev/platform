@@ -76,7 +76,7 @@ import { NodeServices } from "@effect/platform-node";
 import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
 import { withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
 import { Effect } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const build = Effect.gen(function* () {
   const held = yield* HeldLock;
@@ -149,7 +149,7 @@ The acquisition declarations use these types:
 import type { HeavyLockError } from "@shivaedev/heavy-lock/error.ts";
 import type { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
 import type { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
-import type { ChildProcessSpawner } from "effect/unstable/process";
+import type { ChildProcessSpawner } from "effect/process";
 
 export interface HeavyLockOptions {
   readonly command?: string | undefined;

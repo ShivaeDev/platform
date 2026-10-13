@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest";
 import { Context, Data, Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
 import { make } from "#form.ts";
 import { Invalid } from "#shape.ts";
@@ -142,7 +142,7 @@ it.live("a touched field has no schema message while its first async decode is p
 		const release = yield* Deferred.make<void>();
 		const name = Schema.String.pipe(
 			Schema.decodeTo(Schema.NonEmptyString, {
-				decode: SchemaGetter.transformOrFail((value) =>
+				decode: SchemaGetter.transformEffect((value) =>
 					Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(release)), Effect.as(value)),
 				),
 				encode: SchemaGetter.passthrough(),

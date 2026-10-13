@@ -1,4 +1,4 @@
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";

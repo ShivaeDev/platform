@@ -1,5 +1,5 @@
 import { Effect, type Layer, Schema } from "effect";
-import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
+import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "#errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";

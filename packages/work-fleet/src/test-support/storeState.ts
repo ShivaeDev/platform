@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Schema } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";

@@ -1,5 +1,5 @@
 import { Effect, Exit } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { competingStorage } from "#test/competingStorage.ts";
 import { postgresTests } from "#test/postgres.ts";

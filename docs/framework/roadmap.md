@@ -104,7 +104,7 @@ remain part of that handoff.
 - Which edit justifies optimism or offline writes, and who owns conflict
   resolution? Generic offline synchronization remains outside the default path.
 - When should the packages move from Effect `4.0.0-rc.112` to stable Effect 4?
-  Renovate holds the catalog at rc.112. Stable Effect moves `effect/unstable/*`
+  Renovate holds the catalog at rc.112. Stable Effect moves `effect/*`
   to `effect/*` and renames Config, CLI and Schema constructors; those changes
   are mechanical. Its `@effect/sql-pg` replaces `pg` with a native client:
   plain objects no longer bind as JSON, so `effect-sql` repository writes to

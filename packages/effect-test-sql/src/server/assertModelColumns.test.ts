@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
+import { Model } from "effect/schema";
 import { expect, it } from "vitest";
 import { assertModelColumns } from "./assertModelColumns.ts";
 

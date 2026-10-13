@@ -1,6 +1,7 @@
 import { Effect, Layer, Redacted, Result } from "effect";
-import { HttpServer } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";
@@ -30,7 +31,7 @@ effectApp("reruns the starter migration path without losing auth accounts or not
 		starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected TCP server");
 	}
 	const restartedUrl = `http://127.0.0.1:${server.address.port}`;

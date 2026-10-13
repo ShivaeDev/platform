@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 
 // Migration 5 is historical; future record fields belong in new numbered migrations.
 export const modelTableColumns = {

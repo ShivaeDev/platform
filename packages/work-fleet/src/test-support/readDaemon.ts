@@ -1,6 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer, Stream } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonHostOptions, daemonHttpLayer } from "#host/daemon.ts";
@@ -36,7 +37,7 @@ export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <
 ) {
 	const context = yield* Layer.build(readDaemonLayer(host, parts, 0, onSnapshot));
 	const address = Context.get(context, HttpServer.HttpServer).address;
-	if (address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP daemon");
 	}
 	return yield* use(address.port).pipe(Effect.provideContext(context));

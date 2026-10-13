@@ -22,7 +22,7 @@ const countWords = CountWords.handle(({ noteId }) =>
 export function noteWorker(config?: { readonly databaseUrl?: Redacted.Redacted<string>; readonly secret?: Redacted.Redacted<string> }) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const databaseUrl = config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
+			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const { auth } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			return NoteJobs.layer({ connectionString: Redacted.value(databaseUrl), jobs: [countWords] }).pipe(
 				Layer.provideMerge(appDatabase(databaseOptions(auth, databaseUrl))),

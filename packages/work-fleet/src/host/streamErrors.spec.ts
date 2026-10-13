@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Stream } from "effect";
-import { RpcGroup, RpcTest } from "effect/unstable/rpc";
+import { RpcGroup, RpcTest } from "effect/rpc";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";

@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { FetchHttpClient } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcClientError } from "effect/rpc/RpcClientError";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { isFleetError } from "#errors.ts";

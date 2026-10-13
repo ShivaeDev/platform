@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Redacted } from "effect";
-import { HttpStaticServer } from "effect/unstable/http";
+import { HttpStaticServer } from "effect/http";
 import { AppChanges, appHost } from "@shivaedev/platform/appHost.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes, Subscribe } from "#notes.ts";
@@ -30,7 +30,7 @@ export function starterHost(config?: {
 }) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const databaseUrl = config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
+			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const { auth, routes, sessions } = yield* makeAuth({ databaseUrl, ...(config?.secret === undefined ? {} : { secret: config.secret }) });
 			const database = databaseOptions(auth, databaseUrl);
 			const producer = noteProducer(Redacted.value(databaseUrl));

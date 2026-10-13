@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { SqlError } from "effect/sql/SqlError";
 export class StorageConflict extends Schema.TaggedError<StorageConflict>()("StorageConflict", {
 	actualVersion: Schema.NullOr(Schema.Number),
 	expectedVersion: Schema.NullOr(Schema.Number),

@@ -86,7 +86,7 @@ The hooks accept native atoms directly. This complete component module shows que
 import { RegistryProvider } from "@effect/atom-react";
 import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { Effect, Option } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 
 const report = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const rename = Atom.fn<string>()((title) =>
@@ -150,7 +150,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterProvider, useRouterState } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Predicate } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { api } from "./notes-client.ts";
 
@@ -320,7 +320,7 @@ Keep the signal and query identities stable:
 ```ts
 import { resumeSignal } from "@shivaedev/effect-react/resume-signal.ts";
 import { Effect } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 
 const resume = resumeSignal({ window });
 const query = Atom.makeRefreshOnSignal(resume)(Atom.make(Effect.succeed("ready")));
@@ -384,8 +384,8 @@ Configure Vitest with `test: { environment: "happy-dom" }`, or select that envir
 
 ```tsx
 import { Effect, Option, Ref, Schema } from "effect";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";

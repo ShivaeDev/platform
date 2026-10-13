@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Context, Deferred, Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { isolate, wholeStack } from "#test/order-example/isolation.ts";
 import {

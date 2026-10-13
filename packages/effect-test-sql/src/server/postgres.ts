@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, type Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/effect-sql/migrations.ts";
 import { connection, database } from "#internal/databases.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "./database.ts";

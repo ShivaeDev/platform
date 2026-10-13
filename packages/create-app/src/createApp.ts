@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { CreateAppError } from "./CreateAppError.ts";
 import { Template } from "./template.ts";
 

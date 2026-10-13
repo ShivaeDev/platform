@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Schema } from "effect"
-import { Rpc, RpcGroup } from "effect/unstable/rpc"
-import { Migrator } from "effect/unstable/sql"
+import { Rpc, RpcGroup } from "effect/rpc"
+import { Migrator } from "effect/sql"
 import { appHost, appDatabase, AppChanges } from "@shivaedev/platform/appHost.ts"
 
 const Api = RpcGroup.make(Rpc.make("ping", { success: Schema.String }))

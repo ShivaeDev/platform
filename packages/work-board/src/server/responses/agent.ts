@@ -1,8 +1,8 @@
 import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as RpcClient from "effect/unstable/rpc/RpcClient";
-import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization";
+import * as RpcClient from "effect/rpc/RpcClient";
+import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { waitForResponse } from "./waitFor.ts";

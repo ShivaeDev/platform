@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
+import { FetchHttpClient } from "effect/http";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { GitHub } from "#GitHub.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";

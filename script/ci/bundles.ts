@@ -11,7 +11,7 @@ const reports = join(".ci", "bundles");
 
 const program = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
-	const upload = yield* Config.boolean("CODECOV_UPLOAD").pipe(Config.withDefault(false));
+	const upload = yield* Config.Boolean("CODECOV_UPLOAD").pipe(Config.withDefault(false));
 	const tarballs = (yield* fs.readDirectory(archives)).filter((file) => file.endsWith(".tgz")).toSorted();
 	if (tarballs.length === 0) {
 		return yield* Effect.fail(new Error(`No package archives in ${archives}; run pnpm test:package --prepare ${archives}`));

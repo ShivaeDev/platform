@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { recordColumns, recordJson } from "#storage/model.ts";
 
 export const legacyStore = Effect.fn("FleetFixture.legacyStore")(function* (namespace: string) {

@@ -2,8 +2,8 @@ import { DatabaseSync } from "node:sqlite";
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { Layer, Logger, References, Tracer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/unstable/http";
-import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
+import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { expect } from "vitest";
 
 export const origin = "http://localhost:3000";

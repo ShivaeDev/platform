@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { expect } from "vitest";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";

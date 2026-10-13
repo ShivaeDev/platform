@@ -2,7 +2,8 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { DiagnosticsSources } from "@shivaedev/work-board/diagnostics/source.ts";
 import { boardHttp } from "#test/boardHttp.ts";
 import { withHost } from "#test/fleetHost.ts";
@@ -47,7 +48,7 @@ postgresTests("live")("Board reads real daemon health and owner counts over HTTP
 				readDaemonLayer(fixture.host, fixture.parts).pipe(Layer.provide(Layer.succeed(DiagnosticsSources)(observedLimits))),
 			);
 			const address = Context.get(context, HttpServer.HttpServer).address;
-			if (address._tag !== "TcpAddress") {
+			if (!NetAddress.isInetAddress(address)) {
 				return yield* Effect.die("Expected a TCP daemon");
 			}
 			rmSync(join(fixture.host.boardDir, "fleet/health.json"));

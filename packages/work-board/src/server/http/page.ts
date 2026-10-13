@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Option } from "effect";
-import type { HttpServerRequest } from "effect/unstable/http";
+import type { HttpServerRequest } from "effect/http";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { authoredQuestion } from "#server/attention/inbox.ts";
 import { documentBody } from "#server/document/body.ts";

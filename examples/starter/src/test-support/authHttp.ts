@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { expect } from "vitest";
 import { Notes } from "#notes.ts";
 

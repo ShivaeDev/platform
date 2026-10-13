@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { HttpClient } from "effect/unstable/http";
+import { HttpClient } from "effect/http";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { type CachedResponse, decodeResponse, fetchResponse } from "./httpResponse.ts";
 import { WatchError } from "./model.ts";

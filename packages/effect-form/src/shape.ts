@@ -1,8 +1,8 @@
 import { Data, type Duration, type Effect, type Schema, type Scope } from "effect";
-import type * as Atom from "effect/unstable/reactivity/Atom";
-import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
-import type { AtomRegistry } from "effect/unstable/reactivity/AtomRegistry";
-import type { Reactivity } from "effect/unstable/reactivity/Reactivity";
+import type * as Atom from "effect/reactivity/Atom";
+import type * as AtomRef from "effect/reactivity/AtomRef";
+import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
+import type { Reactivity } from "effect/reactivity/Reactivity";
 import type { FieldMessages } from "./messages.ts";
 import type { PersistedDraftConfig } from "./persistence.ts";
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Console, Effect, Path } from "effect";
-import { Command } from "effect/unstable/cli";
+import { Command } from "effect/cli";
 import { checkSkills } from "./checkSkills.ts";
 import { readInstalled } from "./installed.ts";
 import { AGENTS_SKILLS, BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD } from "./layout.ts";

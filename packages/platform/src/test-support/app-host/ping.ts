@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 
 export const Ping = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
 export const pingHandlers = Ping.toLayer({ ping: () => Effect.succeed("pong") });

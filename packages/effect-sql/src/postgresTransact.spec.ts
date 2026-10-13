@@ -1,5 +1,5 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { integration, onClient, onSqlError, Rejected, runPostgres, secondPool, setup, Unavailable } from "#test/postgres-transact.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";

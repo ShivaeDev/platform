@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect, Ref, Schema, Stream } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { contract } from "#contract.ts";
 import { type CommandShape, command, type QueryShape, type StreamShape, stream } from "#operation.ts";

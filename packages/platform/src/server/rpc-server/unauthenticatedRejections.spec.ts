@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Layer, Schema } from "effect";
-import { HttpRouter } from "effect/unstable/http";
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc";
+import { HttpRouter } from "effect/http";
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
 import { RequestTracing } from "#rpc/middleware.ts";

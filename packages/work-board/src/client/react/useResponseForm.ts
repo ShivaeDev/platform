@@ -1,6 +1,6 @@
 import { useAtomRef } from "@effect/atom-react";
 import { Equal, Layer, Option, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { useEffect, useRef, useState } from "react";
 import { useCreate } from "@shivaedev/effect-react/create.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";

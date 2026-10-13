@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import pg from "pg";
 import { vi } from "vitest";
 import { readWaitStates } from "#host/readWaitStates.ts";

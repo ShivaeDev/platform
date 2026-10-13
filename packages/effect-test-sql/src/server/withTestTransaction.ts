@@ -1,5 +1,5 @@
 import { Effect, Exit } from "effect";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { SqlError } from "effect/sql/SqlError";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 
 function isTestExit<A, E>(value: Exit.Exit<A, E> | SqlError): value is Exit.Exit<A, E> {

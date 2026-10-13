@@ -56,8 +56,8 @@ const program = Effect.gen(function* () {
 		tarballs,
 		values.registry ? (values["create-app-version"] ?? "latest") : undefined,
 	);
-	const database = yield* Config.string("TEST_DATABASE_URL").pipe(
-		Config.orElse(() => Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")),
+	const database = yield* Config.String("TEST_DATABASE_URL").pipe(
+		Config.orElse(() => Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")),
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL)),
 	);
 	yield* runStarter(starter, database);

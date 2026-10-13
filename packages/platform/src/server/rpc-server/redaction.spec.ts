@@ -1,7 +1,7 @@
 import { inspect } from "node:util";
 import { Cause, Effect, ErrorReporter, Exit, Layer, Schema } from "effect";
-import { Headers } from "effect/unstable/http";
-import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
+import { Headers } from "effect/http";
+import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";

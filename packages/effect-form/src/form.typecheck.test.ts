@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema, Scope } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import { AtomRegistry } from "effect/unstable/reactivity/AtomRegistry";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Atom from "effect/reactivity/Atom";
+import { AtomRegistry } from "effect/reactivity/AtomRegistry";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { make } from "#form.ts";
 import { FieldFailure } from "#shape.ts";
 

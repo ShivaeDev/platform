@@ -1,7 +1,7 @@
 import { type Effect, Layer, Schema } from "effect";
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { BrowserDraftConfig } from "@shivaedev/effect-form/react.ts";
 import type { Editor } from "#editor.ts";
 

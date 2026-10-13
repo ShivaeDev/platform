@@ -39,8 +39,8 @@ Use an `AtomRegistry` to mount and read atoms and write the submit atom. Own its
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { make } from "@shivaedev/effect-form/form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
@@ -83,8 +83,8 @@ The handler has three arguments: decoded values, the submitter, and the submitte
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { make } from "@shivaedev/effect-form/form.ts";

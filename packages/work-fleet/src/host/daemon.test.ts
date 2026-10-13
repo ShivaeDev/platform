@@ -1,7 +1,8 @@
 import { NodeHttpClient, NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Cause, Context, Effect, Layer } from "effect";
-import { HttpClient, HttpServer } from "effect/unstable/http";
+import { HttpClient, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { RPC_PATH } from "#host/daemonContract.ts";
@@ -35,8 +36,8 @@ const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: 
 				),
 			);
 			const address = Context.get(context, HttpServer.HttpServer).address;
-			expect(address).toMatchObject({ _tag: "TcpAddress", hostname: "127.0.0.1" });
 			const url = HttpServer.formatAddress(address);
+			expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
 			const client = yield* daemonClient(url);
 			fixture.write("one.md", task("one", "approved"));
 			yield* client("fleet.prepare", {
@@ -93,7 +94,7 @@ const occupiedPortStory = Effect.fn("DaemonTest.occupiedPortStory")(function* (f
 		),
 	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
-	if (address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(address)) {
 		throw new Error("Expected a TCP listener");
 	}
 	fixture.write("one.md", task("one", "approved"));

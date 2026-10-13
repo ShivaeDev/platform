@@ -3,10 +3,10 @@ import { HeavyLockError } from "./error.ts";
 import { HOLDER_ID_ENV } from "./holder.ts";
 
 const Environment = Config.all({
-	ci: Config.string("CI").pipe(Config.withDefault("")),
-	home: Config.option(Config.nonEmptyString("HOME")),
-	inherited: Config.option(Config.nonEmptyString(HOLDER_ID_ENV)),
-	lock: Config.option(Config.nonEmptyString("HEAVY_PROCESS_LOCK")),
+	ci: Config.String("CI").pipe(Config.withDefault("")),
+	home: Config.option(Config.NonEmptyString("HOME")),
+	inherited: Config.option(Config.NonEmptyString(HOLDER_ID_ENV)),
+	lock: Config.option(Config.NonEmptyString("HEAVY_PROCESS_LOCK")),
 });
 
 export interface Settings {

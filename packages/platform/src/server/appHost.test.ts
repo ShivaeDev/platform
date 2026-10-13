@@ -1,13 +1,14 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
-import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { Migrator, SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { AuthUnavailable, Conflict, Unauthorized } from "#errors/taxonomy.ts";
 import { Api, call, feature, handlers, post, sessions, staticAssets } from "#test/app-host/fixture.ts";
 
-const database = Effect.runSync(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 const test = it.runIf(database._tag === "Some");
 function destination() {
 	if (database._tag === "None") {
@@ -39,12 +40,12 @@ test("the host migrates before services, serves assets and guarded typed RPC, an
 	let url = "";
 	try {
 		const server = await runtime.runPromise(HttpServer.HttpServer);
-		expect(server.address._tag).toBe("TcpAddress");
-		if (server.address._tag !== "TcpAddress") {
+		expect(server.address._tag).toBe("InetAddressV4");
+		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected TCP");
 		}
-		url = `http://${server.address.hostname}:${server.address.port}`;
-		expect(server.address.hostname).toBe("127.0.0.1");
+		url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}`;
+		expect(NetAddress.formatIp(server.address.address)).toBe("127.0.0.1");
 		expect(lifecycle).toEqual(["started"]);
 		expect(await (await fetch(url)).text()).toBe("<main>Hosted app</main>");
 		expect(await (await fetch(`${url}/health`)).text()).toBe("Ready");

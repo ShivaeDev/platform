@@ -1,4 +1,4 @@
-import type { HttpClientResponse } from "effect/unstable/http";
+import type { HttpClientResponse } from "effect/http";
 
 export interface Budget {
 	blockedUntil: number;

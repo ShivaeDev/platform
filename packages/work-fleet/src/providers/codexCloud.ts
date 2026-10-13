@@ -1,5 +1,5 @@
 import { Context, Effect, FileSystem, Layer, Schema } from "effect";
-import { ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcessSpawner } from "effect/process";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { codexCloudConnection } from "#providers/codexCloudConnection.ts";

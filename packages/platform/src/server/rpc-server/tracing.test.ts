@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
-import { Headers } from "effect/unstable/http";
-import { Rpc, type RpcClient, RpcGroup, RpcMessage, RpcTest } from "effect/unstable/rpc";
+import { Headers } from "effect/http";
+import { Rpc, type RpcClient, RpcGroup, RpcMessage, RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
 import { rejectedField } from "#errors/rejected-field.ts";
 import { Conflict } from "#errors/taxonomy.ts";

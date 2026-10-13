@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { HttpRouter } from "effect/http";
 import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { boardLayer } from "#server/board.ts";

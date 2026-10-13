@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Console, Effect, Schema } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { lint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { decodeWith, validOrFail } from "#decoded.ts";

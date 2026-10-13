@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { invalidationKeys, type Key } from "@shivaedev/effect-contract/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 

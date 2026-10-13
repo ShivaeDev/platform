@@ -1,19 +1,18 @@
 import { appendFileSync, cpSync, readFileSync } from "node:fs";
 import process from "node:process";
 import { Config, Console, Effect } from "effect";
-import { createVitest, parseCLI } from "vitest/node";
+import * as VitestNode from "vitest/node";
 import { completeReports, failedFiles, readAttempt, saveAttempt, TimedJsonReporter, tests } from "./freshReports.ts";
 
 const rerun = process.argv[2] === "rerun";
-const { filter, options } = parseCLI(["vitest", "run", ...process.argv.slice(3)]);
+const { filter, options } = VitestNode.parseCLI(["vitest", "run", ...process.argv.slice(3)]);
 if (rerun) {
 	delete options.shard;
 	if (options.coverage) {
 		options.coverage.reportsDirectory = ".ci/coverage-rerun";
 	}
 }
-const vitest = await createVitest(
-	"test",
+const vitest = await VitestNode.createVitest(
 	{
 		...options,
 		config: options.config ?? "script/test/vitest.config.ts",
@@ -46,7 +45,7 @@ try {
 			throw new Error("No failed specifications found for fresh rerun");
 		}
 		await vitest.runTestSpecifications(specifications);
-		const summary = Effect.runSync(Config.string("GITHUB_STEP_SUMMARY").pipe(Config.withDefault("")));
+		const summary = Effect.runSync(Config.String("GITHUB_STEP_SUMMARY").pipe(Config.withDefault("")));
 		await completeReports(vitest, first, (line) => {
 			Effect.runSync(Console.log(line));
 			if (summary !== "") {

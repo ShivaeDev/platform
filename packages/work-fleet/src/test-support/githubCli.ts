@@ -1,7 +1,7 @@
 import process from "node:process";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 export function githubCli(responses: ReadonlyMap<string, string>, exitCode = 0) {
 	const commands: ChildProcess.Command[] = [];

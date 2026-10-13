@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, FileSystem, Layer, Scope, Tracer } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { DiagnosticsSources, type Sources } from "#diagnostics/source.ts";
 import { serveBoard } from "#server/serve.ts";
 
@@ -56,10 +57,11 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const context = yield* Layer.buildWithScope(board.pipe(Layer.provideMerge(tracer ? Layer.succeed(Tracer.Tracer, tracer) : Layer.empty)), scope);
 	const server = Context.get(context, HttpServer.HttpServer);
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("the board did not listen on TCP");
 	}
-	const { hostname, port } = server.address;
+	const hostname = NetAddress.formatIp(server.address.address);
+	const { port } = server.address;
 	return { hostname, port, stop: () => Scope.close(scope, Exit.void), url: `http://${hostname}:${port}` };
 });
 

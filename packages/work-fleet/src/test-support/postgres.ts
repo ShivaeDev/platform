@@ -1,5 +1,5 @@
 import { Config, Effect, Option, Redacted } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
@@ -7,8 +7,8 @@ import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransact
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
-const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
-const ci = Effect.runSync(Config.string("CI").pipe(Config.withDefault("")));
+const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
+const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));
 if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_EFFECT_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }

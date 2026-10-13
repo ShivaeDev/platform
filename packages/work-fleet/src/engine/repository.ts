@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";

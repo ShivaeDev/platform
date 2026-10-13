@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVitest } from "vitest/node";
+import * as VitestNode from "vitest/node";
 import { TestSequencer } from "#ci/TestSequencer.ts";
 import type { TimingSnapshot } from "#ci/timings.ts";
 
@@ -10,7 +10,7 @@ export async function vitestWorkspace() {
 	for (const file of ["heavy.test.ts", "shared.test.ts", "small.test.ts", "new.test.ts"]) {
 		writeFileSync(join(root, file), "");
 	}
-	const vitest = await createVitest("test", {
+	const vitest = await VitestNode.createVitest({
 		config: false,
 		projects: [
 			{ root, test: { include: ["*.test.ts"], name: "fixture:unit" } },

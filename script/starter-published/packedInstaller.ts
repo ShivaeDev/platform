@@ -28,5 +28,5 @@ process.exitCode = result.status ?? 1;
 `,
 	);
 	yield* fs.chmod(shim, 0o755);
-	return `${directory}:${yield* Config.string("PATH")}`;
+	return `${directory}:${yield* Config.String("PATH")}`;
 });

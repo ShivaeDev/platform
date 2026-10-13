@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
+import { ByteSize, Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
 import { Diagnostics, DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
 import { readDocument } from "#server/document/read.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
@@ -62,7 +62,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						mtime: Option.none(),
 						nlink: Option.none(),
 						rdev: Option.none(),
-						size: FileSystem.Size(0),
+						size: ByteSize.zero,
 						type: "Directory",
 						uid: Option.none(),
 					}),

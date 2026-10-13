@@ -1,5 +1,5 @@
 import { useAtomRef, useAtomSet, useAtomValue } from "@effect/atom-react";
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import type { DraftSession } from "#draftSession.ts";
 import type { DraftStorage, PersistedDraftConfig } from "#persistence.ts";

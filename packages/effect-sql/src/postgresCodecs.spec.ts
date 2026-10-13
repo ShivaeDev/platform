@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { BigDecimal, Effect, Redacted, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
-import { SqlClient } from "effect/unstable/sql";
+import { Model } from "effect/schema";
+import { SqlClient } from "effect/sql";
 import { expect, expectTypeOf, test } from "vitest";
 import { makeRepository } from "#repository.ts";
 import { environmentVariable } from "#test/environment.ts";

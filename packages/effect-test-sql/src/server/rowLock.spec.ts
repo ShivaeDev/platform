@@ -1,5 +1,5 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { integration, runDatabase, values } from "#test/postgres.ts";
 import { withTestTransaction } from "./withTestTransaction.ts";

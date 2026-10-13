@@ -1,5 +1,5 @@
 import { Effect, Fiber, Schema, Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { expect, it } from "vitest";
 import { collection } from "#keys.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";

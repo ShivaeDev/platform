@@ -1,5 +1,5 @@
 import { Effect, Schema, SchemaAST } from "effect";
-import { Model } from "effect/unstable/schema";
+import { Model } from "effect/schema";
 import { FleetRecord } from "#model.ts";
 import { recordValue } from "#storage/recordValue.ts";
 export interface Versioned<A> {

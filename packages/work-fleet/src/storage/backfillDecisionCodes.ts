@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import type { DecisionCode } from "#DecisionCode.ts";
 
 // These are historical persisted values, frozen independently of runtime copy.

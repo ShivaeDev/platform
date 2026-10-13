@@ -3,19 +3,19 @@ import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Console from "effect/Console";
+import * as Argument from "effect/cli/Argument";
+import * as CliError from "effect/cli/CliError";
+import * as Command from "effect/cli/Command";
+import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import * as Argument from "effect/unstable/cli/Argument";
-import * as CliError from "effect/unstable/cli/CliError";
-import * as Command from "effect/unstable/cli/Command";
-import * as Flag from "effect/unstable/cli/Flag";
 import { continueCommand, decideCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
 const serveCommand = Command.make(
 	"serve",
-	{ board: Argument.directory("board-dir"), config, port },
+	{ board: Argument.Directory("board-dir"), config, port },
 	Effect.fn("WorkFleetCli.serve")(function* (input) {
 		const { serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
 		yield* serveFleet(yield* host(input.board, input.config), undefined, input.port);
@@ -24,7 +24,7 @@ const serveCommand = Command.make(
 
 const dispatchCommand = Command.make(
 	"dispatch",
-	{ board, config, port, workId: Argument.string("id") },
+	{ board, config, port, workId: Argument.String("id") },
 	Effect.fn("WorkFleetCli.dispatch")(function* (input) {
 		const { daemonClient, daemonError } = yield* Effect.promise(() => import("#host/daemonClient.ts"));
 		const value = yield* Effect.scoped(
@@ -39,9 +39,9 @@ const statusCommand = Command.make(
 	{
 		board,
 		config,
-		json: Flag.boolean("json").pipe(Flag.withDefault(false), Flag.withDescription("Print the views as JSON")),
+		json: Flag.Boolean("json").pipe(Flag.withDefault(false), Flag.withDescription("Print the views as JSON")),
 		port,
-		workId: Argument.string("id").pipe(Argument.optional),
+		workId: Argument.String("id").pipe(Argument.optional),
 	},
 	Effect.fn("WorkFleetCli.status")(function* (input) {
 		const [{ daemonClient, daemonError }, { renderStatus }] = yield* Effect.promise(() =>

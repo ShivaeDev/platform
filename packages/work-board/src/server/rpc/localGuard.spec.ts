@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { RpcSerialization } from "effect/unstable/rpc";
+import { RpcSerialization } from "effect/rpc";
 import { describe, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";

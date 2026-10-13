@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { promisify } from "node:util";
 import { Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
+import { FetchHttpClient } from "effect/http";
 import { NodeFileSystem } from "@effect/platform-node";
 import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
 import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";

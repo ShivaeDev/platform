@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import type * as Atom from "effect/unstable/reactivity/Atom";
+import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect } from "react";
 import { session } from "#client/entry.ts";
 

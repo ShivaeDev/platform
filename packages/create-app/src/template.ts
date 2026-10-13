@@ -17,7 +17,20 @@ const Manifest = Schema.Struct({
 	type: Schema.String,
 	version: Schema.String,
 });
-const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest), { propertyOrder: "original" });
+const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
+// Decoding does not keep input key order, so the generated manifest lists its fields in package.json order.
+const manifestOrder = [
+	"name",
+	"version",
+	"private",
+	"type",
+	"imports",
+	"scripts",
+	"dependencies",
+	"devDependencies",
+	"packageManager",
+	"engines",
+] as const satisfies ReadonlyArray<keyof typeof Manifest.Type>;
 
 export function registryDependencies(dependencies: Readonly<Record<string, string>>, versions: Readonly<Record<string, string>>) {
 	return Object.fromEntries(
@@ -37,16 +50,13 @@ export function registryDependencies(dependencies: Readonly<Record<string, strin
 export function prepareManifest(source: string, versions: Readonly<Record<string, string>>) {
 	const manifest = decodeManifest(source);
 	const { "check:published": _check, ...scripts } = manifest.scripts;
-	return `${JSON.stringify(
-		{
-			...manifest,
-			dependencies: registryDependencies(manifest.dependencies, versions),
-			devDependencies: registryDependencies(manifest.devDependencies, versions),
-			scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
-		},
-		null,
-		"\t",
-	)}\n`;
+	const prepared = {
+		...manifest,
+		dependencies: registryDependencies(manifest.dependencies, versions),
+		devDependencies: registryDependencies(manifest.devDependencies, versions),
+		scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
+	};
+	return `${JSON.stringify(Object.fromEntries(manifestOrder.map((key) => [key, prepared[key]])), null, "\t")}\n`;
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {

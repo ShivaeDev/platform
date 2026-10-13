@@ -1,6 +1,6 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import { Deferred, Effect, Fiber, FileSystem, Layer, PlatformError } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientError, HttpClientRequest } from "effect/unstable/http";
+import { FetchHttpClient, HttpClient, HttpClientError, HttpClientRequest } from "effect/http";
 import { expect } from "vitest";
 import { GitHub } from "#GitHub.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";

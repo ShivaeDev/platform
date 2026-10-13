@@ -1,6 +1,6 @@
 import { Effect, Exit, Layer, Scope, Stream } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import type { HistoryInput } from "#history/schema.ts";
 import { workRpcs } from "#rpc/contract.ts";

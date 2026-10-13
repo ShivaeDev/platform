@@ -21,7 +21,7 @@ if (path !== undefined && existsSync(path)) {
 		.map((item) => `| ${item.name.replace(`${process.cwd()}/`, "")} | ${(item.durationMs / 1000).toFixed(2)} |`);
 	const summary = ["| Work | Seconds |", "| --- | ---: |", ...rows, ""].join("\n");
 	await Effect.runPromise(Console.log(summary));
-	const destination = Effect.runSync(Config.string("GITHUB_STEP_SUMMARY").pipe(Config.withDefault("")));
+	const destination = Effect.runSync(Config.String("GITHUB_STEP_SUMMARY").pipe(Config.withDefault("")));
 	if (destination !== "") {
 		appendFileSync(destination, summary);
 	}

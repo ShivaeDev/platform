@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Path } from "effect";
-import type { HttpServerRequest } from "effect/unstable/http";
+import type { HttpServerRequest } from "effect/http";
 import { attachmentType } from "#path/attachment.ts";
 import { within } from "#server/files/list.ts";
 import { respond } from "./respond.ts";

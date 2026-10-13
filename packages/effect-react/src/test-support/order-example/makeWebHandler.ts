@@ -1,7 +1,7 @@
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Effect, Layer } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { type OrderServerOptions, orderWebHandler } from "./runtime.ts";
 import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
 

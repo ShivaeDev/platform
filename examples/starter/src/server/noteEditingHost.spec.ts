@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";
 import { effectApp } from "#test-support/postgres.ts";

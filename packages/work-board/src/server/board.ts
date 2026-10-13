@@ -1,6 +1,6 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
-import { HttpRouter } from "effect/unstable/http";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { HttpRouter } from "effect/http";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import type { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
 import type { RenderFailed } from "#render/failed.ts";

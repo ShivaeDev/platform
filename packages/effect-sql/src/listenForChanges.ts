@@ -1,5 +1,5 @@
-import { Deferred, type Duration, Effect, type Exit, Scope, Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import { Deferred, type Duration, Effect, type Exit, Queue, Scope } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { decodeKeys } from "./notifyPayload.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
 
@@ -47,8 +47,12 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 				);
 			}
 			const listening = Effect.gen(function* () {
-				const pull = yield* Stream.toPull(client.listen(channel)).pipe(Scope.provide(scope));
-				yield* Effect.forever(Effect.flatMap(pull, (payloads) => Effect.forEach(payloads, receive, { discard: true })));
+				const notifications = yield* client.listen(channel).pipe(Scope.provide(scope));
+				yield* Effect.forever(
+					Effect.flatMap(Queue.takeAll(notifications), (batch) =>
+						Effect.forEach(batch, (notification) => receive(notification.payload), { discard: true }),
+					),
+				);
 			});
 			const send = Effect.asVoid(client`select pg_notify(${channel}, ${token})`);
 			const monitor = Effect.gen(function* () {

@@ -1,8 +1,8 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Cause, Deferred, Effect, type Exit, Layer, Option } from "effect";
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
 import { onTestFinished } from "vitest";
 import { type QueryOptions, useQuery } from "#result-state.ts";

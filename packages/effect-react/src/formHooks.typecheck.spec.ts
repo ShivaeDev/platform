@@ -1,5 +1,5 @@
 import { Data, Effect, Layer, type Option, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { useCreate } from "#create.ts";
 import { useEditor } from "#editor.ts";
 

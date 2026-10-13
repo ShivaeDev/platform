@@ -1,5 +1,6 @@
 import { ConfigProvider, Effect, Layer, Redacted } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { expect } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { credentials, notesHttp } from "#test-support/authHttp.ts";
@@ -21,7 +22,7 @@ effectApp("authenticates and serves protected RPC behind an HTTPS forwarding pro
 		),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP server");
 	}
 	const upstream = `http://127.0.0.1:${server.address.port}`;

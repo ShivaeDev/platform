@@ -1,6 +1,6 @@
 import { Deferred, Effect, Option, Ref } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { afterEach, expect, it, vi } from "vitest";
 import { liveClient } from "#test/live/client.ts";
 import { liveServer } from "#test/live/server.ts";

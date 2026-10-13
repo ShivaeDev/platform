@@ -59,7 +59,7 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 `app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `errors/`, `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
 
-`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/unstable/http` alongside the handler Layer. Native route Layers can register additional endpoints in that same composition; `routes` also accepts a native `Layer<never, never, HttpRouter>` for endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
+`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` alongside the handler Layer. Native route Layers can register additional endpoints in that same composition; `routes` also accepts a native `Layer<never, never, HttpRouter>` for endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
@@ -85,7 +85,7 @@ Declare the RPC group in a shared module:
 
 ```ts
 import { Effect, Schema } from "effect";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated, RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
@@ -143,7 +143,7 @@ Use `Authenticated` when the operation needs `Identity`, and `MaybeAuthenticated
 
 ```ts
 import { Effect, Option, Schema } from "effect";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { OptionalIdentity } from "@shivaedev/platform/rpc/identity.ts";
 import { MaybeAuthenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
@@ -174,7 +174,7 @@ Declare expected refusals in the RPC's error schema:
 
 ```ts
 import { Schema } from "effect";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 
 export const Rename = Rpc.make("Rename", {

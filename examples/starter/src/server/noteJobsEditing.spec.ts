@@ -1,5 +1,5 @@
 import { Effect, Layer, Redacted, Result } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect, vi } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";
 import { authPost, credentials, notesHttp } from "#test-support/authHttp.ts";

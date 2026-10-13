@@ -83,7 +83,7 @@ export function appFolder({
 	if (destination === "file") {
 		writeFileSync(target, "user data");
 	}
-	const path = Effect.runSync(Config.string("PATH"));
+	const path = Effect.runSync(Config.String("PATH"));
 	return {
 		root,
 		run: (args: readonly string[]) =>

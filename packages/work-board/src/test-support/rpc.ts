@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { RpcSerialization } from "effect/unstable/rpc";
-import type { FromServerEncoded } from "effect/unstable/rpc/RpcMessage";
+import { RpcSerialization } from "effect/rpc";
+import type { FromServerEncoded } from "effect/rpc/RpcMessage";
 import type { BrowserWindow } from "happy-dom";
 
 const Request = Schema.Struct({

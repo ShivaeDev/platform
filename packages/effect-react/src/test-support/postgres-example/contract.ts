@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";

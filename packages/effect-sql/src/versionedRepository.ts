@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
-import type { Model } from "effect/unstable/schema";
-import type { SqlClient, SqlModel } from "effect/unstable/sql";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { Model } from "effect/schema";
+import type { SqlClient, SqlModel } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import type { OptimisticConcurrencyError } from "#repository.ts";
 
 export type IdColumn<TModel extends Model.Any> = keyof TModel["Type"] & keyof TModel["update"]["Type"] & keyof TModel["fields"];

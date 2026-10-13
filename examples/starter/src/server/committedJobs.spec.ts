@@ -1,8 +1,8 @@
 import { Effect, Layer, Redacted, Result } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/unstable/http";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { SqlClient } from "effect/unstable/sql";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { SqlClient } from "effect/sql";
 import { expect, vi } from "vitest";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts";

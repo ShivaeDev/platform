@@ -1,6 +1,6 @@
 import { Effect, Ref, Schema } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect, it, vi } from "vitest";
 import { LiveHint } from "#live.ts";
 import { liveClient } from "#test/live/client.ts";

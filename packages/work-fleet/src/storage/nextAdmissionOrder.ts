@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import type { SqlClient } from "effect/unstable/sql";
+import type { SqlClient } from "effect/sql";
 
 // Requeueing needs the same database sequence as inserts; repositories cannot allocate sequence values.
 export const nextAdmissionOrder = Effect.fn("FleetStore.nextAdmissionOrder")(function* (sql: SqlClient.SqlClient, table: string) {

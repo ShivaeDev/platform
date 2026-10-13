@@ -1,7 +1,8 @@
 import { NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
@@ -27,7 +28,7 @@ describe("Fleet errors over daemon HTTP", () => {
 				Effect.gen(function* () {
 					const context = yield* Layer.build(daemonLayer(fixture.host, fixture.parts, 0));
 					const address = Context.get(context, HttpServer.HttpServer).address;
-					if (address._tag !== "TcpAddress") {
+					if (!NetAddress.isInetAddress(address)) {
 						return yield* Effect.die("Expected a TCP listener");
 					}
 					yield* until(() => schedulerObserved(fixture.host.boardDir));
@@ -65,7 +66,7 @@ describe("Fleet errors over daemon HTTP", () => {
 					});
 					const context = yield* Layer.build(daemonLayer(fixture.host, { ...fixture.parts, main }, 0));
 					const address = Context.get(context, HttpServer.HttpServer).address;
-					if (address._tag !== "TcpAddress") {
+					if (!NetAddress.isInetAddress(address)) {
 						return yield* Effect.die("Expected a TCP listener");
 					}
 					fixture.write("one.md", task("one", "approved"));

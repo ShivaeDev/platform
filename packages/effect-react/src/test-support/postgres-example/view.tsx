@@ -1,8 +1,8 @@
 import { RegistryContext } from "@effect/atom-react";
 import { NodeHttpClient } from "@effect/platform-node";
 import { Effect } from "effect";
-import type * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect } from "vitest";

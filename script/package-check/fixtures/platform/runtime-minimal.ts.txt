@@ -5,8 +5,8 @@ import { Identity } from "@shivaedev/platform/rpc/identity.ts"
 import { makePlatformRuntime } from "@shivaedev/platform/runtime/make.ts"
 import { localRpcGuard, loopbackOnly, sameOrigin } from "@shivaedev/platform/rpc-server/local.ts"
 import { Cause, Context, Effect, Layer, Option } from "effect"
-import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
-import { RpcSerialization } from "effect/unstable/rpc"
+import { HttpServerRequest, HttpServerResponse } from "effect/http"
+import { RpcSerialization } from "effect/rpc"
 
 class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}
 

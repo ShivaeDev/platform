@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Deferred, Effect, Layer, ManagedRuntime, PubSub, Ref, Stream } from "effect";
-import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import type { LiveHint } from "#live.ts";
 import { Document, Documents, documents, Get, Unavailable } from "./contract.ts";
 
@@ -80,10 +81,11 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 		HttpRouter.serve(routes, { disableLogger: true }).pipe(Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }))),
 	);
 	const server = await runtime.runPromise(Effect.service(HttpServer.HttpServer));
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("Expected TCP server");
 	}
-	const { hostname, port } = server.address;
+	const hostname = NetAddress.formatIp(server.address.address);
+	const { port } = server.address;
 	return {
 		active,
 		close: async () => {

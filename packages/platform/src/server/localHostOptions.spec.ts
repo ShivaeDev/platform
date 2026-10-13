@@ -1,6 +1,6 @@
 import { ConfigProvider, Context, Effect, Layer, ManagedRuntime, Option } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
+import { HttpRouter, HttpServer } from "effect/http";
+import { SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { AppChanges, appHost } from "#appHost.ts";
 import { InternalServerError } from "#errors/taxonomy.ts";

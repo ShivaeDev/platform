@@ -312,7 +312,7 @@ Other defining modules are also exposed by the wildcard. Their [source directory
 import { NodeServices } from "@effect/platform-node";
 import { boardLayer } from "@shivaedev/work-board/board.ts";
 import { Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { HttpRouter } from "effect/http";
 
 const board = HttpRouter.toWebHandler(
   Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),

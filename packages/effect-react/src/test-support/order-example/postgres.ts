@@ -1,10 +1,10 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Context, Effect, Layer, Redacted, Semaphore } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { assertLocalDatabase } from "@shivaedev/local-postgres/localPostgres.ts";
 
-export const databaseUrl = Effect.runSync(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+export const databaseUrl = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 const destination = databaseUrl._tag === "Some" ? databaseUrl.value : undefined;
 export const hasPostgres = destination !== undefined;
 export const kitDatabases = new Set<string>();

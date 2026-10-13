@@ -1,6 +1,6 @@
 import { Context, Effect } from "effect";
-import type { Migrator, SqlClient } from "effect/unstable/sql";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { Migrator, SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { Item, migrations, types } from "#test/migrationUpgrade.ts";
 import { assertModelColumns, type ModelColumnMismatch } from "./assertModelColumns.ts";

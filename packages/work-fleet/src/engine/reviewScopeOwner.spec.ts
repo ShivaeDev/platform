@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Deferred, Effect, Fiber, FileSystem, Path } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";

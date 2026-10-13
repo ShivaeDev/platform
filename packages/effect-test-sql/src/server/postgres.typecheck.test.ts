@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted, Scope } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { Migrator, SqlClient } from "effect/unstable/sql";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { Migrator, SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";

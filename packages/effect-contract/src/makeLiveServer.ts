@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, readKeys } from "./keys.ts";
 import type { LiveHint } from "./live.ts";
 

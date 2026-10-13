@@ -1,13 +1,17 @@
-import { Context, type Duration, Effect, Layer, type Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import { Context, type Duration, Effect, Layer, type Queue, type Scope } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { listenForChanges } from "./listenForChanges.ts";
 import { encodeKeys } from "./notifyPayload.ts";
 import { BeforeCommit, CommittedSink } from "./transact.ts";
 
+export interface PostgresNotification {
+	readonly payload: string;
+}
+
 export interface PostgresChangeClient extends SqlClient.SqlClient {
-	readonly listen: (channel: string) => Stream.Stream<string, SqlError>;
+	readonly listen: (channel: string) => Effect.Effect<Queue.Dequeue<PostgresNotification, SqlError>, SqlError, Scope.Scope>;
 }
 
 export interface PostgresChangesOptions {

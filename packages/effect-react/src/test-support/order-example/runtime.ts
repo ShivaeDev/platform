@@ -1,6 +1,6 @@
 import { Clock, Effect, Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { HttpRouter } from "effect/http";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import { Authentication, Orders, Principal, type SaveOrderInput, Unauthorized } from "./contract.ts";
 import { OrderService } from "./service.ts";
 

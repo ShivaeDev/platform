@@ -1,5 +1,5 @@
 import { Cause, Effect, Exit } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { Item, migrations, runUpgrade, types } from "#test/migrationUpgrade.ts";
 import { integration, secondClient } from "#test/postgres.ts";

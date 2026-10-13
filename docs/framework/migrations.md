@@ -8,7 +8,7 @@ Effect that uses the same `SqlClient` as application repositories.
 
 ```ts
 import { Effect } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 
 const createOrders = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;

@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Redacted, type Scope } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { expect, test } from "vitest";
 import { migratePostgres } from "#migrations.ts";
 import { environmentVariable } from "#test/environment.ts";

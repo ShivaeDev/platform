@@ -33,7 +33,7 @@ The work has three parts: describe the model and provide its database once, choo
 
 ```ts
 import { Effect, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
+import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
@@ -189,7 +189,7 @@ For the generic ownership mechanism, read [commit-bound changes](https://github.
 ### PostgreSQL migrations: numbered SQL Effects
 
 ```ts
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 
 const migrateOrders = Effect.gen(function* () {
@@ -254,7 +254,7 @@ pnpm add @shivaedev/effect-sql effect@4.0.0-rc.112 @effect/sql-pg@4.0.0-rc.112
 ```ts
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer, Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 
 const database = Layer.merge(
   PgClient.layer({ url: Redacted.make("postgresql://localhost/example") }),
@@ -278,7 +278,7 @@ Query decoding and invalid limits can fail with `SchemaError`; SQL statement fai
 Map a known constraint at the operation that understands it, after the transaction has rolled back:
 
 ```ts
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { SqlError } from "effect/sql/SqlError";
 
 class NameTaken extends Data.TaggedError("NameTaken") {}
 

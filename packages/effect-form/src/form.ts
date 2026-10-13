@@ -1,7 +1,7 @@
 import { Effect, Equal, Result, type Schema, type SchemaIssue, SchemaParser } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import type * as AtomRef from "effect/unstable/reactivity/AtomRef";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
+import type * as AtomRef from "effect/reactivity/AtomRef";
 import { draft } from "./draft.ts";
 import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";

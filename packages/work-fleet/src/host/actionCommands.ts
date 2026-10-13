@@ -1,13 +1,13 @@
 import { Console, Effect, Option } from "effect";
-import * as Argument from "effect/unstable/cli/Argument";
-import * as Command from "effect/unstable/cli/Command";
+import * as Argument from "effect/cli/Argument";
+import * as Command from "effect/cli/Command";
 import { board, config, port } from "#host/cliOptions.ts";
 import { continuationMessage } from "#host/continuationMessage.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 
 export const continueCommand = Command.make(
 	"continue",
-	{ args: [Argument.string("id"), Argument.string("message").pipe(Argument.optional)] as const, board, config, port },
+	{ args: [Argument.String("id"), Argument.String("message").pipe(Argument.optional)] as const, board, config, port },
 	Effect.fn("WorkFleetCli.continue")(function* (input) {
 		const message = yield* continuationMessage(Option.getOrUndefined(input.args[1]));
 		const value = yield* daemonRequest(input.port, (client) => client("fleet.continue", { message, workId: input.args[0] }));
@@ -19,7 +19,7 @@ export const continueCommand = Command.make(
 
 export const releaseCommand = Command.make(
 	"release",
-	{ board, config, port, workIds: Argument.string("id").pipe(Argument.variadic({ min: 1 })) },
+	{ board, config, port, workIds: Argument.String("id").pipe(Argument.variadic({ min: 1 })) },
 	Effect.fn("WorkFleetCli.release")(function* (input) {
 		const released = yield* daemonRequest(input.port, (client) => client("daemon.release", { workIds: input.workIds }));
 		for (const value of released) {
@@ -33,10 +33,10 @@ export const reassignCommand = Command.make(
 	{
 		board,
 		config,
-		id: Argument.string("id"),
+		id: Argument.String("id"),
 		port,
-		question: Argument.string("decision-id"),
-		to: Argument.choice("owner", ["maintainer", "orchestrator", "automation"]),
+		question: Argument.String("decision-id"),
+		to: Argument.Literals("owner", ["maintainer", "orchestrator", "automation"]),
 	},
 	Effect.fn("WorkFleetCli.reassign")(function* (input) {
 		const value = yield* daemonRequest(input.port, (client) =>
@@ -59,7 +59,7 @@ export const nameThreadsCommand = Command.make(
 
 export const decideCommand = Command.make(
 	"decide",
-	{ args: [Argument.string("id"), Argument.choice("action", ["retry", "release"])] as const, board, config, port },
+	{ args: [Argument.String("id"), Argument.Literals("action", ["retry", "release"])] as const, board, config, port },
 	Effect.fn("WorkFleetCli.decide")(function* (input) {
 		const value = yield* daemonRequest(input.port, (client) => client("daemon.decide", { action: input.args[1], workId: input.args[0] }));
 		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);

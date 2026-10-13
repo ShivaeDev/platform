@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
-import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
+import type { HttpRouter, HttpServerRequest } from "effect/http";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { style } from "#server/page/style.ts";
 import { respond } from "./respond.ts";

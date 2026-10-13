@@ -1,6 +1,6 @@
 import { Cause, Exit, Option } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { expect, it } from "vitest";
 import { finishQuery, queryRequests, queryView, type Unavailable } from "#test/queryView.ts";

@@ -1,13 +1,13 @@
 import process from "node:process";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
 
 const program = Effect.gen(function* () {
 	const env = yield* postgresTestEnvironment;
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const nodeOptions = yield* Config.string("NODE_OPTIONS").pipe(Config.withDefault(""));
+	const nodeOptions = yield* Config.String("NODE_OPTIONS").pipe(Config.withDefault(""));
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
 	const ciShard = workspace && args.includes("--ci-shard");

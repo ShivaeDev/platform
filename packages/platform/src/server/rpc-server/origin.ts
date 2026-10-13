@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { Headers } from "effect/unstable/http";
+import { Headers } from "effect/http";
 export interface OriginRequest {
 	readonly headers: Headers.Headers;
 	readonly origin: Option.Option<string>;

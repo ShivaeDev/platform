@@ -1,7 +1,8 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, FileSystem, Layer, Logger, Scope } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { serveBoard } from "#server/serve.ts";
 
 export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string, assets: readonly string[]) {
@@ -22,8 +23,8 @@ export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const context = yield* Layer.buildWithScope(board.pipe(Layer.provide(Logger.layer([logger]))), scope);
 	const server = Context.get(context, HttpServer.HttpServer);
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("the board did not listen on TCP");
 	}
-	return { logged, stop: () => Scope.close(scope, Exit.void), url: `http://${server.address.hostname}:${server.address.port}` };
+	return { logged, stop: () => Scope.close(scope, Exit.void), url: `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}` };
 });

@@ -119,7 +119,7 @@ application integration work.
 ## Native cache policy
 
 These details were checked against the installed Effect `4.0.0-rc.112` source:
-`effect/unstable/reactivity/AtomRpc` and `AtomRegistry`.
+`effect/reactivity/AtomRpc` and `AtomRegistry`.
 
 - Each registry stores its own atom values. Atom identity alone does not imply
   shared cached values across registries.

@@ -1,6 +1,6 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import type { StarterAuth } from "./auth.ts";
 
 export function migrations(auth: StarterAuth) {

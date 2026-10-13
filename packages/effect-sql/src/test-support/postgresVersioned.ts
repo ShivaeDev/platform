@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
-import { SqlClient } from "effect/unstable/sql";
+import { Model } from "effect/schema";
+import { SqlClient } from "effect/sql";
 import { makeRepository } from "#repository.ts";
 
 export class Document extends Model.Class<Document>("VersionedDocument")({

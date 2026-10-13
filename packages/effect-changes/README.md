@@ -39,7 +39,7 @@ The work has three parts:
 ```ts
 import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 
 interface MembershipChange {
   readonly subject: string;

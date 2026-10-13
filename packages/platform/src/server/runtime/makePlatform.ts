@@ -47,7 +47,7 @@ function make<TServices, TBuildError>(layer: Layer.Layer<TServices, TBuildError>
 	};
 	return runtime;
 }
-const production = Effect.map(Effect.orDie(Config.string("NODE_ENV").pipe(Config.withDefault(""))), (environment) => environment === "production");
+const production = Effect.map(Effect.orDie(Config.String("NODE_ENV").pipe(Config.withDefault(""))), (environment) => environment === "production");
 export function makePlatformRuntime<TServices, TBuildError>(
 	layer: Layer.Layer<TServices, TBuildError>,
 	options: PlatformRuntimeOptions = {},

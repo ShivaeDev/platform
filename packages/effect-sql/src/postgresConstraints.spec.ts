@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Result, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
-import { SqlClient } from "effect/unstable/sql";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import { Model } from "effect/schema";
+import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expect, test } from "vitest";
 import { makeRepository } from "#repository.ts";
 import { environmentVariable } from "#test/environment.ts";

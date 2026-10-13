@@ -1,5 +1,5 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "#loadQuery.ts";
 import type { routerClient } from "./routerClient.ts";
 import { RouterFailure, RouterNote, RouterPending, RouterShell } from "./routerScreens.tsx";

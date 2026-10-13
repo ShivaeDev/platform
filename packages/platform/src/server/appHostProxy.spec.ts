@@ -1,14 +1,15 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, ConfigProvider, Effect, Layer, ManagedRuntime, Redacted, Result } from "effect";
-import { HttpServer } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { AuthUnavailable, Conflict, Unauthorized } from "#errors/taxonomy.ts";
 import { Api, call, feature, handlers, post, sessions } from "#test/app-host/fixture.ts";
 import { forwardingProxy } from "#test/app-host/forwardingProxy.ts";
 
-const database = Effect.runSync(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 it.runIf(database._tag === "Some").each([
 	{ accepted: true, config: undefined, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.2" }, host: "0.0.0.0", name: "environment" },
 	{
@@ -45,10 +46,10 @@ it.runIf(database._tag === "Some").each([
 	let proxy: Awaited<ReturnType<typeof forwardingProxy>> | undefined;
 	try {
 		const server = await runtime.runPromise(HttpServer.HttpServer);
-		if (server.address._tag !== "TcpAddress") {
+		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected TCP address");
 		}
-		expect(server.address.hostname).toBe(host);
+		expect(NetAddress.formatIp(server.address.address)).toBe(host);
 		proxy = await forwardingProxy(`http://127.0.0.1:${server.address.port}`);
 		if (!accepted) {
 			const refused = await call(proxy.url, "alice", false, { origin: "https://app.example" });

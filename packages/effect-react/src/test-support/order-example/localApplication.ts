@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Result } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/storyKit.ts";
 import { isolate, localRollback } from "./isolation.ts";

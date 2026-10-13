@@ -1,5 +1,5 @@
 import type { Effect, Schema } from "effect";
-import type * as Atom from "effect/unstable/reactivity/Atom";
+import type * as Atom from "effect/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/effect-form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";

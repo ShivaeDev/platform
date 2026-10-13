@@ -2,7 +2,7 @@
 import process from "node:process";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Config, Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
+import { FetchHttpClient } from "effect/http";
 import { GitHub } from "./GitHub.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { WatchError } from "./model.ts";
@@ -32,8 +32,8 @@ process.once("SIGTERM", () => abort.abort());
 try {
 	await Effect.runPromise(
 		Effect.gen(function* () {
-			const token = yield* Config.string("GH_TOKEN").pipe(
-				Config.orElse(() => Config.string("GITHUB_TOKEN")),
+			const token = yield* Config.String("GH_TOKEN").pipe(
+				Config.orElse(() => Config.String("GITHUB_TOKEN")),
 				Config.withDefault(""),
 			);
 			yield* program(process.argv.slice(2), token, write(process.stdout), write(process.stderr));

@@ -11,7 +11,7 @@ remain the native components below.
 
 ```ts
 import { Effect, Schema } from "effect";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 
 const Note = Schema.Struct({ id: Schema.String, title: Schema.String });
 const MissingNote = Schema.Struct({

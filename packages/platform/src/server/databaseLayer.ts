@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
@@ -9,7 +9,7 @@ import type { AppChanges, AppDatabaseOptions } from "./appHost.ts";
 export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(
 		Effect.gen(function* () {
-			const url = options.config?.databaseUrl ?? (yield* Config.redacted("DATABASE_URL"));
+			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			return PgClient.layer({
 				url,
 				...(options.config?.maxConnections === undefined ? {} : { maxConnections: options.config.maxConnections }),

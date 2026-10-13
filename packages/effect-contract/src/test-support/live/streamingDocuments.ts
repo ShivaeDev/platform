@@ -1,5 +1,5 @@
 import { Effect, type Stream } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { liveClient } from "./client.ts";
 import { liveServer } from "./server.ts";
 

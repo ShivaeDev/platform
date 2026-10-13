@@ -1,6 +1,6 @@
 import type { LoaderFnContext } from "@tanstack/react-router";
 import { Predicate } from "effect";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";

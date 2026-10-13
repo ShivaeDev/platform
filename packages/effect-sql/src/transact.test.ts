@@ -1,7 +1,7 @@
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Cause, Context, Data, Deferred, Effect, Exit, Fiber, Layer } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { expect, it } from "vitest";
 import { invalidateOnCommit, transact } from "#transact.ts";
 

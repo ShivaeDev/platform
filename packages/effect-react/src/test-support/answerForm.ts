@@ -1,5 +1,5 @@
 import { Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
 
 export const answerValues = {
