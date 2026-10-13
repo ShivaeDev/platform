@@ -14,7 +14,13 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
 		protocol: inMemoryBoard(files, options),
 	}) {}
-	return bind(workContract, Client);
+	return Object.assign(bind(workContract, Client), {
+		page: {
+			query: () => {
+				throw new Error("HTML page queries are forbidden");
+			},
+		},
+	});
 }
 
 export type BoardTestApi = ReturnType<typeof boardClient>;

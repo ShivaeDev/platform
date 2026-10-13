@@ -52,18 +52,17 @@ postgresTests("live")("Board reads real daemon health and owner counts over HTTP
 			}
 			rmSync(join(fixture.host.boardDir, "fleet/health.json"));
 			fixture.write("fleet.config.json", "invalid config");
-			const { url } = yield* boardHttp(fixture.host.boardDir, undefined, undefined, address.port);
-			const page = yield* Effect.promise(async () => (await fetch(`${url}/_board/diagnostics`)).text());
-			for (const text of ["12% used", "4567 / 5000", "0 / 8", "<dt>Queued</dt><dd><strong>1</strong>"]) {
-				expect(page).toContain(text);
-			}
+			const { client } = yield* boardHttp(fixture.host.boardDir, undefined, undefined, address.port);
+			const data = yield* Effect.promise(() => client.run(client.api.diagnostics.run(undefined)));
+			expect(data.sources).toMatchObject({
+				codex: { state: "ready", value: { primary: { usedPercent: 12 } } },
+				fleet: { state: "ready", value: { concurrency: 8, queued: 1, running: 0, waiting: { automation: 1, maintainer: 1, orchestrator: 1 } } },
+				github: { state: "ready", value: { core: { limit: 5000, remaining: 4567 } } },
+			});
 			const second = yield* boardHttp(fixture.host.boardDir, undefined, undefined, address.port);
-			yield* Effect.promise(async () => (await fetch(`${second.url}/_board/diagnostics`)).text());
+			yield* Effect.promise(() => second.client.run(second.client.api.diagnostics.run(undefined)));
 			expect(codexReads).toBe(1);
 			expect(githubReads).toBe(1);
-			for (const owner of ["automation", "maintainer", "orchestrator"]) {
-				expect(page).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>1</strong>`);
-			}
 		}),
 	),
 );

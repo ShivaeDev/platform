@@ -2,7 +2,7 @@ import { documentSourceId } from "#client/document/layout.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { HomeBoard } from "./HomeBoard.tsx";
 import { InboxPage } from "./InboxPage.tsx";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { OverviewPage } from "./OverviewPage.tsx";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import type { ProjectionRoute } from "./projectionRoute.ts";

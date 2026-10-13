@@ -159,6 +159,10 @@ effectApp("discloses page-only retention when browser storage is blocked", funct
 	notes.write("item.md", "# New");
 	yield* Effect.promise(() => waitFor(() => expect(text()).toContain("1 changed")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("history-clear")?.hasAttribute("disabled")).toBe(false)));
+	click('.history-change a[href="/item.md"]');
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-file")).toBe("item.md")));
+	page.window.history.back();
+	yield* Effect.promise(() => waitFor(() => expect(text()).toContain("1 changed")));
 	click("#history-clear");
 	yield* Effect.promise(() => waitFor(() => expect(text()).toContain("No previous snapshot")));
 	expect(page.document.getElementById("history-storage")?.textContent).toContain("could not be cleared");

@@ -1,21 +1,20 @@
 import type { Navigation } from "#browser/navigation/schema.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { documentRoute } from "./documentRoute.ts";
-import { LegacyMain } from "./LegacyMain.tsx";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionMain } from "./ProjectionMain.tsx";
 import { projectionRoute } from "./projectionRoute.ts";
+import { RemainingMain } from "./RemainingMain.tsx";
+import { remainingRoute } from "./remainingRoute.ts";
 import type { ShellApi } from "./ShellApi.ts";
 export function BoardMain({
 	api,
 	home,
-	initial,
 	onPage,
 	url,
 }: {
 	readonly api: ShellApi;
 	readonly home: Navigation["home"];
-	readonly initial: string;
 	readonly onPage: (location: MainLocation) => void;
 	readonly url: string;
 }) {
@@ -25,7 +24,7 @@ export function BoardMain({
 		return <ProjectionMain api={api} onPage={onPage} route={projection} url={url} />;
 	}
 	if (documentRoute(pathname, home)) {
-		return <DocumentMain api={api} initial={initial} onPage={onPage} url={url} />;
+		return <DocumentMain api={api} onPage={onPage} url={url} />;
 	}
-	return <LegacyMain api={api} initial={initial} onPage={onPage} url={url} />;
+	return <RemainingMain api={api} onPage={onPage} route={remainingRoute(pathname) ?? "start"} url={url} />;
 }

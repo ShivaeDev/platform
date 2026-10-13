@@ -26,12 +26,13 @@ for (const denyDelivery of [false, true]) {
 				}
 				expect(read()).toContain("Stage: executing");
 				const { client } = yield* boardHttp(root, "fleet/status.md");
-				const page = client.api.page.query({ url: "/fleet/status.md" });
+				const page = client.api.board.query({ url: "/fleet/status.md" });
 				const unmount = client.registry.mount(page);
 				yield* Effect.addFinalizer(() => Effect.sync(unmount));
 				const initial = yield* Effect.tryPromise(() => client.read(page));
-				expect(initial.html).toContain('class="board"');
-				expect(initial.html).toContain('href="/_board/item/one"');
+				expect(initial.document.reading?.board).toBe(true);
+				expect(initial.counts).toEqual(expect.arrayContaining([expect.objectContaining({ count: 1, title: "Active" })]));
+				expect(initial.document.source).toContain("/_board/item/one");
 				finishWorkers(fixture);
 				yield* cycle;
 				const stage = denyDelivery ? "needs-human" : "completed";
@@ -41,7 +42,7 @@ for (const denyDelivery of [false, true]) {
 				yield* Effect.gen(function* () {
 					while (true) {
 						const refreshed = client.registry.get(page);
-						if (refreshed._tag === "Success" && refreshed.value.html.includes(`Stage: ${stage}`)) {
+						if (refreshed._tag === "Success" && refreshed.value.document.source.includes(`Stage: ${stage}`)) {
 							break;
 						}
 						yield* Effect.sleep("10 millis");

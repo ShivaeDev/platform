@@ -1,14 +1,3 @@
-import type { Draft } from "#client/responses/drafts.ts";
-
-export const edgeDraft: Draft = {
-	author: "reviewer",
-	body: "Keep the reasoning.",
-	id: "response.edge",
-	revision: "a".repeat(64),
-	type: "answer",
-	updatedAt: 100,
-};
-
 export const TEXT_QUESTION = '::::question{id="next" select="text"}\nWhat should happen next?\n::::\n';
 
 export const responseInput = {

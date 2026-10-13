@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { legacyPage } from "#client/react/legacyPage.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { waitFor } from "#test/live.ts";
 import { capturedQuestionnaire, questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
 
 let notes: Folder;
@@ -22,6 +22,7 @@ const open = Effect.fn("Test.open")(function* (source = questionnaireSource, res
 
 it.live("starts each open packet with a primary action that opens its existing answer form", function* () {
 	yield* open();
+	const currentPage = page;
 	const questions = [...page.document.querySelectorAll(".questionnaire-question")];
 	expect(questions).toHaveLength(2);
 	expect(page.document.querySelectorAll(".questionnaire-answer")).toHaveLength(1);
@@ -34,9 +35,9 @@ it.live("starts each open packet with a primary action that opens its existing a
 		expect(action?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
 		const response = yield* rawGet(board, action?.getAttribute("href") ?? "");
 		expect(response.status).toBe(200);
-		const form = legacyPage(response.body);
-		expect(form.querySelector('#response-form input[type="radio"]')).not.toBeNull();
-		expect(form.querySelector('#response-form input[type="checkbox"]')).not.toBeNull();
+		action?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+		yield* Effect.promise(() => waitFor(() => expect(currentPage.document.querySelector('#response-form input[type="radio"]')).not.toBeNull()));
+		expect(page.document.querySelector('#response-form input[type="checkbox"]')).not.toBeNull();
 	}
 });
 

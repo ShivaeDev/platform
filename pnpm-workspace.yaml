@@ -41,7 +41,7 @@ catalog:
   unist-util-visit: 5.1.0
   unified: 11.0.5
   happy-dom: 20.14.5
-  mermaid: 11.17.2
+  mermaid: 12.1.0
   ignore: 7.0.12
   sort-package-json: 4.0.0
   "@prisma-next/adapter-postgres": 0.16.0

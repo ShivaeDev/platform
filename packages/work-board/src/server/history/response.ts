@@ -2,6 +2,7 @@ import { escapeHtml } from "#browser/escapeHtml.ts";
 import type { HistoryOutput } from "#history/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { observeBaseline, readBaseline } from "./baseline.ts";
+import { compareHistory } from "./compare.ts";
 import { historyHtml } from "./html.ts";
 
 export function historyResponse(raw: string | null, now: number, snapshot?: Snapshot): HistoryOutput {
@@ -19,5 +20,18 @@ export function historyResponse(raw: string | null, now: number, snapshot?: Snap
 		return { ...output, html: `<p role="status">${escapeHtml(reason)}</p>`, reason };
 	}
 	const current = readBaseline(currentRaw, now).baseline;
-	return { ...output, html: prior.baseline && current ? historyHtml(prior.baseline, current) : output.html, snapshot: currentRaw };
+	const compared = prior.baseline && current ? compareHistory(prior.baseline, current) : undefined;
+	const comparison =
+		compared && prior.baseline
+			? {
+					changes: compared.changes.map(({ before, after, ...change }) => ({
+						...change,
+						after: after ? { file: after.file, source: after.source } : undefined,
+						before: before ? { file: before.file, source: before.source } : undefined,
+					})),
+					issues: compared.issues,
+					recordedAt: prior.baseline.recordedAt,
+				}
+			: undefined;
+	return { ...output, comparison, html: prior.baseline && current ? historyHtml(prior.baseline, current) : output.html, snapshot: currentRaw };
 }

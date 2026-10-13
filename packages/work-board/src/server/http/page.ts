@@ -14,7 +14,6 @@ import { itemIntroduction } from "#server/page/itemIntroduction.ts";
 import { metadataHtml } from "#server/page/metadata.ts";
 import { navHtml } from "#server/page/nav.ts";
 import { shell } from "#server/page/shell.ts";
-import { startHtml } from "#server/page/startHtml.ts";
 import { boardOf } from "#server/render/board.ts";
 import { authoredQuestionHtml } from "#server/responses/authoredQuestionHtml.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
@@ -96,7 +95,7 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 			);
 		}
 		if (files.length === 0 && requestedPath(request.url) === "" && resolved === undefined && expectedIdentity === undefined) {
-			return respond(layout(startHtml(true)), "text/html");
+			return respond(layout('<p class="empty">Start your local workspace. Enable JavaScript to read project and report templates.</p>'), "text/html");
 		}
 		if (file === undefined) {
 			return missing();

@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -41,7 +41,7 @@ jobs:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -85,10 +85,10 @@ jobs:
       consumers-artifact-id: ${{ steps.timings.outputs.consumers-artifact-id }}
       consumers-shards: ${{ steps.timings.outputs.consumers-shards }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 26.10.0
           package-manager-cache: false
@@ -128,7 +128,7 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.shard-plan.outputs.tests-shards) }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -186,7 +186,7 @@ jobs:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Send Codecov notifications after CI verification completes
@@ -209,7 +209,7 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.shard-plan.outputs.consumers-shards) }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -290,11 +290,11 @@ jobs:
           }
           if (Object.values(jobs).some(job => job.result !== 'success')) process.exit(1);
           JS
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           node-version: 26.10.0
@@ -344,7 +344,7 @@ jobs:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup

@@ -1,6 +1,6 @@
+import { activeQueryScript } from "./activeQueryScript.ts";
 import { navigationHistoryScript } from "./navigationHistoryScript.ts";
 import { reactNavigationScript } from "./reactNavigationScript.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
 
 export function navigationScript(): string {
 	return `
@@ -10,6 +10,7 @@ import { refreshLibrary } from "/_board/library.js";
 import { revealCurrentFile } from "/_board/sidebar.js";
 import { session } from "/_board/native.js";
 
+${activeQueryScript()}
 let router;
 export const connectRouter = (control) => {
   router = control;
@@ -34,8 +35,7 @@ const open = async (target) => {
   if (!sameRoute || target.href !== location.href) return;
   const native = session(window);
   const doc = document.getElementById("doc");
-  const kind = doc.dataset.projection || (doc.hasAttribute("data-react-document") ? "document" : "page");
-  const page = native.api[kind].query(kind === "overview" || kind === "inbox" ? undefined : { url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)});
+  const page = activeQuery(native, doc, target.pathname + target.search);
   if (native.registry.get(page)._tag === "Failure") {
     delete doc.dataset.route;
     native.registry.refresh(page);
@@ -75,8 +75,8 @@ const navigate = async (target, entry, hashOnly = false) => {
   try {
     if (router) { await navigateReact(route, mine, id, entry, cached, target, status); return; }
     const native = session(window);
-    const response = await native.read(native.api.page.query({ url: target.pathname + target.search }, ${JSON.stringify(routeQueryOptions)}), controller.signal);
-    const page = new DOMParser().parseFromString(response.html, "text/html");
+    const response = await fetch(target, { signal: controller.signal });
+    const page = new DOMParser().parseFromString(await response.text(), "text/html");
     if (mine !== version) return;
     if (!applyPage(page, Boolean(cached))) throw new Error("Invalid page");
     displayedId = id;

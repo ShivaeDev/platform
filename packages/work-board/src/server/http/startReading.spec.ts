@@ -7,6 +7,7 @@ import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
 import { folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: ReturnType<typeof folder>;
 let board: RunningBoard;
@@ -25,11 +26,11 @@ afterEach(() => {
 effectApp("serves copyable source on an empty root without creating files or hiding missing-document errors", function* () {
 	const response = yield* Effect.promise(() => fetch(board.url));
 	expect(response.status).toBe(200);
-	const html = yield* Effect.promise(() => response.text());
+	const html = yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"));
 	expect(html).toContain("Start your local workspace");
 	expect(html).toContain("this viewer does not write project files");
 	for (const template of startTemplates) {
-		expect(html).toContain(`readonly rows="16" spellcheck="false">${escapeHtml(template.source)}</textarea>`);
+		expect(html).toContain(`>${escapeHtml(template.source)}</textarea>`);
 	}
 	expect(readdirSync(notes.root)).toEqual([]);
 	expect((yield* Effect.promise(() => fetch(`${board.url}/missing.md`))).status).toBe(404);
@@ -58,7 +59,7 @@ effectApp("keeps templates available after source creation and resolves their re
 	expect(result).toContain('href="/project.md"');
 	expect(result).toContain("Not recorded.");
 	expect(result).toContain("Recorded evidence does not by itself establish verified acceptance.");
-	const help = yield* Effect.promise(async () => (await fetch(`${board.url}/_board/start`)).text());
+	const help = yield* Effect.promise(() => renderRemaining(board.url, "/_board/start"));
 	expect(help).toContain("Project and report templates");
 	expect(yield* Effect.promise(async () => (await fetch(board.url)).text())).not.toContain("Start your local workspace");
 	expect(readdirSync(notes.root).sort()).toEqual(startTemplates.map((template) => template.file).sort());

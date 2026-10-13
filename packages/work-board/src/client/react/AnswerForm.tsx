@@ -35,12 +35,12 @@ export function AnswerForm({
 					Local author label <input autoComplete="nickname" maxLength={200} name="author" required />
 				</label>
 				<AnswerPrompts document={data} prompts={prompts} />
-				{prompts.length === 0 && body}
-				<AnswerDetails body={prompts.length > 0 ? body : null} records={records} />
+				{(prompts.length === 0 || data.metadata.kind !== "question") && body}
+				<AnswerDetails body={prompts.length > 0 && data.metadata.kind === "question" ? body : null} records={records} />
 				<pre hidden id={shellIds.responseDraftRecovery} />
 				<p>
-					Submit the whole packet together. Drafts stay in this browser for 30 days after the last edit, with a 2 MiB workspace limit. Saved responses
-					are Markdown files in responses/.
+					Submit the whole packet together. Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft. Saved
+					responses are Markdown files in responses/.
 				</p>
 				<button disabled id={shellIds.responsePreview} type="button">
 					Preview Markdown
@@ -50,7 +50,7 @@ export function AnswerForm({
 					Record response
 				</button>
 				<button disabled id={shellIds.responseClear} type="button">
-					Clear workspace drafts
+					Clear draft
 				</button>
 				<p id={shellIds.responseStatus} role="status">
 					{data.writable

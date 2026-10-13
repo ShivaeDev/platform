@@ -1,23 +1,6 @@
 import { expect, it } from "vitest";
 import { outcome } from "#server/responses/outcome.ts";
-import { DRAFT_AGE, DRAFT_BYTES, encodeDrafts, readDrafts } from "./drafts.ts";
 
-const draft = {
-	author: "maintainer",
-	body: "No; preserve the rationale.",
-	id: "response.a",
-	revision: "a".repeat(64),
-	type: "answer",
-	updatedAt: 100,
-};
-it("expires browser drafts from the last edit and rejects malformed or oversized storage without pretending it is empty", () => {
-	expect(readDrafts(encodeDrafts({ q: draft }), 101).drafts.q).toEqual(draft);
-	expect(readDrafts(encodeDrafts({ q: draft }), 100 + DRAFT_AGE)).toEqual({ drafts: {}, expired: true });
-	expect(() => readDrafts("broken", 101)).toThrow();
-	expect(() => readDrafts('{"q":{}}', 101)).toThrow();
-	expect(() => readDrafts(JSON.stringify({ q: { ...draft, type: "approve" } }), 101)).toThrow();
-	expect(() => encodeDrafts({ q: { ...draft, body: "💬".repeat(DRAFT_BYTES) } })).toThrow("full");
-});
 it("checks durable replies before a 48h deadline and never treats a missing next-response cursor as answered", () => {
 	const question = {
 		context: "# Context",

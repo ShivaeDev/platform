@@ -6,6 +6,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { outsideHandoffDirectory } from "#test/outsideHandoffDirectory.ts";
+import { renderRemaining } from "#test/remainingRendering.tsx";
 
 const SOURCE =
 	"---\r\nid: task.keyboard\r\nkind: task\r\nstatus: in-review\r\nnext_action: Verify focus before changing the implementation\r\ncriteria:\r\n  - id: focus\r\n    text: Escape returns focus to the opening control\r\n---\r\n# Keyboard focus\r\n\r\nKeep the source readable.\r\n";
@@ -54,7 +55,7 @@ it.live("records reviewed context through native RPC without changing the task o
 	expect(retry).toEqual(saved);
 	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
 	expect(page.status).toBe(200);
-	expect(yield* Effect.promise(() => page.text())).toContain("Copy tiny prompt");
+	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Copy tiny prompt");
 });
 
 it.live("retains ordinary file acknowledgments and extra metadata through retry, source deletion and restart", function* () {
@@ -86,7 +87,9 @@ it.live("retains ordinary file acknowledgments and extra metadata through retry,
 	expect(reading.unknown).toEqual([]);
 	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
 	expect(page.status).toBe(200);
-	expect(yield* Effect.promise(() => page.text())).toContain("Earlier or unavailable reviewed source");
+	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain(
+		"Earlier or unavailable reviewed source",
+	);
 });
 
 it.live("rejects changed sources, conflicting direction and moved record identities without replacing files", function* () {
@@ -111,8 +114,7 @@ it.live("requires explicit local write opt-in and preserves the ordinary source 
 	yield* open(false);
 	const draft = yield* input();
 	yield* Effect.promise(() => expect(client.mutate(client.handoffs.prepareHandoff.run(draft))).rejects.toThrow("--responses"));
-	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
-	expect(yield* Effect.promise(() => page.text())).toContain("Read-only mode");
+	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Read-only mode");
 	expect(readFileSync(join(notes.root, "items/keyboard.md"), "utf8")).toBe(SOURCE);
 });
 

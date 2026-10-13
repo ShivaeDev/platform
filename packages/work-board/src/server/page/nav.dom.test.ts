@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { legacyPage } from "#client/react/legacyPage.ts";
+import { bootstrapPage } from "#client/react/mainLocation.ts";
 import { type Folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import type { OpenPage } from "#test/browser.ts";
 import { openLive, waitFor } from "#test/live.ts";
@@ -62,7 +62,7 @@ it.live("serves a native reference tree and preserves parent and child state thr
 	board = yield* startBoard(notes.root, "root.md");
 	const response = yield* rawGet(board, "/packages/form/README.md");
 	expect(response.status).toBe(200);
-	const html = legacyPage(response.body);
+	const html = bootstrapPage(response.body);
 	expect([...html.querySelectorAll("#sidebar > [id]")].map((element) => element.id)).toEqual([
 		"primary-navigation",
 		"library-open",

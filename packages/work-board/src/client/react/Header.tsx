@@ -1,4 +1,4 @@
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { shellIds } from "./shellIds.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
