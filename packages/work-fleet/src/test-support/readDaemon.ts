@@ -1,18 +1,17 @@
-import { createServer } from "node:http";
-import { NodeHttpServer, NodeServices } from "@effect/platform-node";
-import { Context, Effect, Layer } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { vi } from "vitest";
-import { type HostParts, hostLayer } from "#host/commands.ts";
+import { NodeServices } from "@effect/platform-node";
+import { Context, Effect, Layer, Stream } from "effect";
+import { HttpServer } from "effect/unstable/http";
+import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
-import { daemonRpc } from "#host/daemonRpc.ts";
+import { daemonHostOptions, daemonHttpLayer } from "#host/daemon.ts";
+import { ClientContract } from "#host/daemonContract.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 
 export function readDaemonLayer(host: FleetHost, parts?: HostParts, port = 0, onSnapshot?: () => void) {
 	const main = { observedAt: 1, revision: "main-revision" };
-	const runtime = hostLayer(
+	const options = daemonHostOptions(
 		host,
 		parts ?? {
 			main: Layer.succeed(MainSource)({
@@ -23,17 +22,10 @@ export function readDaemonLayer(host: FleetHost, parts?: HostParts, port = 0, on
 			}),
 			provider: engineProvider({}, []).transport,
 		},
+		port,
 	);
-	return HttpRouter.serve(daemonRpc(host), { disableLogger: true }).pipe(
-		Layer.provideMerge(
-			NodeHttpServer.layer(onSnapshot === undefined ? createServer : snapshotServer(onSnapshot), {
-				disablePreemptiveShutdown: true,
-				host: "127.0.0.1",
-				port,
-			}),
-		),
-		Layer.provideMerge(runtime),
-	);
+	const handlers = onSnapshot === undefined ? options.handlers : observeSnapshots(options.handlers, onSnapshot);
+	return daemonHttpLayer({ ...options, handlers });
 }
 
 export const withReadDaemon = Effect.fn("DaemonTest.withReadDaemon")(function* <A, E, R>(
@@ -56,20 +48,17 @@ export function daemonCli(host: FleetHost, args: readonly string[], parts?: Host
 	);
 }
 
-function snapshotServer(onSnapshot: () => void) {
-	return () => {
-		const server = createServer();
-		server.on("request", (_request, response) => {
-			const write = response.write.bind(response);
-			vi.spyOn(response, "write").mockImplementation((...args) => {
-				const chunk = args[0];
-				const text = typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
-				if (text.includes('"Chunk"')) {
-					onSnapshot();
-				}
-				return write(...args);
-			});
-		});
-		return server;
-	};
+function observeSnapshots(handlers: ReturnType<typeof daemonHostOptions>["handlers"], onSnapshot: () => void) {
+	const observed = ClientContract.toLayerHandler(
+		"daemon.follow",
+		Effect.gen(function* () {
+			const follow = yield* ClientContract.accessHandler("daemon.follow");
+			return (payload, options) => {
+				const result = follow(payload, options);
+				const stream = Stream.isStream(result) ? result : Stream.unwrap(result.pipe(Effect.map(Stream.fromQueue)));
+				return stream.pipe(Stream.tap(() => Effect.sync(onSnapshot)));
+			};
+		}),
+	);
+	return observed.pipe(Layer.provideMerge(handlers));
 }

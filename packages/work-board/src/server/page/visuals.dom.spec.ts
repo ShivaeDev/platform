@@ -97,6 +97,7 @@ effectApp("inspects a rendered diagram, exposes a local SVG export and releases 
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-file")).toBe("nested/result.md")));
 		page.window.history.back();
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-file")).toBe("nested/home.md")));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("figure.diagram")?.getAttribute("data-state")).toBe("drawn")));
 		page.document.querySelector("figure.diagram button")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 		expect(page.document.getElementById("visual-dialog")?.hasAttribute("open")).toBe(true);
 		click("visual-close");

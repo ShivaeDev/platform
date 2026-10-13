@@ -1,8 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Layer, Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { appDatabase } from "@shivaedev/platform/appHost.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
@@ -18,8 +17,10 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
+import { FleetRecord } from "#model.ts";
 import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
+import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
 function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
 	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code }));
@@ -74,9 +75,10 @@ export function hostPolicy(host: FleetHost) {
 }
 
 export function hostSql(host: FleetHost) {
-	return PgClient.layer({ applicationName: "work-fleet", maxConnections: host.maxConnections, url: Redacted.make(host.databaseUrl) }).pipe(
-		Layer.provideMerge(Reactivity.layer),
-	);
+	return appDatabase({
+		config: { applicationName: "work-fleet", databaseUrl: Redacted.make(host.databaseUrl), maxConnections: host.maxConnections },
+		migrations: { loader: fleetMigrations(host.namespace, FleetRecord), table: `${host.namespace}_migrations` },
+	});
 }
 
 export function fleetHostLayer<TProvider, TMain>(
@@ -89,7 +91,7 @@ export function fleetHostLayer<TProvider, TMain>(
 		readonly provider: Layer.Layer<SessionTransport, TProvider>;
 	},
 ) {
-	const repository = postgresFleetRepository(host.namespace).pipe(Layer.provideMerge(hostSql(host)));
+	const repository = postgresFleetRepository(host.namespace);
 	const sessions = SessionService.layer.pipe(
 		Layer.provideMerge([fleetSessionJournal.pipe(Layer.provide(repository)), providerHealth.pipe(Layer.provide(parts.provider))]),
 	);
@@ -97,5 +99,6 @@ export function fleetHostLayer<TProvider, TMain>(
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
+		Layer.provideMerge(hostSql(host)),
 	);
 }
