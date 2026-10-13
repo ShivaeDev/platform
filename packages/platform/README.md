@@ -413,7 +413,7 @@ Install the optional peers for the selected integration:
 - Add tracing last on the native group, as in the example, so it wraps the authentication middleware too. Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes common shapes. Keep secrets out of messages and extend the key predicate for application-specific sensitive fields.
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
-- The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Experimental native Better Auth joins are rejected.
+- The Better Auth storage adapter's default model mapping capitalizes the model name. Supply `modelName` for a generated schema with another naming convention. Native Better Auth joins (`advanced.database.joins`) are rejected; leave that option off so Better Auth reads related rows with separate queries.
 - Package session tests use real Better Auth with ephemeral SQLite and injected HTTP; the WebSocket test uses an in-memory socket. Node signal tests simulate close events. These checks do not establish deployed browser, mobile or Bun behavior.
 - The storage and harness tests require real PostgreSQL and skip without `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL`. A skipped test supplies no transaction evidence.
 

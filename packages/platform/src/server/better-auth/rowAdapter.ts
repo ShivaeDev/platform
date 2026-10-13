@@ -27,7 +27,7 @@ function rowTyped(adapter: unknown): unknown {
 }
 function rejectJoin(join: unknown): void {
 	if (join !== undefined) {
-		throw new TypeError("The Effect Prisma Better Auth adapter does not support experimental native joins");
+		throw new TypeError("The Effect Prisma Better Auth adapter does not support native joins");
 	}
 }
 function namesId(condition: CleanedWhere): boolean {
