@@ -49,7 +49,7 @@ can change its name without a Platform wrapper.
   application needs file discovery.
 - The runner ensures the ledger exists and runs the pending batch through
   `SqlClient.withTransaction`, including its ledger entries.
-- A migration-body failure aborts the batch. In Effect `4.0.0-rc.112`, the runner
+- A migration-body failure aborts the batch. In Effect `4.0.4`, the runner
   wraps a typed body failure in a `MigrationError` defect with `kind: "Failed"`.
   Startup should fail visibly; catching only the typed error channel does not
   capture this failure. A caller inspecting completion can use `Effect.exit`.
@@ -79,6 +79,6 @@ application's expected row codecs; changing a model alone does not alter a table
 
 ## Native API reference
 
-The implementation targets the workspace-pinned Effect `4.0.0-rc.112` APIs:
-[`Migrator`](https://github.com/Effect-TS/effect/blob/effect%404.0.0-rc.112/packages/effect/src/unstable/sql/Migrator.ts).
+The implementation targets the workspace-pinned Effect `4.0.4` APIs:
+[`Migrator`](https://github.com/Effect-TS/effect/blob/effect%404.0.4/packages/effect/src/sql/Migrator.ts).
 The executable test is the local compatibility check when the dependency changes.

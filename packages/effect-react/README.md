@@ -465,7 +465,7 @@ The [order feature’s application-owned kit](https://github.com/ShivaeDev/platf
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-react @effect/atom-react@4.0.0-rc.112 effect@4.0.0-rc.112 react@19.2.8
+pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.2.8
 ```
 
 For editor, create or lower-level form modules, also install the optional form peer:
@@ -474,7 +474,7 @@ For editor, create or lower-level form modules, also install the optional form p
 pnpm add @shivaedev/effect-form
 ```
 
-Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.0-rc.112` with React `19.2.8`.
+Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.2.8`.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - Action state describes the atom's latest result. A `dispatch` is not a Promise or a separate result handle.

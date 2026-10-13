@@ -245,8 +245,8 @@ A `PrismaError` carries a tagged `reason`. Unique-constraint tests verify `Prism
 ### Install and contract setup
 
 ```sh
-pnpm add @shivaedev/effect-prisma effect@4.0.0-rc.112
-pnpm add --save-dev @effect/vitest@4.0.0-rc.112 vitest@4.1.11
+pnpm add @shivaedev/effect-prisma effect@4.0.4
+pnpm add --save-dev @effect/vitest@4.0.4 vitest@5.0.3
 ```
 
 The Vitest dependencies are needed only for `testing/vitest.ts`. Use Node.js 24 or newer and compatible versions of the package's Effect and Prisma Next dependencies.

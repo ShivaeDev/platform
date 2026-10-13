@@ -213,7 +213,7 @@ that scoped waiting and release lifecycle.
 ### Install and environment
 
 ```sh
-pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.0-rc.112 @effect/platform-node-shared@4.0.0-rc.112 effect@4.0.0-rc.112
+pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4 effect@4.0.4
 ```
 
 The Effect packages are peers. Use the versions required by this package's `peerDependencies` together. The package requires Node 24 or later.

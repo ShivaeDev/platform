@@ -302,16 +302,16 @@ The explicit module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRe
 ### Install and limits
 
 ```sh
-pnpm add @shivaedev/effect-form effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-form effect@4.0.4
 ```
 
 For React bindings:
 
 ```sh
-pnpm add @effect/atom-react@4.0.0-rc.112 react@19.2.8
+pnpm add @effect/atom-react@4.0.4 react@19.2.8
 ```
 
-The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.0-rc.112` and React `19.2.8`.
+The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.4` and React `19.2.8`.
 
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.

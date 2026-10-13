@@ -273,7 +273,7 @@ The example proves DOM and loopback HTTP behavior, not browser credentials, Bett
 ### Install and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.0-rc.112 effect@4.0.0-rc.112 vitest@4.1.11
+pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.4 effect@4.0.4 vitest@5.0.3
 ```
 
 `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.

@@ -103,16 +103,6 @@ remain part of that handoff.
   deployment require? A live connection does not establish completed freshness.
 - Which edit justifies optimism or offline writes, and who owns conflict
   resolution? Generic offline synchronization remains outside the default path.
-- When should the packages move from Effect `4.0.0-rc.112` to stable Effect 4?
-  Renovate holds the catalog at rc.112. Stable Effect moves `effect/*`
-  to `effect/*` and renames Config, CLI and Schema constructors; those changes
-  are mechanical. Its `@effect/sql-pg` replaces `pg` with a native client:
-  plain objects no longer bind as JSON, so `effect-sql` repository writes to
-  JSON fields fail; `timestamp without time zone` reads as UTC; `int8` decodes
-  to `bigint` and `date` to a string. The move needs a JSON-binding decision
-  for `effect-sql`, a rewritten codec guide and a breaking release of every
-  package. Vitest 5 waits for the same move: the held `@effect/vitest` accepts
-  only Vitest 4, and its first release for Vitest 5 needs a later Effect.
 
 General SQL query-language design and migration checksum/edit policy belong to
 the [SQL roadmap](../../packages/effect-sql/docs/roadmap.md). Event sourcing,

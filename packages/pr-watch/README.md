@@ -23,7 +23,7 @@ Each successful observation compares a PR with its saved snapshot. The first obs
 Install with Node 24 or later and the repository's Effect peer version:
 
 ```sh
-npm install @shivaedev/pr-watch effect@4.0.0-rc.112 @effect/platform-node@4.0.0-rc.112 @effect/platform-node-shared@4.0.0-rc.112
+npm install @shivaedev/pr-watch effect@4.0.4 @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4
 export GH_TOKEN=YOUR_READ_ONLY_TOKEN
 pr-watch --repo acme/project 42 57 --state ./watch-state.json
 pr-watch --repo acme/project --fleet --interval 60 --state ./fleet-state.json

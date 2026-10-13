@@ -351,10 +351,10 @@ The shape types describe operation declarations, the bound types describe client
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-contract effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-contract effect@4.0.4
 ```
 
-`effect` is a peer. The repository's dependency catalog uses Effect `4.0.0-rc.112`, and the package declares Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
+`effect` is a peer. The repository's dependency catalog uses Effect `4.0.4`, and the package declares Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
 
 - Put schema declarations where server and browser can share them. Put service, authorization and transaction implementations on the server. React rendering and editable forms belong to `effect-react` and `effect-form`.
 - Run command Effects with the Reactivity instance that owns the queries to refresh, as in the registry example.

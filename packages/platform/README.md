@@ -394,7 +394,7 @@ The exports also include the adapter's translation modules: `makeRowAdapter` and
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/platform effect@4.0.0-rc.112
+pnpm add @shivaedev/platform effect@4.0.4
 ```
 
 Effect is the only required peer. The peer-free implementation lives in the shared `src/errors/` and `src/rpc/` folders and the `src/server/node-http/`, `src/server/rpc-server/` and `src/server/runtime/` folders; explicit exports retain the defining-module import paths listed above. The package-local `quality.fences.config.ts` prevents core from reaching optional peers listed in the manifest. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
