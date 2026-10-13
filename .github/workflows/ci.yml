@@ -50,7 +50,7 @@ jobs:
       - run: pnpm build
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: packages-${{ github.sha }}-${{ github.run_attempt }}
           path: .ci/packages
@@ -132,7 +132,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
           github-token: ${{ github.token }}
@@ -146,7 +146,7 @@ jobs:
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           overwrite: true
@@ -219,7 +219,7 @@ jobs:
       - uses: ./.github/actions/await-packages
         with:
           token: ${{ github.token }}
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         if: needs.shard-plan.outputs.consumers-run-id != ''
         with:
           github-token: ${{ github.token }}
@@ -239,7 +239,7 @@ jobs:
       - name: Record consumer timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/consumers.json
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           overwrite: true
@@ -280,7 +280,7 @@ jobs:
         with:
           node-version: 26.10.0
           package-manager-cache: false
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           pattern: '*-timings-*'
@@ -290,7 +290,7 @@ jobs:
         run: >-
           node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
           --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           overwrite: true
@@ -305,7 +305,7 @@ jobs:
         run: >-
           node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           overwrite: true
@@ -337,7 +337,7 @@ jobs:
         run: pnpm report:bundles
         env:
           CODECOV_UPLOAD: 'true'
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: bundle-analysis
