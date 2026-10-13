@@ -2,6 +2,7 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect } from "vitest";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { FleetRecord } from "#model.ts";
+import { fleetMigrationColumns } from "#storage/fleetMigrations.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { recordColumns } from "#storage/model.ts";
@@ -12,7 +13,7 @@ import { prepared } from "#test/preparation.ts";
 const test = postgresTests("live", "isolated");
 
 for (const path of ["fresh", "upgrade"] as const) {
-	test(`${path} database columns and PostgreSQL types match the Fleet record schema`, function* () {
+	test(`${path} database columns, PostgreSQL types and logical kinds match the Fleet record schema`, function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const namespace = "fleet_schema";
 		const table = `${namespace}_records`;
@@ -35,6 +36,7 @@ for (const path of ["fresh", "upgrade"] as const) {
 			return left.name.localeCompare(right.name, "en");
 		}
 		expect([...columns].sort(byName)).toEqual(expected.sort(byName));
+		expect(recordColumns()).toEqual(fleetMigrationColumns);
 	});
 }
 

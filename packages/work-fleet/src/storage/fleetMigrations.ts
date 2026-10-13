@@ -1,7 +1,12 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
-import { modelTables } from "#storage/modelTables.ts";
+import { modelTableColumns, modelTables } from "#storage/modelTables.ts";
+
+const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
+
+// PostgreSQL text cannot distinguish scalar strings from serialized JSON.
+export const fleetMigrationColumns = { ...modelTableColumns, [releaseReasonColumn.name]: releaseReasonColumn.kind } as const;
 
 export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string, legacyOnly = false) {
 	const sql = yield* SqlClient.SqlClient;
@@ -33,7 +38,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			: {
 					"5_model_tables": modelTables(namespace),
 					"6_decision_codes": backfillDecisionCodes(namespace),
-					"7_release_reason": sql`alter table ${sql(`${namespace}_records`)} add column if not exists "releaseReason" text`,
+					"7_release_reason": sql`alter table ${sql(`${namespace}_records`)} add column if not exists ${sql(releaseReasonColumn.name)} text`,
 				}),
 	});
 });
