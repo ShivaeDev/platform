@@ -14,6 +14,10 @@ on:
       - .github/workflows/published-starter.yml
       - script/starter-published.ts
       - script/starter-published/**
+  # A release pins the starter to versions that reach npm only when it publishes, so its check runs right after.
+  workflow_run:
+    workflows: [Publish packages]
+    types: [completed]
 
 permissions:
   contents: read
@@ -23,8 +27,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pins:
+    name: Starter pins on npm
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 2
+    outputs:
+      published: ${{ steps.pins.outputs.published }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Find pins this pull request releases
+        id: pins
+        run: |
+          missing=()
+          while IFS=$'\t' read -r name version; do
+            # A registry error fails the check; only a package or version npm has not seen counts as unreleased.
+            status=$(curl -sS --retry 3 -o "$RUNNER_TEMP/manifest.json" -w '%{http_code}' "https://registry.npmjs.org/${name/\//%2F}")
+            if [[ "$status" == 404 ]] || { [[ "$status" == 200 ]] && [[ $(jq --arg version "$version" '.versions | has($version)' "$RUNNER_TEMP/manifest.json") != true ]]; }; then
+              missing+=("$name@$version")
+            elif [[ "$status" != 200 ]]; then
+              echo "::error::npm answered $status for $name"
+              exit 1
+            fi
+          done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' examples/starter/published-versions.json)
+          if (( ${#missing[@]} == 0 )); then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            echo "::notice::This pull request releases ${missing[*]}; the packed starter checks them now and this check runs once they publish."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::The starter pins versions npm does not have: ${missing[*]}"
+            exit 1
+          fi
+
   registry:
     name: Published starter from npm
+    needs: pins
+    if: needs.pins.outputs.published == 'true'
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     services:
