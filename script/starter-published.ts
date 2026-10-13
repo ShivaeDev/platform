@@ -12,10 +12,14 @@ import { generateStarter } from "#starter-published/generate.ts";
 import { installDocumentation } from "#starter-published/installDocumentation.ts";
 import { runStarter } from "#starter-published/run.ts";
 
-const { values } = parseArgs({ options: { archives: { type: "string" } } });
+const { values } = parseArgs({
+	options: { archives: { type: "string" }, "create-app-version": { type: "string" }, registry: { default: false, type: "boolean" } },
+});
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const program = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
+	yield* requireThat(!values.registry || values.archives === undefined, "Registry mode cannot use workspace archives.");
+	yield* requireThat(values.registry || values["create-app-version"] === undefined, "A create-app version requires registry mode.");
 	const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "platform-published-" });
 	const repository = dirname((yield* command(root, "git", ["rev-parse", "--path-format=absolute", "--git-common-dir"])).trim());
 	for (const workspace of [root, repository]) {
@@ -45,7 +49,13 @@ const program = Effect.gen(function* () {
 	yield* installDocumentation(root, documentation, versions, tarballs);
 	yield* checkDocumentation(documentation, entries, versions, source);
 	const starter = join(temporary, "starter");
-	yield* generateStarter(root, temporary, tarballs["@shivaedev/create-app"], tarballs);
+	yield* generateStarter(
+		root,
+		temporary,
+		tarballs["@shivaedev/create-app"],
+		tarballs,
+		values.registry ? (values["create-app-version"] ?? "latest") : undefined,
+	);
 	const database = yield* Config.string("TEST_DATABASE_URL").pipe(
 		Config.orElse(() => Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")),
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL)),
