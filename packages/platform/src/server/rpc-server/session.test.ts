@@ -24,7 +24,7 @@ it("Better Auth sessions give each concurrent native RPC request its own identit
 		for (const user of users) {
 			expect(handled).toContainEqual(expect.objectContaining({ requestId: user.requestId, "rpc.method": "Whoami", userId: user.userId }));
 			const span = spans.find((candidate) => candidate.attributes.get("request.id") === user.requestId);
-			expect(span?.name).toBe("RpcServer.Whoami");
+			expect(span?.name).toBe("Whoami");
 			expect(span?.attributes.get("user.id")).toBe(user.userId);
 		}
 		const denied = await call({ cookie: alice.cookie, origin }, (client) => client.ReadOwn({ userId: bob.userId }));

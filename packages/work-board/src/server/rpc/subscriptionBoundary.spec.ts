@@ -33,7 +33,7 @@ it.live("traces the bound subscription and redacts stream defects over real HTTP
 	);
 	const initial = yield* Effect.promise(() => client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1)))));
 	expect(initial).toEqual([{ _tag: "Resync" }]);
-	const subscribed = spans.find((span) => span.name === "RpcServer.work-board.subscribe");
+	const subscribed = spans.find((span) => span.kind === "server" && span.name === "work-board.subscribe");
 	expect(Object.fromEntries(subscribed?.attributes ?? [])).toMatchObject({
 		"request.id": expect.stringMatching(/^[0-9a-f]{32}$/u),
 		"rpc.method": "work-board.subscribe",
@@ -54,7 +54,8 @@ it.live("traces the bound subscription and redacts stream defects over real HTTP
 		waitFor(() => {
 			const failed = spans.find(
 				(span) =>
-					span.name === "RpcServer.work-board.subscribe"
+					span.kind === "server"
+					&& span.name === "work-board.subscribe"
 					&& span.status._tag === "Ended"
 					&& Exit.isFailure(span.status.exit)
 					&& span.status.exit.cause.reasons.some((reason) => Cause.isFailReason(reason) && reason.error instanceof InternalServerError),

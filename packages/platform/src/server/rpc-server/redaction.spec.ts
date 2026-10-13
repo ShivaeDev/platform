@@ -160,7 +160,7 @@ it("the cause seen by the client, error reporters and the server span has redact
 	expect(reported).toHaveLength(2);
 	expect(leaks(reported, secrets)).toEqual([]);
 	expect(leaks(exits, secrets)).toEqual([]);
-	const spans = recorded.spans.filter((span) => span.name === "RpcServer.Crash");
+	const spans = recorded.spans.filter((span) => span.kind === "server" && span.name === "Crash");
 	expect(spans).toHaveLength(2);
 	expect(
 		leaks(

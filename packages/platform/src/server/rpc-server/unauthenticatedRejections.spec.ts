@@ -56,7 +56,7 @@ it("unauthenticated native HTTP RPC keeps declared types, redacts unexpected fai
 			expect(JSON.stringify(rejection)).not.toContain("private-value");
 		}
 		const traced = recorded.spans
-			.filter((span) => span.name === "RpcServer.Save")
+			.filter((span) => span.kind === "server" && span.name === "Save")
 			.flatMap((span) => {
 				if (span.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
 					return [];

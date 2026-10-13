@@ -50,7 +50,7 @@ it("a caller's request id reaches handlers, log annotations and the RPC server s
 	const { value, logs, spans } = await run({}, (client) => client.Echo(undefined, { headers: { "x-request-id": "trace-7f3a" } }));
 	expect(value).toBe("trace-7f3a");
 	expect(annotationsOf(logs, "echo")).toEqual([{ requestId: "trace-7f3a", "rpc.method": "Echo" }]);
-	const span = spans.find((candidate) => candidate.name === "RpcServer.Echo");
+	const span = spans.find((candidate) => candidate.kind === "server" && candidate.name === "Echo");
 	expect(Object.fromEntries(span?.attributes ?? [])).toMatchObject({ "request.id": "trace-7f3a", "rpc.method": "Echo" });
 });
 it("missing or malformed request ids are replaced with generated ones", async () => {

@@ -71,7 +71,7 @@ it.live("Board redacts a handler defect into a declared rejection while the serv
 	expect(rejection.cause).toBeUndefined();
 	expect(JSON.stringify(rejection)).not.toContain("private-value");
 	const failures = spans
-		.filter((span) => ["RpcServer.work-board.document"].includes(span.name))
+		.filter((span) => span.kind === "server" && span.name === "work-board.document")
 		.flatMap((span) => {
 			if (span.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
 				return [];
