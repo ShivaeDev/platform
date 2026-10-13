@@ -31,7 +31,7 @@ jobs:
     name: Starter pins on npm
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 2
+    timeout-minutes: 12
     outputs:
       published: ${{ steps.pins.outputs.published }}
     steps:
@@ -43,17 +43,27 @@ jobs:
       - name: Find pins this pull request releases
         id: pins
         run: |
-          missing=()
-          while IFS=$'\t' read -r name version; do
-            # A registry error fails the check; only a package or version npm has not seen counts as unreleased.
-            status=$(curl -sS --retry 3 -o "$RUNNER_TEMP/manifest.json" -w '%{http_code}' "https://registry.npmjs.org/${name/\//%2F}")
-            if [[ "$status" == 404 ]] || { [[ "$status" == 200 ]] && [[ $(jq --arg version "$version" '.versions | has($version)' "$RUNNER_TEMP/manifest.json") != true ]]; }; then
-              missing+=("$name@$version")
-            elif [[ "$status" != 200 ]]; then
-              echo "::error::npm answered $status for $name"
-              exit 1
-            fi
-          done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' examples/starter/published-versions.json)
+          find_missing() {
+            missing=()
+            while IFS=$'\t' read -r name version; do
+              # A registry error fails the check; only a package or version npm has not seen counts as unreleased.
+              status=$(curl -sS --retry 3 -o "$RUNNER_TEMP/manifest.json" -w '%{http_code}' "https://registry.npmjs.org/${name/\//%2F}")
+              if [[ "$status" == 404 ]] || { [[ "$status" == 200 ]] && [[ $(jq --arg version "$version" '.versions | has($version)' "$RUNNER_TEMP/manifest.json") != true ]]; }; then
+                missing+=("$name@$version")
+              elif [[ "$status" != 200 ]]; then
+                echo "::error::npm answered $status for $name"
+                exit 1
+              fi
+            done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' examples/starter/published-versions.json)
+          }
+          find_missing
+          # npm accepts a publish before its cached package documents list the new version, so the run after a publish waits for them.
+          for (( attempt = 1; ${#missing[@]} > 0 && attempt <= 20; attempt++ )); do
+            [[ "$GITHUB_EVENT_NAME" == workflow_run ]] || break
+            echo "Waiting for npm to list ${missing[*]}"
+            sleep 30
+            find_missing
+          done
           if (( ${#missing[@]} == 0 )); then
             echo "published=true" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
