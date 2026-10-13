@@ -1,7 +1,7 @@
 import type { BlockList } from "node:net";
 import { Effect, Option } from "effect";
-import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
-import { RpcSerialization } from "effect/unstable/rpc";
+import { HttpServerRequest, HttpServerResponse } from "effect/http";
+import { RpcSerialization } from "effect/rpc";
 import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
 
 function loopbackAddress(address: string): boolean {

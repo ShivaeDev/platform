@@ -35,7 +35,7 @@ export function prepareArchives(packages: readonly Package[], archives: string) 
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		yield* fs.makeDirectory(archives, { recursive: true });
-		const concurrency = yield* Config.int("CI_WORKSPACE_CONCURRENCY").pipe(Config.withDefault(1));
+		const concurrency = yield* Config.Int("CI_WORKSPACE_CONCURRENCY").pipe(Config.withDefault(1));
 		yield* requireThat(concurrency > 0, "CI_WORKSPACE_CONCURRENCY must be positive");
 		const inventory = yield* Effect.forEach(
 			packages,
@@ -48,7 +48,7 @@ export function prepareArchives(packages: readonly Package[], archives: string) 
 		);
 		yield* writeJson(join(archives, "manifest.json"), {
 			packages: inventory,
-			sha: yield* Config.string("GITHUB_SHA").pipe(Config.withDefault("local")),
+			sha: yield* Config.String("GITHUB_SHA").pipe(Config.withDefault("local")),
 		});
 	});
 }
@@ -58,7 +58,7 @@ export function verifyArchives(packages: readonly Package[], archives: string) {
 		const fs = yield* FileSystem.FileSystem;
 		const inventory = decodeInventory(yield* fs.readFileString(join(archives, "manifest.json")));
 		yield* requireThat(
-			inventory.sha === (yield* Config.string("GITHUB_SHA").pipe(Config.withDefault("local"))),
+			inventory.sha === (yield* Config.String("GITHUB_SHA").pipe(Config.withDefault("local"))),
 			"Packed artifacts were produced for another commit",
 		);
 		yield* requireThat(inventory.packages.length === packages.length, "Packed artifact inventory does not match the workspace");

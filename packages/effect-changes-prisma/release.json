@@ -1,0 +1,14 @@
+{
+	"date": "2026-10-13",
+	"fragments": [
+		{
+			"name": "effect-4-stable.md",
+			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.\n"
+		},
+		{
+			"name": "migrated-unreleased.md",
+			"text": "### Changed\n\n- Prefix generic type parameter names in the Prisma binding, model mappings, transaction helpers and affected test fixtures with `T`; their types and runtime behavior stay the same.\n- Explain the package's purpose, model mappings, transaction boundary and test coverage in its README, agent north star and package docs; publish `docs/` with the README while keeping agent instructions out of the package.\n- Build package JavaScript, declarations and source maps with TypeScript 7.\n"
+		}
+	],
+	"version": "0.5.0"
+}

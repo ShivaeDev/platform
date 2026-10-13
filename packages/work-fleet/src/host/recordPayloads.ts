@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { recordColumns, recordJson, recordModel } from "#storage/model.ts";
 

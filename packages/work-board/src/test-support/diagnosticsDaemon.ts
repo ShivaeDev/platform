@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { HttpRouter, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 
 export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (read: () => DiagnosticsSnapshot, port = 0) {
@@ -18,7 +19,7 @@ export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (
 		scope,
 	);
 	const server = Context.get(context, HttpServer.HttpServer);
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("Expected a TCP daemon");
 	}
 	return { port: server.address.port, stop: () => Scope.close(scope, Exit.void) };

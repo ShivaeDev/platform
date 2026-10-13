@@ -1,7 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
-import { HttpServer } from "effect/unstable/http";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import { HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { admitApproved } from "#host/admission.ts";
 import { hostLayer } from "#host/commands.ts";
 import { cliProcess } from "#test/fleetCli.ts";
@@ -34,7 +35,7 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 		first,
 	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
-	if (address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP daemon");
 	}
 	yield* storeState(fixture.host, "a", { stage: "executing" });

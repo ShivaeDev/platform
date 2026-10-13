@@ -1,5 +1,5 @@
 import { Console, Effect, Option, type PlatformError, Queue } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { CommandLine } from "./args.ts";
 import { type ForwardedSignal, signalExitCode } from "./signals.ts";
 

@@ -1,4 +1,4 @@
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { FleetRecord } from "#model.ts";

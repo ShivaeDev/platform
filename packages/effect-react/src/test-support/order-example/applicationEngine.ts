@@ -1,9 +1,9 @@
 import { NodeHttpClient } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/unstable/http";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import { SqlClient } from "effect/unstable/sql";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { SqlClient } from "effect/sql";
 import { type Order, Orders } from "./contract.ts";
 import { listenOrderServer } from "./http-test.ts";
 import { StoryDatabase } from "./postgres.ts";

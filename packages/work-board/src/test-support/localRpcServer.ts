@@ -1,8 +1,9 @@
 import { createServer, request } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Exit, Layer, Schema, Scope } from "effect";
-import { HttpRouter, HttpServer, HttpServerRequest } from "effect/unstable/http";
-import { Rpc, RpcGroup, RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { Rpc, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { localRpcGuard } from "@shivaedev/platform/rpc-server/local.ts";
 
 const LocalRpcs = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
@@ -38,10 +39,11 @@ export const localRpcServer = Effect.fn("Test.localRpcServer")(function* (
 		scope,
 	);
 	const server = Context.get(context, HttpServer.HttpServer);
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("Expected a TCP RPC server");
 	}
-	const { hostname, port } = server.address;
+	const hostname = NetAddress.formatIp(server.address.address);
+	const { port } = server.address;
 	return {
 		calls: () => calls,
 		close: () => Scope.close(scope, Exit.void),

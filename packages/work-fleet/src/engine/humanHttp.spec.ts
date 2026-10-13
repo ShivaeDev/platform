@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, FileSystem, Path } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { Fleet } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { boardHttp } from "#test/boardHttp.ts";

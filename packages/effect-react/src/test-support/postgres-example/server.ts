@@ -1,7 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Layer, ManagedRuntime, Option, Redacted } from "effect";
-import { type Headers, HttpServer } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
+import { type Headers, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { SqlClient } from "effect/sql";
 import { type AppDatabaseOptions, appHost } from "@shivaedev/platform/appHost.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
@@ -88,10 +89,10 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 	}
 	try {
 		const server = await runtime.runPromise(HttpServer.HttpServer);
-		if (server.address._tag !== "TcpAddress") {
+		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected a loopback TCP server");
 		}
-		return { close, delivered, publications, read, reads, url: `http://${server.address.hostname}:${server.address.port}/rpc` };
+		return { close, delivered, publications, read, reads, url: `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}/rpc` };
 	} catch (error) {
 		await close();
 		throw error;

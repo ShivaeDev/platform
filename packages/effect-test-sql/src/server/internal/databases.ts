@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 
 export function connection(url: Redacted.Redacted<string>) {
 	return Layer.effectContext(

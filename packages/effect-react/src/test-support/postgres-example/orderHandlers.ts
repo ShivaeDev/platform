@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/effect-contract/keys.ts";
 import { AppChanges } from "@shivaedev/platform/appHost.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";

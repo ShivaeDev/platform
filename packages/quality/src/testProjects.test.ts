@@ -5,15 +5,14 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TestProjectConfiguration } from "vitest/config";
 import { packageRoot, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
-import { inheritTags, testProjects } from "#vitest.ts";
+import { testProjects } from "#testProjects.ts";
 
 afterEach(removeSeededTrees);
 
 const vitestRoot = dirname(realpathSync(createRequire(import.meta.url).resolve("vitest/package.json")));
 
-const helper = pathToFileURL(join(packageRoot, "src", "vitest.ts")).href;
+const helper = pathToFileURL(join(packageRoot, "src", "testProjects.ts")).href;
 
 function testFile(path: string, body: string): SeedFile {
 	return { content: `import { expect, it } from "vitest";\n\n${body}\n`, path };
@@ -51,7 +50,7 @@ function repository(options = ""): string {
 
 const BAKERY = "./packages/bakery/vitest.config.ts";
 
-function workspace(projects: string): string {
+function workspace(): string {
 	return linkVitest(
 		seedTree([
 			{
@@ -59,7 +58,7 @@ function workspace(projects: string): string {
 				path: BAKERY,
 			},
 			{
-				content: `import { defineConfig } from "vitest/config";\nimport { inheritTags, testProjects } from "${helper}";\nimport bakery from "${BAKERY}";\n\nconst projects = bakery.test.projects.map((project) => ({ ...project, extends: "${BAKERY}", root: "./packages/bakery" }));\n\nexport default defineConfig(async () => ({ test: { project: ["unit"], projects: ${projects} } }));\n`,
+				content: `import { defineConfig } from "vitest/config";\nimport bakery from "${BAKERY}";\n\nconst projects = bakery.test.projects.map((project) => ({ ...project, extends: "${BAKERY}", root: "./packages/bakery" }));\n\nexport default defineConfig(async () => ({ test: { project: ["unit"], projects } }));\n`,
 				path: "vitest.config.ts",
 			},
 			testFile("packages/bakery/src/bread.test.ts", 'it("rises", { tags: ["bakery-story"] }, () => {\n\texpect(1).toBe(1);\n});'),
@@ -115,6 +114,10 @@ describe("testProjects", { timeout: 60_000 }, () => {
 		expect(vitest(repository(), "--project", "slow")).toMatchObject({ ran: ["src/c.slow.test.ts passed"], status: 0 });
 	});
 
+	it("runs the tagged tests of a package config that a root config's inline projects extend", () => {
+		expect(vitest(workspace(), "--tags-filter=bakery-story")).toMatchObject({ status: 0, tests: ["rises passed", "sets skipped"] });
+	});
+
 	it("gives each test 30 seconds instead of Vitest's 5", () => {
 		const root = linkVitest(
 			seedTree([
@@ -126,42 +129,5 @@ describe("testProjects", { timeout: 60_000 }, () => {
 			]),
 		);
 		expect(vitest(root)).toMatchObject({ ran: ["src/wait.test.ts passed"], status: 0 });
-	});
-});
-
-describe("inheritTags", { timeout: 60_000 }, () => {
-	it("gives the projects flattened out of an extended package config the tags that package declares", () => {
-		expect(vitest(workspace("await inheritTags(projects, import.meta.dirname)"), "--tags-filter=bakery-story")).toMatchObject({
-			status: 0,
-			tests: ["rises passed", "sets skipped"],
-		});
-	});
-
-	it("is needed, because Vitest drops the tags of the config an inline project extends", () => {
-		expect(vitest(workspace("projects")).failure).toContain('cannot apply "bakery-story" tag for this test');
-	});
-
-	it.each(["export default {};", "export default { test: {} };", "export default { test: { tags: [] } };"])(
-		"inherits no tags from an ordinary config without declared tags: %s",
-		async (content) => {
-			const root = seedTree([{ content, path: "plain.config.ts" }]);
-			expect(await inheritTags([{ extends: "./plain.config.ts" }], root)).toEqual([{ extends: "./plain.config.ts", test: { tags: [] } }]);
-		},
-	);
-
-	it("keeps a project's own tag over an inherited one of the same name, calls a config function, and leaves other projects alone", async () => {
-		const root = seedTree([
-			{
-				content: 'export default () => ({ test: { tags: [{ name: "mill-story", description: "inherited" }, { name: "slow-grind" }] } });\n',
-				path: "mill.config.ts",
-			},
-		]);
-		const own = { extends: "./mill.config.ts", test: { name: "mill", tags: [{ description: "own", name: "mill-story" }] } };
-		const shared: TestProjectConfiguration = { extends: true, test: { name: "shared" } };
-		expect(await inheritTags([own, shared, "packages/*"], root)).toEqual([
-			{ ...own, test: { name: "mill", tags: [{ description: "own", name: "mill-story" }, { name: "slow-grind" }] } },
-			shared,
-			"packages/*",
-		]);
 	});
 });

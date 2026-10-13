@@ -1,6 +1,6 @@
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { render } from "@shivaedev/effect-react/testing.ts";

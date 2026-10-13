@@ -154,7 +154,7 @@ Import names from their defining module; there is no root entry. The package's `
 | `imports/fences/dsl.ts` | `fence` |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external` |
 | `imports/fences/model.ts` | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External` |
-| `vitest.ts` | `testProjects`, `inheritTags` |
+| `testProjects.ts` | `testProjects` |
 | `naming/testName.ts` | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName` |
 
 #### Config
@@ -208,7 +208,7 @@ quality hooks pre-commit [--config <file>]
 ### Install, shared tooling and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/quality @effect/platform-node@4.0.0-rc.112 @effect/platform-node-shared@4.0.0-rc.112 effect@4.0.0-rc.112
+pnpm add --save-dev @shivaedev/quality @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4 effect@4.0.4
 ```
 
 Node 24 or later is required. The CLI loads the TypeScript config through Node's native import; use erasable syntax and `.ts` extensions for relative TypeScript imports. Installing the package does not install a hook; opt in with `quality hooks install`.
@@ -218,7 +218,7 @@ The package includes `@shivaedev/quality/biome`, `@shivaedev/quality/tsconfig/ba
 For Vitest, install `vitest` and `happy-dom` when the repository has DOM tests, then use:
 
 ```ts
-import { testProjects } from "@shivaedev/quality/vitest.ts";
+import { testProjects } from "@shivaedev/quality/testProjects.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({ test: testProjects() });
@@ -240,23 +240,6 @@ const integration = test.skipIf(databaseUrl === undefined);
 ```
 
 `databaseUrl` is the test database URL read by the repository's environment helper. Declare the real PostgreSQL tests with `integration(name, body)`. A conditionally registered suite or Effect tester follows the same URL gate. CI must supply the URL for every such test; a green run with missing URLs gives no PostgreSQL evidence.
-
-#### Inherited tags
-
-A root Vitest config that gathers inline projects from package configs uses `inheritTags(projects, root)` to copy the tags of each extended config into its project:
-
-```ts
-import { inheritTags } from "@shivaedev/quality/vitest.ts";
-import { defineConfig } from "vitest/config";
-
-const bakery = { extends: "./packages/bakery/vitest.config.ts", root: "./packages/bakery", test: { name: "bakery" } };
-
-export default defineConfig(async () => ({
-	test: { projects: await inheritTags([bakery], import.meta.dirname) },
-}));
-```
-
-Vitest otherwise drops tags from an inline project's extended config. A project's own tag wins over an inherited tag with the same name; `extends: true`, globs and file-path projects stay unchanged. The [tooling guide](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/tooling.md#inherited-tags) gives the config-loading limits.
 
 #### Configuration limits
 

@@ -1,7 +1,7 @@
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import { Model } from "effect/unstable/schema";
-import { SqlClient } from "effect/unstable/sql";
+import { Model } from "effect/schema";
+import { SqlClient } from "effect/sql";
 import { expect, expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 
@@ -151,8 +151,8 @@ it("unknown runtime field names fail as SchemaError", async () => {
 class Prefix extends Context.Service<Prefix, string>()("test/Prefix") {}
 const Prefixed = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
-		decode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
-		encode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
+		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
+		encode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
 	}),
 );
 class Label extends Model.Class<Label>("Label")({

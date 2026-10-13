@@ -1,8 +1,9 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Channel, Effect, Layer, Redacted, Scope, Stream } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import type { SqlClient } from "effect/unstable/sql";
-import { type PostgresChangeClient, postgresChanges } from "#postgresChanges.ts";
+import { Effect, Layer, Queue, Redacted, Scope } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import type { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
+import { type PostgresChangeClient, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
 import { environmentVariable } from "./environment.ts";
 
 const url = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL") ?? "postgresql://integration-tests-disabled";
@@ -16,28 +17,34 @@ export interface NotifyState {
 	resyncs: number;
 }
 
-function instrumentListener(stream: ReturnType<PostgresChangeClient["listen"]>, state: NotifyState) {
-	return Stream.fromChannel(
-		Channel.fromTransform((upstream, scope) => {
-			let registered = false;
-			const tapped = stream.pipe(
-				Stream.tap((payload) =>
-					Effect.gen(function* () {
-						if (payload.startsWith("[")) {
-							state.payloads?.push(payload);
-						}
-						if (!registered && state.cleanup !== undefined) {
-							registered = true;
-							yield* Scope.addFinalizer(scope, state.cleanup);
-						}
-					}),
-				),
-				Stream.filter(() => !state.muted),
-			);
-			return Channel.toTransform(tapped.channel)(upstream, scope);
+const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(function* (
+	listening: ReturnType<PostgresChangeClient["listen"]>,
+	state: NotifyState,
+) {
+	const notifications = yield* listening;
+	const scope = yield* Effect.scope;
+	const instrumented = yield* Queue.unbounded<PostgresNotification, SqlError>();
+	let registered = false;
+	yield* Effect.forever(
+		Effect.gen(function* () {
+			const notification = yield* Queue.take(notifications);
+			if (notification.payload.startsWith("[")) {
+				state.payloads?.push(notification.payload);
+			}
+			if (!registered && state.cleanup !== undefined) {
+				registered = true;
+				yield* Scope.addFinalizer(scope, state.cleanup);
+			}
+			if (!state.muted) {
+				yield* Queue.offer(instrumented, notification);
+			}
 		}),
+	).pipe(
+		Effect.catchCause((cause) => Queue.failCause(instrumented, cause)),
+		Effect.forkScoped,
 	);
-}
+	return instrumented;
+});
 
 export function runNotify<A, E>(
 	body: Effect.Effect<A, E, SqlClient.SqlClient | Reactivity.Reactivity | Scope.Scope>,

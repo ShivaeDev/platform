@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.20.0 - 2026-10-13
+
+### Changed
+
+- `imports/runtime` treats packages with a nonempty `bin` entry and no runtime folders as server code. Runtime folders take precedence in packages that also ship browser code.
+- Package-root scripts, tooling folders and JavaScript or TypeScript config files are server code; client and shared code cannot import them.
+- The runtime rule loads the browser-global checker only when shared source needs checking, avoiding DOM declaration parsing during Node-only CLI startup.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node` and `@effect/platform-node-shared` 4.0.4 and Vitest 5 alongside it.
+- Removes `inheritTags`. Vitest 5 gives an inline project the tags of the config file it `extends`, so a root config passes its projects to `projects` directly.
+- Moves `testProjects` from `@shivaedev/quality/vitest.ts` to `@shivaedev/quality/testProjects.ts`. Change the import in each `vitest.config.ts`.
+
 ## 0.19.0 - 2026-10-12
 
 ### Added

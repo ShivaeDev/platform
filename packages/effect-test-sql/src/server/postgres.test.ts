@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { integration, runAdmin, setup } from "#test/postgres.ts";
 import { makePostgresTestLayer } from "./postgres.ts";

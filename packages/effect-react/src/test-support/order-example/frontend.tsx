@@ -1,7 +1,7 @@
 import { type Effect, Layer, Option } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { createElement } from "react";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { useEditor } from "#editor.ts";

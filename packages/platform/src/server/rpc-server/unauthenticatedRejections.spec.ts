@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Layer, Schema } from "effect";
-import { HttpRouter } from "effect/unstable/http";
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc";
+import { HttpRouter } from "effect/http";
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { expect, it } from "vitest";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#errors/taxonomy.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
@@ -56,7 +56,7 @@ it("unauthenticated native HTTP RPC keeps declared types, redacts unexpected fai
 			expect(JSON.stringify(rejection)).not.toContain("private-value");
 		}
 		const traced = recorded.spans
-			.filter((span) => span.name === "RpcServer.Save")
+			.filter((span) => span.kind === "server" && span.name === "Save")
 			.flatMap((span) => {
 				if (span.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
 					return [];

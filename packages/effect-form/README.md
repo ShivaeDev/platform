@@ -39,8 +39,8 @@ Use an `AtomRegistry` to mount and read atoms and write the submit atom. Own its
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { make } from "@shivaedev/effect-form/form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
@@ -83,8 +83,8 @@ The handler has three arguments: decoded values, the submitter, and the submitte
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { make } from "@shivaedev/effect-form/form.ts";
@@ -302,16 +302,16 @@ The explicit module exports also expose `draft.ts` (`draft`), `refs.ts` (`fromRe
 ### Install and limits
 
 ```sh
-pnpm add @shivaedev/effect-form effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-form effect@4.0.4
 ```
 
 For React bindings:
 
 ```sh
-pnpm add @effect/atom-react@4.0.0-rc.112 react@19.2.8
+pnpm add @effect/atom-react@4.0.4 react@19.2.8
 ```
 
-The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.0-rc.112` and React `19.2.8`.
+The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The manifest requires Node 24 or newer. The repository's peer catalog uses Effect and atom-react `4.0.4` and React `19.2.8`.
 
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.

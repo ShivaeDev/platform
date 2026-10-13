@@ -1,5 +1,5 @@
 import type { Cause } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import type { BrowserClient } from "#client/client.ts";
 import { resolvedDocumentFailure } from "#client/page/resolvedDocumentFailure.ts";
 import { pageQuery } from "./pageQuery.ts";

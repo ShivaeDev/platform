@@ -227,7 +227,7 @@ The application's service has two operations:
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-pg-boss effect@4.0.0-rc.112 pg-boss@12.23.1
+pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.23.1
 ```
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.

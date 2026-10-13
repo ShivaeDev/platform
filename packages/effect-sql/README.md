@@ -33,7 +33,7 @@ The work has three parts: describe the model and provide its database once, choo
 
 ```ts
 import { Effect, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
+import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
@@ -174,7 +174,7 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 
 The transaction rules follow the database owner:
 
-- A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` also announces nothing.
+- A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails through `onSqlError` and also announces nothing.
 - A nested `transact` on the same client uses a native savepoint. Its successful keys join the outer set; a rolled-back savepoint's keys are discarded.
 - A transaction on a second client commits independently. Its keys publish when that client commits, even if the enclosing client's transaction later rolls back.
 - Keys belong to the `SqlClient` in the recording Effect's context. Entering another client's transaction does not move an existing client's keys. Re-entering a still-open transaction on the original client joins its own savepoint.
@@ -189,7 +189,7 @@ For the generic ownership mechanism, read [commit-bound changes](https://github.
 ### PostgreSQL migrations: numbered SQL Effects
 
 ```ts
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 
 const migrateOrders = Effect.gen(function* () {
@@ -246,7 +246,7 @@ The repository's native methods keep the model's variants. For the `InvoiceLine`
 ### Install and database setup
 
 ```sh
-pnpm add @shivaedev/effect-sql effect@4.0.0-rc.112 @effect/sql-pg@4.0.0-rc.112
+pnpm add @shivaedev/effect-sql effect@4.0.4 @effect/sql-pg@4.0.4
 ```
 
 `effect` is a peer. Install the native driver your application uses; this command chooses PostgreSQL. Provide its layer, and provide native Reactivity when using `transact` or `invalidateOnCommit`:
@@ -254,7 +254,7 @@ pnpm add @shivaedev/effect-sql effect@4.0.0-rc.112 @effect/sql-pg@4.0.0-rc.112
 ```ts
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer, Redacted } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import * as Reactivity from "effect/reactivity/Reactivity";
 
 const database = Layer.merge(
   PgClient.layer({ url: Redacted.make("postgresql://localhost/example") }),
@@ -273,12 +273,12 @@ The application's startup runs migrations and keeps its database scope alive for
 
 ### Errors and storage limits
 
-Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. Native `findById` adds `NoSuchElementError` for a missing row, while unversioned native `update` defects if it returns no row. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. Commit failures can also be native defects; `onSqlError` maps the typed error channel, not those defects.
+Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. Native `findById` adds `NoSuchElementError` for a missing row, while unversioned native `update` defects if it returns no row. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. A failed `COMMIT` is a typed `SqlError` like any other statement failure.
 
 Map a known constraint at the operation that understands it, after the transaction has rolled back:
 
 ```ts
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import type { SqlError } from "effect/sql/SqlError";
 
 class NameTaken extends Data.TaggedError("NameTaken") {}
 
@@ -299,9 +299,11 @@ const insertNamedLine = Effect.gen(function* () {
 
 The migration owns the constraint name `invoice_line_name_key`. The mapper recognizes that named unique violation and keeps other failures intact. Put recovery outside the transaction so earlier writes in the operation roll back too. Domain error presentation belongs to the application.
 
-PostgreSQL tests use the native driver's default representations: precise numeric strings with `Schema.BigDecimalFromString`, dates with `Schema.Date`, ordinary JSON/JSONB objects with object schemas, nullable text and generated values. A persisted JSON value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
+PostgreSQL tests use the native driver's default representations: precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 
-With the default PostgreSQL date parser, `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` is interpreted as local wall time in the Node process timezone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
+JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
+
+`timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
 
 Migration rollback evidence covers transactional table DDL and writes. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own policy and tests. Checksums, edited applied migrations and larger query APIs are open questions in [the package roadmap](https://github.com/ShivaeDev/platform/blob/main/packages/effect-sql/docs/roadmap.md).
 
@@ -321,6 +323,6 @@ const delivery = postgresChanges({
 
 `pg` is the application's `@effect/sql-pg` client; the binding accepts its native SQL and `listen` methods without creating another pool. Reserve one session connection for LISTEN and another for writes and heartbeats; use a pool client with at least two connections. Compose `delivery` into the Layer that provides feature services using `transact`, alongside the existing SQL and Reactivity services. The [reference server](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/test-support/postgres-example/server.ts) shows the complete composition. The binding sends `select pg_notify(...)` through the writing transaction's `SqlClient`, so a rollback wakes no process. Its transaction sink leaves delivery to the listener, including in the writing process. Unframed `invalidateOnCommit` calls retain local invalidation; cross-process writes must use `transact`.
 
-`PostgresChangesOptions` takes `channel`, `client`, `resync`, and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for a heartbeat received through LISTEN. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Each listener finalizer has the same `heartbeatTimeout` deadline, so a stalled UNLISTEN cannot prevent the following native connection release or a fresh subscription. This detects the installed driver's silent listener-error behavior. Keep `resync` infallible. Provide the Layer for the process lifetime so scope release closes the listener.
+`PostgresChangesOptions` takes `channel`, `client`, `resync`, and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for a heartbeat received through LISTEN. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Each listener finalizer has the same `heartbeatTimeout` deadline, so a stalled UNLISTEN cannot prevent the following native connection release or a fresh subscription. The heartbeat detects a listener that stops delivering without failing. Keep `resync` infallible. Provide the Layer for the process lifetime so scope release closes the listener.
 
 NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only string or finite-number invalidation keys, with no row values. PostgreSQL requires each payload to be smaller than 8,000 bytes in the default configuration. The binding splits JSON arrays by their UTF-8 byte length; one key that cannot fit, or a nonserializable key type, fails with `SqlError` before commit and rolls back the write. Heartbeats use a separate control payload on the same channel. Applications choose a channel shared only by their cooperating processes. LISTEN requires a session connection; PgBouncer transaction pooling needs another delivery adapter. Missed notifications are reconciled by querying again on resync, with no replay guarantee.

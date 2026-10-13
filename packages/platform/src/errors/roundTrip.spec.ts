@@ -1,5 +1,5 @@
 import { Effect, Layer, Option, Schema } from "effect";
-import { Rpc, RpcClient, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import { expect, it } from "vitest";
 import { rejectedField } from "#errors/rejected-field.ts";
 import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";

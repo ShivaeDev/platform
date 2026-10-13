@@ -1,14 +1,14 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import { Model } from "effect/unstable/schema";
-import type { SqlError } from "effect/unstable/sql/SqlError";
+import { Model } from "effect/schema";
+import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository, type OptimisticConcurrencyError } from "#repository.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("versioned/Prefix") {}
 const Name = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
-		decode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
-		encode: SchemaGetter.transformOrFail((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
+		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),
+		encode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => prefix + value)),
 	}),
 );
 class Document extends Model.Class<Document>("Document")({

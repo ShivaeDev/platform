@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";

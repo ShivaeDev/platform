@@ -1,6 +1,6 @@
 import { Data, Effect, Layer, Schema } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { type Create, useCreate } from "#create.ts";

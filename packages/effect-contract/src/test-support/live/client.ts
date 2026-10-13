@@ -1,8 +1,8 @@
 import { Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "#bind.ts";
 import { live } from "#live.ts";
 import { type ResumeOptions, resumeSignal } from "#resume.ts";

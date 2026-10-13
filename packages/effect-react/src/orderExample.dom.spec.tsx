@@ -1,6 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Deferred, Effect, Result } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";

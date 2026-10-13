@@ -1,7 +1,7 @@
 import { Clock, Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { FetchHttpClient } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcClientError } from "effect/rpc/RpcClientError";
 import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 
 const daemonUnavailable = Effect.fn("WorkBoard.daemonUnavailable")(function* (error: unknown, port: number) {

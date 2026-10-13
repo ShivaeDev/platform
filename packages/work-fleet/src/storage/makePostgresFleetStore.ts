@@ -1,5 +1,5 @@
 import { Effect, Array as EffectArray, Schema } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";

@@ -93,10 +93,10 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 		return (name, body, testOptions) => {
 			const split = splitOptions(testOptions);
 			const clock = split.clock ?? defaultClock;
-			current(name, split.vitest, ({ __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, _local }) => {
+			current(name, split.vitest, ({ __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, bench }) => {
 				const context = restoreContext(__effectTestContext, {
-					_local,
 					annotate,
+					bench,
 					expect,
 					onTestFailed,
 					onTestFinished,
@@ -122,10 +122,10 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 				fixtureIt.for(cases)(
 					name,
 					split.vitest,
-					(item, { __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, _local }) => {
+					(item, { __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, bench }) => {
 						const context = restoreContext(__effectTestContext, {
-							_local,
 							annotate,
+							bench,
 							expect,
 							onTestFailed,
 							onTestFinished,

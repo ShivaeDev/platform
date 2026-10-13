@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
-import { HttpRouter, HttpServer, HttpServerResponse } from "effect/unstable/http";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { boardLayer } from "#server/board.ts";
 
 export const embeddedBoard = Effect.fn("Test.embeddedBoard")(function* (root: string) {
@@ -15,9 +16,10 @@ export const embeddedBoard = Effect.fn("Test.embeddedBoard")(function* (root: st
 		scope,
 	);
 	const server = Context.get(context, HttpServer.HttpServer);
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		throw new Error("embedded board did not listen on TCP");
 	}
-	const { hostname, port } = server.address;
+	const hostname = NetAddress.formatIp(server.address.address);
+	const { port } = server.address;
 	return { hostname, port, stop: () => Scope.close(scope, Exit.void), url: `http://${hostname}:${port}` };
 });

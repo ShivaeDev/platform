@@ -1,6 +1,6 @@
 # Constraint failures at the application boundary
 
-Effect SQL already gives us a useful vocabulary. In the pinned rc.112 release,
+Effect SQL already gives us a useful vocabulary. In the pinned 4.0.4 release,
 `SqlError.reason` distinguishes `UniqueViolation`, `ConstraintError`, transaction
 conflicts and other categories. `UniqueViolation.constraint` identifies the
 violated constraint. We do not need a second framework-wide SQL error hierarchy.

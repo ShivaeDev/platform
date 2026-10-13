@@ -8,7 +8,7 @@ import { runMain } from "#lint/adapters/run.ts";
 const [command, argument] = process.argv.slice(2);
 const program = Effect.gen(function* () {
 	if (command === "check" || command === "--check") {
-		const configured = yield* Config.string("CHANGELOG_BASE_REF").pipe(Config.withDefault(""));
+		const configured = yield* Config.String("CHANGELOG_BASE_REF").pipe(Config.withDefault(""));
 		yield* checkRepository(process.cwd(), argument ?? (configured === "" ? undefined : configured));
 		yield* Console.log("Changelog fragments and release notes are valid.");
 		return;

@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
-import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
-import { RpcSerialization } from "effect/unstable/rpc";
+import { HttpServerRequest, HttpServerResponse } from "effect/http";
+import { RpcSerialization } from "effect/rpc";
 import { describe, expect, it } from "vitest";
 import { localRpcGuard, loopbackOnly, sameOrigin } from "./local.ts";
 

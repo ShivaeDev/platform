@@ -1,5 +1,5 @@
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { afterEach, expect, it } from "vitest";
 import { type Submit, useSubmit } from "@shivaedev/effect-form/react.ts";
@@ -82,7 +82,7 @@ it("an edit typed while an async schema decodes the submission survives the crea
 	const slow = Schema.Struct({
 		name: Schema.String.pipe(
 			Schema.decodeTo(Schema.String, {
-				decode: SchemaGetter.transformOrFail(decoded),
+				decode: SchemaGetter.transformEffect(decoded),
 				encode: SchemaGetter.transform((value: string) => value),
 			}),
 		),

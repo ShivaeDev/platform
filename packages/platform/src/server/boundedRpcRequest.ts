@@ -1,6 +1,6 @@
 import { NodeHttpServerRequest, NodeStream } from "@effect/platform-node";
 import { Effect, Stream } from "effect";
-import { HttpIncomingMessage, HttpServerError, type HttpServerRequest } from "effect/unstable/http";
+import { HttpIncomingMessage, HttpServerError, type HttpServerRequest } from "effect/http";
 
 export function boundedRpcRequest(request: HttpServerRequest.HttpServerRequest): HttpServerRequest.HttpServerRequest {
 	const incoming = NodeHttpServerRequest.toIncomingMessage(request);

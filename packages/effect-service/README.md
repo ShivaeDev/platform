@@ -232,10 +232,10 @@ The exported supporting types are listed here for readers of generated declarati
 ### Install and limits
 
 ```sh
-pnpm add @shivaedev/effect-service effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-service effect@4.0.4
 ```
 
-`effect` is a peer dependency. The repository catalog uses Effect `4.0.0-rc.112`, and the package declares Node.js 24 or later. The examples use that Effect API.
+`effect` is a peer dependency. The repository catalog uses Effect `4.0.4`, and the package declares Node.js 24 or later. The examples use that Effect API.
 
 - Private state is hidden by the public interface, rather than exposed as another service field.
 - Ordinary methods may leave only caller scope unresolved. A generic method explicitly marked in a requirement-free service may retain its caller's services.

@@ -1,6 +1,7 @@
 import { Effect, Effectable, type Stream } from "effect";
 import type { PrismaError } from "#error.ts";
 import type { Relation } from "#relation.ts";
+import { hasMethod } from "./dynamic.ts";
 import type { AnyPostgresContract, DatabaseExecutor } from "./executor.ts";
 import { executeQuery } from "./query-execution.ts";
 import { appendOperation, type RelationRecipe, replayRecipe, rootRecipe } from "./recipe.ts";
@@ -88,6 +89,10 @@ function makeRelationProxy(runtime: AnyRelationRuntime): object {
 						...runtime,
 						terminal: "count",
 					});
+			}
+			// Effect reads protocol keys such as its Exit identifier from every yielded value, so only the collection's own methods become Relation calls.
+			if (!hasMethod(Reflect.get(runtime.executor.models, runtime.recipe.model), property)) {
+				return undefined;
 			}
 			return (...arguments_: readonly unknown[]) =>
 				makeRelationProxy({

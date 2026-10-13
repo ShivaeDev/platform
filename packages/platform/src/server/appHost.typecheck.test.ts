@@ -1,7 +1,7 @@
 import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
-import { Headers, HttpRouter } from "effect/unstable/http";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Headers, HttpRouter } from "effect/http";
+import { Rpc, RpcGroup } from "effect/rpc";
+import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import { type AppHostOptions, appHost } from "#appHost.ts";
 

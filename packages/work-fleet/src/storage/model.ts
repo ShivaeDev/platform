@@ -1,5 +1,5 @@
 import { Effect, Schema, SchemaAST } from "effect";
-import { Model } from "effect/unstable/schema";
+import { Model } from "effect/schema";
 import { FleetRecord } from "#model.ts";
 import { recordValue } from "#storage/recordValue.ts";
 export interface Versioned<A> {
@@ -62,7 +62,7 @@ function columnSchema(kind: string) {
 }
 
 const rowFields = {
-	"admission_order": Model.Field({ select: Schema.BigIntFromString, update: Schema.BigIntFromString }),
+	"admission_order": Model.Field({ select: Schema.BigInt, update: Schema.BigInt }),
 	attempts: Schema.NullOr(Schema.String),
 	attentionOwner: Schema.NullOr(Schema.String),
 	blocker: Schema.NullOr(Schema.String),

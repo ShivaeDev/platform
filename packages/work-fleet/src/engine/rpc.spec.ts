@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";

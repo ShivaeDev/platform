@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { draftSession } from "#draftSession.ts";
 import { make } from "#form.ts";
 import { draftStorage } from "#test/draftStorage.ts";

@@ -17,9 +17,8 @@
 {"path":"packages/effect-changes-prisma/src/written.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-changes/src/batch.spec.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/useNamingConvention","count":6}
+{"path":"packages/effect-changes/src/channel.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
-{"path":"packages/effect-changes/src/frame.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/effect-changes/src/observe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-changes/src/owners.spec.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/effect-changes/src/publish.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -55,7 +54,6 @@
 {"path":"packages/effect-form/src/form.typecheck.test.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-form/src/formChecks.spec.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-form/src/formLifecycle.spec.ts","rule":"biome/lint/style/noIncrementDecrement","count":1}
-{"path":"packages/effect-form/src/messages.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/effect-form/src/optional.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-form/src/optional.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/effect-form/src/optional.ts","rule":"files/named-after-export","count":1}
@@ -179,9 +177,7 @@
 {"path":"packages/effect-react/src/test-support/invoice-line-editor/frontend.ts","rule":"biome/lint/style/useNamingConvention","count":3}
 {"path":"packages/effect-react/src/test-support/invoice-line-editor/frontend.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-react/src/test-support/invoice-line-editor/frontend.ts","rule":"files/named-after-export","count":1}
-{"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"biome/lint/correctness/useUniqueElementIds","count":2}
-{"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":3}
-{"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"biome/plugin","count":1}
+{"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"biome/lint/nursery/noComponentHookFactories","count":2}
 {"path":"packages/effect-react/src/test-support/order-example/frontend.tsx","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-react/src/test-support/order-example/http-test.ts","rule":"files/named-after-export","count":2}
 {"path":"packages/effect-react/src/test-support/session.ts","rule":"biome/lint/correctness/noChildrenProp","count":1}
@@ -216,7 +212,6 @@
 {"path":"packages/effect-service/src/test-support/fixtures/invalid/scope-requirement.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-service/src/test-support/fixtures/valid.ts","rule":"biome/lint/style/useNamingConvention","count":9}
 {"path":"packages/effect-service/src/test-support/fixtures/valid.ts","rule":"biome/lint/suspicious/noShadow","count":2}
-{"path":"packages/effect-sql/src/postgresCodecs.spec.ts","rule":"biome/plugin","count":7}
 {"path":"packages/effect-sql/src/postgresMigrationBootstrap.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/postgresMigrations.spec.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-sql/src/repository.ts","rule":"biome/plugin","count":1}
@@ -297,7 +292,7 @@
 {"path":"packages/quality/src/config/load.test.ts","rule":"biome/lint/suspicious/noShadow","count":1}
 {"path":"packages/quality/src/config/load.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
 {"path":"packages/quality/src/config/load.ts","rule":"biome/plugin","count":1}
-{"path":"packages/quality/src/config/resolve.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
+{"path":"packages/quality/src/config/resolve.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":5}
 {"path":"packages/quality/src/config/resolve.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/decoded.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/quality/src/engine/baseline-file.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
@@ -335,8 +330,6 @@
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"biome/lint/style/useNamingConvention","count":2}
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"biome/lint/suspicious/noShadow","count":2}
 {"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"tests/story-setup","count":4}
-{"path":"packages/quality/src/inventory/walk.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"packages/quality/src/inventory/walk.ts","rule":"biome/plugin","count":2}
 {"path":"packages/quality/src/manifests/sorted.ts","rule":"biome/plugin","count":1}
 {"path":"packages/quality/src/report/plural.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/report/render.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":9}
@@ -345,7 +338,7 @@
 {"path":"packages/quality/src/rule.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/quality/src/rule.ts","rule":"biome/lint/style/useNamingConvention","count":18}
 {"path":"packages/quality/src/rules/biome.test.ts","rule":"biome/plugin","count":1}
-{"path":"packages/quality/src/rules/biome.test.ts","rule":"tests/story-setup","count":2}
+{"path":"packages/quality/src/rules/biome.test.ts","rule":"tests/story-setup","count":1}
 {"path":"packages/quality/src/rules/built-in.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/rules/comments/kinds.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":6}
 {"path":"packages/quality/src/rules/comments/max-per-file.test.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
@@ -405,10 +398,9 @@
 {"path":"packages/quality/src/test-support/alias-tree.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/quality/src/test-support/imports.ts","rule":"biome/lint/style/useNamingConvention","count":1}
 {"path":"packages/quality/src/test-support/inputs.ts","rule":"biome/lint/style/useNamingConvention","count":1}
-{"path":"packages/quality/src/vitest.test.ts","rule":"tests/story-setup","count":2}
+{"path":"packages/quality/src/testProjects.test.ts","rule":"tests/story-setup","count":2}
 {"path":"packages/types/src/bivariant.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/render/code.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/work-board/src/render/code.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/render/failed.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/work-board/src/render/footnotes.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/work-board/src/render/footnotes.ts","rule":"files/named-after-export","count":1}
@@ -443,8 +435,6 @@
 {"path":"script/package-check/archive.ts","rule":"biome/plugin","count":3}
 {"path":"script/package-check/archives.test.ts","rule":"tests/story-setup","count":4}
 {"path":"script/package-check/archives.ts","rule":"biome/plugin","count":3}
-{"path":"script/package-check/bins.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":4}
-{"path":"script/package-check/bins.ts","rule":"biome/plugin","count":3}
 {"path":"script/package-check/browser.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"script/package-check/browser.ts","rule":"biome/plugin","count":1}
 {"path":"script/package-check/browser.ts","rule":"files/named-after-export","count":1}

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import process from "node:process";
 import { Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
-import type { ChildProcessSpawner } from "effect/unstable/process";
+import type { ChildProcessSpawner } from "effect/process";
 import { failWith, HeavyLockError } from "./error.ts";
 import { HeldLock, type HeldLockShape } from "./held-lock.ts";
 import { HOLDER_ID_ENV } from "./holder.ts";

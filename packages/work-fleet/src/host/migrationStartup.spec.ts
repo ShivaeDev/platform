@@ -1,5 +1,5 @@
 import { Cause, Effect, Exit, Layer } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { daemonLayer } from "#host/daemon.ts";
 import { daemonResources } from "#test/daemonResources.ts";

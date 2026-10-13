@@ -39,7 +39,7 @@ The work has three parts:
 ```ts
 import { makeChannel } from "@shivaedev/effect-changes/channel.ts";
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 
 interface MembershipChange {
   readonly subject: string;
@@ -225,7 +225,7 @@ The modules also export the implementation helpers `Buffer`, `makeBuffer`, `sett
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-changes effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-changes effect@4.0.4
 ```
 
 `effect` is a peer dependency, so the application's Effect version runs the channel. The package declares Node 24 or newer. The SQL example also needs the application's native SQL driver and layer; neither the channel nor its installation creates a database connection or table.

@@ -4,7 +4,7 @@ import { HeavyLockError } from "@shivaedev/heavy-lock/error.ts"
 import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts"
 import { heavyLockLayer, withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts"
 import { Effect, Layer } from "effect"
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
+import { ChildProcess, ChildProcessSpawner } from "effect/process"
 
 const build = Effect.gen(function* () {
   const held = yield* HeldLock

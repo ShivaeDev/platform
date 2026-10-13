@@ -86,7 +86,7 @@ The hooks accept native atoms directly. This complete component module shows que
 import { RegistryProvider } from "@effect/atom-react";
 import { useAction, useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { Effect, Option } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 
 const report = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const rename = Atom.fn<string>()((title) =>
@@ -150,7 +150,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { createRootRouteWithContext, createRoute, createRouter, Outlet, RouterProvider, useRouterState } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Predicate } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { api } from "./notes-client.ts";
 
@@ -320,7 +320,7 @@ Keep the signal and query identities stable:
 ```ts
 import { resumeSignal } from "@shivaedev/effect-react/resume-signal.ts";
 import { Effect } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 
 const resume = resumeSignal({ window });
 const query = Atom.makeRefreshOnSignal(resume)(Atom.make(Effect.succeed("ready")));
@@ -384,8 +384,8 @@ Configure Vitest with `test: { environment: "happy-dom" }`, or select that envir
 
 ```tsx
 import { Effect, Option, Ref, Schema } from "effect";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
@@ -465,7 +465,7 @@ The [order feature’s application-owned kit](https://github.com/ShivaeDev/platf
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-react @effect/atom-react@4.0.0-rc.112 effect@4.0.0-rc.112 react@19.2.8
+pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.2.8
 ```
 
 For editor, create or lower-level form modules, also install the optional form peer:
@@ -474,7 +474,7 @@ For editor, create or lower-level form modules, also install the optional form p
 pnpm add @shivaedev/effect-form
 ```
 
-Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.0-rc.112` with React `19.2.8`.
+Query, action, session and resume modules do not require effect-form. The package declares Node 24 or newer and peers on Effect, atom-react and React; this repository checks Effect and atom-react `4.0.4` with React `19.2.8`.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - Action state describes the atom's latest result. A `dispatch` is not a Promise or a separate result handle.

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { HttpServerRequest } from "effect/unstable/http";
+import type { HttpServerRequest } from "effect/http";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { navHtml } from "#server/page/nav.ts";

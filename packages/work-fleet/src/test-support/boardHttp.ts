@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer, ManagedRuntime } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
 import { browserClient } from "@shivaedev/work-board/browser/client.ts";
 import { serveBoard } from "@shivaedev/work-board/serve.ts";
 
@@ -12,10 +12,10 @@ export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: stri
 	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => runtime.dispose()));
 	const server = yield* Effect.promise(() => runtime.runPromise(Effect.service(HttpServer.HttpServer)));
-	if (server.address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die(new Error("Board did not listen on TCP."));
 	}
-	const url = `http://${server.address.hostname}:${server.address.port}`;
+	const url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}`;
 	const client = browserClient(url);
 	yield* Effect.addFinalizer(() => Effect.sync(() => client.registry.dispose()));
 	return { client, url };
@@ -59,3 +59,4 @@ function boardPage(root: string, view: string, maintainer?: string) {
 
 import { readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import * as NetAddress from "effect/net/NetAddress";

@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Clock, Context, Effect, Layer } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpServer } from "effect/http";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { responseMarkdown } from "@shivaedev/work-board/responses/records.ts";
 import { daemonLayer } from "#host/daemon.ts";

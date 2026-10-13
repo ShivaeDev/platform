@@ -1,10 +1,10 @@
 import process from "node:process";
 import * as Console from "effect/Console";
+import * as Argument from "effect/cli/Argument";
+import * as Command from "effect/cli/Command";
+import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import * as Argument from "effect/unstable/cli/Argument";
-import * as Command from "effect/unstable/cli/Command";
-import * as Flag from "effect/unstable/cli/Flag";
 import { board, config, port } from "#host/cliOptions.ts";
 
 export const waitCommand = Command.make(
@@ -12,10 +12,10 @@ export const waitCommand = Command.make(
 	{
 		board,
 		config,
-		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
+		interval: Flag.Finite("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
 		port,
-		timeout: Flag.float("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
-		workId: Argument.string("id"),
+		timeout: Flag.Finite("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
+		workId: Argument.String("id"),
 	},
 	Effect.fn("WorkFleetCli.wait")(function* (input) {
 		const { waitFor } = yield* Effect.promise(() => import("#host/wait.ts"));
@@ -35,10 +35,10 @@ export const watchCommand = Command.make(
 	{
 		board,
 		config,
-		interval: Flag.float("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
+		interval: Flag.Finite("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
 		port,
-		timeout: Flag.float("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
-		workIds: Argument.string("id").pipe(Argument.variadic()),
+		timeout: Flag.Finite("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
+		workIds: Argument.String("id").pipe(Argument.variadic()),
 	},
 	Effect.fn("WorkFleetCli.watch")(function* (input) {
 		const { watchFor } = yield* Effect.promise(() => import("#host/watch.ts"));

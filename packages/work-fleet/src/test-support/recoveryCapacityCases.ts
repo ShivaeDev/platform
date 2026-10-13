@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import type { SqlClient } from "effect/unstable/sql";
+import type { SqlClient } from "effect/sql";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { queueRecovery } from "#test/queueRecovery.ts";
 import { quotaRecovery } from "#test/quotaRecovery.ts";

@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import type { Headers } from "effect/unstable/http";
+import type { Headers } from "effect/http";
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { redact } from "#rpc-server/redact.ts";
 import type { SessionProvider, SessionShape } from "#rpc-server/session.ts";

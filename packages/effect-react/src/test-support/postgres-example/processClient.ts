@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, ManagedRuntime, Stream } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { LiveOrders, Order } from "./contract.ts";
 

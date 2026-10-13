@@ -1,9 +1,9 @@
 import { Effect, Ref, Result } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { RpcTest } from "effect/unstable/rpc";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import type * as Reactivity from "effect/reactivity/Reactivity";
+import { RpcTest } from "effect/rpc";
 import { expect, it, vi } from "vitest";
 import { bind } from "#bind.ts";
 import { makeServer, Notes } from "#test/notes.ts";

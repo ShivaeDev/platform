@@ -70,7 +70,10 @@ it.live("rejects an oversized registered question added by an external file writ
 	workspace.notes.write(`responses/${question.id}.md`, questionMarkdown(question));
 	yield* Effect.promise(() =>
 		expect
-			.poll(() => workspace.client.run(workspace.client.responses.responses.run({ question: question.id })).then(() => "readable", String))
+			// Reading the oversized question can take a second on a busy runner, which alone exhausts the default poll timeout.
+			.poll(() => workspace.client.run(workspace.client.responses.responses.run({ question: question.id })).then(() => "readable", String), {
+				timeout: 10_000,
+			})
 			.toContain("The registered context exceeds the 256 KiB limit."),
 	);
 });

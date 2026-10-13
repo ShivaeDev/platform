@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { modelTableColumns, modelTables } from "#storage/modelTables.ts";
 

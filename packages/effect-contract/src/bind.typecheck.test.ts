@@ -1,8 +1,8 @@
 import type { Effect } from "effect";
-import type * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import type { RpcClient, RpcGroup } from "effect/unstable/rpc";
-import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import type * as AtomRpc from "effect/reactivity/AtomRpc";
+import type * as Reactivity from "effect/reactivity/Reactivity";
+import type { RpcClient, RpcGroup } from "effect/rpc";
+import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import type { Bound } from "#bind.ts";
 import type { Notes } from "#test/notes.ts";

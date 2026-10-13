@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/unstable/http";
+import { type HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { WatchError } from "./model.ts";
 export interface CachedResponse {
 	readonly body: unknown;

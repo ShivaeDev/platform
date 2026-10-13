@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0 - 2026-10-13
+
+### Added
+
+- `appHost` accepts `rpcPath` to choose the NDJSON RPC route; it still defaults to `/rpc`.
+- `appHost` accepts `policy: "loopback"` for local RPC without a session provider; `AppLocalHostOptions` describes this form. The transport still requires a loopback peer and Host, matching or absent Origin, and NDJSON content type; proxy trust does not apply to this policy.
+- `appHost` can omit `migrations` to start without a PostgreSQL pool or database configuration. `AppHttpHostOptions` describes this form while `AppHostOptions` retains its required migrations. Applications can provide an `appDatabase` layer through `services`; existing callers that supply migrations keep the migrated database composition.
+- `appDatabase` and the migrated `appHost` accept `config.maxConnections` to bound the PostgreSQL pool.
+- `appHost` forwards `config.disablePreemptiveShutdown` to the native Node host so a scoped daemon can interrupt its RPC streams during shutdown. The native default remains unchanged when omitted.
+- `appHost` accepts an optional native HTTP router layer through `routes`, so application endpoints such as Better Auth share the RPC and asset host.
+- `appHost.assets` also accepts native static-server options, including `spa: true` for browser route deep links. Existing directory strings keep their behavior.
+- `AppHostOptions.config.trustedProxy` / `TRUSTED_PROXY` and `localRpcGuard(effect, trustedProxy?)` accept comma-separated IPv4 and IPv6 addresses and CIDR ranges, including IPv4-mapped IPv6 peers. Invalid proxy addresses or ranges fail `appHost` startup with a typed `ConfigError` before migrations, services or HTTP start.
+- `appHost` accepts `config.maxBodySize` and the `MAX_BODY_SIZE` environment variable to limit RPC request bodies in bytes; explicit config takes precedence.
+
+### Changed
+
+- `appHost` accepts native router layers with typed request error annotations in `routes`, so applications can keep their route failures typed through the HTTP boundary.
+- RPC request bodies default to a 1 MiB limit. Oversized NDJSON requests return a 4xx before any RPC handler runs.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node`, `@effect/sql-pg` and `@effect/vitest` 4.0.4 alongside it; `@effect/vitest` 4.0.4 requires Vitest 5.
+
 ## 0.6.1 - 2026-10-12
 
 ### Added

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-10-13
+
+### Changed
+
+- Explain shared command coordination, ownership and scoped usage in the README and agent guide; add the north star, roadmap and shared protocol reference, and publish `docs/` with the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node` and `@effect/platform-node-shared` 4.0.4 alongside it.
+
 ## 0.3.1 - 2026-10-05
 
 ### Changed

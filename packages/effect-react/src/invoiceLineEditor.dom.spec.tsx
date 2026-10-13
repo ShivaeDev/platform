@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode, useContext } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";

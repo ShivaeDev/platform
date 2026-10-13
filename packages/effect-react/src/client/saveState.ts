@@ -1,7 +1,7 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
 import { useCallback, useContext, useEffect } from "react";
 import { FieldFailure, type Fields, type Form, Invalid } from "@shivaedev/effect-form/shape.ts";
 import { isUnauthorized } from "./resultState.ts";

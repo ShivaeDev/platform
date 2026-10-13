@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 
 export const githubRead = Effect.fn("Fleet.githubRead")(function* (args: readonly string[], cwd?: string) {

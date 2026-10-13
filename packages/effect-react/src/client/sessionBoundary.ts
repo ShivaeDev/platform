@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 import { DraftSessionContext } from "@shivaedev/effect-form/react.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";

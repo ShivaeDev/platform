@@ -1,6 +1,6 @@
 import { createRootRouteWithContext, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
 import { Schema } from "effect";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { type AuthActions, authActions } from "./auth.ts";
 import { LoginScreen } from "./LoginScreen.tsx";

@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
-import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";

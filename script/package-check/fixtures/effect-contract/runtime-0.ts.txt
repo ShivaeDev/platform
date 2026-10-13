@@ -2,7 +2,7 @@ import { collection, invalidationKeys } from '@shivaedev/effect-contract/keys.ts
 import { contract } from '@shivaedev/effect-contract/contract.ts';
 import { query } from '@shivaedev/effect-contract/operation.ts';
 import { Effect, Schema } from 'effect';
-import { RpcTest } from 'effect/unstable/rpc';
+import { RpcTest } from 'effect/rpc';
 const notes = collection('notes', Schema.Number);
 const Notes = contract('notes', { queries: [query('list', { success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
 const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.list': () => Effect.succeed(['written']) })));
@@ -14,8 +14,8 @@ if (result.join() !== 'written') throw new Error('Packed contract did not return
 if (invalidationKeys([notes.item(1)]).join() !== 'notes:1,notes') throw new Error('Packed keys did not expand');
 const { stream } = await import('@shivaedev/effect-contract/operation.ts');
 const { bind } = await import('@shivaedev/effect-contract/bind.ts');
-const AtomRpc = await import('effect/unstable/reactivity/AtomRpc');
-const AtomRegistry = await import('effect/unstable/reactivity/AtomRegistry');
+const AtomRpc = await import('effect/reactivity/AtomRpc');
+const AtomRegistry = await import('effect/reactivity/AtomRegistry');
 const { Stream } = await import('effect');
 class Missing extends Schema.TaggedError<Missing>()('Missing', { id: Schema.Number }) {}
 const Subscribe = stream('subscribe', { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] });

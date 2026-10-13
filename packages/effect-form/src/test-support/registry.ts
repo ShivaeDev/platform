@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 
 export const { effectApp: it } = makeEffectIt({

@@ -10,7 +10,7 @@ export const ISOLATED_ENV = {
 	"GIT_COMMITTER_NAME": "Quality",
 	"GIT_CONFIG_GLOBAL": "/dev/null",
 	"GIT_CONFIG_NOSYSTEM": "1",
-	"PATH": Effect.runSync(Config.string("PATH")),
+	"PATH": Effect.runSync(Config.String("PATH")),
 };
 
 const SETTINGS = [

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-10-13
+
+### Changed
+
+- Prefix generic type parameter names in service definitions and method proofs with `T`, preserving their type relationships and runtime behavior.
+- Document the service definition, private state, dependency binding and caller scope in the README, agent guidance, north star and roadmap; publish `docs/` with the README while keeping agent guidance out of the package.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.
+
 ## 0.2.0 - 2026-10-04
 
 ### Changed

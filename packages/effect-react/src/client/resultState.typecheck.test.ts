@@ -1,5 +1,5 @@
 import { type Cause, Effect, type Option } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { useAction, useQuery } from "#result-state.ts";
 
 const query = Atom.make(

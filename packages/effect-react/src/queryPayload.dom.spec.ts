@@ -1,5 +1,5 @@
 import { Exit } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect, it, onTestFinished } from "vitest";
 import { finishQuery, queryRequests, queryView } from "#test/queryView.ts";
 import { eventually, expectNoReactWarnings } from "#testing.ts";

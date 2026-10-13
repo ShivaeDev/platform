@@ -1,5 +1,5 @@
 import { Effect, Schedule, Stream } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { readKeys } from "@shivaedev/effect-contract/keys.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { fleetRecords } from "#fleetRecords.ts";

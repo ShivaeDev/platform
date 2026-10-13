@@ -1,5 +1,5 @@
 import { Effect, Layer, Option, Schema } from "effect";
-import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/rpc";
 import { Forbidden } from "#errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";

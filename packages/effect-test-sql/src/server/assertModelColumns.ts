@@ -1,5 +1,5 @@
 import { Data, Effect } from "effect";
-import type { Model } from "effect/unstable/schema";
+import type { Model } from "effect/schema";
 import type { PostgresColumn } from "./migrationUpgrade.ts";
 
 export class ModelColumnMismatch extends Data.TaggedError("ModelColumnMismatch")<{

@@ -3,19 +3,19 @@ import { Config, Effect } from "effect";
 import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
 import { postgresTestEnvironment } from "#lib/postgres-test-environment.ts";
 
-if (Effect.runSync(Config.string("NODE_ENV").pipe(Config.withDefault(""))) === "production") {
+if (Effect.runSync(Config.String("NODE_ENV").pipe(Config.withDefault(""))) === "production") {
 	throw new Error("Local setup must not run in production.");
 }
 
 const { prepareDatabases, sql } = localPostgres(
 	Effect.runSync(
 		Config.all({
-			"DOCKER_CONTEXT": Config.string("DOCKER_CONTEXT").pipe(Config.withDefault("")),
-			"DOCKER_HOST": Config.string("DOCKER_HOST").pipe(Config.withDefault("")),
+			"DOCKER_CONTEXT": Config.String("DOCKER_CONTEXT").pipe(Config.withDefault("")),
+			"DOCKER_HOST": Config.String("DOCKER_HOST").pipe(Config.withDefault("")),
 		}),
 	),
 );
-const development = Effect.runSync(Config.string("DATABASE_URL").pipe(Config.withDefault(`${localServer}/platform_dev`)));
+const development = Effect.runSync(Config.String("DATABASE_URL").pipe(Config.withDefault(`${localServer}/platform_dev`)));
 const tests = Effect.runSync(postgresTestEnvironment);
 assertLocalDatabase(development, ["platform_dev"]);
 prepareDatabases([development, ...Object.values(tests)]);

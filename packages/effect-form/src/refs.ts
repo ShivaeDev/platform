@@ -1,6 +1,6 @@
 import { Equal, Hash } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRef from "effect/unstable/reactivity/AtomRef";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRef from "effect/reactivity/AtomRef";
 
 export const fromRef = <A>(ref: AtomRef.ReadonlyRef<A>): Atom.Atom<A> =>
 	Atom.readable((get) => {

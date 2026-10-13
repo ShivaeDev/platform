@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
 import { authDatabase } from "./authDatabase.ts";
 
@@ -8,8 +8,8 @@ export const makeAuth = Effect.fn("Starter.makeAuth")(function* (config: {
 	readonly databaseUrl: Redacted.Redacted<string>;
 	readonly secret?: Redacted.Redacted<string>;
 }) {
-	const secret = config.secret ?? (yield* Config.redacted("BETTER_AUTH_SECRET"));
-	const publicUrl = yield* Config.url("PUBLIC_URL").pipe(Config.option);
+	const secret = config.secret ?? (yield* Config.Redacted("BETTER_AUTH_SECRET"));
+	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
 	const pool = yield* authDatabase(config.databaseUrl);
 	const auth = betterAuth({

@@ -1,6 +1,6 @@
 import { Effect, Layer, PubSub, Stream } from "effect";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { type LiveHint, live } from "@shivaedev/effect-contract/live.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";

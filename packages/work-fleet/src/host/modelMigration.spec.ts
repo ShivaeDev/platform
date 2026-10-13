@@ -1,7 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted } from "effect";
-import { HttpServer } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { migrateFleet } from "#storage/migrateFleet.ts";
 import { daemonClient } from "#test/daemonClient.ts";
@@ -30,7 +29,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 				fixture.host,
 				(port) =>
 					Effect.gen(function* () {
-						const client = yield* daemonClient(HttpServer.formatAddress({ _tag: "TcpAddress", hostname: "127.0.0.1", port }));
+						const client = yield* daemonClient(`http://127.0.0.1:${port}`);
 						for (const value of values) {
 							expect(yield* client("fleet.get", { workId: value.workId })).toEqual(value);
 						}

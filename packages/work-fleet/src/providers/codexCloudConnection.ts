@@ -1,5 +1,5 @@
 import { Effect, Exit, type FileSystem, Redacted, Scope, Semaphore } from "effect";
-import type { ChildProcessSpawner } from "effect/unstable/process";
+import type { ChildProcessSpawner } from "effect/process";
 import { type CodexLogin, codexAccessToken } from "#providers/codexLogin.ts";
 import { type CodexConnection, connect, failure, initialize, request } from "#providers/codexRpc.ts";
 

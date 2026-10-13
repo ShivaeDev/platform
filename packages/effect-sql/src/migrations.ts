@@ -1,5 +1,5 @@
 import { Duration, Effect } from "effect";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/sql";
 
 export interface PostgresMigrationOptions<R> {
 	readonly loader: Migrator.Loader<R>;

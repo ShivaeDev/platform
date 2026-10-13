@@ -1,7 +1,7 @@
 import { Cause, Config, ConfigProvider, Effect, Exit, Layer, ManagedRuntime, Redacted, Schema } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
-import { Migrator } from "effect/unstable/sql";
+import { HttpRouter, HttpServer } from "effect/http";
+import { Rpc, RpcGroup } from "effect/rpc";
+import { Migrator } from "effect/sql";
 import { expect, it } from "vitest";
 import { appHost } from "#appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";

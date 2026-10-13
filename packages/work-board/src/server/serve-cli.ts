@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Option, Path } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { HOST, serveBoard } from "./serve.ts";
 
-const VERSION = "0.12.0";
+const VERSION = "0.13.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;
@@ -31,15 +31,15 @@ const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 const workBoard = Command.make(
 	"work-board",
 	{
-		dir: Argument.directory("dir", { mustExist: true }).pipe(Argument.withDescription("The folder of markdown files to serve")),
-		fleetPort: Flag.integer("fleet-port").pipe(Flag.withDefault(DAEMON_PORT), Flag.withDescription("Fleet daemon port for Diagnostics at 127.0.0.1")),
-		home: Flag.string("home").pipe(Flag.optional, Flag.withDescription("The file shown as a board at /, relative to the folder")),
-		maintainer: Flag.string("maintainer").pipe(
+		dir: Argument.Directory("dir", { mustExist: true }).pipe(Argument.withDescription("The folder of markdown files to serve")),
+		fleetPort: Flag.Int("fleet-port").pipe(Flag.withDefault(DAEMON_PORT), Flag.withDescription("Fleet daemon port for Diagnostics at 127.0.0.1")),
+		home: Flag.String("home").pipe(Flag.optional, Flag.withDescription("The file shown as a board at /, relative to the folder")),
+		maintainer: Flag.String("maintainer").pipe(
 			Flag.withDefault("maintainer"),
 			Flag.withDescription("The response_from label whose questions appear in the Inbox"),
 		),
-		port: Flag.integer("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
-		responses: Flag.boolean("responses").pipe(
+		port: Flag.Int("port").pipe(Flag.withDefault(4747), Flag.withDescription(`The port to listen on at ${HOST}`)),
+		responses: Flag.Boolean("responses").pipe(
 			Flag.withDefault(false),
 			Flag.withDescription("Explicitly enable local durable question, response and handoff writes (Linux)"),
 		),

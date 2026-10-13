@@ -1,5 +1,5 @@
 import { Cause, Context, Deferred, Effect, Exit, Fiber, Layer, Redacted } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { committingClone } from "#test/committingClone.ts";
 import { integration, runAdmin, runDatabase, setup, values } from "#test/postgres.ts";

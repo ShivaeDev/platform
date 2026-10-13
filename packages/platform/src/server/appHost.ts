@@ -1,6 +1,6 @@
 import { Context, type Duration, type Effect, type Redacted } from "effect";
-import type { Rpc } from "effect/unstable/rpc";
-import type { Migrator } from "effect/unstable/sql";
+import type { Rpc } from "effect/rpc";
+import type { Migrator } from "effect/sql";
 import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import type { PostgresChangesOptions } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { SessionPolicy, SessionShape } from "#rpc-server/session.ts";

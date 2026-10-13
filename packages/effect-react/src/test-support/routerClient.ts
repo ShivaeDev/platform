@@ -1,6 +1,6 @@
 import { Deferred, Effect, Schema } from "effect";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";

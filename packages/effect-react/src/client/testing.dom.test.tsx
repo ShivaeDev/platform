@@ -1,8 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Effect, Option, Ref, Schema } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcTest } from "effect/unstable/rpc";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
 import { expect, it } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";

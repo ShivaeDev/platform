@@ -298,7 +298,7 @@ The module export pattern also exposes `model.ts`'s `rowOperations`, `countOpera
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.0 effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.0 effect@4.0.4
 ```
 
 `@prisma/client` and `effect` are peers. Generate and construct the application's Prisma Classic client for PostgreSQL before binding it. Package tests use the generated Prisma client and `@prisma/adapter-pg`; the PostgreSQL integration suite requires `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL` and otherwise skips.

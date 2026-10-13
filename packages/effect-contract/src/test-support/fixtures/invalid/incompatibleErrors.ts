@@ -1,7 +1,7 @@
 import { Layer, Schema } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { bind } from "#bind.ts";
 import { Documents, Get, List, Subscribe } from "#test/live/contract.ts";
 

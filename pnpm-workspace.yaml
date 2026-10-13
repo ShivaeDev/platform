@@ -7,8 +7,8 @@ overrides:
   # provenance attestation earlier versions carried, which `trustPolicy:
   # no-downgrade` rejects. Drop the pin once an attested release lands.
   "@vercel/detect-agent": "catalog:"
-  # `@effect/platform-node` asks for `^` its own prerelease of the shared layer;
-  # keep it on the catalog Effect version instead of a newer prerelease.
+  # `@effect/platform-node` asks for `^` its shared layer; keep that layer on
+  # the catalog version so the Effect packages share one release.
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
@@ -22,12 +22,12 @@ catalog:
   class-variance-authority: 0.7.1
   lucide-react: 1.52.0
   "@biomejs/biome": 2.5.15
-  "@effect/vitest": 4.0.0-rc.112
-  "@effect/atom-react": 4.0.0-rc.112
-  "@effect/platform-node": 4.0.0-rc.112
-  "@effect/platform-node-shared": 4.0.0-rc.112
-  "@effect/sql-sqlite-node": 4.0.0-rc.112
-  "@effect/sql-pg": 4.0.0-rc.112
+  "@effect/vitest": 4.0.4
+  "@effect/atom-react": 4.0.4
+  "@effect/platform-node": 4.0.4
+  "@effect/platform-node-shared": 4.0.4
+  "@effect/sql-sqlite-node": 4.0.4
+  "@effect/sql-pg": 4.0.4
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   react: 19.3.0
@@ -67,7 +67,7 @@ catalog:
   "@trpc/server": 11.19.0
   superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
-  effect: 4.0.0-rc.112
+  effect: 4.0.4
   esbuild: 0.28.2
   better-auth: 1.6.33
   pg: 8.23.0
@@ -76,12 +76,23 @@ catalog:
   shiki: 4.5.0
   typescript: npm:@typescript/typescript6@6.0.2
   yaml: 2.9.1
-  vitest: 4.1.11
-  "@vitest/coverage-v8": 4.1.11
+  vitest: 5.0.3
+  "@vitest/coverage-v8": 5.0.3
   "@codecov/bundle-analyzer": 2.0.1
   "@vercel/detect-agent": 1.2.3
 
 minimumReleaseAge: 10080
+# Effect 4.0.4 fixes pooled PostgreSQL connections released with a listener or
+# statement still open, and the migration from 4.0.0-rc.112 adopts it directly.
+# Remove these once 4.0.4 is seven days old on 2026-10-20.
+minimumReleaseAgeExclude:
+  - effect@4.0.4
+  - "@effect/atom-react@4.0.4"
+  - "@effect/platform-node@4.0.4"
+  - "@effect/platform-node-shared@4.0.4"
+  - "@effect/sql-pg@4.0.4"
+  - "@effect/sql-sqlite-node@4.0.4"
+  - "@effect/vitest@4.0.4"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade

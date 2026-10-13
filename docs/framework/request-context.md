@@ -96,8 +96,8 @@ annotates logs written by the auth middleware.
   `x-request-id` header (the `header` option changes the name) when the value is
   1–128 characters from `[A-Za-z0-9._:-]`. Otherwise it generates a 32-character
   hex id from Effect's `Random`. The id is for correlation only; a caller can
-  choose it. It sets `request.id` and `rpc.method` on the `RpcServer.<method>`
-  span and on every log written inside the request. A declared failure logs one
+  choose it. It sets `request.id` and `rpc.method` on the RPC
+  server span, which Effect names after the method, and on every log written inside the request. A declared failure logs one
   `RPC failure` line at Info with `rpc.failure` set to the error's tag. A defect
   logs `RPC defect` at Error with `rpc.defect`, a list with each defect in
   redacted form. The raw `Cause` is not logged, because a defect often holds
@@ -130,7 +130,7 @@ annotates logs written by the auth middleware.
 - `RequestTracing` also replaces each defect in the request's `Cause` with its
   redacted form before the cause leaves the middleware. RpcServer builds three
   things from that cause: the defect sent to the client, the exit recorded on
-  the `RpcServer.<method>` span, and the cause it hands to every installed
+  the server span, and the cause it hands to every installed
   `ErrorReporter`. All three therefore see the redacted defect. An `Error`
   defect stays an `Error` with the same `name`, a masked `message` and `stack`,
   redacted own fields and `cause`, and the `ErrorReporter` ignore, severity and

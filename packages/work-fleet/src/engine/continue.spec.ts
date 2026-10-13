@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect, Result } from "effect";
-import { RpcTest } from "effect/unstable/rpc";
+import { RpcTest } from "effect/rpc";
 import { views } from "#engine/views.ts";
 import { Fleet } from "#fleet.ts";
 import { settled } from "#host/wait.ts";

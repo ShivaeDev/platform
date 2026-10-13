@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { ConnectionError, SqlError } from "effect/unstable/sql/SqlError";
+import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { Fleet } from "#fleet.ts";
 import { githubRead } from "#host/githubRead.ts";
 import { prepareWork } from "#test/engine.ts";

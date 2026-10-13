@@ -76,7 +76,7 @@ import { NodeServices } from "@effect/platform-node";
 import { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
 import { withHeavyLock } from "@shivaedev/heavy-lock/with-heavy-lock.ts";
 import { Effect } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const build = Effect.gen(function* () {
   const held = yield* HeldLock;
@@ -149,7 +149,7 @@ The acquisition declarations use these types:
 import type { HeavyLockError } from "@shivaedev/heavy-lock/error.ts";
 import type { HeldLock } from "@shivaedev/heavy-lock/held-lock.ts";
 import type { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
-import type { ChildProcessSpawner } from "effect/unstable/process";
+import type { ChildProcessSpawner } from "effect/process";
 
 export interface HeavyLockOptions {
   readonly command?: string | undefined;
@@ -213,7 +213,7 @@ that scoped waiting and release lifecycle.
 ### Install and environment
 
 ```sh
-pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.0-rc.112 @effect/platform-node-shared@4.0.0-rc.112 effect@4.0.0-rc.112
+pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4 effect@4.0.4
 ```
 
 The Effect packages are peers. Use the versions required by this package's `peerDependencies` together. The package requires Node 24 or later.

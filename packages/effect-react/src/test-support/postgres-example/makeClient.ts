@@ -1,7 +1,7 @@
 import { Effect, Layer, Stream } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { LiveOrders, Orders, orders } from "./contract.ts";

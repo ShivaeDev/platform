@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { integration, runDatabase, values } from "#test/postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";

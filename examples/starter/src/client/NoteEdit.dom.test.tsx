@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { expect, it, onTestFinished } from "vitest";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";

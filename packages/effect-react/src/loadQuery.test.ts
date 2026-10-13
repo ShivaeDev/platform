@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect, it, onTestFinished, vi } from "vitest";
 import { loadQuery } from "#loadQuery.ts";
 

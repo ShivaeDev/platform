@@ -1,8 +1,8 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
-import { Config, Effect, FileSystem, Layer, Option, Schema } from "effect";
-import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/unstable/http";
-import { type Rpc, RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
+import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
+import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
 import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
@@ -25,14 +25,14 @@ export function appHostHttp<
 ) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const maxBodySize = options.config?.maxBodySize ?? (yield* Config.int("MAX_BODY_SIZE").pipe(Config.withDefault(1024 * 1024)));
+			const maxBodySize = options.config?.maxBodySize ?? (yield* Config.Int("MAX_BODY_SIZE").pipe(Config.withDefault(1024 * 1024)));
 			const bodySize = yield* Schema.decodeUnknownEffect(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))(maxBodySize).pipe(
 				Effect.mapError((cause) => new Config.ConfigError(cause)),
 			);
 			const trustedProxy =
 				options.policy === "loopback"
 					? undefined
-					: (options.config?.trustedProxy ?? Option.getOrUndefined(yield* Config.string("TRUSTED_PROXY").pipe(Config.option)));
+					: (options.config?.trustedProxy ?? Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option)));
 			if (trustedProxy !== undefined) {
 				yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
 			}
@@ -47,7 +47,7 @@ export function appHostHttp<
 					const guarded = localRpcGuard(handler, trustedProxy);
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 						guarded.pipe(
-							Effect.provideService(HttpIncomingMessage.MaxBodySize, FileSystem.Size(bodySize)),
+							Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
 							Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
 							Effect.provideService(RpcSerialization.RpcSerialization, wire),
 						),
@@ -61,8 +61,8 @@ export function appHostHttp<
 			const application = options.services;
 			const server = Layer.unwrap(
 				Effect.gen(function* () {
-					const port = options.config?.port ?? (yield* Config.int("PORT").pipe(Config.withDefault(3000)));
-					const host = options.config?.host ?? (yield* Config.string("HOST").pipe(Config.withDefault("127.0.0.1")));
+					const port = options.config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
+					const host = options.config?.host ?? (yield* Config.String("HOST").pipe(Config.withDefault("127.0.0.1")));
 					return NodeHttpServer.layer(createServer, {
 						host,
 						port,

@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { SqlError, UnknownError } from "effect/unstable/sql/SqlError";
+import { SqlError, UnknownError } from "effect/sql/SqlError";
 
 export const NotificationKeys = Schema.Array(Schema.Union([Schema.String, Schema.Finite]));
 export const decodeKeys = Schema.decodeUnknownEffect(Schema.fromJsonString(NotificationKeys));

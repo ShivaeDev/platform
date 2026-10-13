@@ -1,11 +1,11 @@
 import { Effect, Layer, Schema } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import type * as Atom from "effect/unstable/reactivity/Atom";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import type * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import { FetchHttpClient } from "effect/http";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import type * as Reactivity from "effect/reactivity/Reactivity";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";

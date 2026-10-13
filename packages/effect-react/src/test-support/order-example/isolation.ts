@@ -1,6 +1,6 @@
 import { type Context, Effect, type Scope, Semaphore } from "effect";
-import * as Reactivity from "effect/unstable/reactivity/Reactivity";
-import { SqlClient } from "effect/unstable/sql";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { transact } from "@shivaedev/effect-sql/transact.ts";
 import { reset, StoryDatabase } from "./postgres.ts";

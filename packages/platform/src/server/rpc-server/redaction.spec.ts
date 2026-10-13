@@ -1,7 +1,7 @@
 import { inspect } from "node:util";
 import { Cause, Effect, ErrorReporter, Exit, Layer, Schema } from "effect";
-import { Headers } from "effect/unstable/http";
-import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
+import { Headers } from "effect/http";
+import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expect, it } from "vitest";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#rpc-server/adapters/better-auth-sessions.ts";
@@ -160,7 +160,7 @@ it("the cause seen by the client, error reporters and the server span has redact
 	expect(reported).toHaveLength(2);
 	expect(leaks(reported, secrets)).toEqual([]);
 	expect(leaks(exits, secrets)).toEqual([]);
-	const spans = recorded.spans.filter((span) => span.name === "RpcServer.Crash");
+	const spans = recorded.spans.filter((span) => span.kind === "server" && span.name === "Crash");
 	expect(spans).toHaveLength(2);
 	expect(
 		leaks(

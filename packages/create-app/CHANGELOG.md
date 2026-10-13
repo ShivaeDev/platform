@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-10-13
+
+### Changed
+
+- New applications start on Effect 4.0.4 and Vitest 5.0.3.
+
 ## 0.1.3 - 2026-10-13
 
 ### Added

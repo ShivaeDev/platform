@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
-import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { WaitReading } from "#browser/responses/schema.ts";
 import { ResponseRejection, Unanswered } from "#rpc/rejections.ts";

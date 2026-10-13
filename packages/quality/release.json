@@ -1,0 +1,14 @@
+{
+	"date": "2026-10-13",
+	"fragments": [
+		{
+			"name": "effect-4-stable.md",
+			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node` and `@effect/platform-node-shared` 4.0.4 and Vitest 5 alongside it.\n- Removes `inheritTags`. Vitest 5 gives an inline project the tags of the config file it `extends`, so a root config passes its projects to `projects` directly.\n- Moves `testProjects` from `@shivaedev/quality/vitest.ts` to `@shivaedev/quality/testProjects.ts`. Change the import in each `vitest.config.ts`.\n"
+		},
+		{
+			"name": "server-tooling.md",
+			"text": "### Changed\n\n- `imports/runtime` treats packages with a nonempty `bin` entry and no runtime folders as server code. Runtime folders take precedence in packages that also ship browser code.\n- Package-root scripts, tooling folders and JavaScript or TypeScript config files are server code; client and shared code cannot import them.\n- The runtime rule loads the browser-global checker only when shared source needs checking, avoiding DOM declaration parsing during Node-only CLI startup.\n"
+		}
+	],
+	"version": "0.20.0"
+}

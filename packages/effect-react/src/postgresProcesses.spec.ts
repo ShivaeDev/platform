@@ -1,13 +1,13 @@
 import { setTimeout } from "node:timers/promises";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, ManagedRuntime, Option, Redacted, Result } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect, test } from "vitest";
 import { Order } from "#test/postgres-example/contract.ts";
 import { processClient } from "#test/postgres-example/processClient.ts";
 import { startProcess, until } from "#test/postgres-example/processHarness.ts";
 
-const databaseUrl = Effect.runSync(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const databaseUrl = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 const integration = Option.isSome(databaseUrl) ? test : test.skip;
 
 integration(

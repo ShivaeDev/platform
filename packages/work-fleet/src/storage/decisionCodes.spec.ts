@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";

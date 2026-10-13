@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";
 
 export function daemonClient(url: string, headers: Readonly<Record<string, string>> = {}) {

@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";

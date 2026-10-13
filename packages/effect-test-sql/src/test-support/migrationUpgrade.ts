@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Model } from "effect/schema";
+import { Migrator, SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#postgres.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { adminUrl } from "./postgres.ts";

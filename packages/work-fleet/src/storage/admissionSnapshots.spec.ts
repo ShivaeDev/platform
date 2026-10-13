@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { SqlClient } from "effect/unstable/sql";
+import { SqlClient } from "effect/sql";
 import { StorageAdmission } from "#storage/errors.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { postgresTests } from "#test/postgres.ts";

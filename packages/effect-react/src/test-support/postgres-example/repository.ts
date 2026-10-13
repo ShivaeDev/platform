@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect";
-import { Model } from "effect/unstable/schema";
-import { Migrator, SqlClient } from "effect/unstable/sql";
+import { Model } from "effect/schema";
+import { Migrator, SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { Order } from "./contract.ts";
 

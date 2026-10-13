@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Clock, Config, Effect, FileSystem, Option, Redacted, Schema, Stream } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { failure } from "#providers/codexRpc.ts";
 
 export interface CodexLogin {
@@ -25,7 +25,7 @@ const authFilePath = Effect.fn("CodexLogin.authFilePath")(function* (login: Code
 	if (login.authFile !== undefined) {
 		return login.authFile;
 	}
-	const home = yield* Config.option(Config.string("CODEX_HOME")).pipe(Effect.orElseSucceed(() => Option.none<string>()));
+	const home = yield* Config.option(Config.String("CODEX_HOME")).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 	return join(
 		Option.getOrElse(home, () => join(homedir(), ".codex")),
 		"auth.json",

@@ -1,7 +1,8 @@
 import { NodeHttpClient, NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
 import { Cause, Context, Effect, Layer } from "effect";
-import { HttpClient, HttpServer } from "effect/unstable/http";
+import { HttpClient, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
 import { fleetHealth } from "@shivaedev/work-board/diagnostics/fleetHealth.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { RPC_PATH } from "#host/daemonContract.ts";
@@ -22,7 +23,7 @@ const peerReads = Effect.fn("DaemonTest.peerReads")(function* (url: string, inde
 }, Effect.scoped);
 
 const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: HostFixture) {
-	const resources = yield* daemonResources(fixture.parts.provider);
+	const resources = yield* daemonResources(fixture.parts.provider, fixture.host);
 	const logs = captureLogs();
 	yield* Effect.scoped(
 		Effect.gen(function* () {
@@ -35,8 +36,8 @@ const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: 
 				),
 			);
 			const address = Context.get(context, HttpServer.HttpServer).address;
-			expect(address).toMatchObject({ _tag: "TcpAddress", hostname: "127.0.0.1" });
 			const url = HttpServer.formatAddress(address);
+			expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
 			const client = yield* daemonClient(url);
 			fixture.write("one.md", task("one", "approved"));
 			yield* client("fleet.prepare", {
@@ -48,26 +49,27 @@ const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: 
 			const dispatched = yield* client("fleet.dispatch", { workId: "one" });
 			expect(dispatched.decision).toBeUndefined();
 			expect(dispatched.stage).toBe("executing");
-			yield* Effect.forEach(
-				Array.from({ length: 12 }, (_, index) => index),
-				(index) => peerReads(url, index),
-				{ concurrency: "unbounded" },
+			const { peak } = yield* resources.peakConnections(
+				Effect.forEach(
+					Array.from({ length: 12 }, (_, index) => index),
+					(index) => peerReads(url, index),
+					{ concurrency: "unbounded" },
+				),
 			);
+			expect(peak).toBeGreaterThan(0);
+			expect(peak).toBeLessThanOrEqual(2);
 			finishWorkers(fixture.provider);
 			expect((yield* client("fleet.reconcile", { workId: "one" })).stage).toBe("completed");
 			expect((yield* client("fleet.views", undefined)).completed).toHaveLength(1);
-			expect(resources.pools()).toHaveLength(1);
-			expect(resources.pools()[0]?.options.max).toBe(2);
 			expect(resources.providers).toBe(1);
 			expect(resources.releases).toBe(0);
-			expect(resources.closed).toHaveBeenCalledTimes(0);
 			const ids = logs.entries.filter((entry) => entry.annotations["rpc.method"] === "fleet.get").map((entry) => entry.annotations.requestId);
 			expect(new Set(ids)).toEqual(new Set(Array.from({ length: 12 }, (_, index) => `peer-${index}`)));
 			yield* client("fleet.get", { workId: "missing" }).pipe(Effect.flip);
 			expect(logs.entries.at(-1)?.annotations.requestId).toMatch(/^[a-f0-9]{32}$/u);
 		}).pipe(Effect.provide(logs.layer)),
 	);
-	expect(resources.closed).toHaveBeenCalledTimes(1);
+	yield* until(() => Effect.map(resources.connections, (count) => count === 0));
 	expect(resources.releases).toBe(1);
 });
 
@@ -93,7 +95,7 @@ const occupiedPortStory = Effect.fn("DaemonTest.occupiedPortStory")(function* (f
 		),
 	);
 	const address = Context.get(context, HttpServer.HttpServer).address;
-	if (address._tag !== "TcpAddress") {
+	if (!NetAddress.isInetAddress(address)) {
 		throw new Error("Expected a TCP listener");
 	}
 	fixture.write("one.md", task("one", "approved"));
@@ -108,7 +110,7 @@ const occupiedPortStory = Effect.fn("DaemonTest.occupiedPortStory")(function* (f
 describe("local Fleet daemon against PostgreSQL and HTTP", () => {
 	const test = postgresTests("live");
 	test(
-		"HTTP operations share one bounded pool and provider lifetime and carry request ids",
+		"HTTP operations stay within the configured PostgreSQL connections, close them on shutdown, share one provider lifetime and carry request ids",
 		() => withHost({}, { database: { maxConnections: 2 }, intervalSeconds: 60 }, resourceStory),
 		30_000,
 	);

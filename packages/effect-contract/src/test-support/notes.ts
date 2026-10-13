@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Ref, Schema } from "effect";
-import { RpcMiddleware } from "effect/unstable/rpc";
+import { RpcMiddleware } from "effect/rpc";
 import { contract } from "#contract.ts";
 import { collection } from "#keys.ts";
 import { command, query } from "#operation.ts";

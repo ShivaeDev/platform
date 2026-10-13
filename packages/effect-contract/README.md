@@ -137,7 +137,7 @@ Native `.middleware(M)` returns a contract that retains its declarations. For ex
 
 ```ts
 import { Context, Schema } from "effect";
-import { RpcMiddleware } from "effect/unstable/rpc";
+import { RpcMiddleware } from "effect/rpc";
 import { Notes } from "./notes.ts";
 
 class Session extends Context.Service<Session, { readonly user: string }>()("app/Session") {}
@@ -152,7 +152,7 @@ For an ordinary HTTP server, compose the contract with native layers:
 
 ```ts
 import { Layer } from "effect";
-import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import { Notes } from "./notes.ts";
 import { NotesHandlers } from "./handlers.ts";
 
@@ -165,9 +165,9 @@ The server host provides `NotesRoutes` to its native HTTP router. In a separate 
 
 ```ts
 import { Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { Notes } from "./notes.ts";
 
@@ -197,7 +197,7 @@ Mount the atoms and run commands through the service's atom runtime in the same 
 
 ```ts
 import { Effect } from "effect";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { api, NotesClient } from "./client.ts";
 
 const registry = AtomRegistry.make();
@@ -263,10 +263,10 @@ Use `LiveNotes` as the server group and implement `notes.subscribe` with a nativ
 
 ```ts
 import { Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
-import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/unstable/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
+import { FetchHttpClient } from "effect/http";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { live } from "@shivaedev/effect-contract/live.ts";
 import { resumeSignal } from "@shivaedev/effect-contract/resume.ts";
@@ -351,10 +351,10 @@ The shape types describe operation declarations, the bound types describe client
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-contract effect@4.0.0-rc.112
+pnpm add @shivaedev/effect-contract effect@4.0.4
 ```
 
-`effect` is a peer. The repository's dependency catalog uses Effect `4.0.0-rc.112`, and the package declares Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
+`effect` is a peer. The repository's dependency catalog uses Effect `4.0.4`, and the package declares Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
 
 - Put schema declarations where server and browser can share them. Put service, authorization and transaction implementations on the server. React rendering and editable forms belong to `effect-react` and `effect-form`.
 - Run command Effects with the Reactivity instance that owns the queries to refresh, as in the registry example.

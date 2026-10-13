@@ -21,7 +21,7 @@ const worker = fileURLToPath(new URL("./testAttempt.ts", import.meta.url));
 function run(attempt: string) {
 	return spawnSync(process.execPath, ["--conditions=source", worker, attempt, ...process.argv.slice(2)], { stdio: "inherit" });
 }
-const event = Effect.runSync(Config.string("GITHUB_EVENT_NAME").pipe(Config.withDefault("")));
+const event = Effect.runSync(Config.String("GITHUB_EVENT_NAME").pipe(Config.withDefault("")));
 const first = run("first");
 process.exitCode = first.status ?? 1;
 if (

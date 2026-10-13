@@ -14,7 +14,7 @@ A module link opens its source. Type and value declarations with the same name a
 | [failure.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/failure.ts) | `SetupFailure`, `GateFailed` |
 | [rule.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/rule.ts) | `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext`, `Configured`, `Rule`, `defineRule` |
 | [standard-schema.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/standard-schema.ts) | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
-| [vitest.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/vitest.ts) | `testProjects`, `inheritTags` |
+| [testProjects.ts](https://github.com/ShivaeDev/platform/blob/main/packages/quality/src/testProjects.ts) | `testProjects` |
 
 ## baseline
 

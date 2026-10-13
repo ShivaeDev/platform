@@ -1,6 +1,6 @@
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
-import type * as Atom from "effect/unstable/reactivity/Atom";
-import type { RpcClientError } from "effect/unstable/rpc/RpcClientError";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
+import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import type { LiveStatus } from "#live.ts";
 import { liveClient } from "#test/live/client.ts";
