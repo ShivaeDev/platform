@@ -59,8 +59,8 @@
 			"matchPackageNames": ["@vercel/detect-agent"]
 		},
 		{
-			"allowedVersions": "<1.7.0",
-			"description": "Better Auth stays on 1.6. Platform pins it as an exact peer, so moving to 1.7 is a planned migration, not a routine update.",
+			"allowedVersions": "<1.8.0",
+			"description": "Better Auth stays on 1.7. Platform pins it as an exact peer, so moving to 1.8 is a planned migration, not a routine update.",
 			"matchPackageNames": ["better-auth", "@better-auth/**"]
 		}
 	],
