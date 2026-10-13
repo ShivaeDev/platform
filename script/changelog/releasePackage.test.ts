@@ -28,6 +28,17 @@ it("collects fragments under the bumped version in section and filename order, d
 		assert.equal(existsSync(join(fixture.directory, "changes", "a-editor.md")), false);
 		assert.equal(existsSync(join(fixture.directory, "changes", "z-query.md")), false);
 		assert.equal(existsSync(join(fixture.directory, "changes", ".gitkeep")), true);
+		assert.deepEqual(JSON.parse(fixture.read("release.json")), {
+			date: "2026-10-11",
+			fragments: [
+				{
+					name: "a-editor.md",
+					text: "### Breaking\n\n- Remove the old editor.\n\n### Changed\n\n- Keep draft state.\n\n### Added\n\n- Save drafts.\n",
+				},
+				{ name: "z-query.md", text: "### Fixed\n\n- Retry a query.\n\n### Added\n\n- Query subscriptions.\n" },
+			],
+			version: "1.1.0",
+		});
 	} finally {
 		fixture.remove();
 	}
@@ -43,8 +54,10 @@ it("leaves the changelog unchanged for an empty fragment set and on repeated col
 		fixture.write("changes/drafts.md", "### Added\n\n- Save drafts.\n");
 		await Effect.runPromise(releasePackage(fixture.directory, "2026-10-11").pipe(Effect.provide(NodeFileSystem.layer)));
 		const released = fixture.read("CHANGELOG.md");
+		const manifest = fixture.read("release.json");
 		assert.equal(await Effect.runPromise(releasePackage(fixture.directory, "2026-10-11").pipe(Effect.provide(NodeFileSystem.layer))), 0);
 		assert.equal(fixture.read("CHANGELOG.md"), released);
+		assert.equal(fixture.read("release.json"), manifest);
 	} finally {
 		fixture.remove();
 	}

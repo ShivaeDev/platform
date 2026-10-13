@@ -1,6 +1,7 @@
 import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { fileUrl } from "#files/url.ts";
 import { HandoffForm } from "./HandoffForm.tsx";
+import { HandoffPrompt } from "./HandoffPrompt.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
 export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
@@ -67,18 +68,7 @@ function HandoffEntry({
 			{h.constraints ? <ResponseMarkdown file={h.source} source={h.constraints} /> : <p>None recorded.</p>}
 			<h4>Next action</h4>
 			<ResponseMarkdown file={h.source} source={h.nextAction} />
-			<div className="handoff-copy">
-				<label>
-					Prompt for your existing agent session
-					<textarea id={`handoff-prompt-${record.id}`} readOnly rows={3} value={record.prompt} />
-				</label>
-				<button data-handoff-copy={`handoff-prompt-${record.id}`} type="button">
-					Copy tiny prompt
-				</button>
-				<p data-copy-status role="status">
-					Copy and paste this into your agent session. Preparing a file does not notify an agent.
-				</p>
-			</div>
+			<HandoffPrompt id={record.id} prompt={record.prompt} />
 			<details>
 				<summary>Exact reviewed source snapshot</summary>
 				<pre>{record.context}</pre>

@@ -11,6 +11,10 @@ export const releasePackage = Effect.fn("Changelog.releasePackage")(function* (d
 	if (notes.fragments.length === 0) {
 		return 0;
 	}
+	yield* fs.writeFileString(
+		join(directory, "release.json"),
+		`${JSON.stringify({ date, fragments: [...notes.fragments].sort((left, right) => left.name.localeCompare(right.name)), version: notes.version }, null, "\t")}\n`,
+	);
 	yield* fs.writeFileString(join(directory, "CHANGELOG.md"), changelog);
 	yield* Effect.forEach(notes.fragments, ({ name }) => fs.remove(join(directory, "changes", name)));
 	return notes.fragments.length;

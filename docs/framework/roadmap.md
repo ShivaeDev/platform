@@ -111,7 +111,8 @@ remain part of that handoff.
   JSON fields fail; `timestamp without time zone` reads as UTC; `int8` decodes
   to `bigint` and `date` to a string. The move needs a JSON-binding decision
   for `effect-sql`, a rewritten codec guide and a breaking release of every
-  package.
+  package. Vitest 5 waits for the same move: the held `@effect/vitest` accepts
+  only Vitest 4, and its first release for Vitest 5 needs a later Effect.
 
 General SQL query-language design and migration checksum/edit policy belong to
 the [SQL roadmap](../../packages/effect-sql/docs/roadmap.md). Event sourcing,

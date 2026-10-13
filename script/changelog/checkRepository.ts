@@ -4,6 +4,7 @@ import { Effect, FileSystem } from "effect";
 import { assertPackageChange } from "./assertPackageChange.ts";
 import { attempt } from "./attempt.ts";
 import { decodeVersion, type PackageNotes, readPackage } from "./package.ts";
+import { decodeReleaseManifest } from "./releaseManifest.ts";
 
 function git(root: string, args: readonly string[]): string {
 	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -40,10 +41,8 @@ function basePackage(root: string, base: string, name: string, paths: readonly s
 		changelog: paths.includes(`${directory}/CHANGELOG.md`) ? read(`${directory}/CHANGELOG.md`) : "# Changelog\n",
 		fragments: paths
 			.filter((path) => path.startsWith(`${directory}/changes/`) && path.endsWith(".md"))
-			.map((path) => ({
-				name: path.slice(`${directory}/changes/`.length),
-				text: read(path),
-			})),
+			.map((path) => ({ name: path.slice(`${directory}/changes/`.length), text: read(path) })),
+		release: paths.includes(`${directory}/release.json`) ? decodeReleaseManifest(read(`${directory}/release.json`)) : undefined,
 		version: decodeVersion(read(`${directory}/package.json`)),
 	};
 }

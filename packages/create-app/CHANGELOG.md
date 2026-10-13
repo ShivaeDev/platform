@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2026-10-13
+
+### Added
+
+- Generated applications include a PostgreSQL migration upgrade check for their notes model, using `@shivaedev/effect-test-sql@0.2.0`.
+
 ## 0.1.0 - 2026-10-13
 
 ### Added

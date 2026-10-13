@@ -1,0 +1,10 @@
+{
+	"date": "2026-10-13",
+	"fragments": [
+		{
+			"name": "migration-upgrade.md",
+			"text": "### Added\n\n- Generated applications include a PostgreSQL migration upgrade check for their notes model, using `@shivaedev/effect-test-sql@0.2.0`.\n"
+		}
+	],
+	"version": "0.1.1"
+}

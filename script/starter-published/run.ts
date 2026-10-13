@@ -8,7 +8,7 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 		["exec", "quality", "lint"],
 		["run", "typecheck"],
 		["run", "build"],
-		["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts"],
+		["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts", "src/server/notesMigration.spec.ts"],
 	]) {
 		yield* Effect.log(`Generated starter: pnpm ${args.join(" ")}`);
 		const code = yield* spawner.exitCode(

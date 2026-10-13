@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
-import { setupResponses } from "#client/responses/setup.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
@@ -105,9 +104,10 @@ it.live("retains form text and focus when a hosted page query refreshes", functi
 		if (!body) {
 			throw new Error("Missing response text");
 		}
-		setupResponses();
-		body.value = "Work in progress";
-		body.dispatchEvent(new Event("input", { bubbles: true }));
+		act(() => {
+			body.value = "Work in progress";
+			body.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 		body.focus();
 		body.setSelectionRange(4, 8, "backward");
 		source["question.md"] += "\nMore context.\n";
