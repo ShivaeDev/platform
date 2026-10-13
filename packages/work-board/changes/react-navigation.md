@@ -6,6 +6,7 @@
 
 - Search passages that share a heading URL remain distinct when refreshed results remove or reorder entries.
 - Search keeps a valid keyboard selection when refreshed results shrink, so Enter opens the remaining selected result.
+- Editing a search query immediately clears previous options, so Enter before the debounce completes cannot open an old result or command.
 
 ### Breaking
 

@@ -1,13 +1,13 @@
 import { Option } from "effect";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { Modal } from "./Modal.tsx";
-import { SearchResults } from "./SearchResults.tsx";
-import type { ShellApi } from "./ShellApi.ts";
-import { type SearchItem, searchCommands } from "./searchCommands.ts";
-import { searchStatus } from "./searchStatus.ts";
-import { shellIds } from "./shellIds.ts";
-import type { AppearanceControls } from "./useAppearance.ts";
+import { Modal } from "#client/react/Modal.tsx";
+import { SearchResults } from "#client/react/SearchResults.tsx";
+import type { ShellApi } from "#client/react/ShellApi.ts";
+import { type SearchItem, searchCommands } from "#client/react/searchCommands.ts";
+import { searchStatus } from "#client/react/searchStatus.ts";
+import { shellIds } from "#client/react/shellIds.ts";
+import type { AppearanceControls } from "#client/react/useAppearance.ts";
 
 export function SearchDialog({
 	api,
@@ -52,7 +52,8 @@ function Search({
 	const query = useQuery(api.search.query({ query: text }));
 	const data = Option.getOrUndefined(query.data);
 	const commands = searchCommands.filter((item) => item.title.toLowerCase().includes(text.toLowerCase()));
-	const items = [...commands, ...(text && data ? data.results : [])];
+	const editing = input.trim() !== text;
+	const items = editing ? [] : [...commands, ...(text && data ? data.results : [])];
 	useEffect(() => {
 		setSelected((current) => Math.min(current, Math.max(0, items.length - 1)));
 	}, [items.length]);
@@ -84,7 +85,7 @@ function Search({
 		}
 		close();
 	}
-	const status = searchStatus(text, query.pending || input.trim() !== text, Option.isSome(query.cause), data);
+	const status = searchStatus(text, query.pending || editing, Option.isSome(query.cause), data);
 	return (
 		<>
 			<form

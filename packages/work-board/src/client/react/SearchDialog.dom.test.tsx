@@ -1,8 +1,8 @@
 import { act } from "react";
 import { expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
+import { SearchDialog } from "#client/react/SearchDialog.tsx";
 import { renderBoard } from "#test/react.tsx";
-import { SearchDialog } from "./SearchDialog.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -58,6 +58,65 @@ it("selects and opens the remaining result when a query refresh removes the sele
 		expect(close).toHaveBeenCalled();
 		expect(view.container.querySelector("dialog")?.returnValue).toBe("navigate");
 		expect(view.container.querySelector("dialog")?.open).toBe(false);
+	} finally {
+		await view.unmount();
+	}
+});
+
+it.each([
+	{ initial: "", previous: "/" },
+	{ initial: "First phrase", previous: "/notes/first.md#heading-first" },
+])("does not activate '$initial' options when Enter follows a query edit before debounce", async ({ initial, previous }) => {
+	const close = vi.fn();
+	const view = await renderBoard(
+		{
+			"notes/first.md": "# First\n\nFirst phrase.\n",
+			"notes/second.md": "# Second\n\nSecond phrase.\n",
+		},
+		(api) => (
+			<SearchDialog
+				api={api}
+				appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "system" }}
+				close={close}
+				open
+				toggleSidebar={vi.fn()}
+			/>
+		),
+	);
+	try {
+		const field = view.container.querySelector("input");
+		const results = view.container.querySelector("#search-results");
+		if (!(field && results)) {
+			throw new Error("Missing search controls");
+		}
+		if (initial) {
+			act(() => {
+				field.value = initial;
+				field.dispatchEvent(new Event("input", { bubbles: true }));
+			});
+		}
+		await eventually(() => expect(results.querySelector('[aria-selected="true"]')?.getAttribute("href")).toBe(previous));
+		const opened = vi.fn((event: Event) => event.preventDefault());
+		results.addEventListener("click", opened);
+		act(() => {
+			field.value = "Second phrase";
+			field.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+		const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
+		act(() => field.dispatchEvent(enter));
+		expect(opened).not.toHaveBeenCalled();
+		expect(close).not.toHaveBeenCalled();
+		expect(view.container.querySelector("dialog")?.open).toBe(true);
+		expect(field.getAttribute("aria-activedescendant")).toBeNull();
+		expect(results.querySelectorAll('[role="option"]')).toHaveLength(0);
+		expect(enter.defaultPrevented).toBe(false);
+		act(() => field.form?.requestSubmit());
+		await eventually(() => expect(results.querySelector('[aria-selected="true"]')?.getAttribute("href")).toBe("/notes/second.md#heading-second"));
+		expect(results.querySelectorAll('[role="option"]')).toHaveLength(1);
+		act(() => field.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })));
+		expect(opened).toHaveBeenCalledOnce();
+		expect(close).toHaveBeenCalled();
+		expect(view.container.querySelector("dialog")?.returnValue).toBe("navigate");
 	} finally {
 		await view.unmount();
 	}
