@@ -8,7 +8,7 @@ checkbox. The [design guide](./README.md) explains how the paths fit.
 
 ## Built: composed boundary fixtures
 
-- [x] The reference order test fixture joins migrated PostgreSQL, a declared service, authenticated native HTTP RPC, atoms and an editor. Commit-bound live HTTP hints refresh a second client, while rollback publishes nothing. It is not a copyable app; an app template is still needed. [Composition and evidence](./composed-example.md).
+- [x] The reference order test fixture joins migrated PostgreSQL, a declared service, authenticated native HTTP RPC, atoms and an editor. Commit-bound live HTTP hints refresh a second client, while rollback publishes nothing. [Composition and evidence](./composed-example.md).
 
 - [x] A rendered native feature connects an actual SQLite repository, native RPC,
   AtomRpc and React. Successful actions refresh the list; rejected actions leave
@@ -34,30 +34,30 @@ application's deployment behavior. Work Board's use of the shared live path and
 its browser acceptance belong to
 [Work Board's roadmap](../../packages/work-board/docs/roadmap.md).
 
+## Built: first copyable application
+
+- [x] The [starter](../../examples/starter/README.md) is the first copyable app: a notes feature connects migrated PostgreSQL, a declared service and authenticated HTTP/NDJSON RPC to a React form. The [host tests](../../examples/starter/src/server/starterHost.test.ts) prove persisted note creation and querying over real HTTP and PostgreSQL; the [screen test](../../examples/starter/src/client/NotesScreen.dom.test.tsx) proves form submission refreshes the rendered list. The [copy test](../../script/starter-published/copy.test.ts) checks the standalone app's Quality setup.
+- [x] The starter integrates Better Auth as its session owner and supplies `SessionBoundary` with `session`, `identify` and `recheck`. Its [host tests](../../examples/starter/src/server/starterHost.test.ts) prove signed-out rejection, user isolation and revocation; its [session test](../../examples/starter/src/client/SessionApp.dom.test.tsx) proves session replacement clears cached notes and drafts. The [proxy test](../../examples/starter/src/server/starterDeploy.spec.ts) checks secure auth cookies and foreign-Origin rejection through a loopback forwarding proxy configured with an HTTPS public URL.
+- [x] The starter authors numbered migrations and runs them through `migratePostgres` on the `starter_migrations` ledger. Its [host tests](../../examples/starter/src/server/starterHost.test.ts) prove a second host runs the migration path without losing auth accounts or notes, and the word-count migration backfills existing notes. This proves the starter's convention; each deployment still owns its operational timeout and status interface.
+
 ## Next: application and deployment acceptance
 
-1. Integrate a consuming application's auth owner with `SessionBoundary` through
-   `session`, `identify` and `recheck`. Decide its session provider and browser
-   Origin policy explicitly.
-2. Verify real browser credentials, physical visibility changes, and Capacitor
-   resume, connectivity and session behavior in that application. DOM events and
+1. Verify real browser credentials, physical visibility changes, and Capacitor
+   resume, connectivity and session behavior in a consuming application. DOM events and
    loopback browser fixtures do not establish native device behavior.
-3. Choose migration authoring and run conventions for an application. Every
-   process running the same PostgreSQL ledger must use `migratePostgres`; the
-   application chooses the operational timeout and status interface.
-4. Verify request cancellation through the deployment host and proxy, including
+2. Verify request cancellation through the deployment host and proxy, including
    interruption inside a transaction and resource release at the host boundary.
-5. Validate the PostgreSQL delivery adapter against an application's deployment,
+3. Validate the PostgreSQL delivery adapter against an application's deployment,
    or select another adapter when it uses PgBouncer transaction pooling. The
    reference process fixture does not establish a deployment proxy's behavior.
-6. Prove optimistic edits only for a concrete feature that benefits from them,
+4. Prove optimistic edits only for a concrete feature that benefits from them,
    including rejection and out-of-order responses.
-7. Establish request/action correlation, trace export, redaction and error
+5. Establish request/action correlation, trace export, redaction and error
    presentation through the chosen RPC and SQL paths. Verify that telemetry
    failure leaves the feature's result intact.
-8. Validate background and external-provider behavior during adoption, including
+6. Validate background and external-provider behavior during adoption, including
    payload rejection, cancellation/retry ownership and worker shutdown.
-9. Keep one supported Effect version across package peers and installed
+7. Keep one supported Effect version across package peers and installed
    consumers. Decide the compatibility range and coordinated upgrade conventions
    from application and runtime evidence.
 
@@ -93,7 +93,7 @@ remain part of that handoff.
 
 ## Open questions for the maintainer
 
-- Which application supplies the first host-level acceptance path, and which
+- Which deployment supplies the first production host acceptance path, and which
   browser and native device paths must it support?
 - Should auth storage use native SQL or remain a separately supported
   integration? Request identity does not choose storage policy.
