@@ -1,7 +1,7 @@
 import { useAtomRef } from "@effect/atom-react";
-import { Effect, Equal, Layer, Schema } from "effect";
+import { Effect, Equal, Layer, Option, Schema } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCreate } from "@shivaedev/effect-react/create.ts";
 import { HandoffInput, type HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
@@ -52,6 +52,13 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 	});
 	const form = created.form;
 	const values = useAtomRef(form.values);
+	useEffect(() => {
+		if (created.dirty && Option.isSome(created.created) && !form.values.value.id) {
+			form.change("id", `handoff.${crypto.randomUUID()}`);
+			form.change("revision", created.created.value.handoff.reviewedRevision);
+			form.change("source", created.created.value.handoff.source);
+		}
+	}, [form, created.dirty, created.created]);
 	modelRef.current = values;
 	const stale = Boolean(values.id) && (values.revision !== source.reviewedRevision || values.source !== source.source);
 	function edit() {

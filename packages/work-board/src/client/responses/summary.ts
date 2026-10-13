@@ -16,3 +16,10 @@ export function responseSummary(values: ResponseInput, prompts: readonly Prompt[
 		.filter(Boolean)
 		.join(" ");
 }
+
+export function responseReadiness(valid: boolean, previewed: boolean) {
+	if (!valid) {
+		return "This draft is invalid. Review the response fields before recording.";
+	}
+	return previewed ? "Preview ready. Record this response when you are ready." : "Draft ready. Preview the Markdown before recording it.";
+}

@@ -10,7 +10,8 @@ import { answerRecovery, recoveryText } from "#client/responses/answerRecovery.t
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
 import { responsePreview } from "#client/responses/preview.ts";
-import { responseSummary } from "#client/responses/summary.ts";
+import { retainContext } from "#client/responses/retainContext.ts";
+import { responseReadiness, responseSummary } from "#client/responses/summary.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
 import { createResponse } from "./createResponse.ts";
 
@@ -20,7 +21,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const schema = responseFormSchema(prompts.length > 0);
 	const [preview, setPreview] = useState<ResponseInput>();
 	const [outcome, setOutcome] = useState<string>();
-	const [status, setStatus] = useState("Draft ready. Preview the Markdown before recording it.");
+	const [status, setStatus] = useState("");
 	const [label] = useState(() =>
 		authorLabel(() => window.localStorage, typeof document === "undefined" ? undefined : document.documentElement.dataset.workspace),
 	);
@@ -50,11 +51,14 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
 			form.receive({ ...initial, author: label.read("") });
+			if (created.dirty) {
+				retainContext(form, created.created.value);
+			}
 		}
 		for (const name of ["answerContext", "answers", "author", "body", "id", "question", "recovery", "revision", "supersedes", "type"] as const) {
 			form.blur(name);
 		}
-	}, [form, created.created, initial, label]);
+	}, [form, created.created, created.dirty, initial, label]);
 	modelRef.current = values;
 	const same = values.question === source.id && values.revision === source.reviewedRevision;
 	const stale = Boolean(values.id) && !same;
@@ -102,7 +106,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		setPreview(undefined);
 		if (!created.saving) {
 			setOutcome(undefined);
-			setStatus("Draft ready. Preview the Markdown before recording it.");
+			setStatus("");
 		}
 	}
 	function showPreview() {
@@ -112,7 +116,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 			form.blur(name);
 		}
 		setPreview(form.values.value);
-		setStatus("Preview ready. Record this response when you are ready.");
+		setStatus("");
 	}
 	function clear() {
 		setOutcome(undefined);
@@ -135,7 +139,9 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		preview: previewed ? responsePreview(values, source.id, prompts) : undefined,
 		recovery: recoveryText(recovery),
 		showPreview,
-		status: [stale ? sourceChanged() : "", outcome || status.startsWith("Draft cleared") ? status : summary || status].filter(Boolean).join(" "),
+		status: [stale ? sourceChanged() : "", outcome || status.startsWith("Draft cleared") ? status : summary || responseReadiness(valid, previewed)]
+			.filter(Boolean)
+			.join(" "),
 		valid,
 	};
 }

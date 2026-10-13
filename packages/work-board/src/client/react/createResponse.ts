@@ -28,7 +28,7 @@ export function createResponse(
 				setStatus(
 					`Saved: responses/${submission.id}.md. This records feedback, not acceptance.${newer ? " Your current draft remains unsaved." : ""}`,
 				);
-				return submission.id;
+				return submission;
 			} catch (error) {
 				const failure = responseFailure(error);
 				setOutcome(failure.outcome);
