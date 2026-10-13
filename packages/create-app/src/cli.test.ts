@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
@@ -32,13 +32,14 @@ it("creates a named app in a new parent path, installs, and prints only navigati
 });
 
 it("writes app-specific local database URLs and a fresh secret on every run, ignored by Git", () => {
-	const { root, run } = appFolder();
 	const secrets = new Set<string>();
 	for (const [name, database] of [
+		["my-app", "my_app"],
 		["my-app", "my_app"],
 		["2.app", "app_2_app"],
 		["a".repeat(70), "a".repeat(58)],
 	] as const) {
+		const { root, run } = appFolder();
 		expect(run([name]).status).toBe(0);
 		const app = join(root, name);
 		const env = readFileSync(join(app, ".env.local"), "utf8");
@@ -50,7 +51,7 @@ it("writes app-specific local database URLs and a fresh secret on every run, ign
 		expect(spawnSync("git", ["init", "--quiet"], { cwd: app }).status).toBe(0);
 		expect(spawnSync("git", ["check-ignore", ".env.local"], { cwd: app, encoding: "utf8" }).stdout).toBe(".env.local\n");
 	}
-	expect(secrets.size).toBe(3);
+	expect(secrets.size).toBe(4);
 });
 
 it("preserves an existing environment and refuses to run again even after installation failure", () => {
@@ -72,8 +73,9 @@ it("runs generated pnpm test with TEST_DATABASE_URL loaded from .env.local", () 
 
 it("prepares both generated databases with db:setup and connects to each on real PostgreSQL", () => {
 	const { root, run } = appFolder();
-	expect(run(["my-app"]).status).toBe(0);
-	const app = testEnvironment(join(root, "my-app"), { databases: true });
+	const name = `setup_${basename(root).slice(-6).toLowerCase()}`;
+	expect(run([name]).status).toBe(0);
+	const app = testEnvironment(join(root, name), { databases: true, name });
 	const setup = app.prepareDatabases();
 	expect(setup.status, setup.stdout + setup.stderr).toBe(0);
 	const result = app.run();

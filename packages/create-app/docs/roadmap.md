@@ -9,10 +9,6 @@
 - The generated app prepares both local databases before development and loads its test database URL from the local environment.
 - The published-starter check runs the packed command's output through typecheck, build and PostgreSQL/authenticated HTTP tests.
 
-## Next
-
-- The maintainer selects and authorizes the first release beyond the npm placeholder.
-
 ## Open questions
 
 No additional generator options are selected.
