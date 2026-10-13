@@ -73,7 +73,7 @@ The open `review` attention request explicitly asks for judgment. Its two `verdi
 
 ## Review beside the source
 
-Open **Review returned result** on the report, or `/_board/result?item=result.keyboard`. A uniquely identified readable result uses both the ordinary GET page and the existing native page query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge.
+Open **Review returned result** on the report, or `/_board/result?item=result.keyboard`. A uniquely identified readable result uses the ordinary GET route and the typed native `result` query. The report status is shown separately from its linked task's status. Neither report status nor a handoff receipt verifies execution or authorizes a merge. [Result tests](../../src/server/results/result.spec.ts) cover HTTP reads, typed result queries, missing evidence, ambiguous identities and feedback pinned to exact report bytes and paths.
 
 The page lists explicitly linked criteria, this result's claims, missing provenance, report/limitations and recorded human feedback. An unresolved or duplicate identity does not choose a convenient source. A missing local Markdown evidence source remains disclosed. Report and feedback context use the safe Markdown reader; exact reviewed source remains available separately.
 
