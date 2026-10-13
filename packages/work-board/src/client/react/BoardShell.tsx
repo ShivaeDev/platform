@@ -18,6 +18,7 @@ import { shellIds } from "./shellIds.ts";
 import { UpdatesToggle } from "./UpdatesToggle.tsx";
 import { useAppearance } from "./useAppearance.ts";
 import { useBoardNavigation } from "./useBoardNavigation.ts";
+import { useSearchDialog } from "./useSearchDialog.ts";
 import { useSidebar } from "./useSidebar.ts";
 import { VisualInspection } from "./VisualInspection.tsx";
 export interface ShellOptions {
@@ -33,19 +34,8 @@ export function BoardShell(options: ShellOptions) {
 	const appearance = useAppearance();
 	const sidebar = useSidebar(appearance);
 	const status = useBoardNavigation(options);
-	const [searchOpen, setSearchOpen] = useState(false);
+	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
-	useEffect(() => {
-		function key(event: KeyboardEvent) {
-			if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
-				event.preventDefault();
-				setSearchOpen((open) => !open);
-			}
-		}
-		document.addEventListener("keydown", key);
-
-		return () => document.removeEventListener("keydown", key);
-	}, []);
 	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
@@ -126,7 +116,7 @@ export function BoardShell(options: ShellOptions) {
 							count={data?.inboxCount ?? null}
 							live={live}
 							main={main}
-							openSearch={() => setSearchOpen(true)}
+							openSearch={search.show}
 							sidebar={sidebar}
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
@@ -137,7 +127,14 @@ export function BoardShell(options: ShellOptions) {
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
 				{main.view !== "changes" && <HistoryRetention api={api} />}
 				<VisualInspection />
-				<SearchDialog api={api} appearance={appearance} close={() => setSearchOpen(false)} open={searchOpen} toggleSidebar={sidebar.toggle} />
+				<SearchDialog
+					api={api}
+					appearance={appearance}
+					close={search.close}
+					open={search.open}
+					returnFocus={search.returnFocus}
+					toggleSidebar={sidebar.toggle}
+				/>
 			</ReadingLibrary>
 		</AgeTicker>
 	);

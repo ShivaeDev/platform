@@ -21,13 +21,16 @@ export function Modal({
 }) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const previousRef = useRef<Element | null>(null);
+	const selectionRef = useRef<ReturnType<typeof textSelection>>(undefined);
 	useEffect(() => {
 		const dialog = ref.current;
 		if (!dialog) {
 			return;
 		}
 		if (open && !dialog.open) {
-			previousRef.current = opener ? document.getElementById(opener) : document.activeElement;
+			const previous = returnFocus ?? (opener ? document.getElementById(opener) : document.activeElement);
+			previousRef.current = previous;
+			selectionRef.current = textSelection(previous);
 			dialog.returnValue = "";
 			dialog.showModal();
 			if (focus) {
@@ -36,7 +39,7 @@ export function Modal({
 		} else if (!open && dialog.open) {
 			dialog.close();
 		}
-	}, [open, opener, focus]);
+	}, [open, opener, focus, returnFocus]);
 	return (
 		<dialog
 			aria-labelledby={title}
@@ -56,6 +59,11 @@ export function Modal({
 				const target = returnFocus ?? previousRef.current;
 				if (ref.current?.returnValue !== "navigate" && target instanceof HTMLElement) {
 					target.focus({ preventScroll: true });
+					const selection = selectionRef.current;
+					const control = textControl(target);
+					if (selection && control) {
+						control.setSelectionRange(selection.start, selection.end, selection.direction);
+					}
 				}
 			}}
 			onKeyDown={(event) => {
@@ -69,4 +77,16 @@ export function Modal({
 			{children}
 		</dialog>
 	);
+}
+
+function textControl(element: Element | null) {
+	return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement ? element : undefined;
+}
+
+function textSelection(element: Element | null) {
+	const control = textControl(element);
+	if (!control || control.selectionStart === null || control.selectionEnd === null) {
+		return undefined;
+	}
+	return { direction: control.selectionDirection ?? "none", end: control.selectionEnd, start: control.selectionStart };
 }

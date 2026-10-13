@@ -15,22 +15,25 @@ export function SearchDialog({
 	close,
 	appearance,
 	toggleSidebar,
+	returnFocus,
 }: {
 	readonly api: ShellApi;
 	readonly open: boolean;
 	readonly close: () => void;
 	readonly appearance: AppearanceControls;
 	readonly toggleSidebar: () => void;
+	readonly returnFocus?: HTMLElement | undefined;
 }) {
+	const [input, setInput] = useState("");
 	return (
-		<Modal close={close} focus="search-query" id={shellIds.searchDialog} open={open} opener="search-open" title="search-title">
+		<Modal close={close} focus="search-query" id={shellIds.searchDialog} open={open} returnFocus={returnFocus} title="search-title">
 			<div className="search-header">
 				<h2 id={shellIds.searchTitle}>Find work</h2>
 				<button aria-label="Close search" id={shellIds.searchClose} onClick={() => close()} type="button">
 					Close
 				</button>
 			</div>
-			{open ? <Search api={api} appearance={appearance} close={close} toggleSidebar={toggleSidebar} /> : null}
+			{open ? <Search api={api} appearance={appearance} close={close} input={input} setInput={setInput} toggleSidebar={toggleSidebar} /> : null}
 		</Modal>
 	);
 }
@@ -39,14 +42,17 @@ function Search({
 	close,
 	appearance,
 	toggleSidebar,
+	input,
+	setInput,
 }: {
 	readonly api: ShellApi;
 	readonly close: () => void;
 	readonly appearance: AppearanceControls;
 	readonly toggleSidebar: () => void;
+	readonly input: string;
+	readonly setInput: (input: string) => void;
 }) {
-	const [input, setInput] = useState("");
-	const [text, setText] = useState("");
+	const [text, setText] = useState(() => input.trim());
 	const [selected, setSelected] = useState(0);
 	const ref = useRef<HTMLInputElement>(null);
 	const query = useQuery(api.search.query({ query: text }));
@@ -64,9 +70,6 @@ function Search({
 		}, 150);
 		return () => clearTimeout(timer);
 	}, [input]);
-	useEffect(() => {
-		ref.current?.focus();
-	}, []);
 	useEffect(() => {
 		document.getElementById(`search-result-${selected}`)?.scrollIntoView({ block: "nearest" });
 	}, [selected]);
