@@ -1,6 +1,6 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { TestProjectConfiguration } from "vitest/config";
-import { inheritTags, type testProjects } from "@shivaedev/quality/vitest.ts";
+import type { testProjects } from "@shivaedev/quality/testProjects.ts";
 import { TestSequencer } from "#ci/TestSequencer.ts";
 import { testPackages } from "#ci/testPackages.ts";
 
@@ -32,7 +32,7 @@ export default async function workspace() {
 				reportsDirectory: `${root}.ci/coverage`,
 			},
 			project: ["*:unit", "*:dom"],
-			projects: await inheritTags(projects, root),
+			projects,
 			sequence: { sequencer: TestSequencer },
 		},
 	};
