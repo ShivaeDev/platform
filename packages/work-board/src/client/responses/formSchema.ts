@@ -1,10 +1,12 @@
 import { Schema } from "effect";
 import { DraftInput, ResponseKind, Revision } from "#browser/responses/schema.ts";
+import { AnswerRecovery } from "./answerRecovery.ts";
 
 export function responseFormSchema(hasPrompts: boolean) {
 	return Schema.Struct({
 		...DraftInput.fields,
 		body: hasPrompts ? DraftInput.fields.body : DraftInput.fields.body.check(Schema.isMinLength(1)),
+		recovery: Schema.optionalKey(AnswerRecovery),
 		revision: Revision,
 		type: Schema.String.pipe(Schema.decodeTo(ResponseKind)),
 	}).check(
@@ -21,3 +23,4 @@ export function responseFormSchema(hasPrompts: boolean) {
 }
 
 export type ResponseSubmission = ReturnType<typeof responseFormSchema>["Type"];
+export type ResponseInput = ReturnType<typeof responseFormSchema>["Encoded"];

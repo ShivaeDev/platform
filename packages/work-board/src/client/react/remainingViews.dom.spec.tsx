@@ -1,15 +1,24 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
-import { expect, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
+import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
 import { boardRouter } from "./boardRouter.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
+beforeEach(() => {
+	browserStorage();
+});
+afterEach(() => {
+	window.dispatchEvent(new Event("pagehide"));
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+});
 const files = {
 	"home.md": "# Home",
 	"result.md":

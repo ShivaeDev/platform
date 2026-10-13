@@ -37,7 +37,7 @@ export function HandoffForm({ data }: { readonly data: HandoffProjection }) {
 				</label>
 				<p>
 					The file includes the full reviewed source and its declared acceptance criteria. Preparing it does not change the item or start an agent.
-					Drafts use the existing 30-day/2-MiB workspace store.
+					Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft.
 				</p>
 				<button disabled id={shellIds.handoffPreview} type="button">
 					Preview Markdown
@@ -47,7 +47,7 @@ export function HandoffForm({ data }: { readonly data: HandoffProjection }) {
 					Prepare handoff
 				</button>
 				<button disabled id={shellIds.handoffClear} type="button">
-					Clear workspace drafts
+					Clear draft
 				</button>
 				<p id={shellIds.handoffStatus} role="status">
 					{data.writable ? "JavaScript is required to prepare a handoff." : "Read-only mode. Restart with --responses to enable local writes."}
