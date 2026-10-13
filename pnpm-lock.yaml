@@ -1456,18 +1456,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.1
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.20.0
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2
       effect:
         specifier: 'catalog:'
         version: 4.0.4
-      pg:
-        specifier: 'catalog:'
-        version: 8.23.0
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
