@@ -1,15 +1,15 @@
-import { Cause, Option } from "effect";
+import { Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
-import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { fileUrl } from "#files/url.ts";
 import type { MainLocation } from "./mainLocation.ts";
 import { projectionChanges, type RenderedProjection } from "./projectionChanges.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import { shellIds } from "./shellIds.ts";
+import { useProjectionData } from "./useProjectionData.ts";
 
 export function ProjectionFrame<A, E>({
 	atom,
@@ -28,18 +28,7 @@ export function ProjectionFrame<A, E>({
 	readonly route: ProjectionRoute | RemainingRoute;
 	readonly url: string;
 }) {
-	const query = useQuery(atom);
-	const fresh = Option.getOrUndefined(query.data);
-	const [retained, setRetained] = useState<{ readonly data: A; readonly url: string }>();
-	useEffect(() => {
-		if (fresh !== undefined) {
-			setRetained({ data: fresh, url });
-		}
-	}, [fresh, url]);
-	const failure = Option.getOrUndefined(Option.flatMap(query.cause, Cause.findErrorOption));
-	const missing = typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "NotFound";
-	const conflict = typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "Conflict";
-	const data = missing || conflict ? undefined : (fresh ?? (retained?.url === url ? retained.data : undefined));
+	const { query, failure, missing, conflict, data, content } = useProjectionData(atom, route, url);
 	const main = data === undefined ? { file: "", status: failureStatus(missing, conflict), view: projectionView(route) } : location(data);
 	const expectedSource = data === undefined ? undefined : source?.(data);
 	const hostRef = useRef<HTMLElement>(null);
@@ -47,6 +36,9 @@ export function ProjectionFrame<A, E>({
 	const failed = Option.isSome(query.cause);
 	useLayoutEffect(() => {
 		const element = hostRef.current;
+		if (element && element.dataset.route !== url) {
+			delete element.dataset.route;
+		}
 		if (!element || query.pending || (data === undefined && !failed)) {
 			return;
 		}
@@ -102,13 +94,14 @@ export function ProjectionFrame<A, E>({
 				ref={hostRef}
 				tabIndex={-1}
 			>
-				{data === undefined ? (
+				{data === undefined && (
 					<p className="empty" role="status">
 						{loadingMessage(query.pending, missing, failure)}
 					</p>
-				) : (
-					render(data)
 				)}
+				<div hidden={data === undefined} style={{ display: data === undefined ? "none" : "contents" }}>
+					{content === undefined ? null : render(content)}
+				</div>
 			</main>
 			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed view is retained.</p>}
 		</>

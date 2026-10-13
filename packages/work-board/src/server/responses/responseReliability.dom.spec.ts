@@ -117,6 +117,7 @@ it.live("rebinds a cached page without duplicate error labels or stale warnings"
 	yield* formEvent(page, () => preview());
 	yield* formEvent(page, () => page.window.dispatchEvent(new page.window.Event("pagehide")));
 	yield* formEvent(page, () => page.window.dispatchEvent(Object.assign(new page.window.Event("pageshow"), { persisted: true })));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-form")?.closest("[hidden]")).toBeNull()));
 	yield* formEvent(page, () => enterField(page, "author", "reviewer"));
 	yield* formEvent(page, () => answer("checks", "Keyboard checks."));
 	expect(page.document.querySelectorAll(".response-field-error:not([hidden])")).toHaveLength(0);

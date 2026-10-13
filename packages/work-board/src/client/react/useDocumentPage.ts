@@ -25,6 +25,9 @@ export function useDocumentPage({
 		}
 		const main = element;
 		main.dataset.scheme = document.documentElement.dataset.scheme ?? "";
+		if (main.dataset.route !== url) {
+			delete main.dataset.route;
+		}
 		let active = true;
 		let scheduled = false;
 		function announce() {

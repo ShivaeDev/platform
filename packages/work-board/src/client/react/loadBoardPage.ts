@@ -2,7 +2,7 @@ import type { LoaderFnContext } from "@tanstack/react-router";
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { documentQuery } from "#client/page/routeQuery.ts";
+import { documentQuery, navigationQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { loadProjection } from "./loadProjection.ts";
@@ -23,7 +23,7 @@ export async function loadBoardPage({
 	const { api, registry } = shell;
 	const url = location.pathname + location.searchStr;
 	try {
-		const navigation = await loadQuery(registry, api.navigation.query({ current: "" }), { abortController });
+		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {
 			await loadProjection(registry, api, projection, url, abortController);

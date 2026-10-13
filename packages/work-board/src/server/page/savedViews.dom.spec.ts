@@ -161,6 +161,9 @@ effectApp("recovers from malformed saved JSON on the next successful local save"
 	expect(page.document.getElementById("saved-view-status")?.textContent).not.toContain("could not be restored");
 });
 
-function frame() {
-	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
+async function frame() {
+	await new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
+	await waitFor(() =>
+		expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe(page.window.location.pathname + page.window.location.search),
+	);
 }

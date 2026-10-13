@@ -22,15 +22,15 @@ export function DocumentMain({
 }) {
 	const query = useQuery(documentQuery(api, url));
 	const fresh = Option.getOrUndefined(query.data);
-	const [retained, setRetained] = useState<Document>();
+	const [retained, setRetained] = useState<{ readonly data: Document; readonly url: string }>();
 	useEffect(() => {
 		if (fresh) {
-			setRetained(fresh);
+			setRetained({ data: fresh, url });
 		}
-	}, [fresh]);
+	}, [fresh, url]);
 	const failure = Option.getOrUndefined(Option.flatMap(query.cause, Cause.findErrorOption));
 	const terminal = failure?._tag === "Conflict" || failure?._tag === "NotFound";
-	const data = terminal ? undefined : (fresh ?? retained);
+	const data = terminal ? undefined : (fresh ?? (retained?.url === url ? retained.data : undefined));
 	const status = readStatus(failure?._tag, Option.isSome(query.cause));
 	const hostRef = useDocumentPage({ data, onPage, pending: query.pending, status, url });
 	if (data?.reading?.board) {
