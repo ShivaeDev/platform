@@ -24,13 +24,11 @@ After installation, follow the printed steps:
 
 ```sh
 cd my-app
-cp .env.example .env.local
-```
-
-Set `DATABASE_URL` to your PostgreSQL database and `BETTER_AUTH_SECRET` to a random secret of at least 32 characters, then run:
-
-```sh
 pnpm dev
 ```
 
-The command also supports `--help` and `--version`. It creates files and installs dependencies; it does not create your database or set secrets. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.
+The command writes a git-ignored `.env.local` with a fresh authentication secret and local development and test database URLs. Existing files are never overwritten. Database names replace dots and hyphens in the app name with underscores, prefix a name starting with a digit or underscore with `app_`, and limit the stem to 58 characters before adding `_dev` and `_test`.
+
+`pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
+
+The command also supports `--help` and `--version`. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.

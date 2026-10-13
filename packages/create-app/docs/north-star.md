@@ -2,6 +2,6 @@
 
 New applications should start with the same small, working example that Platform maintains and tests. A newcomer should not need to understand workspace dependency protocols or repository-specific configuration before seeing their application run.
 
-The command writes only into an absent or empty folder, names the application, installs its dependencies and prints the environment and development steps. The starter owns the application's files and its published-version manifest; packaging takes a snapshot of that source. Generated files are package artifacts, never a second checked-in template.
+The command writes only into an absent or empty folder, names the application, generates its local environment, installs its dependencies and prints the development steps. The starter owns the application's files, database preparation and published-version manifest; packaging takes a snapshot of that source. Generated files are package artifacts, never a second checked-in template.
 
-Preserving existing user files takes precedence over convenience. Real generated-app checks against npm and PostgreSQL take precedence over fast scaffolding tests. Keep the interface to the folder argument and normal CLI help and version output. Application choices, environment secrets, deployment and releases belong to the application and maintainer.
+Preserving existing user files takes precedence over convenience. Real generated-app checks against npm and PostgreSQL take precedence over fast scaffolding tests. Keep the interface to the folder argument and normal CLI help and version output. Production configuration, deployment and releases belong to the application and maintainer.

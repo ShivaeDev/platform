@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { Console, Effect, FileSystem, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
@@ -29,13 +30,20 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
 		yield* fs.writeFile(path, content);
 	}
+	const database = name
+		.replaceAll(/[.-]/gu, "_")
+		.replace(/^[^a-z]/u, "app_$&")
+		.slice(0, 58);
+	yield* fs.writeFileString(
+		join(target, ".env.local"),
+		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${randomBytes(32).toString("base64url")}\n`,
+		{ flag: "wx", mode: 0o600 },
+	);
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["install"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
 	if (code !== 0) {
 		return yield* new CreateAppError({ message: `pnpm install failed (exit ${code}). Run pnpm install in ${folder} to retry.` });
 	}
 	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;
-	yield* Console.log(
-		`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  cp .env.example .env.local\n  Set DATABASE_URL to your PostgreSQL database.\n  Set BETTER_AUTH_SECRET to a random secret of at least 32 characters.\n  pnpm dev`,
-	);
+	yield* Console.log(`Created ${folder}.\n\nNext steps:\n  cd ${quotedFolder}\n  pnpm dev`);
 });

@@ -10,7 +10,9 @@ The authenticated route loader and screen share the same native query registry. 
 
 ## Create or run it
 
-Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md). In this repository, run `./script/update` at the root, copy `.env.example` to `.env.local` here, then run `pnpm dev`. Open `http://127.0.0.1:5173`.
+Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md). Generated apps already have a git-ignored `.env.local` with a fresh authentication secret and development and test database URLs. In this repository, run `./script/update` at the root, copy `.env.example` to `.env.local` here, and replace the example secret with the output of `openssl rand -base64 32`. Run `pnpm dev` and open `http://127.0.0.1:5173`.
+
+`pnpm dev` first runs `pnpm db:setup`, which prepares both local databases through `@shivaedev/local-postgres`. Have PostgreSQL 18.6 on loopback port 55432 or local Docker available. Run `pnpm db:setup` separately to prepare databases without starting the app.
 
 The app uses Tailwind's neutral shadcn theme and application-owned `Button` and `Input` components. Server entry points are in `src/server`; the shared contract is `src/notes.ts`; the browser starts in `src/client/entry.tsx`.
 
@@ -20,7 +22,7 @@ The starter's numbered migration path creates Better Auth's tables with `getMigr
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types. Existing notes from the unauthenticated starter have no account owner and are not shown to signed-in users.
 
-`pnpm test` runs the React tests, the PostgreSQL/HTTP round trips and the notes migration upgrade check. The upgrade check applies an older migration prefix, upgrades to the latest migrations, and compares the live column names and PostgreSQL types with the notes repository model. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create databases; the tests create disposable clones. Repository test runs supply `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` instead. Missing database configuration fails the test.
+`pnpm test` loads `.env.local` and runs the React tests, the PostgreSQL/HTTP round trips and the notes migration upgrade check. The upgrade check applies an older migration prefix, upgrades to the latest migrations, and compares the live column names and PostgreSQL types with the notes repository model. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create databases; the tests create disposable clones. Repository test runs supply `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` instead. Missing database configuration fails the test.
 
 To verify the generated app, run `pnpm --filter @shivaedev/starter check:published` from the repository root. It installs the exact versions in `published-versions.json` into temporary folders outside the workspace, checks imports from the framework READMEs and quickstart, packs the create command, generates an app, and runs its Quality lint, typecheck, build, PostgreSQL/authenticated HTTP tests and notes migration upgrade check. It exercises published declaration and runtime exports without the workspace's `source` condition. Use the local test database from setup or set `TEST_DATABASE_URL`; the check fails if PostgreSQL is unavailable. Update the version file when adopting another published framework release, then run the check again.
 

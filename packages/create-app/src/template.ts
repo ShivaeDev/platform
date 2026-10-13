@@ -50,6 +50,9 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: string, versions: Readonly<Record<string, string>>) {
+	if (path === "src/server/dev.ts") {
+		return content.replaceAll('"--conditions=source", ', "");
+	}
 	if (path === "package.json") {
 		return prepareManifest(content, versions);
 	}

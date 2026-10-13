@@ -474,6 +474,9 @@ importers:
       '@shivaedev/effect-test-sql':
         specifier: workspace:*
         version: link:../../packages/effect-test-sql
+      '@shivaedev/local-postgres':
+        specifier: workspace:*
+        version: link:../../packages/local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
