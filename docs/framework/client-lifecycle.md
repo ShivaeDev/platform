@@ -7,7 +7,7 @@ local state, so replacing only the registry is insufficient as a general reset
 policy.
 
 `SessionBoundary` owns the registry and React subtree for each session generation.
-The [executable example](../../packages/effect-react/src/client/session-boundary.dom.test.tsx)
+The [executable example](../../packages/effect-react/src/client/sessionBoundary.dom.test.tsx)
 uses `makeOrderEditor` against the order feature's real loopback HTTP endpoint.
 
 ## Session transition
@@ -38,6 +38,8 @@ unresolved), an opaque `identify` key, a `connect` function that builds the
 credential-bound client, and `recheck`:
 
 ```ts
+import { SessionBoundary } from "@shivaedev/effect-react/session-boundary.ts";
+
 createElement(SessionBoundary, {
 	session,
 	identify: (session) => session.id,
@@ -71,7 +73,7 @@ runtimes and RPC connections close) as soon as the render settles. StrictMode's 
 fails with a tagged `Unauthorized` error. They do not clear retained data: the
 auth owner decides whether the session ended and, if so, changes `session`,
 which tears the generation down. The
-[boundary tests](../../packages/effect-react/src/client/session-boundary.dom.test.tsx) cover
+[boundary tests](../../packages/effect-react/src/client/sessionBoundary.dom.test.tsx) cover
 switching accounts, signing out, re-entering the same account under a new key,
 Unauthorized re-checks, StrictMode, `<Activity>` hide and reveal and credential
 rotation under a fixed or generation-bearing key.
