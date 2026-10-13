@@ -3,9 +3,10 @@ packages:
   - examples/*
 
 overrides:
-  # `@prisma-next/cli-telemetry` asks for `^1.2.3`; 1.2.4 and 1.2.5 dropped the
-  # provenance attestation earlier versions carried, which `trustPolicy:
-  # no-downgrade` rejects. Drop the pin once an attested release lands.
+  # `@prisma-next/cli-telemetry` asks for `^1.2.3`. Vercel publishes 1.2.4 and
+  # later from a private repository, where npm cannot attest provenance, so
+  # `trustPolicy: no-downgrade` rejects them. Keep 1.2.3 while Prisma Next
+  # depends on it.
   "@vercel/detect-agent": "catalog:"
   # `@effect/platform-node` asks for `^` its shared layer; keep that layer on
   # the catalog version so the Effect packages share one release.
