@@ -37,6 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # After a publish, check the commit that published rather than a later main.
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - name: Find pins this pull request releases
         id: pins
@@ -88,7 +90,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # After a publish, check the commit that published rather than a later main.
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - name: Check the create-app version that just published
+        if: github.event_name == 'workflow_run'
+        # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release.
+        run: echo "CREATE_APP_VERSION=$(jq -r .version packages/create-app/package.json)" >> "$GITHUB_ENV"
       - name: Generate an app from npm and check published APIs and PostgreSQL behavior
         run: pnpm --filter @shivaedev/starter check:published --registry --create-app-version "$CREATE_APP_VERSION"
