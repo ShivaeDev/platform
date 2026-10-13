@@ -38,6 +38,10 @@ component_management:
       name: "@shivaedev/starter"
       paths:
         - "examples/starter/src/**"
+    - component_id: create-app
+      name: "@shivaedev/create-app"
+      paths:
+        - "packages/create-app/src/**"
     - component_id: effect-changes
       name: "@shivaedev/effect-changes"
       paths:
