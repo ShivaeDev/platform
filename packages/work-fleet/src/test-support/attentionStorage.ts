@@ -34,7 +34,7 @@ export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(funct
 		replaceRecord,
 		store,
 		upgradeAttention: legacyStore(namespace).pipe(Effect.andThen(store.initialize()), Effect.asVoid, Effect.provideService(SqlClient.SqlClient, sql)),
-		upgradeDecisionCodes: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id = 6`.pipe(
+		upgradeDecisionCodes: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id >= 6`.pipe(
 			Effect.andThen(store.initialize()),
 			Effect.asVoid,
 			Effect.provideService(SqlClient.SqlClient, sql),
