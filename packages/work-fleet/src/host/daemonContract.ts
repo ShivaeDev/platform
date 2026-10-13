@@ -1,17 +1,16 @@
 import { Schema } from "effect";
-import { Rpc } from "effect/unstable/rpc";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
-import { FleetError, fleetRejections } from "#errors.ts";
+import { fleetRejections } from "#errors.ts";
 import { State } from "#host/waitOutcome.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
 
 const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
 
-const clientContract = contract("daemon", {
+export const ClientContract = contract("daemon", {
 	commands: [
 		command("release", {
 			invalidates: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],
@@ -46,13 +45,21 @@ const clientContract = contract("daemon", {
 			success: FleetViews,
 		}),
 	],
+	streams: [
+		stream("follow", {
+			payload: { workIds: Schema.Array(Schema.String) },
+			reads: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],
+			rejections: fleetRejections,
+			success: Schema.Array(State),
+		}),
+	],
 });
-export const Follow = Rpc.make("daemon.follow", {
-	error: FleetError,
-	payload: { workIds: Schema.Array(Schema.String) },
-	stream: true,
-	success: Schema.Array(State),
-});
-export const ClientContract = clientContract.add(Follow);
+export const Follow = (() => {
+	const rpc = [...ClientContract.requests.values()].find((request) => request._tag === "daemon.follow");
+	if (rpc === undefined) {
+		throw new Error("Daemon contract must declare its follow stream");
+	}
+	return rpc;
+})();
 export const DaemonContract = FleetContract.merge(ClientContract, DiagnosticsContract).middleware(RequestTracing);
 export const RPC_PATH = DAEMON_RPC_PATH;
