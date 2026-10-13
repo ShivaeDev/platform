@@ -18,8 +18,12 @@ runs:
         deadline=$((SECONDS + 480))
         next_status_check=0
         while (( SECONDS < deadline )); do
-          artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" \
-            --jq '.artifacts[] | select(.expired == false) | .id')
+          # A transient API error is one failed poll, not a failed wait; the deadline still bounds the loop.
+          if ! artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" \
+            --jq '.artifacts[] | select(.expired == false) | .id'); then
+            sleep 3
+            continue
+          fi
           if [[ -n "$artifact_id" ]]; then
             echo "Package artifact $artifact_id is ready"
             echo "name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
@@ -27,15 +31,18 @@ runs:
           fi
           if (( SECONDS >= next_status_check )); then
             next_status_check=$((SECONDS + 10))
-            producer=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
-              --jq '.jobs[] | select(.name == "build") | "\(.status):\(.conclusion // "")"')
+            if ! producer=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+              --jq '.jobs[] | select(.name == "build") | "\(.status):\(.conclusion // "")"'); then
+              sleep 3
+              continue
+            fi
             if [[ "$producer" == completed:* && "$producer" != completed:success ]]; then
               echo "::error::Package producer finished with $producer"
               exit 1
             fi
             if [[ "$GITHUB_RUN_ATTEMPT" -gt 1 && ( -z "$producer" || "$producer" == completed:success ) ]]; then
               previous=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
-                --jq '.artifacts | map(select(.expired == false and (.name | startswith(env.ARTIFACT_PREFIX))) | select((.name | ltrimstr(env.ARTIFACT_PREFIX) | tonumber) < (env.GITHUB_RUN_ATTEMPT | tonumber))) | sort_by(.created_at) | last | .name // empty')
+                --jq '.artifacts | map(select(.expired == false and (.name | startswith(env.ARTIFACT_PREFIX))) | select((.name | ltrimstr(env.ARTIFACT_PREFIX) | tonumber) < (env.GITHUB_RUN_ATTEMPT | tonumber))) | sort_by(.created_at) | last | .name // empty') || previous=""
               if [[ -n "$previous" ]]; then
                 echo "Reusing successful producer archives $previous for this retry"
                 echo "name=$previous" >> "$GITHUB_OUTPUT"
