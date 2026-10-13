@@ -270,7 +270,7 @@ The agent edits `handoff.state` to `acknowledged`, `rejected` or `unavailable` a
 
 Same-ID retries preserve receipt and extra metadata, including after source deletion. Restarted servers read the recorded receipt. Different direction and moved or duplicate identities are conflicts; a changed source before initial preparation requires another review. Saved context remains inspectable when its source disappears. Native navigation and Back retain owned draft text; source changes require a fresh preview. Handoff drafts use effect-form with a separate key per workspace and item, under the same seven-day/256-KiB limits. **Clear draft** clears only the current form.
 
-The handoff, response and question forms use `@shivaedev/effect-form` for Schema decoding, field messages and captured submissions. Board owns preview, reviewed-context checks and durable draft storage. Input typed during a response save remains available under a fresh draft identity; each form releases its registry on navigation or pagehide and rebinds on pageshow.
+Response and handoff forms are React components on `effect-react`’s `useCreate` and `effect-form`’s Schema decoding, field messages and persisted drafts. Board owns preview and reviewed-context checks. Draft text, source-change notices and caret selection survive query refresh and reload. Input typed during a response or handoff save remains an unsaved draft; a fresh preview assigns its next identity. The forms use the shell’s shared native registry.
 
 The [handoff source reference](docs/delivery/handoff-examples.md) shows a complete record, ordinary receipt edits and the boundary with optional execution integrations.
 
@@ -291,7 +291,7 @@ Import the module that defines a name. The package has no root entry; its manife
 | Module | Names and purpose |
 | --- | --- |
 | `board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
-| `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
+| `serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
 | `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |

@@ -47,7 +47,7 @@ effectApp("offers explicit browser retention without storing anything on GET, th
 effectApp("rejects cross-origin private queries and discards an invalid baseline", function* () {
 	const response = yield* Effect.promise(() =>
 		fetch(`${board.url}/_board/rpc`, {
-			body: `${JSON.stringify({ _tag: "Request", id: "1", payload: { action: "check", baseline: null }, tag: "work-board.history" })}\n`,
+			body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { action: "check", baseline: null }, tag: "work-board.history" })}\n`,
 			headers: { "content-type": "application/ndjson", origin: "http://example.test" },
 			method: "POST",
 		}),
@@ -84,7 +84,7 @@ effectApp("declines an oversized complete workspace rather than retaining a part
 effectApp("bounds native query bodies before accepting retained source data", function* () {
 	const status = yield* Effect.promise(() =>
 		fetch(`${board.url}/_board/rpc`, {
-			body: `${JSON.stringify({ _tag: "Request", id: "1", payload: { action: "check", baseline: "x".repeat(4 * MAX_BYTES + 4096) }, tag: "work-board.history" })}\n`,
+			body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { action: "check", baseline: "x".repeat(4 * MAX_BYTES + 4096) }, tag: "work-board.history" })}\n`,
 			headers: { "content-type": "application/ndjson" },
 			method: "POST",
 		}).then(

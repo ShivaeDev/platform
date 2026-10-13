@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 import { runStarter } from "./run.ts";
 
-const CWD = "/tmp/copied-starter";
+const CWD = "/tmp/generated-starter";
 const DATABASE = "postgres://localhost/starter-test";
 
 function runner(lintExit: number) {
@@ -23,7 +23,7 @@ function runner(lintExit: number) {
 	};
 }
 
-it("runs the copied app's quality lint without flags before its build and runtime checks", async () => {
+it("runs the generated app's quality lint without flags before its build and runtime checks", async () => {
 	const check = runner(0);
 	await check.run();
 	assert.deepEqual(
@@ -43,6 +43,6 @@ it("runs the copied app's quality lint without flags before its build and runtim
 
 it("fails the published-starter runner immediately when quality lint fails", async () => {
 	const check = runner(1);
-	await assert.rejects(check.run(), /Copied starter: pnpm exec quality lint failed \(exit 1\)/u);
+	await assert.rejects(check.run(), /Generated starter: pnpm exec quality lint failed \(exit 1\)/u);
 	assert.equal(check.commands.length, 1);
 });

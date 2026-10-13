@@ -18,7 +18,7 @@
 		"lint": "node --conditions=source script/lint.ts && pnpm changelog:check && pnpm lint:quality",
 		"lint:quality": "node --conditions=source packages/quality/src/cli.ts lint",
 		"quality:commit": "node --conditions=source script/lint.ts && pnpm changelog:check",
-		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package",
+		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package --prepare .ci/packages && pnpm test:package --archives .ci/packages && pnpm --filter @shivaedev/starter check:published --archives .ci/packages",
 		"report:bundles": "node --conditions=source script/ci/bundles.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",

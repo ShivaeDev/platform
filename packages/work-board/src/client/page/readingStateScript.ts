@@ -21,7 +21,7 @@ const detailEntries = (root) => {
 };
 export const captureReading = () => {
   const root = document.getElementById("doc");
-  const selection = document.getSelection();
+  const selection = document.activeElement?.closest("#response-form, #handoff-form") ? null : document.getSelection();
   const anchor = selection?.anchorNode && pathOf(selection.anchorNode, root);
   const focus = selection?.focusNode && pathOf(selection.focusNode, root);
   return {
@@ -44,7 +44,7 @@ export const restoreReading = (state, restoreDetails = true) => {
     if (restoreDetails && typeof open === "boolean") detail.open = open;
   });
   document.getElementById("sidebar").scrollTop = state.sidebar ?? 0;
-  const saved = state.selection;
+  const saved = document.activeElement?.closest("#response-form, #handoff-form") ? null : state.selection;
   if (saved && Array.isArray(saved.anchor) && Array.isArray(saved.focus) && Number.isInteger(saved.a) && Number.isInteger(saved.f) && saved.a >= 0 && saved.f >= 0) {
     const anchor = nodeAt(saved.anchor, root);
     const focus = nodeAt(saved.focus, root);

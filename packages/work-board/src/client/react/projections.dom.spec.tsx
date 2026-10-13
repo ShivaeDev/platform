@@ -82,7 +82,10 @@ it.live("retains inline answer edits and selected detail through a Work projecti
 		if (!body) {
 			throw new Error("Missing answer textarea");
 		}
-		body.value = "Keep my answer";
+		act(() => {
+			body.value = "Keep my answer";
+			body.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 		body.focus();
 		body.setSelectionRange(5, 7);
 		yield* Effect.promise(() => act(async () => refresh?.()));

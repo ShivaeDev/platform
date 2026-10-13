@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 
@@ -53,14 +54,16 @@ it.live("renders safe rich context and enables one batch only when every prompt 
 	expect(page.document.querySelector(".response-context strong")?.textContent).toBe("reasoning");
 	yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls.length).toBeGreaterThan(0)));
 	text('[name="author"]', "maintainer");
-	choice("history");
-	preview();
+	yield* formEvent(page, () => choice("history"));
+	yield* formEvent(page, () => preview());
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
 	text('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
-	preview();
+	yield* formEvent(page, () => preview());
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	expect(page.document.getElementById("response-preview-content")?.textContent).toContain('"prompt": "checks"');
-	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("test keyboard use instead")),
 	);
@@ -70,7 +73,7 @@ it.live("renders safe rich context and enables one batch only when every prompt 
 it.live("retains human text but clears selections when the template changes, exposing a recoverable earlier packet", function* () {
 	yield* open();
 	text('[name="author"]', "maintainer");
-	choice("history");
+	yield* formEvent(page, () => choice("history"));
 	text('[data-prompt="display"] textarea', "Keep this rationale.");
 	notes.write("proposal.md", questionnaireSource.replace("Full history", "Changed meaning of the same option"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Source changed")));

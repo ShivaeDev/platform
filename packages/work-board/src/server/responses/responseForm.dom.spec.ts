@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 
 const source = `---
@@ -72,9 +73,11 @@ it.live("records the previewed response through native commands and shows saved 
 	yield* open();
 	input("author", "maintainer");
 	input("body", "No; use the simpler option.");
-	click("response-preview");
+	yield* formEvent(page, () => click("response-preview"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false)));
-	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.getElementById("response-history")?.textContent).toContain("No; use the simpler option.")),
 	);

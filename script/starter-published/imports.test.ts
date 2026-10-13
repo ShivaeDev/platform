@@ -4,7 +4,6 @@ import { test as it } from "node:test";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
 import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
-import { registryDependencies } from "./copy.ts";
 import { importProblems, readDocumentation } from "./documentation.ts";
 import { documentedImports } from "./imports.ts";
 
@@ -92,21 +91,5 @@ it("names the published package, missing stream export and missing server entry 
 		assert.ok(!problems.some((problem) => problem.includes("import query")));
 	} finally {
 		fixture.remove();
-	}
-});
-
-it("copies workspace dependencies to named registry versions and refuses missing or floating versions", () => {
-	assert.deepEqual(
-		registryDependencies({ "@shivaedev/effect-contract": "workspace:*", effect: "catalog:" }, { "@shivaedev/effect-contract": "0.4.1" }),
-		{
-			"@shivaedev/effect-contract": "0.4.1",
-			effect: "catalog:",
-		},
-	);
-	for (const versions of [{}, { "@shivaedev/effect-contract": "latest" }, { "@shivaedev/effect-contract": "^0.4.1" }]) {
-		assert.throws(
-			() => registryDependencies({ "@shivaedev/effect-contract": "workspace:*" }, versions),
-			/effect-contract: name an exact published version/u,
-		);
 	}
 });

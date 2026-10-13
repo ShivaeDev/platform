@@ -4,6 +4,7 @@ import { Effect, FileSystem, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, type Package, Versions } from "#package-check/model.ts";
 import { checkServer } from "#package-check/server.ts";
+import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 const Case = Schema.Struct({
 	absent: Schema.optional(Schema.Array(Schema.String)),
@@ -13,61 +14,70 @@ const Case = Schema.Struct({
 	expectedFiles: Versions,
 	files: Versions,
 	output: Schema.optional(Schema.String),
+	packedInstall: Schema.optional(Schema.Boolean),
 	pages: Schema.optional(Versions),
 });
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Case)));
-export const checkBins = (root: string, pkg: Package, consumer: string) =>
-	Effect.gen(function* () {
-		const fs = yield* FileSystem.FileSystem;
-		const cases = decode(yield* fs.readFileString(join(root, "script/package-check/bin-cases.json")));
-		for (const name of Object.keys(bins(pkg.manifest))) {
-			const scenario = cases[name];
-			if (scenario === undefined) {
-				return yield* Effect.fail(new Error(`${name}: add a real-work bin scenario`));
-			}
-			for (const [path, content] of Object.entries(scenario.files)) {
-				yield* fs.makeDirectory(dirname(join(consumer, path)), { recursive: true });
-				yield* fs.writeFileString(join(consumer, path), content);
-			}
-			const bin = join(consumer, "node_modules/.bin", name);
-			yield* checkVersion(consumer, bin, pkg.manifest.version, scenario.checkVersion);
-			if (scenario.pages === undefined) {
-				const output = yield* runBin(consumer, bin, scenario);
-				yield* requireThat(output.includes(scenario.output ?? ""), `${name}: missing output ${scenario.output}`);
-			} else {
-				yield* checkServer(consumer, bin, scenario.args, scenario.pages);
-			}
-			yield* checkResults(consumer, name, scenario);
+export const checkBins = Effect.fn("Packed.checkBins")(function* (root: string, pkg: Package, consumer: string, packages: readonly Package[]) {
+	const fs = yield* FileSystem.FileSystem;
+	const cases = decode(yield* fs.readFileString(join(root, "script/package-check/bin-cases.json")));
+	for (const name of Object.keys(bins(pkg.manifest))) {
+		const scenario = cases[name];
+		if (scenario === undefined) {
+			return yield* Effect.fail(new Error(`${name}: add a real-work bin scenario`));
 		}
-	});
-
-const checkVersion = (consumer: string, bin: string, version: string, enabled: boolean | undefined) =>
-	Effect.gen(function* () {
-		if (!enabled) {
-			return;
+		for (const [path, content] of Object.entries(scenario.files)) {
+			yield* fs.makeDirectory(dirname(join(consumer, path)), { recursive: true });
+			yield* fs.writeFileString(join(consumer, path), content);
 		}
-		const output = stripVTControlCharacters(yield* command(consumer, bin, ["--version"])).trim();
-		yield* requireThat(
-			output === `${basename(bin)} v${version}`,
-			`${bin}: --version reported ${JSON.stringify(output)}, expected ${basename(bin)} v${version}`,
-		);
-	});
+		const bin = join(consumer, "node_modules/.bin", name);
+		yield* checkVersion(consumer, bin, pkg.manifest.version, scenario.checkVersion);
+		if (scenario.pages === undefined) {
+			const output = yield* runBin(root, consumer, bin, scenario, packages);
+			yield* requireThat(output.includes(scenario.output ?? ""), `${name}: missing output ${scenario.output}`);
+		} else {
+			yield* checkServer(consumer, bin, scenario.args, scenario.pages);
+		}
+		yield* checkResults(consumer, name, scenario);
+	}
+});
 
-const runBin = (consumer: string, bin: string, scenario: typeof Case.Type) => {
-	const environment = Object.entries(scenario.env ?? {});
+const checkVersion = Effect.fn("Packed.checkVersion")(function* (consumer: string, bin: string, version: string, enabled: boolean | undefined) {
+	if (!enabled) {
+		return;
+	}
+	const output = stripVTControlCharacters(yield* command(consumer, bin, ["--version"])).trim();
+	yield* requireThat(
+		output === `${basename(bin)} v${version}`,
+		`${bin}: --version reported ${JSON.stringify(output)}, expected ${basename(bin)} v${version}`,
+	);
+});
+
+const runBin = Effect.fn("Packed.runBin")(function* (
+	root: string,
+	consumer: string,
+	bin: string,
+	scenario: typeof Case.Type,
+	packages: readonly Package[],
+) {
+	let env = scenario.env;
+	if (scenario.packedInstall) {
+		const tarballs = Object.fromEntries(packages.map((pkg) => [pkg.manifest.name, pkg.tarball]));
+		env = { ...env, "PATH": yield* packedInstaller(root, consumer, tarballs) };
+	}
+	const environment = Object.entries(env ?? {});
 	const unset = environment.filter(([, value]) => value === null).flatMap(([key]) => ["-u", key]);
 	const set = environment.flatMap(([key, value]) => (value === null ? [] : [`${key}=${value.replaceAll("{consumer}", consumer)}`]));
-	return command(consumer, "env", [...unset, ...set, bin, ...scenario.args]);
-};
+	return yield* command(consumer, "env", [...unset, ...set, bin, ...scenario.args]);
+});
 
-const checkResults = (consumer: string, name: string, scenario: typeof Case.Type) =>
-	Effect.gen(function* () {
-		const fs = yield* FileSystem.FileSystem;
-		for (const path of scenario.absent ?? []) {
-			yield* requireThat(!(yield* fs.exists(join(consumer, path))), `${name}: left ${path}`);
-		}
-		for (const [path, expected] of Object.entries(scenario.expectedFiles)) {
-			const content = yield* fs.readFileString(join(consumer, path));
-			yield* requireThat(content.includes(expected), `${name}: ${path} did not contain ${expected}`);
-		}
-	});
+const checkResults = Effect.fn("Packed.checkResults")(function* (consumer: string, name: string, scenario: typeof Case.Type) {
+	const fs = yield* FileSystem.FileSystem;
+	for (const path of scenario.absent ?? []) {
+		yield* requireThat(!(yield* fs.exists(join(consumer, path))), `${name}: left ${path}`);
+	}
+	for (const [path, expected] of Object.entries(scenario.expectedFiles)) {
+		const content = yield* fs.readFileString(join(consumer, path));
+		yield* requireThat(content.includes(expected), `${name}: ${path} did not contain ${expected}`);
+	}
+});

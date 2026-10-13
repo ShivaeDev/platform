@@ -1,8 +1,9 @@
 import { ConfigProvider, Context, Effect, Layer, ManagedRuntime, Option } from "effect";
-import { HttpServer } from "effect/unstable/http";
+import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, it } from "vitest";
 import { AppChanges, appHost } from "#appHost.ts";
+import { InternalServerError } from "#errors/taxonomy.ts";
 import { post, sessions } from "#test/app-host/fixture.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
@@ -67,6 +68,19 @@ it("loopback policy serves without sessions and refuses origin, Host, content ty
 		]) {
 			expect(await post(url, headers)).toBe(403);
 		}
+	} finally {
+		await runtime.dispose();
+	}
+});
+
+it("application routes retain native typed failures at the HTTP boundary", async () => {
+	const routes = HttpRouter.add("GET", "/failed", Effect.fail(new InternalServerError({ message: "Route failed" })));
+	const runtime = ManagedRuntime.make(appHost({ ...common, policy: "loopback", routes }).pipe(Layer.provide(noEnvironment)));
+	try {
+		const server = await runtime.runPromise(HttpServer.HttpServer);
+		const url = HttpServer.formatAddress(server.address);
+		expect((await fetch(`${url}/failed`)).status).toBe(500);
+		expect(await ping(`${url}/rpc`)).toBe("pong");
 	} finally {
 		await runtime.dispose();
 	}

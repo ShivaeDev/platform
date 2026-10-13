@@ -28,6 +28,7 @@ export const checkDocumentation = Effect.fn("Published.checkDocumentation")(func
 	consumer: string,
 	entries: readonly DocumentedImport[],
 	versions: Readonly<Record<string, string>>,
+	source = "pinned npm releases",
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = join(consumer, "documented-imports.ts");
@@ -35,7 +36,7 @@ export const checkDocumentation = Effect.fn("Published.checkDocumentation")(func
 	const problems = yield* Effect.sync(() => importProblems(path, entries, versions));
 	yield* requireThat(problems.length === 0, `Published documentation API check failed:\n${problems.join("\n")}`);
 	yield* checkRuntimeImports(consumer, entries, versions);
-	yield* Effect.log(`Checked ${entries.length} documented imports against pinned npm releases.`);
+	yield* Effect.log(`Checked ${entries.length} documented imports against ${source}.`);
 });
 
 export function importProblems(path: string, entries: readonly DocumentedImport[], versions: Readonly<Record<string, string>>): string[] {

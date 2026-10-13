@@ -5,6 +5,7 @@ import { folder, startBoard } from "#test/board.ts";
 import { held, openPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 import { rpcCall } from "#test/rpc.ts";
 
@@ -26,13 +27,17 @@ it.live("retains and persists newer handoff direction when a preparation finishe
 		};
 	});
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-preview")).toHaveProperty("disabled", false)));
-	enterField(page, "recipient", "local-agent");
-	enterField(page, "goal", "First direction");
-	page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
-	page.document.getElementById("handoff-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () => enterField(page, "recipient", "local-agent"));
+	yield* formEvent(page, () => enterField(page, "goal", "First direction"));
+	yield* formEvent(page, () =>
+		page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })),
+	);
+	yield* formEvent(page, () =>
+		page.document.getElementById("handoff-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	try {
 		yield* Effect.promise(() => waitFor(() => expect(reached).toBe(true)));
-		enterField(page, "goal", "Later direction");
+		yield* formEvent(page, () => enterField(page, "goal", "Later direction"));
 	} finally {
 		gate.release();
 	}
