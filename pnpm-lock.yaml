@@ -300,8 +300,8 @@ catalogs:
       specifier: 8.23.0
       version: 8.23.0
     pg-boss:
-      specifier: 12.36.0
-      version: 12.36.0
+      specifier: 12.37.0
+      version: 12.37.0
     prisma:
       specifier: 7.10.0
       version: 7.10.0
@@ -661,7 +661,7 @@ importers:
         version: 4.0.0-rc.112
       pg-boss:
         specifier: 'catalog:'
-        version: 12.36.0(@opentelemetry/api@1.9.1)
+        version: 12.37.0(@opentelemetry/api@1.9.1)
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -4360,8 +4360,8 @@ packages:
   perfect-debounce@2.1.0:
     resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
 
-  pg-boss@12.36.0:
-    resolution: {integrity: sha512-67Jj4xNuv8mkShTzfmsFtJeVa2ChXyrknjlw/WKZCIMuzRTwyHOUGjl2mf5Snrhmb0xglvFbkfAt5+hLtXukag==}
+  pg-boss@12.37.0:
+    resolution: {integrity: sha512-3TrhjNRPVQqkLVvrIcgUMBK1rHG3eKINq7kXBvHU+qUdmiiiGJbkIW25rAIUQB715NCpdwAqY3PquhOoSEa1/g==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -8160,7 +8160,7 @@ snapshots:
 
   perfect-debounce@2.1.0: {}
 
-  pg-boss@12.36.0(@opentelemetry/api@1.9.1):
+  pg-boss@12.37.0(@opentelemetry/api@1.9.1):
     dependencies:
       '@opentelemetry/api': 1.9.1
       cron-parser: 5.10.1

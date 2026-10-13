@@ -71,7 +71,7 @@ catalog:
   esbuild: 0.28.2
   better-auth: 1.6.33
   pg: 8.23.0
-  pg-boss: 12.36.0
+  pg-boss: 12.37.0
   satteri: 0.10.5
   shiki: 4.5.0
   typescript: npm:@typescript/typescript6@6.0.2
