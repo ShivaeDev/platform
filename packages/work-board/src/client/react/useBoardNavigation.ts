@@ -1,12 +1,12 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import type { RouterShell } from "./loadBoardPage.ts";
-import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "./navigationLocation.ts";
-import { pageQuery } from "./pageQuery.ts";
-import { readerLink } from "./readerLink.ts";
-import { readingEntry, readingHistory } from "./readingHistory.ts";
-import { captureReading } from "./readingState.ts";
-import { scheduleReading } from "./scheduleReading.ts";
+import type { RouterShell } from "#client/react/loadBoardPage.ts";
+import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "#client/react/navigationLocation.ts";
+import { pageQuery } from "#client/react/pageQuery.ts";
+import { readerLink } from "#client/react/readerLink.ts";
+import { readingEntry, readingHistory } from "#client/react/readingHistory.ts";
+import { captureReading } from "#client/react/readingState.ts";
+import { scheduleReading } from "#client/react/scheduleReading.ts";
 
 export function useBoardNavigation(shell: RouterShell) {
 	const router = useRouter();
@@ -18,6 +18,7 @@ export function useBoardNavigation(shell: RouterShell) {
 		let displayed = "";
 		let route = "";
 		let hash = "";
+		let failure = "";
 		function save() {
 			if (!displayed || document.getElementById("doc")?.dataset.route !== route) {
 				return;
@@ -34,11 +35,13 @@ export function useBoardNavigation(shell: RouterShell) {
 			if (doc?.dataset.route !== nextRoute) {
 				return;
 			}
-			const failure = navigationFailure(doc.dataset.status);
+			const previousFailure = failure;
+			failure = navigationFailure(doc.dataset.status);
 			if (failure) {
 				setStatus(failure);
 				return;
 			}
+			setStatus((current) => (current === previousFailure ? "" : current));
 			const key = location.state.key ?? nextRoute;
 			const entry = currentEntry(location.state, displayed, initial);
 			const id = readingKey(key, entry, aliases);
