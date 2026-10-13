@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { Fleet } from "#fleet.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
-import { finishWorkers, prepareWork } from "#test/engine.ts";
+import { type EngineFixture, finishWorkers, prepareWork } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepareBookkeepingPhase } from "#test/prepareBookkeepingPhase.ts";
 import { answerReport } from "#test/report.ts";
@@ -30,7 +30,6 @@ function registerBookkeepingTests(wholeFileRevision: boolean, field: string, bef
 					const files = boardHttpFiles(root);
 					const original = source.replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.\nowner: first-owner");
 					files.write("one.md", original);
-					const fleet = yield* Fleet;
 					const active = yield* prepareBookkeepingPhase(fixture, phase, wholeFileRevision);
 					const changed = original.replace(before, after);
 					files.write("one.md", changed);
@@ -52,18 +51,34 @@ function registerBookkeepingTests(wholeFileRevision: boolean, field: string, bef
 						expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 						expect(files.receipts()).toHaveLength(1);
 					} else {
-						if (phase === "preparation") {
-							expect((yield* fleet.dispatch("one")).value.boardRevision).toBe(active.value.boardRevision);
-						}
-						finishWorkers(fixture);
-						const completed = yield* fleet.reconcile("one");
-						expect(completed.value.stage).toBe("completed");
-						expect(completed.value.decision).toBeUndefined();
+						yield* finishBookkeepingPhase(fixture, phase, field, active.value.boardRevision);
 					}
 				}),
 			));
 	}
 }
+
+const finishBookkeepingPhase = Effect.fn("Fleet.finishBookkeepingPhase")(function* (
+	fixture: EngineFixture<unknown>,
+	phase: string,
+	field: string,
+	boardRevision: string,
+) {
+	const fleet = yield* Fleet;
+	if (phase === "preparation") {
+		const dispatched = yield* fleet.dispatch("one");
+		expect(dispatched.value.boardRevision).toBe(boardRevision);
+		if (["status", "superseded status"].includes(field)) {
+			expect(dispatched.value.stage).toBe("released");
+			expect(fixture.launched).toEqual([]);
+			return;
+		}
+	}
+	finishWorkers(fixture);
+	const completed = yield* fleet.reconcile("one");
+	expect(completed.value.stage).toBe("completed");
+	expect(completed.value.decision).toBeUndefined();
+});
 
 test("bookkeeping edits leave a validation decision resolvable by its original retry answer", () => {
 	const options = { checksFailure: true, noChange: true };

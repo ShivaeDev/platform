@@ -4,6 +4,7 @@ import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
@@ -19,6 +20,10 @@ export function makeLaunch(state: EngineState) {
 	) {
 		const stored = input;
 		const work = yield* board.get(stored.value.workId);
+		const released = yield* releaseClosedPreparation(state, stored, work);
+		if (released !== undefined) {
+			return released;
+		}
 		yield* authorizeBriefContext(stored.value, work);
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;

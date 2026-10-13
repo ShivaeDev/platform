@@ -12,7 +12,7 @@ const test = postgresTests("test");
 
 for (const wholeFileRevision of [false, true]) {
 	for (const phase of ["preparation", "execution", "review", "decision", "completed"]) {
-		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work and its decision survive status done and complete normally`, () =>
+		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work survives status done and ${phase === "preparation" ? "releases without launching" : "completes normally"}`, () =>
 			withFleetBoard({ noChange: phase !== "review", reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
 					const files = boardHttpFiles(root);
@@ -34,7 +34,9 @@ for (const wholeFileRevision of [false, true]) {
 					expect(preserved.value.outcome).toEqual(active.value.outcome);
 					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
 					if (phase === "preparation") {
-						expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+						expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
+						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
+						return;
 					}
 					if (phase === "decision") {
 						const decision = preserved.value.decision ?? (yield* Effect.die("Missing worker question"));
