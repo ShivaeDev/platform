@@ -4,11 +4,12 @@ import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import { renderBoard } from "./react.tsx";
 
 export async function renderRouter(files: Readonly<Record<string, string>>, url: string, options?: BoardFixtureOptions) {
+	const reading = window.history.state?.workBoard;
 	let router: ReturnType<typeof boardRouter> | undefined;
 	const view = await renderBoard(
 		files,
 		(api, registry) => {
-			router = boardRouter({ api, initial: "", registry });
+			router = boardRouter({ api, initial: "", reading, registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
 		},

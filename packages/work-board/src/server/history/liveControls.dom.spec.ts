@@ -34,14 +34,7 @@ it.live.each([false, true])("retains Changes control state at the instant of liv
 		page.document.getElementById("history-mark")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 		yield* Effect.promise(() => observation.started);
 	}
-	// Module loading can initialize controls before the client captures their pristine state.
-	const remembered = new Promise<void>((resolve) => page.document.addEventListener("test-remembered", () => resolve(), { once: true }));
-	const script = page.document.createElement("script");
-	script.type = "module";
-	script.textContent =
-		'import { remember } from "/_board/swap.js"; remember(document.getElementById("doc")); document.dispatchEvent(new Event("test-remembered"));';
-	page.document.body.append(script);
-	yield* Effect.promise(() => remembered);
+
 	const states: {
 		clearDisabled: boolean;
 		markDisabled: boolean;

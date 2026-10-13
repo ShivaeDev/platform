@@ -1,11 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
-import { shellIds } from "./shellIds.ts";
+import { Favorite } from "./Favorite.tsx";
+import { useMedia } from "./useMedia.ts";
 
 export function DocumentContext({ document: data }: { readonly document: Document }) {
 	const [headings, setHeadings] = useState<readonly { readonly id: string; readonly title: string; readonly depth: number }[]>([]);
 	const contextRef = useRef<HTMLDetailsElement>(null);
+	const wide = useMedia("(min-width: 1100px)");
+	useLayoutEffect(() => {
+		if (contextRef.current) {
+			contextRef.current.open = wide;
+		}
+	}, [wide]);
 	useEffect(() => {
 		function outline() {
 			const entries = [
@@ -19,21 +27,29 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 		outline();
 		return () => document.removeEventListener("board-page", outline);
 	}, []);
+
+	useLayoutEffect(() => {
+		const context = contextRef.current;
+		if (!context) {
+			return;
+		}
+		const count = context.closest("main")?.querySelectorAll(".item-introduction h1[id], article.doc :is(h1,h2,h3,h4,h5,h6)[id]").length ?? 0;
+		if (count !== headings.length) {
+			return;
+		}
+		context.dataset.readingReady = "true";
+		document.dispatchEvent(new Event("board-reading-ready"));
+	}, [headings]);
 	return (
 		<details className="item-context" data-key="item-context" ref={contextRef}>
 			<summary>Context and tools</summary>
 			<div className="context-content">
 				<p className="meta">
-					Source: {data.file} ·{" "}
-					<span className="age" data-modified={data.modified}>
-						updated
-					</span>
+					Source: {data.file} · <Age modified={data.modified} />
 				</p>
 				<DocumentMetadata document={data} />
 				<div className="reading-tools">
-					<button aria-pressed="false" disabled id={shellIds.favoriteToggle} type="button">
-						Save favorite
-					</button>
+					<Favorite file={data.file} title={headings.find((heading) => heading.depth === 1)?.title || data.file} />
 					<Outline headings={headings} />
 				</div>
 			</div>

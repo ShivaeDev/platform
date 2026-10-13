@@ -26,7 +26,12 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"#*.css": "./src/*.css"
+		"#*.css": "./src/*.css",
+		"#client/react/Age": {
+			"types": "./dist/client/react/Age.d.ts",
+			"source": "./src/client/react/Age.tsx",
+			"default": "./dist/client/react/Age.js"
+		}
 	},
 	"exports": {
 		"./*.ts": {
@@ -142,12 +147,6 @@
 			"import": "./dist/diagnostics/source.js",
 			"default": "./dist/diagnostics/source.js"
 		},
-		"./diagnostics/script.ts": {
-			"types": "./dist/client/diagnostics/script.d.ts",
-			"source": "./src/client/diagnostics/script.ts",
-			"import": "./dist/client/diagnostics/script.js",
-			"default": "./dist/client/diagnostics/script.js"
-		},
 		"./diagnostics/resetLabel.ts": {
 			"types": "./dist/diagnostics/resetLabel.d.ts",
 			"source": "./src/diagnostics/resetLabel.ts",
@@ -184,12 +183,6 @@
 			"import": "./dist/server/history/*.js",
 			"default": "./dist/server/history/*.js"
 		},
-		"./history/script.ts": {
-			"types": "./dist/client/history/script.d.ts",
-			"source": "./src/client/history/script.ts",
-			"import": "./dist/client/history/script.js",
-			"default": "./dist/client/history/script.js"
-		},
 		"./history/schema.ts": {
 			"types": "./dist/history/schema.d.ts",
 			"source": "./src/history/schema.ts",
@@ -225,96 +218,6 @@
 			"source": "./src/server/page/*.ts",
 			"import": "./dist/server/page/*.js",
 			"default": "./dist/server/page/*.js"
-		},
-		"./page/sidebarScript.ts": {
-			"types": "./dist/client/page/sidebarScript.d.ts",
-			"source": "./src/client/page/sidebarScript.ts",
-			"import": "./dist/client/page/sidebarScript.js",
-			"default": "./dist/client/page/sidebarScript.js"
-		},
-		"./page/searchResultsScript.ts": {
-			"types": "./dist/client/page/searchResultsScript.d.ts",
-			"source": "./src/client/page/searchResultsScript.ts",
-			"import": "./dist/client/page/searchResultsScript.js",
-			"default": "./dist/client/page/searchResultsScript.js"
-		},
-		"./page/swap.ts": {
-			"types": "./dist/client/page/scripts.d.ts",
-			"source": "./src/client/page/scripts.ts",
-			"import": "./dist/client/page/scripts.js",
-			"default": "./dist/client/page/scripts.js"
-		},
-		"./page/visualViewport.ts": {
-			"types": "./dist/client/page/visualViewport.d.ts",
-			"source": "./src/client/page/visualViewport.ts",
-			"import": "./dist/client/page/visualViewport.js",
-			"default": "./dist/client/page/visualViewport.js"
-		},
-		"./page/stateScript.ts": {
-			"types": "./dist/client/page/stateScript.d.ts",
-			"source": "./src/client/page/stateScript.ts",
-			"import": "./dist/client/page/stateScript.js",
-			"default": "./dist/client/page/stateScript.js"
-		},
-		"./page/searchScript.ts": {
-			"types": "./dist/client/page/searchScript.d.ts",
-			"source": "./src/client/page/searchScript.ts",
-			"import": "./dist/client/page/searchScript.js",
-			"default": "./dist/client/page/searchScript.js"
-		},
-		"./page/visualScript.ts": {
-			"types": "./dist/client/page/visualScript.d.ts",
-			"source": "./src/client/page/visualScript.ts",
-			"import": "./dist/client/page/visualScript.js",
-			"default": "./dist/client/page/visualScript.js"
-		},
-		"./page/itemContextScript.ts": {
-			"types": "./dist/client/page/itemContextScript.d.ts",
-			"source": "./src/client/page/itemContextScript.ts",
-			"import": "./dist/client/page/itemContextScript.js",
-			"default": "./dist/client/page/itemContextScript.js"
-		},
-		"./page/libraryScript.ts": {
-			"types": "./dist/client/page/libraryScript.d.ts",
-			"source": "./src/client/page/libraryScript.ts",
-			"import": "./dist/client/page/libraryScript.js",
-			"default": "./dist/client/page/libraryScript.js"
-		},
-		"./page/ageScript.ts": {
-			"types": "./dist/client/page/ageScript.d.ts",
-			"source": "./src/client/page/ageScript.ts",
-			"import": "./dist/client/page/ageScript.js",
-			"default": "./dist/client/page/ageScript.js"
-		},
-		"./page/navigationScript.ts": {
-			"types": "./dist/client/page/navigationScript.d.ts",
-			"source": "./src/client/page/navigationScript.ts",
-			"import": "./dist/client/page/navigationScript.js",
-			"default": "./dist/client/page/navigationScript.js"
-		},
-		"./page/readingStateScript.ts": {
-			"types": "./dist/client/page/readingStateScript.d.ts",
-			"source": "./src/client/page/readingStateScript.ts",
-			"import": "./dist/client/page/readingStateScript.js",
-			"default": "./dist/client/page/readingStateScript.js"
-		},
-		"./page/formReadingScript.ts": {
-			"types": "./dist/client/page/formReadingScript.d.ts",
-			"source": "./src/client/page/formReadingScript.ts",
-			"import": "./dist/client/page/formReadingScript.js",
-			"default": "./dist/client/page/formReadingScript.js"
-		},
-		"./page/diagrams.ts": {
-			"types": "./dist/client/page/scripts.d.ts",
-			"source": "./src/client/page/scripts.ts",
-			"import": "./dist/client/page/scripts.js",
-			"default": "./dist/client/page/scripts.js"
-		},
-		"./page/client.ts": {
-			"types": "./dist/client/page/runtime.d.ts",
-			"source": "./src/client/page/runtime.ts",
-			"import": "./dist/client/page/runtime.js",
-			"default": "./dist/client/page/runtime.js"
 		},
 		"./responses/*.ts": {
 			"types": "./dist/server/responses/*.d.ts",
@@ -393,12 +296,6 @@
 			"source": "./src/server/views/*.ts",
 			"import": "./dist/server/views/*.js",
 			"default": "./dist/server/views/*.js"
-		},
-		"./views/savedScript.ts": {
-			"types": "./dist/client/views/savedScript.d.ts",
-			"source": "./src/client/views/savedScript.ts",
-			"import": "./dist/client/views/savedScript.js",
-			"default": "./dist/client/views/savedScript.js"
 		},
 		"./browser/escapeHtml.ts": {
 			"types": "./dist/browser/escapeHtml.d.ts",
@@ -516,7 +413,25 @@
 			"source": "./src/browser/document/ReadingContext.ts",
 			"import": "./dist/browser/document/ReadingContext.js",
 			"default": "./dist/browser/document/ReadingContext.js"
-		}
+		},
+		"./diagnostics/script.ts": null,
+		"./history/script.ts": null,
+		"./page/sidebarScript.ts": null,
+		"./page/searchResultsScript.ts": null,
+		"./page/swap.ts": null,
+		"./page/visualViewport.ts": null,
+		"./page/stateScript.ts": null,
+		"./page/searchScript.ts": null,
+		"./page/visualScript.ts": null,
+		"./page/itemContextScript.ts": null,
+		"./page/libraryScript.ts": null,
+		"./page/ageScript.ts": null,
+		"./page/navigationScript.ts": null,
+		"./page/readingStateScript.ts": null,
+		"./page/formReadingScript.ts": null,
+		"./page/diagrams.ts": null,
+		"./page/client.ts": null,
+		"./views/savedScript.ts": null
 	},
 	"bin": {
 		"work-board": "./dist/server/cli.js"

@@ -1,5 +1,8 @@
+import type { ReactNode } from "react";
 import type { MainLocation } from "./mainLocation.ts";
 import { shellIds } from "./shellIds.ts";
+import type { AppearanceControls } from "./useAppearance.ts";
+import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
 		<span aria-label={`${count ?? "?"} waiting`} className="inbox-count" id={id} role="status">
@@ -7,29 +10,47 @@ export function InboxCount({ count, id }: { readonly count: number | null; reado
 		</span>
 	);
 }
-export function Header({ main, count }: { readonly main: MainLocation; readonly count: number | null }) {
+export function Header({
+	main,
+	count,
+	appearance,
+	sidebar,
+	openSearch,
+	live,
+	updates,
+	status,
+}: {
+	readonly main: MainLocation;
+	readonly count: number | null;
+	readonly appearance: AppearanceControls;
+	readonly sidebar: SidebarControls;
+	readonly openSearch: () => void;
+	readonly live: ReactNode;
+	readonly updates: ReactNode;
+	readonly status: string;
+}) {
 	return (
 		<>
 			<header className="bar">
-				<button aria-controls="sidebar" aria-expanded="true" id={shellIds.sidebarToggle} type="button">
+				<button aria-controls="sidebar" aria-expanded={sidebar.open} id={shellIds.sidebarToggle} onClick={() => sidebar.toggle()} type="button">
 					Files
 				</button>
 				<Breadcrumbs file={main.file} />
 				<a aria-current={main.view === "inbox" ? "page" : undefined} className="inbox-link work-open" href="/_board/inbox" id={shellIds.inboxTopbar}>
 					Inbox <InboxCount count={count} id={shellIds.inboxTopbarCount} />
 				</a>
-				<button aria-controls="search-dialog" aria-haspopup="dialog" disabled id={shellIds.searchOpen} type="button">
+				<button aria-controls="search-dialog" aria-haspopup="dialog" id={shellIds.searchOpen} onClick={() => openSearch()} type="button">
 					Search <kbd>⌘/Ctrl K</kbd>
 				</button>
-				<span className="live" id={shellIds.live} role="status">
-					connecting
+				{live}
+				<span id={shellIds.navigationStatus} role="status">
+					{status}
 				</span>
-				<span id={shellIds.navigationStatus} role="status" />
 			</header>
 			<fieldset aria-label="Reading preferences" className="preferences">
 				<div className="preference">
 					<label htmlFor="theme">Theme</label>
-					<select defaultValue="system" id={shellIds.theme}>
+					<select id={shellIds.theme} onChange={(event) => appearance.change({ theme: event.target.value })} value={appearance.theme}>
 						<option value="system">System</option>
 						<option value="light">Light</option>
 						<option value="dark">Dark</option>
@@ -37,15 +58,15 @@ export function Header({ main, count }: { readonly main: MainLocation; readonly 
 				</div>
 				<div className="preference">
 					<label htmlFor="density">Density</label>
-					<select defaultValue="comfortable" id={shellIds.density}>
+					<select id={shellIds.density} onChange={(event) => appearance.change({ density: event.target.value })} value={appearance.density}>
 						<option value="comfortable">Comfortable</option>
 						<option value="compact">Compact</option>
 					</select>
 				</div>
-				<button aria-pressed="false" disabled id={shellIds.updatesToggle} type="button">
-					Pause updates
-				</button>
-				<span id={shellIds.preferenceStatus} role="status" />
+				{updates}
+				<span id={shellIds.preferenceStatus} role="status">
+					{appearance.notice}
+				</span>
 			</fieldset>
 		</>
 	);

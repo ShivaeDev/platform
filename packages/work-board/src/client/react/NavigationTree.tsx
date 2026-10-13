@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Navigation, NavigationFile, NavigationFolder } from "#browser/navigation/schema.ts";
+import { Age } from "./Age.tsx";
 
 function Files({ files, current }: { readonly files: readonly NavigationFile[]; readonly current: string }) {
 	return files.map((file) => (
@@ -7,7 +8,7 @@ function Files({ files, current }: { readonly files: readonly NavigationFile[]; 
 			<a aria-current={file.path === current ? "page" : undefined} href={file.href}>
 				{file.name}
 			</a>
-			<span className="age short" data-modified={file.modified} />
+			<Age modified={file.modified} short />
 		</li>
 	));
 }

@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { RouterProvider } from "@tanstack/react-router";
 import { createRoot } from "react-dom/client";
-import { legacyRuntime, session } from "#client/entry.ts";
+import { session } from "#client/entry.ts";
 import { boardRouter } from "./boardRouter.ts";
 import "#client/react/entry.css";
 
@@ -10,9 +10,6 @@ const bootstrap = document.querySelector<HTMLTemplateElement>("#board-legacy-pag
 if (container && bootstrap) {
 	document.querySelector("[data-board-fallback]")?.remove();
 	const initial = bootstrap.innerHTML;
-	for (const dialog of bootstrap.content.querySelectorAll("dialog")) {
-		document.body.append(dialog.cloneNode(true));
-	}
 	bootstrap.remove();
 	const root = createRoot(container);
 	let native = session(window);
@@ -22,22 +19,11 @@ if (container && bootstrap) {
 			return;
 		}
 		started = true;
-		void legacyRuntime().then(({ connectRouter }) => {
-			connectRouter({
-				before: (listener) => {
-					router.subscribe("onBeforeNavigate", listener);
-				},
-				navigate: (url) =>
-					url === location.pathname + location.search + location.hash ? router.navigate({ state: true, to: url }) : router.navigate({ to: url }),
-				subscribe: (listener) => {
-					router.subscribe("onResolved", listener);
-				},
-			});
-			document.documentElement.dataset.boardReady = "true";
-		});
+		document.documentElement.dataset.boardReady = "true";
+		document.documentElement.dataset.js = "true";
 	}
 	const reading = history.state?.workBoard;
-	const router = boardRouter({ api: native.api, initial, ready, registry: native.registry });
+	const router = boardRouter({ api: native.api, client: native, initial, reading, ready, registry: native.registry });
 	if (reading) {
 		history.replaceState({ ...history.state, workBoard: reading }, "");
 	}
@@ -54,7 +40,8 @@ if (container && bootstrap) {
 			return;
 		}
 		native = session(window);
-		router.update({ context: { shell: { api: native.api, initial, ready, registry: native.registry } } });
+		router.update({ context: { shell: { api: native.api, client: native, initial, reading, ready, registry: native.registry } } });
+		void router.invalidate();
 		render();
 	});
 }

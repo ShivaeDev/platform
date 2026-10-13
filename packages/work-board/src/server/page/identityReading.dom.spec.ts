@@ -53,7 +53,7 @@ effectApp("opens criterion references in place, expands their context, and resto
 	expect(page.document.body.dataset.visit).toBe("kept");
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("work.search")));
-	expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
 	expect(page.window.getSelection()?.toString()).toBe("Readable");
 });
 
@@ -69,7 +69,7 @@ effectApp("preserves expanded details and text selection while a stable item is 
 	renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "renamed.md"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-file")).toBe("renamed.md")));
 	expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("work.search");
-	expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
 	expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true);
 	expect(page.window.getSelection()?.toString()).toBe("Readable");
 	expect(page.window.location.pathname).toBe("/_board/item/work.search/");
@@ -86,12 +86,13 @@ effectApp("replaces an active item with a conflict explanation rather than retai
 effectApp("keeps focus on a criterion opened through search within the active item", function* () {
 	yield* open("/_board/item/work.search/");
 	click("#search-open");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-query")).not.toBeNull()));
 	const input = page.document.getElementById("search-query");
 	if (!(input instanceof page.window.HTMLInputElement)) {
 		throw new Error("Missing search input");
 	}
 	input.value = "Escape returns focus";
-	input.dispatchEvent(new page.window.Event("input"));
+	input.dispatchEvent(new page.window.Event("input", { bubbles: true }));
 	yield* Effect.promise(() =>
 		waitFor(() =>
 			expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/_board/item/work.search/#criterion-keyboard"),
@@ -99,5 +100,5 @@ effectApp("keeps focus on a criterion opened through search within the active it
 	);
 	input.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-keyboard")));
-	expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
 });

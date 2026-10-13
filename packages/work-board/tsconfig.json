@@ -1,9 +1,6 @@
 {
 	"compilerOptions": {
 		"jsx": "react-jsx",
-		"paths": {
-			"#client/react/*": ["./src/client/react/*"]
-		},
 		"types": ["node", "vite/client"]
 	},
 	"extends": "../../tsconfig.base.json",

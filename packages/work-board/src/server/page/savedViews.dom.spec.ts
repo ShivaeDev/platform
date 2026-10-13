@@ -57,6 +57,7 @@ effectApp("saves applied table context without selection or unsent input, reopen
 	}
 	query.value = "unsent text";
 	save("Review queue");
+	yield* Effect.promise(frame);
 	const saved = JSON.parse(page.window.localStorage.getItem(key()) ?? "[]");
 	expect(saved).toHaveLength(1);
 	expect(saved[0].url).toContain("view=table");
@@ -64,16 +65,21 @@ effectApp("saves applied table context without selection or unsent input, reopen
 	expect(saved[0].url).not.toContain("item=");
 	expect(saved[0].url).not.toContain("unsent");
 	click(".view-layouts a:first-child");
+	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-card")).not.toBeNull()));
 	click("#open-saved-view");
+	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-table")).not.toBeNull()));
 	expect(page.document.getElementById("work-detail")).toBeNull();
 	click(".view-layouts a:first-child");
+	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-card")).not.toBeNull()));
 	save("Review queue");
+	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toHaveLength(1);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")[0].url).toContain("view=board");
 	click("#remove-saved-view");
+	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toEqual([]);
 });
 
@@ -99,10 +105,13 @@ effectApp("restores local views safely, ignores another workspace and external U
 	}
 	picker.value = "<img src=x>";
 	picker.dispatchEvent(new page.window.Event("change", { bubbles: true }));
+	yield* Effect.promise(frame);
 	expect(page.document.getElementById("open-saved-view")?.getAttribute("href")).toBe("/_board/work?view=table&board=gone");
 	click("#open-saved-view");
+	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.textContent).toContain("Board unavailable")));
 	click("#clear-saved-views");
+	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toEqual([]);
 });
 
@@ -111,11 +120,14 @@ effectApp("bounds saved views without silently evicting one and allows updating 
 	yield* ready();
 	for (let index = 0; index < 10; index += 1) {
 		save(`View ${index}`);
+		yield* Effect.promise(frame);
 	}
 	save("Eleventh");
+	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")).toHaveLength(10);
 	expect(page.document.getElementById("saved-view-status")?.textContent).toContain("Remove one");
 	save("View 0");
+	yield* Effect.promise(frame);
 	expect(page.document.getElementById("saved-view-status")?.textContent).not.toContain("Remove one");
 });
 
@@ -129,9 +141,11 @@ effectApp("keeps named views usable in memory when browser storage is unavailabl
 	});
 	yield* ready();
 	save("Temporary view");
+	yield* Effect.promise(frame);
 	expect(page.document.getElementById("saved-view-status")?.textContent).toContain("this page only");
 	expect(page.document.getElementById("open-saved-view")).toHaveProperty("hidden", false);
 	click("#clear-saved-views");
+	yield* Effect.promise(frame);
 	expect(page.document.getElementById("saved-view")).toHaveProperty("disabled", true);
 });
 
@@ -142,6 +156,11 @@ effectApp("recovers from malformed saved JSON on the next successful local save"
 	yield* ready();
 	expect(page.document.getElementById("saved-view-status")?.textContent).toContain("could not be restored");
 	save("Recovered");
+	yield* Effect.promise(frame);
 	expect(JSON.parse(page.window.localStorage.getItem(key()) ?? "[]")[0].name).toBe("Recovered");
 	expect(page.document.getElementById("saved-view-status")?.textContent).not.toContain("could not be restored");
 });
+
+function frame() {
+	return new Promise<void>((resolve) => page.window.requestAnimationFrame(() => resolve()));
+}

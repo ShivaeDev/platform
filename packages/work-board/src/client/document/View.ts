@@ -3,6 +3,7 @@ import { type Components, MarkdownHooks } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import type { PluggableList } from "unified";
 import type { Document } from "#browser/document/schema.ts";
+import { Age } from "#client/react/Age";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
@@ -25,6 +26,13 @@ const components: Components = {
 		return code?.type === "element" && Array.isArray(code.properties.className) && code.properties.className.includes("language-mermaid")
 			? createElement(Fragment, null, children)
 			: createElement("pre", props, children);
+	},
+	span: ({ node, children, ...props }) => {
+		const modified = node?.properties.dataModified ?? node?.properties["data-modified"];
+		if (modified !== undefined && props.className?.split(" ").includes("age")) {
+			return createElement(Age, { modified: Number(modified), short: props.className.split(" ").includes("short") });
+		}
+		return createElement("span", props, children);
 	},
 };
 

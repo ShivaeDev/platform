@@ -1,5 +1,5 @@
 import { matches } from "#client/reconcile/matches.ts";
-import { flash, normalized } from "#client/reconcile/signature.ts";
+import { flash, normalized } from "#client/reconcile/normalized.ts";
 export interface RenderedProjection {
 	readonly signatures: readonly string[];
 	readonly url: string;
