@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import process from "node:process";
 import { test as it } from "node:test";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
+import { decodeVersions } from "#package-check/model.ts";
 import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
 import { importProblems, readDocumentation } from "./documentation.ts";
 import { documentedImports } from "./imports.ts";
@@ -57,11 +59,9 @@ it("covers relative module paths in API prose, including child sections, and exc
 
 it("includes the supporting modules documented by the framework READMEs", async () => {
 	const entries = await Effect.runPromise(
-		readDocumentation(process.cwd(), {
-			"@shivaedev/effect-form": "0.2.1",
-			"@shivaedev/effect-prisma": "0.8.0",
-			"@shivaedev/effect-trpc": "0.6.1",
-		}).pipe(Effect.provide(NodeFileSystem.layer)),
+		readDocumentation(process.cwd(), decodeVersions(readFileSync("examples/starter/published-versions.json", "utf8"))).pipe(
+			Effect.provide(NodeFileSystem.layer),
+		),
 	);
 	for (const specifier of [
 		"@shivaedev/effect-prisma/relation/include.ts",

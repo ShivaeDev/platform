@@ -15,7 +15,8 @@ export const readDocumentation = Effect.fn("Published.readDocumentation")(functi
 		const source = `packages/${name.split("/")[1]}/README.md`;
 		entries.push(...documentedImports(yield* fs.readFileString(join(root, source)), source, name));
 	}
-	for (const source of ["docs/framework/quickstart.md", "examples/starter/README.md"]) {
+	const guides = (yield* fs.readDirectory(join(root, "docs/framework"))).filter((name) => name.endsWith(".md")).sort();
+	for (const source of [...guides.map((name) => `docs/framework/${name}`), "examples/starter/README.md"]) {
 		entries.push(...documentedImports(yield* fs.readFileString(join(root, source)), source));
 	}
 	for (const entry of entries) {
