@@ -54,8 +54,8 @@
 			"updateNotScheduled": true
 		},
 		{
-			"allowedVersions": "!/^1\\.2\\.[45]$/",
-			"description": "`@vercel/detect-agent` 1.2.4 and 1.2.5 dropped the provenance attestation that `trustPolicy: no-downgrade` requires, so pnpm refuses them. The workspace pins 1.2.3 until an attested release lands; drop this rule with that pin.",
+			"allowedVersions": "<=1.2.3",
+			"description": "`@vercel/detect-agent` publishes from a private repository since 1.2.4, so its releases carry no provenance attestation and `trustPolicy: no-downgrade` refuses them (https://github.com/vercel/vercel/issues/17408). The workspace pins 1.2.3 for `@prisma-next/cli-telemetry`; drop this rule with that pin.",
 			"matchPackageNames": ["@vercel/detect-agent"]
 		},
 		{
