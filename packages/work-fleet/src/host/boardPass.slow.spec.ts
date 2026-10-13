@@ -22,7 +22,7 @@ postgresTests("live")(
 				expect(result.dispatched).toHaveLength(100);
 				expect(result.dispatched.every((dispatch) => dispatch._tag === "Success")).toBe(true);
 				expect(fixture.provider.launched).toHaveLength(100);
-				expect(parse).toHaveBeenCalledTimes(100);
+				expect(parse).toHaveBeenCalledTimes(200);
 				expect(performance.now() - started).toBeLessThan(5000);
 				yield* Effect.log(`100-item first scheduler pass: ${Math.round(performance.now() - started)} ms`);
 			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts))),

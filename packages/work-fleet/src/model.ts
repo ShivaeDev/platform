@@ -46,6 +46,7 @@ const cycleFields = {
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	preparation: Preparation,
 	prompt: Schema.String,
+	releaseReason: Schema.optional(Schema.String),
 	report: Schema.optional(BoardReport),
 	responses: Schema.optional(Schema.Array(DecisionResponse)),
 	result: Schema.optional(WorkResult),

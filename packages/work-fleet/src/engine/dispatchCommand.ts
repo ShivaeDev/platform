@@ -6,6 +6,7 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
@@ -15,6 +16,10 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 			return stored;
 		}
 		const work = yield* board.get(workId);
+		const released = yield* releaseClosedPreparation(state, stored, work);
+		if (released !== undefined) {
+			return released;
+		}
 		const authorized = yield* authorizeBriefContext(stored.value, work).pipe(Effect.result);
 		if (Result.isFailure(authorized)) {
 			return yield* decision(
