@@ -15,7 +15,7 @@ effectApp("migrates PostgreSQL and creates and queries a persisted note over aut
 	expect(created.title).toBe("First note");
 	expect(yield* client["notes.list"]()).toEqual([created]);
 	const sql = yield* SqlClient.SqlClient;
-	expect(yield* sql`select id, title, "wordCount" from starter_notes`).toEqual([created]);
+	expect(yield* sql`select id, title, "wordCount", version from starter_notes`).toEqual([created]);
 	const invalid = yield* client["notes.create"]({ title: "   " }).pipe(Effect.result);
 	expect(Result.isFailure(invalid) && invalid.failure._tag).toBe("Invalid");
 	expect(yield* client["notes.list"]()).toEqual([created]);
@@ -45,10 +45,24 @@ effectApp("adds word counts to notes saved before the job migration", function* 
 	const note = yield* client["notes.create"]({ title: "Keep this old note" });
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`alter table starter_notes drop column "wordCount"`;
-	yield* sql`delete from starter_migrations where migration_id = 4`;
+	yield* sql`alter table starter_notes drop column version`;
+	yield* sql`delete from starter_migrations where migration_id >= 4`;
 	const database = yield* PostgresTestDatabase;
 	yield* Layer.build(starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
 	expect(yield* client["notes.list"]()).toEqual([{ ...note, wordCount: 4 }]);
+});
+
+effectApp("upgrades existing notes with version zero and accepts their first versioned edit", function* ({ baseUrl }) {
+	const cookie = yield* authPost(baseUrl, "sign-up/email", credentials("alice"));
+	const client = yield* notesHttp(baseUrl, cookie);
+	const note = yield* client["notes.create"]({ title: "Existing note" });
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`alter table starter_notes drop column version`;
+	yield* sql`delete from starter_migrations where migration_id = 5`;
+	const database = yield* PostgresTestDatabase;
+	yield* Layer.build(starterHost({ databaseUrl: database.url, port: 0, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
+	expect(yield* client["notes.get"]({ id: note.id })).toEqual({ ...note, version: 0 });
+	expect(yield* client["notes.update"]({ ...note, title: "Edited old note" })).toEqual({ ...note, title: "Edited old note", version: 1 });
 });
 
 effectApp("protects queries and commands, isolates users, and revokes the signed-out session before signing in again", function* ({ baseUrl }) {

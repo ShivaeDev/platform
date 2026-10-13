@@ -7,9 +7,9 @@ import { makeAuth } from "./auth.ts";
 import { StoredNote } from "./makeNotesRepository.ts";
 import { migrations } from "./migrations.ts";
 
-effectMigration("upgrades the old notes table to every current model column and PostgreSQL type", function* () {
+effectMigration("upgrades the pre-version notes table to every current model column and PostgreSQL type", function* () {
 	const database = yield* PostgresTestDatabase;
 	const { auth } = yield* makeAuth({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") });
-	const columns = yield* migrationUpgrade({ migrations: migrations(auth), table: "starter_notes", upTo: 1 });
-	yield* assertModelColumns(columns, StoredNote, { id: "integer", ownerId: "text", title: "text", wordCount: "integer" });
+	const columns = yield* migrationUpgrade({ migrations: migrations(auth), table: "starter_notes", upTo: 4 });
+	yield* assertModelColumns(columns, StoredNote, { id: "integer", ownerId: "text", title: "text", version: "integer", wordCount: "integer" });
 });

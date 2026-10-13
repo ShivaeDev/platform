@@ -14,8 +14,11 @@ const handlers = Notes.toLayer(
 		const changes = yield* AppChanges;
 		return Notes.of({
 			"notes.create": (input) => Effect.flatMap(Identity, ({ id }) => service.create(input, id)),
+			"notes.delete": (input) => Effect.flatMap(Identity, ({ id }) => service.delete(input, id)),
+			"notes.get": (input) => Effect.flatMap(Identity, ({ id }) => service.get(input.id, id)),
 			"notes.list": () => Effect.flatMap(Identity, ({ id }) => service.list(id)),
 			"notes.subscribe": () => changes.stream(Subscribe.reads(undefined)),
+			"notes.update": (input) => Effect.flatMap(Identity, ({ id }) => service.update(input, id)),
 		});
 	}),
 );

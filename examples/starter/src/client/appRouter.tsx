@@ -1,9 +1,11 @@
 import { createRootRouteWithContext, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
+import { Schema } from "effect";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
 import { type AuthActions, authActions } from "./auth.ts";
 import { LoginScreen } from "./LoginScreen.tsx";
 import type { NotesClient } from "./makeNotes.ts";
+import { NoteEdit } from "./NoteEdit.tsx";
 import { NotesScreen } from "./NotesScreen.tsx";
 import { RouteFailure } from "./RouteFailure.tsx";
 
@@ -21,6 +23,24 @@ export function appRouter(registry: AtomRegistry.AtomRegistry, client: NotesClie
 		getParentRoute: () => root,
 		path: "/sign-in",
 	});
-	const router = createRouter({ context: { registry }, ...(history === undefined ? {} : { history }), routeTree: root.addChildren([notes, login]) });
+	const note = createRoute({
+		component: () => {
+			const { noteId } = note.useParams();
+			return <NoteEdit client={client} key={noteId} noteId={noteId} onDeleted={() => void router.navigate({ to: "/" })} />;
+		},
+		errorComponent: RouteFailure,
+		getParentRoute: () => root,
+		loader: (context) => loadQuery(context.context.registry, client.api.get.query({ id: context.params.noteId }), context),
+		params: {
+			parse: ({ noteId }) => ({ noteId: Schema.decodeUnknownSync(Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThan(0)))(noteId) }),
+			stringify: ({ noteId }: { readonly noteId: number }) => ({ noteId: String(noteId) }),
+		},
+		path: "/notes/$noteId",
+	});
+	const router = createRouter({
+		context: { registry },
+		...(history === undefined ? {} : { history }),
+		routeTree: root.addChildren([notes, login, note]),
+	});
 	return router;
 }

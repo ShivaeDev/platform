@@ -23,6 +23,10 @@ export function migrations(auth: StarterAuth) {
 				yield* sql`alter table starter_notes add column "wordCount" integer`;
 				yield* sql`update starter_notes set "wordCount" = cardinality(regexp_split_to_array(trim(title), '[[:space:]]+'))`;
 			}),
+			"005_note_version": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`alter table starter_notes add column version integer not null default 0`;
+			}),
 		}),
 		lockTimeout: "5 seconds" as const,
 		table: "starter_migrations",

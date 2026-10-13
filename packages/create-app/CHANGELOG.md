@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 - 2026-10-13
+
+### Added
+
+- Generated apps can open, edit and delete notes. Versioned writes reject stale edits and deletes, while the editor retains drafts through live refreshes and conflicts.
+- Upgrade existing starter notes with a numbered version-column migration and use the notes repository for the word-count worker.
+
 ## 0.1.2 - 2026-10-13
 
 ### Added

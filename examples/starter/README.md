@@ -6,7 +6,9 @@ A small notes app showing Platform's path from a migrated PostgreSQL table throu
 const query = useQuery(client.api.list.query());
 ```
 
-The authenticated route loader and screen share the same native query registry. Creating a note saves it in PostgreSQL and refreshes your list. Better Auth supplies signup, sign-in and sign-out; each account sees its own notes.
+The authenticated route loaders and screens share the same native query registry. Create a note, open its title to edit it, or delete it and return to the refreshed list. Better Auth supplies signup, sign-in and sign-out; each account sees its own notes.
+
+The `/notes/$noteId` route parses a numeric ID and loads `notes.get` through `loadQuery`. Its form uses `useEditor`: a live refresh keeps edited fields, a rejected save keeps the input, and a successful save applies the returned title. Updates and deletes send the version the client read. A stale version returns Platform's `Conflict` without changing the row; refresh and review the retained draft before saving again. Another account receives `NotFound` for an individual note. The word-count worker uses the same versioned notes repository and recalculates the count after an edit.
 
 ## Create or run it
 
