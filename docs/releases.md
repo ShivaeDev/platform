@@ -14,6 +14,8 @@ Use `### Added`, `### Changed`, `### Fixed` or `### Breaking` with Markdown bull
 
 The maintainer authorizes releases. In the release pull request:
 
+When adding and releasing a change in the same pull request, commit its fragments before bumping the version. The validator checks the collected notes against that committed pending state and requires it to preserve the base revision's fragments and released history.
+
 1. Bump `packages/<package>/package.json` to the approved version.
 2. Run `pnpm run changelog:release <package>` from the repository root, for example `pnpm run changelog:release effect-sql`.
 3. Review and commit the generated `CHANGELOG.md` and the deleted fragment files with the version bump.
