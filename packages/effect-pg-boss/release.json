@@ -1,0 +1,14 @@
+{
+	"date": "2026-10-13",
+	"fragments": [
+		{
+			"name": "effect-4-stable.md",
+			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.\n"
+		},
+		{
+			"name": "producer-queues.md",
+			"text": "### Added\n\n- `Jobs.layer({ jobs: [Queue] })` registers a queue definition for producers without starting a worker. Its queue appears in health results and uses the same retry and dead-letter settings as a worker registration.\n"
+		}
+	],
+	"version": "0.5.0"
+}

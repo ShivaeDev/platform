@@ -1,0 +1,14 @@
+{
+	"date": "2026-10-13",
+	"fragments": [
+		{
+			"name": "effect-4-stable.md",
+			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.\n"
+		},
+		{
+			"name": "migrated-unreleased.md",
+			"text": "### Changed\n\n- Prefix generic type parameter names in service definitions and method proofs with `T`, preserving their type relationships and runtime behavior.\n\n- Document the service definition, private state, dependency binding and caller scope in the README, agent guidance, north star and roadmap; publish `docs/` with the README while keeping agent guidance out of the package.\n\n- Build package JavaScript, declarations and source maps with TypeScript 7.\n"
+		}
+	],
+	"version": "0.3.0"
+}

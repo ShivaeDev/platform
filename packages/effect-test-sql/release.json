@@ -2,9 +2,9 @@
 	"date": "2026-10-13",
 	"fragments": [
 		{
-			"name": "migration-upgrade.md",
-			"text": "### Added\n\n- `migrationUpgrade({ migrations, upTo, table })` applies an older migration prefix and then the latest migrations on PostgreSQL, returning live column names and exact PostgreSQL types. `assertModelColumns(columns, model, types)` checks those columns against the model's database fields and an explicit type map, failing with `ModelColumnMismatch` for missing, extra or wrongly typed columns. Upgrade checks reject populated custom ledgers before loading migrations, using the migration runner's identifier semantics.\n"
+			"name": "effect-4-stable.md",
+			"text": "### Breaking\n\n- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/sql-pg` 4.0.4 alongside it, whose native PostgreSQL client replaces `pg`.\n"
 		}
 	],
-	"version": "0.2.0"
+	"version": "0.3.0"
 }

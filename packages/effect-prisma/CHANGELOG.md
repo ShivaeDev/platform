@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 - 2026-10-13
+
+### Changed
+
+- Use `T`-prefixed descriptive type parameter names in Relation types and internal testing and transaction helpers, preserving their type behavior.
+- Document the package purpose, query and transaction model, API and limits; add agent guidance and package north star and roadmap, and publish `docs/` with the README.
+- Build package JavaScript, declarations and source maps with TypeScript 7.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/vitest` 4.0.4 alongside it, which requires Vitest 5.
+
 ## 0.8.0 - 2026-10-04
 
 ### Changed

@@ -5,7 +5,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { HOST, serveBoard } from "./serve.ts";
 
-const VERSION = "0.12.0";
+const VERSION = "0.13.0";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly dir: string;

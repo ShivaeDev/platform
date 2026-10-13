@@ -2,9 +2,9 @@
 	"date": "2026-10-13",
 	"fragments": [
 		{
-			"name": "editable-notes.md",
-			"text": "### Added\n\n- Generated apps can open, edit and delete notes. Versioned writes reject stale edits and deletes, while the editor retains drafts through live refreshes and conflicts.\n- Upgrade existing starter notes with a numbered version-column migration and use the notes repository for the word-count worker.\n\n### Fixed\n\n- Generated apps keep database setup in the server runtime so it passes the pinned Quality runtime checks.\n"
+			"name": "effect-4-stable.md",
+			"text": "### Changed\n\n- New applications start on Effect 4.0.4 and Vitest 5.0.3.\n"
 		}
 	],
-	"version": "0.1.3"
+	"version": "0.2.0"
 }

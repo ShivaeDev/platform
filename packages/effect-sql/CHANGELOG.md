@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 - 2026-10-13
+
+### Changed
+
+- A failed `COMMIT` inside `transact` fails with a typed `SqlError` mapped through `onSqlError` instead of a defect.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/sql-pg` 4.0.4 alongside it, whose native PostgreSQL client replaces `pg`.
+- `PostgresChangeClient.listen` returns a scoped `Queue` of notifications, matching `PgClient.listen` in `@effect/sql-pg` 4.0.4.
+- JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError`; give structured data its own columns or table.
+- PostgreSQL `int8` values read as `bigint` (use `Schema.BigInt`), `date` values read as `YYYY-MM-DD` strings, and `timestamp without time zone` values are read and written as UTC wall time.
+
 ## 0.2.1 - 2026-10-12
 
 ### Added

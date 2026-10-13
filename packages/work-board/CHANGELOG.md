@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.13.0 - 2026-10-13
+
+### Added
+
+- Native `workContract` projection queries: `board` and `work` take `{ url }`; `overview` and `inbox` take no payload. Their typed results carry source data, validated membership and explicit unavailable states, without page HTML.
+- Portable `BoardProjection`, `WorkProjection`, `OverviewProjection` and `InboxProjection` schemas and types in `browser/views/schema.ts`, with shared `State`, `stateOf`, `viewUrl` and `fieldFilter` exports in `browser/views/state.ts`. The existing server URL-state exports remain compatible.
+- `DocumentView` accepts optional `board` section counts to render source Markdown as a heading board with the shared reading plugins.
+
+### Changed
+
+- Draw `mermaid` diagrams with Mermaid 12. Flowchart, state, class, entity-relationship and requirement diagrams that set no `layout` now lay out with ELK in Mermaid's `neo` look, so existing diagrams can change shape and gain shadows.
+- Drawing diagrams now needs an ES2024 browser, such as Safari 17.4 or later.
+- Navigation chrome, search, reading preferences, favorites, recents and reading history run in the React client with the shared native query registry.
+- Changes, Diagnostics, Start, Respond, Handoff and Result render typed Board queries in React. Their URLs load the React shell and require JavaScript; live updates and contextual forms retain their shared native client.
+- Board RPC adds `start`, `diagnostics`, `respond`, `handoff` and `result` queries. History responses add a typed `comparison` with source changes and identity limitations.
+- The configured home board, Work board/table with filters and selected detail, Overview and Inbox render in React from projection queries. Existing URLs, saved local views, inline answers and live updates use the shared query registry. Home reads retain targeted invalidation and change highlighting; visual previews refresh and diagram drawings return with Back navigation.
+
+### Fixed
+
+- Response drafts use effect-form persistence and retain input across reloads and source revisions. Questionnaire recovery keeps one snapshot per prior context, so repeated remounts retain answers without growing the draft. Response and handoff drafts now expire after seven days with a 256 KiB limit per draft; Clear draft restores only the current form.
+- Retain response and handoff draft text, source-change notices and caret selection through query refresh and reload in React-owned forms.
+- Back navigation and reload report a missing saved passage after restoring reading state, without changing the restored scroll or focus.
+- Search retains its query across dismissal and reopening, and keyboard dismissal restores the original control's focus and text selection.
+- Search passages that share a heading URL remain distinct when refreshed results remove or reorder entries.
+- Search keeps a valid keyboard selection when refreshed results shrink, so Enter opens the remaining selected result.
+- Editing a search query immediately clears previous options, so Enter before the debounce completes cannot open an old result or command.
+- A successful document refresh clears the previous navigation failure without resetting the current reading position or focus.
+- Opening the current projection URL uses its typed query, including when retrying a failed view. Overview and Inbox keep their payload-free calls.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`. Install `@effect/platform-node` and `@effect/platform-node-shared` 4.0.4 alongside it.
+- Removed `listenOn` from `@shivaedev/work-board/serve.ts` and the `server` and `ServerOptions` exports from `@shivaedev/work-board/rpc/server.ts`. Use `serveBoard` from `@shivaedev/work-board/serve.ts` to run the loopback Board HTTP and RPC server through Platform's `appHost`; the port, routes and CLI flags stay the same.
+- Remove the legacy string-script browser runtime and its HTTP asset routes. Remove these package exports and their modules: `diagnostics/script.ts`, `history/script.ts`, `page/sidebarScript.ts`, `page/searchResultsScript.ts`, `page/swap.ts`, `page/visualViewport.ts`, `page/stateScript.ts`, `page/searchScript.ts`, `page/visualScript.ts`, `page/itemContextScript.ts`, `page/libraryScript.ts`, `page/ageScript.ts`, `page/navigationScript.ts`, `page/readingStateScript.ts`, `page/formReadingScript.ts`, `page/diagrams.ts`, `page/client.ts`, `views/savedScript.ts`. Use the Board React client and native browser client instead.
+- Remove the Board HTML `page` RPC and the superseded server renderers for these views. Read documents with `document` and returned-result data with `result`.
+
 ## 0.12.0 - 2026-10-12
 
 ### Added

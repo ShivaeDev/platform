@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-10-13
+
+### Added
+
+- `Jobs.layer({ jobs: [Queue] })` registers a queue definition for producers without starting a worker. Its queue appears in health results and uses the same retry and dead-letter settings as a worker registration.
+
+### Breaking
+
+- Requires stable Effect 4.0.4 in place of 4.0.0-rc.112. Effect 4.0.4 moves the former `effect/unstable/*` modules to `effect/*` and renames constructors such as `Config.string` to `Config.String`.
+
 ## 0.4.0 - 2026-10-12
 
 ### Changed
