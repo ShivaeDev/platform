@@ -1,4 +1,5 @@
-import { type captureReading, restoreReading, scrollToPassage } from "./readingState.ts";
+import { flushSync } from "react-dom";
+import { type captureReading, passageStatus, restoreReading, scrollToPassage } from "./readingState.ts";
 export function scheduleReading(
 	doc: HTMLElement,
 	reading: ReturnType<typeof captureReading> | null,
@@ -7,8 +8,9 @@ export function scheduleReading(
 	setStatus: (status: string) => void,
 	focus: boolean,
 ) {
+	let restored = false;
 	function restore() {
-		if (!active()) {
+		if (restored || !active()) {
 			document.removeEventListener("board-reading-ready", restore);
 			return;
 		}
@@ -16,15 +18,22 @@ export function scheduleReading(
 		if (context && context.dataset.readingReady !== "true") {
 			return;
 		}
+		restored = true;
 		document.removeEventListener("board-reading-ready", restore);
 		if (focus && !document.activeElement?.closest("#response-form, #handoff-form")) {
 			doc.focus({ preventScroll: true });
 		}
+		const passage = hash ? `#${hash}` : "";
 		if (reading) {
 			restoreReading(reading);
-			setStatus("");
+			// Readiness can arrive from a React effect; commit the warning before the next paint.
+			queueMicrotask(() => {
+				if (active()) {
+					flushSync(() => setStatus(passageStatus(passage)));
+				}
+			});
 		} else {
-			setStatus(scrollToPassage(hash ? `#${hash}` : ""));
+			setStatus(scrollToPassage(passage));
 		}
 	}
 	document.addEventListener("board-reading-ready", restore);

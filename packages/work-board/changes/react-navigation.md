@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Back navigation and reload report a missing saved passage after restoring reading state, without changing the restored scroll or focus.
 - Search retains its query across dismissal and reopening, and keyboard dismissal restores the original control's focus and text selection.
 - Search passages that share a heading URL remain distinct when refreshed results remove or reorder entries.
 - Search keeps a valid keyboard selection when refreshed results shrink, so Enter opens the remaining selected result.

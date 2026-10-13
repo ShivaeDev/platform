@@ -10,6 +10,8 @@ export const ReadingState = Schema.Struct({
 	sidebar: Schema.optional(Schema.Number),
 });
 export type ReadingState = typeof ReadingState.Type;
+const MISSING_PASSAGE = "This passage is no longer in the document.";
+let releaseScroll: (() => void) | undefined;
 function pathOf(node: Node, root: Node) {
 	const path: number[] = [];
 	for (let child: Node | null = node; child !== root; child = child.parentNode) {
@@ -83,21 +85,32 @@ export function restoreReading(state: ReadingState) {
 			document.getSelection()?.setBaseAndExtent(anchor, Math.max(0, Math.min(a, limit(anchor))), focus, Math.max(0, Math.min(f, limit(focus))));
 		}
 	}
-	window.scrollTo(...state.scroll);
+	restoreScroll(state.scroll);
+}
+function restoreScroll(scroll: readonly [number, number]) {
+	releaseScroll?.();
+	const root = document.documentElement;
+	const anchoring = root.style.overflowAnchor;
+	// Keep the saved offset while the restored passage status changes layout in this frame.
+	root.style.overflowAnchor = "none";
+	window.scrollTo(...scroll);
+	let frame = requestAnimationFrame(() => {
+		frame = requestAnimationFrame(() => releaseScroll?.());
+	});
+	releaseScroll = () => {
+		cancelAnimationFrame(frame);
+		root.style.overflowAnchor = anchoring;
+		releaseScroll = undefined;
+	};
 }
 export function scrollToPassage(hash: string) {
 	if (!hash) {
 		window.scrollTo(0, 0);
 		return "";
 	}
-	let target: HTMLElement | null;
-	try {
-		target = document.getElementById(decodeURIComponent(hash.slice(1)));
-	} catch {
-		target = null;
-	}
+	const target = passageTarget(hash);
 	if (!target) {
-		return "This passage is no longer in the document.";
+		return MISSING_PASSAGE;
 	}
 	for (let parent = target.parentElement; parent; parent = parent.parentElement) {
 		if (parent instanceof HTMLDetailsElement) {
@@ -107,4 +120,14 @@ export function scrollToPassage(hash: string) {
 	target.scrollIntoView();
 	target.focus({ preventScroll: true });
 	return "";
+}
+export function passageStatus(hash: string) {
+	return !hash || passageTarget(hash) ? "" : MISSING_PASSAGE;
+}
+function passageTarget(hash: string) {
+	try {
+		return document.getElementById(decodeURIComponent(hash.slice(1)));
+	} catch {
+		return null;
+	}
 }
