@@ -97,11 +97,11 @@ it.effectApp(
 	},
 	integrationOptions,
 );
-vitestIt("rejects experimental native joins for both single and collection reads", integrationOptions, async () => {
-	const nativeJoins = effectPrismaAdapter(Database, runtime, { modelName: () => "AuthUser" })({ experimental: { joins: true } });
+vitestIt("rejects native joins for both single and collection reads", integrationOptions, async () => {
+	const nativeJoins = effectPrismaAdapter(Database, runtime, { modelName: () => "AuthUser" })({ advanced: { database: { joins: true } } });
 	const input = { join: { session: true }, model: "user", where: [{ field: "id", value: crypto.randomUUID() }] };
 	for (const query of [() => nativeJoins.findOne(input), () => nativeJoins.findMany(input)]) {
-		await expectPromise(query()).rejects.toThrow("The Effect Prisma Better Auth adapter does not support experimental native joins");
+		await expectPromise(query()).rejects.toThrow("The Effect Prisma Better Auth adapter does not support native joins");
 	}
 });
 it.effectApp(
