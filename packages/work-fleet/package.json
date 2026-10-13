@@ -67,10 +67,8 @@
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
-		"@types/pg": "catalog:",
 		"@typescript/native": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
