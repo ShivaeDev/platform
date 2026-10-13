@@ -76,15 +76,15 @@ it("a typed failure or an interruption rolls back without invalidating", () =>
 		}),
 	));
 
-it("a failed commit does not invalidate", () =>
+it("a failed commit fails through onSqlError and does not invalidate", () =>
 	run(
 		Effect.gen(function* () {
 			const { sql, events } = yield* setup;
 			const commitFailure = yield* Effect.gen(function* () {
 				yield* sql`insert into notes (id, order_id) values (1, 99)`;
 				yield* invalidateOnCommit({ orders: [2] });
-			}).pipe(transact({ onSqlError }), Effect.exit);
-			expect(Exit.isFailure(commitFailure) && Cause.hasDies(commitFailure.cause)).toBe(true);
+			}).pipe(transact({ onSqlError }), Effect.flip);
+			expect(commitFailure).toBeInstanceOf(Unavailable);
 			expect(events).toEqual([]);
 		}),
 	));

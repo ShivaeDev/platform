@@ -49,7 +49,7 @@ integration("a typed failure or an interruption rolls back without invalidating"
 	),
 );
 
-integration("a COMMIT that fails on a deferred foreign key invalidates nothing and leaves nothing visible", () =>
+integration("a COMMIT that fails on a deferred foreign key fails through onSqlError, invalidates nothing and leaves nothing visible", () =>
 	runPostgres(
 		Effect.gen(function* () {
 			const { sql, events, insert, tables, orderIds } = yield* setup;
@@ -58,8 +58,8 @@ integration("a COMMIT that fails on a deferred foreign key invalidates nothing a
 				yield* insert(1);
 				yield* sql`insert into ${sql(tables.notes)} (id, order_id) values (1, 99)`;
 				yield* invalidateOnCommit({ orders: [1] });
-			}).pipe(transact({ onSqlError }), Effect.exit);
-			expect(Exit.isFailure(commitFailure) && Cause.hasDies(commitFailure.cause)).toBe(true);
+			}).pipe(transact({ onSqlError }), Effect.flip);
+			expect(commitFailure).toBeInstanceOf(Unavailable);
 			expect(events).toEqual([]);
 			expect(yield* orderIds(observer)).toEqual([]);
 			yield* insert(2).pipe(transact({ onSqlError }));

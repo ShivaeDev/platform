@@ -30,7 +30,7 @@ Migration authors supply ordinary Effects and a native numbered loader. The Post
 
 ## Trade-offs
 
-- **Native semantics over a smoother facade.** Native update shapes, savepoints, commit defects and migration-body defects need an explanation. Preserve them rather than silently turn them into partial patches or ordinary typed failures.
+- **Native semantics over a smoother facade.** Native update shapes, savepoints and migration-body defects need an explanation. Preserve them rather than silently turn them into partial patches or ordinary typed failures.
 - **A small query surface over automatic relationships.** Equality filters, selection, one sort field and a limit remove routine work. A broader query API needs evidence of repeated consumer work; explicit SQL remains usable while that decision is open.
 - **Correct commit ownership over permissive nesting.** Refuse an unmanaged outer native transaction when changed keys need its commit boundary. An error is preferable to silently publishing at the wrong moment.
 - **Committed outcome over notification success.** A failed post-commit invalidation is diagnostic work, not a reason to report that the write failed and encourage a duplicate retry.

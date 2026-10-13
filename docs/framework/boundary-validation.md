@@ -7,7 +7,7 @@ not additional framework engines.
 | Area | Evidence | Boundary still open |
 | --- | --- | --- |
 | Reference test fixture (not a copyable app; an app template is still needed) | [PostgreSQL order feature](./composed-example.md): authenticated HTTP writes, commit-bound live hints, second-client query/editor refresh, two server processes, pg-boss commits, rollback silence and listener recovery | Browser networking, production auth, deployment proxies and durable delivery |
-| PostgreSQL codecs | [Codec guide](./postgres-codecs.md): precise decimals, native dates, JSON/JSONB, nulls, generated values and decoding failures | Time-zone and precision policy; broader driver types |
+| PostgreSQL codecs | [Codec guide](./postgres-codecs.md): precise decimals, `int8` as `bigint`, dates and UTC timestamps, unsupported JSON/JSONB, nulls, generated values and decoding failures | Sub-millisecond precision policy; broader driver types |
 | Constraint errors | [Known-constraint mapping](./constraint-errors.md): domain failure after rollback, unrelated errors preserved | Application-specific error names and UI text |
 | Migrations | [PostgreSQL guide](./postgres-migrations.md): upgrade, rerun, failed batch and concurrent runners on new and existing ledgers | Deployment timeouts and authoring conventions; every runner must use the same helper and ledger spelling |
 | Authentication | [BetterAuth bridge](./auth-boundary.md): actual issued cookies, expiry, revocation and principal isolation | Application storage/host adoption, browser cookies and mobile policy |

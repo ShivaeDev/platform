@@ -46,7 +46,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 			expect(saved.version).toBe(first.version + 2);
 			expect(yield* sql`select admission_order from ${sql(`${namespace}_records`)} where work_id = ${first.value.workId}`).toEqual([
 				{
-					"admission_order": "9007199254740995",
+					"admission_order": 9007199254740995n,
 				},
 			]);
 			expect((yield* store.load(first.value.workId))?.value.areas).toBeUndefined();
