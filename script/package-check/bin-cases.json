@@ -9,7 +9,8 @@
 			"my-app/pnpm-workspace.yaml": "packages: []"
 		},
 		"files": {},
-		"output": "pnpm dev"
+		"output": "pnpm dev",
+		"packedInstall": true
 	},
 	"effect-prisma-normalize": {
 		"args": ["raw-contract.d.ts"],
