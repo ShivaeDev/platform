@@ -24,11 +24,11 @@ const open = Effect.fn("Test.open")(function* () {
 	yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("live")));
 });
 
-it.live("reads SSR documents, stable item URLs, navigation, search and explicit history through native HTTP RPC", function* () {
+it.live("reads typed documents, stable item URLs, navigation, search and explicit history through native HTTP RPC", function* () {
 	yield* open();
-	const page = yield* Effect.promise(() => client.read(client.api.page.query({ url: "/_board/item/note/" })));
-	expect(page.html).toContain("Read this.");
-	expect(page.status).toBe(200);
+	const page = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/_board/item/note/" })));
+	expect(page.source).toContain("Read this.");
+
 	expect((yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "note.md" })))).tree.files).toEqual(
 		expect.arrayContaining([expect.objectContaining({ current: true, href: "/note.md" })]),
 	);
@@ -53,7 +53,7 @@ it.live("reads SSR documents, stable item URLs, navigation, search and explicit 
 
 it.live("retains unrelated mounted reads while reconciling dependent pages and navigation after source changes", function* () {
 	yield* open();
-	const atom = client.api.page.query({ url: "/note.md" });
+	const atom = client.api.board.query({ url: "/note.md" });
 	const release = client.registry.mount(atom);
 	const initial = yield* Effect.promise(() => client.read(atom));
 	const nav = client.api.navigation.query({ current: "note.md" });
@@ -71,7 +71,7 @@ it.live("retains unrelated mounted reads while reconciling dependent pages and n
 	yield* Effect.promise(() =>
 		waitFor(() => {
 			const read = client.registry.get(atom);
-			expect(read._tag === "Success" && read.value.html.includes("Changed note")).toBe(true);
+			expect(read._tag === "Success" && read.value.document.source.includes("Changed note")).toBe(true);
 		}),
 	);
 	release();
@@ -96,22 +96,40 @@ it.live("requires the RPC content type even with responses disabled", function* 
 
 it.live("interrupts an active native subscription when the HTTP server scope ends", function* () {
 	yield* open();
-	yield* Effect.promise(() => client.read(client.api.page.query({ url: "/note.md" })));
+	yield* Effect.promise(() => client.read(client.api.document.query({ url: "/note.md" })));
 	yield* board.stop();
 	yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("reconnecting")));
 });
 
-it.live("reads getting-started templates through the shared native page contract", function* () {
+it.live("reads getting-started templates through the typed native contract", function* () {
 	yield* open();
-	const page = yield* Effect.promise(() => client.read(client.api.page.query({ url: "/_board/start" })));
-	expect(page.status).toBe(200);
-	expect(page.html).toContain("Project and report templates");
-	expect(page.html).toContain('data-view="start"');
-	expect(page.html).toContain("example.result");
+	const page = yield* Effect.promise(() => client.read(client.api.start.query()));
+	expect(page.empty).toBe(false);
+	expect(page.templates.map((entry) => entry.source).join("\n")).toContain("example.result");
 });
 
 it.live("delivers the initial reconciliation hint through the bound Board subscription", function* () {
 	yield* open();
 	const hints = yield* Effect.promise(() => client.run(Stream.runCollect(client.api.subscribe.run(undefined).pipe(Stream.take(1)))));
 	expect(hints).toEqual([{ _tag: "Resync" }]);
+});
+
+it.live("updates getting-started guidance when the first Markdown file is added", function* () {
+	notes = folder({});
+	board = yield* startBoard(notes.root);
+	client = yield* Effect.acquireRelease(
+		Effect.sync(() => browserClient(board.url)),
+		(value) => Effect.sync(() => value.registry.dispose()),
+	);
+	const atom = client.api.start.query();
+	const release = client.registry.mount(atom);
+	expect((yield* Effect.promise(() => client.read(atom))).empty).toBe(true);
+	notes.write("first.md", "# First document");
+	yield* Effect.promise(() =>
+		waitFor(() => {
+			const read = client.registry.get(atom);
+			expect(read._tag === "Success" && !read.value.empty).toBe(true);
+		}),
+	);
+	release();
 });

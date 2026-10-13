@@ -1,11 +1,12 @@
-import { Effect, Equal, Schema } from "effect";
+import { Effect, Equal } from "effect";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
-import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { formOwner } from "#client/fieldFeedback.ts";
+import { restoreFocus } from "#client/formFocus.ts";
 import { copyPrompts, preparedPrompt } from "#client/handoffs/copy.ts";
 import { handoffFields } from "#client/handoffs/fields.ts";
+import { responseBinding, retainResponseBinding } from "#client/responses/binding.ts";
 import { session } from "#client/session.ts";
-import { PublicationUncertain, ResponseRejection } from "#rpc/rejections.ts";
+import { failureStatus } from "./failureStatus.ts";
 import { handoffForm } from "./form.ts";
 
 function attach() {
@@ -15,7 +16,11 @@ function attach() {
 	}
 	copyPrompts(doc);
 	const form = doc.querySelector<HTMLFormElement>("#handoff-form");
-	if (!form || form.dataset.bound === "true") {
+	if (!form) {
+		return;
+	}
+	const selection = responseBinding(form);
+	if (form.dataset.bound === "true") {
 		return;
 	}
 	const found = handoffFields(form);
@@ -35,6 +40,9 @@ function attach() {
 		status.textContent = "Draft ready. Review and preview before preparing the file.";
 	}
 	const owner = formOwner(form);
+	retainResponseBinding(form, owner.release);
+	submit.disabled = true;
+	preview.hidden = true;
 	const { model, restore, valid } = handoffForm(form, fields, owner, async (input) => {
 		const native = session(window);
 		const saved = await native.mutate(native.handoffs.prepareHandoff.run(input));
@@ -127,9 +135,7 @@ function attach() {
 		},
 		{ signal: owner.signal },
 	);
-}
-function failureStatus(error: unknown) {
-	return `${Schema.is(ResponseRejection)(error) && !(error instanceof PublicationUncertain) && !(error instanceof InternalServerError) ? "Rejected" : "Uncertain"}: ${String(error)}. Draft retained; preview and retry.`;
+	restoreFocus(form, selection);
 }
 export function setupHandoffs() {
 	document.addEventListener("board-page", attach);

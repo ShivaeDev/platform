@@ -1,8 +1,8 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
+import { CodexLimits, GithubLimits } from "#browser/diagnostics/schema.ts";
 import { FleetHealth } from "./health.ts";
-import { CodexLimits, GithubLimits } from "./source.ts";
 
 const Timestamp = Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(8_640_000_000_000_000));
 

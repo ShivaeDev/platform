@@ -1,6 +1,6 @@
 import type { Navigation } from "#browser/navigation/schema.ts";
 import { InboxCount } from "./Header.tsx";
-import type { MainLocation } from "./legacyPage.ts";
+import type { MainLocation } from "./mainLocation.ts";
 import { NavigationTree } from "./NavigationTree.tsx";
 import { shellIds } from "./shellIds.ts";
 

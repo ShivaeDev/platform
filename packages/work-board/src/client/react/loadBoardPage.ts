@@ -2,11 +2,13 @@ import type { LoaderFnContext } from "@tanstack/react-router";
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
-import { documentQuery, pageQuery } from "#client/page/routeQuery.ts";
+import { documentQuery } from "#client/page/routeQuery.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";
 import { loadProjection } from "./loadProjection.ts";
+import { loadRemaining } from "./loadRemaining.ts";
 import { projectionRoute } from "./projectionRoute.ts";
+import { remainingRoute } from "./remainingRoute.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 
@@ -40,7 +42,7 @@ export async function loadBoardPage({
 				}
 			}
 		}
-		await loadQuery(registry, pageQuery(api, url), { abortController });
+		await loadRemaining(registry, api, remainingRoute(location.pathname) ?? "start", url, abortController);
 		return undefined;
 	} catch (error) {
 		if (abortController.signal.aborted) {

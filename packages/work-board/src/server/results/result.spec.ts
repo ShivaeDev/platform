@@ -8,6 +8,7 @@ import type { DraftInput } from "#browser/responses/schema.ts";
 import { browserClient } from "#client/client.ts";
 import { revisionOf } from "#server/responses/records.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { renderRemaining } from "#test/remainingRendering.tsx";
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
 
 let notes: Folder;
@@ -26,7 +27,7 @@ const open = Effect.fn("Test.open")(function* () {
 });
 
 const html = Effect.fn("Test.html")(function* () {
-	return (yield* Effect.promise(() => client.run(client.api.page.run({ url: REVIEW_PATH })))).html;
+	return yield* Effect.promise(() => renderRemaining(board.url, REVIEW_PATH));
 });
 
 const record = Effect.fn("Test.record")(function* (id: string, choice: string, supersedes?: string) {
@@ -60,13 +61,12 @@ afterEach(() => {
 	notes?.remove();
 });
 
-it.live("reads finished result and in-review work separately through real HTTP and the native page contract", function* () {
+it.live("reads finished result and in-review work separately through real HTTP and the typed result contract", function* () {
 	yield* open();
 	const before = readdirSync(notes.root);
 	const page = yield* Effect.promise(() => fetch(board.url + REVIEW_PATH));
 	expect(page.status).toBe(200);
-	const body = yield* Effect.promise(() => page.text());
-	expect(body).toContain('data-view="result"');
+	const body = yield* html();
 	expect(body).toContain("Result status (source): <b>finished</b>");
 	expect(body).toContain("source status: in-review");
 	expect(body).toContain("No recorded evidence in this result naming this criterion");
@@ -148,8 +148,19 @@ it.live("keeps malformed or ambiguous feedback unknown rather than claiming no a
 it.live("rejects ambiguous result identities and non-result work rather than guessing a reviewed item", function* () {
 	yield* open();
 	notes.write("items/duplicate.md", reviewResult("Duplicate"));
-	yield* Effect.promise(async () => expect.poll(async () => (await fetch(board.url + REVIEW_PATH)).status).toBe(409));
-	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/result?item=work.keyboard`))).status).toBe(409);
+	yield* Effect.promise(() =>
+		expect
+			.poll(() =>
+				client.run(client.api.result.run({ url: REVIEW_PATH })).then(
+					() => "readable",
+					(error: unknown) => String(error),
+				),
+			)
+			.toContain("Conflict"),
+	);
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.result.run({ url: "/_board/result?item=work.keyboard" }))).rejects.toMatchObject({ _tag: "Conflict" }),
+	);
 });
 
 it.live("uses safe rich report rendering and never promotes source markup to response controls", function* () {

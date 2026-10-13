@@ -60,10 +60,11 @@ const query = async (action) => {
  if (action !== "observe") native.registry.refresh(atom);
  const result = action === "observe" ? await native.run(native.api.history.run(payload), controller.signal) : await native.read(atom, controller.signal);
  if (mine !== generation) return null;
- if (result.discardBaseline && baseline() === raw) { forget(); unavailableHtml = result.html; }
+ if (result.discardBaseline && baseline() === raw) { forget(); unavailableHtml = result.html; document.documentElement.dataset.historyNotice = result.reason; }
  return result;
 };
 const refresh = async (manual = false) => {
+ if (document.getElementById("doc")?.dataset.projection === "changes") return;
  if (observing !== null) return;
  const paused = session(window).registry.get(session(window).updates.paused) && manual !== true;
  const visible = document.getElementById("doc")?.dataset.view === "changes" && !paused;
@@ -83,6 +84,7 @@ const refresh = async (manual = false) => {
  }
 };
 document.addEventListener("click", async (event) => {
+ if (document.getElementById("doc")?.dataset.projection === "changes") return;
  if (event.target.closest?.("#history-clear")) {
   observing = null;
   ++generation;

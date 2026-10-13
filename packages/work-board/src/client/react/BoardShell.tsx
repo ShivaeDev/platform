@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import { BoardMain } from "./BoardMain.tsx";
 import { Header } from "./Header.tsx";
-import { legacyPage, type MainLocation } from "./legacyPage.ts";
+import { bootstrapPage, type MainLocation } from "./mainLocation.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -16,11 +16,11 @@ export interface ShellOptions {
 export function BoardShell({ api, initial, ready }: ShellOptions) {
 	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
-		const doc = legacyPage(initial).getElementById("doc");
+		const doc = bootstrapPage(initial).getElementById("doc");
 		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };
 	});
 	const [bootstrapHome] = useState(() => {
-		const doc = legacyPage(initial).getElementById("doc");
+		const doc = bootstrapPage(initial).getElementById("doc");
 		return doc?.classList.contains("board-view") ? { file: doc.dataset.file ?? "", identity: doc.dataset.identity } : undefined;
 	});
 	const query = useQuery(api.navigation.query({ current: main.view ? "" : main.file }), { keepPreviousData: true });
@@ -64,13 +64,7 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 				<div className="sidebar-backdrop" hidden id={shellIds.sidebarBackdrop} />
 				<div className="page">
 					<Header count={data?.inboxCount ?? null} main={main} />
-					<BoardMain
-						api={api}
-						home={data ? data.home : bootstrapHome}
-						initial={initial}
-						onPage={onPage}
-						url={location.pathname + location.searchStr}
-					/>
+					<BoardMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
 				</div>
 			</div>
 			{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

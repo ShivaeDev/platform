@@ -78,3 +78,23 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+.history-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	align-items: center;
+}
+.history-change {
+	padding: 1rem 0;
+	border-top: 1px solid var(--border);
+}
+.history-source {
+	max-height: 32rem;
+	overflow: auto;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+.history h2 {
+	overflow-wrap: anywhere;
+}

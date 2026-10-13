@@ -2,9 +2,10 @@ import { Clock, Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { codexResponse, githubResponse, health } from "#test/diagnostics.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
+import { renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -31,25 +32,24 @@ it.live("reads health, rate limits and each waiting owner through HTTP RPC, igno
 	const now = yield* Clock.currentTimeMillis;
 	daemon = yield* diagnosticsDaemon(() => snapshot(now));
 	yield* open();
-	const page = yield* rawGet(board, "/_board/diagnostics");
-	expect(page.status).toBe(200);
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
 	for (const text of ["24% used", "4321 / 5000", "3 / 8", "Current snapshot"]) {
-		expect(page.body).toContain(text);
+		expect(body).toContain(text);
 	}
 	for (const [owner, count] of Object.entries(health.waiting)) {
-		expect(page.body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
+		expect(body).toContain(`<dt>Waiting on ${owner}</dt><dd><strong>${count}</strong>`);
 	}
-	expect(page.body).not.toContain("99 / 8");
+	expect(body).not.toContain("99 / 8");
 });
 
 it.live("discloses stale daemon data with its original observation time over HTTP", function* () {
 	const old = (yield* Clock.currentTimeMillis) - 120_000;
 	daemon = yield* diagnosticsDaemon(() => snapshot(old));
 	yield* open();
-	const page = yield* rawGet(board, "/_board/diagnostics");
-	expect(page.body).toContain('data-source="fleet" data-state="stale"');
-	expect(page.body).toContain(`Observed <time datetime="${new Date(old).toISOString()}"`);
-	expect(page.body).toContain("Stale snapshot");
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
+	expect(body).toContain('data-source="fleet" data-state="stale"');
+	expect(body).toContain(`Observed <time dateTime="${new Date(old).toISOString()}"`);
+	expect(body).toContain("Stale snapshot");
 });
 
 it.live("shows a stopped daemon despite an existing health file and recovers on its next HTTP refresh", function* () {
@@ -58,15 +58,14 @@ it.live("shows a stopped daemon despite an existing health file and recovers on 
 	const port = daemon.port;
 	yield* daemon.stop();
 	yield* open();
-	const stopped = yield* rawGet(board, "/_board/diagnostics");
-	expect(stopped.status).toBe(200);
+	const stopped = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
 	for (const source of ["codex", "github", "fleet"]) {
-		expect(stopped.body).toContain(`data-source="${source}" data-state="error"`);
+		expect(stopped).toContain(`data-source="${source}" data-state="error"`);
 	}
-	expect(stopped.body).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
+	expect(stopped).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
 	const recoveredAt = yield* Clock.currentTimeMillis;
 	daemon = yield* diagnosticsDaemon(() => snapshot(recoveredAt), port);
-	expect((yield* rawGet(board, "/_board/diagnostics")).body).toContain("3 / 8");
+	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"))).toContain("3 / 8");
 });
 
 it.live("preserves independent source failures across RPC without hiding daemon health", function* () {
@@ -77,9 +76,9 @@ it.live("preserves independent source failures across RPC without hiding daemon 
 		github: { cause: "<script>upstream failed</script>", observedAt: value.github.observedAt, state: "error" },
 	}));
 	yield* open();
-	const page = yield* rawGet(board, "/_board/diagnostics");
-	expect(page.body).toContain('data-source="codex" data-state="not-configured"');
-	expect(page.body).toContain('data-source="github" data-state="error"');
-	expect(page.body).toContain("&lt;script&gt;upstream failed&lt;/script&gt;");
-	expect(page.body).toContain("3 / 8");
+	const body = yield* Effect.promise(() => renderRemaining(board.url, "/_board/diagnostics"));
+	expect(body).toContain('data-source="codex" data-state="not-configured"');
+	expect(body).toContain('data-source="github" data-state="error"');
+	expect(body).toContain("&lt;script&gt;upstream failed&lt;/script&gt;");
+	expect(body).toContain("3 / 8");
 });

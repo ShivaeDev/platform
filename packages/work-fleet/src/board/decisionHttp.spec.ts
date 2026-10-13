@@ -31,7 +31,11 @@ it.effect("opens an answerable linked Board decision over real HTTP and records 
 		expect(preview.reviewedRevision).toBe(revisionOf(readFileSync(join(root, receipt.sourcePath), "utf8")));
 		const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${receipt.itemId}&request=${receipt.request}`));
 		expect(page.status).toBe(200);
-		expect(yield* Effect.tryPromise(() => page.text())).toContain("fleet-action");
+		expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
+		const data = yield* Effect.tryPromise(() =>
+			client.run(client.api.respond.run({ url: `/_board/respond?item=${receipt.itemId}&request=${receipt.request}` })),
+		);
+		expect(data.request.prompts).toEqual(expect.arrayContaining([expect.objectContaining({ id: "fleet-action" })]));
 		const saved = yield* Effect.tryPromise(() =>
 			client.mutate(
 				client.responses.recordResponse.run({

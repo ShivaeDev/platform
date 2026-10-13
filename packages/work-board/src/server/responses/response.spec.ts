@@ -5,6 +5,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
+import { renderRemaining } from "#test/remainingRendering.tsx";
 import { outsideResponseDirectory } from "#test/responseFiles.ts";
 import { agentRequest } from "./agent.ts";
 import { questionFrom, questionMarkdown } from "./records.ts";
@@ -81,7 +82,9 @@ it.live("requires explicit write opt-in and rejects source forms at the HTTP bou
 	expect(forged.status).toBe(403);
 	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 	expect(page.headers.get("content-security-policy")).toContain("form-action 'none'");
-	expect(yield* Effect.promise(() => page.text())).toContain("Exact source being reviewed");
+	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/respond?item=investigation.model&request=review-model"))).toContain(
+		"Exact source being reviewed",
+	);
 });
 
 it.live("publishes one durable question and response, leaves original bytes unchanged, and reconciles repeated writes", function* () {
@@ -164,11 +167,11 @@ it.live("shows ambiguous recorded history as unavailable instead of falsely sayi
 	yield* open();
 	const question = yield* register();
 	notes.write("duplicate.md", readFileSync(join(notes.root, "responses", `${question.id}.md`), "utf8"));
-	const response = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
-	const html = yield* Effect.promise(() => response.text());
-	expect(response.status).toBe(409);
-	expect(html).toContain("response history is unknown");
-	expect(html).not.toContain("No response is recorded");
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow(
+			"response history is unknown",
+		),
+	);
 });
 
 it.live("does not interpret malformed recorded feedback as an unanswered human request", function* () {
@@ -205,7 +208,7 @@ it.live("treats syntactically damaged record files as unknown history while ordi
 	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
 	notes.write("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
 	yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
-	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
-	expect(page.status).toBe(409);
-	expect(yield* Effect.promise(() => page.text())).not.toContain("No response is recorded");
+	yield* Effect.promise(() =>
+		expect(client.run(client.api.respond.run({ url: "/_board/respond?item=investigation.model&request=review-model" }))).rejects.toThrow("malformed"),
+	);
 });

@@ -17,12 +17,15 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			const { decision, published, stopped } = yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 			expect(stopped.value.stage).toBe("needs-human");
 			expect(stopped.value.result).toBeUndefined();
-			const { url } = yield* boardHttp(fixture.host.boardDir);
+			const { client, url } = yield* boardHttp(fixture.host.boardDir);
 			const page = yield* Effect.tryPromise(() => fetch(`${url}/_board/respond?item=${published.itemId}&request=${published.request}`));
 			expect(page.status).toBe(200);
-			const html = yield* Effect.tryPromise(() => page.text());
-			expect(html).toContain("Which storage should I use?");
-			expect(html).not.toContain("fleet-action");
+			expect(yield* Effect.tryPromise(() => page.text())).toContain("/_board/react.js");
+			const data = yield* Effect.tryPromise(() =>
+				client.run(client.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
+			);
+			expect(data.document.source).toContain("Which storage should I use?");
+			expect(data.request.prompts?.map((prompt) => prompt.id) ?? []).not.toContain("fleet-action");
 			const overview = yield* Effect.tryPromise(() => fetch(`${url}/_board/overview`).then((response) => response.text()));
 			expect(overview).toContain(`data-attention-item="${published.itemId}" data-request="${published.request}"`);
 			expect(overview).toContain("one");

@@ -1,9 +1,8 @@
 import { Context, Effect, FileSystem, Layer, Option, Path, PubSub, Ref } from "effect";
-import { HttpServerRequest } from "effect/unstable/http";
+import { Diagnostics, DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
 import { readDocument } from "#server/document/read.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
-import { page } from "#server/http/page.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
@@ -17,6 +16,11 @@ export interface BoardFixtureOptions {
 	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
 	readonly home: string | undefined;
 }
+
+const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
+const missingDiagnostics = Diagnostics.layer.pipe(
+	Layer.provide(Layer.succeed(DiagnosticsConfig, { _tag: "Sources", sources: { codex: missing, fleet: missing, github: missing } })),
+);
 
 export function inMemoryBoard(files: Readonly<Record<string, string>>, configuration?: BoardFixtureOptions) {
 	return Layer.unwrap(
@@ -44,7 +48,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 			};
 			const options = { changes, enabled: false, index: Effect.succeed(snapshot), root: "/board" };
 			const services = yield* Layer.build(
-				Layer.merge(Responses.layer, HandoffsService.layer).pipe(Layer.provide(Layer.succeed(ResponseConfig, options))),
+				Layer.mergeAll(Responses.layer, HandoffsService.layer, missingDiagnostics).pipe(Layer.provide(Layer.succeed(ResponseConfig, options))),
 			);
 			const context = Context.merge(yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>(), services);
 			return yield* handlers({
@@ -55,11 +59,6 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						Effect.provideContext(context),
 					),
 				home,
-				page: (url) =>
-					Effect.suspend(() => configuration?.beforeRead?.("page", url) ?? Effect.void).pipe(
-						Effect.andThen(page({ home, root: "/board" }, changes, options.index)(HttpServerRequest.fromWeb(new Request(`http://127.0.0.1${url}`)))),
-						Effect.provideContext(context),
-					),
 			}).pipe(Effect.provideContext(context));
 		}),
 	).pipe(

@@ -1,6 +1,6 @@
+import { activeQueryScript } from "./activeQueryScript.ts";
 import { itemContextScript } from "./itemContextScript.ts";
 import { preferencesScript } from "./preferencesScript.ts";
-import { routeQueryOptions } from "./routeQuery.ts";
 
 export const client = `
 import "/_board/diagnostics.js";
@@ -19,6 +19,7 @@ import { resolvedDocumentFailure, session } from "/_board/native.js";
 
 document.documentElement.dataset.js = "true";
 ${itemContextScript()}
+${activeQueryScript()}
 remember(document.getElementById("doc"));
 let native = session(window);
 const live = document.getElementById("live");
@@ -62,21 +63,19 @@ const watchPage = () => {
   watchNavigation();
   const doc = document.getElementById("doc");
   const path = location.pathname + location.search;
-  const kind = doc.dataset.projection || (doc.hasAttribute("data-react-document") ? "document" : "page");
-  const selection = path + ":" + kind;
+  const kind = doc.dataset.projection || "document";
+  const selection = path + ":" + kind + ":" + (doc.querySelector("[data-baseline]")?.dataset.baseline || "");
   if (selection === active) return;
   active = selection;
   releasePage?.();
   pageFailure = "";
-  const atom = native.api[kind].query(kind === "overview" || kind === "inbox" ? undefined : { url: path }, ${JSON.stringify(routeQueryOptions)});
+  const atom = activeQuery(native, doc, path);
   releasePage = native.registry.subscribe(atom, (value) => {
     pageWaiting = value.waiting || value._tag === "Initial";
     if (value._tag === "Failure") pageFailure = resolvedDocumentFailure(value.cause) ? "" : "refresh failed";
     if (value._tag === "Success" && !value.waiting && active === selection && path === location.pathname + location.search) {
       if (document.querySelector("[data-board-react-root]")) { pageFailure = ""; show(); return; }
-      const next = new DOMParser().parseFromString(value.value.html, "text/html");
-      pageFailure = applyPage(next, true) ? "" : "refresh failed";
-      tick();
+
     }
     show();
   }, { immediate: true });

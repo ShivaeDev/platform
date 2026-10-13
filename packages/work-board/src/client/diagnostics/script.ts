@@ -15,7 +15,7 @@ document.addEventListener("board-page", localizeResets);
 const refresh = () => {
   if (location.pathname !== "/_board/diagnostics" || document.visibilityState === "hidden") return;
   const native = session(window);
-  const page = native.api.page.query({ url: location.pathname + location.search }, ${JSON.stringify(routeQueryOptions)});
+  const page = native.api.diagnostics.query(undefined, ${JSON.stringify(routeQueryOptions)});
   if (!native.registry.get(native.updates.paused) && !native.registry.get(page).waiting) native.registry.refresh(page);
 };
 let timer = setInterval(refresh, 15000);
