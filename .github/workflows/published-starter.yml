@@ -54,7 +54,7 @@ jobs:
                 echo "::error::npm answered $status for $name"
                 exit 1
               fi
-            done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' examples/starter/published-versions.json)
+            done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' examples/starter/published-versions.json; jq -r '"\(.name)\t\(.version)"' packages/create-app/package.json)
           }
           find_missing
           # npm accepts a publish before its cached package documents list the new version, so the run after a publish waits for them.
@@ -104,9 +104,9 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Check the create-app version that just published
-        if: github.event_name == 'workflow_run'
-        # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release.
+      - name: Check this commit's create-app version
+        if: github.event_name == 'workflow_run' || github.event_name == 'pull_request'
+        # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release, so a publish or a change to this check generates from the create-app version the pins job found on npm.
         run: echo "CREATE_APP_VERSION=$(jq -r .version packages/create-app/package.json)" >> "$GITHUB_ENV"
       - name: Generate an app from npm and check published APIs and PostgreSQL behavior
         run: pnpm --filter @shivaedev/starter check:published --registry --create-app-version "$CREATE_APP_VERSION"
