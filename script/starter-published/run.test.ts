@@ -32,7 +32,7 @@ it("runs the generated app's quality lint without flags before its build and run
 			["exec", "quality", "lint"],
 			["run", "typecheck"],
 			["run", "build"],
-			["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts"],
+			["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts", "src/server/notesMigration.spec.ts"],
 		],
 	);
 	for (const command of check.commands) {

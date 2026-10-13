@@ -16,9 +16,11 @@ The maintainer authorizes releases. In the release pull request:
 
 1. Bump `packages/<package>/package.json` to the approved version.
 2. Run `pnpm run changelog:release <package>` from the repository root, for example `pnpm run changelog:release effect-sql`.
-3. Review and commit the generated `CHANGELOG.md` and the deleted fragment files with the version bump.
+3. Review and commit the generated `CHANGELOG.md`, `release.json` and the deleted fragment files with the version bump.
 4. Run `pnpm ready`, then open the pull request for human review.
 
 The collector uses the package's version and the current UTC date. It prepends that version's notes in Added, Changed, Fixed, Breaking order, with fragments sorted by filename inside each section, and preserves released history. It deletes the collected Markdown fragments. An empty fragment set leaves the changelog unchanged; a version that already has notes cannot collect more entries.
+
+`release.json` records the current release's version, date and collected fragment inputs. The validator reproduces the changelog from those inputs and requires every pending fragment from the base revision to be included unchanged. This also permits adding and releasing a change in one pull request: the manifest survives squash merges, so publishing can validate the same inputs without intermediate branch commits. It changes only with a release and is not included in the published packages.
 
 `pnpm run changelog:check [base-ref]` validates pending fragments and the diff against the base (by default `origin/main`, falling back to a local `main`; when neither exists it fails and names `git fetch origin main`). It rejects direct changelog edits without a version bump, uncollected release entries, retained collected fragments and edits to released history. Lint and the commit hook run this check. Pull request CI uses the PR base revision and the merge queue its base revision; publishing validates the collected notes against the revision before the push with `pnpm run changelog:release --check` and `CHANGELOG_BASE_REF` before publishing versions not yet on npm.

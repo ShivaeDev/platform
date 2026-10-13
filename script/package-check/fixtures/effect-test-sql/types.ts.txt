@@ -1,10 +1,20 @@
-import { Effect, Redacted, Scope } from "effect"
+import { Effect, Redacted, Schema, Scope } from "effect"
 import { Migrator, SqlClient } from "effect/unstable/sql"
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts"
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/database.ts"
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts"
 import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts"
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts"
+import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts"
+import { assertModelColumns, ModelColumnMismatch } from "@shivaedev/effect-test-sql/assertModelColumns.ts"
+import { Model } from "effect/unstable/schema"
+
+class Item extends Model.Class<Item>("Item")({ id: Model.GeneratedByDb(Schema.Number), name: Schema.String }) {}
+const upgrade = migrationUpgrade({ migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" }, upTo: 1, table: "items" })
+const check = Effect.flatMap(upgrade, columns => assertModelColumns(columns, Item, { id: "integer", name: "text" }))
+const failure: ModelColumnMismatch = new ModelColumnMismatch({ problems: ["Missing column: name"] })
+void check
+void failure
 
 const layer = makePostgresTestLayer({
   url: Redacted.make("postgresql://packed-consumer"),

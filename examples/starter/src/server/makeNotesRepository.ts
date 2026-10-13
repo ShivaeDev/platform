@@ -3,7 +3,7 @@ import { Model } from "effect/unstable/schema";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { Note } from "#notes.ts";
 
-class StoredNote extends Model.Class<StoredNote>("StoredNote")({
+export class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	ownerId: Schema.NullOr(Schema.String),
 	title: Note.fields.title,

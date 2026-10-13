@@ -31,3 +31,10 @@ export const { effectApp } = makeEffectIt({
 			return { baseUrl, context, url: `${baseUrl}/rpc` };
 		}),
 });
+
+export const { effectApp: effectMigration } = makeEffectIt({
+	around: withIsolatedDatabase,
+	clock: "live",
+	layer,
+	makeHarness: () => Effect.void,
+});

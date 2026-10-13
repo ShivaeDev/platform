@@ -92,6 +92,32 @@ The clone starts from the template, including the original fixtures, even if the
 
 Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to acquire additional native PostgreSQL connections in the block's scope. Native SQL services are replaced in the block's Context; application services acquired earlier retain the client they captured. Build application service Layers inside the isolated block when they acquire SQL clients; use `Layer.fresh` when reusing a Layer definition already acquired by the worker. Keep servers and background fibers in that scope so they finish before the database is dropped. Separate databases isolate database contents; external services and server capacity need separate planning.
 
+### Check upgrades against the current model
+
+A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once, commits migrations through the existing `upTo` id, then applies the remaining migrations through `migratePostgres`. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
+
+```ts
+import { assertModelColumns } from "@shivaedev/effect-test-sql/assertModelColumns.ts";
+import { migrationUpgrade } from "@shivaedev/effect-test-sql/migrationUpgrade.ts";
+
+const columns = yield* migrationUpgrade({
+  migrations: appMigrations,
+  upTo: 1,
+  table: "items",
+});
+yield* assertModelColumns(columns, Item, {
+  id: "integer",
+  name: "text",
+  price: "numeric(10,2)",
+});
+```
+
+Use an empty loader when preparing the test Layer, and `withIsolatedDatabase` for the upgrade test. The helper requires the native `SqlClient`; loader dependencies remain Effect requirements. Unknown starting ids, populated ledgers and wrapping transactions fail with `MigrationError`. Native loader and SQL failures retain their failure channel.
+
+The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
+
+The starter's notes migration test uses this path with its repository model, so applications generated with `pnpm create @shivaedev/app` include an upgrade check.
+
 ### API
 
 Import each name from the module that defines it. The package has no root entry.
@@ -102,6 +128,8 @@ Import each name from the module that defines it. The package has no root entry.
 | `@shivaedev/effect-test-sql/withTestTransaction.ts` | `withTestTransaction(effect)` |
 | `@shivaedev/effect-test-sql/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect)` |
 | `@shivaedev/effect-test-sql/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices` |
+| `@shivaedev/effect-test-sql/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
+| `@shivaedev/effect-test-sql/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
 
 `url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url` and a scoped `isolated` Effect that acquires another clone's service Context. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures are defects rather than successful cleanup.
 
