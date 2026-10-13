@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
 import { formDraft } from "#client/formDraft.ts";
 import { session } from "#client/session.ts";
-import { answerDraft, answerInput, answerPreview, responseClick } from "#test/answerDraft.tsx";
+import { answerDraft, answerInput, answerPreview, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -24,7 +24,7 @@ function draftKey() {
 	if (!(form instanceof HTMLFormElement)) {
 		throw new Error("Missing form");
 	}
-	return formDraft(form, "response").key;
+	return formDraft("response", form.dataset.item ?? "", form.dataset.request).key;
 }
 function editAnswer() {
 	answerInput("author", "reviewer");
@@ -32,7 +32,6 @@ function editAnswer() {
 }
 async function unmount(view: Awaited<ReturnType<typeof render>>) {
 	await view.unmount();
-	document.dispatchEvent(new Event("board-page"));
 }
 it("restores an answer after the React tree and its registries are recreated", async () => {
 	const first = await render(answerDraft());
@@ -69,6 +68,7 @@ it("retains an answer and requires a fresh preview when its source revision chan
 		expect(draftKey()).toBe(key);
 		expect(answerInput("body").value).toBe("Direction in progress");
 		expect(document.getElementById("response-status")?.textContent).toContain("Source changed");
+		expect(document.getElementById("response-status")?.textContent).not.toContain("Preview ready");
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
 		responseClick("preview");
 		expect(document.getElementById("response-preview-content")?.textContent).toContain("b".repeat(64));
@@ -109,6 +109,43 @@ it("clears only the current request draft", async () => {
 		expect(answerInput("body").value).toBe("");
 		expect(window.localStorage.getItem(second)).toBeNull();
 		expect(window.localStorage.getItem(first)).toContain("Direction in progress");
+	} finally {
+		await unmount(view);
+	}
+});
+
+it("retains the body and caret while a refreshed request gains or loses questionnaire prompts", async () => {
+	const view = await render(answerDraft());
+	try {
+		editAnswer();
+		const body = answerInput("body");
+		act(() => {
+			body.focus();
+			body.setSelectionRange(4, 9, "backward");
+		});
+		const revised = { ...answerPreview, id: "question.revised", reviewedRevision: "b".repeat(64) };
+		await view.render(answerDraft(revised, 0, [{ id: "direction", mode: "text", options: [], source: "Which direction?" }]));
+		expect(answerInput("body").value).toBe("Direction in progress");
+		expect(document.activeElement).toBe(answerInput("body"));
+		expect([answerInput("body").selectionStart, answerInput("body").selectionEnd]).toEqual([4, 9]);
+		answerInput("body", "");
+		answerPrompt("direction", "Use the local direction");
+		responseClick("preview");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
+		await view.render(answerDraft(answerPreview));
+		responseClick("preview");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+		answerInput("body", "A complete response");
+		responseClick("preview");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
+		act(() => {
+			answerInput("body").focus();
+			answerInput("body").setSelectionRange(3, 7, "backward");
+		});
+		await view.render(answerDraft(answerPreview, 1));
+		expect(answerInput("body").value).toBe("A complete response");
+		expect(document.activeElement).toBe(answerInput("body"));
+		expect([answerInput("body").selectionStart, answerInput("body").selectionEnd]).toEqual([3, 7]);
 	} finally {
 		await unmount(view);
 	}

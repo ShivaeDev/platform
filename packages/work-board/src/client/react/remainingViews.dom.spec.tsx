@@ -77,8 +77,10 @@ it.live("updates Respond context while retaining answer text, node and caret", f
 		if (!body) {
 			throw new Error("Missing answer textarea");
 		}
-		body.value = "Keep my response";
-		body.dispatchEvent(new Event("input", { bubbles: true }));
+		act(() => {
+			body.value = "Keep my response";
+			body.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 		body.focus();
 		body.setSelectionRange(5, 7);
 		sources["task.md"] += "\nChanged reviewed context.\n";

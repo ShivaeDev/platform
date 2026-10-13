@@ -4,6 +4,7 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { enterField } from "#test/enterField.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 
@@ -39,32 +40,34 @@ it.live("names missing prompts and author beside their controls and clears each 
 	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
 	const display = answer("display", "Retain the complete history.");
 	const checks = answer("checks", "Test reload and keyboard use.");
-	preview();
+	yield* formEvent(page, () => preview());
 	expect(status?.textContent).toContain("Add your local author label.");
 	expect(page.document.querySelector('[name="author"] + .response-field-error')?.textContent).toBe("Add your local author label.");
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
-	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	expect(display.value).toBe("Retain the complete history.");
 	expect(checks.value).toBe("Test reload and keyboard use.");
 	expect(page.document.activeElement).toBe(page.document.querySelector('[name="author"]'));
-	enterField(page, "author", "reviewer");
+	yield* formEvent(page, () => enterField(page, "author", "reviewer"));
 	expect(status?.textContent).not.toContain("Add your local author");
-	answer("checks", "");
-	preview();
+	yield* formEvent(page, () => answer("checks", ""));
+	yield* formEvent(page, () => preview());
 	expect(status?.textContent).toContain("Unanswered prompts: Question 2 · checks.");
 	expect(status?.textContent).not.toContain("Question 1 · display");
 	expect(page.document.querySelector('[data-prompt="checks"] .response-field-error')?.textContent).toContain("Unanswered: Question 2 · checks");
-	answer("checks", "Test reload and keyboard use.");
+	yield* formEvent(page, () => answer("checks", "Test reload and keyboard use."));
 	expect(status?.textContent).not.toContain("Unanswered");
-	preview();
+	yield* formEvent(page, () => preview());
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 });
 it.live("keeps pasted text, focus and cursor through a source update and restores the whole draft and author after reload", function* () {
 	yield* open();
-	enterField(page, "author", "reviewer");
-	enterField(page, "body", "Overall conditions");
+	yield* formEvent(page, () => enterField(page, "author", "reviewer"));
+	yield* formEvent(page, () => enterField(page, "body", "Overall conditions"));
 	const display = answer("display", "Pasted multiline\nanswer");
-	answer("checks", "Keyboard checks");
+	yield* formEvent(page, () => answer("checks", "Keyboard checks"));
 	display.focus();
 	display.setSelectionRange(7, 16, "backward");
 	notes.write("proposal.md", `${questionnaireSource}\nNew context.\n`);
@@ -75,7 +78,7 @@ it.live("keeps pasted text, focus and cursor through a source update and restore
 	expect(restored).toHaveProperty("selectionStart", 7);
 	expect(restored).toHaveProperty("selectionEnd", 16);
 	expect(restored).toHaveProperty("selectionDirection", "backward");
-	answer("display", "Pasted multiline\nanswer continued");
+	yield* formEvent(page, () => answer("display", "Pasted multiline\nanswer continued"));
 	const storage = page.window.localStorage;
 	const saved = Array.from({ length: storage.length }, (_, index) => {
 		const key = storage.key(index) ?? "";
@@ -92,8 +95,10 @@ it.live("keeps pasted text, focus and cursor through a source update and restore
 	expect(page.document.querySelector('[data-prompt="checks"] textarea')).toHaveProperty("value", "Keyboard checks");
 	expect(page.document.querySelector('[name="body"]')).toHaveProperty("value", "Overall conditions");
 	expect(page.document.querySelector('[name="author"]')).toHaveProperty("value", "reviewer");
-	preview();
-	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () => preview());
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Saved:")));
 	const authorKey = saved.find(([key]) => key.startsWith("work-board:author:"));
 	yield* Effect.promise(() => page.close());
@@ -108,12 +113,12 @@ it.live("keeps pasted text, focus and cursor through a source update and restore
 });
 it.live("rebinds a cached page without duplicate error labels or stale warnings", function* () {
 	yield* open();
-	answer("display", "Keep history.");
-	preview();
-	page.window.dispatchEvent(new page.window.Event("pagehide"));
-	page.window.dispatchEvent(Object.assign(new page.window.Event("pageshow"), { persisted: true }));
-	enterField(page, "author", "reviewer");
-	answer("checks", "Keyboard checks.");
+	yield* formEvent(page, () => answer("display", "Keep history."));
+	yield* formEvent(page, () => preview());
+	yield* formEvent(page, () => page.window.dispatchEvent(new page.window.Event("pagehide")));
+	yield* formEvent(page, () => page.window.dispatchEvent(Object.assign(new page.window.Event("pageshow"), { persisted: true })));
+	yield* formEvent(page, () => enterField(page, "author", "reviewer"));
+	yield* formEvent(page, () => answer("checks", "Keyboard checks."));
 	expect(page.document.querySelectorAll(".response-field-error:not([hidden])")).toHaveLength(0);
 	const messages = [...page.document.querySelectorAll(".response-field-error")];
 	expect(new Set(messages.map((message) => message.id)).size).toBe(messages.length);
