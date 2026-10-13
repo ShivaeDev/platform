@@ -45,7 +45,13 @@ it("packages the real starter with registry dependencies, standalone configurati
 	}
 	expect(files["pnpm-workspace.yaml"]).toBe(readFileSync(join(starter, "pnpm-workspace.copy.yaml"), "utf8"));
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
-	for (const path of [".env.example", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts", "src/notes.ts"]) {
+	for (const path of [
+		".env.example",
+		"src/server/starterHost.test.ts",
+		"src/server/committedJobs.spec.ts",
+		"src/server/notesMigration.spec.ts",
+		"src/notes.ts",
+	]) {
 		expect(files[path]).toBe(readFileSync(join(starter, path), "utf8"));
 	}
 });

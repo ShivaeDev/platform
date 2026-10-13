@@ -116,7 +116,7 @@ Use an empty loader when preparing the test Layer, and `withIsolatedDatabase` fo
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
-The starter's notes migration test uses this path with its repository model, so copied starter applications include an upgrade check.
+The starter's notes migration test uses this path with its repository model, so applications generated with `pnpm create @shivaedev/app` include an upgrade check.
 
 ### API
 
