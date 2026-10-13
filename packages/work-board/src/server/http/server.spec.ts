@@ -208,6 +208,7 @@ describe("local-only safety", () => {
 		expect(response.headers.get("content-security-policy")).toContain("script-src 'self' 'wasm-unsafe-eval';");
 		expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
 		expect(response.headers.get("cache-control")).toBe("no-store");
+		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 	});
 });
 

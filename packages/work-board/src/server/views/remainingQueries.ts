@@ -6,10 +6,10 @@ import { identityUrl } from "#server/metadata/links.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
 import type { Responses } from "#server/responses/service.ts";
-import type { ServerOptions } from "#server/rpc/transport.ts";
+import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import { resultProjection } from "./resultProjection.ts";
 export function remainingQueries(
-	{ changes, document, index, writable }: ServerOptions,
+	{ changes, document, index, writable }: HandlerOptions,
 	services: {
 		readonly diagnostics: typeof Diagnostics.Service;
 		readonly responses: typeof Responses.Service;

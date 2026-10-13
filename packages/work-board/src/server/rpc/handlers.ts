@@ -12,14 +12,14 @@ import { Responses } from "#server/responses/service.ts";
 import { searchMatch } from "#server/search/match.ts";
 import { projectionQueries } from "#server/views/projectionQueries.ts";
 import { remainingQueries } from "#server/views/remainingQueries.ts";
+import type { HandlerOptions } from "./HandlerOptions.ts";
 import { hints } from "./hints.ts";
-import type { ServerOptions } from "./transport.ts";
 
 const readBoundary = rpcBoundary(InternalServerError, { unexpected: (message) => new InternalServerError({ message }) });
 const documentBoundary = rpcBoundary(DocumentRejection, { unexpected: (message) => new InternalServerError({ message }) });
 const responseBoundary = rpcBoundary(ResponseRejection, { unexpected: (message) => new InternalServerError({ message }) });
 
-export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: ServerOptions) {
+export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: HandlerOptions) {
 	const { changes, document, home, index } = options;
 	const projections = projectionQueries({ document, index });
 	const handoffs = yield* HandoffsService;

@@ -291,7 +291,7 @@ Import the module that defines a name. The package has no root entry; its manife
 | Module | Names and purpose |
 | --- | --- |
 | `board.ts` | `BoardOptions`, `boardLayer(options)`: Effect HTTP router Layer for the workspace |
-| `serve.ts` | `ServeOptions`, `HOST`, `listenOn(port)`, `serveBoard(options)`: Node loopback serving Layers |
+| `serve.ts` | `ServeOptions`, `HOST`, `serveBoard(options)`: loopback Board serving through Platform’s `appHost` |
 | `responses/agent.ts` | `AgentOptions`, `agentRequest(action, options, diagnostic?)`: Effect client for `question`, `response` or `wait` |
 | `browser/client.ts` | `Reader`, `BrowserClient`, `browserClient(url, options?)`: native reading, response and handoff bindings, registry and live updates |
 | `rpc/contract.ts` | `workContract`, `Subscribe`, `workRpcs`: reading queries and combined native RPC group |

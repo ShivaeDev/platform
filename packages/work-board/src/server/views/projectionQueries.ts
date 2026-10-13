@@ -6,12 +6,12 @@ import { inboxItems } from "#server/attention/inbox.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
 import { boardOf, countsOf } from "#server/render/board.ts";
-import type { ServerOptions } from "#server/rpc/transport.ts";
+import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import type { Item } from "./items.ts";
 import { projectItems } from "./projection.ts";
 
-export function projectionQueries({ index, document }: { readonly index: ServerOptions["index"]; readonly document: ServerOptions["document"] }) {
+export function projectionQueries({ index, document }: { readonly index: HandlerOptions["index"]; readonly document: HandlerOptions["document"] }) {
 	function read(url: string) {
 		return document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." }));
 	}

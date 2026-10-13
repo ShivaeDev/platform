@@ -14,7 +14,7 @@ export interface HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, TH
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
-	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter>;
+	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	readonly rpcPath?: HttpRouter.PathInput;
 	readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements>;
 }

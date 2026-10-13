@@ -1,5 +1,5 @@
 import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
-import { Headers } from "effect/unstable/http";
+import { Headers, HttpRouter } from "effect/unstable/http";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Migrator, SqlClient } from "effect/unstable/sql";
 import { expectTypeOf, it } from "vitest";
@@ -31,9 +31,17 @@ const typedOptions: AppHostOptions<
 	never,
 	{ readonly user: { readonly id: string } }
 > = { ...options, services: Layer.empty };
+const failingRouteHost = appHost({
+	group: Api,
+	handlers: Api.toLayer({ read: () => Effect.succeed("ready") }),
+	policy: "loopback",
+	routes: HttpRouter.add("GET", "/failed", Effect.fail(new BuildFailure())),
+	services: Layer.empty,
+});
 const typedHost = appHost(typedOptions);
 const providerSession = typedOptions.sessions.provider.get(Headers.empty);
 it("host composition preserves application requirements and build failures", () => {
+	expectTypeOf<Layer.Services<typeof failingRouteHost>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Services<typeof incomplete>>().toEqualTypeOf<Required>();
 	expectTypeOf<Layer.Services<typeof complete>>().toEqualTypeOf<never>();
 	expectTypeOf<Extract<Layer.Error<typeof complete>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
