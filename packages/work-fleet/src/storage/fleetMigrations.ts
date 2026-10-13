@@ -28,6 +28,12 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				where payload->>'attentionOwner' is null and
 					(payload->>'stage' = 'needs-human' or payload->>'blocker' is not null or payload->'launchRetry' is not null or
 					(payload->>'stage' = 'validating' and payload->'checks'->>'pending' = 'true'))`,
-		...(legacyOnly ? {} : { "5_model_tables": modelTables(namespace, schema), "6_decision_codes": backfillDecisionCodes(namespace) }),
+		...(legacyOnly
+			? {}
+			: {
+					"5_model_tables": modelTables(namespace, schema),
+					"6_decision_codes": backfillDecisionCodes(namespace),
+					"7_release_reason": sql`alter table ${sql(`${namespace}_records`)} add column if not exists "releaseReason" text`,
+				}),
 	});
 });
