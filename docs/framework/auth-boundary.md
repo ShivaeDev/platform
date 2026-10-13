@@ -4,11 +4,14 @@ The native RPC stack can keep an application's existing authentication provider.
 
 The executable example is [nativeRpcAuth.spec.ts](../../packages/platform/src/nativeRpcAuth.spec.ts). It uses real BetterAuth, its signed session cookies, its own migrations and an ephemeral SQLite database through BetterAuth's supported Node SQLite configuration. It adds no Platform auth adapter or storage implementation. BetterAuth's internals may use their own SQL tooling; the application-facing framework does not expose or adopt that tooling.
 
-Platform now ships this boundary as reusable middleware: `authenticatedLayer`,
-`maybeAuthenticatedLayer` from `@shivaedev/platform/rpc-server/session.ts` and
-`betterAuthSessions` from `@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts`, with the shared error classes. See
-[errors and request context](./request-context.md). The test described here is
-still the minimal example, written without those helpers.
+Platform provides reusable middleware for this boundary:
+
+```ts
+import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/platform/rpc-server/session.ts";
+import { betterAuthSessions } from "@shivaedev/platform/rpc-server/adapters/better-auth-sessions.ts";
+```
+
+Use these with the shared error classes described in [errors and request context](./request-context.md). The test described here is the minimal example, written without those helpers.
 
 ## Request flow
 
