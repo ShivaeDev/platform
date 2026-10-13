@@ -1,9 +1,8 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Exit, FileSystem, Layer, Logger, Scope } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
-import { boardLayer } from "#server/board.ts";
-import { listenOn } from "#server/serve.ts";
+import { HttpServer } from "effect/unstable/http";
+import { serveBoard } from "#server/serve.ts";
 
 export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string, assets: readonly string[]) {
 	const logged: Array<{ readonly level: string; readonly message: unknown }> = [];
@@ -19,12 +18,9 @@ export const bundleBoard = Effect.fn("Test.bundleBoard")(function* (root: string
 			readFile: (path) => fs.readFile(local(path)),
 		})),
 	).pipe(Layer.provide(NodeServices.layer));
-	const board = boardLayer({ root }).pipe(Layer.provide(fileSystem));
+	const board = serveBoard({ port: 0, root }).pipe(Layer.provide(Layer.merge(NodeServices.layer, fileSystem)));
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const context = yield* Layer.buildWithScope(
-		HttpRouter.serve(board, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(0)), Layer.provide(Logger.layer([logger]))),
-		scope,
-	);
+	const context = yield* Layer.buildWithScope(board.pipe(Layer.provide(Logger.layer([logger]))), scope);
 	const server = Context.get(context, HttpServer.HttpServer);
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("the board did not listen on TCP");

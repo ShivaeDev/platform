@@ -36,7 +36,7 @@ export function checkConsumers(
 			yield* Console.log(`Checking packed ${pkg.manifest.name}`);
 			const consumer = join(temporary, pkg.manifest.name.replace("/", "-"));
 			yield* checkConsumer(root, pkg, packages, catalog, consumer, store);
-			yield* checkBins(root, pkg, consumer);
+			yield* checkBins(root, pkg, consumer, packages);
 			let index = 0;
 			for (const scenario of yield* scenarios(root, pkg)) {
 				yield* checkConsumer(root, pkg, packages, catalog, `${consumer}-${index}`, store, scenario);

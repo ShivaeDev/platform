@@ -1,0 +1,64 @@
+{
+	"name": "@shivaedev/create-app",
+	"version": "0.1.0",
+	"description": "Create and install a Platform application from the maintained starter",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/create-app#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/create-app"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"#test/*": "./src/test-support/*"
+	},
+	"exports": {
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"create-app": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/test-support",
+		"template.json",
+		"docs",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && esbuild src/cli.ts --bundle --platform=node --format=esm --conditions=source --target=node24 --minify --outfile=dist/cli.js && node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist/cli.js.map', { force: true }))\"",
+		"prepack": "node --conditions=source src/pack.ts",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@shivaedev/quality": "workspace:*",
+		"@types/node": "catalog:",
+		"effect": "catalog:",
+		"esbuild": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

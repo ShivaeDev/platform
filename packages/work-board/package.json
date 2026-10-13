@@ -484,12 +484,10 @@
 			"import": "./dist/client/document/*.js",
 			"default": "./dist/client/document/*.js"
 		},
-		"./rpc/server.ts": {
-			"types": "./dist/server/rpc/transport.d.ts",
-			"source": "./src/server/rpc/transport.ts",
-			"import": "./dist/server/rpc/transport.js",
-			"default": "./dist/server/rpc/transport.js"
-		},
+		"./rpc/server.ts": null,
+		"./rpc/HandlerOptions.ts": null,
+		"./http/boardRoutes.ts": null,
+		"./http/rpcPolicy.ts": null,
 		"./page/board.ts": {
 			"types": "./dist/server/page/boardHtml.d.ts",
 			"source": "./src/server/page/boardHtml.ts",

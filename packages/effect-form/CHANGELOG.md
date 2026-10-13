@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-10-13
+
+### Added
+
+- Opt-in `Config.persistedDraft` stores encoded input and its baseline under an application key, bounded by age and size, while storage failures leave editing usable. Reload and refresh preserve edits, revert and successful submission clear accepted input, and later edits remain persisted.
+- `persistence.ts` exports `PersistedDraftConfig`, `DraftStorage`, `Persistence` and `persistence`; `draftSession.ts` exports `DraftSession` and `draftSession`. React exports `usePersistedDraft`, `BrowserDraftConfig` and `DraftSessionContext` to bind browser storage and session ownership.
+
 ## 0.2.1 - 2026-10-12
 
 ### Added

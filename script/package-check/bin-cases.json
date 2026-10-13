@@ -1,4 +1,17 @@
 {
+	"create-app": {
+		"args": ["my-app"],
+		"checkVersion": true,
+		"expectedFiles": {
+			"my-app/.env.example": "DATABASE_URL=",
+			"my-app/package.json": "\"name\": \"my-app\"",
+			"my-app/pnpm-lock.yaml": "@shivaedev/platform",
+			"my-app/pnpm-workspace.yaml": "packages: []"
+		},
+		"files": {},
+		"output": "pnpm dev",
+		"packedInstall": true
+	},
 	"effect-prisma-normalize": {
 		"args": ["raw-contract.d.ts"],
 		"expectedFiles": {

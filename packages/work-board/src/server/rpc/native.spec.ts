@@ -2,6 +2,7 @@ import { Effect, Stream } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
+import { HEADERS } from "#server/http/respond.ts";
 import { type Folder, folder, type RunningBoard, rawPost, startBoard } from "#test/board.ts";
 import { waitFor } from "#test/live.ts";
 
@@ -132,4 +133,20 @@ it.live("updates getting-started guidance when the first Markdown file is added"
 		}),
 	);
 	release();
+});
+
+it.live("sets the Board response headers on native RPC responses", function* () {
+	yield* open();
+	const response = yield* Effect.promise(() =>
+		fetch(`${board.url}/_board/rpc`, {
+			body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { action: "check", baseline: null }, tag: "work-board.history" })}\n`,
+			headers: { "content-type": "application/ndjson" },
+			method: "POST",
+		}),
+	);
+	expect(response.status).toBe(200);
+	for (const [name, value] of Object.entries(HEADERS)) {
+		expect(response.headers.get(name)).toBe(value);
+	}
+	expect(yield* Effect.promise(() => response.text())).toContain("No previous snapshot");
 });

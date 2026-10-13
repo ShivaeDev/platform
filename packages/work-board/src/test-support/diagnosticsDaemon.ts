@@ -1,8 +1,9 @@
+import { createServer } from "node:http";
+import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import { listenOn } from "#server/serve.ts";
 
 export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (read: () => DiagnosticsSnapshot, port = 0) {
 	const handlers = DiagnosticsContract.toLayer({ "daemon.diagnostics": () => Effect.sync(read) });
@@ -10,7 +11,12 @@ export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const context = yield* Layer.buildWithScope(HttpRouter.serve(rpc, { disableLogger: true }).pipe(Layer.provideMerge(listenOn(port))), scope);
+	const context = yield* Layer.buildWithScope(
+		HttpRouter.serve(rpc, { disableLogger: true }).pipe(
+			Layer.provideMerge(NodeHttpServer.layer(createServer, { disablePreemptiveShutdown: true, host: "127.0.0.1", port })),
+		),
+		scope,
+	);
 	const server = Context.get(context, HttpServer.HttpServer);
 	if (server.address._tag !== "TcpAddress") {
 		throw new Error("Expected a TCP daemon");

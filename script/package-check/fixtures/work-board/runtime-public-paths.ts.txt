@@ -16,6 +16,9 @@ import { serveBoard } from "@shivaedev/work-board/serve.ts"
 assert.equal(typeof browserClient, "function")
 assert.equal(typeof DocumentView, "function")
 assert.equal(typeof serveBoard, "function")
+assert.equal("listenOn" in await import("@shivaedev/work-board/serve.ts"), false)
+const removedRpcPath = "@shivaedev/work-board/rpc/server.ts"
+await assert.rejects(import(removedRpcPath), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" })
 for (const schema of [Document, Navigation, HandoffInput, DraftInput]) assert(Schema.isSchema(schema))
 assert(workContract)
 assert(client.includes("/_board/native.js"))
