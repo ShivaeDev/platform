@@ -135,7 +135,8 @@ integration("PostgreSQL operational boundaries", () => {
 						expect(error.operation).toBe(operation);
 						expect(error.queue).toBe(queueName);
 						expect(Redacted.value(error.original)).toMatchObject({
-							message: "Database not opened. Call open() before executing SQL.",
+							code: "ERR_ASSERTION",
+							message: expect.stringMatching(/^Database not opened\./u),
 							name: "AssertionError",
 						});
 					}
