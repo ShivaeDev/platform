@@ -19,7 +19,7 @@ export function makeLaunch(state: EngineState) {
 		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
 	) {
 		const stored = input;
-		const work = yield* board.get(stored.value.workId);
+		const work = yield* board.get(stored.value.workId, { fresh: true });
 		const released = yield* releaseClosedPreparation(state, stored, work);
 		if (released !== undefined) {
 			return released;

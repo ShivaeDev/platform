@@ -3,7 +3,7 @@ import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { decisionReading } from "#board/decisionReading.ts";
-import { boundDocuments, boundSnapshot, snapshotDocument } from "#board/documents.ts";
+import { boundDocuments, boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
 import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
@@ -23,8 +23,14 @@ const MarkdownBoard = defineService({
 		const realRoot = yield* fs.realPath(root);
 		const documents = boundDocuments(root, realRoot, fs, path);
 		const snapshot = boundSnapshot(root, realRoot, fs, path);
-		const get = Effect.fn("FleetBoard.get")(function* (workId: string) {
-			const found = yield* snapshotDocument(yield* snapshot, workId);
+		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
+			const current = yield* snapshot;
+			const found = yield* options?.fresh
+				? refreshSnapshotDocument(root, realRoot, current, workId).pipe(
+						Effect.provideService(FileSystem.FileSystem, fs),
+						Effect.provideService(Path.Path, path),
+					)
+				: snapshotDocument(current, workId);
 			const deliverable = fleetDeliverable(found.parsed);
 			if (deliverable !== undefined && deliverable !== "report") {
 				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-deliverable; use report or omit the field for pull requests." }));

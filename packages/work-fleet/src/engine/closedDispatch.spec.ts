@@ -62,19 +62,30 @@ for (const status of ["done", "superseded", "deferred"]) {
 		));
 }
 
-test("launch rechecks status after dispatch assesses preparation", () => {
-	let closeWork: (() => void) | undefined;
-	return withEngine(
-		{
-			mainQuery: (preparation) => Effect.sync(() => closeWork?.()).pipe(Effect.as(mainObservation({ fromRevision: preparation.baseRevision }))),
-		},
-		(fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				closeWork = () => fixture.boardStatus("one", "superseded");
-				const fleet = yield* Fleet;
-				expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
-				expect(fixture.starts).toEqual([]);
-			}),
-	);
-});
+for (const status of ["done", "superseded", "deferred"]) {
+	test(`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`, () => {
+		let closeWork: (() => void) | undefined;
+		return withFleetBoard(
+			{
+				mainQuery: (preparation) => Effect.sync(() => closeWork?.()).pipe(Effect.as(mainObservation({ fromRevision: preparation.baseRevision }))),
+			},
+			(fixture, root, source) =>
+				Effect.gen(function* () {
+					const files = boardHttpFiles(root);
+					const planned = source.replace("kind: task", "kind: task\nstatus: planned");
+					files.write("one.md", planned);
+					yield* prepareWork("one");
+					closeWork = () => files.write("one.md", planned.replace("status: planned", `status: ${status}`));
+					const fleet = yield* Fleet;
+					yield* cycle;
+					expect((yield* fleet.get("one")).value).toMatchObject({
+						attempts: [],
+						releaseReason: `Not launched because current Board status is ${status}`,
+						stage: "released",
+					});
+					expect(fixture.starts).toEqual([]);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toEqual([]);
+				}),
+		);
+	});
+}
