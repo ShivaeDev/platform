@@ -34,10 +34,16 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.scripts["check:published"]).toBeUndefined();
 	expect(manifest.scripts.lint).toBe("quality lint");
 	expect(manifest.scripts.format).toBe("quality fix");
+	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local script/setup-database.ts");
+	expect(manifest.scripts.dev).toBe("pnpm db:setup && node --env-file-if-exists=.env.local src/server/dev.ts");
+	expect(manifest.scripts.test).toBe("node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run");
+	expect(manifest.devDependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
 	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
 	expect(files["quality.config.ts"]).toBeUndefined();
 	expect(files["quality/baseline.jsonl"]).toBeUndefined();
 	expect(manifest.scripts.dev).not.toContain("--conditions=source");
+	expect(files["src/server/dev.ts"]).not.toContain("--conditions=source");
+	expect(files["src/server/dev.ts"]).toContain('"--watch"');
 	expect(JSON.parse(files["biome.json"] ?? "{}")).toMatchObject({ root: true });
 	expect(files["biome.json"]).toBe(readFileSync(join(starter, "biome.json"), "utf8").replace('"root": false', '"root": true'));
 	for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {

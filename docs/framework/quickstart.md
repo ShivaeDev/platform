@@ -2,11 +2,12 @@
 
 Use Node 24 or newer and pnpm 12.8.1. The [starter](../../examples/starter) is a private notes app with PostgreSQL, Platform's app host, RPC, shared query state, routing, a form, Vite, React and Tailwind with shadcn-style components.
 
-1. Run `pnpm create @shivaedev/app my-app`, then `cd my-app`. The command writes the starter with exact published Platform versions, keeps its self-contained pnpm catalog, and installs dependencies. Use an absent or empty folder.
-2. Copy `.env.example` to `.env.local` and set `DATABASE_URL` to your PostgreSQL database. Set `BETTER_AUTH_SECRET` to a random secret of at least 32 characters, for example the output of `openssl rand -base64 32`.
-3. Run `pnpm dev` and open `http://127.0.0.1:5173`. The server and background worker watch TypeScript, Vite serves React, and the host runs migrations, including Better Auth's tables, before serving HTTP/NDJSON RPC. Follow the sign-in link, create an account, then add a note. The worker counts each note's words; the count appears without refreshing. Sign out and sign back in to see your saved notes.
+1. Run `pnpm create @shivaedev/app my-app`, then `cd my-app`. The command writes the starter with exact published Platform versions, keeps its self-contained pnpm catalog, installs dependencies, and generates a git-ignored `.env.local` with a fresh authentication secret and `my_app_dev`/`my_app_test` database URLs. Use an absent or empty folder; existing files are never overwritten.
+2. Run `pnpm dev` and open `http://127.0.0.1:5173`. It first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`; have local PostgreSQL 18.6 on port 55432 or Docker available. The server and background worker watch TypeScript, Vite serves React, and the host runs migrations, including Better Auth's tables, before serving HTTP/NDJSON RPC. Follow the sign-in link, create an account, then add a note. The worker counts each note's words; the count appears without refreshing. Sign out and sign back in to see your saved notes.
 
-To try it inside this repository, first run `./script/update` at the root, then do steps 2 and 3 inside `examples/starter`. The example URL uses the shared local PostgreSQL that setup prepares. Keep the `workspace:*` dependencies for repository development.
+Run `pnpm test` to load `TEST_DATABASE_URL` from `.env.local` and test the app against its dedicated local test database. Run `pnpm db:setup` separately when you want to prepare databases without starting development. See [local-postgres machine setup](../../packages/local-postgres/README.md#install-and-machine-setup) for the shared local service requirements.
+
+To try it inside this repository, first run `./script/update` at the root, then copy `.env.example` to `.env.local` inside `examples/starter`, replace `BETTER_AUTH_SECRET` with the output of `openssl rand -base64 32`, and run `pnpm dev`. Keep the `workspace:*` dependencies for repository development.
 
 In your generated app's Git repository, run `pnpm exec quality hooks install` once to install the pre-commit gate. Run `pnpm lint` to check the shared Quality policy and `pnpm format` to apply its fixes and formatting. The starter's `biome.json` extends `@shivaedev/quality/biome`; no Quality config or baseline is needed.
 
