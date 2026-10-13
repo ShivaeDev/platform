@@ -32,7 +32,7 @@ export interface QueueWorker<Payload extends JobPayloadSchema = JobPayloadSchema
 }
 
 export interface JobRegistration {
-	readonly _tag: "QueueWorker" | "ScheduledWorker";
+	readonly _tag: "QueueDefinition" | "QueueWorker" | "ScheduledWorker";
 }
 
 export interface ScheduleDefinition<Name extends string = string> {

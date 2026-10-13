@@ -10,6 +10,15 @@ const pathOf = (node, root) => {
 };
 const nodeAt = (path, root) => path.reduce((node, index) => node?.childNodes[index], root);
 
+const detailEntries = (root) => {
+  const counts = new Map();
+  return [...root.querySelectorAll("details:not(.item-context)")].map((detail) => {
+    const name = detail.dataset.key || detail.querySelector("summary")?.textContent || "details";
+    const occurrence = counts.get(name) ?? 0;
+    counts.set(name, occurrence + 1);
+    return [name + ":" + occurrence, detail];
+  });
+};
 export const captureReading = () => {
   const root = document.getElementById("doc");
   const selection = document.getSelection();
@@ -20,6 +29,7 @@ export const captureReading = () => {
     sidebar: document.getElementById("sidebar").scrollTop,
     context: root.querySelector(".item-context")?.open,
     details: [...root.querySelectorAll("details:not(.item-context)")].map((detail) => detail.open),
+    keyedDetails: Object.fromEntries(detailEntries(root).map(([key, detail]) => [key, detail.open])),
     selection: anchor && focus ? { anchor, focus, a: selection.anchorOffset, f: selection.focusOffset } : null,
   };
 };
@@ -29,8 +39,9 @@ export const restoreReading = (state, restoreDetails = true) => {
   const root = document.getElementById("doc");
   const context = root.querySelector(".item-context");
   if (restoreDetails && context && typeof state.context === "boolean") context.open = state.context;
-  [...root.querySelectorAll("details:not(.item-context)")].forEach((detail, index) => {
-    if (restoreDetails && typeof state.details?.[index] === "boolean") detail.open = state.details[index];
+  detailEntries(root).forEach(([key, detail], index) => {
+    const open = state.keyedDetails ? state.keyedDetails[key] : state.details?.[index];
+    if (restoreDetails && typeof open === "boolean") detail.open = open;
   });
   document.getElementById("sidebar").scrollTop = state.sidebar ?? 0;
   const saved = state.selection;

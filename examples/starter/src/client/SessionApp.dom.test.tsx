@@ -33,7 +33,7 @@ it("replaces cached notes and the draft when the authentication owner's session 
 	}
 	await enter("Alice's saved note");
 	await act(() => view.container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-	await eventually(() => expect(view.container.querySelector("li")?.textContent).toBe("Alice's saved note"));
+	await eventually(() => expect(view.container.querySelector("li > p")?.textContent).toBe("Alice's saved note"));
 	await enter("Alice's private draft");
 	await view.render(<SessionApp connect={connection} history={history} recheck={recheck} sessionId="bob" />);
 	await eventually(() => expect(bob.calls).toEqual(["list"]));

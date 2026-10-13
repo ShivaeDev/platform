@@ -62,12 +62,13 @@ const watchPage = () => {
   watchNavigation();
   const doc = document.getElementById("doc");
   const path = location.pathname + location.search;
-  const selection = path + (doc.hasAttribute("data-react-document") ? ":document" : ":page");
+  const kind = doc.dataset.projection || (doc.hasAttribute("data-react-document") ? "document" : "page");
+  const selection = path + ":" + kind;
   if (selection === active) return;
   active = selection;
   releasePage?.();
   pageFailure = "";
-  const atom = doc.hasAttribute("data-react-document") ? native.api.document.query({ url: path }, ${JSON.stringify(routeQueryOptions)}) : native.api.page.query({ url: path }, ${JSON.stringify(routeQueryOptions)});
+  const atom = native.api[kind].query(kind === "overview" || kind === "inbox" ? undefined : { url: path }, ${JSON.stringify(routeQueryOptions)});
   releasePage = native.registry.subscribe(atom, (value) => {
     pageWaiting = value.waiting || value._tag === "Initial";
     if (value._tag === "Failure") pageFailure = resolvedDocumentFailure(value.cause) ? "" : "refresh failed";

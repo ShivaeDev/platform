@@ -2,10 +2,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
-import { DocumentMain } from "./DocumentMain.tsx";
-import { documentRoute } from "./documentRoute.ts";
+import { BoardMain } from "./BoardMain.tsx";
 import { Header } from "./Header.tsx";
-import { LegacyMain } from "./LegacyMain.tsx";
 import { legacyPage, type MainLocation } from "./legacyPage.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { Sidebar } from "./Sidebar.tsx";
@@ -66,11 +64,13 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 				<div className="sidebar-backdrop" hidden id={shellIds.sidebarBackdrop} />
 				<div className="page">
 					<Header count={data?.inboxCount ?? null} main={main} />
-					{documentRoute(location.pathname, data ? data.home : bootstrapHome) ? (
-						<DocumentMain api={api} initial={initial} onPage={onPage} url={location.pathname + location.searchStr} />
-					) : (
-						<LegacyMain api={api} initial={initial} onPage={onPage} url={location.pathname + location.searchStr} />
-					)}
+					<BoardMain
+						api={api}
+						home={data ? data.home : bootstrapHome}
+						initial={initial}
+						onPage={onPage}
+						url={location.pathname + location.searchStr}
+					/>
 				</div>
 			</div>
 			{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}

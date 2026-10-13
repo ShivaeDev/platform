@@ -1,12 +1,14 @@
 import type { Effect, Schema } from "effect";
 import type * as Atom from "effect/unstable/reactivity/Atom";
 import { make } from "@shivaedev/effect-form/form.ts";
+import type { PersistedDraftConfig } from "@shivaedev/effect-form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import { type AtomServices, type RejectField, rejecting } from "./field-rejection.ts";
 
 export interface SubmissionConfig<F extends Fields, A, E, R, ER> {
 	readonly fields: Schema.Struct<F>;
 	readonly initialValues: Encoded<F>;
+	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly rejectField: RejectField<F, E> | undefined;
 	readonly runtime: Atom.AtomRuntime<Services<F, R>, ER>;
 	readonly save: (values: Decoded<F>) => Effect.Effect<A, E, AtomServices<R>>;
@@ -27,6 +29,7 @@ export const submission = <F extends Fields, A, E, R, ER>(config: SubmissionConf
 			submitted = snapshot;
 			return save(values, submitter);
 		},
+		persistedDraft: config.persistedDraft,
 		runtime,
 	});
 	return { form, submitted: () => submitted };

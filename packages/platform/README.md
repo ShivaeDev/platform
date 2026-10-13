@@ -59,9 +59,7 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 `app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `errors/`, `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
 
-Supply `routes` with an optional native `Layer<never, never, HttpRouter>` to register application HTTP endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
-
-`assets` accepts a directory string or native `HttpStaticServer.layer` options. Use `{ root: "dist", spa: true }` for a browser app whose routes must also work on direct navigation or reload.
+`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/unstable/http` alongside the handler Layer. Native route Layers can register additional endpoints in that same composition; `routes` also accepts a native `Layer<never, never, HttpRouter>` for endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 

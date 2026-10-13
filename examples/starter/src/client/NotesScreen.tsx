@@ -1,3 +1,4 @@
+import { useAtomMount } from "@effect/atom-react";
 import { Option } from "effect";
 import { useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
@@ -5,7 +6,15 @@ import { Button } from "./Button.tsx";
 import type { NotesClient } from "./makeNotes.ts";
 import { NoteCreate } from "./NoteCreate.tsx";
 
+function wordCountLabel(count: number | null) {
+	if (count === null) {
+		return "Counting words…";
+	}
+	return `${count} ${count === 1 ? "word" : "words"}`;
+}
+
 export function NotesScreen({ client, onSignOut }: { readonly client: NotesClient; readonly onSignOut?: () => Promise<string | undefined> }) {
+	useAtomMount(client.connection);
 	const [signingOut, setSigningOut] = useState(false);
 	const [failure, setFailure] = useState<string>();
 	async function signOut() {
@@ -49,7 +58,8 @@ export function NotesScreen({ client, onSignOut }: { readonly client: NotesClien
 				<ul className="space-y-3">
 					{rows.map((row) => (
 						<li className="break-words rounded-lg border bg-card p-4" key={row.id}>
-							{row.title}
+							<p>{row.title}</p>
+							<p className="mt-2 text-muted-foreground text-sm">{wordCountLabel(row.wordCount)}</p>
 						</li>
 					))}
 				</ul>

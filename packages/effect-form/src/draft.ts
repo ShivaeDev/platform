@@ -1,6 +1,7 @@
 import { Equal } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRef from "effect/unstable/reactivity/AtomRef";
+import type { Persistence } from "./persistence.ts";
 
 type Entries = Readonly<Record<string, unknown>>;
 
@@ -40,12 +41,28 @@ function matching(current: Entries, submitted: Entries): Entries {
 	);
 }
 
-export const draft = <Values extends Entries>(initial: Values) => {
+export const draft = <Values extends Entries>(initial: Values, persistence?: Persistence<Values>) => {
+	const restored = persistence?.read();
+	const loaded = {
+		baseline: restored?.baseline ?? initial,
+		current: restored?.values ?? initial,
+		settled: restored ? Object.fromEntries(Object.entries(restored.values).filter(([name]) => !restored.edited.includes(name))) : none,
+	};
 	const state = AtomRef.make<Draft<Values>>({
 		baseline: initial,
-		current: initial,
+		current: restored ? merged(loaded, initial) : initial,
 		settled: none,
 	});
+	if (persistence) {
+		state.subscribe((value) => {
+			if (changed(value)) {
+				const edited = Object.keys({ ...value.baseline, ...value.current }).filter((name) => !untouched(value, name));
+				persistence.write({ ...value.baseline, ...value.settled }, value.current, edited);
+			} else {
+				persistence.clear();
+			}
+		});
+	}
 	return {
 		dirty: Atom.readable((get) => {
 			get.addFinalizer(state.subscribe((value) => get.setSelf(changed(value))));

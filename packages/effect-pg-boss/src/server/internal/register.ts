@@ -1,7 +1,7 @@
 import { type Context, Effect, Redacted, Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
-import { type JobRegistration, jobContext, type QueueWorker, type ScheduledWorker } from "#definition.ts";
+import { type JobRegistration, jobContext, type QueueDefinition, type QueueWorker, type ScheduledWorker } from "#definition.ts";
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 
@@ -21,7 +21,14 @@ function isScheduledWorker(registration: JobRegistration): registration is Sched
 	return registration._tag === "ScheduledWorker";
 }
 
+function isQueueDefinition(registration: JobRegistration): registration is QueueDefinition {
+	return registration._tag === "QueueDefinition";
+}
+
 export const registrationName = (registration: JobRegistration): string => {
+	if (isQueueDefinition(registration)) {
+		return registration.name;
+	}
 	if (isQueueWorker(registration)) {
 		return registration.queue.name;
 	}
@@ -55,20 +62,29 @@ function runQueueWorker(worker: QueueWorker, job: Job<unknown>, context: Context
 	);
 }
 
-async function registerQueue(client: PgBossClient, worker: QueueWorker, context: Context.Context<unknown>, replaceWorker: boolean): Promise<void> {
-	const name = worker.queue.name;
+async function registerQueue(
+	client: PgBossClient,
+	registration: QueueWorker | QueueDefinition,
+	context: Context.Context<unknown>,
+	replaceWorker: boolean,
+): Promise<void> {
+	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
+	const name = queue.name;
 	const deadLetter = deadLetterQueueName(name);
-	if (replaceWorker) {
+	if (replaceWorker && registration._tag === "QueueWorker") {
 		await client.offWork(name);
 	}
 	await client.createQueue(deadLetter);
 	await client.createQueue(name, {
-		...queueOptions(worker.queue.queueOptions),
+		...queueOptions(queue.queueOptions),
 		deadLetter,
 	});
-	await client.work(name, worker.queue.workerOptions, async (jobs) => {
+	if (registration._tag === "QueueDefinition") {
+		return;
+	}
+	await client.work(name, queue.workerOptions, async (jobs) => {
 		for (const job of jobs) {
-			await runQueueWorker(worker, job, context);
+			await runQueueWorker(registration, job, context);
 		}
 	});
 }
@@ -119,7 +135,7 @@ export const registerJobs = <R>(
 			registrationNames(registrations);
 			const provided = workerContext(context);
 			for (const registration of registrations) {
-				if (isQueueWorker(registration)) {
+				if (isQueueWorker(registration) || isQueueDefinition(registration)) {
 					await registerQueue(client, registration, provided, replaceWorkers);
 				} else if (isScheduledWorker(registration)) {
 					await registerSchedule(client, registration, provided, replaceWorkers);

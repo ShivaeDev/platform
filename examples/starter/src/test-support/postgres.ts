@@ -28,6 +28,6 @@ export const { effectApp } = makeEffectIt({
 				return yield* Effect.die("Expected a TCP server");
 			}
 			const baseUrl = `http://127.0.0.1:${server.address.port}`;
-			return { baseUrl, url: `${baseUrl}/rpc` };
+			return { baseUrl, context, url: `${baseUrl}/rpc` };
 		}),
 });
