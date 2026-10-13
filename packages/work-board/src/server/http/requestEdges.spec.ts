@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { MAX_BYTES } from "#server/history/limits.ts";
 import { type Folder, folder, type RunningBoard, rawGet, rawPost, startBoard } from "#test/board.ts";
 import { growBeforeRead } from "#test/fileRaces.ts";
 import { imageNamedDirectory, screenshotFile } from "#test/imageFixtures.ts";
@@ -27,6 +28,20 @@ it.live("rejects a malformed Origin at the real RPC boundary", function* () {
 	const response = yield* rawPost(board, "/_board/rpc", { "content-type": "application/json", host: `127.0.0.1:${board.port}`, origin: ":invalid:" });
 	expect(response.status).toBe(403);
 	expect(response.body).toBe("Local same-origin requests only");
+});
+
+it.live("keeps the Board's larger RPC allowance while rejecting bodies beyond it", function* () {
+	yield* open();
+	function message(padding: number) {
+		return `${JSON.stringify({ _tag: "Request", headers: [["x-padding", "x".repeat(padding)]], id: "1", payload: null, tag: "work-board.watcher" })}\n`;
+	}
+	const headers = { "content-type": "application/ndjson" };
+	const accepted = yield* rawPost(board, "/_board/rpc", headers, message(1024 * 1024));
+	expect(accepted.status).toBe(200);
+	expect(accepted.body).toContain('"_tag":"Success"');
+	const refused = yield* rawPost(board, "/_board/rpc", headers, message(4 * MAX_BYTES + 4096));
+	expect(refused.status).toBeGreaterThanOrEqual(400);
+	expect(refused.status).toBeLessThan(500);
 });
 
 it.live("reports an image-named directory as unavailable rather than attempting a file read", function* () {
