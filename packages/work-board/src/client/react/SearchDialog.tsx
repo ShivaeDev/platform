@@ -54,6 +54,9 @@ function Search({
 	const commands = searchCommands.filter((item) => item.title.toLowerCase().includes(text.toLowerCase()));
 	const items = [...commands, ...(text && data ? data.results : [])];
 	useEffect(() => {
+		setSelected((current) => Math.min(current, Math.max(0, items.length - 1)));
+	}, [items.length]);
+	useEffect(() => {
 		const timer = setTimeout(() => {
 			setText(input.trim());
 			setSelected(0);
