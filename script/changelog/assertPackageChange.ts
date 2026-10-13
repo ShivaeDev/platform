@@ -17,10 +17,17 @@ function isMigration(before: PackageNotes, after: PackageNotes): boolean {
 
 function assertRelease(name: string, before: PackageNotes, after: PackageNotes): void {
 	const date = /^## [^\n]+ - (?<date>\d{4}-\d{2}-\d{2})$/mu.exec(after.changelog)?.groups?.date;
-	if (date === undefined || before.fragments.length === 0) {
+	const fragments = after.release?.fragments ?? before.fragments;
+	if (date === undefined || fragments.length === 0) {
 		throw new Error(`${name}: a release must collect and delete its pending fragments.`);
 	}
-	if (collectFragments(before.changelog, after.version, date, before.fragments) !== after.changelog) {
+	if (after.release !== undefined && (after.release.version !== after.version || after.release.date !== date)) {
+		throw new Error(`${name}: release.json must match the released version and date.`);
+	}
+	if (new Set(fragments.map((fragment) => fragment.name)).size !== fragments.length || !preservedFragments(before, { ...after, fragments })) {
+		throw new Error(`${name}: collect every existing fragment unchanged, with unique fragment names.`);
+	}
+	if (collectFragments(before.changelog, after.version, date, fragments) !== after.changelog) {
 		throw new Error(`${name}: release notes must match pnpm run changelog:release ${name}; released history cannot be edited.`);
 	}
 }
@@ -32,6 +39,9 @@ export function assertPackageChange(name: string, before: PackageNotes | undefin
 	after.fragments.forEach(parseFragment);
 	if (before === undefined) {
 		return;
+	}
+	if (before.version === after.version && JSON.stringify(before.release) !== JSON.stringify(after.release)) {
+		throw new Error(`${name}: release.json changes only in a release.`);
 	}
 	if (before.version !== after.version && after.fragments.length > 0) {
 		throw new Error(`${name}: a release must collect and delete its pending fragments.`);

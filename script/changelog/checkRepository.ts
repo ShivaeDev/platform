@@ -3,8 +3,8 @@ import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { assertPackageChange } from "./assertPackageChange.ts";
 import { attempt } from "./attempt.ts";
-import { readPackage } from "./package.ts";
-import { readCommittedNotes, releaseNotes } from "./releaseNotes.ts";
+import { decodeVersion, type PackageNotes, readPackage } from "./package.ts";
+import { decodeReleaseManifest } from "./releaseManifest.ts";
 
 function git(root: string, args: readonly string[]): string {
 	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -29,11 +29,30 @@ function mergeBase(root: string, reference: string, merging: readonly string[]):
 	return result.stdout.trim();
 }
 
+function basePackage(root: string, base: string, name: string, paths: readonly string[]): PackageNotes | undefined {
+	const directory = `packages/${name}`;
+	if (!paths.includes(`${directory}/package.json`)) {
+		return undefined;
+	}
+	function read(path: string) {
+		return git(root, ["show", `${base}:${path}`]);
+	}
+	return {
+		changelog: paths.includes(`${directory}/CHANGELOG.md`) ? read(`${directory}/CHANGELOG.md`) : "# Changelog\n",
+		fragments: paths
+			.filter((path) => path.startsWith(`${directory}/changes/`) && path.endsWith(".md"))
+			.map((path) => ({ name: path.slice(`${directory}/changes/`.length), text: read(path) })),
+		release: paths.includes(`${directory}/release.json`) ? decodeReleaseManifest(read(`${directory}/release.json`)) : undefined,
+		version: decodeVersion(read(`${directory}/package.json`)),
+	};
+}
+
 export const checkRepository = Effect.fn("Changelog.checkRepository")(function* (root: string, reference?: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const mergePath = yield* attempt(() => resolve(root, git(root, ["rev-parse", "--git-path", "MERGE_HEAD"]).trim()));
 	const merging = (yield* fs.exists(mergePath)) ? (yield* fs.readFileString(mergePath)).trim().split("\n") : [];
 	const base = yield* attempt(() => mergeBase(root, resolveReference(root, reference), merging));
+	const paths = yield* attempt(() => git(root, ["ls-tree", "-r", "--name-only", base, "packages"]).trim().split("\n"));
 	const names = yield* fs.readDirectory(join(root, "packages"));
 	yield* Effect.forEach(names, (name) =>
 		Effect.gen(function* () {
@@ -41,9 +60,9 @@ export const checkRepository = Effect.fn("Changelog.checkRepository")(function* 
 			if (!(yield* fs.exists(join(directory, "package.json")))) {
 				return;
 			}
-			const before = yield* attempt(() => readCommittedNotes(root, base, name));
+			const before = yield* attempt(() => basePackage(root, base, name, paths));
 			const after = yield* readPackage(directory);
-			yield* attempt(() => assertPackageChange(name, before === undefined ? undefined : releaseNotes(root, base, name, before, after), after));
+			yield* attempt(() => assertPackageChange(name, before, after));
 		}),
 	);
 });

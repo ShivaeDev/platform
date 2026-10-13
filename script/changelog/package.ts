@@ -2,10 +2,12 @@ import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { attempt } from "./attempt.ts";
 import type { Fragment } from "./fragments.ts";
+import { type ReleaseManifest, readReleaseManifest } from "./releaseManifest.ts";
 
 export interface PackageNotes {
 	readonly changelog: string;
 	readonly fragments: readonly Fragment[];
+	readonly release?: ReleaseManifest | undefined;
 	readonly version: string;
 }
 const Manifest = Schema.Struct({ version: Schema.String });
@@ -25,5 +27,5 @@ export const readPackage = Effect.fn("Changelog.readPackage")(function* (directo
 		names.filter((name) => name.endsWith(".md")),
 		(name) => Effect.map(fs.readFileString(join(changes, name)), (text) => ({ name, text })),
 	);
-	return { changelog, fragments, version };
+	return { changelog, fragments, release: yield* readReleaseManifest(directory), version };
 });
