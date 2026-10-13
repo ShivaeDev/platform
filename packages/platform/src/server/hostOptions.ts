@@ -10,6 +10,7 @@ export interface HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, TH
 		readonly port?: number;
 		readonly host?: string;
 		readonly trustedProxy?: string;
+		readonly maxBodySize?: number;
 		readonly disablePreemptiveShutdown?: boolean;
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;

@@ -38,6 +38,7 @@ Set these environment variables on the server; the worker uses the same `DATABAS
 | `BETTER_AUTH_SECRET` | A random secret of at least 32 characters, kept in the host's secret settings. |
 | `PUBLIC_URL` | Your public app URL, such as `https://app.example`. Its origin configures Better Auth's base URL, trusted origins and RPC session Origin policy. HTTPS enables secure cookies. Leave it unset for loopback HTTP development. |
 | `PORT` | The port supplied by your host; defaults to `3000`. |
+| `MAX_BODY_SIZE` | Maximum RPC request body size in bytes; defaults to `1048576` (1 MiB). |
 | `HOST` | `0.0.0.0` to listen on the container's network interface; defaults to loopback. |
 | `TRUSTED_PROXY` | A comma-separated list of proxy peer addresses or CIDR ranges, such as `10.0.0.0/24,2001:db8::/32`. IPv4, IPv6 and IPv4-mapped IPv6 peers are supported. Without it, the RPC guard retains its loopback default. |
 

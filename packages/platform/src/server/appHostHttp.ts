@@ -1,13 +1,14 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
-import { Config, Effect, Layer, Option, Schema } from "effect";
-import { HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/unstable/http";
+import { Config, Effect, FileSystem, Layer, Option, Schema } from "effect";
+import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/unstable/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { localRpcGuard } from "#rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#rpc-server/session.ts";
 import { requestTracingLayer } from "#rpc-server/tracing.ts";
 import { TrustedProxy } from "#rpc-server/trustedProxy.ts";
 import type { AppHostOptions, AppLocalHostOptions } from "./appHost.ts";
+import { boundedRpcRequest } from "./boundedRpcRequest.ts";
 import type { databaseLayer } from "./databaseLayer.ts";
 import type { HostOptions, HostPolicy } from "./hostOptions.ts";
 export function appHostHttp<
@@ -24,6 +25,10 @@ export function appHostHttp<
 ) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			const maxBodySize = options.config?.maxBodySize ?? (yield* Config.int("MAX_BODY_SIZE").pipe(Config.withDefault(1024 * 1024)));
+			const bodySize = yield* Schema.decodeUnknownEffect(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))(maxBodySize).pipe(
+				Effect.mapError((cause) => new Config.ConfigError(cause)),
+			);
 			const trustedProxy =
 				options.policy === "loopback"
 					? undefined
@@ -42,7 +47,8 @@ export function appHostHttp<
 					const guarded = localRpcGuard(handler, trustedProxy);
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 						guarded.pipe(
-							Effect.provideService(HttpServerRequest.HttpServerRequest, request),
+							Effect.provideService(HttpIncomingMessage.MaxBodySize, FileSystem.Size(bodySize)),
+							Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
 							Effect.provideService(RpcSerialization.RpcSerialization, wire),
 						),
 					);
