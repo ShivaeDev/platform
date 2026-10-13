@@ -1,11 +1,11 @@
 import { Config, Effect, Option, Redacted } from "effect";
-import { Migrator } from "effect/unstable/sql";
+import { Migrator, SqlClient } from "effect/unstable/sql";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/withIsolatedDatabase.ts";
 import { withTestTransaction } from "@shivaedev/effect-test-sql/withTestTransaction.ts";
 import { migrateFleet } from "#storage/migrateFleet.ts";
-import { STORAGE_NAMESPACE, StorageRecord } from "#test/StorageRecord.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.string("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"))));
 const ci = Effect.runSync(Config.string("CI").pipe(Config.withDefault("")));
@@ -15,7 +15,14 @@ if (url === undefined && ci !== "") {
 
 const postgresLayer = makePostgresTestLayer({
 	migrations: {
-		loader: Migrator.fromRecord({ "1_fleet": migrateFleet(STORAGE_NAMESPACE, StorageRecord) }),
+		loader: Migrator.fromRecord({
+			"1_fleet": migrateFleet(STORAGE_NAMESPACE),
+			"2_storage_fields": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`alter table ${sql(`${STORAGE_NAMESPACE}_records`)} add column "operationId" text, add column "sessionId" text,
+					add column "submittedAt" double precision, add column "turnId" text`;
+			}),
+		}),
 		lockTimeout: "5 seconds",
 	},
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),

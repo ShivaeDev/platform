@@ -111,7 +111,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			write(workId, expectedVersion, record, limits),
 		foreignReservations,
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
-		initialize: () => commit(records, migrateFleet(namespace, schema)),
+		initialize: () => commit(records, migrateFleet(namespace)),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,

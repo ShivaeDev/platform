@@ -17,7 +17,6 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { FleetRecord } from "#model.ts";
 import { type BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
@@ -77,7 +76,7 @@ export function hostPolicy(host: FleetHost) {
 export function hostSql(host: FleetHost) {
 	return appDatabase({
 		config: { applicationName: "work-fleet", databaseUrl: Redacted.make(host.databaseUrl), maxConnections: host.maxConnections },
-		migrations: { loader: fleetMigrations(host.namespace, FleetRecord), table: `${host.namespace}_migrations` },
+		migrations: { loader: fleetMigrations(host.namespace), table: `${host.namespace}_migrations` },
 	});
 }
 

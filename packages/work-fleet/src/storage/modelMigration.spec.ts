@@ -16,7 +16,7 @@ test("populated JSONB records migrate without changing records, versions, order 
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, undefined, true);
+			yield* migrateFleet(namespace, true);
 			yield* sql`select setval(pg_get_serial_sequence(${`${namespace}_records`}, 'admission_order'), 9007199254740993, false)`;
 			const values = migrationRecords();
 			for (const [index, value] of values.entries()) {
@@ -63,7 +63,7 @@ test("a failed model migration retains the source records and ledger for a repai
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, undefined, true);
+			yield* migrateFleet(namespace, true);
 			const value = migrationRecords()[0];
 			if (value === undefined) {
 				return yield* Effect.die("Missing migration fixture");
