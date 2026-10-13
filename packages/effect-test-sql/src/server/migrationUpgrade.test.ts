@@ -59,6 +59,44 @@ integration("rejects an unknown migration id, a populated ledger and a wrapping 
 	);
 });
 
+integration("rejects a populated mixed-case ledger before loading or running migrations", async () => {
+	let loads = 0;
+	let runs = 0;
+	await Effect.runPromise(
+		runUpgrade(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const table = "UpgradeMigrations";
+				yield* sql`create table ${sql(table)} (
+  migration_id integer primary key,
+  created_at timestamp with time zone not null default now(),
+  name text not null
+)`;
+				yield* sql`insert into ${sql(table)} (migration_id, name) values (3, 'upgrade_items')`;
+				yield* sql`create table items (id integer primary key, name text not null, price numeric(10,2))`;
+				yield* sql`insert into items (id, name) values (1, 'kept')`;
+				const pending = Effect.sync(() => {
+					runs += 1;
+				});
+				const loader = Effect.map(migrations.loader, (resolved) => {
+					loads += 1;
+					return [...resolved, [4, "must_not_run", Effect.succeed(pending)] as const];
+				});
+				const failure = yield* migrationUpgrade({ migrations: { ...migrations, loader, table }, table: "items", upTo: 1 }).pipe(Effect.flip);
+				expect(failure).toMatchObject({
+					_tag: "MigrationError",
+					kind: "BadState",
+					message: "Migration upgrade checks require an empty migration ledger.",
+				});
+				expect(yield* sql`select migration_id from ${sql(table)}`).toEqual([{ "migration_id": 3 }]);
+				expect(yield* sql`select name from items`).toEqual([{ name: "kept" }]);
+			}),
+		),
+	);
+	expect(loads).toBe(0);
+	expect(runs).toBe(0);
+});
+
 for (const [name, statement, problem] of [
 	["missing", "alter table items drop column price", "Missing column: price"],
 	["extra", "alter table items add column surprise text", "Extra column: surprise"],

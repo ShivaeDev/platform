@@ -23,7 +23,8 @@ export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(funct
 		return yield* invalid("Migration upgrade checks must run outside a wrapping transaction.");
 	}
 	const ledger = options.migrations.table ?? "effect_sql_migrations";
-	const existing = yield* sql<{ readonly name: string | null }>`select to_regclass(${ledger})::text as name`.withoutTransform;
+	const identifier = sql`${sql(ledger)}`.compile()[0];
+	const existing = yield* sql<{ readonly name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
 	if (existing[0]?.name !== null) {
 		const applied = yield* sql`select migration_id from ${sql(ledger)} limit 1`;
 		if (applied.length > 0) {
