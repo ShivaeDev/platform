@@ -21,7 +21,7 @@ test("daemon startup migrates populated JSONB records and continues serving read
 			yield* Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				yield* legacyStore(fixture.host.namespace);
-				yield* migrateFleet(fixture.host.namespace, undefined, true);
+				yield* migrateFleet(fixture.host.namespace, true);
 				for (const value of values) {
 					yield* sql`insert into ${sql(`${fixture.host.namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;
 				}

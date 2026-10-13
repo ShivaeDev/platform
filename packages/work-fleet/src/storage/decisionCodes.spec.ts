@@ -14,7 +14,7 @@ postgresTests("live", "isolated")("backfills current and archived decisions with
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			yield* legacyStore(namespace);
-			yield* migrateFleet(namespace, undefined, true);
+			yield* migrateFleet(namespace, true);
 			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values ('one', 1, ${JSON.stringify(legacyDecisionRecord)}::jsonb)`;
 			yield* migrateFleet(namespace);
 			const rows = yield* readDecisionRecords(namespace);
