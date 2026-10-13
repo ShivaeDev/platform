@@ -5,12 +5,10 @@ import { daemonClient } from "#host/daemonClient.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { postgresTests } from "#test/postgres.ts";
-import { type snapshotReads, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
+import { type SnapshotReads, untilReads, withSnapshotDaemon } from "#test/snapshotReads.ts";
 import { storeState } from "#test/storeState.ts";
 
 const test = postgresTests("live");
-
-type SnapshotReads = Effect.Success<ReturnType<typeof snapshotReads>>;
 
 function transientStory(command: "wait" | "watch") {
 	return Effect.fn("DaemonFollowTest.transientStory")(function* (fixture: HostFixture, port: number, reads: SnapshotReads) {

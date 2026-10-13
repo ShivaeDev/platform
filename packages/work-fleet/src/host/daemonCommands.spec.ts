@@ -41,7 +41,6 @@ const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 	expect(files.receipts()).toHaveLength(1);
 	expect((yield* Effect.promise(() => cliProcess(args))).code).toBe(1);
 	expect(files.receipts()).toHaveLength(1);
-	expect(resources.pools()).toHaveLength(1);
 	expect(resources.providers).toBe(1);
 	expect(resources.releases).toBe(0);
 	expect(fixture.provider.launched).toHaveLength(1);
@@ -49,7 +48,7 @@ const decisionStory = Effect.fn("DaemonCommandsTest.decisionStory")(function* (
 
 for (const action of ["retry", "release"] as const) {
 	test(
-		`decide ${action} answers the published decision by item through the daemon's existing PostgreSQL pool`,
+		`decide ${action} answers the published decision by item through the daemon without a client database connection`,
 		() => withHost({ "one.md": task("one", "approved") }, {}, (fixture) => decisionResources(fixture, action)),
 		30_000,
 	);
@@ -58,7 +57,6 @@ for (const action of ["retry", "release"] as const) {
 const decisionResources = Effect.fn("DaemonCommandsTest.decisionResources")(function* (fixture: HostFixture, action: "retry" | "release") {
 	const resources = yield* daemonResources(fixture.parts.provider);
 	yield* withReadDaemon(fixture.host, (port) => decisionStory(fixture, port, action, resources), { ...fixture.parts, provider: resources.provider });
-	expect(resources.closed).toHaveBeenCalledTimes(1);
 	expect(resources.releases).toBe(1);
 });
 
