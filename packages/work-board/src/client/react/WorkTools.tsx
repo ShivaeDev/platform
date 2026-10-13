@@ -1,6 +1,6 @@
 import type { State } from "#browser/views/state.ts";
 import { viewUrl } from "#browser/views/state.ts";
-import { shellIds } from "./shellIds.ts";
+import { SavedViews } from "./SavedViews.tsx";
 export function WorkTools({ state }: { readonly state: State }) {
 	return (
 		<>
@@ -11,33 +11,7 @@ export function WorkTools({ state }: { readonly state: State }) {
 					</a>
 				))}
 			</nav>
-			<section aria-label="Saved local views" className="saved-work-views" data-url={viewUrl(state, { item: "" })} id={shellIds.savedWorkViews}>
-				<form id={shellIds.saveWorkView}>
-					<label htmlFor={shellIds.viewName}>View name</label>
-					<input id={shellIds.viewName} maxLength={60} placeholder="Name this view" required />
-					<button disabled type="submit">
-						Save view
-					</button>
-				</form>
-				<div className="view-picker">
-					<label htmlFor={shellIds.savedView}>Saved views</label>
-					<select disabled id={shellIds.savedView}>
-						<option value="">No saved views</option>
-					</select>
-					<a hidden href="/_board/work" id={shellIds.openSavedView}>
-						Open
-					</a>
-					<button disabled id={shellIds.removeSavedView} type="button">
-						Remove
-					</button>
-					<button disabled id={shellIds.clearSavedViews} type="button">
-						Clear all
-					</button>
-				</div>
-				<p id={shellIds.savedViewStatus} role="status">
-					Save board, filters, sort, and layout locally. Item selection stays in the URL. Saving requires JavaScript.
-				</p>
-			</section>
+			<SavedViews url={viewUrl(state, { item: "" })} />
 		</>
 	);
 }

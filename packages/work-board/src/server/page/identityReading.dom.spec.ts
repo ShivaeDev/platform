@@ -86,12 +86,13 @@ effectApp("replaces an active item with a conflict explanation rather than retai
 effectApp("keeps focus on a criterion opened through search within the active item", function* () {
 	yield* open("/_board/item/work.search/");
 	click("#search-open");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-query")).not.toBeNull()));
 	const input = page.document.getElementById("search-query");
 	if (!(input instanceof page.window.HTMLInputElement)) {
 		throw new Error("Missing search input");
 	}
 	input.value = "Escape returns focus";
-	input.dispatchEvent(new page.window.Event("input"));
+	input.dispatchEvent(new page.window.Event("input", { bubbles: true }));
 	yield* Effect.promise(() =>
 		waitFor(() =>
 			expect(page.document.querySelector("#search-results a")?.getAttribute("href")).toBe("/_board/item/work.search/#criterion-keyboard"),

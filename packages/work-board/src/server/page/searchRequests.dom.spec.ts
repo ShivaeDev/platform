@@ -24,7 +24,7 @@ function query(text: string) {
 		throw new Error("Missing input");
 	}
 	input.value = text;
-	input.dispatchEvent(new page.window.Event("input"));
+	input.dispatchEvent(new page.window.Event("input", { bubbles: true }));
 }
 
 it.live("ignores a delayed older search even when its transport ignores cancellation", function* () {
@@ -53,6 +53,7 @@ it.live("ignores a delayed older search even when its transport ignores cancella
 	});
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
 	click("#search-open");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-query")).not.toBeNull()));
 	query("old");
 	yield* Effect.promise(() => waitFor(() => expect(requested).toBe(true)));
 	query("new");
@@ -85,10 +86,11 @@ it.live("reports search failures, allows retry, and renders snippets as text", f
 	});
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
 	click("#search-open");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-query")).not.toBeNull()));
 	query("phrase");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("search-status")?.textContent).toContain("retry")));
 	failed = false;
-	page.document.getElementById("search-form")?.dispatchEvent(new page.window.Event("submit", { cancelable: true }));
+	page.document.getElementById("search-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#search-results strong")?.textContent).toBe("<img src=x>")));
 	expect(page.document.querySelector("#search-results script, #search-results img")).toBe(null);
 	expect(page.document.getElementById("search-status")?.textContent).toContain("results are incomplete");

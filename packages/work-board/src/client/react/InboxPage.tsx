@@ -1,4 +1,5 @@
 import type { InboxProjection } from "#browser/views/schema.ts";
+import { Age } from "./Age.tsx";
 export function InboxPage({ data }: { readonly data: InboxProjection }) {
 	return (
 		<>
@@ -44,15 +45,7 @@ function InboxRow({ item }: { readonly item: InboxProjection["items"][number] })
 					</p>
 				)}
 			</div>
-			<p className="inbox-age">
-				{item.modified === undefined ? (
-					"Age unavailable"
-				) : (
-					<span className="age" data-modified={item.modified}>
-						updated {new Date(item.modified).toISOString()}
-					</span>
-				)}
-			</p>
+			<p className="inbox-age">{item.modified === undefined ? "Age unavailable" : <Age modified={item.modified} />}</p>
 		</article>
 	);
 }

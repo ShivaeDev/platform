@@ -1,6 +1,6 @@
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
 import { ChangesMain } from "./ChangesMain.tsx";
-import { DiagnosticsPage } from "./DiagnosticsPage.tsx";
+import { DiagnosticsMain } from "./DiagnosticsMain.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
@@ -34,14 +34,7 @@ export function RemainingMain({
 				/>
 			);
 		case "diagnostics":
-			return (
-				<ProjectionFrame
-					{...options}
-					atom={api.diagnostics.query(undefined, routeQueryOptions)}
-					location={() => ({ file: "Diagnostics", status: 200, view: "diagnostics" })}
-					render={(data) => <DiagnosticsPage data={data} />}
-				/>
-			);
+			return <DiagnosticsMain api={api} onPage={onPage} url={url} />;
 		case "respond":
 			return (
 				<ProjectionFrame

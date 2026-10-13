@@ -1,19 +1,51 @@
 import { useRouterState } from "@tanstack/react-router";
 import { Option } from "effect";
+import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
+import type { BrowserClient } from "#client/client.ts";
+import { AgeTicker } from "./Age.tsx";
 import { BoardMain } from "./BoardMain.tsx";
 import { Header } from "./Header.tsx";
+import { HistoryRetention } from "./HistoryRetention.tsx";
+import { LiveControls } from "./LiveControls.tsx";
 import { bootstrapPage, type MainLocation } from "./mainLocation.ts";
+import { ReadingLibrary } from "./ReadingLibrary.tsx";
+import { SearchDialog } from "./SearchDialog.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 import { Sidebar } from "./Sidebar.tsx";
 import { shellIds } from "./shellIds.ts";
+import { UpdatesToggle } from "./UpdatesToggle.tsx";
+import { useAppearance } from "./useAppearance.ts";
+import { useBoardNavigation } from "./useBoardNavigation.ts";
+import { useSidebar } from "./useSidebar.ts";
+import { VisualInspection } from "./VisualInspection.tsx";
 export interface ShellOptions {
 	readonly api: ShellApi;
+	readonly client?: BrowserClient;
 	readonly initial: string;
+	readonly reading?: unknown;
 	readonly ready?: () => void;
+	readonly registry: AtomRegistry.AtomRegistry;
 }
-export function BoardShell({ api, initial, ready }: ShellOptions) {
+export function BoardShell(options: ShellOptions) {
+	const { api, initial, ready, client } = options;
+	const appearance = useAppearance();
+	const sidebar = useSidebar(appearance);
+	const status = useBoardNavigation(options);
+	const [searchOpen, setSearchOpen] = useState(false);
+	const [libraryOpen, setLibraryOpen] = useState(false);
+	useEffect(() => {
+		function key(event: KeyboardEvent) {
+			if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
+				event.preventDefault();
+				setSearchOpen((open) => !open);
+			}
+		}
+		document.addEventListener("keydown", key);
+
+		return () => document.removeEventListener("keydown", key);
+	}, []);
 	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
@@ -31,14 +63,20 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 	);
 	useEffect(() => {
 		function start() {
-			if (document.getElementById("doc")?.dataset.route) {
+			const doc = document.getElementById("doc");
+			const context = doc?.querySelector<HTMLElement>(".item-context");
+			if (data && doc?.dataset.route && (!context || context.dataset.readingReady === "true")) {
 				ready?.();
 			}
 		}
 		start();
 		document.addEventListener("board-page", start);
-		return () => document.removeEventListener("board-page", start);
-	}, [ready]);
+		document.addEventListener("board-reading-ready", start);
+		return () => {
+			document.removeEventListener("board-page", start);
+			document.removeEventListener("board-reading-ready", start);
+		};
+	}, [ready, data]);
 	useEffect(() => {
 		function sync() {
 			const doc = document.getElementById("doc");
@@ -54,20 +92,53 @@ export function BoardShell({ api, initial, ready }: ShellOptions) {
 			document.dispatchEvent(new Event("board-index-change"));
 		}
 	}, [data]);
+	const live = client ? (
+		<LiveControls
+			client={client}
+			current={location.pathname + location.searchStr}
+			navigationFailed={Option.isSome(query.cause)}
+			navigationPending={query.pending}
+		/>
+	) : (
+		<span className="live" id={shellIds.live} role="status">
+			connecting
+		</span>
+	);
 	return (
-		<>
-			<a className="skip" href="#doc">
-				Skip to content
-			</a>
-			<div className="workspace">
-				<Sidebar data={data} home={location.pathname === "/"} main={main} />
-				<div className="sidebar-backdrop" hidden id={shellIds.sidebarBackdrop} />
-				<div className="page">
-					<Header count={data?.inboxCount ?? null} main={main} />
-					<BoardMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
+		<AgeTicker>
+			<ReadingLibrary close={() => setLibraryOpen(false)} data={data} open={libraryOpen}>
+				<a className="skip" href="#doc">
+					Skip to content
+				</a>
+				<div className="workspace">
+					<Sidebar controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
+					<button
+						aria-label="Close files"
+						className="sidebar-backdrop"
+						hidden={!(sidebar.narrow && sidebar.open)}
+						id={shellIds.sidebarBackdrop}
+						onClick={() => sidebar.close()}
+						type="button"
+					/>
+					<div className="page" inert={sidebar.narrow && sidebar.open}>
+						<Header
+							appearance={appearance}
+							count={data?.inboxCount ?? null}
+							live={live}
+							main={main}
+							openSearch={() => setSearchOpen(true)}
+							sidebar={sidebar}
+							status={status}
+							updates={client ? <UpdatesToggle client={client} /> : null}
+						/>
+						<BoardMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
+					</div>
 				</div>
-			</div>
-			{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
-		</>
+				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
+				{main.view !== "changes" && <HistoryRetention api={api} />}
+				<VisualInspection />
+				<SearchDialog api={api} appearance={appearance} close={() => setSearchOpen(false)} open={searchOpen} toggleSidebar={sidebar.toggle} />
+			</ReadingLibrary>
+		</AgeTicker>
 	);
 }

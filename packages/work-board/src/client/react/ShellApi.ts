@@ -10,6 +10,7 @@ export interface ShellApi {
 	readonly overview: Pick<BrowserClient["api"]["overview"], "query">;
 	readonly respond: Pick<BrowserClient["api"]["respond"], "query">;
 	readonly result: Pick<BrowserClient["api"]["result"], "query">;
+	readonly search: Pick<BrowserClient["api"]["search"], "query">;
 	readonly start: Pick<BrowserClient["api"]["start"], "query">;
 	readonly work: Pick<BrowserClient["api"]["work"], "query">;
 }

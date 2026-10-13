@@ -2,44 +2,10 @@ import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/unstable/http";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
-import { diagnosticsScript } from "#client/diagnostics/script.ts";
-import { historyScript } from "#client/history/script.ts";
-import { ageScript } from "#client/page/ageScript.ts";
-import { libraryScript } from "#client/page/libraryScript.ts";
-import { navigationScript } from "#client/page/navigationScript.ts";
-import { readingStateScript } from "#client/page/readingStateScript.ts";
-import { client, preferences } from "#client/page/runtime.ts";
-import { diagrams, swap } from "#client/page/scripts.ts";
-import { searchResultsScript } from "#client/page/searchResultsScript.ts";
-import { searchScript } from "#client/page/searchScript.ts";
-import { sidebarScript } from "#client/page/sidebarScript.ts";
-import { pageStateScript } from "#client/page/stateScript.ts";
-import { visualScript } from "#client/page/visualScript.ts";
-import { visualViewport } from "#client/page/visualViewport.ts";
-import { savedScript } from "#client/views/savedScript.ts";
 import { style } from "#server/page/style.ts";
 import { respond } from "./respond.ts";
 
-export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [
-	["/_board/style.css", style, "text/css"],
-	["/_board/diagnostics.js", diagnosticsScript(), "text/javascript"],
-	["/_board/visuals.js", visualScript(), "text/javascript"],
-	["/_board/visual-viewport.js", visualViewport(), "text/javascript"],
-	["/_board/saved-views.js", savedScript(), "text/javascript"],
-	["/_board/client.js", client, "text/javascript"],
-	["/_board/ages.js", ageScript(), "text/javascript"],
-	["/_board/history.js", historyScript(), "text/javascript"],
-	["/_board/preferences.js", preferences, "text/javascript"],
-	["/_board/search.js", searchScript(), "text/javascript"],
-	["/_board/search-results.js", searchResultsScript(), "text/javascript"],
-	["/_board/sidebar.js", sidebarScript(), "text/javascript"],
-	["/_board/library.js", libraryScript(), "text/javascript"],
-	["/_board/navigation.js", navigationScript(), "text/javascript"],
-	["/_board/page-state.js", pageStateScript(), "text/javascript"],
-	["/_board/reading-state.js", readingStateScript(), "text/javascript"],
-	["/_board/diagrams.js", diagrams, "text/javascript"],
-	["/_board/swap.js", swap, "text/javascript"],
-];
+export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [["/_board/style.css", style, "text/css"]];
 
 const MERMAID = "/_board/mermaid/";
 
