@@ -1,3 +1,4 @@
+import { act } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
@@ -39,8 +40,10 @@ export function answerInput(name: string, value?: string) {
 		throw new Error(`Missing ${name}`);
 	}
 	if (value !== undefined) {
-		input.value = value;
-		input.dispatchEvent(new Event("input", { bubbles: true }));
+		act(() => {
+			input.value = value;
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 	}
 	return input;
 }
@@ -49,7 +52,7 @@ export function responseClick(id: string) {
 	if (!(button instanceof HTMLButtonElement)) {
 		throw new Error(`Missing ${id}`);
 	}
-	button.click();
+	act(() => button.click());
 }
 
 export function answerPrompt(prompt: string, value?: string) {
@@ -58,8 +61,10 @@ export function answerPrompt(prompt: string, value?: string) {
 		throw new Error(`Missing ${prompt}`);
 	}
 	if (value !== undefined) {
-		input.value = value;
-		input.dispatchEvent(new Event("input", { bubbles: true }));
+		act(() => {
+			input.value = value;
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		});
 	}
 	return input;
 }

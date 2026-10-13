@@ -5,6 +5,7 @@ import { AnswerRecovery } from "./answerRecovery.ts";
 export function responseFormSchema(hasPrompts: boolean) {
 	return Schema.Struct({
 		...DraftInput.fields,
+		answerContext: Schema.optional(Schema.String),
 		body: hasPrompts ? DraftInput.fields.body : DraftInput.fields.body.check(Schema.isMinLength(1)),
 		recovery: Schema.optionalKey(AnswerRecovery),
 		revision: Revision,

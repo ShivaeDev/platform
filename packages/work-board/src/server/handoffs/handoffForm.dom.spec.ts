@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 
 const SOURCE = "---\nid: task.focus\nkind: task\nnext_action: Inspect focus\n---\n# Focus\n\nReviewed source.\n";
@@ -58,7 +59,7 @@ it.live("preserves the owned handoff draft on live reads and requires preview af
 	notes.write("unrelated.md", "# Another file\n");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("files")?.textContent).toContain("unrelated")));
 	expect(page.document.querySelector('[name="goal"]')).toBe(goal);
-	click("handoff-preview");
+	yield* formEvent(page, () => click("handoff-preview"));
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 	notes.write("item.md", SOURCE.replace("Reviewed source.", "Changed premise."));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".response-context")?.textContent).toContain("Changed premise")));
@@ -70,12 +71,15 @@ it.live("prepares through native commands and retains the selected manual-copy p
 	yield* open(true);
 	input("recipient", "agent-local");
 	input("goal", "Fix focus");
-	click("handoff-preview");
-	page.document.getElementById("handoff-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () => click("handoff-preview"));
+	yield* formEvent(page, () =>
+		page.document.getElementById("handoff-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-status")?.textContent).toContain("Prepared:")));
 	expect(page.document.getElementById("handoff-status")?.textContent).toContain("execution and acceptance remain separate");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#handoff-prepared [data-handoff-copy]")).not.toBeNull()));
 	const button = page.document.querySelector("#handoff-prepared [data-handoff-copy]");
-	button?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
+	yield* formEvent(page, () => button?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })));
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.querySelector("#handoff-prepared [data-copy-status]")?.textContent).toContain("selected")),
 	);
@@ -95,11 +99,13 @@ it.live("uses native navigation and restores a handoff draft across Back without
 	yield* Effect.promise(() => waitFor(() => expect(page.window.history.state).toHaveProperty("workBoard.id")));
 	page.document.body.dataset.visit = "kept";
 	const link = page.document.querySelector('#files a[href="/item.md"]');
-	link?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
+	yield* formEvent(page, () => link?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true })));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('a[href="/_board/handoff?item=task.focus"]')).not.toBeNull()));
-	page.document
-		.querySelector('a[href="/_board/handoff?item=task.focus"]')
-		?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
+	yield* formEvent(page, () =>
+		page.document
+			.querySelector('a[href="/_board/handoff?item=task.focus"]')
+			?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true })),
+	);
 	yield* Effect.promise(() => waitFor(() => expect(fieldValue("goal")).toBe("Retain this direction across navigation")));
 	expect(page.document.body.dataset.visit).toBe("kept");
 	expect(fieldValue("goal")).toBe("Retain this direction across navigation");

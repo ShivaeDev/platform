@@ -1,3 +1,4 @@
+import { act } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { expectNoReactWarnings, render } from "@shivaedev/effect-react/testing.ts";
 import { formDraft } from "#client/formDraft.ts";
@@ -25,7 +26,7 @@ function draftKey() {
 	if (!(form instanceof HTMLFormElement)) {
 		throw new Error("Missing form");
 	}
-	return formDraft(form, "response").key;
+	return formDraft("response", form.dataset.item ?? "", form.dataset.request).key;
 }
 function stored() {
 	return window.localStorage.getItem(draftKey());
@@ -35,7 +36,6 @@ function recovery() {
 }
 async function unmount(view: Awaited<ReturnType<typeof render>>) {
 	await view.unmount();
-	document.dispatchEvent(new Event("board-page"));
 }
 it("keeps questionnaire input and storage size stable through repeated revised-context remounts before preview", async () => {
 	const text = "Direction in progress. ".repeat(300);
@@ -129,6 +129,44 @@ it("retains existing recovery strings without copying their duplicate snapshots"
 		expect(recovery().match(/Earlier template answers/gu)).toHaveLength(1);
 		expect(recovery()).toContain("Older unrelated answer");
 		expect(new TextEncoder().encode(stored() ?? "").byteLength).toBeLessThan(new TextEncoder().encode(legacy).byteLength);
+	} finally {
+		await unmount(view);
+	}
+});
+
+it("retains new choices made against changed source through preview and reload", async () => {
+	const choices = [{ id: "direction", mode: "one" as const, options: [{ id: "local", source: "Keep local" }], source: "Which direction?" }];
+	const view = await render(answerDraft(answerPreview, 0, choices));
+	function select() {
+		const input = document.querySelector<HTMLInputElement>('[value="local"]');
+		if (!input) {
+			throw new Error("Missing choice");
+		}
+		act(() => {
+			input.checked = true;
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+	}
+	try {
+		answerInput("author", "reviewer");
+		select();
+		await view.render(answerDraft(revised, 0, choices));
+		expect(document.querySelector('[value="local"]')).toHaveProperty("checked", false);
+		select();
+		expect(document.querySelector('[value="local"]')).toHaveProperty("checked", true);
+		expect(document.getElementById("response-status")?.textContent).toContain("Source changed");
+		answerPrompt("direction", "A revised rationale");
+		responseClick("preview");
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
+		act(() => {
+			answerPrompt("direction").focus();
+			answerPrompt("direction").setSelectionRange(3, 7, "backward");
+		});
+		await view.render(answerDraft(revised, 1, choices));
+		expect(answerPrompt("direction").value).toBe("A revised rationale");
+		expect(document.activeElement).toBe(answerPrompt("direction"));
+		expect([answerPrompt("direction").selectionStart, answerPrompt("direction").selectionEnd]).toEqual([3, 7]);
+		expect(document.querySelector('[value="local"]')).toHaveProperty("checked", true);
 	} finally {
 		await unmount(view);
 	}

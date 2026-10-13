@@ -6,6 +6,7 @@ import type { OpenPage } from "#test/browser.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { enterField } from "#test/enterField.ts";
 import { silentWatch } from "#test/faults.ts";
+import { formEvent } from "#test/formEvent.ts";
 import { openLive, waitFor } from "#test/live.ts";
 
 let notes: Folder;
@@ -21,12 +22,16 @@ it.live("retains the response draft and exposes the precise real HTTP rejection 
 	board = yield* startBoard(notes.root, undefined, silentWatch, true);
 	page = yield* openLive(board, "/_board/respond?item=item.edge&request=direction");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-preview")?.hasAttribute("disabled")).toBe(false)));
-	enterField(page, "author", "reviewer");
+	yield* formEvent(page, () => enterField(page, "author", "reviewer"));
 	const body = enterField(page, "body", "Retain these conditions.");
-	page.document.getElementById("response-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })),
+	);
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	notes.write("item.md", `${EDGE_ATTENTION_SOURCE}Changed context.\n`);
-	page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.getAttribute("data-outcome")).toBe("rejected")));
 	expect(page.document.getElementById("response-status")?.textContent).toBe(
 		"Rejected: PreconditionFailed: Source changed since review. Read it again before registering this question.. Draft retained. Preview and retry with the same identity; saved content will be reconciled.",
@@ -39,9 +44,11 @@ it.live("retains handoff direction and requires a fresh preview when source chan
 	board = yield* startBoard(notes.root, undefined, undefined, true);
 	page = yield* openLive(board, "/_board/handoff?item=item.edge");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("handoff-preview")?.hasAttribute("disabled")).toBe(false)));
-	enterField(page, "recipient", "agent-local");
-	enterField(page, "goal", "Retain this direction.");
-	page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
+	yield* formEvent(page, () => enterField(page, "recipient", "agent-local"));
+	yield* formEvent(page, () => enterField(page, "goal", "Retain this direction."));
+	yield* formEvent(page, () =>
+		page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })),
+	);
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 	notes.write("item.md", `${EDGE_ATTENTION_SOURCE}Changed context.\n`);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".response-context")?.textContent).toContain("Changed context.")));
@@ -51,6 +58,8 @@ it.live("retains handoff direction and requires a fresh preview when source chan
 	);
 	expect(page.document.querySelector('[name="goal"]')).toHaveProperty("value", "Retain this direction.");
 	expect(page.document.querySelector('[name="recipient"]')).toHaveProperty("value", "agent-local");
-	page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
+	yield* formEvent(page, () =>
+		page.document.getElementById("handoff-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true })),
+	);
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
 });
