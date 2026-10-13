@@ -3,7 +3,7 @@ import { Config, Effect, Schema } from "effect";
 import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/localPostgres.ts";
 
 const { name } = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ name: Schema.String })))(
-	readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+	readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
 );
 const database = (name.split("/").at(-1) ?? name)
 	.replaceAll(/[.-]/gu, "_")

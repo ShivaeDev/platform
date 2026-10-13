@@ -34,10 +34,11 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(manifest.scripts["check:published"]).toBeUndefined();
 	expect(manifest.scripts.lint).toBe("quality lint");
 	expect(manifest.scripts.format).toBe("quality fix");
-	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local script/setup-database.ts");
+	expect(manifest.scripts["db:setup"]).toBe("node --env-file-if-exists=.env.local src/server/setup-database.ts");
+	expect(files["script/setup-database.ts"]).toBeUndefined();
 	expect(manifest.scripts.dev).toBe("pnpm db:setup && node --env-file-if-exists=.env.local src/server/dev.ts");
 	expect(manifest.scripts.test).toBe("node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run");
-	expect(manifest.devDependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
+	expect(manifest.dependencies["@shivaedev/local-postgres"]).toBe(versions["@shivaedev/local-postgres"]);
 	expect(manifest.devDependencies["@shivaedev/quality"]).toBe(versions["@shivaedev/quality"]);
 	expect(files["quality.config.ts"]).toBeUndefined();
 	expect(files["quality/baseline.jsonl"]).toBeUndefined();
@@ -53,6 +54,7 @@ it("packages the real starter with registry dependencies, standalone configurati
 	expect(files["pnpm-workspace.copy.yaml"]).toBeUndefined();
 	for (const path of [
 		".env.example",
+		"src/server/setup-database.ts",
 		"src/server/starterHost.test.ts",
 		"src/server/committedJobs.spec.ts",
 		"src/server/notesMigration.spec.ts",
