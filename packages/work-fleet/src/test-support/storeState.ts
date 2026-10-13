@@ -1,8 +1,10 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Schema } from "effect";
 import * as Reactivity from "effect/unstable/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordColumns, recordInput, recordModel } from "#storage/model.ts";
 
@@ -33,7 +35,7 @@ export function storeState(host: FleetHost, workId: string, payload: Readonly<Re
 				} else {
 					yield* repository.updateVoid({ ...previous[0], ...input });
 				}
-				yield* invalidateOnCommit([`${host.namespace}_records`]);
+				yield* invalidateOnCommit(invalidationKeys([fleetRecords.item(workId), fleetRecords.list]));
 			}),
 			{ onSqlError: (error) => error },
 		).pipe(Effect.provideService(Reactivity.Reactivity, reactivity), Effect.provide(hostSql(host)));

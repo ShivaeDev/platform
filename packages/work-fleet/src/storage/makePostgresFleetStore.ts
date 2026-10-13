@@ -1,6 +1,7 @@
 import { Effect, Array as EffectArray, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
 import { StorageConflict } from "#storage/errors.ts";
@@ -83,7 +84,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}
 		return yield* commit(
-			records,
+			[fleetRecords.item(workId), fleetRecords.list],
 			Effect.gen(function* () {
 				yield* lock;
 				const entry = yield* loadEntry(workId);
@@ -111,7 +112,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			write(workId, expectedVersion, record, limits),
 		foreignReservations,
 		hasLaunchRetry: () => rows.findMany({ select: ["launchRetry"] }).pipe(Effect.map((entries) => entries.some((row) => row.launchRetry !== null))),
-		initialize: () => commit(records, migrateFleet(namespace)),
+		initialize: () => commit([fleetRecords.list], migrateFleet(namespace)),
 		insert: (record: TSchema["Type"], limits?: AdmissionLimits) => write(record.workId, null, record, limits),
 		list,
 		load,
@@ -121,7 +122,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				.pipe(Effect.flatMap((entries) => operationEntries(entries, operationId))),
 		releaseForeign: (owner: string) =>
 			commit(
-				foreign,
+				[fleetRecords.list],
 				Effect.gen(function* () {
 					yield* lock;
 					yield* reservations.delete(owner);
@@ -129,7 +130,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			),
 		reserveForeign: (owner: string, occupancy: { readonly executing: boolean; readonly backlog: boolean } = { backlog: true, executing: true }) =>
 			commit(
-				foreign,
+				[fleetRecords.list],
 				Effect.gen(function* () {
 					yield* lock;
 					const existing = yield* reservations.findMany({ where: { owner } });
