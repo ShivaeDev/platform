@@ -23,17 +23,12 @@ function runner(failedCommand?: string) {
 	};
 }
 
-it("runs the generated app's quality lint without flags before its build and runtime checks", async () => {
+it("runs the generated app's quality lint without flags and its full test suite", async () => {
 	const check = runner();
 	await check.run();
 	assert.deepEqual(
 		check.commands.map((command) => command.args),
-		[
-			["exec", "quality", "lint"],
-			["run", "typecheck"],
-			["run", "build"],
-			["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts", "src/server/notesMigration.spec.ts"],
-		],
+		[["exec", "quality", "lint"], ["run", "typecheck"], ["run", "build"], ["test"]],
 	);
 	for (const command of check.commands) {
 		assert.equal(command.command, "pnpm");

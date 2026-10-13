@@ -4,12 +4,7 @@ import { requireThat } from "#package-check/io.ts";
 
 export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: string, database: string) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	for (const args of [
-		["exec", "quality", "lint"],
-		["run", "typecheck"],
-		["run", "build"],
-		["test", "src/server/starterHost.test.ts", "src/server/committedJobs.spec.ts", "src/server/notesMigration.spec.ts"],
-	]) {
+	for (const args of [["exec", "quality", "lint"], ["run", "typecheck"], ["run", "build"], ["test"]]) {
 		yield* Effect.log(`Generated starter: pnpm ${args.join(" ")}`);
 		const code = yield* spawner.exitCode(
 			ChildProcess.make("pnpm", args, {

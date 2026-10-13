@@ -38,7 +38,7 @@ it("shares the route query, validates the form, retains a rejected title and ref
 	expect(view.container.querySelector("input")?.value).toBe("reserved");
 	await enter("First note");
 	await submit();
-	await eventually(() => expect(view.container.querySelector("li > p")?.textContent).toBe("First note"));
+	await eventually(() => expect(view.container.querySelector("li > a")?.textContent).toBe("First note"));
 	expect(view.container.querySelector("input")?.value).toBe("");
 	expect(view.container.querySelector("[role=alert]")).toBeNull();
 	expect(client.calls).toEqual(["list", "create", "list"]);

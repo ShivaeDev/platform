@@ -49,7 +49,9 @@ effectApp(
 		expect(yield* sql`select "wordCount" from starter_notes where id = ${note.id}`).toEqual([{ wordCount: null }]);
 		yield* Layer.build(noteWorker({ databaseUrl: database.url, secret: Redacted.make("starter-test-secret-with-at-least-32-characters") }));
 		yield* Effect.promise(() =>
-			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, wordCount: 4 }]), { timeout: 5000 }),
+			vi.waitFor(() => expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([{ ...note, version: 1, wordCount: 4 }]), {
+				timeout: 5000,
+			}),
 		);
 		const second = yield* Effect.gen(function* () {
 			const service = yield* NotesService;
@@ -64,8 +66,8 @@ effectApp(
 			vi.waitFor(
 				() =>
 					expect(AsyncResult.getOrElse(registry.get(list), () => [])).toEqual([
-						{ id: second.id, title: second.title, wordCount: 2 },
-						{ ...note, wordCount: 4 },
+						{ id: second.id, title: second.title, version: 1, wordCount: 2 },
+						{ ...note, version: 1, wordCount: 4 },
 					]),
 				{ timeout: 5000 },
 			),

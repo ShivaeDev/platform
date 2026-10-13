@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/create-app",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "Create and install a Platform application from the maintained starter",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/create-app#readme",
 	"bugs": {

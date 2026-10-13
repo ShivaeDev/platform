@@ -5,16 +5,26 @@ import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	title: Schema.NonEmptyString,
+	version: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	wordCount: Schema.NullOr(Schema.Number),
 }) {}
 export const NoteFields = Schema.Struct({ title: Note.fields.title });
+export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version: Note.fields.version });
+const NoteId = Schema.Struct({ id: Schema.Number });
+const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("starterNotes", Schema.Number);
+export const Get = query("get", {
+	payload: NoteId,
+	reads: ({ id }) => [notes.item(id), notes.list],
+	rejections: { NotFound, ServiceUnavailable },
+	success: Note.json,
+});
 export const List = query("list", {
 	reads: () => [notes.list],
 	rejections: { ServiceUnavailable },
@@ -30,4 +40,16 @@ export const Subscribe = stream("subscribe", {
 	reads: () => [notes.list],
 	success: LiveHint,
 });
-export const Notes = contract("notes", { commands: [Create], queries: [List], streams: [Subscribe] }).middleware(Authenticated);
+export const Update = command("update", {
+	invalidates: ({ id }) => [notes.item(id)],
+	payload: Schema.Struct({ ...NoteId.fields, ...NoteEditFields.fields }),
+	rejections: { Conflict, Invalid: fieldRejection(NoteEditFields), NotFound, ServiceUnavailable },
+	success: Note.json,
+});
+export const Delete = command("delete", {
+	invalidates: ({ id }) => [notes.item(id)],
+	payload: NoteVersion,
+	rejections: { Conflict, NotFound, ServiceUnavailable },
+	success: Schema.Void,
+});
+export const Notes = contract("notes", { commands: [Create, Update, Delete], queries: [List, Get], streams: [Subscribe] }).middleware(Authenticated);
