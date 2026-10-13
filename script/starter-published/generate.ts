@@ -8,7 +8,21 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	temporary: string,
 	archive?: string,
 	tarballs: Readonly<Record<string, string>> = {},
+	registryVersion?: string,
 ) {
+	if (registryVersion !== undefined) {
+		yield* Effect.log(`Generating and installing the starter with pnpm create @shivaedev/app@${registryVersion}.`);
+		yield* Effect.log(
+			yield* command(temporary, "env", [
+				"npm_config_registry=https://registry.npmjs.org",
+				"pnpm",
+				"create",
+				`@shivaedev/app@${registryVersion}`,
+				"starter",
+			]),
+		);
+		return;
+	}
 	const fs = yield* FileSystem.FileSystem;
 	const packed = archive === undefined ? join(temporary, "create-app.tgz") : resolve(root, archive);
 	if (archive === undefined) {

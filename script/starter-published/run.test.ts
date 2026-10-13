@@ -7,14 +7,14 @@ import { runStarter } from "./run.ts";
 const CWD = "/tmp/generated-starter";
 const DATABASE = "postgres://localhost/starter-test";
 
-function runner(lintExit: number) {
+function runner(failedCommand?: string) {
 	const commands: ChildProcess.StandardCommand[] = [];
 	const spawner = {
 		...ChildProcessSpawner.make(() => Effect.die("Unexpected spawn")),
 		exitCode: (command: ChildProcess.Command) => {
 			assert.ok(ChildProcess.isStandardCommand(command));
 			commands.push(command);
-			return Effect.succeed(ChildProcessSpawner.ExitCode(command.args.includes("lint") ? lintExit : 0));
+			return Effect.succeed(ChildProcessSpawner.ExitCode(command.args.includes(failedCommand ?? "") ? 1 : 0));
 		},
 	};
 	return {
@@ -24,7 +24,7 @@ function runner(lintExit: number) {
 }
 
 it("runs the generated app's quality lint without flags before its build and runtime checks", async () => {
-	const check = runner(0);
+	const check = runner();
 	await check.run();
 	assert.deepEqual(
 		check.commands.map((command) => command.args),
@@ -38,11 +38,15 @@ it("runs the generated app's quality lint without flags before its build and run
 	for (const command of check.commands) {
 		assert.equal(command.command, "pnpm");
 		assert.equal(command.options.cwd, CWD);
+		assert.equal(command.options.env?.TEST_DATABASE_URL, DATABASE);
+		assert.equal(command.options.env?.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL, DATABASE);
 	}
 });
 
-it("fails the published-starter runner immediately when quality lint fails", async () => {
-	const check = runner(1);
-	await assert.rejects(check.run(), /Generated starter: pnpm exec quality lint failed \(exit 1\)/u);
-	assert.equal(check.commands.length, 1);
-});
+for (const [index, name] of ["lint", "typecheck", "build", "test"].entries()) {
+	it(`fails the published-starter runner immediately when ${name} fails`, async () => {
+		const check = runner(name);
+		await assert.rejects(check.run(), /Generated starter: pnpm .* failed \(exit 1\)/u);
+		assert.equal(check.commands.length, index + 1);
+	});
+}
