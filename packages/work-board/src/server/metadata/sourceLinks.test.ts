@@ -15,9 +15,11 @@ it("resolves nested/encoded Markdown and root routes without treating external o
 
 it("resolves stable source URLs without confusing a .md ID with a Markdown path or choosing duplicate IDs", () => {
 	const first = { file: "actual.md", parsed: metadataParse("---\nid: source.md\n---\n# Source") };
-	const model = metadataModel([first]);
+	const model = metadataModel([first, { file: "_board/item/source.md", parsed: metadataParse("# Colliding file") }]);
 	expect(sourceFile("/_board/item/source.md/", "result.md", model)).toBe("actual.md");
-	expect(sourceFile("/_board/item/source.md", "result.md", model)).toBe("_board/item/source.md");
+	expect(sourceFile("/_board/item/source.md", "result.md", model)).toBe("actual.md");
+	expect(sourceFile("/_board/item/source%2Emd", "result.md", model)).toBe("actual.md");
+	expect(sourceFile("/_board/item/missing.md", "result.md", model)).toBeUndefined();
 	expect(referenceFile("source.md", metadataModel([first, { ...first, file: "other.md" }]))).toBeUndefined();
 	expect(referenceFile("source.md", metadataModel([first], ["unreadable.md"]))).toBeUndefined();
 });

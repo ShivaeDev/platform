@@ -161,15 +161,16 @@ effectApp("escapes metadata text and leaves executable evidence URLs as plain te
 	expect(result.body).not.toContain('href="javascript:');
 });
 
-effectApp("keeps Markdown paths under the reserved prefix readable, including IDs ending in .md", function* () {
+effectApp("selects .md identities over colliding Markdown paths with either trailing-slash form", function* () {
 	notes.write("_board/item/source.md", "# A regular file under the route prefix");
 	notes.write("named.md", "---\nid: source.md\n---\n# An explicitly identified item");
-	const file = yield* rawGet(board, "/_board/item/source.md");
-	expect(file.body).toContain("A regular file under the route prefix");
-	expect((yield* rawGet(board, "/_board/item/source%2Emd")).body).toContain("A regular file under the route prefix");
-	const item = yield* rawGet(board, "/_board/item/source.md/");
-	expect(item.body).toContain("An explicitly identified item");
-	expect(item.body).toContain('data-identity="source.md"');
+	for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"]) {
+		const item = yield* rawGet(board, url);
+		expect(item.status).toBe(200);
+		expect(item.body).toContain("An explicitly identified item");
+		expect(item.body).toContain('data-identity="source.md"');
+		expect(item.body).not.toContain("A regular file under the route prefix");
+	}
 });
 
 effectApp("does not retarget an item URL when its source identity changes between index and page reads", function* () {

@@ -4,4 +4,6 @@ import { pageKeys } from "./pageKeys.ts";
 
 it.each(["", "/"])("tracks the same item identity with trailing suffix '%s'", (slash) => {
 	expect(pageKeys(`/_board/item/task.fixture${slash}`)).toEqual([workspace.list, identities.item("task.fixture")]);
+	expect(pageKeys(`/_board/item/source.md${slash}`)).toEqual([workspace.list, identities.item("source.md")]);
+	expect(pageKeys(`/_board/item/source%2Emd${slash}`)).toEqual([workspace.list, identities.item("source.md")]);
 });
