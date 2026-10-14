@@ -23,7 +23,7 @@ it.live.each([1440, 390])("keeps Inbox rows and live navigation counts in agreem
 	});
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.getAttribute("data-state")).toBe("live")));
 	function counts(total: number) {
-		expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(total);
+		expect(page.document.querySelectorAll(".inbox-list .inbox-row")).toHaveLength(total);
 		for (const id of ["inbox-count", "inbox-topbar-count"]) {
 			expect(page.document.getElementById(id)?.textContent).toBe(String(total));
 			expect(page.document.getElementById(id)?.getAttribute("aria-label")).toBe(`${total} waiting`);

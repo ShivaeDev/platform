@@ -13,12 +13,13 @@ function hasAnswer(question: Question, model: MetadataModel): boolean {
 	return responseIndex(model).responsesFor(question).answered;
 }
 
-export function answeredQuestion(document: MetadataDocument, model: MetadataModel): boolean {
+export function answeredQuestion(document: MetadataDocument, model: MetadataModel, request?: string): boolean {
 	return responseIndex(model)
 		.questionsFor(document.parsed.fields.id ?? "")
 		.some(
 			(question) =>
 				question.question.item === document.parsed.fields.id
+				&& (request === undefined || question.question.request === request)
 				&& model.ids.get(question.id)?.length === 1
 				&& currentSource(question, document)
 				&& hasAnswer(question, model),

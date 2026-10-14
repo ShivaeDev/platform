@@ -1,14 +1,17 @@
 import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { pendingQuestions } from "./questionState.ts";
-import { type AttentionEntry, attentionRequests, isMaintainerRequest } from "./requests.ts";
+import { answeredQuestion } from "./questionState.ts";
+import { type AttentionEntry, attentionRequests } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
 
+function activeKey(entry: AttentionEntry, ids: readonly string[], maintainer = "maintainer"): string {
+	const audience = entry.request.responseFrom.includes(maintainer) ? "you" : "agents";
+	return JSON.stringify([audience, audience === "agents" ? [...entry.request.responseFrom].sort() : [], ids]);
+}
+
 export function requestInbox(snapshot: Snapshot) {
-	const pending = new Set(pendingQuestions(snapshot).map((item) => item.href));
 	const entries = attentionRequests(snapshot).entries.filter(
-		(entry) =>
-			isMaintainerRequest(entry.request, snapshot.maintainer) && (entry.request.managed || pending.has(responseUrl(entry.itemId, entry.request.id))),
+		(entry) => entry.request.managed || !answeredQuestion(entry.document, snapshot.model, entry.request.id),
 	);
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	function targets(entry: AttentionEntry) {
@@ -25,6 +28,7 @@ export function requestInbox(snapshot: Snapshot) {
 			modified: snapshot.modified.get(entry.document.file),
 			problem: undefined,
 			reason: entry.request.managed ? `Managed decision: ${entry.request.reason}` : entry.request.reason,
+			responseFrom: entry.request.responseFrom,
 			title: (target ? titles.get(target.file) : undefined) ?? entry.title,
 		};
 	}
@@ -47,7 +51,7 @@ export function requestInbox(snapshot: Snapshot) {
 		} else if (entry.request.managed && documents.length === ids.length && documents.every(deferredItem)) {
 			parked.push(item);
 		} else {
-			const key = JSON.stringify(ids);
+			const key = activeKey(entry, ids, snapshot.maintainer);
 			item.earlierAsks = (active.get(key)?.earlierAsks ?? -1) + 1;
 			active.set(key, item);
 		}

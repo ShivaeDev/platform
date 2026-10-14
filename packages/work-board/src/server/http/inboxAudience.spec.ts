@@ -28,7 +28,7 @@ it.live.each([true, false])("filters managed=%s and registered questions without
 		const inbox = (yield* rawGet(board, "/_board/inbox")).body;
 		expect(inbox).toContain("2 waiting");
 		expect(inbox).toContain('aria-label="2 waiting">2</span>');
-		const list = inbox.slice(inbox.indexOf('<section class="inbox-list"'));
+		const list = inbox.slice(inbox.indexOf('<section class="inbox-list"'), inbox.indexOf("</section>", inbox.indexOf('<section class="inbox-list"')));
 		expect(list).toContain("Question for reader");
 		expect(list).toContain("Where should the project documents live?");
 		expect(list).not.toContain("Question for orchestrator");

@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
 import { inboxSnapshot } from "#test/inboxFixture.ts";
 import { inboxItems } from "./inbox.ts";
+import { attentionProjection } from "./projection.ts";
 
 it("includes requests naming the maintainer among several responders and unaddressed questions", () => {
 	const files = inboxAudienceFixture();
@@ -23,7 +24,8 @@ it("does not reintroduce another responder's managed request through identity pr
 	const missing = inboxSnapshot({ ...files, "orchestrator.md": files["orchestrator.md"]?.replace("id: decision.orchestrator\n", "") ?? "" });
 	expect(inboxItems(missing).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
 	const readerDuplicate = inboxSnapshot({ ...files, "duplicate.md": files["reader.md"] ?? "" });
-	expect(inboxItems(readerDuplicate).filter((item) => item.id === "decision.reader")).toHaveLength(2);
+	expect(attentionProjection(readerDuplicate).issues.filter((issue) => issue.message.includes("Duplicate"))).toHaveLength(2);
+	expect(inboxItems(readerDuplicate).filter((item) => item.id === "decision.reader")).toHaveLength(0);
 });
 
 it("filters addressed authored questions before their generic waiting reason", () => {

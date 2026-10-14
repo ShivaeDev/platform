@@ -21,7 +21,7 @@ it("collects human-owned next actions, open questions, needs-human work and mana
 
 it("excludes closed questions, automation labels and missing actions while disclosing ambiguous identities", () => {
 	const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: open", "status: closed") };
-	for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot"]) {
+	for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
 		files["owner.md"] = `---\nid: task.review\nowner: ${owner}\nnext_action: Continue\n---\n# Work`;
 		expect(inboxItems(inboxSnapshot(files)).some((item) => item.id === "task.review")).toBe(false);
 	}

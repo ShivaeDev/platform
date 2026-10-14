@@ -32,14 +32,18 @@ const InboxItem = Schema.Struct({
 	modified: Schema.optional(Schema.Number),
 	problem: Schema.optional(Schema.String),
 	reason: Schema.String,
+	responseFrom: Schema.optional(Schema.Array(Schema.String)),
 	title: Schema.String,
 });
 export const InboxProjection = Schema.Struct({
+	agents: Schema.Array(InboxItem),
 	complete: Schema.Boolean,
+	issues: Schema.Array(Schema.Struct({ file: Schema.String, line: Schema.Number, message: Schema.String })),
 	items: Schema.Array(InboxItem),
 	parked: Schema.Array(InboxItem),
 	resolved: Schema.Array(InboxItem),
 	sourceIssues: Schema.Boolean,
+	you: Schema.Array(InboxItem),
 });
 export type InboxProjection = typeof InboxProjection.Type;
 export const OverviewProjection = Schema.Struct({

@@ -3,12 +3,12 @@ import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { answeredQuestion, pendingQuestions } from "./questionState.ts";
+import { answeredQuestion } from "./questionState.ts";
 import { requestInbox } from "./requestInbox.ts";
 import { isMaintainerRequest } from "./requests.ts";
 import { closedItem } from "./status.ts";
 
-const automation = /^(?:codex|claude|fleet|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
+const automation = /^(?:codex|claude|fleet|orchestrator|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
 
 export function openItem(document: MetadataDocument): boolean {
 	return !closedItem(document);
@@ -55,16 +55,6 @@ function identityProblem(document: MetadataDocument, model: MetadataModel): stri
 	return model.ids.get(id)?.length === 1 ? undefined : `Duplicate item ID: ${id}`;
 }
 
-function unresolvedReason(document: MetadataDocument, problem: string | undefined, maintainer: string | undefined): string | undefined {
-	if (!problem) {
-		return undefined;
-	}
-	const requests =
-		document.parsed.fields.attention?.filter((request) => request.managed && request.state === "open" && isMaintainerRequest(request, maintainer))
-		?? [];
-	return requests.length > 0 ? `Managed decision: ${requests.map((request) => request.reason).join("; ")}` : undefined;
-}
-
 function inboxTarget(document: MetadataDocument, problem: string | undefined): string {
 	if (problem) {
 		return fileUrl(document.file);
@@ -80,20 +70,19 @@ export function inboxItems(snapshot: Snapshot) {
 	}
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	const requests = requestInbox(snapshot);
-	const pending = pendingQuestions(snapshot).filter((item) => !requests.files.has(item.document.file));
-	const pendingLinks = new Map(pending.map((item) => [item.document.file, item.href]));
+	const you = requests.items.filter((item) => item.responseFrom.includes(snapshot.maintainer ?? "maintainer"));
 	const direct = snapshot.documents.flatMap((document) => {
 		if (requests.files.has(document.file)) {
 			return [];
 		}
 		const id = document.parsed.fields.id;
 		const problem = identityProblem(document, snapshot.model);
-		const reason = waitingReason(document, snapshot.model, snapshot.maintainer) ?? unresolvedReason(document, problem, snapshot.maintainer);
+		const reason = waitingReason(document, snapshot.model, snapshot.maintainer);
 		return reason
 			? [
 					{
 						document,
-						href: pendingLinks.get(document.file) ?? inboxTarget(document, problem),
+						href: inboxTarget(document, problem),
 						id: id ?? document.file,
 						problem,
 						reason,
@@ -102,12 +91,10 @@ export function inboxItems(snapshot: Snapshot) {
 				]
 			: [];
 	});
-	const ordinary = [
-		...new Map([...pending.map((item) => ({ ...item, problem: undefined })), ...direct].map((item) => [item.document.file, item])).values(),
-	]
-		.filter((item) => item.problem || !requests.items.some((ask) => ask.id === item.id))
+	const ordinary = direct
+		.filter((item) => item.problem || !you.some((ask) => ask.id === item.id))
 		.map((item) => ({ ...item, earlierAsks: 0, modified: snapshot.modified.get(item.document.file) }));
-	return [...ordinary, ...requests.items].sort((left, right) => (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id));
+	return [...ordinary, ...you].sort((left, right) => (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id));
 }
 
 export function fleetRecords(model: MetadataModel): ReadonlySet<string> {
