@@ -6,6 +6,7 @@ import type { DecisionCode } from "#DecisionCode.ts";
 import { releaseOnly } from "#engine/releaseOnly.ts";
 import { Fleet } from "#fleet.ts";
 import { backlog, executing, type FleetRecord } from "#model.ts";
+import { exhaustReadRetries } from "#test/exhaustReadRetries.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
 import { recoveryCases } from "#test/recoveryCases.ts";
@@ -28,6 +29,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	action: "retry" | "release",
 ) {
 	yield* scenario.enter(context);
+	yield* exhaustReadRetries(context.fixture);
 	const fleet = yield* Fleet;
 	const stopped = (yield* fleet.get("one")).value;
 	const submissionCalls = context.fixture.settings.length;

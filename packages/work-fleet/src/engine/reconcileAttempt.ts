@@ -14,7 +14,7 @@ export function reconcileAttempt({ sessions, policy, board }: EngineState) {
 		return yield* sessions.reconcile({
 			operationId: attempt.operationId,
 			sessionId: attempt.sessionId,
-			...(prompt === undefined || !authorized
+			...(prompt === undefined || !authorized || attempt.submissionUncertain
 				? {}
 				: {
 						resume: {

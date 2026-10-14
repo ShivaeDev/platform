@@ -7,21 +7,26 @@ import { prepared } from "#test/preparation.ts";
 
 describe("Fleet delivery ownership", () => {
 	const test = postgresTests("test");
-	test("failed delivery observation retains ownership and recovers without a human retry", () =>
-		withEngine({ deliveryFailure: true }, (fixture) =>
+	test("failed delivery observation retains ownership and recovers without a human retry", () => {
+		let now = 100;
+		return withEngine({ deliveryFailure: true, now: () => now }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const ambiguous = yield* fleet.reconcile("one");
-				expect(ambiguous.value.stage).toBe("needs-human");
-				expect(ambiguous.value.decision?.reason).toContain("observation unavailable");
+				expect(ambiguous.value.stage).toBe("delivering");
+				expect(ambiguous.value.decision).toBeUndefined();
+				expect(ambiguous.value.blocker).toContain("observation unavailable");
+				expect(ambiguous.value.attentionOwner).toBe("automation");
+				now = 30_100;
 				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
 				expect(fixture.merged).toHaveLength(1);
 				expect(fixture.reviews).toHaveLength(1);
 			}),
-		));
+		);
+	});
 	test("safe local release keeps the adopted PR in the foreign backlog without blocking its paths", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {

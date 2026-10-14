@@ -22,7 +22,7 @@ import { SessionService, type SessionTransport } from "#session/service.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
 function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
-	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code }));
+	return Effect.fail(withFailureContext(new ServiceUnavailable({ message }), { attentionOwner: "automation", code, retryable: false }));
 }
 
 export function hostIntegrations(host: FleetHost) {

@@ -21,6 +21,7 @@ export const Attempt = Schema.Struct({
 	sessionUnusable: Schema.optional(Schema.Boolean),
 	settings: Schema.optional(LaunchSettings),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
+	submissionUncertain: Schema.optional(Schema.Boolean),
 	submittedAt: Schema.Number,
 	terminalReceipts: Schema.optional(Schema.Array(SessionReceipt)),
 });
@@ -42,6 +43,7 @@ const cycleFields = {
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverable: Schema.optional(Schema.Literal("report")),
+	integrationRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
 	launch: Schema.optional(LaunchSettings),
 	launchRetry: Schema.optional(
 		Schema.Struct({ prompt: Schema.optional(Schema.String), rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number }),

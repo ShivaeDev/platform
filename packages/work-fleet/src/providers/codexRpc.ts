@@ -51,7 +51,15 @@ function openSocket(endpoint: CodexEndpoint) {
 		function disconnected() {
 			connection.closed.value = true;
 			for (const pending of connection.pending.values()) {
-				pending(Effect.fail(failure("ambiguous", "Codex disconnected; reconcile persisted submission before retrying")));
+				pending(
+					Effect.fail(
+						new SessionFailure({
+							code: "session-unavailable",
+							message: "Codex disconnected; reconcile persisted submission before retrying",
+							reason: "ambiguous",
+						}),
+					),
+				);
 			}
 			connection.pending.clear();
 		}
