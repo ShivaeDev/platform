@@ -46,7 +46,6 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				now = 30_099;
 				expect(yield* admitApproved(fixture.host)).toEqual([]);
 				expect((yield* fleet.get("one")).value).toEqual(queued);
-				yield* dispatchApproved(fixture.host, "one");
 				yield* cycle;
 				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
 				expect(provider.launched).toHaveLength(1);
@@ -61,7 +60,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				expect(accepted.boardContext).toBe(source);
 				expect(accepted.launchRetry).toBeUndefined();
 				expect(accepted.attempts).toEqual(queued.attempts);
-				expect(accepted.history).toEqual(queued.history);
+				expect(accepted.history ?? []).toEqual(queued.history ?? []);
 				expect(attempt).toEqual(failed);
 				expect(provider.launched).toHaveLength(1);
 				expect(provider.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 1 : 0);

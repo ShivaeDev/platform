@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { admit } from "#admit.ts";
+import { workRevision } from "#board/workRevision.ts";
 import { validateReview } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
@@ -15,6 +16,12 @@ export function obtainReview(state: EngineState) {
 		if (stored.value.review?.head === result.head) {
 			return stored.value.review.receipt;
 		}
+		const prompt = reviewerPrompt({
+			result,
+			...(policy.reviewerGuidance === undefined ? {} : { reviewerGuidance: policy.reviewerGuidance }),
+			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
+			task: work.context,
+		});
 		const previous = stored.value.attempts.at(-1);
 		const previousHead = reviewAttemptHead(stored.value, previous);
 		const unusable = yield* invalidPriorReview(stored.value, previous, result.head);
@@ -22,22 +29,19 @@ export function obtainReview(state: EngineState) {
 			previous?.role === "reviewer"
 			&& !unusable
 			&& !["failed", "interrupted"].includes(previous.status)
+			&& (previous.status !== "completed" || reviewMatchesBrief(previous, work))
 			&& (previousHead === undefined || previousHead === result.head)
 		) {
 			return previous.receipt ?? (yield* reconcileAttempt(state)(stored, previous));
 		}
-		const prompt = reviewerPrompt({
-			result,
-			...(policy.reviewerGuidance === undefined ? {} : { reviewerGuidance: policy.reviewerGuidance }),
-			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
-			task: work.context,
-		});
+
 		const settings = { ...policy.launch };
 		const attempt: Attempt = {
 			operationId: policy.operationId(),
 			prompt,
 			providerFailures: stored.value.launchRetry?.rejections,
 			reviewHead: result.head,
+			reviewRevision: workRevision(work.revision, work.context),
 			role: "reviewer",
 			settings,
 			status: "submitting",
@@ -102,3 +106,7 @@ const invalidPriorReview = Effect.fn("Fleet.invalidPriorReview")(function* (reco
 	);
 	return Result.isFailure(parsed);
 });
+
+export function reviewMatchesBrief(attempt: Attempt | undefined, work: BoardWork): boolean {
+	return attempt?.reviewRevision === undefined || attempt.reviewRevision === workRevision(work.revision, work.context);
+}

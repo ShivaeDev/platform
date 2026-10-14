@@ -6,7 +6,7 @@ import { originalWork } from "#engine/originalWork.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
-import { BoardGateway, type Decision, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { BoardGateway, type BoardWork, type Decision, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
@@ -60,11 +60,13 @@ export const makeState = Effect.gen(function* () {
 		recommendation: string,
 		worker?: SessionReceipt,
 		attentionOwner: AttentionOwner = "orchestrator",
+		publicationWork?: BoardWork,
 	) {
 		const value: Decision = {
 			attentionOwner,
 			code,
 			id: `${stored.value.workId}.${stored.version}`,
+			...(publicationWork === undefined ? {} : { publicationWork }),
 			links: stored.value.result?.kind === "change" ? [stored.value.result.pr] : [],
 			reason,
 			recommendation,
@@ -79,7 +81,7 @@ export const makeState = Effect.gen(function* () {
 			launchRetry: undefined,
 			stage: "needs-human",
 		});
-		const published = yield* board.decision(stored.value.workId, value, originalWork(stored.value));
+		const published = yield* board.decision(stored.value.workId, value, publicationWork ?? originalWork(stored.value));
 		return yield* save(updated, { ...updated.value, decision: { ...value, published }, decisionPublished: true });
 	});
 	return { board, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };

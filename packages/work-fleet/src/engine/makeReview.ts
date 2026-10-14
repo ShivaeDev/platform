@@ -3,7 +3,7 @@ import { validateReview } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { obtainReview } from "#engine/obtainReview.ts";
+import { obtainReview, reviewMatchesBrief } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
@@ -30,6 +30,10 @@ export function makeReview(state: EngineState) {
 		const attempts = recordObservation(stored.value.attempts, observation);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		if (["accepted", "running"].includes(observation.execution)) {
+			return stored;
+		}
+		const attempt = stored.value.attempts.find((entry) => entry.receipt?.turnId === receipt.turnId && entry.receipt.sessionId === receipt.sessionId);
+		if (!reviewMatchesBrief(attempt, work)) {
 			return stored;
 		}
 		return yield* finishReviewObservation(state)(stored, work, result, observation);

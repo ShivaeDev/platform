@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { admit } from "#admit.ts";
+import { workRevision } from "#board/workRevision.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -48,6 +49,7 @@ function continueReview(state: EngineState) {
 			operationId: policy.operationId(),
 			prompt,
 			reviewHead: result.head,
+			reviewRevision: workRevision(work.revision, work.context),
 			role: "reviewer",
 			sessionId: receipt.sessionId,
 			settings,

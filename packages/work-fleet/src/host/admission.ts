@@ -121,6 +121,8 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	}
 	yield* (yield* MainSource).refresh;
 	const existing = (yield* fleet.list()).find(({ value }) => value.workId === workId)?.value;
-	yield* prepareApproved(host, work, existing, "explicit");
-	return yield* fleet.dispatch(workId);
+	if (existing === undefined || ["completed", "released"].includes(existing.stage) || !briefChanged(existing, work)) {
+		yield* prepareApproved(host, work, existing, "explicit");
+	}
+	return yield* fleet.dispatch(workId, launchPrompt(host, work));
 }, inBoardReadPass);

@@ -45,7 +45,6 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 				expect(after.stage).toBe("reviewing");
 			},
-			restore,
 			sites: ['engine/boardBrief.ts: "fleet-stale"', "engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
