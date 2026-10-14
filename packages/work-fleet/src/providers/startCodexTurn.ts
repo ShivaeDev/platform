@@ -5,30 +5,44 @@ import { type CodexRequest, codexTurns } from "#providers/codexTurns.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { busyThread, transientFailure } from "#session/transientFailure.ts";
 
-const turnRejection = Effect.fn("Codex.turnRejection")(function* (
+const contentionState = Effect.fn("Codex.contentionState")(function* (
 	error: SessionFailure,
 	sessionId: string,
 	deadline: number,
 	hasActiveTurn: ReturnType<typeof codexTurns>["hasActiveTurn"],
 ) {
 	if (error.reason !== "rejected" || (error.code !== undefined && error.code !== "session-rejected")) {
-		return error;
+		return undefined;
 	}
 	if (
 		(transientFailure(error) && !busyThread(error))
 		|| /credential|api key|unauthorized|unauthenticated|authentication|forbidden|policy|permission denied|access denied/iu.test(error.message)
 	) {
-		return error;
+		return undefined;
 	}
 	const remaining = deadline - (yield* Clock.currentTimeMillis);
 	const active =
 		remaining > 0
 			? yield* hasActiveTurn(sessionId).pipe(
 					Effect.timeout(`${remaining} millis`),
-					Effect.catch(() => Effect.succeed(false)),
+					Effect.catch(() => Effect.succeed(undefined)),
 				)
-			: false;
-	return active ? new SessionFailure({ ...error, code: "session-active-turn", message: error.message }) : error;
+			: undefined;
+	return active === false && !busyThread(error) ? undefined : active;
+});
+
+const waitForResubmission = Effect.fn("Codex.waitForResubmission")(function* (
+	sessionId: string,
+	deadline: number,
+	resubmissions: number,
+	active: boolean,
+	waitUntilIdle: ReturnType<typeof codexTurns>["waitUntilIdle"],
+) {
+	if (!active) {
+		const remaining = deadline - (yield* Clock.currentTimeMillis);
+		yield* Effect.sleep(Math.min(5000 * 2 ** resubmissions, 40_000, Math.max(0, remaining)));
+	}
+	return yield* waitUntilIdle(sessionId, deadline);
 });
 
 export function startCodexTurn(rpc: CodexRequest, waitUntilIdle: ReturnType<typeof codexTurns>["waitUntilIdle"]) {
@@ -41,10 +55,11 @@ export function startCodexTurn(rpc: CodexRequest, waitUntilIdle: ReturnType<type
 			if (Result.isSuccess(result)) {
 				return yield* decode(TurnResponse, result.success);
 			}
-			const error = yield* turnRejection(result.failure, sessionId, deadline, hasActiveTurn);
-			if (error.reason !== "rejected" || error.code !== "session-active-turn") {
-				return yield* error;
+			const active = yield* contentionState(result.failure, sessionId, deadline, hasActiveTurn);
+			if (active === undefined) {
+				return yield* result.failure;
 			}
+			const error = new SessionFailure({ ...result.failure, code: "session-active-turn", message: result.failure.message });
 			if (resubmissions >= 3) {
 				return yield* new SessionFailure({
 					...error,
@@ -52,7 +67,7 @@ export function startCodexTurn(rpc: CodexRequest, waitUntilIdle: ReturnType<type
 					message: `${error.message}; active-turn resubmission limit reached`,
 				});
 			}
-			if (!(yield* waitUntilIdle(sessionId, deadline))) {
+			if (!(yield* waitForResubmission(sessionId, deadline, resubmissions, active, waitUntilIdle))) {
 				return yield* new SessionFailure({ ...error, message: `${error.message}; active-turn wait deadline reached` });
 			}
 			resubmissions += 1;

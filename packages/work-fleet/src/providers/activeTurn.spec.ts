@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { SessionTransport } from "#session/service.ts";
 import { codexConfiguration, codexServer, WireRejection } from "#test/codex.ts";
@@ -42,25 +42,32 @@ for (const message of ["turn already active for thread", "Another operation owns
 	);
 }
 
-it.live("a rejected request on an idle thread fails without resubmission", () =>
+it.live("busy rejections on an idle thread back off and start the turn on the same thread", () =>
 	Effect.scoped(
 		Effect.gen(function* () {
 			const methods: string[] = [];
+			const submissions: unknown[] = [];
+			const times: number[] = [];
+			const clock = yield* Clock.Clock;
 			const fixture = yield* codexServer((request) => {
 				methods.push(request.method);
-				return request.method === "turn/start" ? new WireRejection("turn already active for thread") : { data: [], nextCursor: null };
+				if (request.method === "turn/start") {
+					submissions.push(request.params);
+					times.push(clock.currentTimeMillisUnsafe());
+					return submissions.length < 3 ? new WireRejection("turn already active for thread") : { turn: { id: "followup" } };
+				}
+				return { data: [], nextCursor: null };
 			});
 			yield* Effect.gen(function* () {
 				const provider = yield* SessionTransport;
-				const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-				expect(error).toMatchObject({
-					code: "session-rejected",
-					message: "Codex rejected the protocol request: turn already active for thread",
-					reason: "rejected",
-				});
+				const receipt = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" });
+				expect(receipt).toEqual({ sessionId: "thread", turnId: "followup" });
 			}).pipe(Effect.provide(codexConfiguration(fixture.endpoint)));
-			expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
-			expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(1);
+			expect(submissions).toEqual([submissions[0], submissions[0], submissions[0]]);
+			expect((times[1] ?? 0) - (times[0] ?? 0)).toBeGreaterThanOrEqual(5000);
+			expect((times[2] ?? 0) - (times[1] ?? 0)).toBeGreaterThanOrEqual(10_000);
+			expect(methods).not.toContain("thread/start");
+			expect(methods).not.toContain("turn/interrupt");
 		}),
 	),
 );
@@ -120,7 +127,13 @@ for (const overloaded of [false, true]) {
 	);
 }
 
-for (const message of ["Rejected credential", "Invalid API key", "Request refused by policy", "Selected model is at capacity"]) {
+for (const message of [
+	"Rejected credential",
+	"Invalid API key",
+	"Request refused by policy",
+	"Selected model is at capacity",
+	"Selected model is at capacity. Please try a different model.",
+]) {
 	it.live(`an active thread cannot turn ${message} into contention replay`, () =>
 		Effect.scoped(
 			Effect.gen(function* () {

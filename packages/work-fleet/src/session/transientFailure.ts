@@ -21,6 +21,6 @@ export function transientFailure(error: SessionFailure) {
 		&& (error.capacity !== undefined
 			|| error.code === "session-queue-full"
 			|| busyThread(error)
-			|| providerMessage(error.message) === "selected model is at capacity")
+			|| providerMessage(error.message).startsWith("selected model is at capacity"))
 	);
 }

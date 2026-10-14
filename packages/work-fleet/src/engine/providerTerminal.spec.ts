@@ -8,16 +8,14 @@ import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("test");
 
-function terminalCapacityCase(reviewer: boolean, clears: boolean) {
+function terminalCapacityCase(reviewer: boolean, clears: boolean, message: string, capacity?: SessionObservation["capacity"]) {
 	let now = 100;
 	let reject = true;
 	const expectedStage = reviewer ? "completed" : "executing";
 	const expectedRole = reviewer ? "reviewer" : "worker";
 	function failCapacity(observation: SessionObservation): SessionObservation {
 		const isReviewer = observation.output.includes("FLEET_REVIEW:");
-		return reject && isReviewer === reviewer
-			? { ...observation, capacity: "serverOverloaded", error: "Selected model is at capacity", execution: "failed" }
-			: observation;
+		return reject && isReviewer === reviewer ? { ...observation, capacity, error: message, execution: "failed" } : observation;
 	}
 	return withEngine(
 		{
@@ -40,6 +38,7 @@ function terminalCapacityCase(reviewer: boolean, clears: boolean) {
 					const queued = (yield* fleet.get("one")).value;
 					expect(queued.launchRetry?.retryAt).toBe(now + delay);
 					expect(queued.decision).toBeUndefined();
+					expect(fixture.decisions).toHaveLength(0);
 					now += delay;
 					if (clears) {
 						reject = false;
@@ -55,15 +54,19 @@ function terminalCapacityCase(reviewer: boolean, clears: boolean) {
 				} else {
 					const parked = (yield* fleet.get("one")).value;
 					expect(parked.stage).toBe("needs-human");
-					expect(parked.decision?.reason).toContain("Selected model is at capacity; provider failure after 5 attempts");
+					expect(parked.decision?.reason).toContain(`${message}; provider failure after 5 attempts`);
 					expect(parked.attempts.filter((attempt) => attempt.role === expectedRole)).toHaveLength(5);
 				}
 			}),
 	);
 }
 
-for (const reviewer of [false, true]) {
-	for (const clears of [false, true]) {
-		test(`terminal capacity retries remain bounded: reviewer=${reviewer}, clears=${clears}`, () => terminalCapacityCase(reviewer, clears));
+for (const capacity of ["serverOverloaded", undefined] as const) {
+	const message = capacity === undefined ? "Selected model is at capacity. Please try a different model." : "Selected model is at capacity";
+	for (const reviewer of [false, true]) {
+		for (const clears of [false, true]) {
+			test(`terminal capacity retries remain bounded: reviewer=${reviewer}, clears=${clears}, capacity=${capacity}`, () =>
+				terminalCapacityCase(reviewer, clears, message, capacity));
+		}
 	}
 }
