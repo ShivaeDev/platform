@@ -99,6 +99,9 @@
 }
 
 @layer base {
+	.doc a {
+		@apply underline underline-offset-4;
+	}
 	* {
 		@apply border-border outline-ring/50;
 	}
