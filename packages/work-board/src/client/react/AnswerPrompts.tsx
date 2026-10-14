@@ -14,14 +14,24 @@ interface PromptProps {
 	readonly form: Model;
 	readonly onEdit: (index: number, answer: PromptAnswer) => void;
 	readonly prompts: readonly Prompt[];
+	readonly showErrors: boolean;
 }
 export function AnswerPrompts(props: PromptProps) {
 	return props.prompts.map((prompt, index) => <PromptField {...props} index={index} key={prompt.id} prompt={prompt} />);
 }
-function PromptField({ document, prompt, index, answers, form, onEdit }: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
+function PromptField({
+	document,
+	prompt,
+	index,
+	answers,
+	form,
+	onEdit,
+	showErrors,
+}: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
 	const errorId = useId();
 	const answer = answers[index] ?? { prompt: prompt.id, selected: [], text: "" };
-	const error = useAtomValue(form.errorAt(["answers", index, "text"]));
+	const validation = useAtomValue(form.errorAt(["answers", index, "text"]));
+	const error = showErrors ? validation : undefined;
 	const ref = useRef<HTMLTextAreaElement>(null);
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const choices = document.metadata.options;

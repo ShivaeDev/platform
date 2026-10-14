@@ -1,5 +1,6 @@
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
+import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
 import { ResponseHistory } from "./ResponseHistory.tsx";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
@@ -35,9 +36,12 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 			)}
 			{Boolean(unavailable) && <p role="status">{unavailable}</p>}
 			{request.open && preview !== undefined && (
-				<div className="answer-reason">
-					<ResponseMarkdown file={data.file} source={reasonMarkdown(preview.reason)} />
-				</div>
+				<>
+					<AnswerContext preview={preview} />
+					<div className="answer-reason">
+						<ResponseMarkdown file={data.file} source={reasonMarkdown(preview.reason)} />
+					</div>
+				</>
 			)}
 			{request.open && preview && !unavailable && <AnswerForm document={data} preview={preview} request={request} />}
 			{!request.unavailable && (
@@ -52,7 +56,7 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 
 function cardTitle(request: DocumentRequest, closed: boolean) {
 	if (request.open) {
-		return `Answer: ${request.title ?? "this question"}`;
+		return "Your answer";
 	}
 	return closed ? "Question closed" : "Answer unavailable";
 }

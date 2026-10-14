@@ -35,6 +35,37 @@ ${DECISION_REASON}
 
 ## Recommendation
 
-Publish the reviewed guide.
+~~~markdown
+**Publish** the reviewed guide.
+~~~
+
+## Relevant links
+
+<https://github.com/ShivaeDev/platform/pull/395>
+`,
+};
+
+export const readyDecisionFixture = {
+	...answerCardFixture,
+	[decisionFile]:
+		(answerCardFixture[decisionFile] ?? "")
+			.replace(/"options":\[[\s\S]*?\],"recommended":"Publish now",/u, "")
+			.replaceAll(
+				JSON.stringify(DECISION_REASON),
+				JSON.stringify("~~~markdown\n**Reviewed PR is ready to merge.** Read the [release guide](https://example.com/releases).\n~~~"),
+			)
+			.replaceAll(DECISION_REASON, "~~~markdown\n**Reviewed PR is ready to merge.** Read the [release guide](https://example.com/releases).\n~~~")
+			.replace("**Publish** the reviewed guide.", "Merge the reviewed PR on GitHub.")
+		+ `
+::::question{id="fleet-action" select="one"}
+### How should Fleet proceed?
+:::option{id="retry"}
+Retry after the blocker is resolved.
+:::
+:::option{id="release"}
+### Release
+Safely release this work's ownership.
+:::
+::::
 `,
 };

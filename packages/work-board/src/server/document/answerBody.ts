@@ -18,7 +18,11 @@ export function answerBody(document: MetadataDocument, requests: readonly Docume
 	const removed = repeatedReason(tree.children, source, cards);
 	return tree.children
 		.flatMap((node, index) => {
-			if (removed.has(index) || promptInCard(node, cards)) {
+			if (
+				removed.has(index)
+				|| promptInCard(node, cards)
+				|| (managed && cards.some((request) => request.preview !== undefined) && inCardSection(tree.children, index, source))
+			) {
 				return [];
 			}
 			if (index === 0 && node.type === "heading" && node.depth === 1 && title) {
@@ -56,4 +60,17 @@ function promptInCard(node: import("mdast").RootContent, cards: readonly Documen
 			&& (node.attributes?.request === undefined || node.attributes.request === request.id)
 			&& request.prompts?.some((prompt) => prompt.id === node.attributes?.id),
 	);
+}
+
+function inCardSection(nodes: import("mdast").RootContent[], index: number, source: string) {
+	for (let position = index; position >= 0; position -= 1) {
+		const node = nodes[position];
+		if (node?.type === "containerDirective") {
+			return false;
+		}
+		if (node?.type === "heading" && node.depth <= 2) {
+			return ["## Recommendation", "## Relevant links"].includes(source.slice(node.position?.start.offset, node.position?.end.offset).trim());
+		}
+	}
+	return false;
 }

@@ -31,6 +31,7 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			name="body"
 			required={prompts.length === 0}
 			rows={4}
+			showErrors={state.attempted}
 		/>
 	);
 	const writableStatus = typeof window === "undefined" ? "JavaScript is required to record a response." : state.status;
@@ -49,16 +50,25 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			onInput={state.edit}
 			onSubmit={(event) => {
 				event.preventDefault();
+				state.attempt();
 				if (!state.valid) {
-					event.currentTarget.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+					const target = event.currentTarget;
+					requestAnimationFrame(() => target.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
 				}
 				if (data.writable && state.preview && state.valid && !state.created.saving) {
 					state.created.save();
 				}
 			}}
 		>
-			<FormField autoComplete="nickname" form={form} label="Local author label" maxLength={200} name="author" required />
-			<AnswerPrompts answers={state.answers ?? []} document={data} form={form} onEdit={state.editAnswers} prompts={prompts} />
+			<FormField autoComplete="nickname" form={form} label="Local author label" maxLength={200} name="author" required showErrors={state.attempted} />
+			<AnswerPrompts
+				answers={state.answers ?? []}
+				document={data}
+				form={form}
+				onEdit={state.editAnswers}
+				prompts={prompts}
+				showErrors={state.attempted}
+			/>
 			{(prompts.length === 0 || !choices) && body}
 			<details data-key="response-details">
 				<summary>Response details</summary>
@@ -95,7 +105,7 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			<pre hidden={!state.preview} id={id(shellIds.responsePreviewContent)}>
 				{state.preview}
 			</pre>
-			<button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={id(shellIds.responseSubmit)} type="submit">
+			<button disabled={!(data.writable && state.preview) || state.created.saving} id={id(shellIds.responseSubmit)} type="submit">
 				Record response
 			</button>
 			<button disabled={typeof window === "undefined" || state.created.saving} id={id(shellIds.responseClear)} onClick={state.clear} type="button">

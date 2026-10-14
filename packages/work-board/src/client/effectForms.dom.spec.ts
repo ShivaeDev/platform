@@ -131,8 +131,10 @@ it.live("puts each questionnaire Schema message on its own unanswered control", 
 		throw new Error("Missing answer controls");
 	}
 	expect(first.validationMessage).toBe("");
+	expect(second.validationMessage).toBe("");
+	yield* formEvent(page, () => submit("response"));
 	expect(second.validationMessage).toBe("Choose an option or answer in your own words.");
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	second.value = "My own answer";
 	yield* formEvent(page, () => second.dispatchEvent(new page.window.Event("input", { bubbles: true })));
 	yield* formEvent(page, () => click("response-preview"));

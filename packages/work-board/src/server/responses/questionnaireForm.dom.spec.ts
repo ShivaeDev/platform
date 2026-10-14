@@ -46,7 +46,7 @@ function preview() {
 	page.document.getElementById("response-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 }
 
-it.live("keeps authored markup outside answer controls and enables one batch only when every prompt has a choice or human text", function* () {
+it.live("keeps authored markup outside answer controls and records one batch when every prompt has a choice or human text", function* () {
 	yield* open();
 	expect(page.document.querySelectorAll("fieldset[data-prompt]")).toHaveLength(2);
 	expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
@@ -56,7 +56,7 @@ it.live("keeps authored markup outside answer controls and enables one batch onl
 	text('[name="author"]', "maintainer");
 	yield* formEvent(page, () => choice("history"));
 	yield* formEvent(page, () => preview());
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	text('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
 	yield* formEvent(page, () => preview());
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);

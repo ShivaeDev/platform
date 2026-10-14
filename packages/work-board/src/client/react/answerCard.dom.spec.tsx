@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
 import { session } from "#client/session.ts";
-import { answerCardFixture, DECISION_REASON, decisionFile, decisionId } from "#test/answerCardFixture.ts";
+import { answerCardFixture, DECISION_REASON, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answerInput, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
@@ -39,12 +39,14 @@ it.each(["fenced", "nested"])(
 		const view = await renderRouter(files, url);
 		try {
 			await eventually(() => expect(view.container.querySelector("#response-form")).not.toBeNull());
+			expect(view.container.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("false");
+			expect(view.container.querySelector(".response-panel")?.textContent).not.toContain("Add your local author label.");
 			const header = view.container.querySelector(".item-introduction");
 			expect(header?.querySelector("h1")?.textContent).toBe("Publish the install guide");
 			expect(view.container.querySelector('[aria-label="File location"]')?.textContent).toContain("Publish the install guide");
 			expect(view.container.querySelector('[aria-label="File location"]')?.textContent).not.toContain(decisionId);
 			expect(header?.nextElementSibling?.classList.contains("answer-cards")).toBe(true);
-			expect(view.container.querySelector("#answer-title-direction")?.textContent).toBe("Answer: Publish the install guide");
+			expect(view.container.querySelector("#answer-title-direction")?.textContent).toBe("Your answer");
 			expect(view.container.querySelector(".answer-reason strong")?.textContent).toBe("Which publishing path should we take?");
 			expect(view.container.querySelector(".answer-reason a")?.getAttribute("href")).toBe("https://example.com/releases");
 			expect(view.container.querySelector("article.doc")?.textContent).not.toContain("Which publishing path");
@@ -129,7 +131,66 @@ it("labels a malformed open question unavailable while retaining its source stat
 	try {
 		await eventually(() => expect(view.container.querySelector(".response-panel h2")?.textContent).toBe("Answer unavailable"));
 		expect(view.container.querySelector(".response-panel")?.textContent).not.toContain("Question closed");
-		expect(view.container.querySelector(".item-summary")?.textContent).toContain("open");
+		expect(view.container.querySelector(".item-summary")?.textContent).toContain("needs-you");
+	} finally {
+		await view.unmount();
+	}
+});
+
+it("puts the recommendation and primary PR action above secondary human choices without initial author errors", async () => {
+	localStorage.setItem("work-board:author:answer-card-fixture", "Last reviewer");
+	const view = await renderRouter(readyDecisionFixture, url);
+	try {
+		await eventually(() => expect(view.container.querySelector("#response-form")).not.toBeNull());
+		const card = view.container.querySelector(".response-panel");
+		expect(card?.querySelector(".answer-recommendation")?.textContent).toBe("Merge the reviewed PR on GitHub.");
+		const link = card?.querySelector(".answer-links a");
+		expect(link?.textContent).toBe("Open PR #395");
+		expect(link?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
+		expect(link?.classList.contains("bg-primary")).toBe(true);
+		expect(link?.compareDocumentPosition(card?.querySelector("fieldset") ?? document.body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect([...(card?.querySelectorAll(".question-choice strong") ?? [])].map((label) => label.textContent)).toEqual([
+			"Request changes (retry)",
+			"Release",
+		]);
+		expect(card?.querySelector<HTMLInputElement>('[name="author"]')?.value).toBe("Last reviewer");
+		expect(card?.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("false");
+		expect(card?.textContent).not.toContain("Add your local author label.");
+		expect(view.container.querySelector(".item-summary")?.textContent).not.toContain("Not recorded");
+		expect(view.container.querySelector(".item-summary [data-status-token]")?.getAttribute("data-status-token")).toBe("needs-you");
+		expect(view.container.querySelector("article.doc")?.textContent).not.toContain("Publish the reviewed guide");
+		answerInput("author", "");
+		responseClick("preview");
+		expect(card?.textContent).not.toContain("Add your local author label.");
+		await act(async () => card?.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+		await eventually(() => expect(card?.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("true"));
+		expect(card?.textContent).toContain("Add your local author label.");
+	} finally {
+		await view.unmount();
+	}
+});
+
+it.each(["### Release ownership", ""])("uses an option heading or capitalised id: %s", async (heading) => {
+	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace("### Release", heading) };
+	const view = await renderRouter(files, url);
+	try {
+		await eventually(() => expect(view.container.querySelectorAll(".question-choice strong")).toHaveLength(2));
+		expect(view.container.querySelectorAll(".question-choice strong")[1]?.textContent).toBe(heading ? "Release ownership" : "Release");
+	} finally {
+		await view.unmount();
+	}
+});
+
+it("toggles directive buttons when several choices are allowed", async () => {
+	const files = { ...readyDecisionFixture, [decisionFile]: (readyDecisionFixture[decisionFile] ?? "").replace('select="one"', 'select="many"') };
+	const view = await renderRouter(files, url);
+	try {
+		await eventually(() => expect(view.container.querySelector(".question-choice")).not.toBeNull());
+		const button = view.container.querySelector<HTMLButtonElement>(".question-choice");
+		act(() => button?.click());
+		expect(button?.getAttribute("aria-pressed")).toBe("true");
+		act(() => button?.click());
+		expect(button?.getAttribute("aria-pressed")).toBe("false");
 	} finally {
 		await view.unmount();
 	}
