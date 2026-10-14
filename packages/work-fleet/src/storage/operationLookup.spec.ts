@@ -14,17 +14,14 @@ test("projected operation lookup retains current and archived ambiguity without 
 			const current = namedRecord("current", [namedAttempt("worker")]);
 			const { workId: _workId, ...cycle } = current;
 			const archived = { ...namedRecord("archived", []), history: [{ ...cycle, archivedAt: 100 }] };
-			yield* store.insert(current);
-			yield* store.insert(archived);
+			const savedCurrent = yield* store.insert(current);
+			const savedArchived = yield* store.insert(archived);
 			expect((yield* store.operationEntries("synthetic-worker")).map((entry) => entry.workId).sort()).toEqual(["archived", "current"]);
 			expect(yield* operationRecord(store, "synthetic-worker")).toBeUndefined();
 			const journal = yield* SessionJournal;
 			expect(yield* journal.acknowledgeSession("synthetic-worker", "session").pipe(Effect.flip)).toMatchObject({ reason: "persistence" });
-			expect(yield* store.load("current")).toEqual({ value: current, version: 1 });
-			expect(yield* store.load("archived")).toEqual({
-				value: archived,
-				version: 1,
-			});
+			expect(yield* store.load("current")).toEqual(savedCurrent);
+			expect(yield* store.load("archived")).toEqual(savedArchived);
 		}),
 	));
 
@@ -58,12 +55,16 @@ test("operation lookup rejects a record changed after its projected ownership sn
 		Effect.gen(function* () {
 			const original = yield* store.insert(namedRecord("one", [namedAttempt("worker")]));
 			const changed = { ...original.value, prompt: "Changed by another writer" };
-			const racing = {
-				...store,
-				operationEntries: (operationId: string) =>
-					store.operationEntries(operationId).pipe(Effect.tap(() => store.compareAndSet("one", original.version, changed).pipe(Effect.orDie))),
-			};
+			let saved = original;
+			function snapshot(operationId: string) {
+				return Effect.gen(function* () {
+					const entries = yield* store.operationEntries(operationId);
+					saved = yield* store.compareAndSet("one", original.version, changed);
+					return entries;
+				}).pipe(Effect.orDie);
+			}
+			const racing = { ...store, operationEntries: snapshot };
 			expect(yield* operationRecord(racing, "synthetic-worker")).toBeUndefined();
-			expect(yield* store.load("one")).toEqual({ value: changed, version: 2 });
+			expect(yield* store.load("one")).toEqual(saved);
 		}),
 	));

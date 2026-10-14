@@ -1,4 +1,5 @@
 import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract } from "#diagnostics/daemonContract.ts";
+import { FleetStage, FleetTimestamp } from "#diagnostics/fleetItems.ts";
 import { CapacityRejection as CapacityRejectionSchema, FLEET_HEALTH_NAME, FleetHealth as FleetHealthSchema } from "#diagnostics/health.ts";
 import type { SourceFailure as SourceFailureType } from "#diagnostics/source.ts";
 import { DiagnosticsSources, diagnostics as readDiagnostics, SourceFailure as SourceFailureClass } from "#diagnostics/source.ts";
@@ -22,6 +23,8 @@ export const diagnostics = {
 	diagnostics: readDiagnostics,
 	FLEET_HEALTH_NAME,
 	FleetHealth: FleetHealthSchema,
+	FleetStage,
+	FleetTimestamp,
 	fleetHealth,
 	githubLimits,
 	SourceFailure: SourceFailureClass,

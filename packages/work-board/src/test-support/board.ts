@@ -47,7 +47,7 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 	responses = false,
 	sources?: Sources,
 	maintainer?: string,
-	fleetPort?: number,
+	fleetPort?: number | null,
 	tracer?: Tracer.Tracer,
 ) {
 	const board = Layer.provide(

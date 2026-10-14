@@ -13,7 +13,7 @@ import { RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 
 export interface BoardOptions {
-	readonly fleetPort?: number;
+	readonly fleetPort?: number | null;
 	readonly home?: string | undefined;
 	readonly maintainer?: string | undefined;
 	readonly responses?: boolean;

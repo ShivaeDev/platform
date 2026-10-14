@@ -10,6 +10,7 @@ import { historyResponse } from "#server/history/response.ts";
 import { navigationData } from "#server/navigation/model.ts";
 import { Responses } from "#server/responses/service.ts";
 import { searchMatch } from "#server/search/match.ts";
+import { fleetItems } from "#server/views/fleetItems.ts";
 import { projectionQueries } from "#server/views/projectionQueries.ts";
 import { remainingQueries } from "#server/views/remainingQueries.ts";
 import type { HandlerOptions } from "./HandlerOptions.ts";
@@ -33,6 +34,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.diagnostics": () => remaining.diagnostics().pipe(readBoundary),
 			"work-board.document": ({ url }) =>
 				Effect.suspend(() => (document ? document(url) : Effect.fail(new NotFound({ message: "The document is missing." })))).pipe(documentBoundary),
+			"work-board.fleetItems": () => fleetItems(options),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
 			"work-board.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),

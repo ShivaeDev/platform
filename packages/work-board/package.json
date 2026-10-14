@@ -135,6 +135,12 @@
 			"import": "./dist/diagnostics/daemonContract.js",
 			"default": "./dist/diagnostics/daemonContract.js"
 		},
+		"./diagnostics/fleetItems.ts": {
+			"types": "./dist/diagnostics/fleetItems.d.ts",
+			"source": "./src/diagnostics/fleetItems.ts",
+			"import": "./dist/diagnostics/fleetItems.js",
+			"default": "./dist/diagnostics/fleetItems.js"
+		},
 		"./diagnostics/health.ts": {
 			"types": "./dist/diagnostics/health.d.ts",
 			"source": "./src/diagnostics/health.ts",

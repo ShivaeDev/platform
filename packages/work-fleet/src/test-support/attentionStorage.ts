@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetRecord } from "#model.ts";
+import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import type { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { legacyStore } from "#test/legacyStore.ts";
@@ -34,10 +35,6 @@ export const attentionStorage = Effect.fn("FleetFixture.attentionStorage")(funct
 		replaceRecord,
 		store,
 		upgradeAttention: legacyStore(namespace).pipe(Effect.andThen(store.initialize()), Effect.asVoid, Effect.provideService(SqlClient.SqlClient, sql)),
-		upgradeDecisionCodes: sql`delete from ${sql(`${namespace}_migrations`)} where migration_id >= 6`.pipe(
-			Effect.andThen(store.initialize()),
-			Effect.asVoid,
-			Effect.provideService(SqlClient.SqlClient, sql),
-		),
+		upgradeDecisionCodes: backfillDecisionCodes(namespace).pipe(Effect.provideService(SqlClient.SqlClient, sql)),
 	};
 });

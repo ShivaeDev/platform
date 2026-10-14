@@ -7,6 +7,7 @@ import { Navigation } from "@shivaedev/work-board/browser/navigation/schema.ts"
 import { HandoffInput } from "@shivaedev/work-board/browser/handoffs/schema.ts"
 import { DraftInput } from "@shivaedev/work-board/browser/responses/schema.ts"
 import { ASSET_HANDLERS } from "@shivaedev/work-board/http/assets.ts"
+import { FleetItems } from "@shivaedev/work-board/diagnostics/fleetItems.ts"
 import { workContract } from "@shivaedev/work-board/rpc/contract.ts"
 import { serveBoard } from "@shivaedev/work-board/serve.ts"
 
@@ -28,3 +29,6 @@ for (const path of ["./diagnostics/script.ts", "./history/script.ts", "./page/si
 for (const route of ["/_board/client.js", "/_board/navigation.js", "/_board/search.js", "/_board/preferences.js", "/_board/library.js", "/_board/reading-state.js", "/_board/ages.js"]) {
   assert(!ASSET_HANDLERS.some(([path]) => path === route))
 }
+
+assert.ok(FleetItems.fields.items)
+assert.ok(workContract.requests.has("work-board.fleetItems"))

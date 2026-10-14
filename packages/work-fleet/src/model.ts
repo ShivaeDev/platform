@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { diagnostics } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
@@ -32,6 +33,7 @@ const cycleFields = {
 	boardRevision: Schema.String,
 	boardSourcePath: Schema.optional(Schema.String),
 	checks: Schema.optional(Checks),
+	completedAt: Schema.optional(diagnostics.FleetTimestamp),
 	conflictRepairs: Schema.optional(Schema.Array(Schema.String)),
 	cwd: Schema.String,
 	decision: Schema.optional(Decision),
@@ -52,19 +54,10 @@ const cycleFields = {
 	result: Schema.optional(WorkResult),
 	resultObservations: Schema.optional(Schema.Array(WorkResult)),
 	review: Schema.optional(Review),
-	stage: Schema.Literals([
-		"prepared",
-		"executing",
-		"adopting",
-		"reviewing",
-		"repairing",
-		"validating",
-		"delivering",
-		"completed",
-		"needs-human",
-		"released",
-	]),
+	stage: diagnostics.FleetStage,
+	stageEnteredAt: Schema.optional(diagnostics.FleetTimestamp),
 	supersededDecisions: Schema.optional(Schema.Array(SupersededDecision)),
+	updatedAt: Schema.optional(diagnostics.FleetTimestamp),
 };
 export const FleetCycleSnapshot = Schema.Struct({ ...cycleFields, archivedAt: Schema.Number });
 export type FleetCycleSnapshot = typeof FleetCycleSnapshot.Type;
