@@ -12,8 +12,12 @@ export interface WorkerPrompt extends CloudStartup {
 export const MAINTAINER_QUESTION_MARKER = "FLEET_MAINTAINER_QUESTION:";
 export const QUESTION_MARKER = "FLEET_QUESTION:";
 export const PULL_REQUEST_MARKER = "FLEET_PR:";
+const GUIDANCE_HEADING =
+	"Repository worker guidance: maintainer's standing answers to the repository's 'ask the maintainer first' rules; takes precedence for this task";
+const GUIDANCE_END = "End repository worker guidance.";
 const QUESTION_INSTRUCTIONS = [
 	"When you need a decision:",
+	"- Do not ask about anything covered by Repository worker guidance; follow its standing answers.",
 	`- Stop the turn with \`${QUESTION_MARKER} <question>\`, including the context and choices needed to answer. Do not report a PR or no-change outcome while waiting for an answer.`,
 	`- Questions go to the orchestrator by default. Only when a decision requires maintainer authority, use \`${MAINTAINER_QUESTION_MARKER} <question>\` instead.`,
 	"- Fleet publishes the question on the Board and continues this same thread with the recorded answer. Treat that answer as task input; repository rules and runtime authority still apply.",
@@ -81,7 +85,14 @@ export function reportPrompt(task: string): string {
 }
 
 export function withWorkerGuidance(prompt: string, guidance?: string): string {
-	return guidance === undefined ? prompt : [prompt, "", "Repository worker guidance:", guidance].join("\n");
+	if (guidance === undefined) {
+		return prompt;
+	}
+	const block = [GUIDANCE_HEADING, guidance, GUIDANCE_END].join("\n");
+	const task = prompt.replaceAll(new RegExp(`\\n\\n${GUIDANCE_HEADING}\\n[\\s\\S]*?\\nEnd repository worker guidance\\.`, "gu"), "");
+	const evidence = task.indexOf("\n\nEvidence rules:");
+	const boundary = evidence < 0 ? task.indexOf("\n\nWhen you need a decision:") : evidence;
+	return boundary < 0 ? [task, block].join("\n\n") : `${task.slice(0, boundary)}\n\n${block}${task.slice(boundary)}`;
 }
 
 export function reportedPullRequest(output: string) {

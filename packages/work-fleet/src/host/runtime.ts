@@ -8,7 +8,7 @@ import { withFailureContext } from "#engine/failureContext.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
-import type { FleetHost } from "#host/config.ts";
+import type { FleetHost, HostFailure } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
@@ -64,10 +64,12 @@ export function hostPolicy(host: FleetHost) {
 				now,
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
+				readGuidance: (role) =>
+					(role === "worker" ? workerGuidance : reviewerGuidance).pipe(
+						Effect.mapError((error: HostFailure) => new ServiceUnavailable({ message: error.message })),
+					),
 				refreshQuota: hostQuota(host, now),
-				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
 				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
-				...(workerGuidance === undefined ? {} : { workerGuidance }),
 			});
 		}),
 	);

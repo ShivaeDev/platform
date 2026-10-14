@@ -1,5 +1,13 @@
 import { describe, expect, it } from "@effect/vitest";
-import { PULL_REQUEST_MARKER, QUESTION_MARKER, reportedPullRequest, reportedQuestion, reportPrompt, workerPrompt } from "#prompt/worker.ts";
+import {
+	PULL_REQUEST_MARKER,
+	QUESTION_MARKER,
+	reportedPullRequest,
+	reportedQuestion,
+	reportPrompt,
+	withWorkerGuidance,
+	workerPrompt,
+} from "#prompt/worker.ts";
 
 const prompt = workerPrompt({
 	branch: "synthetic/sidebar-tree",
@@ -8,6 +16,23 @@ const prompt = workerPrompt({
 	workId: "synthetic.task",
 });
 describe("workerPrompt", () => {
+	it("puts standing answers directly after the task, ahead of evidence and questions", () => {
+		const guidance = "Additive APIs are approved.";
+		const guided = withWorkerGuidance(prompt, guidance);
+		const heading =
+			"Repository worker guidance: maintainer's standing answers to the repository's 'ask the maintainer first' rules; takes precedence for this task";
+		expect(guided).toContain(`---\n\n${heading}\n${guidance}\nEnd repository worker guidance.\n\nEvidence rules:`);
+		expect(guided).toContain("Do not ask about anything covered by Repository worker guidance; follow its standing answers.");
+		expect(guided.indexOf(guidance)).toBeLessThan(guided.indexOf("Evidence rules:"));
+	});
+	it("replaces standing answers once when reusing a guided prompt", () => {
+		const first = withWorkerGuidance(prompt, "Original approval.");
+		expect(withWorkerGuidance(first, "Original approval.")).toBe(first);
+		const next = withWorkerGuidance(first, "Updated approval.");
+		expect(next).not.toContain("Original approval.");
+		expect(next.split("Updated approval.")).toHaveLength(2);
+		expect(next).toContain("# Make the sidebar a tree");
+	});
 	it("asks report workers for the whole final report without a branch or PR workflow", () => {
 		const report = workerPrompt({
 			branch: "synthetic/report",

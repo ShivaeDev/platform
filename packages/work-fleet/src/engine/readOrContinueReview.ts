@@ -5,6 +5,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
+import { policyGuidance } from "#policyGuidance.ts";
 import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
 import type { SessionReceipt } from "#session/schema.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -35,10 +36,11 @@ export function readOrContinueReview(state: EngineState) {
 function continueReview(state: EngineState) {
 	return Effect.fn("Fleet.continueReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult, receipt: SessionReceipt) {
 		const { policy, store, board, save, sessions } = state;
+		const reviewerGuidance = yield* policyGuidance(policy, "reviewer");
 		const prompt = [
 			reviewerPrompt({
 				result,
-				...(policy.reviewerGuidance === undefined ? {} : { reviewerGuidance: policy.reviewerGuidance }),
+				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
 				...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
 				task: work.context,
 			}),

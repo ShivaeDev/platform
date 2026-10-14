@@ -8,6 +8,7 @@ import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
+import { policyGuidance } from "#policyGuidance.ts";
 import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
@@ -34,7 +35,7 @@ export function makeLaunch(state: EngineState) {
 			sessionId,
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
-		const workerPrompt = launchPrompt(stored.value, prompt, retryPrompt, policy.workerGuidance);
+		const workerPrompt = launchPrompt(stored.value, prompt, retryPrompt, yield* policyGuidance(policy, "worker"));
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,
@@ -81,7 +82,5 @@ export function makeLaunch(state: EngineState) {
 
 export function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
 	const queuedPrompt = retryPrompt ?? prompt;
-	return retryPrompt === undefined
-		? withWorkerGuidance(record.deliverable === "report" ? reportPrompt(queuedPrompt) : queuedPrompt, guidance)
-		: queuedPrompt;
+	return withWorkerGuidance(record.deliverable === "report" && retryPrompt === undefined ? reportPrompt(queuedPrompt) : queuedPrompt, guidance);
 }

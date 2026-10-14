@@ -7,6 +7,7 @@ import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
+import { policyGuidance } from "#policyGuidance.ts";
 import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -16,12 +17,6 @@ export function obtainReview(state: EngineState) {
 		if (stored.value.review?.head === result.head) {
 			return stored.value.review.receipt;
 		}
-		const prompt = reviewerPrompt({
-			result,
-			...(policy.reviewerGuidance === undefined ? {} : { reviewerGuidance: policy.reviewerGuidance }),
-			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
-			task: work.context,
-		});
 		const previous = stored.value.attempts.at(-1);
 		const previousHead = reviewAttemptHead(stored.value, previous);
 		const unusable = yield* invalidPriorReview(stored.value, previous, result.head);
@@ -34,6 +29,13 @@ export function obtainReview(state: EngineState) {
 		) {
 			return previous.receipt ?? (yield* reconcileAttempt(state)(stored, previous));
 		}
+		const reviewerGuidance = yield* policyGuidance(policy, "reviewer");
+		const prompt = reviewerPrompt({
+			result,
+			...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
+			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
+			task: work.context,
+		});
 
 		const settings = { ...policy.launch };
 		const attempt: Attempt = {
