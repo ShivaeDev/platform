@@ -3,8 +3,8 @@ import { useId } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { routeQueryOptions } from "#client/page/routeQuery.ts";
-import { SegmentedBar } from "#client/react/components/ui/SegmentedBar.tsx";
 import { GoalCriteria } from "./GoalCriteria.tsx";
+import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 import { GoalWorkTable } from "./GoalWorkTable.tsx";
 import { targetsGoal } from "./goalWork.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -24,16 +24,11 @@ export function GoalPage({ api, document }: { readonly api: ShellApi; readonly d
 				</h2>
 				{goal ? (
 					<>
-						<p>
-							{goal.linked} linked items · {goal.openAsks} open asks
-						</p>
-						<SegmentedBar counts={goal.counts} label="Linked items by authored status" />
-						{goal.unlinked === true && <p>Goal is unlinked.</p>}
+						<p>{goal.linked} linked items</p>
+						{items ? <GoalProgressSummary bar items={items} /> : <p role="status">Loading linked work progress…</p>}
 					</>
 				) : (
-					<p role="status">
-						{progress.pending ? "Loading goal progress…" : "Progress unavailable. The goals query includes uniquely identified open projects."}
-					</p>
+					<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified open projects."}</p>
 				)}
 				{Option.isSome(progress.cause) && <p role="status">Goal progress refresh failed.</p>}
 			</section>

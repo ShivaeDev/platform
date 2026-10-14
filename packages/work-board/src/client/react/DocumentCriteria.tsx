@@ -29,8 +29,21 @@ function Criterion({ document, index }: { readonly document: Document; readonly 
 		</li>
 	);
 }
-export function CriterionClaims({ document, id, valid }: { readonly document: Document; readonly id: string; readonly valid: boolean }) {
+export function CriterionClaims({
+	document,
+	id,
+	valid,
+	quiet = false,
+}: {
+	readonly document: Document;
+	readonly id: string;
+	readonly valid: boolean;
+	readonly quiet?: boolean;
+}) {
 	const claims = document.reading?.claims[id] ?? [];
+	if (quiet && claims.length === 0) {
+		return null;
+	}
 	if (!valid) {
 		return <p>Evidence association requires unique item/criterion IDs and a readable workspace. Acceptance is not established.</p>;
 	}

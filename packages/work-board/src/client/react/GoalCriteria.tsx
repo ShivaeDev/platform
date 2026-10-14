@@ -1,6 +1,7 @@
 import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { CriterionClaims } from "./DocumentCriteria.tsx";
+import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 import { GoalWorkLink, GoalWorkStatus } from "./GoalWorkTable.tsx";
 import { type GoalWorkItem, targetsGoal } from "./goalWork.ts";
 import { keyed } from "./keyed.ts";
@@ -33,8 +34,14 @@ function Criterion({ document, items, index }: Props & { readonly index: number 
 	return (
 		<section className="rounded-lg border p-4" id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
 			<h3 className="!mt-0">{criterion.text}</h3>
+			{work !== undefined && work.length > 0 && <GoalProgressSummary items={work} />}
 			<LinkedItems items={work} />
-			<CriterionClaims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
+			<CriterionClaims
+				document={document}
+				id={criterion.id}
+				quiet
+				valid={Boolean(document.identity) && document.unavailable.length === 0 && unique}
+			/>
 		</section>
 	);
 }
@@ -42,9 +49,7 @@ function LinkedItems({ items }: { readonly items: readonly GoalWorkItem[] | unde
 	if (!items) {
 		return <p>Linked work unavailable.</p>;
 	}
-	return items.length === 0 ? (
-		<p>not linked</p>
-	) : (
+	return items.length === 0 ? null : (
 		<ul>
 			{items.map((item) => (
 				<li key={item.id}>
