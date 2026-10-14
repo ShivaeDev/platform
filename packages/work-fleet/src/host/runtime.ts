@@ -69,6 +69,7 @@ export function hostPolicy(host: FleetHost) {
 						Effect.mapError((error: HostFailure) => new ServiceUnavailable({ message: error.message })),
 					),
 				refreshQuota: hostQuota(host, now),
+				stallMinutes: host.stallMinutes,
 				...(host.worker === undefined ? {} : { sharedEnvironment: host.worker.sharedEnvironment }),
 			});
 		}),

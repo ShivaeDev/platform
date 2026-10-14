@@ -32,10 +32,10 @@ export function codexTurns(rpc: CodexRequest) {
 			threadId: sessionId,
 		}).pipe(Effect.flatMap((value) => decode(TurnsResponse, value)));
 	}
-	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string) {
+	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string, full = false) {
 		let cursor: string | null = null;
 		do {
-			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, false);
+			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, full);
 			const found = page.data.find((turn) => turn.id === turnId);
 			if (found !== undefined) {
 				return found;

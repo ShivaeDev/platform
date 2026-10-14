@@ -20,6 +20,7 @@ import { recoveryRecordCases } from "#test/recoveryRecordCases.ts";
 import { recoveryReportCases } from "#test/recoveryReportCases.ts";
 import { recoveryReviewCases } from "#test/recoveryReviewCases.ts";
 import { recoveryScopeCases } from "#test/recoveryScopeCases.ts";
+import { recoveryStallCase } from "#test/recoveryStallCase.ts";
 import { recoveryUncertainCases } from "#test/recoveryUncertainCases.ts";
 import { recoveryWorkerCases } from "#test/recoveryWorkerCases.ts";
 
@@ -44,6 +45,7 @@ export function recoveryCases() {
 		...recoveryAdoptionCases(),
 		...recoveryPreparationCases,
 		...recoveryWorkerCases(),
+		recoveryStallCase(),
 		...recoveryUncertainCases(),
 		...recoveryReviewCases,
 		...recoveryReportCases(),

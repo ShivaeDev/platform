@@ -37,6 +37,7 @@ export const HostConfig = Schema.Struct({
 	quota: Schema.optional(Schema.Literals(["codex", "unlimited"])),
 	repository: Schema.optional(Schema.Struct({ branch: Text, remote: Text })),
 	result: Schema.optional(Schema.Literal("github")),
+	stallMinutes: Schema.optional(Positive),
 	worker: Schema.optional(
 		Schema.Struct({
 			branchPrefix: Text,
@@ -66,6 +67,7 @@ export interface FleetHost {
 	readonly quota: NonNullable<HostConfig["quota"]>;
 	readonly repository: NonNullable<HostConfig["repository"]>;
 	readonly result?: HostConfig["result"];
+	readonly stallMinutes: number;
 	readonly worker: HostConfig["worker"];
 }
 
@@ -86,6 +88,7 @@ export function resolveHost(boardDir: string, config: HostConfig): FleetHost {
 		quota: config.quota ?? "codex",
 		repository: config.repository ?? { branch: "main", remote: "origin" },
 		result: config.result,
+		stallMinutes: config.stallMinutes ?? 30,
 		worker: config.worker,
 	};
 }

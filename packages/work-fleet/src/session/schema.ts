@@ -11,6 +11,7 @@ export const SessionObservation = Schema.Struct({
 	error: Schema.optional(Schema.String),
 	execution: Schema.Literals(["accepted", "running", "completed", "failed", "interrupted"]),
 	output: Schema.String,
+	progress: Schema.optional(Schema.Array(Schema.Struct({ id: Schema.String, status: Schema.optional(Schema.String) }))),
 	provisioning: Schema.Literals(["unknown", "ready"]),
 	receipt: SessionReceipt,
 });

@@ -1,5 +1,5 @@
 import { waitingOwner } from "#attention.ts";
-import type { FleetRecord, FleetViews } from "#model.ts";
+import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
 export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 	const items = records
 		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
@@ -12,7 +12,7 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			decision: record.stage === "completed" ? undefined : record.decision,
 			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,
-			sessions: record.attempts.flatMap((attempt) => (attempt.receipt === undefined ? [] : [attempt.receipt])),
+			sessions: record.attempts.flatMap(sessionView),
 			stage: record.stage,
 			workId: record.workId,
 		}));
@@ -25,4 +25,18 @@ export function views(records: readonly FleetRecord[]): typeof FleetViews.Type {
 			orchestrator: items.filter((item) => item.attentionOwner === "orchestrator"),
 		},
 	};
+}
+
+function sessionView(attempt: Attempt) {
+	return attempt.receipt === undefined
+		? []
+		: [
+				{
+					...attempt.receipt,
+					interruptedAt: attempt.stallRecovery?.interruptedAt,
+					interruptRequestedAt: attempt.stallRecovery?.interruptRequestedAt,
+					lastProgressAt: attempt.progress?.at,
+					steeredAt: attempt.stallRecovery?.steeredAt,
+				},
+			];
 }

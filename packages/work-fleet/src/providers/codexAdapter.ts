@@ -43,13 +43,14 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 			if (cached !== undefined) {
 				return cached;
 			}
-			const turn = yield* findTurn(receipt.sessionId, receipt.turnId);
+			const turn = yield* findTurn(receipt.sessionId, receipt.turnId, true);
 			const output = turn.status === "inProgress" ? "" : yield* readOutput(receipt);
 			const capacity = Schema.decodeUnknownOption(ProviderCapacity)(turn.error?.codexErrorInfo);
 			const observation: SessionObservation = {
 				...(capacity._tag === "Some" && turn.status === "failed" ? { capacity: capacity.value } : {}),
 				execution: turn.status === "inProgress" ? "running" : turn.status,
 				output,
+				progress: turn.items.map(({ id, status }) => ({ id, status })).sort((left, right) => left.id.localeCompare(right.id)),
 				provisioning: dialect.provisioning,
 				receipt,
 				...(turn.error === undefined || turn.error === null ? {} : { error: turn.error.message }),
@@ -80,5 +81,15 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 			return result.thread.id;
 		}),
 		startTurn,
+		steer: (receipt, prompt) =>
+			rpc(
+				"turn/steer",
+				{
+					expectedTurnId: receipt.turnId,
+					input: [{ text: prompt, "text_elements": [], type: "text" }],
+					threadId: receipt.sessionId,
+				},
+				true,
+			).pipe(Effect.asVoid),
 	};
 }

@@ -9,7 +9,15 @@ import { hostBoard } from "#test/fleetHost.ts";
 describe("work-fleet host configuration", () => {
 	it.effect("defaults leave a hundred executing and a hundred in backlog", function* () {
 		const host = yield* loadHost(hostBoard('{ "provider": "local" }')).pipe(Effect.provide(NodeServices.layer));
-		expect(host).toMatchObject({ areaMergeWaitMs: 1_800_000, backlog: 100, concurrency: 100, launch: {}, namespace: "work_fleet", quota: "codex" });
+		expect(host).toMatchObject({
+			areaMergeWaitMs: 1_800_000,
+			backlog: 100,
+			concurrency: 100,
+			launch: {},
+			namespace: "work_fleet",
+			quota: "codex",
+			stallMinutes: 30,
+		});
 	});
 
 	it.effect("loads Cloud, worker, database and launch settings from the board file", function* () {
@@ -19,6 +27,7 @@ describe("work-fleet host configuration", () => {
 			database: { url: "<postgresql-url>" },
 			launch: { effort: "<reasoning-effort>", model: "<model>", serviceTier: "<service-tier>" },
 			provider: "cloud",
+			stallMinutes: 10,
 			worker: { branchPrefix: "<branch-prefix>", sharedEnvironment: "<environment-script-path>" },
 		};
 		const host = yield* loadHost(hostBoard(JSON.stringify(config))).pipe(Effect.provide(NodeServices.layer));
@@ -28,6 +37,7 @@ describe("work-fleet host configuration", () => {
 			databaseUrl: config.database.url,
 			launch: config.launch,
 			provider: "cloud",
+			stallMinutes: 10,
 			worker: config.worker,
 		});
 	});

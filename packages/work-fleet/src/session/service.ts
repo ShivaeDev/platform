@@ -1,11 +1,19 @@
 import { Cause, Context, Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
-import type { ContinueSession, ReconcileSession, SessionFailure, SessionObservation, SessionReceipt, StartSession } from "#session/schema.ts";
+import {
+	type ContinueSession,
+	type ReconcileSession,
+	SessionFailure,
+	type SessionObservation,
+	type SessionReceipt,
+	type StartSession,
+} from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 
 export class SessionTransport extends Context.Service<
 	SessionTransport,
 	{
+		readonly steer?: (receipt: SessionReceipt, prompt: string) => Effect.Effect<void, SessionFailure>;
 		readonly nameSession?: (sessionId: string, name: string) => Effect.Effect<void, SessionFailure>;
 		readonly readSessionName?: (sessionId: string) => Effect.Effect<string | undefined, SessionFailure>;
 		readonly archive?: (sessionId: string) => Effect.Effect<void, SessionFailure>;
@@ -88,6 +96,8 @@ export const SessionService = defineService({
 					return receipt;
 				}),
 			),
+		steer: (receipt: SessionReceipt, prompt: string) =>
+			transport.steer?.(receipt, prompt) ?? Effect.fail(new SessionFailure({ message: "Provider does not support steering", reason: "protocol" })),
 	}),
 	requires: [SessionTransport, SessionJournal],
 });

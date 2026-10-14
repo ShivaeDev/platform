@@ -17,7 +17,7 @@ export function makeLaunch(state: EngineState) {
 		input: Versioned<FleetRecord>,
 		role: "worker" | "repair",
 		prompt: string,
-		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[] },
+		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[]; readonly stallRecovery?: Attempt["stallRecovery"] },
 	) {
 		const stored = input;
 		const work = yield* board.get(stored.value.workId, { fresh: true });
@@ -51,6 +51,7 @@ export function makeLaunch(state: EngineState) {
 			providerFailures: stored.value.launchRetry?.rejections,
 			role: launchRole,
 			settings,
+			stallRecovery: continuation?.stallRecovery,
 			...(sessionId === undefined ? {} : { sessionId }),
 			status: "submitting",
 			submittedAt: policy.now(),

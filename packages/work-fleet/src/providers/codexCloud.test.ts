@@ -32,7 +32,10 @@ function cloudBackend(requests: WireRequest[], overrides: Partial<Record<string,
 			case "turn/start":
 				return { turn: { id: receipt.turnId } };
 			case "thread/turns/list":
-				return { data: [{ id: receipt.turnId, items: [], status: "completed" }], nextCursor: null };
+				return {
+					data: [{ id: receipt.turnId, items: [{ id: "command", status: "completed", type: "commandExecution" }], status: "completed" }],
+					nextCursor: null,
+				};
 			case "thread/items/list":
 				return {
 					data: [
@@ -65,6 +68,7 @@ it.live("launches in the configured environment with launch settings and reads t
 				const observation = yield* provider.observe(receipt);
 				expect(observation.execution).toBe("completed");
 				expect(observation.output).toBe("HEAD: synthetic");
+				expect(observation.progress).toEqual([{ id: "command", status: "completed" }]);
 			}).pipe(Effect.provide(cloudConfiguration(fixture.endpoint, authFile)));
 			expect(handshakes).toHaveLength(1);
 			expect(handshakes[0]?.protocols).toContain(`openai-bearer.${token}`);
@@ -76,7 +80,7 @@ it.live("launches in the configured environment with launch settings and reads t
 				serviceTier: "priority",
 			});
 			expect(params(requests, "turn/start")).toMatchObject({ clientUserMessageId: "operation", ...settings, threadId: receipt.sessionId });
-			expect(params(requests, "thread/turns/list")).toMatchObject({ itemsView: "notLoaded" });
+			expect(params(requests, "thread/turns/list")).toMatchObject({ itemsView: "full" });
 			expect(requests.map((request) => request.method).indexOf("thread/read")).toBeLessThan(
 				requests.map((request) => request.method).indexOf("turn/start"),
 			);
