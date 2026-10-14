@@ -35,7 +35,7 @@ it.live("renders a fixture Board tree through the navigation query with the sele
 		expect([...view.container.querySelectorAll("#files a")].map((link) => link.textContent)).toEqual(["home", "design", "review"]);
 		expect(view.container.querySelector('#files details[data-key="folder:notes"] > summary')?.textContent).toBe("notes/ (2)");
 		expect(view.container.querySelector<HTMLDetailsElement>('#files details[data-key="folder:notes/deep"]')?.open).toBe(true);
-		expect(view.container.querySelector("header.bar")).not.toBeNull();
+		expect(view.container.querySelector("header")).not.toBeNull();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 	}
@@ -51,7 +51,7 @@ it.live("changes the React main area through TanStack Router while retaining the
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Design")));
-		const header = view.container.querySelector("header.bar");
+		const header = view.container.querySelector("header");
 		const host = view.container.querySelector("main[data-react-document]");
 		yield* Effect.promise(() =>
 			act(async () => {
@@ -59,7 +59,7 @@ it.live("changes the React main area through TanStack Router while retaining the
 			}),
 		);
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Review")));
-		expect(view.container.querySelector("header.bar")).toBe(header);
+		expect(view.container.querySelector("header")).toBe(header);
 		expect(view.container.querySelector("main[data-react-document]")).toBe(host);
 		expect(router?.state.location.pathname).toBe("/notes/deep/review.md");
 	} finally {

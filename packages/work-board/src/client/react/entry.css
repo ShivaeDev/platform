@@ -1,3 +1,5 @@
+@layer theme, base, legacy, components, utilities;
+
 @import "tailwindcss" source("./");
 
 @custom-variant dark (&:is(.dark *));
@@ -21,6 +23,12 @@
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
+	--color-needs-you: var(--status-needs-you);
+	--color-agent-working: var(--status-agent-working);
+	--color-waiting-on-agents: var(--status-waiting-on-agents);
+	--color-blocked: var(--status-blocked);
+	--color-done: var(--status-done);
+	--color-deferred: var(--status-deferred);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -29,13 +37,25 @@
 
 :root {
 	--radius: 0.625rem;
+	--bg: var(--background);
+	--text: var(--foreground);
+	--surface: var(--secondary);
+	--link: var(--foreground);
+	--danger: var(--destructive);
+	--focus: var(--ring);
+	--status-needs-you: oklch(0.48 0.11 75);
+	--status-agent-working: oklch(0.48 0.16 255);
+	--status-waiting-on-agents: oklch(0.48 0.16 300);
+	--status-blocked: oklch(0.5 0.19 25);
+	--status-done: oklch(0.47 0.065 155);
+	--status-deferred: oklch(0.5 0 0);
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.145 0 0);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.145 0 0);
-	--primary: oklch(0.205 0 0);
+	--primary: oklch(0.45 0.12 155);
 	--primary-foreground: oklch(0.985 0 0);
 	--secondary: oklch(0.97 0 0);
 	--secondary-foreground: oklch(0.205 0 0);
@@ -46,17 +66,24 @@
 	--destructive: oklch(0.577 0.245 27.325);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
-	--ring: oklch(0.708 0 0);
+	--ring: oklch(0.55 0.14 155);
+	color-scheme: light;
 }
 
 .dark {
+	--status-needs-you: oklch(0.8 0.13 75);
+	--status-agent-working: oklch(0.76 0.13 255);
+	--status-waiting-on-agents: oklch(0.78 0.13 300);
+	--status-blocked: oklch(0.75 0.15 25);
+	--status-done: oklch(0.73 0.065 155);
+	--status-deferred: oklch(0.72 0 0);
 	--background: oklch(0.145 0 0);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.205 0 0);
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
 	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
+	--primary: oklch(0.72 0.14 155);
 	--primary-foreground: oklch(0.205 0 0);
 	--secondary: oklch(0.269 0 0);
 	--secondary-foreground: oklch(0.985 0 0);
@@ -67,13 +94,18 @@
 	--destructive: oklch(0.704 0.191 22.216);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.556 0 0);
+	--ring: oklch(0.72 0.14 155);
+	color-scheme: dark;
 }
 
 @layer base {
+	.doc a {
+		@apply underline underline-offset-4;
+	}
 	* {
 		@apply border-border outline-ring/50;
 	}
+	html,
 	body {
 		@apply bg-background text-foreground;
 	}

@@ -175,7 +175,7 @@ describe("live page", () => {
 		const twoHoursEarlier = statSync(file).mtimeMs / 1000 - 2 * 60 * 60;
 		utimesSync(file, twoHoursEarlier, twoHoursEarlier);
 		yield* open("/plan.md");
-		expect(page.document.querySelector('#files a[href="/plan.md"] + .age')?.textContent).toBe("2h");
-		expect(page.document.querySelector("#doc .meta .age")?.textContent).toBe("updated 2h ago");
+		expect(page.document.querySelector('#files a[href="/plan.md"] + [data-modified]')?.textContent).toBe("2h");
+		expect(page.document.querySelector("#doc .meta [data-modified]")?.textContent).toBe("updated 2h ago");
 	});
 });

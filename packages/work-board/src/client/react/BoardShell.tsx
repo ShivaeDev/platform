@@ -91,7 +91,7 @@ export function BoardShell(options: ShellOptions) {
 			navigationPending={query.pending}
 		/>
 	) : (
-		<span className="live" id={shellIds.live} role="status">
+		<span className="font-mono text-muted-foreground text-xs" id={shellIds.live} role="status">
 			connecting
 		</span>
 	);
@@ -101,17 +101,22 @@ export function BoardShell(options: ShellOptions) {
 				<a className="skip" href="#doc">
 					Skip to content
 				</a>
-				<div className="workspace">
+				<div
+					className="grid min-h-dvh grid-cols-1 bg-background text-foreground md:data-[sidebar=open]:grid-cols-[248px_minmax(0,1fr)] print:block"
+					data-board-workspace
+					data-sidebar={sidebar.open ? "open" : "closed"}
+				>
 					<Sidebar controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
 					<button
 						aria-label="Close files"
-						className="sidebar-backdrop"
+						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"
+						data-open={sidebar.narrow && sidebar.open}
 						hidden={!(sidebar.narrow && sidebar.open)}
 						id={shellIds.sidebarBackdrop}
 						onClick={() => sidebar.close()}
 						type="button"
 					/>
-					<div className="page" inert={sidebar.narrow && sidebar.open}>
+					<div className="min-w-0" data-board-page inert={sidebar.narrow && sidebar.open}>
 						<Header
 							appearance={appearance}
 							count={data?.inboxCount ?? null}

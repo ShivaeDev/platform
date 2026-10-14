@@ -28,7 +28,14 @@ function since(seconds: number) {
 export function Age({ modified, short = false }: { readonly modified: number; readonly short?: boolean }) {
 	const ago = since(Math.max(0, Math.round((useContext(TimeContext) - modified) / 1000)));
 	return (
-		<span className={short ? "age short" : "age"} data-modified={modified}>
+		<span
+			className={
+				short
+					? "shrink-0 whitespace-nowrap font-mono text-muted-foreground text-xs"
+					: "ml-1.5 whitespace-nowrap font-mono text-muted-foreground text-xs"
+			}
+			data-modified={modified}
+		>
 			{short ? ago : `updated ${ago} ago`}
 		</span>
 	);

@@ -1,5 +1,6 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
+import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { WorkItemTitle } from "./WorkItemTitle.tsx";
 export function WorkTable({ data }: { readonly data: WorkProjection }) {
 	const headings = ["Work", "Kind", "Status", "Owner", "Next action"].map((label) => (
@@ -31,7 +32,9 @@ function Row({ item, state }: { readonly item: WorkProjection["rows"][number]; r
 				<span className="work-id">{item.id}</span>
 			</th>
 			<td>{item.metadata.kind ?? "Not recorded"}</td>
-			<td>{item.waiting ? `Waiting on you · ${item.metadata.status ?? "Status not recorded"}` : (item.metadata.status ?? "Not recorded")}</td>
+			<td>
+				{Boolean(item.waiting) && <StatusChip status="needs-you" />} <StatusChip status={item.metadata.status} />
+			</td>
 			<td>{item.metadata.owner ?? "Not recorded"}</td>
 			<td>{item.metadata.nextAction ?? "Not recorded"}</td>
 		</tr>

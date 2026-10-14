@@ -1,4 +1,5 @@
 import { createElement, useCallback, useEffect, useId, useRef, useState } from "react";
+import { mermaidColor } from "./mermaidColor.ts";
 
 const drawings = new Map<string, { readonly source: string; readonly svg: string }>();
 
@@ -37,7 +38,7 @@ export function Mermaid({ source }: { readonly source: string }) {
 			try {
 				const { default: mermaid } = await import("mermaid");
 				function token(name: string) {
-					return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+					return name === "--sans" ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() : mermaidColor(name);
 				}
 				mermaid.initialize({
 					securityLevel: "strict",
@@ -48,7 +49,7 @@ export function Mermaid({ source }: { readonly source: string }) {
 						background: token("--bg"),
 						darkMode: theme === "dark",
 						fontFamily: token("--sans"),
-						lineColor: token("--muted"),
+						lineColor: token("--muted-foreground"),
 						primaryBorderColor: token("--border"),
 						primaryColor: token("--surface"),
 						primaryTextColor: token("--text"),

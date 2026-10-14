@@ -32,6 +32,7 @@ export function useAppearance() {
 		root.dataset.theme = value.theme;
 		root.dataset.density = value.density;
 		root.dataset.scheme = scheme;
+		root.classList.toggle("dark", scheme === "dark");
 		const doc = document.getElementById("doc");
 		if (doc) {
 			doc.dataset.scheme = scheme;

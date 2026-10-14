@@ -1,22 +1,9 @@
 import { Clock, Effect, type Scope } from "effect";
-import { Browser, type BrowserWindow, type IFetchInterceptor } from "happy-dom";
+import { Browser, type BrowserWindow } from "happy-dom";
+import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { type RunningBoard, rawGet } from "./board.ts";
+import { pageFetch } from "./pageFetch.ts";
 import type { RpcStream } from "./RpcStream.ts";
-import { rpcAfter, rpcBefore } from "./rpcFetch.ts";
-
-const MERMAID_STUB = `
-const control = globalThis.mermaidStub;
-export default {
-  initialize: (config) => control.configs.push(config),
-  render: async (id, source) => {
-    control.calls.push(source);
-    const dark = control.configs.at(-1).themeVariables.darkMode;
-    await control.gate;
-    if (source.includes("broken")) throw new Error("Parse error in the diagram");
-    return { svg: '<svg data-source="' + encodeURIComponent(source.trim()) + '" data-dark="' + dark + '"></svg>' };
-  },
-};
-`;
 
 export interface MermaidControl {
 	readonly calls: string[];
@@ -50,36 +37,6 @@ export interface OpenPage {
 	readonly window: BrowserWindow;
 }
 
-function interceptor(path: string, pageRequests: PageRequests, mermaidRequests: string[], streams: RpcStream[]): IFetchInterceptor {
-	return {
-		afterAsyncResponse: async ({ request, response, window }) => {
-			const native = await rpcAfter(request, response, window, path, pageRequests, streams);
-			if (native !== undefined) {
-				return native;
-			}
-			if (new URL(request.url).pathname === path) {
-				pageRequests.answered += 1;
-			}
-			return undefined;
-		},
-		beforeAsyncRequest: async ({ request, window }) => {
-			const requested = new URL(request.url).pathname;
-			const native = await rpcBefore(request, window, path, pageRequests, streams);
-			if (native !== undefined) {
-				return native;
-			}
-			if (requested === path) {
-				return rpcBefore(request, window, path, pageRequests, streams, true);
-			}
-			if (!requested.startsWith("/_board/mermaid/")) {
-				return undefined;
-			}
-			mermaidRequests.push(request.url);
-			return new window.Response(MERMAID_STUB, { headers: { "content-type": "text/javascript" } });
-		},
-	};
-}
-
 export const openPage = Effect.fn("Test.openPage")(function* (
 	board: RunningBoard,
 	path = "/",
@@ -91,10 +48,11 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
 	const streams: RpcStream[] = [];
+	const theme = yield* rawGet(board, THEME_ROUTE);
 	const browser = new Browser({
 		settings: {
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: interceptor(path, pageRequests, mermaidRequests, streams) },
+			fetch: { interceptor: pageFetch({ mermaidRequests, pageRequests, path, streams, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});

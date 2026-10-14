@@ -1,6 +1,7 @@
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { fileUrl } from "#files/url.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { THEME_ROUTE } from "./initialTheme.ts";
 import { inboxCount } from "./nav.ts";
 import { searchDialog } from "./searchDialog.ts";
 import { visualDialog } from "./visualDialog.ts";
@@ -43,6 +44,7 @@ export function shell(
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
 		`<title>${escapeHtml(title)}</title>`,
+		`<script src="${THEME_ROUTE}"></script>`,
 		'<link rel="stylesheet" href="/_board/react.css"><link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/react.js"></script>',
 		`</head><body><noscript data-board-fallback><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style>${legacy}</noscript>`,
 		`<div data-board-react-root></div><template id="board-legacy-page">${legacy}</template></body></html>`,

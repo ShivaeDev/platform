@@ -21,7 +21,7 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 	const layout = element(".document-layout");
 	const introduction = element(".item-introduction");
 	const title = element(".item-introduction h1");
-	expect([...element(".page").children]).toEqual([element(".bar"), element(".preferences"), main]);
+	expect([...element("[data-board-page]").children]).toEqual([element("header"), main]);
 	expect(main.firstElementChild).toBe(layout);
 	expect(layout.firstElementChild).toBe(introduction);
 	expect(introduction.firstElementChild).toBe(title);
@@ -29,21 +29,22 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 	expect(window.getComputedStyle(introduction).gridRow).toBe(window.innerWidth >= 1100 ? "1" : "");
 	if (window.innerWidth < 768) {
 		expect(element("#sidebar").hidden).toBe(true);
-	} else {
-		expect(window.getComputedStyle(element(".workspace")).gridTemplateColumns).toBe("248px minmax(0, 1fr)");
 	}
-	let maximumTitleTop = 0;
-	for (const selector of [".bar", ".preferences"]) {
-		const style = window.getComputedStyle(element(selector));
-		expect(style.boxSizing).toBe("border-box");
-		expect(style.overflow).toBe("auto");
-		expect(pixels(style.minHeight)).toBe(0);
-		const maximumHeight = pixels(style.maxHeight);
-		expect(maximumHeight).toBeGreaterThan(0);
-		expect(maximumHeight).toBeLessThanOrEqual(window.innerHeight / 4);
-		maximumTitleTop += maximumHeight + pixels(style.marginTop) + pixels(style.marginBottom);
-	}
-	for (const selector of ["body", ".workspace", ".page", "#doc", ".document-layout", ".item-introduction", ".item-introduction h1"]) {
+	const header = element("header");
+	expect(header.classList.contains("h-14")).toBe(true);
+	expect(header.classList.contains("flex")).toBe(true);
+	expect(header.classList.contains("flex-wrap")).toBe(false);
+	let maximumTitleTop = 56;
+
+	for (const selector of [
+		"body",
+		"[data-board-workspace]",
+		"[data-board-page]",
+		"#doc",
+		".document-layout",
+		".item-introduction",
+		".item-introduction h1",
+	]) {
 		const style = window.getComputedStyle(element(selector));
 		expect(["", "static"]).toContain(style.position);
 		expect(["", "none"]).toContain(style.transform);

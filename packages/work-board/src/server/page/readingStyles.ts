@@ -23,9 +23,5 @@ export function readingStyles(): string {
 .reading-library a[aria-current="page"] { font-weight: 600; }
 .reading-library .missing { color: var(--muted); }
 .library-status { padding: 0 12px; color: var(--muted); }
-#navigation-status { color: var(--danger); overflow-wrap: anywhere; }
-#navigation-status:empty { display: none; }
-.bar:has(#navigation-status:not(:empty)) { flex-wrap: wrap; }
-#navigation-status:not(:empty) { flex-basis: 100%; }
 `;
 }

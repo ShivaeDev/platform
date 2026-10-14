@@ -2,10 +2,14 @@ import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import type { HttpRouter, HttpServerRequest } from "effect/http";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { INITIAL_THEME_SCRIPT, THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { style } from "#server/page/style.ts";
 import { respond } from "./respond.ts";
 
-export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [["/_board/style.css", style, "text/css"]];
+export const ASSETS: ReadonlyArray<readonly [HttpRouter.PathInput, string, string]> = [
+	["/_board/style.css", style, "text/css"],
+	[THEME_ROUTE, INITIAL_THEME_SCRIPT, "text/javascript"],
+];
 
 const MERMAID = "/_board/mermaid/";
 
