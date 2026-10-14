@@ -15,11 +15,13 @@ interface FollowRun {
 
 interface Follower {
 	readonly done: Promise<FollowRun>;
+	readonly isRunning: () => boolean;
 	readonly output: () => string;
 	readonly ready: Promise<void>;
 }
 
 interface FollowOptions {
+	readonly follow?: boolean;
 	readonly interval?: number;
 	readonly port?: number;
 	readonly timeout?: number;
@@ -46,12 +48,12 @@ export function withFollower<A, E, R>(
 						cli,
 						command,
 						...ids,
+						...(options.follow ? ["--follow"] : []),
 						"--port",
 						String(port),
 						"--interval",
 						String(options.interval ?? 0.05),
-						"--timeout",
-						String(options.timeout ?? 20),
+						...(options.follow && options.timeout === undefined ? [] : ["--timeout", String(options.timeout ?? 20)]),
 					],
 					{ stdio: ["ignore", "pipe", "pipe"] },
 				);
@@ -74,7 +76,13 @@ export function withFollower<A, E, R>(
 					}
 					child.on("close", finish);
 				});
-				return { child, done, output: () => stdout, ready: options.port === undefined ? ready.promise : Promise.resolve() };
+				return {
+					child,
+					done,
+					isRunning: () => child.exitCode === null && child.signalCode === null,
+					output: () => stdout,
+					ready: options.port === undefined ? ready.promise : Promise.resolve(),
+				};
 			}),
 			use,
 			({ child, done }) =>

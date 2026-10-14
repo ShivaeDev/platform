@@ -18,5 +18,5 @@ export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function
 		Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
 		Stream.share({ capacity: 1, replay: 1, strategy: "sliding" }),
 	);
-	return (ids: readonly string[]) => snapshotStream(snapshots, ids);
+	return (ids: readonly string[], continuous = false) => snapshotStream(snapshots, ids, continuous);
 });

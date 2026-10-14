@@ -47,7 +47,7 @@ export const ClientContract = contract("daemon", {
 	],
 	streams: [
 		stream("follow", {
-			payload: { workIds: Schema.Array(Schema.String) },
+			payload: { follow: Schema.optional(Schema.Boolean), workIds: Schema.Array(Schema.String) },
 			reads: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],
 			rejections: fleetRejections,
 			success: Schema.Array(State),

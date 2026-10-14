@@ -7,6 +7,7 @@ import type { State } from "#host/waitOutcome.ts";
 const { DAEMON_PORT } = diagnosticsApi;
 
 export interface FollowOptions {
+	readonly follow?: boolean;
 	readonly intervalMs: number;
 	readonly port?: number;
 	readonly timeoutMs?: number;
@@ -18,10 +19,10 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 	let connected = false;
 	let failures = 0;
 	function connect(): Stream.Stream<readonly (typeof State.Type)[], FleetError> {
-		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { workIds: ids })))).pipe(
+		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { follow: options.follow, workIds: ids })))).pipe(
 			Stream.scoped,
 			Stream.map((states) => {
-				if (!connected && ids.length === 0) {
+				if (!(options.follow || connected) && ids.length === 0) {
 					ids = states.map((state) => state.workId);
 				}
 				connected = true;

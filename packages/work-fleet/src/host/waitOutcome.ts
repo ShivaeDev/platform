@@ -14,7 +14,12 @@ export const WaitState = Schema.Struct({
 	blocker: Schema.optional(Schema.String),
 	checks: Schema.optional(Schema.Struct({ pending: Schema.optional(Schema.Boolean) })),
 	decision: Schema.optional(
-		Schema.Struct({ attentionOwner: Schema.optional(AttentionOwner), code: Schema.optional(DecisionCode), reason: Schema.String }),
+		Schema.Struct({
+			attentionOwner: Schema.optional(AttentionOwner),
+			code: Schema.optional(DecisionCode),
+			id: Schema.optional(Schema.String),
+			reason: Schema.String,
+		}),
 	),
 	outcome: Schema.optional(Schema.Struct({ evidence: Schema.optional(Schema.Array(Schema.String)), url: Schema.optional(Schema.String) })),
 	stage: Schema.String,

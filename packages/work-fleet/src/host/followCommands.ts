@@ -35,6 +35,7 @@ export const watchCommand = Command.make(
 	{
 		board,
 		config,
+		follow: Flag.Boolean("follow").pipe(Flag.withDefault(false), Flag.withDescription("Keep watching transitions, including newly launched work")),
 		interval: Flag.Finite("interval").pipe(Flag.withDefault(15), Flag.withDescription("Seconds between daemon reconnect attempts")),
 		port,
 		timeout: Flag.Finite("timeout").pipe(Flag.optional, Flag.withDescription("Give up after this many seconds (exit 4)")),
@@ -43,10 +44,11 @@ export const watchCommand = Command.make(
 	Effect.fn("WorkFleetCli.watch")(function* (input) {
 		const { watchFor } = yield* Effect.promise(() => import("#host/watch.ts"));
 		process.exitCode = yield* watchFor({
+			follow: input.follow,
 			intervalMs: input.interval * 1000,
 			port: input.port,
 			workIds: input.workIds,
 			...Option.match(input.timeout, { onNone: () => ({}), onSome: (seconds) => ({ timeoutMs: seconds * 1000 }) }),
 		});
 	}),
-).pipe(Command.withDescription("Print one line when each item completes, needs a human or is released; without ids, follow currently active work"));
+).pipe(Command.withDescription("Print item outcomes; --follow keeps watching transitions and new work until interrupted"));
