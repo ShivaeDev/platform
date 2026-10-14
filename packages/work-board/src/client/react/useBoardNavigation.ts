@@ -19,8 +19,10 @@ export function useBoardNavigation(shell: RouterShell) {
 		let route = "";
 		let hash = "";
 		let failure = "";
+		let interrupted = false;
 		function save() {
 			if (!displayed || document.getElementById("doc")?.dataset.route !== route) {
+				interrupted ||= displayed !== "";
 				return;
 			}
 			const reading = captureReading();
@@ -45,17 +47,16 @@ export function useBoardNavigation(shell: RouterShell) {
 			const key = location.state.key ?? nextRoute;
 			const entry = currentEntry(location.state, displayed, initial);
 			const id = readingKey(key, entry, aliases);
-			if (sameReadingLocation({ hash, id: displayed, route }, { hash: location.hash, id, route: nextRoute })) {
+			if (!interrupted && sameReadingLocation({ hash, id: displayed, route }, { hash: location.hash, id, route: nextRoute })) {
 				return;
 			}
+			interrupted = false;
 			const reading = readings.get(id) ?? entry?.reading;
 			const focus = displayed !== "";
 			displayed = id;
 			route = nextRoute;
 			hash = location.hash;
-			if (shell.client) {
-				recordEntry(router, nextRoute, id);
-			}
+			recordEntry(router, nextRoute, id, shell.client !== undefined);
 			scheduleReading(doc, reading, hash, () => displayed === id && doc.dataset.route === nextRoute, setStatus, focus);
 		}
 		async function open(target: URL) {
@@ -130,7 +131,10 @@ export function useBoardNavigation(shell: RouterShell) {
 	return status;
 }
 
-function recordEntry(router: ReturnType<typeof useRouter>, route: string, id: string) {
+function recordEntry(router: ReturnType<typeof useRouter>, route: string, id: string, native: boolean) {
+	if (!native) {
+		return;
+	}
 	router.history.flush?.();
 	if (window.location.pathname + window.location.search !== route || window.history.state?.workBoard?.id === id) {
 		return;

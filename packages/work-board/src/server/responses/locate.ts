@@ -3,9 +3,8 @@ import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@s
 import { rpcBoundary } from "@shivaedev/platform/rpc-server/boundary.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
+import { currentDocument } from "#server/currentDocument.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { questionId, revisionOf } from "./records.ts";
 import { requestSource } from "./requestSource.ts";
@@ -30,10 +29,8 @@ export function locate(root: string, realRoot: string, snapshot: Effect.Effect<S
 		if (new TextEncoder().encode(source).length > 256 * 1024) {
 			return yield* Effect.fail(new BadRequest({ message: "Question context is limited to 256 KiB; use a focused source document." }));
 		}
-		const parsed = metadataParse(source);
-		const documents = [...data.documents.filter((document) => document.file !== entry.document.file), { file: entry.document.file, parsed }];
-		const model = metadataModel(documents, data.unavailable, data.model.rootFile);
-		const fresh = requestSource({ ...data, documents, model }, item, request);
+		const current = currentDocument(data, entry.document.file, source, data.model.rootFile);
+		const fresh = requestSource(current.snapshot, item, request);
 		if (!fresh) {
 			return yield* Effect.fail(
 				new PreconditionFailed({

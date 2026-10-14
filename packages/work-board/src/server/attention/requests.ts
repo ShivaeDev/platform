@@ -52,7 +52,15 @@ function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: stri
 	});
 }
 
-export function attentionRequests(snapshot: Snapshot) {
+interface AttentionResult {
+	complete: boolean;
+	entries: AttentionEntry[];
+	issues: SourceIssue[];
+}
+
+const cached = new WeakMap<Snapshot, AttentionResult>();
+
+function collectRequests(snapshot: Snapshot): AttentionResult {
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	const issues: SourceIssue[] = snapshot.documents.flatMap((source) =>
 		(snapshot.model.diagnostics.get(source.file) ?? source.parsed.diagnostics).map((problem) => ({ ...problem, file: source.file })),
@@ -61,6 +69,15 @@ export function attentionRequests(snapshot: Snapshot) {
 	const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 	entries.sort((a, b) => collator.compare(a.title, b.title) || a.itemId.localeCompare(b.itemId) || a.request.id.localeCompare(b.request.id));
 	return { complete: snapshot.unavailable.length === 0, entries, issues };
+}
+
+export function attentionRequests(snapshot: Snapshot): AttentionResult {
+	let result = cached.get(snapshot);
+	if (!result) {
+		result = collectRequests(snapshot);
+		cached.set(snapshot, result);
+	}
+	return { ...result, entries: [...result.entries], issues: [...result.issues] };
 }
 
 export function attentionSource(document: MetadataDocument, index: number): string {

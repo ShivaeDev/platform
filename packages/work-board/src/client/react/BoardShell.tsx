@@ -4,6 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
+import { navigationQuery } from "#client/page/routeQuery.ts";
 import { AgeTicker } from "./Age.tsx";
 import { BoardMain } from "./BoardMain.tsx";
 import { Header } from "./Header.tsx";
@@ -36,7 +37,7 @@ export function BoardShell(options: ShellOptions) {
 	const status = useBoardNavigation(options);
 	const search = useSearchDialog();
 	const [libraryOpen, setLibraryOpen] = useState(false);
-	const location = useRouterState({ select: (state) => state.resolvedLocation ?? state.location });
+	const location = useRouterState({ select: (state) => state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
 		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };
@@ -45,7 +46,7 @@ export function BoardShell(options: ShellOptions) {
 		const doc = bootstrapPage(initial).getElementById("doc");
 		return doc?.classList.contains("board-view") ? { file: doc.dataset.file ?? "", identity: doc.dataset.identity } : undefined;
 	});
-	const query = useQuery(api.navigation.query({ current: main.view ? "" : main.file }), { keepPreviousData: true });
+	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
 	const onPage = useCallback(
 		(next: MainLocation) => setMain((previous) => (previous.file === next.file && previous.view === next.view ? previous : next)),

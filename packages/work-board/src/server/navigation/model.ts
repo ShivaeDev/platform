@@ -4,8 +4,18 @@ import { fleetRecords, inboxItems } from "#server/attention/inbox.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
+const counts = new WeakMap<Snapshot, number>();
+
 export function inboxCount(snapshot?: Snapshot): number | null {
-	return !snapshot || snapshot.unavailable.length > 0 ? null : inboxItems(snapshot).length;
+	if (!snapshot || snapshot.unavailable.length > 0) {
+		return null;
+	}
+	let count = counts.get(snapshot);
+	if (count === undefined) {
+		count = inboxItems(snapshot).length;
+		counts.set(snapshot, count);
+	}
+	return count;
 }
 
 function fileData(file: MarkdownFile, current: string): NavigationFile {

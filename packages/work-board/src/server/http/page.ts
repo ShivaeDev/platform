@@ -2,12 +2,11 @@ import { Effect, FileSystem, Option } from "effect";
 import type { HttpServerRequest } from "effect/http";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { authoredQuestion } from "#server/attention/inbox.ts";
+import { currentDocument } from "#server/currentDocument.ts";
 import { documentBody } from "#server/document/body.ts";
 import type { Changes } from "#server/files/changes.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
 import { boardHtml } from "#server/page/boardHtml.ts";
 import { documentHtml } from "#server/page/documentHtml.ts";
 import { itemIntroduction } from "#server/page/itemIntroduction.ts";
@@ -47,14 +46,11 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 			return Option.none();
 		}
 		const source = yield* fs.readFileString(real);
-		const parsed = metadataParse(source);
 		let identity: string | undefined;
 		const snapshot = yield* index;
-		const model = metadataModel(
-			[...snapshot.documents.filter((document) => document.file !== file.path), { file: file.path, parsed }],
-			snapshot.unavailable,
-			options.home ?? (yield* changes.files)[0]?.path,
-		);
+		const { document, snapshot: current } = currentDocument(snapshot, file.path, source, options.home ?? (yield* changes.files)[0]?.path);
+		const { parsed } = document;
+		const { model } = current;
 		const metadata = metadataHtml(parsed, file.path, model, file.path === options.home);
 		if (snapshot.unavailable.length === 0 && parsed.fields.id && model.ids.get(parsed.fields.id)?.length === 1) {
 			identity = parsed.fields.id;
@@ -62,8 +58,8 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 		if (expectedIdentity && identity !== expectedIdentity) {
 			return Option.none();
 		}
-		const actions = yield* readingActions({ file: file.path, parsed }, source, options.writable === true, identity);
-		const prose = documentBody({ file: file.path, parsed });
+		const actions = yield* readingActions(document, source, options.writable === true, identity);
+		const prose = documentBody(document);
 		const html =
 			file.path === options.home
 				? yield* boardHtml(boardOf(prose), file.path, file.modified, metadata, actions)

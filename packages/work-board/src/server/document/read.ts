@@ -1,11 +1,10 @@
 import { Effect, FileSystem } from "effect";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { currentDocument } from "#server/currentDocument.ts";
 import type { Changes } from "#server/files/changes.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { documentBody } from "./body.ts";
@@ -56,10 +55,10 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 		}
 		const fs = yield* FileSystem.FileSystem;
 		const source = yield* fs.readFileString(real);
-		const parsed = metadataParse(source);
-		const document = { file: file.path, parsed };
-		const documents = [...snapshot.documents.filter((entry) => entry.file !== file.path), document];
-		const model = metadataModel(documents, snapshot.unavailable, home ?? files[0]?.path);
+		const current = currentDocument(snapshot, file.path, source, home ?? files[0]?.path);
+		const { document } = current;
+		const { parsed } = document;
+		const { model } = current.snapshot;
 		const id = parsed.fields.id;
 		const identity = id && snapshot.unavailable.length === 0 && model.ids.get(id)?.length === 1 ? id : undefined;
 		if (item && identity !== item) {
@@ -80,7 +79,7 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			modified: file.modified,
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
-			requests: documentRequests(document, source, { ...snapshot, documents, model }),
+			requests: documentRequests(document, source, current.snapshot),
 			source: documentBody(document),
 			unavailable: snapshot.unavailable,
 			writable,

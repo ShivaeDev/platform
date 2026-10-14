@@ -80,7 +80,7 @@ describe("document navigation", () => {
 		page.document.body.dataset.visit = "kept";
 		click('a[href="/_board/result?item=result.keyboard"]');
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("result")));
+		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Review returned result · result.keyboard")));
 		expect(title()).toBe("Review returned result · result.keyboard");
 		expect(page.document.body.dataset.visit).toBe("kept");
 		expect(page.window.location.pathname).toBe("/_board/result");
@@ -93,7 +93,7 @@ describe("document navigation", () => {
 		page.document.body.dataset.visit = "kept";
 		click("#start-open");
 		yield* Effect.promise(frame);
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("start")));
+		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Project and report templates")));
 		expect(title()).toBe("Project and report templates");
 		expect(page.document.body.dataset.visit).toBe("kept");
 		expect(page.window.location.pathname).toBe("/_board/start");
@@ -251,7 +251,9 @@ effectApp("retries the same route after a navigation request fails", function* (
 	click('#files a[href="/flow.md"]');
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toContain("Could not open")));
-	expect(title()).toBe("Plan");
+	expect(title()).toBeUndefined();
+	expect(page.window.location.pathname).toBe("/flow.md");
+	expect(page.document.getElementById("doc")?.textContent).toContain("This document could not be opened");
 	fail = false;
 	click('#files a[href="/flow.md"]');
 	yield* Effect.promise(frame);

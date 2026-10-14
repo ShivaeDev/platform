@@ -33,7 +33,7 @@ effectApp("opens the overview from legacy Markdown and preserves queue reading c
 	page = yield* openPage(board, "/");
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 	click("#overview-open");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("overview")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe("/_board/overview")));
 	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBe("page");
 	page.document.querySelector(".view-issues")?.setAttribute("open", "");
 	click('[data-request="keyboard-review"] h3 a');
@@ -46,8 +46,8 @@ effectApp("opens the overview from legacy Markdown and preserves queue reading c
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("request.search")));
 	page.window.history.back();
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("overview")));
-	expect(page.document.querySelector(".view-issues")?.hasAttribute("open")).toBe(true);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe("/_board/overview")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".view-issues")?.hasAttribute("open")).toBe(true)));
 	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBe("page");
 });
 

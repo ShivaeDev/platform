@@ -1,4 +1,4 @@
-import { Deferred, Effect } from "effect";
+import { Effect } from "effect";
 import { act } from "react";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
@@ -48,51 +48,6 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 		expect(view.container.querySelector(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
 		expect(reads).not.toContain(`page:${url}`);
 	} finally {
-		yield* Effect.promise(() => view.unmount());
-	}
-});
-
-it.live("keeps the mounted document visible until the next route's loader settles", function* () {
-	const gate = yield* Deferred.make<void>();
-	let pending: Promise<void> | undefined;
-	let started = false;
-	const view = yield* Effect.promise(() =>
-		renderRouter(files, "/notes/first.md", {
-			beforeRead: (kind, url) =>
-				kind === "document" && url === "/notes/next.md"
-					? Effect.sync(() => {
-							started = true;
-						}).pipe(Effect.andThen(Deferred.await(gate)))
-					: Effect.void,
-			home: "home.md",
-		}),
-	);
-	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("First")));
-		const main = view.container.querySelector("main");
-		yield* Effect.promise(() =>
-			act(async () => {
-				pending = view.router.navigate({ to: "/notes/next.md" });
-				await Promise.resolve();
-			}),
-		);
-		yield* Effect.promise(() => eventually(() => expect(started).toBe(true)));
-		expect(view.container.querySelector("#doc h1")?.textContent).toBe("First");
-		yield* Effect.promise(() =>
-			act(async () => {
-				Effect.runSync(Deferred.succeed(gate, undefined));
-				await pending;
-			}),
-		);
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Next")));
-		expect(view.container.querySelector("main")).toBe(main);
-	} finally {
-		yield* Effect.promise(() =>
-			act(async () => {
-				Effect.runSync(Deferred.succeed(gate, undefined));
-				await pending;
-			}),
-		);
 		yield* Effect.promise(() => view.unmount());
 	}
 });

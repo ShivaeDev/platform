@@ -1,8 +1,8 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
 import type { Metadata } from "#metadata/schema.ts";
-import { currentResponses } from "#responses/current.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
-import { malformedResponse, questionFrom, questionId, responseFrom, responsesFor, revisionOf } from "#server/responses/records.ts";
+import { responseIndex } from "#server/responseIndex.ts";
+import { questionId, revisionOf } from "#server/responses/records.ts";
 
 type Request = NonNullable<Metadata["attention"]>[number];
 
@@ -11,25 +11,30 @@ function uniqueDocument(id: string, model: MetadataModel): MetadataDocument | un
 	return matches?.length === 1 ? matches[0] : undefined;
 }
 
+function registeredContext(document: MetadataDocument | undefined, model: MetadataModel) {
+	return document ? responseIndex(model).questions.get(document.file) : undefined;
+}
+
 function appliedAnswer(question: string, revision: string, responseId: string | undefined, model: MetadataModel): boolean {
 	if (responseId === undefined) {
 		return false;
 	}
 	const matches = model.ids.get(responseId);
-	const answer = matches?.length === 1 && matches[0] ? responseFrom(matches[0]) : undefined;
+	const index = responseIndex(model);
+	const answer = matches?.length === 1 && matches[0] ? index.responses.get(matches[0].file) : undefined;
 	if (answer?.response.type !== "answer" || answer.response.question !== question || answer.response.reviewedRevision !== revision) {
 		return false;
 	}
 	const registered = model.ids.get(question)?.[0];
-	const context = registered && questionFrom(registered);
-	if (!context || model.documents.some(malformedResponse)) {
+	const context = registered && index.questions.get(registered.file);
+	if (!context || index.malformed) {
 		return false;
 	}
-	const responses = responsesFor(model.documents, context).responses;
-	if (responses.some((response) => model.ids.get(response.id)?.length !== 1)) {
+	const group = index.responsesFor(context);
+	if (group.ambiguous) {
 		return false;
 	}
-	const current = currentResponses(responses);
+	const current = group.current;
 	return current.length === 1 && current[0]?.id === responseId;
 }
 
@@ -52,7 +57,8 @@ export function managedRequestReceipt(document: MetadataDocument, request: Reque
 	const revision = revisionOf(source);
 	const id = questionId(item, request.id, revision, document.file);
 	const archived = uniqueDocument(id, model);
-	const question = archived && questionFrom(archived);
+	const index = responseIndex(model);
+	const question = registeredContext(archived, model);
 	if (
 		archived?.parsed.diagnostics.length !== 0
 		|| !question
@@ -64,14 +70,10 @@ export function managedRequestReceipt(document: MetadataDocument, request: Reque
 	) {
 		return undefined;
 	}
-	if (
-		model.documents.some((entry) =>
-			entry.parsed.diagnostics.some((problem) => problem.field === "request_receipt" || problem.field === "requestReceipt"),
-		)
-	) {
+	if (index.receiptProblems) {
 		return undefined;
 	}
-	const receipts = model.documents.filter((entry) => entry.parsed.fields.requestReceipt?.question === id);
+	const receipts = index.receipts.get(id) ?? [];
 	const saved = receipts.length === 1 ? receipts[0] : undefined;
 	const receipt = saved?.parsed.fields.requestReceipt;
 	if (
