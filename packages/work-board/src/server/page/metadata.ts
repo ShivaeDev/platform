@@ -52,5 +52,4 @@ export const metadataStyles = `
 .work-meta dl{display:grid;grid-template-columns:minmax(80px,auto) minmax(0,1fr);gap:4px 12px;margin:12px 0}.work-meta dt{color:var(--muted)}.work-meta dd{margin:0}
 .work-meta pre{max-height:300px;overflow:auto;margin-top:12px}.metadata-problems{color:var(--danger);margin:12px 0}.metadata-problems ul{margin:4px 0 12px;padding-left:20px}
 .work-context{font-size:.9rem;margin:12px 0 24px;padding:12px 16px;border:1px solid var(--border);border-radius:8px;overflow-wrap:anywhere}.work-context details{margin:0}.work-context ul{margin:12px 0}.work-context p{font-size:13px;color:var(--muted);margin:8px 0 0}
-[id^="recorded-evidence-"],[id^="criterion-"]{scroll-margin-top:20px}
 `;

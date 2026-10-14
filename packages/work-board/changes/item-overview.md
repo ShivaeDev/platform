@@ -6,3 +6,7 @@
 
 - The document query's optional `referenceDetails` record supplies each resolved reference's title and recorded status alongside the existing reference URLs.
 - Recognize `goal` and `report` item kinds in frontmatter and the portable metadata schema.
+
+### Fixed
+
+- Criterion and recorded-evidence passage links leave their targets visible below the sticky item header.
