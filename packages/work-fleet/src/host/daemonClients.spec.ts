@@ -26,7 +26,7 @@ const dispatchStory = Effect.fn("DaemonClientsTest.dispatchStory")(function* (fi
 	expect(fixture.provider.launched).toHaveLength(1);
 });
 
-const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixture: HostFixture) {
+const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixture: HostFixture, continuous = false) {
 	const snapshot = Promise.withResolvers<void>();
 	const first = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(first, Exit.void));
@@ -40,7 +40,7 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 	}
 	yield* storeState(fixture.host, "a", { stage: "executing" });
 	yield* storeState(fixture.host, "b", { stage: "executing" });
-	yield* withFollower(fixture.configFile, "watch", [], { interval: 0.1, port: address.port }, (follower) =>
+	yield* withFollower(fixture.configFile, "watch", [], { follow: continuous, interval: 0.1, port: address.port }, (follower) =>
 		Effect.gen(function* () {
 			yield* Effect.promise(() => snapshot.promise);
 			yield* storeState(fixture.host, "a", { stage: "released" }).pipe(
@@ -50,8 +50,18 @@ const restartStory = Effect.fn("DaemonClientsTest.restartStory")(function* (fixt
 			yield* Scope.close(first, Exit.void);
 			yield* storeState(fixture.host, "b", { stage: "completed" });
 			yield* storeState(fixture.host, "new", { stage: "executing" });
-			yield* Layer.build(readDaemonLayer(fixture.host, fixture.parts, address.port));
-			expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stderr: "", stdout: "a released\nb completed" });
+			const restarted = yield* Layer.build(readDaemonLayer(fixture.host, fixture.parts, address.port));
+			if (continuous) {
+				yield* untilOutput(follower, "b completed\n");
+				yield* storeState(fixture.host, "new", { stage: "released" }).pipe(
+					Effect.provideService(Reactivity.Reactivity, Context.get(restarted, Reactivity.Reactivity)),
+				);
+				yield* untilOutput(follower, "new released\n");
+				expect(follower.output()).toBe("a released\nb completed\nnew released\n");
+				expect(follower.isRunning()).toBe(true);
+			} else {
+				expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: 0, stderr: "", stdout: "a released\nb completed" });
+			}
 		}),
 	);
 }, Effect.scoped);
@@ -68,3 +78,6 @@ test(
 );
 
 test("watch resyncs after the HTTP daemon restarts, preserving the selected set and printed outcomes", () => withHost({}, {}, restartStory), 30_000);
+
+test("watch --follow resyncs all work after an HTTP restart without repeating outcomes", () =>
+	withHost({}, {}, (fixture) => restartStory(fixture, true)));
