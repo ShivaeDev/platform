@@ -102,7 +102,7 @@ export function BoardShell(options: ShellOptions) {
 					Skip to content
 				</a>
 				<div
-					className="grid min-h-dvh grid-cols-1 bg-background text-foreground md:data-[sidebar=open]:grid-cols-[248px_minmax(0,1fr)]"
+					className="grid min-h-dvh grid-cols-1 bg-background text-foreground md:data-[sidebar=open]:grid-cols-[248px_minmax(0,1fr)] print:block"
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>

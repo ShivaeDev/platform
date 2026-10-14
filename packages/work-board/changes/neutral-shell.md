@@ -5,3 +5,4 @@
 ### Fixed
 
 - Keep Files and Inbox controls named for assistive technology when their visible labels are hidden on narrow screens.
+- Print documents at full width when the Files sidebar is open.
