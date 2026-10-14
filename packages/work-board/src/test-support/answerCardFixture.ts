@@ -69,3 +69,11 @@ Safely release this work's ownership.
 ::::
 `,
 };
+
+export const PARAGRAPH_REASON = "**Which publishing path should we take?**\n\nRead the [release guide](https://example.com/releases).";
+export const paragraphDecisionFixture = {
+	...answerCardFixture,
+	[decisionFile]: (answerCardFixture[decisionFile] ?? "")
+		.replaceAll(JSON.stringify(DECISION_REASON), JSON.stringify(PARAGRAPH_REASON))
+		.replace(DECISION_REASON, `Preserve this background before the decision.\n\n${PARAGRAPH_REASON}\n\nPreserve this conclusion after the decision.`),
+};

@@ -56,7 +56,7 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 
 function cardTitle(request: DocumentRequest, closed: boolean) {
 	if (request.open) {
-		return "Your answer";
+		return `Answer: ${request.title ?? "this question"}`;
 	}
 	return closed ? "Question closed" : "Answer unavailable";
 }

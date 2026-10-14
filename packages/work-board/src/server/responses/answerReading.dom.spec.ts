@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
+import { decisionId, paragraphDecisionFixture } from "#test/answerCardFixture.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { capturedQuestionnaire, questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
@@ -76,4 +77,12 @@ it.live.each(["open", "closed"])("keeps answer cards scoped when the second requ
 		const ids = [...page.document.querySelectorAll(".answer-cards [id]")].map((element) => element.id);
 		expect(new Set(ids).size).toBe(ids.length);
 	}
+});
+
+it.live("renders the unblocked item's title in the server answer card", function* () {
+	notes = folder(paragraphDecisionFixture);
+	board = yield* startBoard(notes.root, "home.md", undefined, true);
+	const response = yield* rawGet(board, `/_board/item/${decisionId}/`);
+	expect(response.status).toBe(200);
+	expect(response.body).toContain("<h2>Answer: Publish the install guide</h2>");
 });

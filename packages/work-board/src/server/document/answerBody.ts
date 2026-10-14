@@ -34,20 +34,40 @@ export function answerBody(document: MetadataDocument, requests: readonly Docume
 }
 
 function repeatedReason(nodes: import("mdast").RootContent[], source: string, cards: readonly DocumentRequest[]) {
+	const reasons = cards.flatMap((request) => (request.preview ? [reasonMarkdown(request.preview.reason)] : []));
 	const removed = new Set<number>();
-	for (const [index, node] of nodes.entries()) {
-		const text = node.type === "code" ? node.value : source.slice(node.position?.start.offset, node.position?.end.offset).trim();
-		if (!cards.some((request) => request.preview && reasonMarkdown(request.preview.reason) === reasonMarkdown(text))) {
+	for (const [index] of nodes.entries()) {
+		const end = repeatedPassageEnd(nodes, source, index, reasons);
+		if (end === undefined) {
 			continue;
 		}
-		removed.add(index);
+		for (let position = index; position <= end; position += 1) {
+			removed.add(position);
+		}
 		const previous = nodes[index - 1];
-		const next = nodes[index + 1];
+		const next = nodes[end + 1];
 		if (previous?.type === "heading" && previous.depth > 1 && (!next || (next.type === "heading" && next.depth <= previous.depth))) {
 			removed.add(index - 1);
 		}
 	}
 	return removed;
+}
+
+function repeatedPassageEnd(nodes: import("mdast").RootContent[], source: string, start: number, reasons: readonly string[]) {
+	let matched: number | undefined;
+	const first = nodes[start];
+	for (let end = start; end < nodes.length; end += 1) {
+		const text =
+			end === start && first?.type === "code" ? first.value : source.slice(first?.position?.start.offset, nodes[end]?.position?.end.offset);
+		const passage = reasonMarkdown(text);
+		if (!reasons.some((reason) => reason.startsWith(passage))) {
+			break;
+		}
+		if (reasons.includes(passage)) {
+			matched = end;
+		}
+	}
+	return matched;
 }
 
 function promptInCard(node: import("mdast").RootContent, cards: readonly DocumentRequest[]) {

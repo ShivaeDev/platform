@@ -4,7 +4,14 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/testing.ts";
 import { documentQuery } from "#client/page/routeQuery.ts";
 import { session } from "#client/session.ts";
-import { answerCardFixture, DECISION_REASON, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
+import {
+	answerCardFixture,
+	DECISION_REASON,
+	decisionFile,
+	decisionId,
+	paragraphDecisionFixture,
+	readyDecisionFixture,
+} from "#test/answerCardFixture.ts";
 import { answerInput, answerPrompt, responseClick } from "#test/answerDraft.tsx";
 import { browserStorage } from "#test/browserStorage.ts";
 import { renderBoard } from "#test/react.tsx";
@@ -25,10 +32,10 @@ afterEach(() => {
 });
 const url = `/_board/item/${decisionId}/`;
 
-it.each(["fenced", "nested"])(
+it.each(["fenced", "nested", "paragraphs"])(
 	"renders a managed decision with a %s reason once below its header and uses the unblocked item's title",
 	async (mode) => {
-		const files = { ...answerCardFixture };
+		const files = { ...(mode === "paragraphs" ? paragraphDecisionFixture : answerCardFixture) };
 		if (mode === "nested") {
 			const source = files[decisionFile];
 			if (source === undefined) {
@@ -46,10 +53,16 @@ it.each(["fenced", "nested"])(
 			expect(view.container.querySelector('[aria-label="File location"]')?.textContent).toContain("Publish the install guide");
 			expect(view.container.querySelector('[aria-label="File location"]')?.textContent).not.toContain(decisionId);
 			expect(header?.nextElementSibling?.classList.contains("answer-cards")).toBe(true);
-			expect(view.container.querySelector("#answer-title-direction")?.textContent).toBe("Your answer");
+			expect(view.container.querySelector("#answer-title-direction")?.textContent).toBe("Answer: Publish the install guide");
 			expect(view.container.querySelector(".answer-reason strong")?.textContent).toBe("Which publishing path should we take?");
 			expect(view.container.querySelector(".answer-reason a")?.getAttribute("href")).toBe("https://example.com/releases");
 			expect(view.container.querySelector("article.doc")?.textContent).not.toContain("Which publishing path");
+			if (mode === "paragraphs") {
+				expect(view.container.querySelector("article.doc")?.textContent).toContain("Preserve this background before the decision.");
+				expect(view.container.querySelector("article.doc")?.textContent).toContain("Preserve this conclusion after the decision.");
+				expect(view.container.querySelector("article.doc")?.textContent).not.toContain("Read the release guide.");
+				expect(view.container.querySelectorAll(".answer-reason p")).toHaveLength(2);
+			}
 			expect([...view.container.querySelectorAll(".question-choice")].map((button) => button.textContent)).toEqual([
 				"Publish now · RecommendedShip the reviewed guide with this release.",
 				"Wait for reviewKeep the work blocked until another review.",

@@ -43,7 +43,7 @@ export const composerHtml = Effect.fn("WorkBoard.composerHtml")(function* (
 
 function responseHeading(q: QuestionPreview, standalone: boolean, card: { readonly title: string } | undefined) {
 	if (card) {
-		return "Your answer";
+		return `Answer: ${escapeHtml(card.title)}`;
 	}
 	return standalone ? "Answer this question" : `Respond to ${escapeHtml(q.item)} / ${escapeHtml(q.request)}`;
 }
