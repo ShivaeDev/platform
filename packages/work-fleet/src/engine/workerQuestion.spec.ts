@@ -59,7 +59,7 @@ for (const type of ["clarify", "not_now"] as const) {
 		));
 }
 
-test("answers from different authors remain ambiguous through bookkeeping edits", () =>
+test("closing the Board task supersedes competing worker answers", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -75,8 +75,9 @@ test("answers from different authors remain ambiguous through bookkeeping edits"
 			const path = yield* Path.Path;
 			yield* fs.writeFileString(path.join(root, "one.md"), source.replace("kind: task", "kind: task\nstatus: done\nnext_action: Work completed."));
 			const stale = yield* fleet.reconcile("one");
-			expect(stale.value.stage).toBe("needs-human");
-			expect(stale.value.blocker).toContain("Several Board answers compete");
+			expect(stale.value.stage).toBe("released");
+			expect(stale.value.releaseReason).toBe("Board status is done");
+			expect(stale.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 		}),
 	));

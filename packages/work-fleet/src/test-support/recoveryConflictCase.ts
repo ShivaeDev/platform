@@ -42,6 +42,6 @@ export function recoveryConflictCase(): RecoveryCase {
 			Effect.sync(() => {
 				context.github.state.mergeable = "MERGEABLE";
 			}),
-		sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
+		sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 	};
 }

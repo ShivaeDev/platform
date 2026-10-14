@@ -8,6 +8,7 @@ import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
 
 interface GithubState {
 	base: string;
+	failed: boolean;
 	head: string;
 	legacyResult: boolean;
 	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
@@ -18,6 +19,7 @@ interface GithubState {
 
 function githubResponses(state: GithubState): Readonly<Record<string, unknown>> {
 	const merged = state.status === "MERGED";
+	const conclusion = state.failed ? "failure" : "success";
 	return {
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repository": { nameWithOwner: "example/repository" },
@@ -25,7 +27,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 			{
 				"check_runs": [
 					{
-						conclusion: state.pending ? null : "success",
+						conclusion: state.pending ? null : conclusion,
 						"details_url": null,
 						"head_sha": state.head,
 						"html_url": `${PR}/checks`,
@@ -60,6 +62,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* () {
 	const state: GithubState = {
 		base: BASE,
+		failed: false,
 		head: HEAD,
 		legacyResult: false,
 		mergeable: "MERGEABLE",

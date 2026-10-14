@@ -35,7 +35,7 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 					restored = true;
 					reads = 0;
 				}),
-			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 		};
 	});
 }

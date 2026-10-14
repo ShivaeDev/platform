@@ -28,6 +28,14 @@ it.effect("records the reviewed head and actual merge revision", function* () {
 	});
 });
 
+it.effect("reports a merged PR at its actual head before checking whether the head moved", function* () {
+	expect(yield* githubDelivery("/repository", () => Effect.succeed({ ...merged, headRefOid: "unreviewed-head" }))(result)).toEqual({
+		head: "unreviewed-head",
+		revision: "merge-revision",
+		url: result.pr,
+	});
+});
+
 it.effect("carries the conflicting main revision only for an open PR at the adopted head", function* () {
 	const conflict = { ...open, baseRefOid: "main-revision", mergeable: "CONFLICTING" };
 	const error = yield* githubDelivery("/repository", () => Effect.succeed(conflict))(result).pipe(Effect.flip);
@@ -70,7 +78,6 @@ it.effect("carries the observed head only when the adopted PR has consistent del
 });
 
 for (const [name, observation, tag] of [
-	["a changed head", { ...merged, headRefOid: "unreviewed-head" }, "Conflict"],
 	["another PR", { ...merged, url: "https://github.com/example/repository/pull/43" }, "BadRequest"],
 	["a missing merge revision", { ...merged, mergeCommit: null }, "BadRequest"],
 	["a missing merge time", { ...merged, mergedAt: null }, "BadRequest"],

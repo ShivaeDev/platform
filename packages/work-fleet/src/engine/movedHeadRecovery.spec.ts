@@ -49,6 +49,7 @@ test("restart after persisting the moved head launches one fresh reviewer before
 						yield* fixture.restart(fleet.reconcile("one"));
 						expect(fixture.launched).toHaveLength(3);
 						finishWorkers(fixture);
+						yield* fixture.restart(fleet.reconcile("one"));
 						github.state.status = "MERGED";
 						const completed = yield* fixture.restart(fleet.reconcile("one"));
 						expect(completed.value.stage).toBe("completed");

@@ -42,10 +42,19 @@ for (const status of ["planned", "deferred"]) {
 				);
 				const released = yield* fleet.reconcile("one");
 				expect(released.value.stage).toBe("released");
-				expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
+				if (status === "deferred") {
+					expect(released.value.releaseReason).toBe("Board status is deferred");
+					expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
+				} else {
+					expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
+				}
 				expect(yield* boardOverview(root)).not.toContain(`data-attention-item="${published.itemId}"`);
 				expect(yield* boardInbox(root, "orchestrator")).not.toContain('data-key="inbox:');
-				yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, answer.id))));
+				yield* fixture.restart(
+					Fleet.pipe(
+						Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id))),
+					),
+				);
 				expect(files.receipts()).toHaveLength(1);
 				expect(fixture.launched).toHaveLength(2);
 			}),

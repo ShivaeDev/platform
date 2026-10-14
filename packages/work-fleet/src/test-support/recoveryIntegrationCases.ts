@@ -24,8 +24,8 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 					}),
 			},
 			progress: (_ctx, _before, after) => {
-				expect(calls).toBe(2);
-				expect(after.stage).toBe("completed");
+				expect(calls).toBe(1);
+				expect(after.stage).toBe("released");
 			},
 			restore: (ctx) =>
 				Effect.sync(() => {

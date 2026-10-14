@@ -59,7 +59,7 @@ const validateDelivery = Effect.fn("FleetHost.validateDelivery")(function* (pr: 
 	if (!merged && (pr.state !== "OPEN" || pr.mergedAt !== null || pr.mergeCommit !== null)) {
 		return yield* failure("PR delivery evidence is inconsistent; inspect the adopted PR");
 	}
-	if (pr.headRefOid !== result.head) {
+	if (!merged && pr.headRefOid !== result.head) {
 		return yield* movedPrHead(pr.headRefOid);
 	}
 });

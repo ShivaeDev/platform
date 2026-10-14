@@ -46,7 +46,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 					expect(ctx.fixture.reviews).toEqual([HEAD, MOVED]);
 				},
 
-				sites: ["engine/makeDeliver.ts: failureCode(observed.failure)", "engine/makeDeliver.ts: code"],
+				sites: ["engine/observeDeliveryFailure.ts: failureCode(error)", "engine/observeDeliveryFailure.ts: code"],
 			}),
 		),
 		{
@@ -79,7 +79,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					ctx.github.state.status = "MERGED";
 				}),
-			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)", "engine/makeDeliver.ts: code"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)", "engine/observeDeliveryFailure.ts: code"],
 		},
 		{
 			code: "fleet-invalid" as const,
@@ -99,29 +99,28 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					ctx.github.state.paths = ["src/one.ts"];
 				}),
-			sites: ["engine/makeDeliver.ts: failureCode(error)"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(refreshFailure)"],
 		},
 		{
 			code: "delivery-head-mismatch" as const,
-			enter: finishRecoveryReview,
-			name: "delivery differs from reviewed head",
-			options: {
-				deliveryQuery: () =>
-					Effect.sync(() => {
-						deliveries += 1;
-						return { head: wrongDelivery ? MOVED : HEAD, revision: HEAD, url: PR };
-					}),
-			},
+			enter: Effect.fnUntraced(function* (ctx) {
+				yield* finishRecoveryReview(ctx);
+				const stored = yield* (yield* Fleet).get("one");
+				if (stored.value.decision === undefined) {
+					return yield* Effect.die("Missing ready decision");
+				}
+				yield* ctx.fixture.replaceRecord({ ...stored.value, decision: { ...stored.value.decision, code: "delivery-head-mismatch" } });
+			}),
+			name: "stored delivery head mismatch decision",
 			progress: (_ctx, before, after) => {
-				expect(deliveries).toBeGreaterThan(1);
 				expect(after.stage).toBe("completed");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			},
-			restore: () =>
+			restore: (ctx) =>
 				Effect.sync(() => {
-					wrongDelivery = false;
+					ctx.github.state.status = "MERGED";
 				}),
-			sites: ['engine/makeDeliver.ts: "delivery-head-mismatch"'],
+			sites: [],
 		},
 		{
 			code: "fleet-integration" as const,
@@ -136,7 +135,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					wrongDelivery = false;
 				}),
-			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 		},
 	];
 }

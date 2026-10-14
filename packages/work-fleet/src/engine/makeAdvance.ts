@@ -9,6 +9,7 @@ import { makeObserve } from "#engine/makeObserve.ts";
 import { makeReview } from "#engine/makeReview.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
+import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
@@ -20,6 +21,7 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		}
 		if (stored.value.stage === "needs-human") {
 			stored = yield* makeDeliver(state)(stored);
+			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
 		}
 		stored = yield* makeHuman(state)(stored);
 		if (
@@ -30,6 +32,10 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 			return yield* stopChangedBrief(state)(stored);
 		}
 		stored = yield* makeObserve(state)(stored);
+		stored = yield* makeDeliver(state)(stored);
+		if (stored.value.stage === "needs-human") {
+			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
+		}
 		if (!["completed", "released"].includes(stored.value.stage) && briefChanged(stored.value, yield* state.board.get(workId))) {
 			return yield* stopChangedBrief(state)(stored);
 		}
@@ -46,12 +52,21 @@ function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaun
 		const work = yield* state.board.get(stored.value.workId);
 		yield* authorizeBriefContext(stored.value, work);
 		stored = yield* makeAdopt(state)(stored, work);
+		stored = yield* makeDeliver(state)(stored);
 		stored = yield* makeReview(state)(stored, work);
 		if (stored.value.stage === "repairing") {
+			stored = yield* makeDeliver(state)(stored);
+			if (stored.value.stage === "released") {
+				return stored;
+			}
 			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? stored.value.prompt);
 		}
 		stored = yield* makeValidate(state)(stored, work);
 		if (stored.value.stage === "repairing") {
+			stored = yield* makeDeliver(state)(stored);
+			if (stored.value.stage === "released") {
+				return stored;
+			}
 			return yield* launch(stored, "repair", stored.value.checks?.repairPrompt ?? "Fix required checks");
 		}
 		return yield* makeDeliver(state)(stored).pipe(Effect.flatMap(closeDecisions(state)));
