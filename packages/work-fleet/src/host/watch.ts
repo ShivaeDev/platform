@@ -10,6 +10,7 @@ export interface WatchOptions extends Omit<WaitOptions, "workId"> {
 
 export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: WatchOptions) {
 	const ready = yield* Deferred.make<void>();
+	let initialSnapshot = true;
 	let pending = options.workIds.length === 0 ? undefined : new Set(options.workIds);
 	const outcomeFor = options.follow
 		? transitionOutcome()
@@ -25,10 +26,11 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 				pending ??= new Set(states.map((state) => state.workId));
 				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
 					const outcome = outcomeFor(state);
-					if (outcome !== undefined) {
+					if (outcome !== undefined && !(options.follow && initialSnapshot)) {
 						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
 					}
 				}
+				initialSnapshot = false;
 			}),
 		),
 		Stream.takeUntil(() => !options.follow && pending?.size === 0),
