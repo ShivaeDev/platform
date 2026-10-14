@@ -39,6 +39,7 @@ export function Header({
 			<Button
 				aria-controls="sidebar"
 				aria-expanded={sidebar.open}
+				aria-label="Files"
 				id={shellIds.sidebarToggle}
 				onClick={() => sidebar.toggle()}
 				size="sm"
@@ -50,6 +51,7 @@ export function Header({
 			<Breadcrumbs file={main.file} />
 			<a
 				aria-current={main.view === "inbox" ? "page" : undefined}
+				aria-label="Inbox"
 				className={buttonVariants({ size: "sm", variant: "ghost" })}
 				href="/_board/inbox"
 				id={shellIds.inboxTopbar}
