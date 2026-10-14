@@ -57,6 +57,7 @@ export class BoardGateway extends Context.Service<
 	BoardGateway,
 	{
 		readonly acknowledgeDecision: (input: BoardDecisionAcknowledgement) => Effect.Effect<void, BoardFailure>;
+		readonly complete?: (workId: string, sourcePath: string, nextAction: string) => Effect.Effect<void, BoardFailure>;
 		readonly get: (workId: string, options?: { readonly fresh?: boolean }) => Effect.Effect<BoardWork, BoardFailure>;
 		readonly decision: (workId: string, decision: Decision, original?: BoardWork) => Effect.Effect<BoardDecision, BoardFailure>;
 		readonly readDecision: (decision: BoardDecision) => Effect.Effect<BoardDecisionReading, BoardFailure>;

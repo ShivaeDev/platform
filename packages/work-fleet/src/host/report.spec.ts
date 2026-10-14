@@ -68,7 +68,9 @@ describe("Fleet report host", () => {
 				expect(content.endsWith(OUTPUT)).toBe(true);
 				expect(content).toContain(JSON.stringify({ ...observation?.receipt, workRevision: value.boardRevision }));
 				expect(readdirSync(join(fixture.host.boardDir, "responses"))).toHaveLength(1);
-				expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(SOURCE);
+				expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(
+					SOURCE.replace("fleet-deliverable: report\n", 'fleet-deliverable: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
+				);
 				yield* terminalViews(fixture, WAIT_EXIT.completed, "Completed (1)");
 			}),
 		);

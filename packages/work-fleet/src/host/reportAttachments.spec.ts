@@ -45,7 +45,9 @@ describe("Report attachments", () => {
 					expect((yield* complete).value.report).toEqual(report);
 					expect(fixture.provider.launched).toHaveLength(1);
 					expect(fixture.provider.settings).toHaveLength(2);
-					expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(SOURCE);
+					expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(
+						SOURCE.replace("fleet-deliverable: report\n", 'fleet-deliverable: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
+					);
 				}),
 			);
 		});
