@@ -134,7 +134,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
           github-token: ${{ github.token }}
@@ -221,7 +221,7 @@ jobs:
       - uses: ./.github/actions/await-packages
         with:
           token: ${{ github.token }}
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.consumers-run-id != ''
         with:
           github-token: ${{ github.token }}
@@ -301,7 +301,7 @@ jobs:
         with:
           node-version: 26.10.0
           package-manager-cache: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           pattern: '*-timings-*'
