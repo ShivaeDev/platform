@@ -1,12 +1,13 @@
 import { readdirSync } from "node:fs";
 import { Effect, Layer } from "effect";
-import { afterEach, expect, vi } from "vitest";
+import { afterEach, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
 import { folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
+import { waitFor } from "#test/live.ts";
 import { renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: ReturnType<typeof folder>;
@@ -49,7 +50,7 @@ effectApp("keeps templates available after source creation and resolves their re
 		notes.write(template.file, template.source);
 	}
 	yield* Effect.promise(async () =>
-		vi.waitFor(async () => {
+		waitFor(async () => {
 			const response = await fetch(`${board.url}/result.md`);
 			expect(response.status).toBe(200);
 		}),
