@@ -389,6 +389,7 @@
 		},
 		"./rpc/server.ts": null,
 		"./rpc/HandlerOptions.ts": null,
+		"./rpc/PageUrl.ts": null,
 		"./http/boardRoutes.ts": null,
 		"./http/rpcPolicy.ts": null,
 		"./page/board.ts": {
