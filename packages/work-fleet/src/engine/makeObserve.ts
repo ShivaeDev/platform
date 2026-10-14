@@ -1,7 +1,9 @@
 import { Effect, Option } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { observedAttempt } from "#engine/observedAttempt.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
+import { recoverStall } from "#engine/recoverStall.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
@@ -34,15 +36,10 @@ export function makeObserve(state: EngineState) {
 		const observation = yield* sessions.observe(receipt);
 		yield* validateReceipt(observation.receipt, receipt);
 		const attempts = stored.value.attempts.map((attempt) =>
-			attempt.operationId === latest.operationId
-				? { ...attempt, output: observation.output, readRetry: undefined, receipt, status: observation.execution }
-				: attempt,
+			attempt.operationId === latest.operationId ? observedAttempt(attempt, observation, state.policy.now()) : attempt,
 		);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: observationBlocker(stored.value, latest) });
-		if (["accepted", "running"].includes(observation.execution)) {
-			return stored;
-		}
-		return yield* finishObservation(state)(stored, observation, paused);
+		return yield* advanceObservation(state, stored, observation, paused);
 	});
 }
 
@@ -97,3 +94,19 @@ function finishObservation(state: EngineState) {
 function terminalReason(observation: SessionObservation) {
 	return `Provider turn ${observation.receipt.turnId} ${observation.execution}${observation.error === undefined ? "" : `: ${observation.error}`}`;
 }
+
+const advanceObservation = Effect.fn("Fleet.advanceObservation")(function* (
+	state: EngineState,
+	stored: Versioned<FleetRecord>,
+	observation: SessionObservation,
+	paused: boolean,
+) {
+	const attempt = stored.value.attempts.find(
+		(entry) => entry.receipt?.turnId === observation.receipt.turnId && entry.receipt.sessionId === observation.receipt.sessionId,
+	);
+	const recovered = yield* recoverStall(state, stored, attempt);
+	if (recovered !== undefined) {
+		return recovered;
+	}
+	return ["accepted", "running"].includes(observation.execution) ? stored : yield* finishObservation(state)(stored, observation, paused);
+});

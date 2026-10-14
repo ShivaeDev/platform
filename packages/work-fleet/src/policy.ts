@@ -106,6 +106,7 @@ export interface FleetConfiguration {
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
+	readonly stallMinutes?: number;
 	readonly workerGuidance?: string;
 }
 export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration>()("@shivaedev/work-fleet/FleetPolicy") {}

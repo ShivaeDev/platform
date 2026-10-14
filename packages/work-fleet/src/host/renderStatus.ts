@@ -1,4 +1,5 @@
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
+import { sessionStatus } from "#engine/sessionStatus.ts";
 import type { FleetViews } from "#model.ts";
 
 const { DAEMON_PORT } = diagnosticsApi;
@@ -8,7 +9,7 @@ type View = (typeof FleetViews.Type)["active"][number];
 function line(view: View, waiting: boolean, port: number) {
 	const reason = view.decision?.reason ?? view.blocker;
 	const detail = reason === undefined ? "" : `  ${reason}`;
-	const links = [...view.links, ...view.sessions.map((session) => `session ${session.sessionId} turn ${session.turnId}`)];
+	const links = [...view.links, ...view.sessions.map(sessionStatus)];
 	const answer = waiting ? `\n    work-fleet answer ${view.workId}${port === DAEMON_PORT ? "" : ` --port ${port}`}` : "";
 	return `  ${view.workId}  ${view.stage}${detail}${links.length === 0 ? "" : `  (${links.join(", ")})`}${answer}`;
 }

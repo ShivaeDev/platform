@@ -3,8 +3,10 @@ import { validateReview } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { observedAttempt } from "#engine/observedAttempt.ts";
 import { obtainReview, reviewMatchesBrief } from "#engine/obtainReview.ts";
 import { readOrContinueReview } from "#engine/readOrContinueReview.ts";
+import { recoverStall } from "#engine/recoverStall.ts";
 import { refreshReviewResult } from "#engine/refreshReviewResult.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
@@ -27,8 +29,13 @@ export function makeReview(state: EngineState) {
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
-		const attempts = recordObservation(stored.value.attempts, observation);
+		const attempts = recordObservation(stored.value.attempts, observation, state.policy.now());
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
+		const latest = stored.value.attempts.at(-1);
+		const recovered = yield* recoverStall(state, stored, latest);
+		if (recovered !== undefined) {
+			return recovered;
+		}
 		if (["accepted", "running"].includes(observation.execution)) {
 			return stored;
 		}
@@ -73,11 +80,11 @@ function finishReviewObservation(state: EngineState) {
 	});
 }
 
-function recordObservation(attempts: readonly Attempt[], observation: SessionObservation): readonly Attempt[] {
+function recordObservation(attempts: readonly Attempt[], observation: SessionObservation, now: number): readonly Attempt[] {
 	const { receipt } = observation;
 	return attempts.map((attempt) =>
 		attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
-			? { ...attempt, output: observation.output, readRetry: undefined, status: observation.execution }
+			? observedAttempt(attempt, observation, now)
 			: attempt,
 	);
 }

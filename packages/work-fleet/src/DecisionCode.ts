@@ -36,6 +36,7 @@ export const DecisionCode = Schema.Literals([
 	"session-protocol",
 	"session-queue-full",
 	"session-rejected",
+	"session-stalled",
 	"session-unavailable",
 	"worker-question",
 	"worker-receipt-missing",

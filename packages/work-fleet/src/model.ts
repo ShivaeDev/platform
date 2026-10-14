@@ -9,6 +9,7 @@ export const Attempt = Schema.Struct({
 	checkFailures: Schema.optional(Schema.Array(Schema.String)),
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
+	progress: Schema.optional(Schema.Struct({ at: Schema.Number, signature: Schema.String })),
 	prompt: Schema.optional(Schema.String),
 	providerFailures: Schema.optional(Schema.Number),
 	readRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
@@ -20,6 +21,15 @@ export const Attempt = Schema.Struct({
 	sessionId: Schema.optional(Schema.String),
 	sessionUnusable: Schema.optional(Schema.Boolean),
 	settings: Schema.optional(LaunchSettings),
+	stallRecovery: Schema.optional(
+		Schema.Struct({
+			count: Schema.Number,
+			interruptedAt: Schema.optional(Schema.Number),
+			interruptRequestedAt: Schema.optional(Schema.Number),
+			lastActionAt: Schema.Number,
+			steeredAt: Schema.optional(Schema.Number),
+		}),
+	),
 	status: Schema.Literals(["submitting", "accepted", "running", "completed", "failed", "interrupted"]),
 	submissionUncertain: Schema.optional(Schema.Boolean),
 	submittedAt: Schema.Number,
@@ -82,7 +92,15 @@ export const FleetView = Schema.Struct({
 	decisionAcknowledged: Schema.optional(Schema.Boolean),
 	links: Schema.Array(Schema.String),
 	outcome: FleetRecord.fields.outcome,
-	sessions: Schema.Array(SessionReceipt),
+	sessions: Schema.Array(
+		Schema.Struct({
+			...SessionReceipt.fields,
+			interruptedAt: Schema.optional(Schema.Number),
+			interruptRequestedAt: Schema.optional(Schema.Number),
+			lastProgressAt: Schema.optional(Schema.Number),
+			steeredAt: Schema.optional(Schema.Number),
+		}),
+	),
 	stage: FleetRecord.fields.stage,
 	workId: Schema.String,
 });

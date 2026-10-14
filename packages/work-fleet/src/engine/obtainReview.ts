@@ -13,29 +13,31 @@ import type { Versioned } from "#storage/model.ts";
 
 export function obtainReview(state: EngineState) {
 	const { store, policy, sessions, save, board } = state;
-	return Effect.fn("Fleet.obtainReview")(function* (stored: Versioned<FleetRecord>, work: BoardWork, result: WorkResult) {
+	return Effect.fn("Fleet.obtainReview")(function* (
+		stored: Versioned<FleetRecord>,
+		work: BoardWork,
+		result: WorkResult,
+		retry?: { readonly prompt: string; readonly sessionId: string; readonly stallRecovery: Attempt["stallRecovery"] },
+	) {
 		if (stored.value.review?.head === result.head) {
 			return stored.value.review.receipt;
 		}
 		const previous = stored.value.attempts.at(-1);
+		const continuation = retry ?? stalledReviewRetry(previous, policy.now());
 		const previousHead = reviewAttemptHead(stored.value, previous);
 		const unusable = yield* invalidPriorReview(stored.value, previous, result.head);
-		if (
-			previous?.role === "reviewer"
-			&& !unusable
-			&& !["failed", "interrupted"].includes(previous.status)
-			&& (previous.status !== "completed" || reviewMatchesBrief(previous, work))
-			&& (previousHead === undefined || previousHead === result.head)
-		) {
+		if (reusableReview(previous, work, result.head, previousHead, unusable)) {
 			return previous.receipt ?? (yield* reconcileAttempt(state)(stored, previous));
 		}
 		const reviewerGuidance = yield* policyGuidance(policy, "reviewer");
-		const prompt = reviewerPrompt({
-			result,
-			...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
-			...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
-			task: work.context,
-		});
+		const prompt =
+			continuation?.prompt
+			?? reviewerPrompt({
+				result,
+				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
+				...(policy.sharedEnvironment === undefined ? {} : { sharedEnvironment: policy.sharedEnvironment }),
+				task: work.context,
+			});
 
 		const settings = { ...policy.launch };
 		const attempt: Attempt = {
@@ -45,7 +47,9 @@ export function obtainReview(state: EngineState) {
 			reviewHead: result.head,
 			reviewRevision: workRevision(work.revision, work.context),
 			role: "reviewer",
+			sessionId: continuation?.sessionId,
 			settings,
+			stallRecovery: continuation?.stallRecovery,
 			status: "submitting",
 			submittedAt: policy.now(),
 		};
@@ -68,19 +72,18 @@ export function obtainReview(state: EngineState) {
 			},
 			{ quota, role: "reviewer" },
 		);
-		return yield* sessions
-			.start({
-				access: "read-only",
-				cwd: stored.value.cwd,
-				operationId: attempt.operationId,
-				prompt,
-				settings,
-			})
-			.pipe(
-				Effect.tapError((error) =>
-					submissionFailure(state, stored.value.workId, attempt.operationId, error, "Restore provider access and retry this review"),
-				),
-			);
+		const input = {
+			access: "read-only",
+			cwd: stored.value.cwd,
+			operationId: attempt.operationId,
+			prompt,
+			settings,
+		} as const;
+		return yield* (continuation === undefined ? sessions.start(input) : sessions.continue({ ...input, sessionId: continuation.sessionId })).pipe(
+			Effect.tapError((error) =>
+				submissionFailure(state, stored.value.workId, attempt.operationId, error, "Restore provider access and retry this review"),
+			),
+		);
 	});
 }
 
@@ -111,4 +114,28 @@ const invalidPriorReview = Effect.fn("Fleet.invalidPriorReview")(function* (reco
 
 export function reviewMatchesBrief(attempt: Attempt | undefined, work: BoardWork): boolean {
 	return attempt?.reviewRevision === undefined || attempt.reviewRevision === workRevision(work.revision, work.context);
+}
+
+function reusableReview(
+	previous: Attempt | undefined,
+	work: BoardWork,
+	head: string,
+	previousHead: string | undefined,
+	unusable: boolean,
+): previous is Attempt {
+	return (
+		previous?.role === "reviewer"
+		&& !(unusable || ["failed", "interrupted"].includes(previous.status))
+		&& (previous.status !== "completed" || reviewMatchesBrief(previous, work))
+		&& (previousHead === undefined || previousHead === head)
+	);
+}
+
+function stalledReviewRetry(previous: Attempt | undefined, now: number) {
+	return previous?.role === "reviewer"
+		&& previous.status === "interrupted"
+		&& previous.stallRecovery?.interruptRequestedAt !== undefined
+		&& previous.receipt !== undefined
+		? { prompt: previous.prompt ?? "Continue the review", sessionId: previous.receipt.sessionId, stallRecovery: { count: 2, lastActionAt: now } }
+		: undefined;
 }
