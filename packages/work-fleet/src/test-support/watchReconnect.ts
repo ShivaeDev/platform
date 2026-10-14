@@ -16,6 +16,11 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 	] as const) {
 		yield* storeState(fixture.host, id, { stage });
 	}
+	yield* storeState(fixture.host, "waiting", {
+		decision: { attentionOwner: "maintainer", code: "reviewed-pr-ready", reason: "Reviewed PR is ready to merge" },
+		stage: "needs-human",
+	});
+	const initial = "waiting needs-human (waiting on maintainer): Reviewed PR is ready to merge\n";
 	function start(port: number) {
 		return Effect.gen(function* () {
 			const snapshot = Promise.withResolvers<void>();
@@ -36,8 +41,9 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, interval: 0.1, port: first.port }, (follower) =>
 		Effect.gen(function* () {
 			yield* Effect.promise(() => first.snapshot);
+			yield* untilOutput(follower, initial);
 			yield* Effect.sleep("100 millis");
-			expect(follower.output()).toBe("");
+			expect(follower.output()).toBe(initial);
 			yield* storeState(fixture.host, "active", { stage: "released" }).pipe(
 				Effect.provideService(Reactivity.Reactivity, Context.get(first.context, Reactivity.Reactivity)),
 			);
@@ -46,14 +52,14 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 			const unchanged = yield* start(first.port);
 			yield* Effect.promise(() => unchanged.snapshot);
 			yield* Effect.sleep("100 millis");
-			expect(follower.output()).toBe("active released\n");
+			expect(follower.output()).toBe(`${initial}active released\n`);
 			yield* unchanged.stop;
 			yield* storeState(fixture.host, "active", { stage: "completed" });
 			const changed = yield* start(first.port);
 			yield* Effect.promise(() => changed.snapshot);
 			yield* untilOutput(follower, "active completed\n");
 			yield* Effect.sleep("100 millis");
-			expect(follower.output()).toBe("active released\nactive completed\n");
+			expect(follower.output()).toBe(`${initial}active released\nactive completed\n`);
 			expect(follower.isRunning()).toBe(true);
 		}),
 	);
