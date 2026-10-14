@@ -2,6 +2,7 @@
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Argument from "effect/cli/Argument";
 import * as CliError from "effect/cli/CliError";
@@ -72,14 +73,22 @@ const cli = Command.make("work-fleet").pipe(
 );
 
 const main = Command.run(cli, { version: "0.0.0" }).pipe(
-	Effect.catch((error) =>
-		(CliError.isCliError(error) ? Effect.void : Console.error(`work-fleet: ${error instanceof Error ? error.message : String(error)}`)).pipe(
-			Effect.andThen(
-				Effect.sync(() => {
-					process.exitCode = 1;
-				}),
-			),
-		),
+	Effect.catchCauseIf(
+		(cause) => !Cause.hasInterrupts(cause),
+		(cause) => {
+			const error = Cause.squash(cause);
+			return (
+				CliError.isCliError(error)
+					? Effect.void
+					: Console.error(`work-fleet: ${(error instanceof Error ? error.message : String(error)).replace(/[\r\n]+/gu, " ")}`)
+			).pipe(
+				Effect.andThen(
+					Effect.sync(() => {
+						process.exitCode = 1;
+					}),
+				),
+			);
+		},
 	),
 	Effect.provide(NodeServices.layer),
 );
