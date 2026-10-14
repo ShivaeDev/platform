@@ -12,6 +12,7 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	rows,
 	children,
 	autoComplete,
+	showErrors = true,
 }: {
 	readonly form: Form<TFields, A, E, TRuntimeError>;
 	readonly name: Name<TFields>;
@@ -21,12 +22,14 @@ export function FormField<TFields extends Fields, A, E, TRuntimeError>({
 	readonly rows?: number;
 	readonly children?: ReactNode;
 	readonly autoComplete?: string;
+	readonly showErrors?: boolean;
 }) {
 	const field = useField(form, name);
 	const ref = useRef<Control | null>(null);
 	const id = useId();
 	const value = typeof field.value === "string" ? field.value : "";
-	const error = name === "author" && !value.trim() ? "Add your local author label." : field.error;
+	const validation = name === "author" && !value.trim() ? "Add your local author label." : field.error;
+	const error = showErrors ? validation : undefined;
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const props = {
 		"aria-describedby": `${id}-error`,

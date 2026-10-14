@@ -1,13 +1,18 @@
 import type { Document } from "#browser/document/schema.ts";
+import { fileUrl } from "#files/url.ts";
 export function DocumentSource({ document }: { readonly document: Document }) {
 	const reading = document.reading;
 	return (
 		<section aria-label="Document source" className="space-y-4">
 			<p>
 				Source:{" "}
-				<code>
-					{document.file}:{reading?.lines.id ?? 1}
-				</code>
+				{/[a-f\d]{64}/iu.test(document.file) ? (
+					<a href={fileUrl(document.file)}>Open source file</a>
+				) : (
+					<code>
+						{document.file}:{reading?.lines.id ?? 1}
+					</code>
+				)}
 				; prose starts at line {reading?.proseLine ?? 1}.
 			</p>
 			{reading?.raw !== undefined && (

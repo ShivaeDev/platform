@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { type FocusEvent, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { captureFocus, restoreFocus } from "#client/formFocus.ts";
 
 const Selection = Schema.Struct({
@@ -13,18 +13,21 @@ const Selection = Schema.Struct({
 export function useFormFocus(key: string) {
 	const ref = useRef<HTMLFormElement>(null);
 
-	const remember = useCallback(() => {
-		const selection = ref.current && captureFocus(ref.current);
-		if (!selection) {
-			return false;
-		}
-		try {
-			window.localStorage.setItem(`${key}:focus`, JSON.stringify(selection));
-			return true;
-		} catch {
-			return false;
-		}
-	}, [key]);
+	const remember = useCallback(
+		(control: Element | null = document.activeElement) => {
+			const selection = ref.current && captureFocus(ref.current, control);
+			if (!selection) {
+				return false;
+			}
+			try {
+				window.localStorage.setItem(`${key}:focus`, JSON.stringify(selection));
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[key],
+	);
 	useLayoutEffect(() => {
 		try {
 			const stored: unknown = JSON.parse(window.localStorage.getItem(`${key}:focus`) ?? "null");
@@ -39,8 +42,11 @@ export function useFormFocus(key: string) {
 		};
 	}, [key, remember]);
 	useEffect(() => {
-		window.addEventListener("pagehide", remember);
-		return () => window.removeEventListener("pagehide", remember);
+		function hide() {
+			remember();
+		}
+		window.addEventListener("pagehide", hide);
+		return () => window.removeEventListener("pagehide", hide);
 	}, [remember]);
-	return { onSelect: remember, ref };
+	return { onBlurCapture: (event: FocusEvent<HTMLFormElement>) => remember(event.target), onSelect: () => remember(), ref };
 }

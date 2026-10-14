@@ -5,16 +5,12 @@ import { DocumentContext } from "./DocumentContext.tsx";
 import { ItemSummary } from "./ItemSummary.tsx";
 export function HomeBoard({ data }: { readonly data: BoardProjection }) {
 	return (
-		<>
-			<DocumentView
-				board={data.counts}
-				context={<DocumentContext document={data.document} />}
-				document={data.document}
-				introduction={<ItemSummary document={data.document} />}
-			/>
-			{data.document.metadata.kind === "question" && data.document.metadata.question === undefined && data.document.identity && (
-				<AnswerPanel document={data.document} />
-			)}
-		</>
+		<DocumentView
+			answer={<AnswerPanel document={data.document} />}
+			board={data.counts}
+			context={<DocumentContext document={data.document} />}
+			document={data.document}
+			introduction={<ItemSummary document={data.document} />}
+		/>
 	);
 }

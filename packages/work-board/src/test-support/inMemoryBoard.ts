@@ -11,6 +11,7 @@ import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 export interface BoardFixtureOptions {
 	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
 	readonly home: string | undefined;
+	readonly writable?: boolean;
 }
 
 const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
@@ -38,7 +39,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				...options,
 				document: (url) =>
 					Effect.suspend(() => configuration?.beforeRead?.("document", url) ?? Effect.void).pipe(
-						Effect.andThen(readDocument({ ...options, home, writable: false })(url)),
+						Effect.andThen(readDocument({ ...options, home, writable: configuration?.writable === true })(url)),
 						Effect.provideContext(context),
 					),
 				fleetPort: null,

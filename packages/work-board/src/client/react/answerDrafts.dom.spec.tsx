@@ -134,7 +134,7 @@ it("retains the body and caret while a refreshed request gains or loses question
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 		await view.render(answerDraft(answerPreview));
 		responseClick("preview");
-		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 		answerInput("body", "A complete response");
 		responseClick("preview");
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);

@@ -1,4 +1,6 @@
+import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import { optionLabel } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 export function PromptOption({
@@ -6,7 +8,6 @@ export function PromptOption({
 	prompt,
 	option,
 	choice,
-	index,
 	checked,
 	choose,
 }: {
@@ -14,17 +15,16 @@ export function PromptOption({
 	readonly prompt: Prompt;
 	readonly option: Prompt["options"][number];
 	readonly choice: number;
-	readonly index: number;
 	readonly checked: boolean;
 	readonly choose: (id: string, checked: boolean) => void;
 }) {
 	const source = document.metadata.options?.[choice];
-	const id = `question-${index}-${choice}`;
+	const id = useId();
 	const control = (
 		<input
 			checked={checked}
 			data-option-source={option.source}
-			hidden={Boolean(source)}
+			hidden
 			id={id}
 			name={`choice-${prompt.id}`}
 			onChange={(event) => choose(option.id, event.currentTarget.checked)}
@@ -33,24 +33,24 @@ export function PromptOption({
 			value={option.id}
 		/>
 	);
-	return source ? (
+	const label = source?.label ?? optionLabel(option.id, option.source, document.requests.find((request) => request.open)?.preview?.reason ?? "");
+	return (
 		<div>
 			{control}
-			<button aria-pressed={checked} className="question-choice" data-choice={option.id} onClick={() => choose(option.id, true)} type="button">
+			<button
+				aria-pressed={checked}
+				className="question-choice"
+				data-choice={option.id}
+				onClick={() => choose(option.id, prompt.mode !== "many" || !checked)}
+				type="button"
+			>
 				<strong>
-					{source.label}
-					{source.label === document.metadata.recommended && " · Recommended"}
+					{label}
+					{label === document.metadata.recommended && " · Recommended"}
 				</strong>
-				<small>{source.description}</small>
+				{source !== undefined && <small>{source.description}</small>}
 			</button>
-		</div>
-	) : (
-		<div className="question-option">
-			{control}
-			<div>
-				<label htmlFor={id}>Option {option.id}</label>
-				<ResponseMarkdown file={document.file} source={option.source} />
-			</div>
+			{source === undefined && <ResponseMarkdown file={document.file} source={option.source.replace(/^#{1,6}\s+.+$/mu, "")} />}
 		</div>
 	);
 }

@@ -2,6 +2,7 @@ import { type Navigation, type NavigationFile, NavigationFolder } from "#browser
 import { fileUrl } from "#files/url.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import { attentionProjection } from "#server/attention/projection.ts";
+import { requestTitle } from "#server/document/requestTitle.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
@@ -47,7 +48,13 @@ function folderData(folder: Branch): NavigationFolder {
 
 export function navigationData(files: readonly MarkdownFile[], current: string, home: string | undefined, snapshot?: Snapshot): Navigation {
 	const generated = snapshot ? fleetRecords(snapshot.model) : new Set<string>();
-	const records = files.filter((file) => generated.has(file.path)).map((file) => fileData(file, current));
+	const records = files
+		.filter((file) => generated.has(file.path))
+		.map((file) => {
+			const document = snapshot?.documents.find((entry) => entry.file === file.path);
+			const data = fileData(file, current);
+			return document && snapshot && /[a-f\d]{64}/u.test(data.name) ? { ...data, name: requestTitle(document, snapshot) } : data;
+		});
 	const visible = files.filter((file) => !generated.has(file.path));
 	const root = branch("", "");
 	const ordered = [

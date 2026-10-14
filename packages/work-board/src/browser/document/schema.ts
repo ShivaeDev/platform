@@ -19,6 +19,8 @@ export const DocumentRequest = Schema.Struct({
 	),
 	promptUnavailable: Schema.optional(Schema.String),
 	responses: Schema.optional(Schema.Array(RecordedResponse)),
+	sourceOpen: Schema.optional(Schema.Boolean),
+	title: Schema.optional(Schema.String),
 	unavailable: Schema.optional(Schema.String),
 });
 export type DocumentRequest = typeof DocumentRequest.Type;
