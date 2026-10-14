@@ -51,7 +51,7 @@ effectApp("navigates boards and selected detail in place and restores URL contex
 	filter("work-board", "board.review");
 	filter("work-status", "value:in-review");
 	submit();
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 3 items")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 2 items")));
 	click('[data-item="work.search"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("work-detail")));
 	expect(new URLSearchParams(page.window.location.search).get("item")).toBe("work.search");
@@ -60,7 +60,7 @@ effectApp("navigates boards and selected detail in place and restores URL contex
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("work.search")));
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#work-detail article details")?.hasAttribute("open")).toBe(true)));
-	expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 3 items");
+	expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 2 items");
 	expect(page.document.getElementById("work-open")?.getAttribute("aria-current")).toBe("page");
 	expect(page.document.body.dataset.visit).toBe("kept");
 	page.window.history.forward();
@@ -71,12 +71,12 @@ effectApp("keeps filters and unsent search input through live edits and explains
 	filter("work-board", "board.review");
 	filter("work-status", "value:in-review");
 	submit();
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 3 items")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 2 items")));
 	click('[data-item="work.search"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("work-detail")));
 	filter("work-query", "unsent search").focus();
 	notes.write("items/search & review.md", viewsFixture()["items/search & review.md"]?.replace("status: in-review", "status: done") ?? "");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("0 shown · 3 items")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("0 shown · 2 items")));
 	expect(page.document.activeElement?.id).toBe("work-query");
 	expect(page.document.getElementById("work-query")).toHaveProperty("value", "unsent search");
 	expect(page.document.getElementById("work-status")).toHaveProperty("value", "value:in-review");

@@ -78,6 +78,7 @@
 		},
 		"./package.json": "./package.json",
 		"./browser/react/*": null,
+		"./browser/views/now.ts": null,
 		"./browser/entry.ts": null,
 		"./browser/fieldFeedback.ts": null,
 		"./browser/reconcile/*": null,

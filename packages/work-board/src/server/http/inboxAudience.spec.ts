@@ -35,14 +35,17 @@ it.live.each([true, false])("filters managed=%s and registered questions without
 		for (const path of [
 			"/_board/item/decision.orchestrator/",
 			"/_board/respond?item=decision.orchestrator&request=direction",
-			"/_board/work?view=board",
-			"/_board/work?view=table",
+			"/_board/work?view=board&item=decision.orchestrator",
+			"/_board/work?view=table&item=decision.orchestrator",
 		]) {
 			const response = yield* rawGet(board, path);
 			expect(response.status).toBe(200);
 			const origin = board.url;
 			const content = path.startsWith("/_board/respond") ? yield* Effect.promise(() => renderRemaining(origin, path)) : response.body;
 			expect(content).toContain("Question for orchestrator");
+			if (path.startsWith("/_board/work")) {
+				expect(content).not.toContain('data-item="decision.orchestrator"');
+			}
 			expect(response.body).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="2 waiting">2</span>');
 		}
 	} finally {

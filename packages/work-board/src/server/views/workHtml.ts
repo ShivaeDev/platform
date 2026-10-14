@@ -38,7 +38,7 @@ export const workHtml = Effect.fn("WorkBoard.workHtml")(function* (snapshot: Sna
 	const detail = yield* workDetail(projection, state, snapshot);
 	return {
 		html: `<header class="work-head"><p class="work-eyebrow">WORK · ${state.view.toUpperCase()} VIEW</p><h1>${escapeHtml(projection.title)}</h1><p>Views use recorded fields. A section heading does not set an item's status.</p>${source}</header>
- ${tools}${controls}${issues}<p class="work-total" role="status">${projection.rows.length} shown · ${projection.items.length} items in this view</p>
+ ${tools}${controls}${state.view === "now" ? "<p>Fleet is unavailable in this source fallback. Lanes use authored status; completion time is unknown. Open All work for completed items.</p>" : ""}${issues}<p class="work-total" role="status">${projection.rows.length} shown · ${projection.items.length} items in this view</p>
  <div class="work-layout${state.item ? " has-detail" : ""}"><section id="work-results" tabindex="-1" aria-label="Work items">${empty}${state.view === "table" ? workTable(projection.rows, state, waiting) : workCards(projection.rows, state, waiting)}</section>${detail}</div>`,
 		status: 200,
 	};

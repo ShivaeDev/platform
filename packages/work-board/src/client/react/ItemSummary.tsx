@@ -1,10 +1,11 @@
-import { ClipboardList, FileText, Flag, GitPullRequest, MessageCircle, PanelsTopLeft } from "lucide-react";
+import { ClipboardList, FileText, Flag, MessageCircle, PanelsTopLeft } from "lucide-react";
 import { useContext } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { Badge } from "#client/react/components/ui/Badge.tsx";
 import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
+import { PrChip } from "./PrChip.tsx";
 
 const icons = { board: PanelsTopLeft, goal: Flag, question: MessageCircle, report: FileText, result: FileText, task: ClipboardList };
 function kindIcon(kind: string) {
@@ -47,18 +48,5 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 				)}
 			</div>
 		</section>
-	);
-}
-
-function PrChip({ url }: { readonly url: string | undefined }) {
-	return url ? (
-		<a href={url}>
-			<Badge variant="outline">
-				<GitPullRequest aria-hidden="true" />
-				PR
-			</Badge>
-		</a>
-	) : (
-		<Badge variant="outline">PR not recorded</Badge>
 	);
 }

@@ -13,7 +13,7 @@ export function WorkPage({ data }: { readonly data: WorkProjection }) {
 			<header className="work-head">
 				<p className="work-eyebrow">WORK · {state.view.toUpperCase()} VIEW</p>
 				<h1>{data.validBoard ? data.title : "Board unavailable"}</h1>
-				<p>Views use recorded fields. A section heading does not set an item's status.</p>
+				<p>Fleet stages show who holds the work. Cards retain their authored status.</p>
 				{Boolean(state.board) && data.validBoard && <a href={source}>Board source</a>}
 			</header>
 			<WorkTools state={state} />

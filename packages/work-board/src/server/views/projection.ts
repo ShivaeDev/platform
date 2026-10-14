@@ -1,3 +1,4 @@
+import { isWork } from "#browser/views/now.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { filterItems, type Item, itemsOf } from "./items.ts";
 import type { State } from "./state.ts";
@@ -35,7 +36,7 @@ export function projectItems(snapshot: Snapshot, state: State): Projection {
 	const boards = known.filter((item) => item.document.parsed.fields.kind === "board");
 	const board = boards.find((item) => item.id === state.board);
 	const membership = board ? boardItems(board, known, snapshot) : undefined;
-	const items = membership?.found ?? known.filter((item) => item.document.parsed.fields.kind !== "board");
+	const items = (membership?.found ?? known).filter((item) => isWork(item.document.parsed.fields));
 	const rows = filterItems(items, state);
 	const selected = known.find((item) => item.id === state.item);
 	const issues =
@@ -53,7 +54,7 @@ export function projectItems(snapshot: Snapshot, state: State): Projection {
 		rows,
 		selected,
 		selectedOutside: selected !== undefined && !rows.some((item) => item.id === selected.id),
-		title: board?.title ?? "All work",
+		title: board?.title ?? (state.view === "now" ? "Now" : "All work"),
 		validBoard: !state.board || board !== undefined,
 	};
 }

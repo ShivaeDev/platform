@@ -90,7 +90,7 @@ export function Sidebar({
 					<a
 						aria-current={main.view === view ? "page" : undefined}
 						className={navClass(main.view === view)}
-						href={`/_board/${view}${view === "work" ? "?view=board" : ""}`}
+						href={`/_board/${view}`}
 						id={`${view}-open`}
 						key={view}
 					>
