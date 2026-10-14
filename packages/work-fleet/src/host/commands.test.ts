@@ -83,7 +83,11 @@ describe("work-fleet host against PostgreSQL", () => {
 
 				fixture.write("a.md", task("a", "approved", "Second revision."));
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-				expect((yield* record(fixture.host, "a", fixture.parts)).boardRevision).toBe(first.boardRevision);
+				const refreshed = yield* record(fixture.host, "a", fixture.parts);
+				expect(refreshed.boardRevision).not.toBe(first.boardRevision);
+				expect(refreshed.prompt).toContain("Second revision.");
+				expect(refreshed.history ?? []).toEqual([]);
+				expect(refreshed.decision).toBeUndefined();
 				expect(fixture.provider.launched).toHaveLength(0);
 
 				const { value } = yield* dispatchWork(fixture.host, "a", fixture.parts);
