@@ -9,6 +9,28 @@ import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardGateway } from "#policy.ts";
 import { completionFolder } from "#test/completionFolder.ts";
 
+for (const authored of ["identity", "criterion"] as const) {
+	it.effect(`refuses completion when a YAML alias would change the authored ${authored}`, () =>
+		Effect.gen(function* () {
+			const { fs, root, source } = yield* completionFolder;
+			const anchored = source.replace("status: planned", "status: &bookkeeping planned");
+			const aliased =
+				authored === "identity"
+					? anchored.replace("id: one", "id: *bookkeeping")
+					: anchored.replace("next_action: Work", "next_action: Work\ncriteria: [{ id: behavior, text: *bookkeeping }]");
+			yield* fs.writeFileString(`${root}/tasks/one.md`, aliased);
+			yield* Effect.gen(function* () {
+				const board = yield* BoardGateway;
+				expect(
+					yield* board.complete?.(authored === "identity" ? "planned" : "one", `${root}/tasks/one.md`, "Done; PR #7 merged.")?.pipe(Effect.flip)
+						?? Effect.void,
+				).toMatchObject({ _tag: "BoardFailure" });
+			}).pipe(Effect.provide(markdownBoard(root)));
+			expect(yield* fs.readFileString(`${root}/tasks/one.md`)).toBe(aliased);
+		}).pipe(Effect.provide(NodeServices.layer)),
+	);
+}
+
 for (const location of ["root", "directory", "file"] as const) {
 	it.effect(`refuses a symlink at the completion ${location} boundary`, () =>
 		Effect.gen(function* () {
