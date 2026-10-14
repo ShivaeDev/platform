@@ -7,7 +7,12 @@ import { recordTimeColumns } from "#storage/recordTimes.ts";
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
 
 // PostgreSQL text cannot distinguish scalar strings from serialized JSON.
-export const fleetMigrationColumns = { ...modelTableColumns, [releaseReasonColumn.name]: releaseReasonColumn.kind, ...recordTimeColumns } as const;
+export const fleetMigrationColumns = {
+	...modelTableColumns,
+	[releaseReasonColumn.name]: releaseReasonColumn.kind,
+	...recordTimeColumns,
+	integrationRetry: "json",
+} as const;
 
 export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string, legacyOnly = false) {
 	const sql = yield* SqlClient.SqlClient;
@@ -45,6 +50,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 							yield* sql`alter table ${sql(`${namespace}_records`)} add column ${sql(name)} double precision`;
 						}
 					}),
+					"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
 				}),
 	});
 });

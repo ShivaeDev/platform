@@ -39,17 +39,22 @@ export const observeDeliveryFailure = Effect.fn("Fleet.observeDeliveryFailure")(
 		current = yield* invalidateMergeReadiness(state, stored);
 		return yield* refreshReviewResult(state)(current, work, result, failureContext(error).head).pipe(
 			Effect.catchIf(isFleetError, (refreshFailure) =>
-				waitingDecision(
-					failureCode(refreshFailure),
-					refreshFailure.message,
-					"Inspect the current PR result before retrying or releasing this work",
-					failureContext(refreshFailure).attentionOwner,
-				),
+				Effect.gen(function* () {
+					if (refreshFailure._tag === "ServiceUnavailable") {
+						return record.decision === undefined ? yield* Effect.fail(refreshFailure) : current;
+					}
+					return yield* waitingDecision(
+						failureCode(refreshFailure),
+						refreshFailure.message,
+						"Inspect the current PR result before retrying or releasing this work",
+						failureContext(refreshFailure).attentionOwner,
+					);
+				}),
 			),
 		);
 	}
-	if (error._tag === "ServiceUnavailable" && record.decision !== undefined) {
-		return stored;
+	if (error._tag === "ServiceUnavailable") {
+		return record.decision === undefined ? yield* Effect.fail(error) : stored;
 	}
 	current = yield* invalidateMergeReadiness(state, stored);
 	return yield* waitingDecision(

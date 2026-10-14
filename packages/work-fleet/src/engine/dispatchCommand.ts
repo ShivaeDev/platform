@@ -7,11 +7,12 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
-	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string) {
+	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string) {
 		let stored = yield* load(workId);
 		const work = yield* board.get(workId);
 		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
@@ -60,6 +61,24 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 						blocker: failureMessage(error),
 					});
 					return yield* Effect.fail(error);
+				}),
+			),
+		);
+	});
+	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string) {
+		const current = yield* load(workId);
+		if (retryPending(state, current.value)) {
+			return current;
+		}
+		if (current.value.integrationRetry !== undefined) {
+			yield* save(current, { ...current.value, attentionOwner: undefined, blocker: undefined });
+		}
+		return yield* dispatchPrepared(workId, prompt).pipe(
+			Effect.flatMap((updated) => clearIntegrationRetry(state, updated)),
+			Effect.catch((error) =>
+				Effect.gen(function* () {
+					const retrying = yield* readRetry(state, yield* load(workId), error);
+					return retrying === undefined ? yield* Effect.fail(error) : retrying;
 				}),
 			),
 		);

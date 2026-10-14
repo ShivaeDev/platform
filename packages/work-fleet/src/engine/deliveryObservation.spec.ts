@@ -7,6 +7,7 @@ import { Fleet } from "#fleet.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { backlog } from "#model.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
+import { exhaustReadRetries } from "#test/exhaustReadRetries.ts";
 import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("test");
@@ -30,7 +31,10 @@ for (const owner of ["orchestrator", "automation"] as const) {
 					yield* prepareWork("one");
 					yield* fleet.dispatch("one");
 					finishWorkers(fixture);
-					const waiting = yield* fleet.reconcile("one");
+					const retrying = yield* fleet.reconcile("one");
+					expect(retrying.value.attentionOwner).toBe("automation");
+					expect(retrying.value.decision).toBeUndefined();
+					const waiting = yield* exhaustReadRetries(fixture);
 					expect(waiting.value.attentionOwner).toBe(owner);
 					expect(waiting.value.decision?.attentionOwner).toBe(owner);
 					yield* fixture.restart(
@@ -76,3 +80,35 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 		);
 	});
 }
+
+test("an outage while refreshing a moved PR head preserves the existing decision", () => {
+	let unavailable = false;
+	let observation: unknown = open;
+	const deliveryQuery = githubDelivery("/repository", () => Effect.succeed(observation));
+	return withEngine(
+		{
+			deliveryQuery,
+			resultQuery: () => (unavailable ? Effect.fail(new ServiceUnavailable({ message: "GitHub result read failed" })) : Effect.succeed(result)),
+		},
+		(fixture) =>
+			Effect.gen(function* () {
+				const fleet = yield* Fleet;
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				finishWorkers(fixture);
+				const ready = (yield* fleet.reconcile("one")).value;
+				expect(ready.decision?.code).toBe("reviewed-pr-ready");
+				unavailable = true;
+				observation = { ...open, headRefOid: "moved-head" };
+				yield* fixture.restart(cycle);
+				const waiting = (yield* fleet.get("one")).value;
+				expect(waiting.decision).toEqual(ready.decision);
+				expect(waiting.result).toEqual(ready.result);
+				expect(waiting.mergeReadyHead).toBeUndefined();
+				expect(fixture.decisions).toHaveLength(1);
+				yield* fixture.restart(cycle);
+				expect((yield* fleet.get("one")).value.decision).toEqual(ready.decision);
+				expect(fixture.decisions).toHaveLength(1);
+			}),
+	);
+});

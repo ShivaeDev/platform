@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { capacityRetry } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { readRetry } from "#engine/readRetry.ts";
 import type { SessionFailure } from "#session/schema.ts";
 
 export const submissionFailure = Effect.fn("Fleet.submissionFailure")(function* (
@@ -11,10 +12,17 @@ export const submissionFailure = Effect.fn("Fleet.submissionFailure")(function* 
 	error: SessionFailure,
 	recommendation: string,
 ) {
+	const current = yield* state.load(workId);
+	if (current.value.decision !== undefined) {
+		return;
+	}
+	if (error.reason === "ambiguous" && error.code === "session-unavailable") {
+		yield* readRetry(state, current, error, operationId);
+		return;
+	}
 	if (error.reason !== "rejected" && error.reason !== "unavailable") {
 		return;
 	}
-	const current = yield* state.load(workId);
 	if (yield* capacityRetry(state, current.value, operationId, error)) {
 		return;
 	}

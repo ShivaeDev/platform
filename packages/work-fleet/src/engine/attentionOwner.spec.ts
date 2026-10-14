@@ -47,6 +47,7 @@ for (const owner of ["orchestrator", "automation"] as const) {
 					Effect.fail(
 						withFailureContext(new ServiceUnavailable({ message: "Adoption is not configured" }), {
 							attentionOwner: owner === "automation" ? owner : undefined,
+							retryable: false,
 						}),
 					),
 			},

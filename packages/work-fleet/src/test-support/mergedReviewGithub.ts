@@ -15,6 +15,7 @@ interface GithubState {
 	paths: string[];
 	pending: boolean;
 	status: "OPEN" | "CLOSED" | "MERGED";
+	unavailableReads: number;
 }
 
 function githubResponses(state: GithubState): Readonly<Record<string, unknown>> {
@@ -70,11 +71,17 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		paths: ["src/one.ts"],
 		pending: false,
 		status: "OPEN",
+		unavailableReads: 0,
 	};
 	const requests: string[] = [];
 	const server = createServer((request, response) => {
 		const path = request.url ?? "";
 		requests.push(path);
+		if (state.unavailableReads > 0) {
+			state.unavailableReads -= 1;
+			response.writeHead(503).end();
+			return;
+		}
 		const body = githubResponses(state)[path];
 		response.setHeader("Content-Type", "application/json");
 		response.writeHead(body === undefined ? 404 : 200).end(JSON.stringify(body));

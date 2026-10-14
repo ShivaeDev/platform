@@ -17,7 +17,8 @@ export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(functio
 			`Board identity is missing or ambiguous: ${workId}`,
 			...Array.from(snapshot.problems.values(), (failure) => failure.message),
 		].join("; ");
-		return yield* Effect.fail(new BoardFailure({ message }));
+		const incomplete = Array.from(snapshot.problems.values()).some((failure) => failure.code === "incomplete-observation");
+		return yield* Effect.fail(new BoardFailure({ code: incomplete ? "incomplete-observation" : undefined, message }));
 	}
 	const problem = snapshot.problems.get(found.file);
 	return yield* problem === undefined ? Effect.succeed(found) : Effect.fail(problem);
@@ -25,7 +26,9 @@ export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(functio
 
 const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: string, realRoot: string) {
 	const files = yield* listMarkdown(root, realRoot).pipe(
-		Effect.mapError((error) => new BoardFailure({ message: `Board sources could not be listed: ${root} (${error.message})` })),
+		Effect.mapError(
+			(error) => new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be listed: ${root} (${error.message})` }),
+		),
 	);
 	const problems = new Map<string, BoardFailure>();
 	const documents = yield* Effect.forEach(files, (file) =>
@@ -63,7 +66,7 @@ export const refreshSnapshotDocument = Effect.fn("FleetBoard.refreshSnapshotDocu
 		return yield* Effect.fail(problem);
 	}
 	if (document === undefined) {
-		return yield* Effect.fail(new BoardFailure({ message: `Board source is unavailable: ${previous.file}` }));
+		return yield* Effect.fail(new BoardFailure({ code: "incomplete-observation", message: `Board source is unavailable: ${previous.file}` }));
 	}
 	snapshot.record(document);
 	return yield* snapshotDocument(snapshot, workId);

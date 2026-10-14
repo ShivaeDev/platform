@@ -7,7 +7,7 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
-import { readRetry } from "#engine/readRetry.ts";
+import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import type { FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
@@ -28,12 +28,12 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		if (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage)) {
 			return current;
 		}
+		if (capacityFailure(error)) {
+			return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
+		}
 		const retrying = yield* readRetry(state, current, error);
 		if (retrying !== undefined) {
 			return retrying;
-		}
-		if (capacityFailure(error)) {
-			return yield* save(current, { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
 		}
 		current = yield* persistTerminalReceipts(state, current, error instanceof SessionFailure ? error.terminalReceipts : undefined);
 		return yield* decision(
@@ -48,12 +48,15 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 	return Effect.fn("Fleet.reconcile")(function* (
 		workId: string,
 	): Effect.fn.Return<Versioned<FleetRecord>, Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>>> {
-		const current = yield* load(workId);
-		const retry = current.value.attempts.at(-1)?.readRetry;
-		if (current.value.stage !== "needs-human" && retry !== undefined && state.policy.now() < retry.retryAt) {
+		let current = yield* load(workId);
+		if (current.value.stage !== "needs-human" && retryPending(state, current.value)) {
 			return current;
 		}
+		if (current.value.integrationRetry !== undefined) {
+			current = yield* save(current, { ...current.value, attentionOwner: undefined, blocker: undefined });
+		}
 		return yield* advance(workId).pipe(
+			Effect.flatMap((updated) => clearIntegrationRetry(state, updated)),
 			Effect.catch((error) => handleFailure(workId, error)),
 			Effect.flatMap(completeBoardWork(state)),
 		);
