@@ -36,3 +36,24 @@ for (const change of ["count", "status"] as const) {
 		}).pipe(Effect.provide(codexConfiguration(server.endpoint)));
 	});
 }
+
+postgresTests("test", "isolated")("a changed brief pauses a stalled worker before Fleet sends a steer", function* () {
+	const server = yield* stalledCodex();
+	const clock = yield* Clock.Clock;
+	yield* Effect.gen(function* () {
+		const transport = yield* SessionTransport;
+		yield* withEngine({ decorateTransport: () => transport, now: () => clock.currentTimeMillisUnsafe() }, (fixture) =>
+			Effect.gen(function* () {
+				const fleet = yield* Fleet;
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				yield* fleet.reconcile("one");
+				yield* TestClock.adjust("31 minutes");
+				fixture.editWork("one", "edited-brief");
+				const paused = yield* fleet.reconcile("one");
+				expect(paused.value).toMatchObject({ decision: { code: "fleet-stale" }, stage: "needs-human" });
+				expect(server.requests.filter((request) => ["turn/steer", "turn/interrupt"].includes(request.method))).toEqual([]);
+			}),
+		);
+	}).pipe(Effect.provide(codexConfiguration(server.endpoint)));
+});

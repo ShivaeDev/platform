@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { briefChanged } from "#engine/boardBrief.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { obtainReview } from "#engine/obtainReview.ts";
@@ -22,12 +23,12 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 	if (attempt.status === "interrupted" && recovery?.interruptRequestedAt !== undefined) {
 		return yield* resumeStalled(state, stored, attempt);
 	}
-	if (attempt.status !== "running" || attempt.progress === undefined) {
+	if (!stalled(attempt, now, state.policy.stallMinutes ?? 30)) {
 		return undefined;
 	}
-	const budget = (state.policy.stallMinutes ?? 30) * 60_000;
-	if (now - Math.max(attempt.progress.at, recovery?.lastActionAt ?? attempt.submittedAt) < budget) {
-		return recovery?.interruptRequestedAt === undefined ? undefined : stored;
+	const work = yield* state.board.get(stored.value.workId);
+	if (!work.approved || briefChanged(stored.value, work)) {
+		return undefined;
 	}
 	const count = recovery?.count ?? 0;
 	if (count >= 2) {
@@ -88,3 +89,11 @@ const resumeStalled = Effect.fn("Fleet.resumeStalled")(function* (state: EngineS
 	}
 	return yield* makeLaunch(state)(stored, attempt.role, prompt, { responses: stored.value.responses ?? [], sessionId, stallRecovery });
 });
+
+function stalled(attempt: Attempt, now: number, minutes: number) {
+	return (
+		attempt.status === "running"
+		&& attempt.progress !== undefined
+		&& now - Math.max(attempt.progress.at, attempt.stallRecovery?.lastActionAt ?? attempt.submittedAt) >= minutes * 60_000
+	);
+}
