@@ -41,12 +41,28 @@ export function referencesFrom(document: MetadataDocument, model: MetadataModel)
 	];
 }
 
+const backlinks = new WeakMap<MetadataModel, ReadonlyMap<string, readonly Backlink[]>>();
+
+function indexBacklinks(model: MetadataModel) {
+	const next = new Map<string, Backlink[]>();
+	for (const document of model.documents) {
+		for (const reference of referencesFrom(document, model)) {
+			if (!reference.target || reference.target === document.file) {
+				continue;
+			}
+			const matches = next.get(reference.target) ?? [];
+			matches.push({ file: document.file, kind: reference.kind, ...(reference.line === undefined ? {} : { line: reference.line }) });
+			next.set(reference.target, matches);
+		}
+	}
+	return next;
+}
+
 export function backlinksOf(file: string, model: MetadataModel): readonly Backlink[] {
-	return model.documents.flatMap((document) =>
-		document.file === file
-			? []
-			: referencesFrom(document, model)
-					.filter((reference) => reference.target === file)
-					.map((reference) => ({ file: document.file, kind: reference.kind, ...(reference.line === undefined ? {} : { line: reference.line }) })),
-	);
+	let indexed = backlinks.get(model);
+	if (!indexed) {
+		indexed = indexBacklinks(model);
+		backlinks.set(model, indexed);
+	}
+	return indexed.get(file) ?? [];
 }
