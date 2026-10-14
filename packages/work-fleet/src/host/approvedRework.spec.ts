@@ -99,3 +99,36 @@ for (const body of ["", "  \n  "]) {
 			),
 		));
 }
+
+test("answer text queues requested changes on the same branch and PR through daemon HTTP", () =>
+	withApprovedPrDaemon((fixture) =>
+		fixture.serve((client) =>
+			Effect.gen(function* () {
+				const ready = yield* fixture.ready(client);
+				const queued = yield* client("daemon.answer", { text: "Keep the loading indicator visible.", workId: "one" });
+				expect(queued.stage).toBe("repairing");
+				expect(queued.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
+				yield* client("fleet.reconcile", { workId: "one" });
+				const reworked = yield* fixture.started(client, "repair");
+				expect(reworked.result).toEqual(ready.result);
+				expect(reworked.attempts.at(-1)?.receipt?.sessionId).toBe(ready.attempts[0]?.receipt?.sessionId);
+				expect(reworked.attempts.at(-1)?.prompt).toContain("Keep the loading indicator visible.");
+				expect(reworked.attempts.at(-1)?.prompt).toContain(`same branch and PR (${fixture.PR})`);
+			}),
+		),
+	));
+
+test("answer without text retries a ready PR without requesting rework", () =>
+	withApprovedPrDaemon((fixture) =>
+		fixture.serve((client) =>
+			Effect.gen(function* () {
+				const ready = yield* fixture.ready(client);
+				const retried = yield* client("daemon.answer", { workId: "one" });
+				expect(retried.stage).toBe("delivering");
+				const waiting = yield* client("fleet.reconcile", { workId: "one" });
+				expect(waiting.decision?.code).toBe("reviewed-pr-ready");
+				expect(waiting.attempts).toEqual(ready.attempts);
+				expect(repairAttempts(waiting)).toHaveLength(0);
+			}),
+		),
+	));

@@ -1,15 +1,16 @@
-import { Clock, Effect, FileSystem } from "effect";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Clock, Effect, FileSystem, Schema } from "effect";
+import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { responses as responsesApi } from "@shivaedev/work-board/integration/responses.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardGateway, type Decision } from "#policy.ts";
 
-const { makeResponse, publish, Responses, responseMarkdown } = responsesApi;
+const { DraftInput, makeResponse, publish, Responses, responseMarkdown } = responsesApi;
 
 export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionResponse")(function* (
 	root: string,
 	decision: Decision & { readonly published: BoardDecision },
 	action: "retry" | "release",
+	text?: string,
 ) {
 	const responses = yield* Responses;
 	const board = yield* BoardGateway;
@@ -22,16 +23,16 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 	if (reading._tag === "Response" && reading.response.id === id) {
 		return id;
 	}
-	const input = {
-		answers: [{ prompt: "fleet-action", selected: [action], text: "" }],
+	const input = yield* Schema.decodeUnknownEffect(DraftInput)({
+		...(decision.worker !== undefined && action !== "release" ? {} : { answers: [{ prompt: "fleet-action", selected: [action], text: "" }] }),
 		author: "orchestrator",
-		body: action === "release" ? "Release Fleet ownership." : "Retry Fleet work under trusted runtime policy.",
+		body: text ?? (action === "release" ? "Release Fleet ownership." : "Retry Fleet work under trusted runtime policy."),
 		id,
 		question: published.questionId,
 		...(reading._tag === "Response" ? { supersedes: reading.response.id } : {}),
-		type: "answer" as const,
-	};
-	if (decision.worker === undefined) {
+		type: "answer",
+	}).pipe(Effect.mapError(() => new BadRequest({ message: "Invalid Board response; text must not exceed 32768 characters" })));
+	if (decision.worker === undefined && text === undefined) {
 		return (yield* responses.record(input)).id;
 	}
 	const question = (yield* responses.read(published.questionId)).question;

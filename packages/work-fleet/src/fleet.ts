@@ -3,6 +3,7 @@ import { defineService } from "@shivaedev/effect-service/define-service.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueCommand } from "#engine/continueCommand.ts";
 import { dispatchCommand } from "#engine/dispatchCommand.ts";
+import { ensurePublication } from "#engine/ensurePublication.ts";
 import { makeAdvance } from "#engine/makeAdvance.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
 import { makeState } from "#engine/makeState.ts";
@@ -37,6 +38,7 @@ export const Fleet = defineService({
 		hasLaunchRetry: () => state.store.hasLaunchRetry(),
 		list: () => state.store.list(),
 		prepare: (input: PrepareWork) => prepareCommand(state)(input).pipe(Effect.flatMap(closeDecisions(state)), Effect.flatMap(cleanupSessions(state))),
+		publishDecision: (workId: string) => state.load(workId).pipe(Effect.flatMap((stored) => ensurePublication(state)(stored, true))),
 		reassign: reassignCommand(state),
 		reconcile: (workId: string) => reconcileCommand(state, state.advance)(workId).pipe(Effect.flatMap(cleanupSessions(state))),
 		resolve: (workId: string, decisionId: string, responseId: string) =>

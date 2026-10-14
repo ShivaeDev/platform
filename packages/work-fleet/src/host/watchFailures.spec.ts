@@ -29,7 +29,7 @@ describe("Fleet commands without a daemon", () => {
 		["release", ["unknown"]],
 		["reassign", ["unknown", "decision", "maintainer"]],
 		["name-threads", []],
-		["decide", ["unknown", "retry"]],
+		["answer", ["unknown", "Retry work"]],
 	] as const) {
 		it.live(`${command} names the missing daemon and how to start it`, function* () {
 			const port = yield* Effect.promise(unusedPort);

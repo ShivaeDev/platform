@@ -9,7 +9,7 @@ import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import { continueCommand, decideCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
+import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, releaseCommand } from "#host/actionCommands.ts";
 import { board, config, host, port } from "#host/cliOptions.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 
@@ -51,7 +51,7 @@ const statusCommand = Command.make(
 		const current = yield* Effect.scoped(
 			daemonClient(input.port).pipe(Effect.flatMap((client) => client("daemon.status", workId === undefined ? {} : { workId }))),
 		).pipe(Effect.mapError((error) => daemonError(error, input.port)));
-		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current));
+		yield* Console.log(input.json ? JSON.stringify(current) : renderStatus(current, input.port));
 	}),
 ).pipe(Command.withDescription("Show active and completed Fleet work, and waiting work grouped by owner"));
 
@@ -62,7 +62,7 @@ const cli = Command.make("work-fleet").pipe(
 		dispatchCommand,
 		continueCommand,
 		releaseCommand,
-		decideCommand,
+		answerCommand,
 		statusCommand,
 		reassignCommand,
 		waitCommand,

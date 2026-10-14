@@ -48,7 +48,8 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 	return Effect.fn("FleetBoard.decision")(function* (work: BoardWork, input: Decision): Effect.fn.Return<BoardDecision, BoardFailure> {
 		const workSourcePath = relative(realRoot, work.sourcePath);
 		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links, ...(input.worker === undefined ? [] : [input.worker])]))}`;
-		const context = decisionSource(itemId, work, input);
+		const existing = input.published === undefined ? undefined : (yield* documents).find((document) => document.file === input.published?.sourcePath);
+		const context = existing?.parsed.fields.id === itemId ? existing.source : decisionSource(itemId, work, input);
 		const parsed = boardApi.metadataParse(context);
 		if (new TextEncoder().encode(context).length > 256 * 1024 || parsed.diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
