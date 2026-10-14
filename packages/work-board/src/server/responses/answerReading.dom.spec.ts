@@ -35,7 +35,7 @@ it.live("shows an answer card with recording disabled in read-only mode", functi
 	yield* open(questionnaireSource, false);
 	expect(page.document.querySelectorAll("#answer-card-direction fieldset")).toHaveLength(2);
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
-	expect(page.document.getElementById("response-status")?.textContent).toContain("Read-only mode");
+	expect(page.document.getElementById("response-status")?.textContent).toBe("Read-only. Restart with --responses to enable answers.");
 });
 
 it.live("retains the readable packet when its request is closed", function* () {
