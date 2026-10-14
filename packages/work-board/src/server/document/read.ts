@@ -28,7 +28,7 @@ const selected = Effect.fn("WorkBoard.selected")(function* (
 ) {
 	const pathname = new URL(url, "http://127.0.0.1").pathname;
 	const requested = decodeURIComponent(pathname.slice(1));
-	const item = /^_board\/item\/(?<id>[^/]+)\/$/u.exec(requested)?.groups?.id;
+	const item = /\.md$/iu.test(requested) ? undefined : /^_board\/item\/(?<id>[^/]+)\/?$/u.exec(requested)?.groups?.id;
 	if (item && snapshot.unavailable.length > 0) {
 		return yield* Effect.fail(new ServiceUnavailable({ message: "Document sources are unavailable." }));
 	}

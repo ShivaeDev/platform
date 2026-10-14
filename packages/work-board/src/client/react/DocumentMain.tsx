@@ -70,5 +70,8 @@ function loadingMessage(tag: string | undefined, failed: boolean, url: string) {
 	if (tag === "NotFound" && /\.md$/iu.test(new URL(url, "http://127.0.0.1").pathname)) {
 		return `No markdown file at ${decodeURIComponent(new URL(url, "http://127.0.0.1").pathname.slice(1))}.`;
 	}
+	if (tag === "NotFound" && url.startsWith("/_board/item/")) {
+		return "No item with this id is available. It may be missing, renamed, or invalid.";
+	}
 	return failed ? "This document could not be opened. Retry the link or reload the page." : "Opening document…";
 }

@@ -21,6 +21,18 @@ afterEach(() => {
 	notes.remove();
 });
 
+effectApp("serves item URLs with either trailing-slash form and reports unknown IDs", function* () {
+	for (const slash of ["", "/"]) {
+		const item = yield* rawGet(board, `/_board/item/work.search${slash}`);
+		expect(item.status).toBe(200);
+		expect(item.body).toContain('data-identity="work.search"');
+		expect(item.body).toContain("Readable project prose.");
+		const missing = yield* rawGet(board, `/_board/item/missing${slash}`);
+		expect(missing.status).toBe(404);
+		expect(missing.body).toContain("No item with ID missing");
+	}
+});
+
 effectApp("renders optional work fields, criteria/evidence claims, source locations, and ordinary boards", function* () {
 	const item = yield* rawGet(board, "/_board/item/work.search/");
 	expect(item.status).toBe(200);

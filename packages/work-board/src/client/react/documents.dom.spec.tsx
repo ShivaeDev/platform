@@ -63,7 +63,7 @@ it.live.each(["/missing.md", "/_board/item/missing/"])("shows a failed initial d
 		yield* Effect.promise(() =>
 			eventually(() =>
 				expect(view.container.querySelector("main [role=status]")?.textContent).toContain(
-					url.endsWith(".md") ? "No markdown file at missing.md." : "could not be opened",
+					url.endsWith(".md") ? "No markdown file at missing.md." : "No item with this id",
 				),
 			),
 		);

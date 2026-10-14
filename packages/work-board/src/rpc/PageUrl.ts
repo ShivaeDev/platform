@@ -21,7 +21,7 @@ export const PageUrl = Schema.String.check(
 					"/_board/handoff",
 					"/_board/result",
 				].includes(path)
-				|| /^\/_board\/item\/[^/]+\/$/u.exec(path) !== null
+				|| /^\/_board\/item\/[^/]+\/?$/u.exec(path) !== null
 				|| /\.md$/iu.exec(path) !== null
 				|| "Expected a local reading URL"
 			);
