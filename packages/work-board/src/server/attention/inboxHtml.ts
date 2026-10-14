@@ -1,24 +1,25 @@
 import { escapeHtml } from "#browser/escapeHtml.ts";
+import type { InboxProjection } from "#browser/views/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { inboxItems } from "./inbox.ts";
-import { requestInbox } from "./requestInbox.ts";
+import { attentionProjection } from "./projection.ts";
 
 export function inboxHtml(snapshot: Snapshot, compact = false, now?: number): string {
-	const items = inboxItems(snapshot);
+	const projection = attentionProjection(snapshot);
+	const items = projection.you;
 	const total = snapshot.unavailable.length > 0 ? "Count unavailable" : `${items.length} waiting`;
-	function rows(entries: ReturnType<typeof inboxItems>) {
+	function rows(entries: InboxProjection["you"]) {
 		return entries
 			.map(
 				(item) =>
-					`<article class="inbox-row" data-key="inbox:${escapeHtml(item.document.file)}"><div><h3><a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a></h3><p>${escapeHtml(item.reason)}</p>${item.earlierAsks ? `<p>${item.earlierAsks} earlier ${item.earlierAsks === 1 ? "ask" : "asks"}</p>` : ""}${item.problem ? `<p class="inbox-problem" role="status">${escapeHtml(item.problem)} — open the source to resolve it.</p>` : ""}</div><p class="inbox-age">${item.modified === undefined ? "Age unavailable" : sourceAge(item.modified, now)}</p></article>`,
+					`<article class="inbox-row" data-key="inbox:${escapeHtml(item.file)}"><div><h3><a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a></h3><p>${escapeHtml(item.reason)}</p>${audienceHtml(item.responseFrom)}${item.earlierAsks ? `<p>${item.earlierAsks} earlier ${item.earlierAsks === 1 ? "ask" : "asks"}</p>` : ""}${item.problem ? `<p class="inbox-problem" role="status">${escapeHtml(item.problem)} — open the source to resolve it.</p>` : ""}</div><p class="inbox-age">${item.modified === undefined ? "Age unavailable" : sourceAge(item.modified, now)}</p></article>`,
 			)
 			.join("");
 	}
-	const requests = requestInbox(snapshot);
-	function group(title: string, entries: ReturnType<typeof inboxItems>) {
+	const requests = projection;
+	function group(title: string, entries: InboxProjection["you"]) {
 		return entries.length > 0 ? `<details class="inbox-group"><summary>${title} (${entries.length})</summary>${rows(entries)}</details>` : "";
 	}
-	const groups = group("Resolved elsewhere", requests.resolved) + group("Parked", requests.parked);
+	const groups = group("Waiting on agents", requests.agents) + group("Resolved elsewhere", requests.resolved) + group("Parked", requests.parked);
 	const content =
 		snapshot.unavailable.length > 0
 			? '<p role="status">Workspace incomplete. Inbox membership and count are unavailable.</p>'
@@ -62,4 +63,8 @@ function elapsedAge(minutes: number): string {
 		return `${Math.floor(minutes / 60)}h`;
 	}
 	return `${Math.round(minutes / (24 * 60))}d`;
+}
+
+function audienceHtml(labels: readonly string[] | undefined): string {
+	return labels ? `<p>Response needed from: ${labels.map(escapeHtml).join(", ")}</p>` : "";
 }

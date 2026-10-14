@@ -69,7 +69,9 @@ describe("the server", () => {
 			const address = yield* Effect.promise(() => listening(child));
 			const html = yield* Effect.promise(async () => (await fetch(`${address}/_board/inbox`)).text());
 			expect(html).toContain("2 waiting");
-			expect(html.slice(html.indexOf('<section class="inbox-list"'))).not.toContain("Question for orchestrator");
+			const start = html.indexOf('<section class="inbox-list"');
+			expect(html.slice(start, html.indexOf("</section>", start))).not.toContain("Question for orchestrator");
+			expect(html).toContain("Waiting on agents (1)");
 		} finally {
 			child.kill();
 		}

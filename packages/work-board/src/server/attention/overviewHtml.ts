@@ -2,8 +2,8 @@ import { escapeHtml } from "#browser/escapeHtml.ts";
 import { fileUrl } from "#files/url.ts";
 import { referenceHtml } from "#server/page/metadataLinks.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { inboxItems } from "./inbox.ts";
 import { inboxHtml } from "./inboxHtml.ts";
+import { attentionProjection } from "./projection.ts";
 import { type AttentionEntry, attentionRequests } from "./requests.ts";
 
 function card(entry: AttentionEntry, snapshot: Snapshot): string {
@@ -26,7 +26,10 @@ export function overviewHtml(snapshot: Snapshot): string {
 	if (!projection.complete) {
 		return `${header}<p class="attention-incomplete" role="status">Workspace incomplete. Could not read ${snapshot.unavailable.map(escapeHtml).join(", ")}. Requests are not counted or classified until the index is complete.</p>${issues}`;
 	}
-	let summary = inboxItems(snapshot).length > 0 ? "No explicit open attention requests recorded." : "All quiet — no explicit open requests recorded.";
+	let summary =
+		attentionProjection(snapshot).you.length > 0
+			? "No explicit open attention requests recorded."
+			: "All quiet — no explicit open requests recorded.";
 	if (projection.entries.length > 0) {
 		summary = `${projection.entries.length} validated open request${projection.entries.length === 1 ? "" : "s"}`;
 	} else if (projection.issues.length > 0) {

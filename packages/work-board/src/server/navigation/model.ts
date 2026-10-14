@@ -1,21 +1,12 @@
 import { type Navigation, type NavigationFile, NavigationFolder } from "#browser/navigation/schema.ts";
 import { fileUrl } from "#files/url.ts";
-import { fleetRecords, inboxItems } from "#server/attention/inbox.ts";
+import { fleetRecords } from "#server/attention/inbox.ts";
+import { attentionProjection } from "#server/attention/projection.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
-const counts = new WeakMap<Snapshot, number>();
-
 export function inboxCount(snapshot?: Snapshot): number | null {
-	if (!snapshot || snapshot.unavailable.length > 0) {
-		return null;
-	}
-	let count = counts.get(snapshot);
-	if (count === undefined) {
-		count = inboxItems(snapshot).length;
-		counts.set(snapshot, count);
-	}
-	return count;
+	return snapshot && snapshot.unavailable.length === 0 ? attentionProjection(snapshot).you.length : null;
 }
 
 function fileData(file: MarkdownFile, current: string): NavigationFile {
