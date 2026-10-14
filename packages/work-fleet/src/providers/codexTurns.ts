@@ -32,17 +32,28 @@ export function codexTurns(rpc: CodexRequest) {
 			threadId: sessionId,
 		}).pipe(Effect.flatMap((value) => decode(TurnsResponse, value)));
 	}
-	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string, full = false) {
+	const readTurn = Effect.fn("Codex.readTurn")(function* (sessionId: string, turnId: string, full = false) {
 		let cursor: string | null = null;
+		const cursors = new Set<string>();
+		const progress: { id: string; status?: string | undefined }[] = [];
 		do {
 			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, full);
 			const found = page.data.find((turn) => turn.id === turnId);
 			if (found !== undefined) {
-				return found;
+				return { progress, turn: found };
+			}
+			for (const turn of page.data.filter((entry) => entry.status === "inProgress")) {
+				progress.push({ id: turn.id, status: turn.status });
+				progress.push(...turn.items.map(({ id, status }) => ({ id: `${turn.id}/${id}`, status })));
 			}
 			cursor = page.nextCursor;
+			yield* rememberCursor(cursors, cursor, "Codex repeated a turn pagination cursor");
 		} while (cursor !== null);
-		return yield* Effect.fail(failure("ambiguous", "The acknowledged Codex turn is not observable"));
+		return { progress, turn: undefined };
+	});
+	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string, full = false) {
+		const { turn } = yield* readTurn(sessionId, turnId, full);
+		return turn ?? (yield* Effect.fail(failure("ambiguous", "The acknowledged Codex turn is not observable")));
 	});
 	const waitUntilIdle = makeWaitUntilIdle((sessionId, cursor) => turns(sessionId, cursor, false));
 	const operationTurn = Effect.fn("Codex.operationTurn")(function* (sessionId: string, operationId: string) {
@@ -107,6 +118,7 @@ export function codexTurns(rpc: CodexRequest) {
 		operationTurn,
 		readItems,
 		readOutput,
+		readTurn,
 		waitUntilIdle,
 	};
 }

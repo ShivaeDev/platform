@@ -17,7 +17,12 @@ export function obtainReview(state: EngineState) {
 		stored: Versioned<FleetRecord>,
 		work: BoardWork,
 		result: WorkResult,
-		retry?: { readonly prompt: string; readonly sessionId: string; readonly stallRecovery: Attempt["stallRecovery"] },
+		retry?: {
+			readonly prompt: string;
+			readonly sessionId: string;
+			readonly stallRecovery: Attempt["stallRecovery"];
+			readonly observationRetries?: number;
+		},
 	) {
 		if (stored.value.review?.head === result.head) {
 			return stored.value.review.receipt;
@@ -41,6 +46,7 @@ export function obtainReview(state: EngineState) {
 
 		const settings = { ...policy.launch };
 		const attempt: Attempt = {
+			observationRetries: retry?.observationRetries,
 			operationId: policy.operationId(),
 			prompt,
 			providerFailures: stored.value.launchRetry?.rejections,
