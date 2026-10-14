@@ -50,7 +50,7 @@ jobs:
       - run: pnpm build
       - name: Prepare and validate all package archives
         run: pnpm test:package --prepare .ci/packages
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: packages-${{ github.sha }}-${{ github.run_attempt }}
           path: .ci/packages
@@ -148,7 +148,7 @@ jobs:
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           overwrite: true
@@ -241,7 +241,7 @@ jobs:
       - name: Record consumer timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/consumers.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           overwrite: true
@@ -311,7 +311,7 @@ jobs:
         run: >-
           node script/ci/mergeConsumerTimings.ts --directory .ci/main-timings
           --output .ci/consumer-durations.json --run-id=${{ github.run_id }} --sha=${{ github.sha }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           overwrite: true
@@ -326,7 +326,7 @@ jobs:
         run: >-
           node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           overwrite: true
@@ -358,7 +358,7 @@ jobs:
         run: pnpm report:bundles
         env:
           CODECOV_UPLOAD: 'true'
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: bundle-analysis
