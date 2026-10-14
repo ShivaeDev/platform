@@ -7,6 +7,7 @@ import { metadataParse } from "#server/metadata/parse.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { enterField } from "#test/enterField.ts";
+import { followLink } from "#test/followLink.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { waitFor } from "#test/live.ts";
@@ -76,12 +77,8 @@ it.live("keeps the remembered author visible across questions and response detai
 		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	}
 	notes.write("other.md", inboxQuestion.replace("question.storage", "question.backup"));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('#files a[href="/other.md"]')).not.toBeNull()));
-	yield* formEvent(page, () =>
-		page.document
-			.querySelector('#files a[href="/other.md"]')
-			?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
-	);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library3")));
+	yield* formEvent(page, () => followLink(page, "/other.md"));
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.getElementById("response-form")?.getAttribute("data-item")).toBe("question.backup")),
 	);

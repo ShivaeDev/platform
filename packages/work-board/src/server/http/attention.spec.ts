@@ -51,7 +51,7 @@ effectApp("groups multiple explicit judgments and links their reason, recipients
 	expect(source.body).toContain("does not establish acceptance or record an answer");
 	expect((yield* rawGet(board, "/_board/item/work.search/")).body).toContain("Attention request");
 	expect(JSON.stringify(yield* rpcSearch(board, "keyboard evidence maintainer"))).toContain("#attention-request-keyboard-review");
-	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/overview"');
+	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/diagnostics"');
 });
 
 effectApp("keeps duplicate, missing-identity and unresolved criterion requests unclassified with readable diagnostics", function* () {

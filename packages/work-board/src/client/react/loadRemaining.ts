@@ -11,6 +11,10 @@ export function loadRemaining(
 	abortController: AbortController,
 ) {
 	switch (route) {
+		case "library":
+			return loadQuery(registry, api.library.query({}, routeQueryOptions), { abortController });
+		case "goals":
+			return loadQuery(registry, api.goals.query(undefined, routeQueryOptions), { abortController });
 		case "changes":
 			return undefined;
 		case "start":

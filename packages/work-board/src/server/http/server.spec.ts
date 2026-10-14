@@ -7,7 +7,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { countingPaths, silentWatch } from "#test/faults.ts";
-import { changesUntil, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, rpcPaths, subscribe } from "#test/nativeRpc.ts";
 import { referenceLink } from "#test/referenceLink.ts";
 
 let notes: Folder;
@@ -38,11 +38,11 @@ function get(path: string) {
 }
 
 describe("pages", () => {
-	effectApp("shows the home file as a board with its counts and every markdown file in the top bar", function* () {
+	effectApp("shows the home board counts and lists titled documents through Library", function* () {
 		const html = yield* Effect.promise(async () => (await get("/")).text());
 		expect(html).toContain("<span><b>1</b> to do</span>");
-		expect(html).toContain('<a href="/plan.md" aria-current="page">plan</a>');
-		expect(html).toContain('<a href="/notes/log.md">log</a>');
+		expect(yield* rpcPaths(board)).toContain("/plan.md");
+		expect(yield* rpcPaths(board)).toContain("/notes/log.md");
 	});
 
 	effectApp("shows any other markdown file as a document and answers 404 for a missing one", function* () {
@@ -63,11 +63,7 @@ describe("pages", () => {
 	});
 
 	effectApp("skips dot folders, node_modules and files that are not markdown", function* () {
-		const html = yield* Effect.promise(async () => (await get("/")).text());
-		expect(html).not.toContain("hidden.md");
-		expect(html).not.toContain(".drafts/");
-		expect(html).not.toContain("readme");
-		expect(html).not.toContain("raw");
+		expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
 		expect((yield* Effect.promise(() => get("/.drafts/hidden.md"))).status).toBe(404);
 		expect((yield* Effect.promise(() => get("/node_modules/pkg/readme.md"))).status).toBe(404);
 		expect((yield* Effect.promise(() => get("/notes/raw.txt"))).status).toBe(404);
@@ -77,7 +73,7 @@ describe("pages", () => {
 		yield* board.stop();
 		const counting = countingPaths();
 		board = yield* startBoard(notes.root, "plan.md", counting.wrap);
-		expect(yield* Effect.promise(async () => (await get("/")).text())).toContain('<a href="/notes/log.md">log</a>');
+		expect(yield* rpcPaths(board)).toContain("/notes/log.md");
 		expect(counting.visited).toContain(`${notes.root}/notes`);
 		expect(counting.visited.filter((path) => path.includes("/.drafts") || path.includes("/node_modules"))).toEqual([]);
 	});
@@ -98,10 +94,10 @@ describe("pages", () => {
 		board = yield* startBoard(notes.root, "plan.md");
 		const html = yield* Effect.promise(async () => (await get("/")).text());
 		expect(html).not.toContain("leak.md");
-		expect(html).toContain('<a href="/notes/elsewhere/private.md">private</a>');
+		expect(yield* rpcPaths(board)).toContain("/notes/elsewhere/private.md");
 		expect(yield* Effect.promise(async () => (await get("/notes/elsewhere/private.md")).text())).toContain("Outside the folder");
 		expect(html).not.toContain("Outside the folder");
-		expect(html).toContain('<a href="/notes/alias.md">alias</a>');
+		expect(yield* rpcPaths(board)).toContain("/notes/alias.md");
 		for (const path of ["/leak.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
 			const response = yield* Effect.promise(() => get(path));
 			expect(response.status).toBe(404);
@@ -137,8 +133,7 @@ describe("pages", () => {
 
 	effectApp("links and serves files whose names contain # or ?", function* () {
 		notes.write("notes/c# & more?.md", "# Sharp\n");
-		const html = yield* Effect.promise(async () => (await get("/")).text());
-		expect(html).toContain('<a href="/notes/c%23%20%26%20more%3F.md">c# &amp; more?</a>');
+		expect(yield* rpcPaths(board)).toContain("/notes/c%23%20%26%20more%3F.md");
 		expect(yield* Effect.promise(async () => (await get("/notes/c%23%20%26%20more%3F.md")).text())).toContain(
 			'<header class="item-introduction"><h1 id="heading-sharp" tabindex="-1">Sharp<a aria-label="Link to Sharp" class="heading-anchor" href="#heading-sharp"></a></h1>',
 		);
@@ -150,7 +145,7 @@ describe("pages", () => {
 		expect(response.status).toBe(500);
 		const html = yield* Effect.promise(() => response.text());
 		expect(html).toContain('<p class="empty">notes/log.md could not be read.</p>');
-		expect(html).toContain('<a href="/plan.md">plan</a>');
+		expect(yield* rpcPaths(board)).toContain("/plan.md");
 		chmodSync(join(notes.root, "notes/log.md"), 0o644);
 	});
 
@@ -170,7 +165,7 @@ describe("pages", () => {
 		notes.write("notes/new.md", "# New\n");
 		yield* changesUntil(events, "notes/new.md");
 		yield* events.close();
-		expect(yield* Effect.promise(async () => (await get("/")).text())).toContain('<a href="/notes/new.md">new</a>');
+		expect(yield* rpcPaths(board)).toContain("/notes/new.md");
 		expect(listings()).toBe(once);
 	});
 

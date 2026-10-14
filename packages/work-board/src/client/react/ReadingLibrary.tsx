@@ -1,20 +1,17 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import type { Navigation, NavigationFolder } from "#browser/navigation/schema.ts";
-import { fileUrl } from "#files/url.ts";
 import { Modal } from "./Modal.tsx";
-import { type Item, LibraryContext, restoreLibrary } from "./readingLibrary.ts";
+import { ReadingHistory } from "./ReadingHistory.tsx";
+import { LibraryContext, restoreLibrary } from "./readingLibrary.ts";
+import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 
-function paths(folder: NavigationFolder): string[] {
-	return [...folder.files.map((file) => file.path), ...folder.folders.flatMap(paths)];
-}
 export function ReadingLibrary({
-	data,
+	api,
 	open,
 	close,
 	children,
 }: {
-	readonly data: Navigation | undefined;
+	readonly api: ShellApi;
 	readonly open: boolean;
 	readonly close: () => void;
 	readonly children: ReactNode;
@@ -46,10 +43,7 @@ export function ReadingLibrary({
 			const file = doc.dataset.file ?? "";
 			const title = doc.querySelector("h1")?.textContent?.trim() || file;
 			document.title = title ? `${title} · Work Board` : "Work Board";
-			const active = document.querySelector<HTMLAnchorElement>('#files a[aria-current="page"]');
-			if (active) {
-				active.title = title;
-			}
+
 			setCurrent(file);
 			if (file && doc.querySelector("#favorite-toggle") && visitedRef.current !== `${file}:${title}`) {
 				visitedRef.current = `${file}:${title}`;
@@ -67,11 +61,12 @@ export function ReadingLibrary({
 			document.removeEventListener("board-index-change", sync);
 		};
 	}, [save]);
-	const available = new Set(data ? [...paths(data.tree), ...data.records.files.map((file) => file.path)] : []);
+
 	return (
 		<LibraryContext.Provider
 			value={{
 				favorites: saved.favorites,
+				recents: saved.recents,
 				toggle: (file, title) =>
 					save({
 						favorites: savedRef.current.favorites.some((item) => item.file === file)
@@ -90,8 +85,7 @@ export function ReadingLibrary({
 					</button>
 				</div>
 				<div className="reading-library" id={shellIds.readingLibrary}>
-					<LibraryList available={available} close={close} current={current} items={saved.favorites} title="Favorites" />
-					<LibraryList available={available} close={close} current={current} items={saved.recents} title="Recent documents" />
+					{open ? <ReadingHistory api={api} close={close} current={current} favorites={saved.favorites} recents={saved.recents} /> : null}
 					{saved.notice !== "" && (
 						<p className="library-status" role="status">
 							{saved.notice}
@@ -101,47 +95,5 @@ export function ReadingLibrary({
 				</div>
 			</Modal>
 		</LibraryContext.Provider>
-	);
-}
-function LibraryList({
-	title,
-	items,
-	available,
-	current,
-	close,
-}: {
-	readonly title: string;
-	readonly items: readonly Item[];
-	readonly available: ReadonlySet<string>;
-	readonly current: string;
-	readonly close: () => void;
-}) {
-	function handleCloseLink(event: React.MouseEvent<HTMLAnchorElement>) {
-		event.currentTarget.closest("dialog")?.close("navigate");
-		close();
-	}
-
-	if (items.length === 0) {
-		return null;
-	}
-	return (
-		<>
-			<h2 className="nav-heading">{title}</h2>
-			<ul>
-				{items.map((item) => (
-					<li key={item.file}>
-						<a
-							aria-current={item.file === current ? "page" : undefined}
-							className={available.has(item.file) ? undefined : "missing"}
-							href={fileUrl(item.file)}
-							onClick={handleCloseLink}
-						>
-							{item.title}
-							{available.has(item.file) ? "" : " (missing)"}
-						</a>
-					</li>
-				))}
-			</ul>
-		</>
 	);
 }

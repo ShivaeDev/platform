@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { waitFor } from "#test/live.ts";
 
@@ -57,7 +58,7 @@ it.live("preserves the owned handoff draft on live reads and requires preview af
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 	expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 	notes.write("unrelated.md", "# Another file\n");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("files")?.textContent).toContain("unrelated")));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library2")));
 	expect(page.document.querySelector('[name="goal"]')).toBe(goal);
 	yield* formEvent(page, () => click("handoff-preview"));
 	expect(page.document.getElementById("handoff-submit")?.hasAttribute("disabled")).toBe(false);
@@ -98,8 +99,7 @@ it.live("uses native navigation and restores a handoff draft across Back without
 	input("goal", "Retain this direction across navigation");
 	yield* Effect.promise(() => waitFor(() => expect(page.window.history.state).toHaveProperty("workBoard.id")));
 	page.document.body.dataset.visit = "kept";
-	const link = page.document.querySelector('#files a[href="/item.md"]');
-	yield* formEvent(page, () => link?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true })));
+	yield* formEvent(page, () => followLink(page, "/item.md"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('a[href="/_board/handoff?item=task.focus"]')).not.toBeNull()));
 	yield* formEvent(page, () =>
 		page.document
