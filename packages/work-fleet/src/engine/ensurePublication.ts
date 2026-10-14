@@ -6,9 +6,9 @@ import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function ensurePublication({ board, save }: EngineState) {
-	return Effect.fn("Fleet.ensurePublication")(function* (stored: Versioned<FleetRecord>) {
+	return Effect.fn("Fleet.ensurePublication")(function* (stored: Versioned<FleetRecord>, refresh = false) {
 		const decision = stored.value.decision;
-		if (decision === undefined || decision.published !== undefined) {
+		if (decision === undefined || (decision.published !== undefined && !refresh)) {
 			return stored;
 		}
 		const work = decision.publicationWork ?? originalWork(stored.value);
@@ -23,6 +23,9 @@ export function ensurePublication({ board, save }: EngineState) {
 			return yield* Effect.fail(
 				new Forbidden({ message: "Decision publication does not match the original Board context; renewal retains its ownership" }),
 			);
+		}
+		if (published.questionId === decision.published?.questionId) {
+			return stored;
 		}
 		return yield* save(stored, { ...stored.value, decision: { ...original, published }, decisionPublished: true });
 	});

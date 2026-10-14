@@ -1,11 +1,11 @@
 import { Effect, Layer } from "effect";
 import { exposeFailure } from "#exposeFailure.ts";
 import { dispatchApproved } from "#host/admission.ts";
+import { answerWork } from "#host/answerWork.ts";
 import type { FleetHost } from "#host/config.ts";
 import { ClientContract } from "#host/daemonContract.ts";
 import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
 import { daemonSnapshots } from "#host/daemonSnapshots.ts";
-import { decideWork } from "#host/decideWork.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { releaseItems } from "#host/releaseWork.ts";
 import { fleetStatus } from "#host/status.ts";
@@ -18,7 +18,8 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		ClientContract.toLayer(
 			Effect.succeed(
 				ClientContract.of({
-					"daemon.decide": ({ workId, action }) => exposeFailure(decideWork(host, workId, action).pipe(Effect.map(({ value }) => value))),
+					"daemon.answer": ({ workId, text, release }) =>
+						exposeFailure(answerWork(host, workId, text, release).pipe(Effect.map(({ value }) => value))),
 					"daemon.dispatch": ({ workId }) => exposeFailure(dispatchApproved(host, workId).pipe(Effect.map(({ value }) => value))),
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),
 					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),

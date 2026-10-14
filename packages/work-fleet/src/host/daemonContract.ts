@@ -18,9 +18,9 @@ export const ClientContract = contract("daemon", {
 			rejections: fleetRejections,
 			success: Schema.Array(FleetRecord),
 		}),
-		command("decide", {
+		command("answer", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
-			payload: { action: Schema.Literals(["retry", "release"]), workId: Schema.String },
+			payload: { release: Schema.optional(Schema.Boolean), text: Schema.optional(Schema.String), workId: Schema.String },
 			rejections: fleetRejections,
 			success: FleetRecord,
 		}),

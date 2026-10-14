@@ -1,6 +1,8 @@
 import { Console, Effect, Option } from "effect";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
+import * as Flag from "effect/cli/Flag";
+import { answerText } from "#host/answerText.ts";
 import { board, config, port } from "#host/cliOptions.ts";
 import { continuationMessage } from "#host/continuationMessage.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
@@ -57,11 +59,18 @@ export const nameThreadsCommand = Command.make(
 	}),
 ).pipe(Command.withDescription("Name existing Fleet Cloud threads after their Board work, best-effort"));
 
-export const decideCommand = Command.make(
-	"decide",
-	{ args: [Argument.String("id"), Argument.Literals("action", ["retry", "release"])] as const, board, config, port },
-	Effect.fn("WorkFleetCli.decide")(function* (input) {
-		const value = yield* daemonRequest(input.port, (client) => client("daemon.decide", { action: input.args[1], workId: input.args[0] }));
+export const answerCommand = Command.make(
+	"answer",
+	{
+		args: [Argument.String("id"), Argument.String("text").pipe(Argument.optional)] as const,
+		board,
+		config,
+		port,
+		release: Flag.Boolean("release").pipe(Flag.withDefault(false)),
+	},
+	Effect.fn("WorkFleetCli.answer")(function* (input) {
+		const text = yield* answerText(Option.getOrUndefined(input.args[1]));
+		const value = yield* daemonRequest(input.port, (client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }));
 		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
 	}),
-).pipe(Command.withDescription("Answer the current published Fleet decision with retry or release"));
+).pipe(Command.withDescription("Answer the waiting worker question or Fleet decision; read text from stdin if omitted, or use --release"));

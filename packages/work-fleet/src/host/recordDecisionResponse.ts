@@ -10,6 +10,7 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 	root: string,
 	decision: Decision & { readonly published: BoardDecision },
 	action: "retry" | "release",
+	text?: string,
 ) {
 	const responses = yield* Responses;
 	const board = yield* BoardGateway;
@@ -23,15 +24,15 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 		return id;
 	}
 	const input = {
-		answers: [{ prompt: "fleet-action", selected: [action], text: "" }],
+		...(decision.worker !== undefined && action !== "release" ? {} : { answers: [{ prompt: "fleet-action", selected: [action], text: "" }] }),
 		author: "orchestrator",
-		body: action === "release" ? "Release Fleet ownership." : "Retry Fleet work under trusted runtime policy.",
+		body: text ?? (action === "release" ? "Release Fleet ownership." : "Retry Fleet work under trusted runtime policy."),
 		id,
 		question: published.questionId,
 		...(reading._tag === "Response" ? { supersedes: reading.response.id } : {}),
 		type: "answer" as const,
 	};
-	if (decision.worker === undefined) {
+	if (decision.worker === undefined && text === undefined) {
 		return (yield* responses.record(input)).id;
 	}
 	const question = (yield* responses.read(published.questionId)).question;
