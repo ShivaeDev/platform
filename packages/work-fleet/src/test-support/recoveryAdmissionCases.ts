@@ -27,7 +27,7 @@ export function recoveryAdmissionCases(): readonly RecoveryCase[] {
 					);
 				},
 			},
-			progress: (_current, _before, after) => expect(after.stage).toBe("completed"),
+			progress: (_current, _before, after) => expect(after.stage).toBe("released"),
 			restore: (current) =>
 				Effect.sync(() => {
 					restored = true;

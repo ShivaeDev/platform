@@ -1,18 +1,18 @@
 import { Effect, Layer } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import { type BoardWork, FleetIntegrations, type WorkResult } from "#policy.ts";
+import { type BoardWork, type Checks, FleetIntegrations, type WorkResult } from "#policy.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { mainObservation } from "#test/preparation.ts";
 export function engineIntegrations(options: EngineOptions, merged: string[]) {
+	const green = new Set<string>();
 	return Layer.effect(FleetIntegrations)(
 		Effect.gen(function* () {
 			const results = new Map<string, WorkResult>();
 			const counts = new Map<string, number>();
 			let checksFailed = false;
 			let deliveryFailed = false;
-			return {
-				checks: (_board, result) =>
-					options.checksQuery?.(result)
+			const checkResult = Effect.fnUntraced(function* (result: WorkResult) {
+				const checks: Checks = yield* options.checksQuery?.(result)
 					?? Effect.gen(function* () {
 						if (options.checksGate !== undefined) {
 							yield* options.checksGate;
@@ -25,16 +25,23 @@ export function engineIntegrations(options: EngineOptions, merged: string[]) {
 							passed,
 							...(options.checkRepair ? { repairPrompt: "Fix the failed required check" } : {}),
 						};
-					}),
+					});
+				if (checks.passed && !checks.pending && checks.head === result.head) {
+					green.add(result.head);
+				}
+				return checks;
+			});
+			return {
+				checks: (_board, result) => checkResult(result),
 				delivery: (result) =>
 					options.deliveryQuery?.(result)
 					?? Effect.gen(function* () {
+						if (options.denyDelivery || !green.has(result.head)) {
+							return undefined;
+						}
 						if (options.deliveryFailure && !deliveryFailed) {
 							deliveryFailed = true;
 							return yield* Effect.fail(new ServiceUnavailable({ message: "Delivery observation unavailable" }));
-						}
-						if (options.denyDelivery) {
-							return undefined;
 						}
 						if (!merged.includes(result.head)) {
 							merged.push(result.head);

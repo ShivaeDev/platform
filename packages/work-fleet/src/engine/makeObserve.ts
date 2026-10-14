@@ -16,7 +16,7 @@ export function makeObserve(state: EngineState) {
 			return input;
 		}
 		let stored = current;
-		const paused = pausedByBrief(stored.value);
+		const paused = stored.value.stage === "needs-human";
 		if (!observable(stored.value, paused)) {
 			return stored;
 		}
@@ -57,10 +57,6 @@ const observationRecord = Effect.fn("Fleet.observationRecord")(function* (state:
 
 function observationBlocker(record: FleetRecord, attempt: Attempt) {
 	return attempt.readRetry === undefined ? record.blocker : undefined;
-}
-
-function pausedByBrief(record: FleetRecord) {
-	return record.stage === "needs-human" && record.decision?.code === "fleet-stale" && record.decision.reason === "Board context changed";
 }
 
 function observable(record: FleetRecord, paused: boolean) {

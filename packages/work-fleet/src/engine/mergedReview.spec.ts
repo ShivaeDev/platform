@@ -3,52 +3,49 @@ import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { backlog } from "#model.ts";
 import { finishWorkers, withEngine } from "#test/engine.ts";
-import { BASE, HEAD, MOVED, PR } from "#test/githubResult.ts";
+import { HEAD, MOVED } from "#test/githubResult.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { startReview } from "#test/startReview.ts";
 
 const test = postgresTests("test");
 
-for (const pending of [false, true]) {
-	test(`a human merge during review completes at the approved head after ${pending ? "pending" : "green"} checks`, () =>
-		Effect.scoped(
-			Effect.gen(function* () {
-				const github = yield* mergedReviewGithub();
-				yield* withEngine({ ...github, reviewRunning: true }, (fixture) =>
-					Effect.gen(function* () {
-						const reviewing = yield* startReview(fixture);
-						const fleet = yield* Fleet;
-						github.state.status = "MERGED";
-						github.state.pending = pending;
-						finishWorkers(fixture);
-						let observed = yield* fleet.reconcile("one");
-						if (pending) {
-							expect(observed.value.stage).toBe("validating");
-							expect(observed.value.attentionOwner).toBe("automation");
+for (const head of [HEAD, MOVED]) {
+	for (const pending of [false, true]) {
+		test(`a human merge at ${head} during review releases once the reviewer is terminal with ${pending ? "pending" : "green"} checks`, () =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					const github = yield* mergedReviewGithub();
+					yield* withEngine({ ...github, reviewRunning: true }, (fixture) =>
+						Effect.gen(function* () {
+							const reviewing = yield* startReview(fixture);
+							const fleet = yield* Fleet;
+							github.state.status = "MERGED";
+							github.state.head = head;
+							github.state.pending = pending;
+							expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+							finishWorkers(fixture);
+							const observed = yield* fleet.reconcile("one");
+							expect(observed.value.stage).toBe("released");
+							expect(observed.value.releaseReason).toBe(`PR #7 merged by a human at ${head}; Fleet review covered nothing`);
 							expect(observed.value.outcome).toBeUndefined();
-							github.state.pending = false;
-							observed = yield* fleet.reconcile("one");
-						}
-						expect(observed.value.stage).toBe("completed");
-						expect(observed.value.outcome).toEqual({ head: HEAD, revision: BASE, url: PR });
-						expect(observed.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
-						expect(observed.value.checks).toMatchObject({ head: HEAD, passed: true });
-						expect(observed.value.result).toEqual(reviewing.value.result);
-						expect(backlog(observed.value)).toBe(false);
-						expect((yield* fleet.reconcile("one")).version).toBe(observed.version);
-						expect(fixture.launched).toHaveLength(2);
-						expect(fixture.reviews).toEqual([HEAD]);
-						expect(fixture.merged).toEqual([]);
-						expect(github.requests).toContain("/delivery");
-					}),
-				);
-			}),
-		));
+							expect(observed.value.review).toBeUndefined();
+							expect(observed.value.checks).toBeUndefined();
+							expect(observed.value.result).toEqual(reviewing.value.result);
+							expect(backlog(observed.value)).toBe(false);
+							expect((yield* fleet.reconcile("one")).version).toBe(observed.version);
+							expect(fixture.launched).toHaveLength(2);
+							expect(fixture.reviews).toEqual([HEAD]);
+							expect(fixture.merged).toEqual([]);
+							expect(github.requests).toContain("/delivery");
+						}),
+					);
+				}),
+			));
+	}
 }
 
 for (const scenario of [
-	{ head: MOVED, name: "an unreviewed merged head", reason: "Merged PR head differs from the reported head", status: "MERGED" },
 	{
 		head: HEAD,
 		name: "closure without merge",

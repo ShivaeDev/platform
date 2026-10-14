@@ -1,0 +1,31 @@
+import { Effect } from "effect";
+import { closeDecisions } from "#engine/closeDecisions.ts";
+import type { EngineState } from "#engine/makeState.ts";
+import type { FleetRecord } from "#model.ts";
+import type { Versioned } from "#storage/model.ts";
+
+export function releaseFinishedWork(state: EngineState, stored: Versioned<FleetRecord>, releaseReason: string) {
+	const record = stored.value;
+	const published = record.decision?.published;
+	return state
+		.save(stored, {
+			...record,
+			admissionReady: false,
+			attentionOwner: undefined,
+			blocker: undefined,
+			decision: undefined,
+			decisionAcknowledged: undefined,
+			decisionPublished: undefined,
+			launchRetry: undefined,
+			mergeReadyAt: undefined,
+			mergeReadyHead: undefined,
+			outcome: undefined,
+			releaseReason,
+			stage: "released",
+			supersededDecisions:
+				published === undefined
+					? record.supersededDecisions
+					: [...(record.supersededDecisions ?? []), { published, supersededAt: state.policy.now() }],
+		})
+		.pipe(Effect.flatMap(closeDecisions(state)));
+}

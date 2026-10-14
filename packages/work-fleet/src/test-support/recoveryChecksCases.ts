@@ -47,9 +47,9 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 			name: fault.reason,
 			options: { checksQuery: checks },
 			progress: (_ctx, _before, after) => {
-				expect(requests).toBe(2);
-				expect(after.checks?.passed).toBe(true);
-				expect(after.stage).toBe("completed");
+				expect(requests).toBe(0);
+				expect(after.checks).toBeUndefined();
+				expect(after.stage).toBe("released");
 			},
 			restore: (ctx: RecoveryContext) =>
 				Effect.sync(() => {

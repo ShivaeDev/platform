@@ -6,13 +6,12 @@ import { finishWorkers } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { prepareBookkeepingPhase } from "#test/prepareBookkeepingPhase.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
-import { answerWorker } from "#test/workerQuestion.ts";
 
 const test = postgresTests("test");
 
 for (const wholeFileRevision of [false, true]) {
 	for (const phase of ["preparation", "execution", "review", "decision", "completed"]) {
-		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work survives status done and ${phase === "preparation" ? "releases without launching" : "completes normally"}`, () =>
+		test(`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${phase} work survives status done and ${["preparation", "decision"].includes(phase) ? "releases without launching" : "completes normally"}`, () =>
 			withFleetBoard({ noChange: phase !== "review", reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
 					const files = boardHttpFiles(root);
@@ -23,6 +22,14 @@ for (const wholeFileRevision of [false, true]) {
 					const turns = fixture.settings.filter((call) => call.call === "turn").length;
 					files.write("one.md", original.replace("status: planned", "status: done").replace("Implement the work.", "Work completed."));
 					const preserved = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
+					if (phase === "decision") {
+						expect(preserved.value.stage).toBe("released");
+						expect(preserved.value.releaseReason).toBe("Board status is done");
+						expect(preserved.value.decision).toBeUndefined();
+						expect(preserved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.value.decision?.published }]);
+						expect(files.receipts()).toHaveLength(1);
+						return;
+					}
 					expect(preserved.value).toMatchObject({
 						attempts: active.value.attempts,
 						boardContext: original,
@@ -37,15 +44,6 @@ for (const wholeFileRevision of [false, true]) {
 						expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
 						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns);
 						return;
-					}
-					if (phase === "decision") {
-						const decision = preserved.value.decision ?? (yield* Effect.die("Missing worker question"));
-						const answer = yield* answerWorker(root, decision);
-						const resolved = yield* fleet.resolve("one", decision.id, answer.id);
-						expect(resolved.value.stage).toBe("executing");
-						expect(resolved.value.attempts.at(-1)?.receipt?.sessionId).toBe(active.value.attempts[0]?.receipt?.sessionId);
-						expect(resolved.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
-						expect(files.receipts()).toHaveLength(1);
 					}
 					finishWorkers(fixture);
 					const completed = yield* fleet.reconcile("one");

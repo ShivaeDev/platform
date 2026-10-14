@@ -68,7 +68,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 				deliveryQuery: githubDelivery("/synthetic", () => Effect.succeed({})),
 				resultQuery: () => Effect.succeed({ head: HEAD, kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/7" }),
 			},
-			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 		},
 		{
 			code: "fleet-integration" as const,
@@ -82,7 +82,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					restored = true;
 				}),
-			sites: ["engine/makeDeliver.ts: failureCode(observed.failure)"],
+			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 		},
 	];
 }

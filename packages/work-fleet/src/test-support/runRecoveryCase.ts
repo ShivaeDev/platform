@@ -15,7 +15,11 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 function assertRetryProgress(before: FleetRecord, after: FleetRecord) {
 	const priorOperations = new Set(before.attempts.map((attempt) => attempt.operationId));
 	const freshTurn = after.attempts.some((attempt) => attempt.receipt !== undefined && !priorOperations.has(attempt.operationId));
-	expect(freshTurn || after.stage === "completed").toBe(true);
+	expect(freshTurn || ["completed", "released"].includes(after.stage)).toBe(true);
+	if (after.stage === "released") {
+		expect(after.releaseReason).toContain("merged by a human");
+		expect(after.outcome).toBeUndefined();
+	}
 }
 
 const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (

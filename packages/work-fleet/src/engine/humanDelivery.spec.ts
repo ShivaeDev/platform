@@ -87,10 +87,10 @@ test("a human merge of a changed head cannot reuse the old review and checks", (
 			yield* fleet.reconcile("one");
 			observation = { ...merged, headRefOid: "unreviewed-head" };
 			const blocked = yield* fleet.reconcile("one");
-			expect(blocked.value.stage).toBe("needs-human");
-			expect(blocked.value.decision?.reason).toBe("Current PR result does not match the observed delivery head");
+			expect(blocked.value.stage).toBe("released");
+			expect(blocked.value.releaseReason).toBe("PR #42 merged by a human at unreviewed-head; Fleet review covered reviewed-head");
 			expect(blocked.value.outcome).toBeUndefined();
-			expect(backlog(blocked.value)).toBe(true);
+			expect(backlog(blocked.value)).toBe(false);
 		}),
 	);
 });
@@ -105,12 +105,17 @@ for (const state of ["CLOSED", "MERGED"] as const) {
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				yield* fleet.reconcile("one");
+				const waiting = yield* fleet.reconcile("one");
+				yield* fixture.replaceRecord({ ...waiting.value, attempts: waiting.value.attempts.map((attempt) => ({ ...attempt, status: "completed" })) });
 				const observed = yield* fleet.reconcile("one");
-				expect(observed.value.stage).toBe("needs-human");
-				expect(observed.value.decision?.reason).toContain(state === "CLOSED" ? "closed without merging" : "Independent review");
+				expect(observed.value.stage).toBe(state === "CLOSED" ? "needs-human" : "released");
+				if (state === "CLOSED") {
+					expect(observed.value.decision?.reason).toContain("closed without merging");
+				} else {
+					expect(observed.value.releaseReason).toBe("PR #42 merged by a human at reviewed-head; Fleet review covered nothing");
+				}
 				expect(observed.value.outcome).toBeUndefined();
-				expect(backlog(observed.value)).toBe(true);
+				expect(backlog(observed.value)).toBe(state === "CLOSED");
 			}),
 		);
 	});

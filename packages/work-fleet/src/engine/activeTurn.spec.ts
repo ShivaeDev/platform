@@ -55,6 +55,7 @@ test("a follow-up rejected while a steered turn is active waits and continues th
 				expect(provider.submissions.at(-1)).toEqual(provider.submissions.at(-2));
 				expect(fixture.operations.size).toBe(3);
 				finishWorkers(fixture);
+				yield* fleet.reconcile("one");
 				merged = true;
 				const delivered = yield* fleet.reconcile("one");
 				expect(delivered.value.stage).toBe("completed");
