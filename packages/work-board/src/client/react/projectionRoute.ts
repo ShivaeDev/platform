@@ -12,7 +12,9 @@ export function projectionRoute(pathname: string, home: Navigation["home"]) {
 	}
 	if (
 		home
-		&& (pathname === "/" || pathname === fileUrl(home.file) || (home.identity && pathname === `/_board/item/${encodeURIComponent(home.identity)}/`))
+		&& (pathname === "/"
+			|| pathname === fileUrl(home.file)
+			|| (home.identity && pathname.replace(/\/$/u, "") === `/_board/item/${encodeURIComponent(home.identity)}`))
 	) {
 		return "board";
 	}

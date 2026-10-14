@@ -5,9 +5,9 @@ export function documentRoute(pathname: string, home: Navigation["home"]): boole
 		home
 		&& (pathname === "/"
 			|| pathname === fileUrl(home.file)
-			|| (home.identity !== undefined && pathname === `/_board/item/${encodeURIComponent(home.identity)}/`))
+			|| (home.identity !== undefined && pathname.replace(/\/$/u, "") === `/_board/item/${encodeURIComponent(home.identity)}`))
 	) {
 		return false;
 	}
-	return pathname === "/" || /\.md$/iu.test(pathname) || /^\/_board\/item\/[^/]+\/$/u.test(pathname);
+	return pathname === "/" || /\.md$/iu.test(pathname) || /^\/_board\/item\/[^/]+\/?$/u.test(pathname);
 }

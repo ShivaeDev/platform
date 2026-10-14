@@ -67,6 +67,9 @@ function loadingMessage(tag: string | undefined, failed: boolean, url: string) {
 	if (tag === "Conflict") {
 		return "The document identity is duplicated. No document was selected. Inspect the project files to resolve the duplicate ID.";
 	}
+	if (tag === "NotFound" && /^\/_board\/item\/[^/]+\/?$/u.test(new URL(url, "http://127.0.0.1").pathname)) {
+		return "No item with this id is available. It may be missing, renamed, or invalid.";
+	}
 	if (tag === "NotFound" && /\.md$/iu.test(new URL(url, "http://127.0.0.1").pathname)) {
 		return `No markdown file at ${decodeURIComponent(new URL(url, "http://127.0.0.1").pathname.slice(1))}.`;
 	}

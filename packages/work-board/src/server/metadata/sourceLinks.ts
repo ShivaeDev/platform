@@ -37,9 +37,9 @@ export function sourceFile(source: string, file: string, model: MetadataModel): 
 		if (path === "/") {
 			return model.rootFile;
 		}
-		const identity = /^\/_board\/item\/(?<id>[^/]+)\/$/u.exec(path)?.groups?.id;
+		const identity = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(url.pathname)?.groups?.id;
 		if (identity) {
-			return referenceFile(identity, model);
+			return referenceFile(decodeURIComponent(identity), model);
 		}
 		return /\.md$/iu.exec(path) === null ? undefined : path.slice(1);
 	} catch {

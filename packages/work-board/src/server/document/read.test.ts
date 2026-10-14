@@ -27,66 +27,69 @@ const open = Effect.fn("Test.open")(function* () {
 	);
 });
 
-it.live("returns Schema source, link targets, metadata and exact-context response records through HTTP RPC", function* () {
-	yield* open();
-	const result = yield* Effect.promise(() => client.run(client.api.document.run({ url: "/_board/item/investigation.choices/" })));
-	expect(Schema.is(Schema.toType(Document))(result)).toBe(true);
-	expect(result.source).toContain("::::question");
-	expect(result.source).not.toContain("id: investigation.choices");
-	expect(result.metadata.kind).toBe("investigation");
-	expect(result.identity).toBe("investigation.choices");
-	expect(result.links["task.md"]).toBe("/nested/task.md");
-	expect(result.links["../shots/review.png"]).toBe("/_board/attachment/shots/review.png");
-	expect(result.references["investigation.choices"]).toBe("/_board/item/investigation.choices/");
-	expect(result.questionActions["direction/display"]).toBe("/_board/respond?item=investigation.choices&request=direction");
-	expect(result.questionActions["/checks"]).toBe(result.questionActions["direction/display"]);
-	expect(Object.keys(result).sort((left, right) => left.localeCompare(right))).toEqual([
-		"diagnostics",
-		"file",
-		"identity",
-		"links",
-		"metadata",
-		"modified",
-		"questionActions",
-		"reading",
-		"references",
-		"requests",
-		"source",
-		"unavailable",
-		"writable",
-	]);
-	expect(result.requests[0]).toMatchObject({ id: "direction", open: true, preview: { context: documentSource }, responses: [] });
-	const preview = result.requests[0]?.preview;
-	if (!preview) {
-		throw new Error("The open request has no preview");
-	}
-	const registered = yield* Effect.promise(() =>
-		client.mutate(client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision })),
-	);
-	yield* Effect.promise(() =>
-		client.mutate(
-			client.responses.recordResponse.run({
-				answers: questionnaireAnswers,
-				author: "reader",
-				body: "Keep the full history.",
-				id: "reply.reading",
-				question: registered.id,
-				type: "answer",
+it.live.each(["", "/"])(
+	"returns Schema source, link targets, metadata and exact-context response records through HTTP RPC with suffix '%s'",
+	function* (slash) {
+		yield* open();
+		const result = yield* Effect.promise(() => client.run(client.api.document.run({ url: `/_board/item/investigation.choices${slash}` })));
+		expect(Schema.is(Schema.toType(Document))(result)).toBe(true);
+		expect(result.source).toContain("::::question");
+		expect(result.source).not.toContain("id: investigation.choices");
+		expect(result.metadata.kind).toBe("investigation");
+		expect(result.identity).toBe("investigation.choices");
+		expect(result.links["task.md"]).toBe("/nested/task.md");
+		expect(result.links["../shots/review.png"]).toBe("/_board/attachment/shots/review.png");
+		expect(result.references["investigation.choices"]).toBe("/_board/item/investigation.choices/");
+		expect(result.questionActions["direction/display"]).toBe("/_board/respond?item=investigation.choices&request=direction");
+		expect(result.questionActions["/checks"]).toBe(result.questionActions["direction/display"]);
+		expect(Object.keys(result).sort((left, right) => left.localeCompare(right))).toEqual([
+			"diagnostics",
+			"file",
+			"identity",
+			"links",
+			"metadata",
+			"modified",
+			"questionActions",
+			"reading",
+			"references",
+			"requests",
+			"source",
+			"unavailable",
+			"writable",
+		]);
+		expect(result.requests[0]).toMatchObject({ id: "direction", open: true, preview: { context: documentSource }, responses: [] });
+		const preview = result.requests[0]?.preview;
+		if (!preview) {
+			throw new Error("The open request has no preview");
+		}
+		const registered = yield* Effect.promise(() =>
+			client.mutate(client.responses.registerQuestion.run({ item: preview.item, request: preview.request, revision: preview.reviewedRevision })),
+		);
+		yield* Effect.promise(() =>
+			client.mutate(
+				client.responses.recordResponse.run({
+					answers: questionnaireAnswers,
+					author: "reader",
+					body: "Keep the full history.",
+					id: "reply.reading",
+					question: registered.id,
+					type: "answer",
+				}),
+			),
+		);
+		yield* Effect.promise(async () =>
+			waitFor(async () => {
+				const fresh = await client.run(client.api.document.run({ url: "/nested/reading.md" }));
+				expect(fresh.requests[0]?.responses?.[0]).toMatchObject({
+					body: expect.stringContaining("Keep the full history."),
+					response: { reviewedRevision: preview.reviewedRevision },
+				});
 			}),
-		),
-	);
-	yield* Effect.promise(async () =>
-		waitFor(async () => {
-			const fresh = await client.run(client.api.document.run({ url: "/nested/reading.md" }));
-			expect(fresh.requests[0]?.responses?.[0]).toMatchObject({
-				body: expect.stringContaining("Keep the full history."),
-				response: { reviewedRevision: preview.reviewedRevision },
-			});
-		}),
-	);
-	expect((yield* Effect.promise(() => client.run(client.api.document.run({ url: "/" })))).file).toBe("checks.md");
-	expect((yield* Effect.promise(() => fetch(`${board.url}/nested/reading.md`))).status).toBe(200);
-});
+		);
+		expect((yield* Effect.promise(() => client.run(client.api.document.run({ url: "/" })))).file).toBe("checks.md");
+		expect((yield* Effect.promise(() => fetch(`${board.url}/nested/reading.md`))).status).toBe(200);
+	},
+);
 
 it.live("refreshes query data when a referenced identity becomes ambiguous", function* () {
 	yield* open();

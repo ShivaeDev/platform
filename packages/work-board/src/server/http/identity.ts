@@ -9,9 +9,10 @@ import type { searchSnapshot } from "#server/search/snapshot.ts";
 import type { page } from "./page.ts";
 import { respond } from "./respond.ts";
 
-function requestedIdentity(pathname: string): string {
+function requestedIdentity(pathname: string): string | undefined {
+	const encodedId = /^\/_board\/item\/(?<id>[^/]+)\/?$/u.exec(pathname)?.groups?.id;
 	try {
-		return decodeURIComponent(pathname.slice("/_board/item/".length).replace(/\/$/u, ""));
+		return encodedId === undefined ? undefined : decodeURIComponent(encodedId);
 	} catch {
 		return "";
 	}
@@ -26,7 +27,7 @@ export function identity(
 	return Effect.fn("WorkBoard.identity")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const pathname = new URL(request.url, "http://127.0.0.1").pathname;
 		const id = requestedIdentity(pathname);
-		if (!pathname.endsWith("/") && /\.md$/iu.exec(id) !== null) {
+		if (id === undefined) {
 			return yield* pages(request);
 		}
 		const snapshot = yield* index;
