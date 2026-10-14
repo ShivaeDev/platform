@@ -17,6 +17,27 @@ function restore(context: RecoveryContext) {
 export function recoveryScopeCases(): readonly RecoveryCase[] {
 	return [
 		{
+			code: "incomplete-context",
+			enter: Effect.fnUntraced(function* (context) {
+				writeFileSync(
+					join(context.root, "one.md"),
+					context.source.replace("kind: task", "kind: task\ncriteria: [{ id: evidence, text: Read private/board/documents. }]"),
+				);
+				yield* prepareWork("one");
+				yield* context.fixture.restart(Fleet.pipe(Effect.flatMap((fleet) => fleet.dispatch("one"))), (policy) => ({
+					...policy,
+					localOnlyBoardPath: "private/board",
+				}));
+				expect(context.fixture.starts).toHaveLength(0);
+			}),
+			name: "criterion needs Board data unavailable under the launch policy",
+			progress: (_context, _before, after) => {
+				expect(after.attempts).toHaveLength(1);
+				expect(after.stage).toBe("executing");
+			},
+			sites: ['engine/makeLaunch.ts: "incomplete-context"'],
+		},
+		{
 			code: "fleet-stale" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* prepareWork("one");
