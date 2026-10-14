@@ -2,9 +2,11 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect } from "@effect/vitest";
 import { Effect, FileSystem, Path } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { loadHost } from "#host/config.ts";
+import { loadHost, resolveHost } from "#host/config.ts";
+import { hostGuidance } from "#host/guidance.ts";
 import { hostPolicy } from "#host/runtime.ts";
 import { FleetPolicy } from "#policy.ts";
+import { policyGuidance } from "#policyGuidance.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { withWorkerGuidance } from "#prompt/worker.ts";
 
@@ -25,10 +27,12 @@ const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 	}
 	const host = yield* loadHost(board);
 	const policy = yield* FleetPolicy.pipe(Effect.provide(hostPolicy(host)));
+	const text = yield* policyGuidance(policy, role);
 	return role === "worker"
-		? withWorkerGuidance("Implement this task", policy.workerGuidance)
+		? withWorkerGuidance("Implement this task", text)
 		: reviewerPrompt({
 				...policy,
+				...(text === undefined ? {} : { reviewerGuidance: text }),
 				result: { evidence: ["Already implemented"], head: "exact-head", kind: "no-change" },
 				task: "Review this task",
 			});
@@ -36,6 +40,29 @@ const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 
 for (const role of ["worker", "reviewer"] as const) {
 	describe(`host ${role} guidance`, () => {
+		it.effect("caches text by modification time and rejects a removed file", () =>
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const path = yield* Path.Path;
+				const board = yield* fs.makeTempDirectoryScoped();
+				const file = path.join(board, "guidance.txt");
+				yield* fs.writeFileString(file, "Original approval.");
+				yield* fs.utimes(file, new Date(1000), new Date(1000));
+				const host = resolveHost(board, {
+					provider: "local",
+					worker: { branchPrefix: "test/", sharedEnvironment: "/synthetic/env.sh", [`${role}Guidance`]: { file: "guidance.txt" } },
+				});
+				const read = yield* hostGuidance(host, role);
+				expect(yield* read).toBe("Original approval.");
+				yield* fs.writeFileString(file, "Updated approval.");
+				yield* fs.utimes(file, new Date(1000), new Date(1000));
+				expect(yield* read).toBe("Original approval.");
+				yield* fs.utimes(file, new Date(2000), new Date(2000));
+				expect(yield* read).toBe("Updated approval.");
+				yield* fs.remove(file);
+				expect(yield* read.pipe(Effect.flip)).toMatchObject({ _tag: "HostFailure" });
+			}).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+		);
 		for (const guidance of ["", { file: "" }, 17, { file: 3 }]) {
 			it.effect(`rejects invalid guidance: ${JSON.stringify(guidance)}`, () =>
 				Effect.gen(function* () {

@@ -37,7 +37,8 @@ describe("worker guidance through PostgreSQL", () => {
 							expect(attempt?.prompt).not.toContain("Repository worker guidance:");
 							expect(attempt?.prompt).not.toContain(GUIDANCE);
 						} else {
-							expect(attempt?.prompt).toContain(`Repository worker guidance:\n${GUIDANCE}`);
+							expect(attempt?.prompt).toContain("Repository worker guidance: maintainer's standing answers");
+							expect(attempt?.prompt).toContain(GUIDANCE);
 						}
 					}
 					expect(fixture.starts.filter((start) => start.access === "read-only").every((start) => !start.prompt.includes(GUIDANCE))).toBe(true);

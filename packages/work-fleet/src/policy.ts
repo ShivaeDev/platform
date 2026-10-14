@@ -102,6 +102,7 @@ export interface FleetConfiguration {
 	readonly now: () => number;
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
+	readonly readGuidance?: (role: "worker" | "reviewer") => Effect.Effect<string | undefined, FleetError>;
 	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
 	readonly reviewerGuidance?: string;
 	readonly sharedEnvironment?: string;
