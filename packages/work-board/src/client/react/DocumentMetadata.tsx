@@ -1,4 +1,6 @@
+import type { ReadingContext } from "#browser/document/ReadingContext.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { DocumentWorkMetadata } from "./DocumentWorkMetadata.tsx";
 import { keyed } from "./keyed.ts";
 export function DocumentMetadata({ document }: { readonly document: Document }) {
@@ -14,11 +16,7 @@ export function DocumentMetadata({ document }: { readonly document: Document }) 
 					backlinks.filter((link) => link.kind === kind),
 					(link) => `${link.href}:${link.label}`,
 				).map(({ key, value: link }) => (
-					<li key={key}>
-						<a className="font-mono text-xs" href={link.href}>
-							{link.label}
-						</a>
-					</li>
+					<Backlink key={key} link={link} />
 				))}
 			</ul>
 		</section>
@@ -39,5 +37,18 @@ export function DocumentMetadata({ document }: { readonly document: Document }) 
 				</section>
 			)}
 		</>
+	);
+}
+
+function Backlink({ link }: { readonly link: ReadingContext["backlinks"][number] }) {
+	return (
+		<li>
+			<span className="inline-flex flex-wrap items-center gap-2">
+				<a href={link.href} title={link.label}>
+					{link.title ?? link.label}
+				</a>
+				<StatusChip status={link.status} />
+			</span>
+		</li>
 	);
 }

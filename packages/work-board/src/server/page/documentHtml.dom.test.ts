@@ -49,7 +49,9 @@ it.live.each([1440, 390])("starts document content with title, authored status a
 	expect(page.document.querySelectorAll("#doc h1")).toHaveLength(1);
 	expect(context().tagName).toBe("ASIDE");
 	expect(context().querySelector('[aria-label="Document source"]')?.textContent).toContain("Source: release.md");
-	expect(context().querySelector(".work-context")?.textContent).toContain("compatibility.md");
+	const backlink = context().querySelector('.work-context a[href="/compatibility.md"]');
+	expect(backlink?.textContent).toBe("Compatibility notes");
+	expect(backlink?.getAttribute("title")).toBe("compatibility.md");
 	expect(introduction?.querySelector("#favorite-toggle")).not.toBeNull();
 	expect(context().querySelector('a[href="#heading-evidence"]')).not.toBeNull();
 	expect(page.document.querySelector('.doc a[href="/compatibility.md"]')).not.toBeNull();

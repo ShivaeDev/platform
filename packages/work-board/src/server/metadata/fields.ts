@@ -2,6 +2,10 @@ import { Option, Schema } from "effect";
 import { Metadata } from "#metadata/schema.ts";
 import type { Diagnostic } from "./parse.ts";
 
+const addonOwners: Readonly<Record<string, readonly string[]>> = {
+	fleet: ["fleet", "fleet-launch", "fleet-deliverable"],
+};
+const addonFields = new Set(Object.values(addonOwners).flat());
 const schemas: ReadonlyMap<string, Schema.ConstraintDecoder<unknown, never>> = new Map(Object.entries(Metadata.to.fields));
 const sourceKeys = new Map([
 	["next_action", "nextAction"],
@@ -15,6 +19,9 @@ export function metadataFields(data: object, lines: Readonly<Record<string, numb
 		const key = sourceKeys.get(field) ?? field;
 		const schema = field === "nextAction" || field === "requestReceipt" ? undefined : schemas.get(key);
 		if (!schema) {
+			if (addonFields.has(field)) {
+				continue;
+			}
 			diagnostics.push({ field, line: lines[field] ?? 2, message: `Unknown field ${field}; kept in the original frontmatter.` });
 			continue;
 		}

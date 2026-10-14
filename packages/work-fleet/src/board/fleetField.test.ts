@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { metadataParse } from "@shivaedev/work-board/metadata/parse.ts";
-import { boardDiagnostics, fleetApproved, fleetDeliverable, fleetLaunch } from "#board/fleetField.ts";
+import { fleetApproved, fleetDeliverable, fleetLaunch } from "#board/fleetField.ts";
 
 function parsed(fleet?: string) {
 	return metadataParse(`---\nid: one\nkind: task\n${fleet === undefined ? "" : `fleet: ${fleet}\n`}---\n# One\n`);
@@ -9,7 +9,7 @@ function parsed(fleet?: string) {
 describe("Fleet frontmatter field", () => {
 	it("reads report deliverables as Fleet metadata while omitted fields retain the default", () => {
 		const report = metadataParse("---\nid: one\nkind: task\nfleet-deliverable: report\n---\n");
-		expect(boardDiagnostics(report)).toEqual([]);
+		expect(report.diagnostics).toEqual([]);
 		expect(fleetDeliverable(report)).toBe("report");
 		expect(fleetDeliverable(parsed())).toBeUndefined();
 	});
@@ -21,12 +21,10 @@ describe("Fleet frontmatter field", () => {
 	});
 
 	it("keeps Board diagnostics other than the fleet field", () => {
-		expect(boardDiagnostics(parsed("approved"))).toEqual([]);
+		expect(parsed("approved").diagnostics).toEqual([]);
 		const launch = metadataParse("---\nid: one\nkind: task\nfleet-launch:\n  effort: low\n---\n");
-		expect(boardDiagnostics(launch)).toEqual([]);
+		expect(launch.diagnostics).toEqual([]);
 		expect(fleetLaunch(launch)).toEqual({ effort: "low" });
-		expect(boardDiagnostics(metadataParse("---\nid: one\nkind: task\nflavor: sweet\n---\n")).map((diagnostic) => diagnostic.field)).toEqual([
-			"flavor",
-		]);
+		expect(metadataParse("---\nid: one\nkind: task\nflavor: sweet\n---\n").diagnostics.map((diagnostic) => diagnostic.field)).toEqual(["flavor"]);
 	});
 });
