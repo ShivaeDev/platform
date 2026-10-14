@@ -36,12 +36,13 @@ function preview() {
 it.live("names missing prompts and author beside their controls and clears each corrected warning without losing answers", function* () {
 	yield* open();
 	const status = page.document.getElementById("response-status");
+	yield* formEvent(page, () => enterField(page, "author", ""));
 	expect(status?.textContent).not.toContain("Add your local author label.");
 	yield* formEvent(page, () =>
 		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
 	);
 	expect(status?.textContent).toContain("Question 1 · display; Question 2 · checks");
-	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
+	expect(page.document.querySelector('[name="author"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	const display = answer("display", "Retain the complete history.");
 	const checks = answer("checks", "Test reload and keyboard use.");
 	yield* formEvent(page, () => preview());

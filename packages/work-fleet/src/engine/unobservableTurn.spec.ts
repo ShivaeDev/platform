@@ -50,7 +50,7 @@ for (const progressingTurn of ["turn-1", "provider-followup"]) {
 		));
 }
 
-test("an invisible turn resumes once on the same thread and a second consecutive loss asks across restart", () =>
+test("an invisible turn resumes once on the same thread and a second consecutive loss asks and can be released across restart", () =>
 	withUnobservableTurn((fixture, server, advance) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -68,13 +68,19 @@ test("an invisible turn resumes once on the same thread and a second consecutive
 			advance(5);
 			const lost = yield* fixture.restart(reconcile);
 			expect(lost.value).toMatchObject({
-				decision: { code: "session-ambiguous", reason: expect.stringContaining("one automatic resume") },
+				decision: { code: "session-turn-missing", reason: expect.stringContaining("one automatic resume") },
 				stage: "needs-human",
 			});
 			expect(executing(lost.value)).toBe(true);
 			expect(server.requests.filter((request) => request.method === "turn/start")).toHaveLength(3);
 			expect(server.requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
 			expect(fixture.decisions).toHaveLength(1);
+			const decisionId = lost.value.decision?.id ?? "missing";
+			const released = yield* fixture.restart(
+				Fleet.pipe(Effect.flatMap((restarted) => restarted.resolve("one", decisionId, fixture.respond(decisionId, "release")))),
+			);
+			expect(released.value.stage).toBe("released");
+			expect(released.value.attempts.at(-1)?.sessionUnusable).toBe(true);
 		}),
 	));
 

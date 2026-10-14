@@ -53,7 +53,14 @@ export function codexTurns(rpc: CodexRequest) {
 	});
 	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string, full = false) {
 		const { turn } = yield* readTurn(sessionId, turnId, full);
-		return turn ?? (yield* Effect.fail(failure("ambiguous", "The acknowledged Codex turn is not observable")));
+		return (
+			turn
+			?? (yield* new SessionFailure({
+				code: "session-turn-missing",
+				message: "The acknowledged Codex turn is not observable",
+				reason: "ambiguous",
+			}))
+		);
 	});
 	const waitUntilIdle = makeWaitUntilIdle((sessionId, cursor) => turns(sessionId, cursor, false));
 	const operationTurn = Effect.fn("Codex.operationTurn")(function* (sessionId: string, operationId: string) {

@@ -7,7 +7,7 @@ import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts
 export function recoveryUnobservableCase(): RecoveryCase {
 	let now = 100;
 	return {
-		code: "session-ambiguous",
+		code: "session-turn-missing",
 		enter: Effect.fnUntraced(function* (context) {
 			yield* launchRecoveryWorker();
 			const fleet = yield* Fleet;
@@ -28,6 +28,6 @@ export function recoveryUnobservableCase(): RecoveryCase {
 			setLastObservation(context, { execution: "failed", turnMissing: false });
 			yield* (yield* Fleet).reconcile("one");
 		}),
-		sites: ['engine/recoverUnobservable.ts: "session-ambiguous"'],
+		sites: ['engine/recoverUnobservable.ts: "session-turn-missing"'],
 	};
 }

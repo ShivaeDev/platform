@@ -7,6 +7,10 @@ import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { validateReceipt } from "#session/validateReceipt.ts";
 import type { Versioned } from "#storage/model.ts";
 
+function missingObservation(observation: SessionObservation, singleReceipt: boolean) {
+	return singleReceipt && observation.turnMissing === true && observation.progress?.length === 0;
+}
+
 function observationFailure(error: SessionFailure) {
 	return new ServiceUnavailable({ message: error.message });
 }
@@ -30,8 +34,17 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 		const observations: SessionObservation[] = [];
 		for (const receipt of receipts) {
 			yield* validateReceipt(receipt, { sessionId: acknowledged.sessionId }).pipe(Effect.mapError(observationFailure));
-			const observation = yield* state.sessions.observe(receipt).pipe(Effect.mapError(observationFailure));
-			observations.push(observation);
+			const observation = yield* state.sessions.observe(receipt).pipe(
+				Effect.map((observed) => (missingObservation(observed, receipts.length === 1) ? undefined : observed)),
+				Effect.catch((error) =>
+					receipts.length === 1 && error.code === "session-turn-missing" && error.reason === "ambiguous"
+						? Effect.succeed(undefined)
+						: Effect.fail(observationFailure(error)),
+				),
+			);
+			if (observation !== undefined) {
+				observations.push(observation);
+			}
 		}
 		if (observations.some((item) => ["accepted", "running"].includes(item.execution))) {
 			return yield* new Forbidden({ message: "Confirm terminal execution before releasing ownership" });
@@ -42,6 +55,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 				? {
 						...saved,
 						output: observations.length === 1 ? observation?.output : undefined,
+						sessionUnusable: observations.length === 0 || saved.sessionUnusable,
 						status: observations.length === 1 ? (observation?.execution ?? "interrupted") : ("failed" as const),
 					}
 				: saved,

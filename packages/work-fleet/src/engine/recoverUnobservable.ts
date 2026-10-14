@@ -21,7 +21,7 @@ export const recoverUnobservable = Effect.fn("Fleet.recoverUnobservable")(functi
 	if ((attempt.observationRetries ?? 0) >= 1) {
 		return yield* state.decision(
 			stored,
-			"session-ambiguous",
+			"session-turn-missing",
 			"The acknowledged Codex turn is not observable after the grace period and one automatic resume",
 			"Inspect the worker thread and retry or safely release",
 		);

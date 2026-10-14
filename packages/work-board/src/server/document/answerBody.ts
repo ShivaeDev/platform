@@ -8,7 +8,7 @@ import { documentBody } from "./body.ts";
 
 export function answerBody(document: MetadataDocument, requests: readonly DocumentRequest[]): string {
 	const source = documentBody(document);
-	const cards = requests.filter((request) => request.open);
+	const cards = requests.filter((request) => request.open && request.preview?.source === document.file);
 	const managed = document.parsed.fields.attention?.some((request) => request.managed);
 	const title = managed ? requests[0]?.title : undefined;
 	if (cards.length === 0 && !title) {
