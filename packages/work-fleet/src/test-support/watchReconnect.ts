@@ -60,6 +60,13 @@ export const watchReconnect = Effect.fn("WatchReconnectTest.watchReconnect")(fun
 			yield* untilOutput(follower, "active completed\n");
 			yield* Effect.sleep("100 millis");
 			expect(follower.output()).toBe(`${initial}active released\nactive completed\n`);
+			yield* storeState(fixture.host, "active", {
+				decision: { attentionOwner: "maintainer", code: "reviewed-pr-ready", id: "after-restart", reason: "Reviewed PR is ready to merge" },
+				stage: "needs-human",
+			}).pipe(Effect.provideService(Reactivity.Reactivity, Context.get(changed.context, Reactivity.Reactivity)));
+			const live = "active needs-human (waiting on maintainer): Reviewed PR is ready to merge\n";
+			yield* untilOutput(follower, live).pipe(Effect.timeout("5 seconds"));
+			expect(follower.output()).toBe(`${initial}active released\nactive completed\n${live}`);
 			expect(follower.isRunning()).toBe(true);
 		}),
 	);
