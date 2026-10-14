@@ -18,7 +18,7 @@ attention:
 # Keyboard fixture
 `,
 		"attention/not-a-request.md":
-			"---\nid: ordinary.review\nstatus: in-review\nowner: marvin\nnext_action: Ask Marvin\n---\n# Arbitrary source labels\n",
+			"---\nid: ordinary.review\nstatus: in-review\nowner: maintainer\nnext_action: Ask Maintainer\n---\n# Arbitrary source labels\n",
 		"attention/review.md": `---
 id: request.search
 kind: result
@@ -28,19 +28,19 @@ attention:
   - id: keyboard-review
     kind: review
     state: open
-    response_from: [marvin, agent-navigation]
+    response_from: [maintainer, agent-navigation]
     reason: Review keyboard evidence before continuing.
     unblocks: [work.search#keyboard]
   - id: matching-decision
     kind: decision
     state: open
-    response_from: [marvin]
+    response_from: [maintainer]
     reason: Choose literal matching or fuzzy matching.
     unblocks: [decision.search]
   - id: prior-review
     kind: review
     state: closed
-    response_from: [marvin]
+    response_from: [maintainer]
     reason: A closed request has no implied answer.
     unblocks: [work.search]
 ---
