@@ -1,5 +1,9 @@
+import { PanelsTopLeft } from "lucide-react";
 import { useEffect } from "react";
 import type { Navigation } from "#browser/navigation/schema.ts";
+import { Button } from "#client/react/components/ui/Button.tsx";
+import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
+import { cn } from "#client/react/lib/cn.ts";
 import { InboxCount } from "./Header.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { NavigationTree } from "./NavigationTree.tsx";
@@ -61,24 +65,31 @@ export function Sidebar({
 	return (
 		<aside
 			aria-label="Workspace navigation"
-			className="sidebar"
+			className="sticky top-0 flex h-dvh flex-col gap-3 overflow-hidden border-r bg-card p-4 text-card-foreground max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(320px,calc(100vw-48px))] print:hidden"
 			hidden={!controls.open}
 			id={shellIds.sidebar}
 			role={controls.narrow && controls.open ? "dialog" : undefined}
 		>
-			<a className="brand" href="/">
-				work board<span>Local workspace</span>
+			<a className="flex items-center gap-2 px-2 py-3 font-semibold text-lg text-primary tracking-tight no-underline" href="/">
+				<PanelsTopLeft aria-hidden="true" className="size-5" />
+				work board
 			</a>
-			<nav aria-label="Workspace" className="primary-navigation" id={shellIds.primaryNavigation}>
-				<a aria-current={home ? "page" : undefined} href="/" id={shellIds.homeOpen}>
+			<nav aria-label="Workspace" className="grid shrink-0 gap-1" id={shellIds.primaryNavigation}>
+				<a aria-current={home ? "page" : undefined} className={navClass(home)} href="/" id={shellIds.homeOpen}>
 					Home
 				</a>
-				<a aria-current={main.view === "inbox" ? "page" : undefined} className="inbox-link" href="/_board/inbox" id={shellIds.inboxOpen}>
+				<a
+					aria-current={main.view === "inbox" ? "page" : undefined}
+					className={navClass(main.view === "inbox")}
+					href="/_board/inbox"
+					id={shellIds.inboxOpen}
+				>
 					Inbox <InboxCount count={data?.inboxCount ?? null} id={shellIds.inboxCount} />
 				</a>
 				{views.map(([view, label]) => (
 					<a
 						aria-current={main.view === view ? "page" : undefined}
+						className={navClass(main.view === view)}
 						href={`/_board/${view}${view === "work" ? "?view=board" : ""}`}
 						id={`${view}-open`}
 						key={view}
@@ -87,16 +98,27 @@ export function Sidebar({
 					</a>
 				))}
 			</nav>
-			<button aria-controls="library-dialog" aria-haspopup="dialog" id={shellIds.libraryOpen} onClick={() => openLibrary()} type="button">
+			<Button
+				aria-controls="library-dialog"
+				aria-haspopup="dialog"
+				id={shellIds.libraryOpen}
+				onClick={() => openLibrary()}
+				type="button"
+				variant="outline"
+			>
 				Recent documents
-			</button>
-			<a className="start-open" href="/_board/start" id={shellIds.startOpen}>
+			</Button>
+			<a className={navClass(false)} href="/_board/start" id={shellIds.startOpen}>
 				Getting started
 			</a>
-			<h2 className="nav-heading">Project files</h2>
-			<nav aria-label="Project files" className="files" id={shellIds.files}>
+			<h2 className="m-0 px-2 font-semibold text-muted-foreground text-xs">Project files</h2>
+			<nav aria-label="Project files" className="min-h-0 flex-1 overflow-y-auto overscroll-contain text-sm" id={shellIds.files}>
 				{data ? <NavigationTree current={main.view ? "" : main.file} data={data} /> : <p role="status">Loading files…</p>}
 			</nav>
 		</aside>
 	);
+}
+
+function navClass(active: boolean) {
+	return cn(buttonVariants({ variant: "ghost" }), "justify-between text-foreground no-underline", active && "bg-accent");
 }

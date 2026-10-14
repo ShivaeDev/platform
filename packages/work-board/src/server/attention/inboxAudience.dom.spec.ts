@@ -39,6 +39,6 @@ it.live.each([1440, 390])("keeps Inbox rows and live navigation counts in agreem
 	expect(page.document.querySelector(".inbox-list")?.textContent).not.toContain("Question for reader");
 	expect(page.document.querySelector(".inbox-list")?.textContent).toContain("Question for orchestrator");
 	const badge = page.document.getElementById("inbox-topbar-count");
-	expect(badge?.closest(".bar")?.hasAttribute("hidden")).toBe(false);
+	expect(badge?.closest("header")?.hasAttribute("hidden")).toBe(false);
 	expect(page.document.getElementById("sidebar")?.hasAttribute("hidden")).toBe(width === 390);
 });

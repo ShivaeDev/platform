@@ -27,7 +27,7 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")));
-		const header = view.container.querySelector("header.bar");
+		const header = view.container.querySelector("header");
 		yield* Effect.promise(() =>
 			act(async () => {
 				await view.router.preloadRoute(
@@ -43,7 +43,7 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 			}),
 		);
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe(url)));
-		expect(view.container.querySelector("header.bar")).toBe(header);
+		expect(view.container.querySelector("header")).toBe(header);
 		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(1);
 		expect(view.container.querySelector(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
 		expect(reads).not.toContain(`page:${url}`);

@@ -1,13 +1,16 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
+import { Pause, Play } from "lucide-react";
 import type { BrowserClient } from "#client/client.ts";
+import { Button } from "#client/react/components/ui/Button.tsx";
 import { shellIds } from "./shellIds.ts";
 
-export function UpdatesToggle({ client }: { readonly client: BrowserClient }) {
+export function UpdatesToggle({ client }: { readonly client: { readonly updates: Pick<BrowserClient["updates"], "paused"> } }) {
 	const paused = useAtomValue(client.updates.paused);
 	const setPaused = useAtomSet(client.updates.paused);
 	return (
-		<button aria-pressed={paused} id={shellIds.updatesToggle} onClick={() => setPaused((value) => !value)} type="button">
+		<Button aria-pressed={paused} id={shellIds.updatesToggle} onClick={() => setPaused((value) => !value)} type="button" variant="outline">
+			{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
 			{paused ? "Resume updates" : "Pause updates"}
-		</button>
+		</Button>
 	);
 }

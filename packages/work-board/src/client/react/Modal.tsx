@@ -9,7 +9,9 @@ export function Modal({
 	opener,
 	focus,
 	returnFocus,
+	className,
 }: {
+	readonly className?: string;
 	readonly id: string;
 	readonly title: string;
 	readonly open: boolean;
@@ -43,6 +45,7 @@ export function Modal({
 	return (
 		<dialog
 			aria-labelledby={title}
+			className={className}
 			id={id}
 			onCancel={() => close()}
 			onClick={(event) => {

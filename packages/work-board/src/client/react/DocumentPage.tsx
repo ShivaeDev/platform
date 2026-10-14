@@ -1,5 +1,6 @@
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
+import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 export function DocumentPage({ document }: { readonly document: Document }) {
@@ -19,7 +20,7 @@ function Introduction({ document }: { readonly document: Document }) {
 	return (
 		<section aria-label="Authored work" className="item-summary">
 			<p>
-				Status (source): <b>{document.metadata.status ?? "Not recorded"}</b>
+				Status (source): <StatusChip status={document.metadata.status} />
 				{document.metadata.owner ? ` · Owner: ${document.metadata.owner}` : ""}
 			</p>
 			<p>Next action: {document.metadata.nextAction ?? "Not recorded"}</p>

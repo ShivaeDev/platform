@@ -57,7 +57,7 @@ it.live.each([1440, 390])("keeps primary rows and the tree independent of five v
 		expect(element("library-dialog").hasAttribute("open")).toBe(false);
 	}
 	expect(element("sidebar").contains(element("reading-library"))).toBe(false);
-	expect(page.window.getComputedStyle(files).overflowY).toBe("auto");
+	expect(files.classList.contains("overflow-y-auto")).toBe(true);
 	if (width === 390) {
 		click("#sidebar-toggle");
 		yield* Effect.promise(frame);
@@ -84,7 +84,7 @@ it.live("dismisses the narrow drawer with Escape or outside tap and restores foc
 		expect(sidebar.hidden).toBe(false);
 		expect(sidebar.getAttribute("aria-modal")).toBe("true");
 		expect(element("sidebar-backdrop").hidden).toBe(false);
-		expect(page.document.querySelector(".page")?.hasAttribute("inert")).toBe(true);
+		expect(page.document.querySelector("[data-board-page]")?.hasAttribute("inert")).toBe(true);
 		expect(sidebar.contains(page.document.activeElement)).toBe(true);
 		if (dismiss === "escape") {
 			page.document.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));

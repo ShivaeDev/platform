@@ -1,13 +1,18 @@
+import { AlertCircle, Inbox, PanelLeft, Search } from "lucide-react";
 import type { ReactNode } from "react";
+import { Badge } from "#client/react/components/ui/Badge.tsx";
+import { Button } from "#client/react/components/ui/Button.tsx";
+import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
 import type { MainLocation } from "./mainLocation.ts";
+import { SettingsPopover } from "./SettingsPopover.tsx";
 import { shellIds } from "./shellIds.ts";
 import type { AppearanceControls } from "./useAppearance.ts";
 import type { SidebarControls } from "./useSidebar.ts";
 export function InboxCount({ count, id }: { readonly count: number | null; readonly id: string }) {
 	return (
-		<span aria-label={`${count ?? "?"} waiting`} className="inbox-count" id={id} role="status">
+		<Badge aria-label={`${count ?? "?"} waiting`} id={id} role="status">
 			{count ?? "?"}
-		</span>
+		</Badge>
 	);
 }
 export function Header({
@@ -30,56 +35,66 @@ export function Header({
 	readonly status: string;
 }) {
 	return (
-		<>
-			<header className="bar">
-				<button aria-controls="sidebar" aria-expanded={sidebar.open} id={shellIds.sidebarToggle} onClick={() => sidebar.toggle()} type="button">
-					Files
-				</button>
-				<Breadcrumbs file={main.file} />
-				<a aria-current={main.view === "inbox" ? "page" : undefined} className="inbox-link work-open" href="/_board/inbox" id={shellIds.inboxTopbar}>
-					Inbox <InboxCount count={count} id={shellIds.inboxTopbarCount} />
-				</a>
-				<button aria-controls="search-dialog" aria-haspopup="dialog" id={shellIds.searchOpen} onClick={() => openSearch()} type="button">
-					Search <kbd>⌘/Ctrl K</kbd>
-				</button>
-				{live}
-				<span id={shellIds.navigationStatus} role="status">
-					{status}
-				</span>
-			</header>
-			<fieldset aria-label="Reading preferences" className="preferences">
-				<div className="preference">
-					<label htmlFor="theme">Theme</label>
-					<select id={shellIds.theme} onChange={(event) => appearance.change({ theme: event.target.value })} value={appearance.theme}>
-						<option value="system">System</option>
-						<option value="light">Light</option>
-						<option value="dark">Dark</option>
-					</select>
-				</div>
-				<div className="preference">
-					<label htmlFor="density">Density</label>
-					<select id={shellIds.density} onChange={(event) => appearance.change({ density: event.target.value })} value={appearance.density}>
-						<option value="comfortable">Comfortable</option>
-						<option value="compact">Compact</option>
-					</select>
-				</div>
-				{updates}
-				<span id={shellIds.preferenceStatus} role="status">
-					{appearance.notice}
-				</span>
-			</fieldset>
-		</>
+		<header className="flex h-14 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:px-6 print:hidden">
+			<Button
+				aria-controls="sidebar"
+				aria-expanded={sidebar.open}
+				id={shellIds.sidebarToggle}
+				onClick={() => sidebar.toggle()}
+				size="sm"
+				variant="ghost"
+			>
+				<PanelLeft aria-hidden="true" />
+				<span className="hidden sm:inline">Files</span>
+			</Button>
+			<Breadcrumbs file={main.file} />
+			<a
+				aria-current={main.view === "inbox" ? "page" : undefined}
+				className={buttonVariants({ size: "sm", variant: "ghost" })}
+				href="/_board/inbox"
+				id={shellIds.inboxTopbar}
+			>
+				<Inbox aria-hidden="true" />
+				<span className="hidden sm:inline">Inbox</span>
+				<InboxCount count={count} id={shellIds.inboxTopbarCount} />
+			</a>
+			<Button
+				aria-controls="search-dialog"
+				aria-haspopup="dialog"
+				aria-label="Search"
+				id={shellIds.searchOpen}
+				onClick={() => openSearch()}
+				size="sm"
+				variant="ghost"
+			>
+				<Search aria-hidden="true" />
+				<span className="hidden sm:inline">Search</span>
+				<kbd className="hidden text-muted-foreground text-xs lg:inline">⌘/Ctrl K</kbd>
+			</Button>
+			<div className="hidden shrink-0 md:block">{live}</div>
+			<span className="shrink-0 text-destructive" id={shellIds.navigationStatus} role="status" title={status}>
+				{Boolean(status) && <AlertCircle aria-hidden="true" className="size-4" />}
+				<span className="sr-only">{status}</span>
+			</span>
+			<SettingsPopover appearance={appearance} updates={updates} />
+		</header>
 	);
 }
 
 function Breadcrumbs({ file }: { readonly file: string }) {
 	const parts = file.split("/");
 	return (
-		<nav aria-label="File location" className="breadcrumbs" id={shellIds.breadcrumbs}>
-			<a href="/">Workspace</a>
+		<nav
+			aria-label="File location"
+			className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-muted-foreground text-xs"
+			id={shellIds.breadcrumbs}
+		>
+			<a className="shrink-0 text-foreground" href="/">
+				Workspace
+			</a>
 			{parts.map((part, index) => (
-				<span key={parts.slice(0, index + 1).join("/")}>
-					<span className="separator">/</span> {part}
+				<span className="truncate" key={parts.slice(0, index + 1).join("/")}>
+					<span className="text-muted-foreground">/</span> {part}
 				</span>
 			))}
 		</nav>
