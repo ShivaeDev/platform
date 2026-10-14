@@ -6,6 +6,7 @@ import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/navigation/schema.ts";
+import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, RespondProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
@@ -80,6 +81,7 @@ const ReadOverview = query("overview", {
 });
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
 const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
+const ReadFleetItems = query("fleetItems", { reads: () => [workspace.list, index.list], success: FleetItemsProjection });
 const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
 const ReadRespond = query("respond", {
 	payload: { url: PageUrl },
@@ -131,6 +133,7 @@ export const workContract = contract("work-board", {
 		ReadOverview,
 		ReadInbox,
 		ReadDiagnostics,
+		ReadFleetItems,
 		ReadStart,
 		ReadRespond,
 		ReadHandoff,

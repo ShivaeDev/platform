@@ -11,6 +11,7 @@ import { migrateFleet } from "#storage/migrateFleet.ts";
 import { type AdmissionLimits, ForeignReservationRow, recordColumns, recordInput, recordModel, type Versioned } from "#storage/model.ts";
 import { nextAdmissionOrder } from "#storage/nextAdmissionOrder.ts";
 import { operationEntries } from "#storage/operationEntries.ts";
+import { withRecordTimes } from "#storage/recordTimes.ts";
 import { recordValue, recordValues } from "#storage/recordValue.ts";
 
 export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetStore")(function* <
@@ -97,7 +98,8 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				const entries = reads.records ? yield* list() : [];
 				const external = reads.foreign ? yield* foreignReservations() : [];
 				yield* checkRecordAdmission(options, record, previous?.value, entries, external, limits);
-				return yield* persist(workId, expectedVersion, record, encoded, entry);
+				const timed = yield* withRecordTimes(schema, encoded, previous?.value);
+				return yield* persist(workId, expectedVersion, timed.value, timed.encoded, entry);
 			}),
 		).pipe(
 			Effect.catchTag("OptimisticConcurrencyError", () =>

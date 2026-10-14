@@ -34,6 +34,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	);
 	const context = Context.merge(platform, services);
 	const rpcHandlers = yield* handlers({
+		...(options.fleetPort === undefined ? {} : { fleetPort: options.fleetPort }),
 		changes,
 		document: (url) =>
 			Effect.provideContext(

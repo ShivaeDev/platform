@@ -32,7 +32,8 @@ export const quotaRecovery = Effect.fn("Test.quotaRecovery")(function* () {
 				expect(waiting.decision).toBeUndefined();
 				expect(waiting.attempts).toHaveLength(1);
 				const resumed = yield* fixture.restart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
-				expect(resumed.value).toEqual(waiting);
+				expect(resumed.value).toEqual({ ...waiting, updatedAt: resumed.value.updatedAt });
+				expect(resumed.value.updatedAt).toBeGreaterThanOrEqual(waiting.updatedAt ?? 0);
 				blocked = false;
 				const completed = yield* fixture.restart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
 				expect(completed.value.stage).toBe("completed");

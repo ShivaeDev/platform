@@ -54,7 +54,7 @@ test("existing model tables gain every Fleet schema column and persist release r
 		cwd: "/synthetic",
 		preparation: prepared(),
 		prompt: "Synthetic upgrade work",
-		stage: "prepared",
+		stage: "completed",
 		workId: "upgrade",
 	};
 	yield* sql`insert into ${sql(table)} (work_id, version, attempts, "boardRevision", cwd, preparation, prompt, stage)
@@ -62,9 +62,13 @@ test("existing model tables gain every Fleet schema column and persist release r
 	const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
 	yield* store.initialize();
 	expect(yield* store.load(value.workId)).toEqual({ value, version: 4 });
-	const released = { ...value, releaseReason: "Work is no longer approved", stage: "released" } satisfies FleetRecord;
-	const saved = yield* store.compareAndSet(value.workId, 4, released);
-	expect(saved).toEqual({ value: released, version: 5 });
+	const updated = yield* store.compareAndSet(value.workId, 4, { ...value, prompt: "Edited legacy work" });
+	expect(updated.value.stageEnteredAt).toBeUndefined();
+	expect(updated.value.completedAt).toBeUndefined();
+	expect(updated.value.updatedAt).toEqual(expect.any(Number));
+	const released = { ...updated.value, releaseReason: "Work is no longer approved", stage: "released" } satisfies FleetRecord;
+	const saved = yield* store.compareAndSet(value.workId, updated.version, released);
+	expect(saved).toMatchObject({ value: { ...released, stageEnteredAt: expect.any(Number), updatedAt: expect.any(Number) }, version: 6 });
 	expect(yield* store.load(value.workId)).toEqual(saved);
 	const inserted = yield* store.insert({ ...released, workId: "new" });
 	expect(yield* store.list()).toEqual([saved, inserted]);

@@ -5,9 +5,14 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { DAEMON_RPC_PATH, DiagnosticsContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
+import type { FleetItems } from "#diagnostics/fleetItems.ts";
 
-export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (read: () => DiagnosticsSnapshot, port = 0) {
-	const handlers = DiagnosticsContract.toLayer({ "daemon.diagnostics": () => Effect.sync(read) });
+export const diagnosticsDaemon = Effect.fn("Test.diagnosticsDaemon")(function* (
+	read: () => DiagnosticsSnapshot,
+	port = 0,
+	items: () => FleetItems = () => ({ completed: [], items: [] }),
+) {
+	const handlers = DiagnosticsContract.toLayer({ "daemon.diagnostics": () => Effect.sync(read), "daemon.fleetItems": () => Effect.sync(items) });
 	const rpc = RpcServer.layerHttp({ group: DiagnosticsContract, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);
