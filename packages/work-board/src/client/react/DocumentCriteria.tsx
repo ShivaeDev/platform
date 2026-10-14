@@ -24,7 +24,7 @@ function Criterion({ document, index }: { readonly document: Document; readonly 
 	const unique = document.metadata.criteria?.filter((entry) => entry.id === criterion.id).length === 1;
 	return (
 		<li id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
-			<b>{criterion.id}</b>: {criterion.text}
+			<code>{criterion.id}</code>: {criterion.text}
 			<Claims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
 		</li>
 	);

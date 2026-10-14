@@ -51,6 +51,7 @@ it.live.each(["", "/"])(
 			"modified",
 			"questionActions",
 			"reading",
+			"referenceDetails",
 			"references",
 			"requests",
 			"source",

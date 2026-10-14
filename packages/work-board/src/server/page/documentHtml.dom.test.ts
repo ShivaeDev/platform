@@ -28,7 +28,7 @@ const open = Effect.fn("Test.open")(function* (width: number, path = "/_board/it
 
 function context() {
 	const element = page.document.querySelector(".item-context");
-	if (!(element instanceof page.window.HTMLDetailsElement)) {
+	if (!(element instanceof page.window.HTMLElement)) {
 		throw new Error("Missing item context");
 	}
 	return element;
@@ -38,27 +38,24 @@ it.live.each([1440, 390])("starts document content with title, authored status a
 	yield* open(width);
 	expectTitleInFirstScreen(page);
 	const layout = page.document.querySelector("#doc > .document-layout");
-	expect([...(layout?.children ?? [])].map((element) => element.className)).toEqual(["item-introduction", "item-context", "doc"]);
+	expect([...(layout?.children ?? [])].map((element) => element.classList[0])).toEqual(["item-introduction", "item-context", "doc"]);
 	const introduction = layout?.firstElementChild;
 	expect(introduction?.firstElementChild?.tagName).toBe("H1");
 	expect(introduction?.firstElementChild?.textContent).toBe("Release plan");
 	expect(introduction?.querySelector("strong")?.textContent).toBe("Release");
-	expect([...(introduction?.querySelectorAll(".item-summary p") ?? [])].map((element) => element.textContent)).toEqual([
-		"Status (source): in-review · Owner: editor",
-		"Next action: Review the compatibility notes",
-	]);
+	expect(introduction?.querySelector("[data-status-token]")?.textContent).toBe("in-review");
+	expect(introduction?.querySelector(".item-summary")?.textContent).toContain("Owner: editor · Next action: Review the compatibility notes");
 	expect(introduction?.querySelector(".meta, .work-meta, .work-context, .reading-tools")).toBeNull();
 	expect(page.document.querySelectorAll("#doc h1")).toHaveLength(1);
-	expect(context().open).toBe(width === 1440);
-	expect(context().querySelector(".meta")?.textContent).toContain("Source: release.md");
+	expect(context().tagName).toBe("ASIDE");
+	expect(context().querySelector('[aria-label="Document source"]')?.textContent).toContain("Source: release.md");
 	expect(context().querySelector(".work-context")?.textContent).toContain("compatibility.md");
-	expect(context().querySelector("#favorite-toggle")).not.toBeNull();
+	expect(introduction?.querySelector("#favorite-toggle")).not.toBeNull();
 	expect(context().querySelector('a[href="#heading-evidence"]')).not.toBeNull();
 	expect(page.document.querySelector('.doc a[href="/compatibility.md"]')).not.toBeNull();
-	context().open = true;
 	notes.write("release.md", `${itemFixture()["release.md"]}\nUpdated prose.\n`);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".doc")?.textContent).toContain("Updated prose.")));
-	expect(context().open).toBe(true);
+	expect(context().closest("[hidden]")).toBeNull();
 });
 
 it.live.each([1440, 390])("rejects title spacing that pushes the CSS placement bound below the first screen at %ipx", function* (width) {
@@ -72,30 +69,10 @@ it.live.each([1440, 390])("rejects title spacing that pushes the CSS placement b
 	expect(() => expectTitleInFirstScreen(page)).toThrow();
 });
 
-it.live.each([1440, 1100, 390])("keeps the question form in the text column and allocates rail height to the prose row at %ipx", function* (width) {
-	yield* open(width, "/_board/item/question.storage/");
-	expectTitleInFirstScreen(page);
-	const panel = page.document.querySelector("#doc > .response-panel");
-	expect(panel?.querySelector("h2")?.textContent).toBe("Answer this question");
-	if (!panel) {
-		throw new Error("Missing question form");
-	}
-	const style = page.window.getComputedStyle(panel);
-	expect(style.maxWidth).toBe("72ch");
-	expect(style.getPropertyValue("margin-inline")).toBe("0");
-	const layout = page.document.querySelector(".document-layout");
-	if (!layout) {
-		throw new Error("Missing document layout");
-	}
-	const grid = page.window.getComputedStyle(layout);
-	expect(grid.gridTemplateRows).toBe(width >= 1100 ? "auto 1fr" : "");
-	expect(page.window.getComputedStyle(context()).gridRow).toBe(width >= 1100 ? "1 / span 2" : "");
-});
-
 it.live("shows unknown authored values, moves a top-level title before preamble and keeps unique heading anchors", function* () {
 	yield* open(390, "/_board/item/work.unknown/");
 	expect(page.document.querySelector(".item-introduction h1")?.textContent).toBe("Unknown status");
-	expect(page.document.querySelector(".item-summary")?.textContent).toBe("Status (source): Not recordedNext action: Not recorded");
+	expect(page.document.querySelector(".item-summary")?.textContent).toContain("Owner: Not recorded · Next action: Not recorded");
 	expect(page.document.querySelector(".doc > p")?.textContent).toBe("A preamble remains readable.");
 	expect(page.document.querySelector(".doc h2:last-child")?.id).toBe("heading-unknown-status-2");
 	const plain = bootstrapPage((yield* rawGet(board, "/plain.md")).body);
@@ -104,24 +81,17 @@ it.live("shows unknown authored values, moves a top-level title before preamble 
 	expect(plain.querySelector(".doc")?.textContent).toBe("An ordinary note without a heading.");
 });
 
-it.live("opens the desktop context on resize, keeps it after navigation and reveals it for a source passage", function* () {
+it.live("keeps criteria open on narrow screens and reveals a referenced criterion after navigation", function* () {
 	yield* open(390);
-	page.window.innerWidth = 1440;
-	page.window.dispatchEvent(new page.window.Event("resize"));
-	yield* Effect.promise(() => waitFor(() => expect(context().open).toBe(true)));
-	page.window.innerWidth = 390;
-	page.window.dispatchEvent(new page.window.Event("resize"));
-	yield* Effect.promise(() => waitFor(() => expect(context().open).toBe(false)));
+	expect(context().querySelector("#criterion-review")?.closest("details")).toBeNull();
 	page.document
 		.querySelector('#files a[href="/unknown.md"]')
 		?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".item-introduction h1")?.textContent).toBe("Unknown status")));
-	expect(context().open).toBe(false);
 	const link = page.document.createElement("a");
 	link.href = "/_board/item/work.release/#criterion-review";
 	page.document.getElementById("doc")?.append(link);
 	link.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-review")));
-	expect(context().open).toBe(true);
-	expect(context().querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true);
+	expect(context().querySelector("#criterion-review")?.closest("[hidden]")).toBeNull();
 });

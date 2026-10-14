@@ -19,8 +19,8 @@ function resultLink(id: string | undefined, kind: string | undefined, unique: bo
 function recordedSummary(parsed: ParsedMetadata, identity: string, summary: boolean): string {
 	const fields = parsed.fields;
 	return summary
-		? `<p class="metadata-summary">Recorded work · ${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}`
-		: `<p class="metadata-summary">Recorded work · ${identity}</p>`;
+		? `<p class="metadata-summary">${identity}${fields.status ? ` · ${escapeHtml(fields.status)}` : ""}${fields.owner ? ` · ${escapeHtml(fields.owner)}` : ""}</p>${fields.nextAction ? `<p>Next action: ${escapeHtml(fields.nextAction)}</p>` : ""}`
+		: `<p class="metadata-summary">${identity}</p>`;
 }
 
 export function metadataHtml(parsed: ParsedMetadata, file: string, model: MetadataModel, summary = true): string {
@@ -36,16 +36,14 @@ export function metadataHtml(parsed: ParsedMetadata, file: string, model: Metada
 			? `<div class="metadata-problems" role="status"><b>Source diagnostics</b><ul>${diagnostics.map((problem) => `<li>${escapeHtml(file)}:${problem.line} — ${escapeHtml(problem.message)}</li>`).join("")}</ul></div>`
 			: "";
 	const identity =
-		unique && fields.id
-			? `<a href="${identityUrl(fields.id)}">Item link: ${escapeHtml(fields.id)}</a>`
-			: `ID: ${escapeHtml(fields.id ?? "Not recorded")}`;
+		unique && fields.id ? `<a href="${identityUrl(fields.id)}">${escapeHtml(fields.id)}</a>` : `ID: ${escapeHtml(fields.id ?? "Not recorded")}`;
 	const details = metadataDetails(parsed, file, model);
 	const boardLink =
 		unique && fields.kind === "board" && fields.id
 			? `<p><a href="${escapeHtml(viewUrl(stateOf("/"), { board: fields.id }))}">View this board</a></p>`
 			: "";
 	const lead = recordedSummary(parsed, identity, summary);
-	return `<section class="work-meta" aria-label="Recorded work">${lead}${boardLink}${resultLink(fields.id, fields.kind, unique)}${handoffLink(fields.id, fields.kind, unique)}${problems}<details data-key="work-metadata"><summary>Work details and source</summary>${details}<p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<details data-key="frontmatter-source"><summary>Original frontmatter</summary><pre>${escapeHtml(parsed.raw)}</pre></details>` : ""}</details></section>${backlinks}`;
+	return `<section class="work-meta" aria-label="Recorded work">${lead}${boardLink}${resultLink(fields.id, fields.kind, unique)}${handoffLink(fields.id, fields.kind, unique)}${problems}${details}<details data-key="frontmatter-source"><summary>Source</summary><p>Source: ${escapeHtml(file)}:${parsed.lines.id ?? 1}; prose starts at line ${parsed.bodyLine}.</p>${parsed.raw ? `<h3>Original frontmatter</h3><pre>${escapeHtml(parsed.raw)}</pre>` : ""}</details></section>${backlinks}`;
 }
 
 export const metadataStyles = `

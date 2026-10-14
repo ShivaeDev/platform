@@ -53,15 +53,21 @@ function summary(counts: readonly { readonly count: number; readonly title: stri
 	}
 	return result;
 }
-export function boardLayout(counts: readonly { readonly count: number; readonly title: string }[], modified: number, file: string, source: string) {
+export function boardLayout(
+	counts: readonly { readonly count: number; readonly title: string }[],
+	modified: number,
+	file: string,
+	source: string,
+	layout = false,
+) {
 	return (tree: Root) => {
 		const nodes = tree.children.filter((node): node is ElementContent => node.type !== "doctype" && !(node.type === "text" && !node.value.trim()));
 		const lastHeading = nodes.findLastIndex((node) => node.type === "element" && /^h[1-6]$/u.test(node.tagName));
 		const draft: Draft = {
-			board: element("div", [], "board"),
+			board: element("div", [], layout ? "board lg:col-start-1 lg:row-start-2" : "board"),
 			closing: false,
 			footer: element("footer"),
-			header: element("header", [], "board-head"),
+			header: element("header", [], layout ? "item-introduction board-head" : "board-head"),
 			item: undefined,
 			section: undefined,
 		};

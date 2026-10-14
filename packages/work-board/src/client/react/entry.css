@@ -2,6 +2,8 @@
 
 @import "tailwindcss" source("./");
 
+@source "../document";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -129,4 +131,79 @@
 }
 .history h2 {
 	overflow-wrap: anywhere;
+}
+
+@layer components {
+	.document-layout .reading-column {
+		@apply w-full max-w-[68ch] text-base leading-[1.65] [overflow-wrap:anywhere];
+	}
+	.reading-column :is(h1, h2, h3, h4, h5, h6),
+	.item-introduction h1 {
+		@apply mt-8 mb-4 font-semibold leading-tight;
+	}
+	.item-introduction h1 {
+		@apply mt-0 text-2xl;
+	}
+	.reading-column h2 {
+		@apply text-xl;
+	}
+	.reading-column h3 {
+		@apply text-lg;
+	}
+	.reading-column :is(p, ul, ol, blockquote, pre, table) {
+		@apply my-4;
+	}
+	.reading-column :is(ul, ol) {
+		@apply pl-6;
+	}
+	.reading-column ul {
+		@apply list-disc;
+	}
+	.reading-column ol {
+		@apply list-decimal;
+	}
+	.reading-column :is(code, pre),
+	.item-context code {
+		@apply font-mono;
+	}
+	.reading-column pre {
+		@apply overflow-auto rounded-lg bg-muted p-4 text-sm;
+	}
+	.reading-column blockquote {
+		@apply border-l-2 pl-4 text-muted-foreground;
+	}
+	.reading-column table {
+		@apply block overflow-auto;
+	}
+	.reading-column :is(th, td) {
+		@apply border p-2;
+	}
+	.item-context {
+		@apply [overflow-wrap:anywhere];
+	}
+	.item-context h3 {
+		@apply mt-5 mb-3 font-semibold;
+	}
+	.item-context h4 {
+		@apply mt-4 mb-2 font-medium;
+	}
+	.item-context ul {
+		@apply space-y-3 pl-4;
+	}
+	.item-context p {
+		@apply my-3;
+	}
+	.item-context [id],
+	.reading-column [id] {
+		scroll-margin-top: 15rem;
+	}
+	.item-introduction .heading-anchor,
+	.reading-column .heading-anchor {
+		@apply opacity-0;
+	}
+	.item-introduction h1:hover .heading-anchor,
+	.reading-column :is(h1, h2, h3, h4, h5, h6):hover .heading-anchor,
+	.heading-anchor:focus-visible {
+		@apply opacity-100;
+	}
 }

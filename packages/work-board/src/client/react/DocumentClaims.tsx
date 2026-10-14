@@ -36,23 +36,25 @@ function Claim({ document, index }: { readonly document: Document; readonly inde
 	].map(([label, value]) => (
 		<Fragment key={label}>
 			<dt>{label}</dt>
-			<dd>{value ?? "Not recorded"}</dd>
+			<dd>{label === "Checked revision" ? <code>{value ?? "Not recorded"}</code> : (value ?? "Not recorded")}</dd>
 		</Fragment>
 	));
 	return (
 		<li id={`recorded-evidence-${index}`} tabIndex={-1}>
 			{source?.href ? (
 				<a href={source.href} rel="noreferrer">
-					{entry.source}
+					<code>{entry.source}</code>
 				</a>
 			) : (
-				entry.source
+				<code>{entry.source}</code>
 			)}
 			{source?.problem}
 			<dl>
 				<dt>Recorded in</dt>
 				<dd>
-					{document.file}:{document.reading?.lines[`evidence.${index}.source`] ?? document.reading?.lines.evidence ?? 1}
+					<code>
+						{document.file}:{document.reading?.lines[`evidence.${index}.source`] ?? document.reading?.lines.evidence ?? 1}
+					</code>
 				</dd>
 				<dt>Criterion</dt>
 				<dd>{entry.criterion ? <Reference document={document} target={entry.criterion} /> : "Not recorded"}</dd>
