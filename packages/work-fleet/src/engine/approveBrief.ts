@@ -3,6 +3,7 @@ import { workRevision } from "#board/workRevision.ts";
 import { authorizeBrief, briefChanged } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
+import { launchPrompt } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, DecisionResponse } from "#policy.ts";
@@ -19,6 +20,7 @@ export function approveBrief(state: EngineState) {
 		const stored = yield* ensurePublication(state)(input);
 		const record = stored.value;
 		const published = record.decision?.published;
+		const approvedPrompt = prompt ?? revisedPrompt(record, work);
 		return yield* state
 			.save(stored, {
 				...record,
@@ -36,10 +38,11 @@ export function approveBrief(state: EngineState) {
 				decision: undefined,
 				decisionAcknowledged: undefined,
 				decisionPublished: undefined,
+				launchRetry: revisedRetry(record, approvedPrompt, state.policy.workerGuidance),
 				mergeAreasReleased: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
-				prompt: prompt ?? revisedPrompt(record, work),
+				prompt: approvedPrompt,
 				responses: responses ?? record.responses,
 				review: undefined,
 				stage: resumedStage(record),
@@ -79,4 +82,13 @@ export function approveDispatchedBrief(state: EngineState, stored: Versioned<Fle
 		&& (prompt !== undefined || (record.stage !== "prepared" && record.attempts.length > 0))
 		? approveBrief(state)(stored, work, prompt)
 		: Effect.succeed(stored);
+}
+
+function revisedRetry(record: FleetRecord, prompt: string, guidance?: string) {
+	return record.launchRetry === undefined
+		? undefined
+		: {
+				...record.launchRetry,
+				prompt: launchPrompt(record, prompt, undefined, guidance),
+			};
 }

@@ -42,7 +42,9 @@ const cycleFields = {
 	decisionPublished: Schema.optional(Schema.Boolean),
 	deliverable: Schema.optional(Schema.Literal("report")),
 	launch: Schema.optional(LaunchSettings),
-	launchRetry: Schema.optional(Schema.Struct({ rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number })),
+	launchRetry: Schema.optional(
+		Schema.Struct({ prompt: Schema.optional(Schema.String), rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number }),
+	),
 	mergeAreasReleased: Schema.optional(Schema.Boolean),
 	mergeReadyAt: Schema.optional(Schema.Number),
 	mergeReadyHead: Schema.optional(Schema.String),

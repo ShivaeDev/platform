@@ -78,7 +78,7 @@ export function makeLaunch(state: EngineState) {
 	});
 }
 
-function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
+export function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
 	const queuedPrompt = retryPrompt ?? prompt;
 	return retryPrompt === undefined
 		? withWorkerGuidance(record.deliverable === "report" ? reportPrompt(queuedPrompt) : queuedPrompt, guidance)
