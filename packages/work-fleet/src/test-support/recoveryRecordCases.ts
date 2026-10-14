@@ -6,7 +6,7 @@ import { Fleet } from "#fleet.ts";
 import { prepareWork } from "#test/engine.ts";
 import { HEAD, MOVED, PR } from "#test/githubResult.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
-import { finishRecoveryReview, finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
+import { finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
 export function recoveryRecordCases(): readonly RecoveryCase[] {
 	let context: RecoveryContext | undefined;
@@ -30,7 +30,8 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
-				yield* finishRecoveryWorker(ctx, "Findings");
+				yield* launchRecoveryWorker();
+				setLastObservation(ctx, { execution: "completed", output: "Findings" });
 				const stored = yield* (yield* Fleet).get("one");
 				yield* ctx.fixture.replaceRecord({
 					...stored.value,

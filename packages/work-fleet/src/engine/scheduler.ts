@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
+import { boardCompletionAction } from "#engine/completeBoardWork.ts";
 import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
@@ -27,6 +28,7 @@ function activeRecords(records: readonly Versioned<FleetRecord>[]) {
 	return records.filter(
 		({ value }) =>
 			!["completed", "released", "prepared"].includes(value.stage)
+			|| boardCompletionAction(value) !== undefined
 			|| pendingAcknowledgements(value).length > 0
 			|| pendingSessionCleanup(value).length > 0,
 	);

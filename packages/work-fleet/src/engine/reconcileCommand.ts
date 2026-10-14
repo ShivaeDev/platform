@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { completeBoardWork } from "#engine/completeBoardWork.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -52,6 +53,9 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		if (current.value.stage !== "needs-human" && retry !== undefined && state.policy.now() < retry.retryAt) {
 			return current;
 		}
-		return yield* advance(workId).pipe(Effect.catch((error) => handleFailure(workId, error)));
+		return yield* advance(workId).pipe(
+			Effect.catch((error) => handleFailure(workId, error)),
+			Effect.flatMap(completeBoardWork(state)),
+		);
 	});
 }

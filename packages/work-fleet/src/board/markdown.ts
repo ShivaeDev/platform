@@ -1,7 +1,9 @@
 import { Context, Effect, FileSystem, Layer, Path, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/define-service.ts";
+import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { briefRevision } from "#board/briefRevision.ts";
+import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundDocuments, boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
 import { boardDiagnostics, fleetApproved, fleetDeliverable } from "#board/fleetField.ts";
@@ -9,6 +11,7 @@ import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { workMetadata } from "#board/readPass.ts";
 import { workRevision } from "#board/workRevision.ts";
+import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
@@ -53,6 +56,23 @@ const MarkdownBoard = defineService({
 	methods: ({ root, realRoot, documents, get, publish, path }) =>
 		BoardGateway.of({
 			acknowledgeDecision: acknowledgeDecision(root, realRoot, documents),
+			complete: Effect.fn("FleetBoard.complete")(function* (workId, sourcePath, nextAction) {
+				const work = yield* get(workId);
+				if (work.sourcePath !== sourcePath) {
+					return;
+				}
+				const content = completionMarkdown(work.context, nextAction);
+				if (content === undefined) {
+					return;
+				}
+				const parsed = boardApi.metadataParse(content);
+				if (parsed.fields.id !== workId || boardDiagnostics(parsed).length > 0 || briefRevision(parsed) !== work.revision) {
+					return yield* Effect.fail(new BoardFailure({ message: "Completion bookkeeping would change authored Board context or identity." }));
+				}
+				yield* writeCompletion(root, realRoot, path.relative(realRoot, sourcePath), work.context, content).pipe(
+					Effect.mapError((error) => new BoardFailure({ message: error.message })),
+				);
+			}),
 			decision: Effect.fn("FleetBoard.decision")(function* (workId, input, originalContext) {
 				const work = originalContext ?? (yield* get(workId));
 				const parsed = yield* workMetadata(work);

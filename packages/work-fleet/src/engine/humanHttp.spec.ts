@@ -58,7 +58,9 @@ test("Board HTTP answer resumes the real SQL work through native RPC and restart
 				}),
 			);
 			expect(fixture.launched).toHaveLength(2);
-			expect(yield* fs.readFileString(path.join(root, "one.md"))).toBe(source);
+			expect(yield* fs.readFileString(path.join(root, "one.md"))).toBe(
+				source.replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
+			);
 		}),
 	));
 
