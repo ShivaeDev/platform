@@ -71,11 +71,11 @@ it.live("serves the Inbox count on reader pages and exposes waiting work in Over
 	]) {
 		const response = yield* rawGet(board, path);
 		expect(response.status).toBe(200);
-		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="4 waiting">4</span>');
+		expect(response.body).toContain('id="inbox-count" class="inbox-count" aria-label="3 waiting">3</span>');
 	}
 	const inbox = (yield* rawGet(board, "/_board/inbox")).body;
-	expect(inbox).toContain("4 waiting");
-	expect(inbox).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="4 waiting">4</span>');
+	expect(inbox).toContain("3 waiting");
+	expect(inbox).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="3 waiting">3</span>');
 	expect(inbox).toContain("Review keyboard behavior");
 	expect(inbox).toContain('data-modified="');
 	for (const path of ["/_board/overview", "/_board/work?view=board", "/_board/work?view=table"]) {

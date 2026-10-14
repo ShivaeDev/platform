@@ -1,30 +1,39 @@
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { inboxItems } from "./inbox.ts";
+import { requestInbox } from "./requestInbox.ts";
 
 export function inboxHtml(snapshot: Snapshot, compact = false, now?: number): string {
 	const items = inboxItems(snapshot);
 	const total = snapshot.unavailable.length > 0 ? "Count unavailable" : `${items.length} waiting`;
-	const rows = items
-		.map(
-			(item) =>
-				`<article class="inbox-row" data-key="inbox:${escapeHtml(item.document.file)}"><div><h3><a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a></h3><p>${escapeHtml(item.reason)}</p>${item.problem ? `<p class="inbox-problem" role="status">${escapeHtml(item.problem)} — open the source to resolve it.</p>` : ""}</div><p class="inbox-age">${item.modified === undefined ? "Age unavailable" : sourceAge(item.modified, now)}</p></article>`,
-		)
-		.join("");
+	function rows(entries: ReturnType<typeof inboxItems>) {
+		return entries
+			.map(
+				(item) =>
+					`<article class="inbox-row" data-key="inbox:${escapeHtml(item.document.file)}"><div><h3><a href="${escapeHtml(item.href)}">${escapeHtml(item.title)}</a></h3><p>${escapeHtml(item.reason)}</p>${item.earlierAsks ? `<p>${item.earlierAsks} earlier ${item.earlierAsks === 1 ? "ask" : "asks"}</p>` : ""}${item.problem ? `<p class="inbox-problem" role="status">${escapeHtml(item.problem)} — open the source to resolve it.</p>` : ""}</div><p class="inbox-age">${item.modified === undefined ? "Age unavailable" : sourceAge(item.modified, now)}</p></article>`,
+			)
+			.join("");
+	}
+	const requests = requestInbox(snapshot);
+	function group(title: string, entries: ReturnType<typeof inboxItems>) {
+		return entries.length > 0 ? `<details class="inbox-group"><summary>${title} (${entries.length})</summary>${rows(entries)}</details>` : "";
+	}
+	const groups = group("Resolved elsewhere", requests.resolved) + group("Parked", requests.parked);
 	const content =
 		snapshot.unavailable.length > 0
 			? '<p role="status">Workspace incomplete. Inbox membership and count are unavailable.</p>'
-			: rows
+			: rows(items)
 				|| (snapshot.model.documents.some((document) => (snapshot.model.diagnostics.get(document.file)?.length ?? 0) > 0)
 					? '<p class="empty">No classified waiting items. Check source issues in Overview.</p>'
 					: '<p class="empty">All quiet — nothing is waiting on a person.</p>');
 	return compact
 		? `<section aria-label="Inbox summary"><h2>Inbox</h2><p>${total} · <a href="/_board/inbox">Open Inbox</a></p></section>`
-		: `<header class="work-head"><p class="work-eyebrow">WORKSPACE · INBOX</p><h1>Inbox</h1><p>Questions and work waiting on a person. Oldest changed source first.</p></header><p class="work-total" role="status">${total}</p><section class="inbox-list" aria-label="Waiting on you"><h2>Waiting on you</h2>${content}</section>`;
+		: `<header class="work-head"><p class="work-eyebrow">WORKSPACE · INBOX</p><h1>Inbox</h1><p>Questions and work waiting on a person. Oldest changed source first.</p></header><p class="work-total" role="status">${total}</p><section class="inbox-list" aria-label="Waiting on you"><h2>Waiting on you</h2>${content}</section>${groups}`;
 }
 
 export const inboxStyle = `
 .inbox-row{display:flex;justify-content:space-between;gap:1rem;padding:1.2rem;margin:.75rem 0;border:1px solid var(--border);border-radius:10px;background:var(--card);overflow-wrap:anywhere}
+.inbox-group{margin:1rem 0}.inbox-group summary{cursor:pointer;font-weight:600}
 .inbox-row h3{margin:0 0 .5rem}.inbox-row p{margin:.4rem 0}.inbox-row>div{min-width:0}.inbox-age{flex-shrink:0}.waiting-badge{display:inline-block;font-size:.75rem;font-weight:600;border:1px solid var(--border);border-radius:1rem;padding:.1rem .5rem;color:var(--muted);background:var(--surface)}
 .inbox-link{display:flex;justify-content:space-between;gap:1rem;padding:12px;color:var(--sidebar-text);text-decoration:none}.inbox-count{border-radius:1rem;padding:0 .6rem;background:#385242}
 .question-choice{display:grid;grid-template-rows:subgrid;grid-row:span 2;align-content:start;align-items:start;gap:.4rem;text-align:left;padding:1rem;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--card);font:inherit}.question-choice[aria-pressed=true]{border-color:var(--link);background:var(--surface)}.question-choice small{font:inherit;color:var(--muted)}

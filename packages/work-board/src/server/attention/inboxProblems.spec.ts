@@ -35,7 +35,7 @@ it("keeps waiting cards in their recorded status columns and shows only a linked
 	expect(cards).not.toContain('aria-label="Waiting on you"');
 	expect(cards).toContain('class="waiting-badge"');
 	const overview = overviewHtml(snapshot);
-	expect(overview).toContain("4 waiting");
+	expect(overview).toContain("3 waiting");
 	expect(overview).toContain('href="/_board/inbox">Open Inbox');
 	expect(overview).not.toContain('class="inbox-row"');
 });
