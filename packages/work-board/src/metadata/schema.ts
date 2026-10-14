@@ -43,7 +43,9 @@ export const Metadata = Schema.Struct({
 	handoff: Schema.optional(HandoffRecord),
 	id: Schema.optional(Identity),
 	items: Schema.optional(Schema.Array(Identity)),
-	kind: Schema.optional(Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response", "handoff"])),
+	kind: Schema.optional(
+		Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response", "handoff", "goal", "report"]),
+	),
 	nextAction: Schema.optional(Text),
 	options: Schema.optional(
 		Schema.Array(Schema.Struct({ description: Text.check(Schema.isMaxLength(8192)), label: Text.check(Schema.isMaxLength(128)) })).check(

@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { metadataParse } from "./parse.ts";
 
 describe("optional metadata", () => {
+	it.each(["goal", "report"])("reads the %s item kind without losing its source meaning", (kind) => {
+		const source = `---\nid: item.fixture\nkind: ${kind}\n---\n# An item`;
+		const parsed = metadataParse(source);
+		expect(parsed.fields.kind).toBe(kind);
+		expect(parsed.diagnostics).toEqual([]);
+		expect(parsed.raw + parsed.body).toBe(source);
+	});
 	it("reads area names and discloses invalid area lists without changing the source", () => {
 		const valid = metadataParse("---\nareas: [work-fleet/host, work-board/ui]\n---\n# Work");
 		expect(valid.fields.areas).toEqual(["work-fleet/host", "work-board/ui"]);

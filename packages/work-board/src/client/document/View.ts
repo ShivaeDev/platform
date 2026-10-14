@@ -44,22 +44,33 @@ export interface DocumentViewProps {
 	readonly introduction?: ReactNode;
 }
 
-const LayoutContext = createContext<{ readonly context: ReactNode; readonly introduction: ReactNode; readonly file: string }>({
+const LayoutContext = createContext<{
+	readonly context: ReactNode;
+	readonly introduction: ReactNode;
+	readonly file: string;
+	readonly identified: boolean;
+}>({
 	context: null,
 	file: "",
+	identified: false,
 	introduction: null,
 });
 const layoutComponents: Components = { ...components, header: LayoutHeader };
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
-	const { context, introduction, file } = useContext(LayoutContext);
+	const { context, introduction, file, identified } = useContext(LayoutContext);
 	const header = createElement("header", props, children);
-	if (props.className !== "item-introduction") {
+	if (!props.className?.split(" ").includes("item-introduction")) {
 		return header;
 	}
 	return createElement(
 		Fragment,
 		null,
-		createElement("header", props, Children.count(children) > 0 ? children : createElement("h1", null, file), introduction),
+		createElement(
+			"header",
+			{ ...props, className: `${props.className} col-span-full bg-background py-3 ${identified ? "sticky top-0 z-20 border-b border-border" : ""}` },
+			Children.count(children) > 0 ? children : createElement("h1", { className: "font-mono" }, file),
+			introduction,
+		),
 		context,
 	);
 }
@@ -75,20 +86,22 @@ export function DocumentView({ document, idPrefix = "", context, introduction, b
 		documentHeadings(true).plugin,
 	];
 	if (board) {
-		rehypePlugins.push([boardLayout, board, document.modified, document.file, documentSourceId(document)]);
+		rehypePlugins.push([boardLayout, board, document.modified, document.file, documentSourceId(document), layout]);
 	}
-	if (layout) {
+	if (layout && !board) {
 		rehypePlugins.push([documentLayout, documentSourceId(document)]);
 	}
 	return createElement(
 		layout ? "div" : "article",
-		{ className: layout ? "document-layout" : "doc" },
+		{
+			className: layout ? "document-layout grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,68ch)_minmax(240px,1fr)] lg:gap-x-8" : "doc reading-column",
+		},
 		createElement(
 			DetailStatesContext.Provider,
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { context, file: document.file, introduction } },
+				{ value: { context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
 				createElement(
 					MarkdownHooks,
 					{

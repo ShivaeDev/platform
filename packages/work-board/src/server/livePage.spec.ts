@@ -176,6 +176,6 @@ describe("live page", () => {
 		utimesSync(file, twoHoursEarlier, twoHoursEarlier);
 		yield* open("/plan.md");
 		expect(page.document.querySelector('#files a[href="/plan.md"] + [data-modified]')?.textContent).toBe("2h");
-		expect(page.document.querySelector("#doc .meta [data-modified]")?.textContent).toBe("updated 2h ago");
+		expect(page.document.querySelector("#doc .item-context [data-modified]")?.textContent).toBe("updated 2h ago");
 	});
 });

@@ -31,6 +31,7 @@ export const Document = Schema.Struct({
 	modified: Schema.Number,
 	questionActions: Schema.Record(Schema.String, Schema.String),
 	reading: Schema.optional(ReadingContext),
+	referenceDetails: Schema.optional(Schema.Record(Schema.String, Schema.Struct({ status: Schema.optional(Schema.String), title: Schema.String }))),
 	references: Schema.Record(Schema.String, Schema.String),
 	requests: Schema.Array(DocumentRequest),
 	source: Schema.String,

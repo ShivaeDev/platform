@@ -42,7 +42,9 @@ it.live.each(routes)("renders $url from its typed projection without requesting 
 		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
 		expect(page).not.toHaveBeenCalled();
 		if (kind === "board") {
-			expect(view.container.querySelector(".board-head h1")?.textContent).toBe("Project board");
+			expect(view.container.querySelector(".item-introduction h1")?.textContent).toBe("Project board");
+			expect(view.container.querySelector(".item-introduction")?.classList.contains("sticky")).toBe(true);
+			expect(view.container.querySelector('.document-outline a[href="#heading-plans"]')).not.toBeNull();
 			expect(view.container.querySelector(".board .notes")?.textContent).toContain("Section note");
 			expect(view.container.querySelector(".counts")?.textContent).toBe("1 plans · 1 waiting");
 			expect(view.container.querySelector("footer")?.textContent).toContain("Footer");

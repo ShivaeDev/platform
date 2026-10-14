@@ -4,10 +4,24 @@ import { keyed } from "./keyed.ts";
 export function DocumentMetadata({ document }: { readonly document: Document }) {
 	const reading = document.reading;
 	const backlinks = reading?.backlinks ?? [];
-	const entries = keyed(backlinks, (link) => `${link.href}:${link.kind}:${link.label}`).map(({ key, value: link }) => (
-		<li key={key}>
-			{link.kind}: <a href={link.href}>{link.label}</a>
-		</li>
+	const groups = [...new Set(backlinks.map((link) => link.kind))].map((kind) => (
+		<section aria-label={`${kind} backlinks`} key={kind}>
+			<h4>
+				{kind} ({backlinks.filter((link) => link.kind === kind).length})
+			</h4>
+			<ul>
+				{keyed(
+					backlinks.filter((link) => link.kind === kind),
+					(link) => `${link.href}:${link.label}`,
+				).map(({ key, value: link }) => (
+					<li key={key}>
+						<a className="font-mono text-xs" href={link.href}>
+							{link.label}
+						</a>
+					</li>
+				))}
+			</ul>
+		</section>
 	));
 	return (
 		<>
@@ -19,11 +33,9 @@ export function DocumentMetadata({ document }: { readonly document: Document }) 
 			)}
 			{backlinks.length > 0 && (
 				<section aria-label="Source backlinks" className="work-context">
-					<details data-key="work-backlinks">
-						<summary>Referenced by ({backlinks.length})</summary>
-						<ul>{entries}</ul>
-						<p>These are explicit source links, not inferred blockers or workflow rules.</p>
-					</details>
+					<h3>Referenced by ({backlinks.length})</h3>
+					{groups}
+					<p>These are explicit source links, not inferred blockers or workflow rules.</p>
 				</section>
 			)}
 		</>

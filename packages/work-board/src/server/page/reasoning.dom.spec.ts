@@ -50,12 +50,12 @@ effectApp("opens a cross-file criterion claim at its recorded evidence with focu
 	yield* open("/_board/item/work.search/");
 	click('#criterion-keyboard a[href="/_board/item/result.search/#recorded-evidence-0"]');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("recorded-evidence-0")));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
 	expect(page.document.getElementById("recorded-evidence-0")?.textContent).toContain("2025-10-04T00:00:00Z");
 	click('#recorded-evidence-0 a[href="/evidence.md"]');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("#doc h1")?.textContent).toBe("Browser walkthrough")));
 	expect(page.document.querySelector(".work-context")?.textContent).toContain("Evidence source");
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("recorded-evidence-0")).not.toBeNull()));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
 });

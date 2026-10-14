@@ -6,7 +6,7 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { BrowserClient } from "#client/client.ts";
 import { navigationQuery } from "#client/page/routeQuery.ts";
 import { AgeTicker } from "./Age.tsx";
-import { BoardMain } from "./BoardMain.tsx";
+import { FleetMain } from "./FleetMain.tsx";
 import { Header } from "./Header.tsx";
 import { HistoryRetention } from "./HistoryRetention.tsx";
 import { LiveControls } from "./LiveControls.tsx";
@@ -127,7 +127,7 @@ export function BoardShell(options: ShellOptions) {
 							status={status}
 							updates={client ? <UpdatesToggle client={client} /> : null}
 						/>
-						<BoardMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
+						<FleetMain api={api} home={data ? data.home : bootstrapHome} onPage={onPage} url={location.pathname + location.searchStr} />
 					</div>
 				</div>
 				{Option.isSome(query.cause) && <p role="status">Navigation refresh failed. Your displayed files are retained.</p>}
