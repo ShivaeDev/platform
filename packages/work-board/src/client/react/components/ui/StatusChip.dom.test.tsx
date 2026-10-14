@@ -3,6 +3,9 @@ import { render } from "@shivaedev/effect-react/testing.ts";
 import { StatusChip } from "./StatusChip.tsx";
 
 it.each([
+	["planned", "deferred", "circle"],
+	["active", "agent-working", "loader-circle"],
+	["received", "deferred", "inbox"],
 	["needs-human", "needs-you", "message-circle"],
 	["running", "agent-working", "loader-circle"],
 	["in-progress", "agent-working", "loader-circle"],

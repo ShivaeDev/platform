@@ -1,10 +1,11 @@
 import { cva } from "class-variance-authority";
-import { Ban, Check, CircleHelp, CirclePause, Clock, LoaderCircle, MessageCircle, Users } from "lucide-react";
+import { Ban, Check, Circle, CircleHelp, CirclePause, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "#client/react/lib/cn.ts";
 import { Badge } from "./Badge.tsx";
 
 const statuses = {
+	active: { icon: LoaderCircle, token: "agent-working" },
 	"agent-working": { icon: LoaderCircle, token: "agent-working" },
 	blocked: { icon: Ban, token: "blocked" },
 	deferred: { icon: CirclePause, token: "deferred" },
@@ -12,6 +13,8 @@ const statuses = {
 	"in-progress": { icon: LoaderCircle, token: "agent-working" },
 	"needs-human": { icon: MessageCircle, token: "needs-you" },
 	"needs-you": { icon: MessageCircle, token: "needs-you" },
+	planned: { icon: Circle, token: "deferred" },
+	received: { icon: Inbox, token: "deferred" },
 	running: { icon: LoaderCircle, token: "agent-working" },
 	superseded: { icon: Clock, token: "deferred" },
 	"waiting-on-agents": { icon: Users, token: "waiting-on-agents" },
