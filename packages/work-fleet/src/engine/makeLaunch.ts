@@ -3,6 +3,7 @@ import { admit } from "#admit.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
+import { localOnlyCriteria } from "#engine/localOnlyCriteria.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
@@ -26,10 +27,20 @@ export function makeLaunch(state: EngineState) {
 			return released;
 		}
 		yield* authorizeBriefContext(stored.value, work);
+		const localOnly = yield* localOnlyCriteria(work, policy.localOnlyBoardPath);
+		if (localOnly !== undefined) {
+			return yield* state.decision(
+				stored,
+				"incomplete-context",
+				localOnly,
+				"Edit the criteria to use repository fixtures or other data available to Cloud workers, then dispatch again",
+			);
+		}
 		if (stored.value.launchRetry !== undefined && policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
 		}
 		const {
+			checkFailures,
 			prompt: retryPrompt,
 			role: launchRole,
 			sessionId,
@@ -45,7 +56,7 @@ export function makeLaunch(state: EngineState) {
 		);
 		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
-			checkFailures: launchRole === "repair" && stored.value.stage === "repairing" ? stored.value.checks?.failedChecks : undefined,
+			checkFailures,
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
 			providerFailures: stored.value.launchRetry?.rejections,

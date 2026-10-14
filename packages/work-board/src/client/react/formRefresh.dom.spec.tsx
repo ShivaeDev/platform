@@ -20,35 +20,35 @@ afterEach(() => {
 const SOURCE =
 	"---\nid: task.fixture\nkind: task\nnext_action: Inspect the proof\nattention:\n - id: direction\n   kind: decision\n   state: open\n   reason: Choose a direction\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n";
 const cases = [
-	{ field: '[name="body"]', kind: "response", query: "respond" as const, source: SOURCE, url: "/_board/respond?item=task.fixture&request=direction" },
+	{ field: '[name="body"]', kind: "response", query: "document" as const, source: SOURCE, url: "/_board/item/task.fixture/" },
 	{
 		field: '[data-prompt="answer"] textarea',
 		kind: "response",
-		query: "respond" as const,
+		query: "document" as const,
 		source:
 			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
-		url: "/_board/respond?item=task.fixture&request=answer",
+		url: "/_board/item/task.fixture/",
 	},
 	{
 		field: '[name="body"]',
 		kind: "response",
-		query: "respond" as const,
+		query: "document" as const,
 		source:
 			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
-		url: "/_board/respond?item=task.fixture&request=answer",
+		url: "/_board/item/task.fixture/",
 	},
 	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture" },
 ];
 it.each(cases)(
 	"retains $query $field draft, source notice and caret through query refresh and reload",
 	async ({ kind, query, field, url, source: content }) => {
-		const files = { "task.md": content };
+		const files = { "home.md": "# Home", "task.md": content };
 		let refresh: (() => void) | undefined;
 		function open() {
 			return renderBoard(files, (api, registry) => {
 				refresh = () =>
-					query === "respond"
-						? registry.refresh(api.respond.query({ url }, routeQueryOptions))
+					query === "document"
+						? registry.refresh(api.document.query({ url }, routeQueryOptions))
 						: registry.refresh(api.handoff.query({ url }, routeQueryOptions));
 				const router = boardRouter({ api, initial: "", registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });

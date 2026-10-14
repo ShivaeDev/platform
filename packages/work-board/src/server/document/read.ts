@@ -7,7 +7,7 @@ import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { documentBody } from "./body.ts";
+import { answerBody } from "./answerBody.ts";
 import { readingContext } from "./readingContext.ts";
 import { documentRequests } from "./requests.ts";
 import { documentTargets } from "./targets.ts";
@@ -79,6 +79,7 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 				return referenced ? [[target, { status: referenced.parsed.fields.status, title: titles.get(referenced.file) ?? referenced.file }]] : [];
 			}),
 		);
+		const requests = documentRequests(document, source, current.snapshot);
 		return {
 			...targets,
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
@@ -89,8 +90,8 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
 			referenceDetails,
-			requests: documentRequests(document, source, current.snapshot),
-			source: documentBody(document),
+			requests,
+			source: answerBody(document, requests),
 			unavailable: snapshot.unavailable,
 			writable,
 		} satisfies Document;

@@ -22,6 +22,7 @@ export function shell(
 	identity?: string,
 	view: boolean | "diagnostics" | "overview" | "changes" | "start" | "response" | "handoff" | "result" | "inbox" = false,
 	snapshot?: Snapshot,
+	pageTitle?: string,
 ): string {
 	const viewName = typeof view === "string" ? view : "work";
 	const viewAttribute = view ? ` data-view="${viewName}"` : "";
@@ -52,7 +53,7 @@ export function shell(
 	return [
 		`<!doctype html><html lang="en" data-workspace="${escapeHtml(workspace)}"><head><meta charset="utf-8">`,
 		'<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">',
-		`<title>${escapeHtml(title)}</title>`,
+		`<title>${escapeHtml(pageTitle ?? title)}</title>`,
 		`<script src="${THEME_ROUTE}"></script>`,
 		'<link rel="stylesheet" href="/_board/react.css"><link rel="stylesheet" href="/_board/style.css"><script type="module" src="/_board/react.js"></script>',
 		`</head><body><noscript data-board-fallback><style>html:not([data-js]) figure.diagram .diagram-source{display:block}html:not([data-js]) figure.diagram[data-state="pending"]{min-height:0}</style>${legacy}</noscript>`,

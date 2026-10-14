@@ -1,4 +1,4 @@
-import type { LoaderFnContext } from "@tanstack/react-router";
+import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-router";
 import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/effect-react/router.ts";
@@ -24,6 +24,7 @@ export async function loadBoardPage({
 	const url = location.pathname + location.searchStr;
 	try {
 		const navigation = await loadQuery(registry, navigationQuery(api), { abortController });
+		await redirectResponse(shell, url, location.pathname, abortController);
 		const projection = projectionRoute(location.pathname, navigation.home);
 		if (projection) {
 			await loadProjection(registry, api, projection, url, abortController);
@@ -45,10 +46,25 @@ export async function loadBoardPage({
 		await loadRemaining(registry, api, remainingRoute(location.pathname) ?? "start", url, abortController);
 		return undefined;
 	} catch (error) {
-		if (abortController.signal.aborted) {
+		if (mustRethrow(abortController, error)) {
 			throw error;
 		}
 		// The mounted page owns failure wording and retained-data rendering.
 		return { error };
 	}
+}
+
+async function redirectResponse({ api, registry }: RouterShell, url: string, pathname: string, abortController: AbortController) {
+	if (pathname !== "/_board/respond") {
+		return;
+	}
+	const response = await loadRemaining(registry, api, "respond", url, abortController);
+	if (response && "request" in response) {
+		const item = response.document.identity ?? response.request.preview?.item ?? "";
+		throw redirect({ href: `/_board/item/${encodeURIComponent(item)}/#answer-card-${encodeURIComponent(response.request.id)}`, replace: true });
+	}
+}
+
+function mustRethrow(controller: AbortController, error: unknown) {
+	return controller.signal.aborted || isRedirect(error);
 }

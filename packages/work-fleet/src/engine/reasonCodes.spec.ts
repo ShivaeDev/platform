@@ -17,6 +17,11 @@ const ready: Decision = {
 };
 
 describe("stable decision codes", () => {
+	it("directs a worker answer to the item card", () => {
+		const answer = decisionAnswer({ ...ready, worker: { sessionId: "session", turnId: "turn" } });
+		expect(answer).toContain("item’s answer card");
+		expect(answer).not.toContain("Record your answer below");
+	});
 	it("rewording release-only text preserves the release-only answer", () => {
 		const reworded = Schema.decodeUnknownSync(Decision)({ ...ready, reason: "This pull request belongs to another repository." });
 		expect(reworded.code).toBe(ready.code);

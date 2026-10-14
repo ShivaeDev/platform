@@ -1,11 +1,17 @@
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
 import { shellIds } from "./shellIds.ts";
-export function ResponseHistory({ request }: { readonly request: DocumentRequest | undefined }) {
+export function ResponseHistory({
+	request,
+	id = shellIds.responseHistory,
+}: {
+	readonly request: DocumentRequest | undefined;
+	readonly id?: string | undefined;
+}) {
 	const records = request?.responses ?? [];
 	const preview = request?.preview;
 	return (
-		<section id={shellIds.responseHistory}>
+		<section id={id}>
 			<h2>Recorded responses</h2>
 			{records.length === 0 ? (
 				<p>No response is recorded for this source revision.</p>

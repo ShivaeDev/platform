@@ -4,11 +4,13 @@ import { Effect, FileSystem, Path } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { loadHost, resolveHost } from "#host/config.ts";
 import { hostGuidance } from "#host/guidance.ts";
+import { MainSource } from "#host/mainSource.ts";
 import { hostPolicy } from "#host/runtime.ts";
 import { FleetPolicy } from "#policy.ts";
 import { policyGuidance } from "#policyGuidance.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { withWorkerGuidance } from "#prompt/worker.ts";
+import { MAIN } from "#test/fleetHost.ts";
 
 const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 	role: "worker" | "reviewer",
@@ -26,7 +28,15 @@ const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 		yield* fs.writeFileString(path.join(board, file), text);
 	}
 	const host = yield* loadHost(board);
-	const policy = yield* FleetPolicy.pipe(Effect.provide(hostPolicy(host)));
+	const policy = yield* FleetPolicy.pipe(
+		Effect.provide(hostPolicy(host)),
+		Effect.provideService(MainSource, {
+			current: Effect.succeed(MAIN),
+			observe: () => Effect.die("Guidance does not observe main"),
+			refresh: Effect.succeed(MAIN),
+			repositoryRoot: board,
+		}),
+	);
 	const text = yield* policyGuidance(policy, role);
 	return role === "worker"
 		? withWorkerGuidance("Implement this task", text)

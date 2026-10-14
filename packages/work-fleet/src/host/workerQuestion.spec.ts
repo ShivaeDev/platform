@@ -24,7 +24,8 @@ test("worker questions appear on Board, wait exits needs-human, and an answer co
 			const data = yield* Effect.tryPromise(() =>
 				client.run(client.api.respond.run({ url: `/_board/respond?item=${published.itemId}&request=${published.request}` })),
 			);
-			expect(data.document.source).toContain("Which storage should I use?");
+			expect(data.request.preview?.reason).toContain("Which storage should I use?");
+			expect(data.document.source).not.toContain("Which storage should I use?");
 			expect(data.request.prompts?.map((prompt) => prompt.id) ?? []).not.toContain("fleet-action");
 			const overview = yield* Effect.tryPromise(() => fetch(`${url}/_board/overview`).then((response) => response.text()));
 			expect(overview).toContain(`data-attention-item="${published.itemId}" data-request="${published.request}"`);

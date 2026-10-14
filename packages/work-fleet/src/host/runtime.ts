@@ -13,6 +13,7 @@ import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { hostGuidance } from "#host/guidance.ts";
+import { localOnlyBoardPath } from "#host/localOnlyBoardPath.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
@@ -51,6 +52,8 @@ export function hostPolicy(host: FleetHost) {
 	return Layer.effect(FleetPolicy)(
 		Effect.gen(function* () {
 			const clock = yield* Clock.Clock;
+			const main = yield* MainSource;
+			const localPath = host.provider === "cloud" ? yield* localOnlyBoardPath(host.boardDir, main.repositoryRoot) : undefined;
 			const reviewerGuidance = yield* hostGuidance(host, "reviewer");
 			const workerGuidance = yield* hostGuidance(host, "worker");
 			function now() {
@@ -61,6 +64,7 @@ export function hostPolicy(host: FleetHost) {
 				deliveryBacklog: host.backlog,
 				executionConcurrency: host.concurrency,
 				launch: host.launch,
+				...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
 				now,
 				operationId: () => crypto.randomUUID(),
 				quota: { expiresAt: 0, observedAt: 0 },
@@ -100,7 +104,9 @@ export function fleetHostLayer<TProvider, TMain>(
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
 	return Fleet.layer.pipe(
-		Layer.provideMerge(Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host), integrations, parts.main)),
+		Layer.provideMerge(
+			Layer.mergeAll(repository, sessions, board, parts.policy ?? hostPolicy(host).pipe(Layer.provide(parts.main)), integrations, parts.main),
+		),
 		Layer.provideMerge(hostSql(host)),
 	);
 }

@@ -5,8 +5,7 @@ export interface FormFocus {
 	readonly prompt: string | undefined;
 	readonly start: number | null;
 }
-export function captureFocus(host: HTMLElement): FormFocus | undefined {
-	const control = document.activeElement;
+export function captureFocus(host: HTMLElement, control: Element | null = document.activeElement): FormFocus | undefined {
 	if (!((control instanceof HTMLTextAreaElement || (control instanceof HTMLInputElement && control.type === "text")) && host.contains(control))) {
 		return;
 	}
