@@ -6,6 +6,7 @@ import { ReadingContext } from "./ReadingContext.ts";
 export const DocumentRequest = Schema.Struct({
 	id: Schema.String,
 	open: Schema.Boolean,
+	options: Metadata.to.fields.options,
 	preview: Schema.optional(QuestionPreview),
 	prompts: Schema.optional(
 		Schema.Array(
@@ -18,6 +19,7 @@ export const DocumentRequest = Schema.Struct({
 		),
 	),
 	promptUnavailable: Schema.optional(Schema.String),
+	recommended: Metadata.to.fields.recommended,
 	responses: Schema.optional(Schema.Array(RecordedResponse)),
 	sourceOpen: Schema.optional(Schema.Boolean),
 	title: Schema.optional(Schema.String),
