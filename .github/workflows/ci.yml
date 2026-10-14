@@ -122,7 +122,9 @@ jobs:
       actions: read
     name: tests (${{ matrix.shard }})
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
+    # Main runs every test in one shard to record complete timings, which takes
+    # about nine minutes; pull requests and the merge queue split them across shards.
+    timeout-minutes: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 20 || 10 }}
     strategy:
       fail-fast: false
       matrix:
