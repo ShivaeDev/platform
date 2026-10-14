@@ -45,7 +45,7 @@ it.live("keeps unrelated documents intact and catches up paused source changes w
 	);
 	expect(page.pageRequests.count).toBe(count);
 	expect(page.document.querySelector("#doc p")).toBe(paragraph);
-	page.document.querySelector("#doc details")?.setAttribute("open", "");
+	page.document.querySelector(".board-head > details")?.setAttribute("open", "");
 	click("updates-toggle");
 	notes.write("nested/home.md", "# Home\n\nNew reading.\n\n<details><summary>Keep open</summary>Context</details>");
 	yield* Effect.promise(() => waitFor(() => expect(live()).toMatch(/paused · [1-9]/u)));
@@ -54,7 +54,7 @@ it.live("keeps unrelated documents intact and catches up paused source changes w
 	click("updates-toggle");
 	yield* Effect.promise(() => waitFor(() => expect(text()).toContain("New reading.")));
 	yield* Effect.promise(() => waitFor(() => expect(live()).toBe("live")));
-	expect(page.document.querySelector("#doc details")?.hasAttribute("open")).toBe(true);
+	expect(page.document.querySelector(".board-head > details")?.hasAttribute("open")).toBe(true);
 	expect(page.document.querySelector("#doc [data-live-change]")?.textContent).toBe("New reading.");
 	expect(page.document.querySelector("#doc [data-modified][data-live-change]")).toBeNull();
 });

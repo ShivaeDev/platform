@@ -67,12 +67,20 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 		}
 		const questionActions = yield* readingActions(document, source, writable, identity);
 		const reading = readingContext(document, model, file.path === home);
+		const targets = documentTargets(
+			document,
+			model,
+			Object.values(reading.receipts).map((receipt) => receipt.question),
+		);
+		const titles = new Map(current.snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
+		const referenceDetails = Object.fromEntries(
+			Object.keys(targets.references).flatMap((target) => {
+				const referenced = model.ids.get(target.split("#")[0] ?? "")?.[0];
+				return referenced ? [[target, { status: referenced.parsed.fields.status, title: titles.get(referenced.file) ?? referenced.file }]] : [];
+			}),
+		);
 		return {
-			...documentTargets(
-				document,
-				model,
-				Object.values(reading.receipts).map((receipt) => receipt.question),
-			),
+			...targets,
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
 			file: file.path,
 			...(identity ? { identity } : {}),
@@ -80,6 +88,7 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			modified: file.modified,
 			questionActions: Object.fromEntries(questionActions ?? []),
 			reading,
+			referenceDetails,
 			requests: documentRequests(document, source, current.snapshot),
 			source: documentBody(document),
 			unavailable: snapshot.unavailable,

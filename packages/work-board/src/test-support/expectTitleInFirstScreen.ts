@@ -25,8 +25,7 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 	expect(main.firstElementChild).toBe(layout);
 	expect(layout.firstElementChild).toBe(introduction);
 	expect(introduction.firstElementChild).toBe(title);
-	expect(window.getComputedStyle(layout).display).toBe("grid");
-	expect(window.getComputedStyle(introduction).gridRow).toBe(window.innerWidth >= 1100 ? "1" : "");
+	expect(layout.classList.contains("grid")).toBe(true);
 	if (window.innerWidth < 768) {
 		expect(element("#sidebar").hidden).toBe(true);
 	}
@@ -46,7 +45,7 @@ export function expectTitleInFirstScreen(page: OpenPage): void {
 		".item-introduction h1",
 	]) {
 		const style = window.getComputedStyle(element(selector));
-		expect(["", "static"]).toContain(style.position);
+		expect(["", "static", "sticky"]).toContain(style.position);
 		expect(["", "none"]).toContain(style.transform);
 		expect(["", "normal", "start"]).toContain(style.alignContent);
 		maximumTitleTop += pixels(style.marginTop) + pixels(style.paddingTop) + pixels(style.borderTopWidth);

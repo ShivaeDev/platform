@@ -1,23 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import { Tabs } from "#client/react/components/ui/Tabs.tsx";
 import { Age } from "./Age.tsx";
 import { DocumentMetadata } from "./DocumentMetadata.tsx";
-import { Favorite } from "./Favorite.tsx";
-import { useMedia } from "./useMedia.ts";
+import { DocumentSource } from "./DocumentSource.tsx";
 
 export function DocumentContext({ document: data }: { readonly document: Document }) {
 	const [headings, setHeadings] = useState<readonly { readonly id: string; readonly title: string; readonly depth: number }[]>([]);
-	const contextRef = useRef<HTMLDetailsElement>(null);
-	const wide = useMedia("(min-width: 1100px)");
-	useLayoutEffect(() => {
-		if (contextRef.current) {
-			contextRef.current.open = wide;
-		}
-	}, [wide]);
+	const contextRef = useRef<HTMLElement>(null);
+	const [tab, setTab] = useState("details");
 	useEffect(() => {
 		function outline() {
 			const entries = [
-				...(contextRef.current?.closest("main")?.querySelectorAll<HTMLElement>(".item-introduction h1, article.doc :is(h1,h2,h3,h4,h5,h6)") ?? []),
+				...(contextRef.current
+					?.closest("main")
+					?.querySelectorAll<HTMLElement>(".item-introduction h1, :is(article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)") ?? []),
 			]
 				.filter((heading) => heading.id)
 				.map((heading) => ({ depth: Number(heading.tagName.slice(1)), id: heading.id, title: heading.textContent?.replace(/#$/u, "") ?? "" }));
@@ -33,27 +30,29 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 		if (!context) {
 			return;
 		}
-		const count = context.closest("main")?.querySelectorAll(".item-introduction h1[id], article.doc :is(h1,h2,h3,h4,h5,h6)[id]").length ?? 0;
+		const count =
+			context.closest("main")?.querySelectorAll(".item-introduction h1[id], :is(article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)[id]")
+				.length ?? 0;
 		if (count !== headings.length) {
 			return;
 		}
 		context.dataset.readingReady = "true";
 		document.dispatchEvent(new Event("board-reading-ready"));
 	}, [headings]);
+	const tabs = [
+		{ content: <Outline headings={headings} />, label: "Details", value: "details" },
+		{ content: <SourcePanel document={data} />, label: "Source", value: "source" },
+	];
 	return (
-		<details className="item-context" data-key="item-context" ref={contextRef}>
-			<summary>Context and tools</summary>
-			<div className="context-content">
-				<p className="meta">
-					Source: {data.file} · <Age modified={data.modified} />
-				</p>
-				<DocumentMetadata document={data} />
-				<div className="reading-tools">
-					<Favorite file={data.file} title={headings.find((heading) => heading.depth === 1)?.title || data.file} />
-					<Outline headings={headings} />
-				</div>
-			</div>
-		</details>
+		<aside
+			aria-label="Item context"
+			className="item-context min-w-0 self-start rounded-lg border border-border p-4 text-sm lg:col-start-2 lg:row-start-2"
+			data-key="item-context"
+			ref={contextRef}
+		>
+			<Tabs label="Item context" onValueChange={setTab} tabs={tabs} value={tab} />
+			<DocumentMetadata document={data} />
+		</aside>
 	);
 }
 
@@ -67,11 +66,20 @@ function Outline({ headings }: { readonly headings: readonly { readonly id: stri
 		</li>
 	));
 	return (
-		<details className="outline" data-key="outline">
+		<details className="document-outline" data-key="outline">
 			<summary>On this page</summary>
 			<nav aria-label="Document outline">
 				<ol>{entries}</ol>
 			</nav>
 		</details>
+	);
+}
+
+function SourcePanel({ document }: { readonly document: Document }) {
+	return (
+		<>
+			<DocumentSource document={document} />
+			<Age modified={document.modified} />
+		</>
 	);
 }

@@ -3,6 +3,7 @@ export interface ShellApi {
 	readonly board: Pick<BrowserClient["api"]["board"], "query">;
 	readonly diagnostics: Pick<BrowserClient["api"]["diagnostics"], "query">;
 	readonly document: Pick<BrowserClient["api"]["document"], "query">;
+	readonly fleetItems: Pick<BrowserClient["api"]["fleetItems"], "query">;
 	readonly handoff: Pick<BrowserClient["api"]["handoff"], "query">;
 	readonly history: Pick<BrowserClient["api"]["history"], "query">;
 	readonly inbox: Pick<BrowserClient["api"]["inbox"], "query">;

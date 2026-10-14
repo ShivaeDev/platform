@@ -14,5 +14,5 @@ export function backlinksHtml(file: string, model: MetadataModel): string {
 		model.unavailable.length > 0
 			? "<p>Available source references only; unreadable files prevent complete backlink and identity validation.</p>"
 			: "";
-	return `<section class="work-context" aria-label="Source backlinks"><details data-key="work-backlinks"><summary>Referenced by (${entries.length})</summary>${incomplete}<ul>${entries.map((link) => `<li>${escapeHtml(relationshipLabel(link.kind))}: <a href="${escapeHtml(documentReference(link.file, model))}">${escapeHtml(link.file)}${link.line === undefined ? "" : `:${link.line}`}</a></li>`).join("")}</ul><p>These are explicit source links, not inferred blockers or workflow rules.</p></details></section>`;
+	return `<section class="work-context" aria-label="Source backlinks"><h3>Referenced by (${entries.length})</h3>${incomplete}<ul>${entries.map((link) => `<li>${escapeHtml(relationshipLabel(link.kind))}: <a href="${escapeHtml(documentReference(link.file, model))}">${escapeHtml(link.file)}${link.line === undefined ? "" : `:${link.line}`}</a></li>`).join("")}</ul><p>These are explicit source links, not inferred blockers or workflow rules.</p></section>`;
 }

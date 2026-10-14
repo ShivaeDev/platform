@@ -41,6 +41,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						Effect.andThen(readDocument({ ...options, home, writable: false })(url)),
 						Effect.provideContext(context),
 					),
+				fleetPort: null,
 				home,
 			}).pipe(Effect.provideContext(context));
 		}),

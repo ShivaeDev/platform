@@ -39,7 +39,6 @@ const open = Effect.fn("Test.open")(function* (path: string) {
 effectApp("opens criterion references in place, expands their context, and restores reading state on return", function* () {
 	yield* open("/_board/item/work.search/");
 	page.document.body.dataset.visit = "kept";
-	page.document.querySelector('[data-key="work-metadata"]')?.setAttribute("open", "");
 	click('.work-meta a[href="/_board/item/work.search/#criterion-keyboard"]');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-keyboard")));
 	expect(page.window.location.hash).toBe("#criterion-keyboard");
@@ -53,13 +52,12 @@ effectApp("opens criterion references in place, expands their context, and resto
 	expect(page.document.body.dataset.visit).toBe("kept");
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("work.search")));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
 	expect(page.window.getSelection()?.toString()).toBe("Readable");
 });
 
 effectApp("preserves expanded details and text selection while a stable item is renamed live", function* () {
 	yield* open("/_board/item/work.search/");
-	page.document.querySelector('[data-key="work-metadata"]')?.setAttribute("open", "");
 	page.document.querySelector("article details")?.setAttribute("open", "");
 	const text = page.document.querySelector("article p")?.firstChild;
 	if (!text) {
@@ -69,7 +67,7 @@ effectApp("preserves expanded details and text selection while a stable item is 
 	renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "renamed.md"));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-file")).toBe("renamed.md")));
 	expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBe("work.search");
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
 	expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true);
 	expect(page.window.getSelection()?.toString()).toBe("Readable");
 	expect(page.window.location.pathname).toBe("/_board/item/work.search/");
@@ -100,5 +98,5 @@ effectApp("keeps focus on a criterion opened through search within the active it
 	);
 	input.dispatchEvent(new page.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-keyboard")));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true)));
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true)));
 });

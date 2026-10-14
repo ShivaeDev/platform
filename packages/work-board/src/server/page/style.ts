@@ -102,7 +102,7 @@ const legacyStyle =
 	+ inboxStyle
 	+ board
 	+ diagrams
-	+ readingStyles()
+	+ `@layer legacy {${readingStyles()}}`
 	+ searchStyles
 	+ metadataStyles
 	+ itemStyles()

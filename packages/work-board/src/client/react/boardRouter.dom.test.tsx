@@ -78,7 +78,7 @@ it.live("renders a document from its typed query with React context tools", func
 		yield* Effect.promise(() =>
 			eventually(() => expect(view.container.querySelector("[data-react-document] article.doc")?.textContent).toContain("The design page.")),
 		);
-		expect(view.container.querySelector("[data-react-document] .item-context summary")?.textContent).toBe("Context and tools");
+		expect(view.container.querySelector("[data-react-document] .item-context [role=tab][aria-selected=true]")?.textContent).toBe("Details");
 		expect(view.container.querySelector("#favorite-toggle")).not.toBeNull();
 	} finally {
 		yield* Effect.promise(() => view.unmount());
