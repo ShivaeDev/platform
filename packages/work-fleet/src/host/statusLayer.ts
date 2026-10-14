@@ -63,7 +63,7 @@ export function statusLayer(root: string, healthConfig?: { readonly concurrency:
 			return {
 				...fleet,
 				continue: (workId: string, message: string) => after(fleet.continue(workId, message)),
-				dispatch: (workId: string) => after(fleet.dispatch(workId)),
+				dispatch: (...args: Parameters<typeof fleet.dispatch>) => after(fleet.dispatch(...args)),
 				list: () => after(fleet.list()),
 				prepare: (input: Parameters<typeof fleet.prepare>[0]) => after(fleet.prepare(input)),
 				publishDecision: (workId: string) => after(fleet.publishDecision(workId)),

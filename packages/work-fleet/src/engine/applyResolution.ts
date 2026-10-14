@@ -1,4 +1,6 @@
 import { Effect } from "effect";
+import { approveBrief } from "#engine/approveBrief.ts";
+import { authorizeBriefContext, isChangedBriefDecision } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueWorker } from "#engine/continueWorker.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -37,6 +39,12 @@ function retryOrRelease(state: EngineState) {
 		responses: readonly DecisionResponse[],
 		body: string,
 	) {
+		const publicationWork = stored.value.decision?.publicationWork;
+		if (action === "retry" && isChangedBriefDecision(stored.value) && publicationWork !== undefined) {
+			const work = yield* state.board.get(stored.value.workId);
+			yield* authorizeBriefContext({ boardContext: publicationWork.context, boardRevision: publicationWork.revision }, work);
+			return yield* approveBrief(state)(stored, work, undefined, responses);
+		}
 		const current = yield* resolveExecution(state, stored, action);
 		if (action === "retry") {
 			const rework = yield* retryRework(state)(current, responses, body);

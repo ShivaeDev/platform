@@ -6,7 +6,7 @@ import { postgresTests } from "#test/postgres.ts";
 
 describe("renewal retains unresolved decision publication", () => {
 	const test = postgresTests("test");
-	test("a lost publication response recovers the original context before archival", () =>
+	test("a lost context decision publication recovers its revised brief before archival", () =>
 		withEngine({ noChange: true, publishFailure: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -20,7 +20,7 @@ describe("renewal retains unresolved decision publication", () => {
 				const renewed = yield* prepareWork("one");
 				expect(renewed.value.stage).toBe("prepared");
 				expect(renewed.value.boardRevision).toBe("board-one-next");
-				expect(renewed.value.history?.[0]?.decision?.published?.workRevision).toBe("board-one");
+				expect(renewed.value.history?.[0]?.decision?.published?.workRevision).toBe("board-one-next");
 				expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
 				expect(fixture.launched).toHaveLength(1);
 			}),

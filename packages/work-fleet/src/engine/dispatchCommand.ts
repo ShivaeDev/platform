@@ -1,5 +1,6 @@
 import { Effect, Result } from "effect";
 import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { approveDispatchedBrief } from "#engine/approveBrief.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -10,12 +11,13 @@ import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	const { board, load, save, decision, integrations, policy } = state;
-	return Effect.fn("Fleet.dispatch")(function* (workId: string) {
+	return Effect.fn("Fleet.dispatch")(function* (workId: string, prompt?: string) {
 		let stored = yield* load(workId);
+		const work = yield* board.get(workId);
+		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
 		if (stored.value.stage !== "prepared") {
 			return stored;
 		}
-		const work = yield* board.get(workId);
 		const released = yield* releaseClosedPreparation(state, stored, work);
 		if (released !== undefined) {
 			return released;
