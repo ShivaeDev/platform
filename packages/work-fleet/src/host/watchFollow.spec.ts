@@ -85,3 +85,25 @@ test("watch --follow keeps explicit IDs and reports new decisions with identical
 		),
 	);
 });
+
+for (const ids of [[], ["a"]]) {
+	test(`watch --follow with ${ids.length === 0 ? "all" : "explicit"} IDs reports the same ready decision again after repair`, function* () {
+		yield* withHost({}, {}, (fixture) =>
+			withFollower(fixture.configFile, "watch", ids, { follow: true }, (follower) =>
+				Effect.gen(function* () {
+					yield* Effect.promise(() => follower.ready);
+					const decision = { attentionOwner: "maintainer", code: "reviewed-pr-ready", reason: "Reviewed PR is ready to merge" };
+					const line = "a needs-human (waiting on maintainer): Reviewed PR is ready to merge\n";
+					yield* storeState(fixture.host, "a", { decision, stage: "needs-human" });
+					yield* untilOutput(follower, line);
+					yield* storeState(fixture.host, "a", { decision, stage: "repairing" });
+					yield* Effect.sleep("100 millis");
+					yield* storeState(fixture.host, "a", { decision, stage: "needs-human" });
+					yield* untilOutput(follower, line.repeat(2));
+					expect(follower.output()).toBe(line.repeat(2));
+					expect(follower.isRunning()).toBe(true);
+				}),
+			),
+		);
+	});
+}

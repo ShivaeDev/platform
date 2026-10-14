@@ -26,7 +26,7 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 				pending ??= new Set(states.map((state) => state.workId));
 				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
 					const outcome = outcomeFor(state);
-					if (outcome !== undefined && !(options.follow && initialSnapshot)) {
+					if (outcome !== undefined && !(options.follow && initialSnapshot && state.stage !== "needs-human")) {
 						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
 					}
 				}

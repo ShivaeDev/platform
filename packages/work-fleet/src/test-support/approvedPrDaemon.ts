@@ -46,14 +46,14 @@ function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnTy
 		);
 		return yield* client("fleet.get", { workId: "one" });
 	});
-	function serve<A, E>(use: (client: PrDaemonClient) => Effect.Effect<A, E>) {
+	function serve<A, E>(use: (client: PrDaemonClient, port: number) => Effect.Effect<A, E>) {
 		return Effect.scoped(
 			Effect.gen(function* () {
 				const previous = yield* fleetHealth(fixture.host.boardDir).pipe(Effect.option, Effect.provide(NodeServices.layer));
 				const context = yield* Layer.build(Layer.fresh(daemonLayer(fixture.host, parts, 0)));
 				yield* schedulerReady(fixture.host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
 				const url = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);
-				return yield* use(yield* daemonClient(url));
+				return yield* use(yield* daemonClient(url), Number(new URL(url).port));
 			}),
 		);
 	}
@@ -103,8 +103,10 @@ function approvedPrFixture(fixture: HostFixture, github: Effect.Success<ReturnTy
 		);
 		return { decisionId: decision.id, responseId, workId: "one" };
 	}
-	return { answer, finishWorker, github, PR, provider: fixture.provider, ready, serve, started };
+	return { answer, configFile: fixture.configFile, finishWorker, github, PR, provider: fixture.provider, ready, serve, started };
 }
+
+export type ApprovedPrFixture = ReturnType<typeof approvedPrFixture>;
 
 export function withApprovedPrDaemon<A, E>(use: (fixture: ReturnType<typeof approvedPrFixture>) => Effect.Effect<A, E>) {
 	return Effect.scoped(
