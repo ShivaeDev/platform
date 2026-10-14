@@ -38,13 +38,17 @@ it.live("never uses malformed YAML, raw JSON or embedded key lists as snippets",
 		"boolean.md": '# Context\n\nNeedle captured {"active":true,"ready":false}.\n',
 		"embedded.md": '# Context\n\nCaptured data {"id": "needle", "kind": "task"} ends here.\n',
 		"json.md": '# Context\n\n{"id": "needle", "kind": "task"}\n',
+		"single-quoted.md": "# Context\n\nCaptured data {'id' : 'needle', 'kind' : 'task'} ends here.\n",
 		"spaced.md": '# Context\n\nCaptured data {"id" : "needle", "kind" : "task"} ends here.\n',
+		"unquoted.md": "# Context\n\nCaptured data {id : needle, kind : task} ends here.\n",
 		"yaml.md": "---\nid: needle\nkind: task\nstatus: active\n",
 	};
 	const snapshot = yield* fixtureSnapshot(files, undefined);
 	const results = searchMatch(snapshot.entries, "needle").results;
 	expect(results.length).toBeGreaterThan(0);
+	expect(results.find((entry) => entry.file === "single-quoted.md")?.snippet).toBe("");
 	expect(results.find((entry) => entry.file === "spaced.md")?.snippet).toBe("");
+	expect(results.find((entry) => entry.file === "unquoted.md")?.snippet).toBe("");
 	expect(results.every((entry) => entry.snippet === "")).toBe(true);
 	const readable = yield* fixtureSnapshot({ "note.md": "# Note\n\nA readable needle passage.\n" }, undefined);
 	expect(searchMatch(readable.entries, "needle").results[0]?.snippet).toBe("A readable needle passage.");
