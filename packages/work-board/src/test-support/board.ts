@@ -67,6 +67,7 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 
 export interface RawResponse {
 	readonly body: string;
+	readonly location?: string;
 	readonly status: number;
 }
 
@@ -80,7 +81,9 @@ export function rawGet(board: RunningBoard, path: string, host?: string): Effect
 					response.on("data", (chunk: string) => {
 						body += chunk;
 					});
-					response.on("end", () => resolve({ body, status: response.statusCode ?? 0 }));
+					response.on("end", () =>
+						resolve({ body, ...(response.headers.location ? { location: response.headers.location } : {}), status: response.statusCode ?? 0 }),
+					);
 				});
 				outgoing.on("error", reject);
 				outgoing.end();

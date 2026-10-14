@@ -61,6 +61,8 @@ it("discloses ambiguous document identity to the reader without selecting respon
 			{
 				id: "direction",
 				open: false,
+				sourceOpen: true,
+				title: "Reading experience",
 				unavailable: "Item identity is ambiguous; response history is unknown. Give each item a unique ID, then retry.",
 			},
 		]);

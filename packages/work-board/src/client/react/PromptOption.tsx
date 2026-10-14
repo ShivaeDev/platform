@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
@@ -6,7 +7,6 @@ export function PromptOption({
 	prompt,
 	option,
 	choice,
-	index,
 	checked,
 	choose,
 }: {
@@ -14,12 +14,11 @@ export function PromptOption({
 	readonly prompt: Prompt;
 	readonly option: Prompt["options"][number];
 	readonly choice: number;
-	readonly index: number;
 	readonly checked: boolean;
 	readonly choose: (id: string, checked: boolean) => void;
 }) {
 	const source = document.metadata.options?.[choice];
-	const id = `question-${index}-${choice}`;
+	const id = useId();
 	const control = (
 		<input
 			checked={checked}

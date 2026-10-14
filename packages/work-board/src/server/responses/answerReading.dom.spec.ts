@@ -3,7 +3,6 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
-import { waitFor } from "#test/live.ts";
 import { capturedQuestionnaire, questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
 
 let notes: Folder;
@@ -20,48 +19,29 @@ const open = Effect.fn("Test.open")(function* (source = questionnaireSource, res
 	page = yield* openPage(board, "/_board/item/investigation.choices/");
 });
 
-it.live("starts each open packet with a primary action that opens its existing answer form", function* () {
+it.live("opens an answer card with packet controls through the legacy response URL", function* () {
 	yield* open();
-	const currentPage = page;
-	const questions = [...page.document.querySelectorAll(".questionnaire-question")];
-	expect(questions).toHaveLength(2);
-	expect(page.document.querySelectorAll(".questionnaire-answer")).toHaveLength(1);
-	expect(questions[1]?.querySelector(".questionnaire-answer")).toBeNull();
-	for (const question of questions.slice(0, 1)) {
-		const action = question.firstElementChild?.querySelector("a");
-		expect(action?.textContent).toBe("Answer these questions");
-		expect(action?.classList.contains("questionnaire-answer")).toBe(true);
-		expect(action?.closest("details")).toBeNull();
-		expect(action?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
-		const response = yield* rawGet(board, action?.getAttribute("href") ?? "");
-		expect(response.status).toBe(200);
-		action?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
-		yield* Effect.promise(() => waitFor(() => expect(currentPage.document.querySelector('#response-form input[type="radio"]')).not.toBeNull()));
-		expect(page.document.querySelector('#response-form input[type="checkbox"]')).not.toBeNull();
-	}
+	expect(page.document.querySelectorAll("#answer-card-direction fieldset")).toHaveLength(2);
+	expect(page.document.querySelectorAll("article.doc .questionnaire-question")).toHaveLength(0);
+	expect(page.document.querySelector('#response-form input[type="radio"]')).not.toBeNull();
+	expect(page.document.querySelector('#response-form input[type="checkbox"]')).not.toBeNull();
+	const response = yield* rawGet(board, "/_board/respond?item=investigation.choices&request=direction");
+	expect(response.status).toBe(302);
+	expect(response.location).toBe("/_board/item/investigation.choices/#answer-card-direction");
 });
 
-it.live.each([
-	["responses disabled", questionnaireSource, false],
-	["request closed", questionnaireSource.replace("state: open", "state: closed"), true],
-] as const)("keeps options readable without control affordances with %s", function* ([_label, source, responses]) {
-	yield* open(source, responses);
+it.live("shows an answer card with recording disabled in read-only mode", function* () {
+	yield* open(questionnaireSource, false);
+	expect(page.document.querySelectorAll("#answer-card-direction fieldset")).toHaveLength(2);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-status")?.textContent).toContain("Read-only mode");
+});
+
+it.live("retains the readable packet when its request is closed", function* () {
+	yield* open(questionnaireSource.replace("state: open", "state: closed"));
+	expect(page.document.querySelector("#answer-card-direction")).toBeNull();
 	expect(page.document.querySelector(".questionnaire-answer")).toBeNull();
-	const css = (yield* rawGet(board, "/_board/style.css")).body;
-	const stylesheet = page.document.createElement("style");
-	stylesheet.textContent = css;
-	page.document.head.append(stylesheet);
-	const options = [...page.document.querySelectorAll(".questionnaire-option")];
-	expect(options).toHaveLength(4);
-	for (const option of options) {
-		expect(option.querySelector("input, button, label, [role=radio], [role=checkbox]")).toBeNull();
-		expect(option.hasAttribute("tabindex")).toBe(false);
-		const style = page.window.getComputedStyle(option);
-		expect(style.cursor).not.toBe("pointer");
-		expect(style.borderTopStyle).not.toBe("solid");
-		expect(style.borderLeftStyle).toBe("solid");
-	}
-	expect(css).not.toMatch(/\.questionnaire-option[^{}]*(?:::before|::after|:hover)/u);
+	expect(page.document.querySelectorAll(".questionnaire-option")).toHaveLength(4);
 });
 
 it.live.each(["managed", "registered", "needs-human"])("links an open packet from Inbox straight to the response form (%s)", function* (mode) {
@@ -81,16 +61,19 @@ it.live.each(["managed", "registered", "needs-human"])("links an open packet fro
 	expect(links[0]?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=direction");
 });
 
-it.live.each(["open", "closed"])("keeps actions scoped to their own requests when the second request is %s", function* (state) {
+it.live.each(["open", "closed"])("keeps answer cards scoped when the second request is %s", function* (state) {
 	yield* open(scopedQuestionnaire.replace("kind: review\n    state: open", `kind: review\n    state: ${state}`));
-	const questions = [...page.document.querySelectorAll(".questionnaire-question")];
-	expect(questions[0]?.querySelector(".questionnaire-answer")?.getAttribute("href")).toBe(
-		"/_board/respond?item=investigation.choices&request=direction",
-	);
-	const second = questions[1]?.querySelector(".questionnaire-answer");
+	const first = page.document.querySelector("#answer-card-direction");
+	expect(first?.querySelector('[data-prompt="display"]')).not.toBeNull();
+	expect(first?.querySelector('[data-prompt="checks"]')).toBeNull();
+	const second = page.document.querySelector("#answer-card-verification");
 	if (state === "closed") {
 		expect(second).toBeNull();
+		expect(page.document.querySelectorAll(".questionnaire-question")).toHaveLength(1);
 	} else {
-		expect(second?.getAttribute("href")).toBe("/_board/respond?item=investigation.choices&request=verification");
+		expect(first?.querySelector("fieldset")?.getAttribute("data-mode")).toBe("one");
+		expect(second?.querySelector("fieldset")?.getAttribute("data-mode")).toBe("many");
+		const ids = [...page.document.querySelectorAll(".answer-cards [id]")].map((element) => element.id);
+		expect(new Set(ids).size).toBe(ids.length);
 	}
 });

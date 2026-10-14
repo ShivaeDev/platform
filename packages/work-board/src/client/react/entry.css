@@ -207,3 +207,15 @@
 		@apply opacity-100;
 	}
 }
+
+@media (min-width: 1024px) {
+	.document-layout:has(> .answer-cards) > :is(aside, article, .board) {
+		grid-row-start: 3;
+	}
+}
+
+.answer-cards > .response-panel {
+	max-width: 72ch;
+	padding: 1rem;
+	margin: 0;
+}

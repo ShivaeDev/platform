@@ -46,7 +46,7 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 	);
 	try {
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector(selector)?.textContent).toContain(text)));
-		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind);
+		expect(view.container.querySelector("main")?.dataset.projection).toBe(kind === "respond" ? undefined : kind);
 		expect(view.container.querySelector("[data-legacy-main]")).toBeNull();
 		expect(view.container.textContent).not.toContain("Legacy HTML must not be shown");
 		expect(page).not.toHaveBeenCalled();
@@ -60,12 +60,12 @@ it.live.each(routes)("renders $kind from typed queries without an HTML page requ
 	}
 });
 it.live("updates Respond context while retaining answer text, node and caret", function* () {
-	const url = "/_board/respond?item=task.fixture&request=direction";
+	const url = "/_board/item/task.fixture/";
 	let refresh: (() => void) | undefined;
 	const sources = { ...files };
 	const view = yield* Effect.promise(() =>
 		renderBoard(sources, (api, registry) => {
-			refresh = () => registry.refresh(api.respond.query({ url }, routeQueryOptions));
+			refresh = () => registry.refresh(api.document.query({ url }, routeQueryOptions));
 			const router = boardRouter({ api, initial: "", registry });
 			router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
 			return <RouterProvider router={router} />;
@@ -86,7 +86,7 @@ it.live("updates Respond context while retaining answer text, node and caret", f
 		sources["task.md"] += "\nChanged reviewed context.\n";
 		yield* Effect.promise(() => act(async () => refresh?.()));
 		yield* Effect.promise(() =>
-			eventually(() => expect(view.container.querySelector(".response-context")?.textContent).toContain("Changed reviewed context")),
+			eventually(() => expect(view.container.querySelector("article.doc")?.textContent).toContain("Changed reviewed context")),
 		);
 		expect(view.container.querySelector("#response-form textarea")).toBe(body);
 		expect(body.value).toBe("Keep my response");

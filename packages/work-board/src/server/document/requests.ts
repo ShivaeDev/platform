@@ -1,12 +1,13 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
-import { authoredQuestion } from "#server/attention/inbox.ts";
+import { authoredQuestion, openItem } from "#server/attention/inbox.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import { requestSource } from "#server/responses/requestSource.ts";
 import { questionTemplate } from "#server/responses/template.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { requestTitle } from "./requestTitle.ts";
 
 export function documentRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
 	const item = document.parsed.fields.id;
@@ -28,7 +29,13 @@ export function documentRequests(document: MetadataDocument, source: string, sna
 			reviewedRevision,
 			source: document.file,
 		};
-		const request = { id, open: active !== undefined, ...(active ? { preview } : {}) };
+		const request = {
+			id,
+			open: active !== undefined,
+			sourceOpen: requestOpenInSource(document, id),
+			title: requestTitle(document, snapshot, id),
+			...(active ? { preview } : {}),
+		};
 		try {
 			if (snapshot.model.ids.get(item)?.length !== 1) {
 				throw new ServiceUnavailable({ message: "Item identity is ambiguous; response history is unknown. Give each item a unique ID, then retry." });
@@ -43,4 +50,11 @@ export function documentRequests(document: MetadataDocument, source: string, sna
 			return { ...request, unavailable: error instanceof Error ? error.message : String(error) };
 		}
 	});
+}
+
+function requestOpenInSource(document: MetadataDocument, id: string): boolean {
+	if (authoredQuestion(document) && id === "answer") {
+		return openItem(document);
+	}
+	return document.parsed.fields.attention?.find((entry) => entry.id === id)?.state === "open";
 }

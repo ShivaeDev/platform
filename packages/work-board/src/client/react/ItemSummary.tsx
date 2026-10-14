@@ -10,6 +10,9 @@ const icons = { board: PanelsTopLeft, goal: Flag, question: MessageCircle, repor
 function kindIcon(kind: string) {
 	return Object.entries(icons).find(([name]) => name === kind)?.[1] ?? FileText;
 }
+function visibleIdentity(id: string | undefined) {
+	return Boolean(id) && !/[a-f\d]{64}/iu.test(id ?? "");
+}
 export function ItemSummary({ document }: { readonly document: Document }) {
 	const fleet = useContext(FleetItemsContext);
 	const fields = document.metadata;
@@ -20,7 +23,7 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 			<div className="flex flex-wrap items-center gap-2">
 				<Icon aria-hidden="true" className="size-4" />
 				<span>{fields.kind ?? "Document"}</span>
-				{Boolean(fields.id) && (
+				{visibleIdentity(fields.id) && (
 					<a className="font-mono text-xs" href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined}>
 						{fields.id}
 					</a>

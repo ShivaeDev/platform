@@ -3,7 +3,7 @@ import type { Decision } from "#policy.ts";
 
 export function decisionAnswer(input: Decision) {
 	if (input.worker !== undefined) {
-		return "Record your answer below to continue the worker in its existing thread. Use a guided release answer or the release command to free terminal ownership instead.";
+		return "Record your answer on this item’s answer card to continue the worker in its existing thread. Use a guided release answer or the release command to free terminal ownership instead.";
 	}
 	const explanation = releaseOnly(input.code);
 	const retryText = "Retry after the blocker is resolved under trusted runtime policy.";

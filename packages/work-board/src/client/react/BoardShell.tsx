@@ -10,7 +10,7 @@ import { FleetMain } from "./FleetMain.tsx";
 import { Header } from "./Header.tsx";
 import { HistoryRetention } from "./HistoryRetention.tsx";
 import { LiveControls } from "./LiveControls.tsx";
-import { bootstrapPage, type MainLocation } from "./mainLocation.ts";
+import { bootstrapPage, displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { SearchDialog } from "./SearchDialog.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -40,7 +40,7 @@ export function BoardShell(options: ShellOptions) {
 	const location = useRouterState({ select: (state) => state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
-		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };
+		return displayedLocation(doc);
 	});
 	const [bootstrapHome] = useState(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
@@ -48,10 +48,7 @@ export function BoardShell(options: ShellOptions) {
 	});
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
-	const onPage = useCallback(
-		(next: MainLocation) => setMain((previous) => (previous.file === next.file && previous.view === next.view ? previous : next)),
-		[],
-	);
+	const onPage = useCallback((next: MainLocation) => setMain((previous) => (sameMainLocation(previous, next) ? previous : next)), []);
 	useEffect(() => {
 		function start() {
 			const doc = document.getElementById("doc");
@@ -72,7 +69,7 @@ export function BoardShell(options: ShellOptions) {
 		function sync() {
 			const doc = document.getElementById("doc");
 			if (doc) {
-				onPage({ file: doc.dataset.file ?? "", view: doc.dataset.view ?? "" });
+				onPage(displayedLocation(doc));
 			}
 		}
 		document.addEventListener("board-page", sync);

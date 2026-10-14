@@ -13,7 +13,7 @@ export const templateHtml = Effect.fn("WorkBoard.templateHtml")(function* (conte
 	}
 	const background = yield* render(template.context);
 	const fields = metadataParse(context).fields;
-	const choicePrompt = fields.kind === "question" && !fields.question && fields.options !== undefined ? template.prompts.at(0) : undefined;
+	const choicePrompt = fields.options !== undefined && !fields.question ? template.prompts.at(0) : undefined;
 	if (choicePrompt) {
 		return { background, controls: optionControls(choicePrompt, fields), hasPrompts: true };
 	}

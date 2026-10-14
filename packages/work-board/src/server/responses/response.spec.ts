@@ -5,7 +5,6 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
-import { renderRemaining } from "#test/remainingRendering.tsx";
 import { outsideResponseDirectory } from "#test/responseFiles.ts";
 import { agentRequest } from "./agent.ts";
 import { questionFrom, questionMarkdown } from "./records.ts";
@@ -82,9 +81,9 @@ it.live("requires explicit write opt-in and rejects source forms at the HTTP bou
 	expect(forged.status).toBe(403);
 	const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 	expect(page.headers.get("content-security-policy")).toContain("form-action 'none'");
-	expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/respond?item=investigation.model&request=review-model"))).toContain(
-		"Exact source being reviewed",
-	);
+	const html = yield* Effect.promise(() => page.text());
+	expect(html).toContain('id="answer-card-review-model"');
+	expect(html).toContain("Original frontmatter");
 });
 
 it.live("publishes one durable question and response, leaves original bytes unchanged, and reconciles repeated writes", function* () {
