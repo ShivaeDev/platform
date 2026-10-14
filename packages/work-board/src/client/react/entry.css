@@ -1,6 +1,7 @@
 @layer theme, base, legacy, components, utilities;
 
 @import "tailwindcss" source("./");
+@import "./command-palette.css";
 
 @source "../document";
 

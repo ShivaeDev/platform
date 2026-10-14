@@ -138,6 +138,7 @@ export function BoardShell(options: ShellOptions) {
 					appearance={appearance}
 					close={search.close}
 					open={search.open}
+					openLibrary={() => setLibraryOpen(true)}
 					returnFocus={search.returnFocus}
 					toggleSidebar={sidebar.toggle}
 				/>

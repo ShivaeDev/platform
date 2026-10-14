@@ -22,9 +22,12 @@ import { documentRejections } from "./rejections.ts";
 const Entry = Schema.Struct({
 	file: Schema.String,
 	href: Schema.String,
+	id: Schema.optional(Schema.String),
+	itemKind: Schema.optional(Schema.String),
 	kind: Schema.Literals(["document", "heading", "passage"]),
 	line: Schema.optional(Schema.Number),
 	snippet: Schema.String,
+	status: Schema.optional(Schema.String),
 	text: Schema.String,
 	title: Schema.String,
 });

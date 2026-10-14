@@ -1,11 +1,14 @@
 import type { Entry } from "./entries.ts";
+import { searchSnippet } from "./snippet.ts";
 
 function normalize(text: string): string {
 	return text.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
 }
 
 export function searchMatch(entries: readonly Entry[], query: string) {
-	const phrase = normalize(query.slice(0, 200));
+	const input = normalize(query.slice(0, 200));
+	const records = input.startsWith("records:");
+	const phrase = records ? input.slice("records:".length).trim() : input;
 	const terms = phrase.split(" ").filter(Boolean).slice(0, 8);
 	if (terms.length === 0) {
 		return { results: [], total: 0 };
@@ -13,14 +16,14 @@ export function searchMatch(entries: readonly Entry[], query: string) {
 	const matches = entries
 		.flatMap((entry, order) => {
 			const text = normalize(entry.text);
-			if (!terms.every((term) => text.includes(term))) {
+			if ((!records && entry.record) || !terms.every((term) => text.includes(term))) {
 				return [];
 			}
-			const at = Math.max(0, entry.text.toLowerCase().indexOf(terms[0] ?? ""));
-			const start = Math.max(0, at - 50);
-			const snippet = (start ? "…" : "") + entry.text.slice(start, start + 180) + (entry.text.length > start + 180 ? "…" : "");
-			const ranks = { document: 0, heading: 2, passage: 4 };
-			const rank = ranks[entry.kind] + (text.includes(phrase) ? 0 : 1);
+			const identity = normalize(`${entry.title} ${entry.id ?? ""}`);
+			const titleMatch = entry.kind === "document" && terms.every((term) => identity.includes(term));
+			const ranks = { document: 2, heading: 4, passage: 6 };
+			const rank = (entry.record ? 10 : 0) + (titleMatch ? 0 : ranks[entry.kind]) + (text.includes(phrase) ? 0 : 1);
+			const snippet = searchSnippet(entry.kind === "document" ? entry.title : entry.text, terms[0] ?? "");
 			return [{ entry: { ...entry, snippet }, order, rank }];
 		})
 		.sort((left, right) => left.rank - right.rank || left.order - right.order);
