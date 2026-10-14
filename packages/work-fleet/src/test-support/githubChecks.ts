@@ -26,9 +26,20 @@ export function checkRun(overrides: Partial<CheckRun> = {}): CheckRun {
 export function commitStatus(overrides: Partial<Status> = {}): Status {
 	return { context: "legacy", state: "success", targetUrl: "https://example.invalid/logs/legacy", ...overrides };
 }
-export function githubFixture(repository = "example/project") {
+export function githubFixture(repository = "example/project", branch = "main") {
 	const requests: string[] = [];
 	const responses = new Map<string, string>();
+	function required(names: readonly string[]) {
+		responses.set(
+			`repos/${repository}/rules/branches/${encodeURIComponent(branch)}`,
+			JSON.stringify([
+				names.length === 0
+					? []
+					: [{ parameters: { "required_status_checks": names.map((context) => ({ context })) }, type: "required_status_checks" }],
+			]),
+		);
+	}
+	required([]);
 	function reply(head: string, runs: readonly (readonly CheckRun[])[], statuses: readonly (readonly Status[])[] = [[]]) {
 		const commit = `repos/${repository}/commits/${head}`;
 		responses.set(
@@ -47,5 +58,5 @@ export function githubFixture(repository = "example/project") {
 			return response === undefined ? Effect.fail(new ServiceUnavailable({ message: "Synthetic GitHub request failed" })) : Effect.succeed(response);
 		});
 	}
-	return { checks: makeGithubChecks(read), read, reply, requests, responses };
+	return { checks: makeGithubChecks(read, branch), read, reply, requests, required, responses };
 }

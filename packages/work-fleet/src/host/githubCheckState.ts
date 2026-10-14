@@ -35,7 +35,13 @@ function statusState(state: string): Observation["state"] {
 	}
 	return ["error", "failure"].includes(state) ? "fail" : "pending";
 }
-export function githubCheckState(head: string, pr: string, checks: typeof CheckPages.Type, statuses: typeof StatusPages.Type): Checks {
+export function githubCheckState(
+	head: string,
+	pr: string,
+	checks: typeof CheckPages.Type,
+	statuses: typeof StatusPages.Type,
+	required: readonly string[],
+): Checks {
 	const observations: Observation[] = [
 		...checks.flatMap((page) =>
 			page.checkRuns.map((check) => ({ name: check.name, state: checkState(check), url: check.detailsUrl ?? check.htmlUrl })),
@@ -50,11 +56,18 @@ export function githubCheckState(head: string, pr: string, checks: typeof CheckP
 			),
 		),
 	];
-	const evidence = observations.map((check) => `${check.name}: ${check.state} ${check.url}`);
-	const failures = observations.filter((check) => check.state === "fail");
-	const pending = failures.length === 0 && (observations.length === 0 || observations.some((check) => check.state === "pending"));
+	function isRequired(name: string) {
+		return required.length === 0 || required.includes(name);
+	}
+	const evidence = observations.map((check) => `${check.name}${isRequired(check.name) ? "" : " (non-required)"}: ${check.state} ${check.url}`);
+	const gates = observations.filter((check) => isRequired(check.name));
+	const missing = required.filter((name) => !gates.some((check) => check.name === name));
+	evidence.push(...missing.map((name) => `${name}: pending (required check has not reported)`));
+	const failures = gates.filter((check) => check.state === "fail");
+	const pending = failures.length === 0 && (gates.length === 0 || missing.length > 0 || gates.some((check) => check.state === "pending"));
 	return {
 		evidence,
+		failedChecks: [...new Set(failures.map((check) => check.name))].sort(),
 		head,
 		passed: failures.length === 0 && !pending,
 		pending,

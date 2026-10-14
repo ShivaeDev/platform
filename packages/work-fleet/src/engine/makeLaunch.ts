@@ -44,6 +44,7 @@ export function makeLaunch(state: EngineState) {
 		);
 		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
+			checkFailures: launchRole === "repair" && stored.value.stage === "repairing" ? stored.value.checks?.failedChecks : undefined,
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
 			providerFailures: stored.value.launchRetry?.rejections,

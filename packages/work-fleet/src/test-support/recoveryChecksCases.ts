@@ -38,6 +38,9 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 				if (!restored && endpoint.includes(fault.endpoint)) {
 					return fault.body;
 				}
+				if (endpoint.includes("/rules/branches/")) {
+					return "[[]]";
+				}
 				return endpoint.includes("check-runs") ? healthyChecks : JSON.stringify([{ sha: HEAD, statuses: [] }]);
 			}),
 		);
