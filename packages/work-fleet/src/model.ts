@@ -6,6 +6,7 @@ import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecisio
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
+	checkFailures: Schema.optional(Schema.Array(Schema.String)),
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
 	prompt: Schema.optional(Schema.String),

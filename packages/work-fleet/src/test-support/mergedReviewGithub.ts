@@ -22,6 +22,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	const conclusion = state.failed ? "failure" : "success";
 	return {
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
+		"/repos/example/repository/rules/branches/main": [[]],
 		"/repository": { nameWithOwner: "example/repository" },
 		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
 			{

@@ -29,7 +29,7 @@ export function reviewerNetwork() {
 			expect(diff).toContain("+export const answer = 42;");
 			expect(checks.passed).toBe(true);
 			output = `FLEET_REVIEW: ${JSON.stringify({ evidence: [diff, ...checks.evidence], findings: [], head: result.head, verdict: "approve" })}`;
-			expect(cli.commands).toHaveLength(4);
+			expect(cli.commands).toHaveLength(5);
 			for (const command of cli.commands) {
 				expect(command).toMatchObject({ command: "gh" });
 				if (command._tag === "StandardCommand") {

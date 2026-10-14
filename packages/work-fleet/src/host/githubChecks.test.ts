@@ -3,6 +3,16 @@ import { Effect } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { ADOPTED_HEAD, checkRun, commitStatus, githubFixture, githubResult, NEW_HEAD } from "#test/githubChecks.ts";
 
+it.effect("passes required verify while retaining a failed non-required check as evidence", function* () {
+	const fixture = githubFixture();
+	fixture.required(["verify"]);
+	fixture.reply(ADOPTED_HEAD, [[checkRun({ name: "verify" }), checkRun({ conclusion: "failure", name: "publish" })]]);
+	const checks = yield* fixture.checks(githubResult());
+	expect(checks).toMatchObject({ passed: true, pending: false });
+	expect(checks.repairPrompt).toBeUndefined();
+	expect(checks.evidence).toContain("publish (non-required): fail https://example.invalid/logs/test");
+});
+
 it.effect("reads green check runs and commit statuses from every page of the adopted SHA", function* () {
 	const fixture = githubFixture();
 	fixture.reply(
@@ -17,6 +27,7 @@ it.effect("reads green check runs and commit statuses from every page of the ado
 	expect(fixture.requests).toEqual([
 		`repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`,
 		`repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`,
+		"repos/example/project/rules/branches/main",
 	]);
 });
 
@@ -55,7 +66,7 @@ it.effect("uses the adopted head after a newer push passes and rejects evidence 
 	fixture.reply(NEW_HEAD, [[checkRun({ headSha: NEW_HEAD })]]);
 	fixture.reply(ADOPTED_HEAD, [[checkRun({ conclusion: "failure" })]]);
 	expect(yield* fixture.checks(githubResult())).toMatchObject({ head: ADOPTED_HEAD, passed: false, pending: false });
-	expect(fixture.requests.every((request) => request.includes(ADOPTED_HEAD))).toBe(true);
+	expect(fixture.requests.filter((request) => request.includes("/commits/")).every((request) => request.includes(ADOPTED_HEAD))).toBe(true);
 	fixture.reply(ADOPTED_HEAD, [[checkRun({ headSha: NEW_HEAD })]]);
 	expect(yield* fixture.checks(githubResult()).pipe(Effect.flip)).toMatchObject({
 		_tag: "ServiceUnavailable",

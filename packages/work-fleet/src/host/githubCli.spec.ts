@@ -11,11 +11,12 @@ it.live("runs paginated GET requests with gh and collects the process output", f
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	const cli = githubCli(fixture.responses);
 	expect(yield* githubChecks(githubResult()).pipe(Effect.provide(cli.layer))).toMatchObject({ head: ADOPTED_HEAD, passed: true });
-	expect(cli.commands).toHaveLength(2);
+	expect(cli.commands).toHaveLength(3);
 	expect(cli.commands[0]).toMatchObject({
 		args: ["api", "--method", "GET", "--paginate", "--slurp", `repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`],
 		command: "gh",
 	});
+	expect(cli.commands[2]).toMatchObject({ args: ["api", "--method", "GET", "--paginate", "--slurp", "repos/example/project/rules/branches/main"] });
 });
 
 it.live("rejects nonzero gh exit even when stdout contains green checks", function* () {

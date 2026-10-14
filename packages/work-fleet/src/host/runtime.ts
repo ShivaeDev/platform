@@ -34,7 +34,7 @@ export function hostIntegrations(host: FleetHost) {
 				checks: (_work, result) =>
 					result.kind === "no-change"
 						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
-						: githubChecks(result).pipe(Effect.provide(NodeServices.layer)),
+						: githubChecks(result, host.repository.branch).pipe(Effect.provide(NodeServices.layer)),
 				delivery: githubDelivery(main.repositoryRoot),
 				main: main.observe,
 				result:

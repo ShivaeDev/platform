@@ -85,6 +85,7 @@ export const Review = Schema.Struct({
 export type Review = typeof Review.Type;
 export const Checks = Schema.Struct({
 	evidence: Schema.Array(Schema.String),
+	failedChecks: Schema.optional(Schema.Array(Schema.String)),
 	head: Schema.String,
 	passed: Schema.Boolean,
 	pending: Schema.optional(Schema.Boolean),

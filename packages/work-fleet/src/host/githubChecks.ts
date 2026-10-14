@@ -4,13 +4,14 @@ import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import { CheckPages, githubCheckState, StatusPages } from "#host/githubCheckState.ts";
 import { githubRead } from "#host/githubRead.ts";
+import { githubRequiredChecks } from "#host/githubRequiredChecks.ts";
 import type { WorkResult } from "#policy.ts";
 
 function failure(message: string) {
 	return new ServiceUnavailable({ message });
 }
 
-export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<string, FleetError, R>) {
+export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<string, FleetError, R>, branch = "main") {
 	return Effect.fn("Fleet.githubChecks")(function* (result: WorkResult) {
 		if (result.kind !== "change") {
 			return yield* failure("GitHub checks need an adopted pull request");
@@ -42,8 +43,11 @@ export function makeGithubChecks<R>(read: (endpoint: string) => Effect.Effect<st
 		) {
 			return yield* failure("GitHub checks returned evidence for a different commit SHA");
 		}
-		return githubCheckState(result.head, result.pr, checks, statuses);
+		const required = yield* githubRequiredChecks(read, `${owner}/${repository}`, branch);
+		return githubCheckState(result.head, result.pr, checks, statuses, required);
 	});
 }
 
-export const githubChecks = makeGithubChecks((endpoint) => githubRead(["api", "--method", "GET", "--paginate", "--slurp", endpoint]));
+export function githubChecks(result: WorkResult, branch = "main") {
+	return makeGithubChecks((endpoint) => githubRead(["api", "--method", "GET", "--paginate", "--slurp", endpoint]), branch)(result);
+}
