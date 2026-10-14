@@ -1,6 +1,6 @@
 import { Effect, Tracer } from "effect";
 import { folder, startBoard } from "./board.ts";
-import { documentWorkspace } from "./documentWorkspace.ts";
+import { responseWorkspace } from "./responseWorkspace.ts";
 
 function spanTimings(spans: readonly Tracer.NativeSpan[]) {
 	return spans.flatMap((span) => {
@@ -16,7 +16,7 @@ await Effect.runPromise(
 	Effect.scoped(
 		Effect.gen(function* () {
 			const notes = yield* Effect.acquireRelease(
-				Effect.sync(() => folder(documentWorkspace())),
+				Effect.sync(() => folder(responseWorkspace())),
 				(value) => Effect.sync(value.remove),
 			);
 			const spans: Tracer.NativeSpan[] = [];
@@ -39,7 +39,7 @@ await Effect.runPromise(
 							return fs.readFileString(path, encoding);
 						}),
 				}),
-				false,
+				true,
 				undefined,
 				undefined,
 				undefined,
@@ -72,6 +72,8 @@ await Effect.runPromise(
 			for (const index of [1, 2, 3, 5, 10, 21]) {
 				yield* measure(`rpc-${index}`, () => rpc(`/document-${index}.md`));
 			}
+			yield* measure("decision", () => rpc("/decisions/decision-1.md"));
+			yield* measure("pending-decision", () => rpc("/decisions/decision-9.md"));
 			yield* measure("html", () => fetch(`${board.url}/document-1.md`));
 		}),
 	),
