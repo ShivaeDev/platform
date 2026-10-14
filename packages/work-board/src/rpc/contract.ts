@@ -7,6 +7,7 @@ import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/navigation/schema.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, RespondProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
@@ -14,39 +15,10 @@ import { HistoryInput, HistoryOutput } from "#history/schema.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { index, navigation, watcher, workspace } from "./keys.ts";
+import { PageUrl } from "./PageUrl.ts";
 import { pageKeys } from "./pageKeys.ts";
 import { documentRejections } from "./rejections.ts";
 
-const PageUrl = Schema.String.check(
-	Schema.isMaxLength(8192),
-	Schema.makeFilter((value) => {
-		if (!value.startsWith("/") || value.startsWith("//")) {
-			return "Expected a local reading URL";
-		}
-		try {
-			const path = new URL(value, "http://127.0.0.1").pathname;
-			return (
-				path === "/"
-				|| [
-					"/_board/inbox",
-					"/_board/diagnostics",
-					"/_board/work",
-					"/_board/overview",
-					"/_board/changes",
-					"/_board/start",
-					"/_board/respond",
-					"/_board/handoff",
-					"/_board/result",
-				].includes(path)
-				|| /^\/_board\/item\/[^/]+\/$/u.exec(path) !== null
-				|| /\.md$/iu.exec(path) !== null
-				|| "Expected a local reading URL"
-			);
-		} catch {
-			return "Expected a local reading URL";
-		}
-	}),
-);
 const Entry = Schema.Struct({
 	file: Schema.String,
 	href: Schema.String,
@@ -82,6 +54,7 @@ const ReadOverview = query("overview", {
 const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
 const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
 const ReadFleetItems = query("fleetItems", { reads: () => [workspace.list, index.list], success: FleetItemsProjection });
+const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
 const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
 const ReadRespond = query("respond", {
 	payload: { url: PageUrl },
@@ -134,6 +107,7 @@ export const workContract = contract("work-board", {
 		ReadInbox,
 		ReadDiagnostics,
 		ReadFleetItems,
+		ReadGoals,
 		ReadStart,
 		ReadRespond,
 		ReadHandoff,

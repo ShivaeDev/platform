@@ -20,6 +20,8 @@ A handoff preserves reviewed direction in another readable file. A copied pointe
 
 Returned work needs the same discipline. An authored result and its evidence are claims to inspect. Human direction belongs to the exact report bytes and source path that prompted it; a later edit must not inherit an earlier acceptance. A report iteration can receive human acceptance while a criterion still lacks evidence. The board must keep those facts visible rather than compute a convenient overall success state.
 
+Goal progress is shown as counts of linked work by authored status, and as criteria with their linked work and recorded evidence. Missing status stays not recorded; a goal without linked work stays unlinked. Progress is never a computed overall success state or completion percentage.
+
 ## What good looks like
 
 - **Readable source.** A folder and one command are enough to begin. Plain Markdown remains useful; metadata is optional; no hidden database holds the only meaningful copy of work.
