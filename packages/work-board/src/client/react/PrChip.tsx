@@ -9,7 +9,5 @@ export function PrChip({ url }: { readonly url: string | undefined }) {
 				PR
 			</Badge>
 		</a>
-	) : (
-		<Badge variant="outline">PR not recorded</Badge>
-	);
+	) : null;
 }

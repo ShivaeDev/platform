@@ -1,4 +1,4 @@
-import { type FleetWork, holderOf } from "#browser/views/now.ts";
+import { cardStatus, type FleetWork, holderOf } from "#browser/views/now.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
 import { Card } from "#client/react/components/ui/Card.tsx";
@@ -16,6 +16,7 @@ export function WorkCard({
 	readonly state: State;
 	readonly fleet: FleetWork | undefined;
 }) {
+	const holder = holderOf(item.metadata, fleet);
 	return (
 		<Card className="work-card" data-item={item.id} data-selected={item.id === state.item ? "true" : undefined}>
 			<p className="work-kind">{item.metadata.kind ?? "Kind not recorded"}</p>
@@ -23,11 +24,10 @@ export function WorkCard({
 				<WorkItemTitle item={item} state={state} />
 			</h3>
 			<div className="flex flex-wrap items-center gap-2">
-				<StatusChip status={item.metadata.status} />
-				{Boolean(item.waiting) && <StatusChip status="needs-you" title={item.waiting} />}
+				<StatusChip status={cardStatus(item.metadata, fleet, item.waiting)} title={item.waiting} />
 				<PrChip url={fleet?.prUrl} />
 			</div>
-			<p className="work-owner">Holder: {holderOf(item.metadata, fleet)}</p>
+			{holder && <p className="work-owner">Holder: {holder}</p>}
 			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && (
 				<p className="work-stage">
 					In {fleet.stage} for <Age modified={fleet.stageEnteredAt} short />

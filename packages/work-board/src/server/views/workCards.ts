@@ -1,16 +1,19 @@
 import { escapeHtml } from "#browser/escapeHtml.ts";
-import { compareStatuses, laneOf, nowLanes } from "#browser/views/now.ts";
+import { cardStatus, compareStatuses, holderOf, laneOf, nowLanes } from "#browser/views/now.ts";
+import { fleetApproval } from "./fleetApproval.ts";
 import type { Item } from "./items.ts";
 import { type State, viewUrl } from "./state.ts";
 
 function card(item: Item, state: State, waiting: ReadonlyMap<string, string>): string {
 	const fields = item.document.parsed.fields;
 	const selected = item.id === state.item;
+	const holder = holderOf(fields, undefined);
+	const status = cardStatus(fields, undefined, waiting.get(item.id));
 	return `<article class="work-card" data-key="item:${escapeHtml(item.id)}" data-item="${escapeHtml(item.id)}"${selected ? ' data-selected="true"' : ""}>
- ${waiting.has(item.id) ? `<span class="waiting-badge" title="${escapeHtml(waiting.get(item.id) ?? "")}">Waiting on you</span>` : ""}
  <p class="work-kind">${escapeHtml(fields.kind ?? "Kind not recorded")}</p>
  <h3><a href="${escapeHtml(viewUrl(state, { item: item.id }, "work-detail"))}"${selected ? ' aria-current="true"' : ""}>${escapeHtml(item.title)}</a></h3>
- <p class="work-id">${escapeHtml(item.id)}</p><p class="work-owner">Owner: ${escapeHtml(fields.owner ?? "Not recorded")}</p>
+ <span data-status-token="${escapeHtml(status ?? "")}">${escapeHtml(status ?? "Not recorded")}</span>
+ ${holder ? `<p class="work-owner">Holder: ${escapeHtml(holder)}</p>` : ""}
  ${fields.nextAction ? `<p class="work-next">Next: ${escapeHtml(fields.nextAction)}</p>` : ""}</article>`;
 }
 export function workCards(items: readonly Item[], state: State, waiting: ReadonlyMap<string, string> = new Map()): string {
@@ -18,7 +21,7 @@ export function workCards(items: readonly Item[], state: State, waiting: Readonl
 		return '<p class="empty">No work matches these filters.</p>';
 	}
 	const grouped = Map.groupBy(items, (item) =>
-		state.view === "now" ? laneOf(item.document.parsed.fields, undefined) : item.document.parsed.fields.status,
+		state.view === "now" ? laneOf(item.document.parsed.fields, undefined, fleetApproval(item.document.parsed)) : item.document.parsed.fields.status,
 	);
 	const columns =
 		state.view === "now"

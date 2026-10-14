@@ -1,5 +1,6 @@
 export function workListStyle(): string {
 	return `
+.work-options{margin:12px 0}.work-options>summary{cursor:pointer;width:fit-content}
 .work-columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:16px;overflow-x:auto;padding-bottom:12px}
 .work-now{grid-template-columns:repeat(6,minmax(240px,1fr));grid-auto-columns:auto}
 .work-card-list{height:min(60vh,600px);overflow:auto;padding:2px}

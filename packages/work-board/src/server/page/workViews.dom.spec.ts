@@ -51,6 +51,7 @@ effectApp("navigates boards and selected detail in place and restores URL contex
 	filter("work-board", "board.review");
 	filter("work-status", "value:in-review");
 	submit();
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-head h1")?.textContent).toBe("Review work")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 2 items")));
 	click('[data-item="work.search"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("work-detail")));
@@ -71,6 +72,7 @@ effectApp("keeps filters and unsent search input through live edits and explains
 	filter("work-board", "board.review");
 	filter("work-status", "value:in-review");
 	submit();
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-head h1")?.textContent).toBe("Review work")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".work-total")?.textContent).toContain("1 shown · 2 items")));
 	click('[data-item="work.search"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("work-detail")));

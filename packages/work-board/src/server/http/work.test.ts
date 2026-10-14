@@ -23,11 +23,11 @@ afterEach(() => {
 
 effectApp("projects explicitly shared items without inferring work from legacy headings or board definitions", function* () {
 	const all = yield* rawGet(board, "/_board/work");
-	expect(all.body).toContain("2 shown · 2 items");
+	expect(all.body).toContain("1 shown · 2 items");
 	expect(all.body).not.toContain('data-item="board.review"');
 	expect(all.body).not.toContain("Plain item");
 	const review = yield* rawGet(board, "/_board/work?board=board.review&item=work.search");
-	expect(review.body).toContain("2 shown · 2 items");
+	expect(review.body).toContain("1 shown · 2 items");
 	expect(review.body).toContain('data-item="work.search"');
 	expect(review.body).toContain('href="/evidence.md"');
 	expect(review.body).toContain("not independently verified");
@@ -46,7 +46,7 @@ effectApp("filters exact recorded fields, sorts consistently, and retains detail
 	expect(result.body).toContain("1 shown · 2 items");
 	expect(result.body).toContain("outside the current board or filters");
 	expect(result.body).toContain('data-key="detail:work.other"');
-	const missing = yield* rawGet(board, "/_board/work?board=board.review&owner=missing&status=missing");
+	const missing = yield* rawGet(board, "/_board/work?view=board&board=board.review&owner=missing&status=missing");
 	expect(missing.body).toContain("1 shown · 2 items");
 	expect(missing.body).toContain('data-item="work.unassigned"');
 	const sorted = yield* rawGet(board, "/_board/work?board=board.shared&sort=title");

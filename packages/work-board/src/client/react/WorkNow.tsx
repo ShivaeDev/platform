@@ -14,8 +14,12 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 			? fleet.completed.filter((item) => item.completedAt >= Effect.runSync(Clock.currentTimeMillis) - 604_800_000).map((item) => item.workId)
 			: [],
 	);
-	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id)));
-	const unknownDone = (groups.get(nowLanes[5]) ?? []).filter((item) => !recent.has(item.id)).length;
+	const groups = Map.groupBy(data.rows, (item) => laneOf(item.metadata, items.get(item.id), item.fleetApproved));
+	const shown = data.rows.filter((item) => {
+		const lane = laneOf(item.metadata, items.get(item.id), item.fleetApproved);
+		return lane !== undefined && (lane !== nowLanes[5] || recent.has(item.id));
+	}).length;
+	const total = data.items.filter((item) => item.metadata.kind === "task" && !item.metadata.requestReceipt).length;
 	return (
 		<>
 			{!ready && (
@@ -23,9 +27,9 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 					Fleet is unavailable. Lanes use authored status. {fleet?.state === "unavailable" ? fleet.reason : "Fleet data has not loaded."}
 				</p>
 			)}
-			{Boolean(unknownDone) && (
-				<p className="work-total">{unknownDone} completed items have no recent completion time. Open All work to read them.</p>
-			)}
+			<p className="work-total" role="status">
+				{shown} shown · {total} items in this view
+			</p>
 			<div className="work-columns work-now">
 				{nowLanes.map((lane, index) => {
 					const rows = (groups.get(lane) ?? []).filter((item) => index !== 5 || recent.has(item.id));

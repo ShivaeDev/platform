@@ -13,7 +13,7 @@ it.each(["title", "owner", "status"] as const)("keeps stage lanes fixed under %s
 	const data = nowWork();
 	const authored = data.rows.map((item, index) => ({
 		...item,
-		metadata: { ...item.metadata, status: ["done", "planned", "active", "blocked", "reviewing", "done"][index] },
+		metadata: { ...item.metadata, status: ["planned", "planned", "active", "blocked", "reviewing", "done"][index] },
 	}));
 	const rows = [...authored].sort((left, right) =>
 		sort === "title" ? left.title.localeCompare(right.title) : (left.metadata[sort] ?? "").localeCompare(right.metadata[sort] ?? ""),
@@ -28,7 +28,7 @@ it.each(["title", "owner", "status"] as const)("keeps stage lanes fixed under %s
 		expect([...view.container.querySelectorAll(".work-column")].map((lane) => lane.getAttribute("aria-label"))).toEqual(nowLanes);
 		const card = view.container.querySelector('[aria-label="Executing"] [data-item="task-1"]');
 		expect(card?.querySelector("h3")?.textContent).toBe("Work 5");
-		expect(card?.querySelector("[data-status-token]")?.textContent).toBe("planned");
+		expect(card?.querySelector("[data-status-token]")?.textContent).toBe("executing");
 		expect(card?.textContent).toContain("Holder: Fleet");
 		expect(card?.textContent).toContain("In executing for");
 		expect(card?.querySelector('a[href="https://github.com/example/project/pull/1"]')).not.toBeNull();
@@ -46,7 +46,7 @@ it.each([undefined, { reason: "Stopped daemon", state: "unavailable" } as const]
 	"discloses missing Fleet data and uses authored status",
 	async (fleet) => {
 		const data = nowWork();
-		const statuses = ["planned", "active", "reviewing", "delivering", "needs-human", "done"];
+		const statuses = ["approved", "active", "reviewing", "delivering", "needs-human", "done"];
 		const rows = data.rows.map((item, index) => ({ ...item, metadata: { ...item.metadata, status: statuses[index] } }));
 		const view = await render(
 			<FleetItemsContext.Provider value={fleet}>
@@ -60,7 +60,7 @@ it.each([undefined, { reason: "Stopped daemon", state: "unavailable" } as const]
 					expect(view.container.querySelector(`[aria-label="${lane}"] [data-item="task-${index}"]`)).not.toBeNull();
 				}
 			}
-			expect(view.container.textContent).toContain("no recent completion time");
+			expect(view.container.textContent).not.toContain("no recent completion time");
 			expect(view.container.querySelector(".work-stage")).toBeNull();
 		} finally {
 			await view.unmount();

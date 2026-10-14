@@ -5,14 +5,14 @@ export const nowLanes = ["Queued", "Executing", "Reviewing", "Delivering", "Wait
 export type NowLane = (typeof nowLanes)[number];
 export type FleetWork = Extract<FleetItemsProjection, { state: "ready" }>["items"][number];
 
-const stages: Record<FleetWork["stage"], NowLane> = {
+const stages: Record<FleetWork["stage"], NowLane | undefined> = {
 	adopting: "Executing",
 	completed: "Done in the last 7 days",
 	delivering: "Delivering",
 	executing: "Executing",
 	"needs-human": "Waiting on a person",
 	prepared: "Queued",
-	released: "Queued",
+	released: undefined,
 	repairing: "Reviewing",
 	reviewing: "Reviewing",
 	validating: "Reviewing",
@@ -22,31 +22,47 @@ export function isWork(metadata: Metadata): boolean {
 	return !(metadata.requestReceipt || ["board", "decision", "question", "response", "result"].includes(metadata.kind ?? ""));
 }
 
-export function laneOf(metadata: Metadata, fleet: FleetWork | undefined): NowLane {
+export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approved = false): NowLane | undefined {
+	if (metadata.kind !== "task" || metadata.requestReceipt || ["superseded", "deferred", "cancelled", "canceled"].includes(metadata.status ?? "")) {
+		return undefined;
+	}
+	if (["done", "completed"].includes(metadata.status ?? "") && fleet?.stage !== "completed") {
+		return undefined;
+	}
 	if (fleet) {
 		return stages[fleet.stage];
 	}
-	const status = metadata.status ?? "planned";
-	if (["active", "running", "in-progress", "agent-working", "executing", "adopting"].includes(status)) {
+	const status = metadata.status;
+	if (["active", "running", "in-progress", "agent-working", "executing", "adopting"].includes(status ?? "")) {
 		return "Executing";
 	}
-	if (["blocked", "needs-human", "needs-you", "waiting-on-person"].includes(status)) {
+	if (["blocked", "needs-human", "needs-you", "waiting-on-person"].includes(status ?? "")) {
 		return "Waiting on a person";
-	}
-	if (status === "done" || status === "completed") {
-		return "Done in the last 7 days";
 	}
 	if (status === "in-review") {
 		return "Reviewing";
 	}
-	return Object.entries(stages).find(([stage]) => stage === status)?.[1] ?? "Queued";
+	if (status === "approved" || (approved && [undefined, "planned", "received"].includes(status))) {
+		return "Queued";
+	}
+	return Object.entries(stages).find(([stage]) => stage === status)?.[1];
 }
 
-export function holderOf(metadata: Metadata, fleet: FleetWork | undefined): string {
+export function holderOf(metadata: Metadata, fleet: FleetWork | undefined): string | undefined {
 	if (fleet) {
 		return fleet.attentionOwner && fleet.attentionOwner !== "automation" ? fleet.attentionOwner : "Fleet";
 	}
-	return ["maintainer", "orchestrator"].includes(metadata.owner ?? "") ? (metadata.owner ?? "Not recorded") : "Not recorded";
+	return ["maintainer", "orchestrator"].includes(metadata.owner ?? "") ? metadata.owner : undefined;
+}
+
+export function cardStatus(metadata: Metadata, fleet: FleetWork | undefined, waiting: string | undefined): string | undefined {
+	if (fleet) {
+		if (fleet.stage === "needs-human") {
+			return "needs-you";
+		}
+		return fleet.stage === "completed" ? "done" : fleet.stage;
+	}
+	return waiting ? "needs-you" : metadata.status;
 }
 
 const statusOrder = [
