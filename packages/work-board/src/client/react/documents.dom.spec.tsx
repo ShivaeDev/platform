@@ -94,7 +94,7 @@ it.live("keeps response history readable when a question's prompt template is in
 	}
 });
 
-it.live("renders the default document at the root when no home board is configured", function* () {
+it.live("renders a document at its file URL when no home board is configured", function* () {
 	let pageQuery: unknown;
 	const view = yield* Effect.promise(() =>
 		renderBoard(
@@ -102,7 +102,7 @@ it.live("renders the default document at the root when no home board is configur
 			(api, registry) => {
 				pageQuery = vi.spyOn(api.page, "query");
 				const router = boardRouter({ api, initial: "", registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/"] }) });
+				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: ["/home.md"] }) });
 				return <RouterProvider router={router} />;
 			},
 			{ home: undefined },

@@ -11,6 +11,11 @@ export function loadProjection(
 	abortController: AbortController,
 ) {
 	switch (route) {
+		case "today":
+			return Promise.all([
+				loadQuery(registry, api.inbox.query(undefined, routeQueryOptions), { abortController }),
+				loadQuery(registry, api.goals.query(undefined, routeQueryOptions), { abortController }),
+			]);
 		case "board":
 			return loadQuery(registry, api.board.query({ url }, routeQueryOptions), { abortController });
 		case "work":

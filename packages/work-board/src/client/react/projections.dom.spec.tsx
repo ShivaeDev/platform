@@ -18,7 +18,7 @@ const files = {
 		"---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# A task\n\nTask details.\n",
 };
 const routes = [
-	{ kind: "board", selector: ".board .item", text: "Read task", url: "/" },
+	{ kind: "today", selector: "#needs-you", text: "A question", url: "/" },
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/home.md" },
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/_board/item/board.fixture/" },
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },

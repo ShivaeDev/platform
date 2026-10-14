@@ -28,7 +28,7 @@ function text() {
 const open = Effect.fn("Test.open")(function* () {
 	notes = folder({ "nested/home.md": "# Home\n\nReading.\n\n<details><summary>Keep open</summary>Context</details>", "other.md": "# Other" });
 	board = yield* startBoard(notes.root, "nested/home.md");
-	page = yield* openPage(board);
+	page = yield* openPage(board, "/nested/home.md");
 	yield* Effect.promise(() => waitFor(() => expect(live()).toBe("live")));
 });
 

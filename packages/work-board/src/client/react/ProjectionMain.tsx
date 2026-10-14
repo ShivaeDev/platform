@@ -7,6 +7,7 @@ import { OverviewPage } from "./OverviewPage.tsx";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { ShellApi } from "./ShellApi.ts";
+import { TodayPage } from "./TodayPage.tsx";
 import { WorkPage } from "./WorkPage.tsx";
 export function ProjectionMain({
 	api,
@@ -21,6 +22,15 @@ export function ProjectionMain({
 }) {
 	const options = { onPage, route, url };
 	switch (route) {
+		case "today":
+			return (
+				<ProjectionFrame
+					{...options}
+					atom={api.inbox.query(undefined, routeQueryOptions)}
+					location={(data) => ({ file: "Today", status: data.complete ? 200 : 503, view: "today" })}
+					render={(data) => <TodayPage api={api} data={data} />}
+				/>
+			);
 		case "board":
 			return (
 				<ProjectionFrame

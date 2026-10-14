@@ -4,6 +4,7 @@ import type { Navigation } from "#browser/navigation/schema.ts";
 import { Button } from "#client/react/components/ui/Button.tsx";
 import { buttonVariants } from "#client/react/components/ui/buttonVariants.ts";
 import { cn } from "#client/react/lib/cn.ts";
+import { fileUrl } from "#files/url.ts";
 import { InboxCount } from "./Header.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { NavigationTree } from "./NavigationTree.tsx";
@@ -76,8 +77,13 @@ export function Sidebar({
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" id={shellIds.primaryNavigation}>
 				<a aria-current={home ? "page" : undefined} className={navClass(home)} href="/" id={shellIds.homeOpen}>
-					Home
+					Today
 				</a>
+				{data?.home !== undefined && (
+					<a className={navClass(!home && main.file === data.home.file)} href={fileUrl(data.home.file)} id={shellIds.workspaceNotesOpen}>
+						Workspace notes
+					</a>
+				)}
 				<a
 					aria-current={main.view === "inbox" ? "page" : undefined}
 					className={navClass(main.view === "inbox")}

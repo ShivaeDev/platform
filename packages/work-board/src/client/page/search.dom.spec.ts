@@ -12,7 +12,7 @@ let page: OpenPage;
 const setupBoard = Effect.gen(function* () {
 	notes = folder({ "note.md": "# Plan\n\n## Evidence\n\nKnown phrase.\n\n## Evidence\n\nSecond phrase." });
 	board = yield* startBoard(notes.root);
-	page = yield* openPage(board);
+	page = yield* openPage(board, "/note.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
 });
 

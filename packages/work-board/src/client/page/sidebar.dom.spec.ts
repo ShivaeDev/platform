@@ -45,7 +45,15 @@ it.live.each([1440, 390])("keeps primary rows and the tree independent of five v
 	yield* open(width);
 	const navigation = element("primary-navigation");
 	const rows = [...navigation.children];
-	expect(rows.map((row) => row.id)).toEqual(["home-open", "inbox-open", "overview-open", "work-open", "changes-open", "diagnostics-open"]);
+	expect(rows.map((row) => row.id)).toEqual([
+		"home-open",
+		"workspace-notes-open",
+		"inbox-open",
+		"overview-open",
+		"work-open",
+		"changes-open",
+		"diagnostics-open",
+	]);
 	const files = element("files");
 	for (let index = 2; index <= 6; index += 1) {
 		click(`#files a[href="/notes/topic-${index}.md"]`);
