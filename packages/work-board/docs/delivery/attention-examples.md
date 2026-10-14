@@ -9,13 +9,13 @@ attention:
   - id: keyboard-review
     kind: review
     state: open
-    response_from: [marvin]
+    response_from: [maintainer]
     reason: Review the recorded keyboard evidence before continuing.
     unblocks: [work.search#keyboard]
   - id: matching-decision
     kind: decision
     state: open
-    response_from: [marvin]
+    response_from: [maintainer]
     reason: Choose literal matching or fuzzy matching for the next checkpoint.
     unblocks: [decision.search-matching]
 ```
@@ -61,8 +61,8 @@ The overview groups decisions, reviews and blockers with visible counts, then or
 
 ## Ambiguity and quiet examples
 
-- `status: in-review` with `owner: marvin` and no attention list: no request.
-- `next_action: Ask Marvin`, a finished run, or repeated edits: no request.
+- `status: in-review` with `owner: maintainer` and no attention list: no request.
+- `next_action: Ask Maintainer`, a finished run, or repeated edits: no request.
 - Two `keyboard-review` records on one item: neither wins; show a source issue.
 - Two items with the same ID: do not assign either item's requests.
 - `unblocks: [missing.id]`: show a source issue outside the actionable queue; keep the request readable in its original file.

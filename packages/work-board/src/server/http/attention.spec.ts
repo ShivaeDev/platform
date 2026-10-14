@@ -38,7 +38,7 @@ effectApp("groups multiple explicit judgments and links their reason, recipients
 		["request.fixture", "missing-fixture"],
 	]);
 	expect(response.body).toContain("3 validated open requests");
-	expect(response.body).toContain("marvin, agent-navigation");
+	expect(response.body).toContain("maintainer, agent-navigation");
 	expect(response.body).toContain("Review keyboard evidence before continuing.");
 	expect(response.body).toContain('href="/_board/item/request.search/#attention-request-keyboard-review"');
 	expect(response.body).toContain('href="/_board/item/work.search/#criterion-keyboard"');
@@ -50,7 +50,7 @@ effectApp("groups multiple explicit judgments and links their reason, recipients
 	expect(source.body).toContain("closed");
 	expect(source.body).toContain("does not establish acceptance or record an answer");
 	expect((yield* rawGet(board, "/_board/item/work.search/")).body).toContain("Attention request");
-	expect(JSON.stringify(yield* rpcSearch(board, "keyboard evidence marvin"))).toContain("#attention-request-keyboard-review");
+	expect(JSON.stringify(yield* rpcSearch(board, "keyboard evidence maintainer"))).toContain("#attention-request-keyboard-review");
 	expect((yield* rawGet(board, "/")).body).toContain('href="/_board/overview"');
 });
 

@@ -39,7 +39,7 @@ effectApp("opens the overview from legacy Markdown and preserves queue reading c
 	click('[data-request="keyboard-review"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("attention-request-keyboard-review")));
 	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBeNull();
-	expect(page.document.getElementById("attention-request-keyboard-review")?.textContent).toContain("marvin, agent-navigation");
+	expect(page.document.getElementById("attention-request-keyboard-review")?.textContent).toContain("maintainer, agent-navigation");
 	expect(page.document.querySelector('[data-key="work-metadata"]')?.hasAttribute("open")).toBe(true);
 	click('#attention-request-keyboard-review a[href="/_board/item/work.search/#criterion-keyboard"]');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("criterion-keyboard")));
