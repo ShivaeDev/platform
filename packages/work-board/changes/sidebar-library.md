@@ -4,4 +4,4 @@
 
 ### Breaking
 
-- The navigation query returns destination counts instead of `tree` and `records`; `NavigationFile` and `NavigationFolder` schemas are removed; the `Navigation` schema moves from `browser/navigation/schema.ts` to `browser/Navigation.ts`. The Library query provides filtered documents and immediate folder children on demand.
+- The navigation query returns destination counts instead of `tree` and `records`; `NavigationFile` and `NavigationFolder` schemas are removed. The `Navigation` import at `browser/navigation/schema.ts` remains available. The Library query provides filtered documents and immediate folder children on demand.

@@ -306,7 +306,8 @@ Import the module that defines a name. The package has no root entry; its manife
 | `browser/document/schema.ts`, `browser/document/View.ts` | `Document`, `DocumentRequest`, `DocumentView`, `DocumentViewProps`: source query data and React document rendering |
 | `rpc/responseContract.ts` | `responseContract`: question/read/wait queries and register/record commands |
 | `rpc/handoffContract.ts` | `handoffContract`: source/history queries and reviewed preparation command |
-| `browser/navigation/schema.ts` | `Navigation`, `NavigationFolder`, `NavigationFile`: native navigation result schemas/types |
+| `browser/navigation/schema.ts` | `Navigation`: compact navigation result schema/type |
+| `browser/navigation/library.ts` | `Library`, `LibraryFile`, `LibraryInput`: titled document and folder query schemas |
 | `browser/responses/schema.ts` | Question, response, answer and draft schemas/types |
 | `rpc/rejections.ts` | `documentRejections`, `DocumentRejection`, `responseRejections`, `ResponseRejection`: declared taxonomy and application errors; `PublicationUncertain` and `Unanswered` |
 | `browser/handoffs/schema.ts` | Handoff record, input, reading and source-preview schemas/types |
