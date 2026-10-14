@@ -55,7 +55,7 @@ it("keeps questionnaire input and storage size stable through repeated revised-c
 			expect(answerInput("body").value).toBe("Overall direction");
 			expect(answerPrompt("direction").value).toBe(text);
 			expect(answerPrompt("checks").value).toBe(checks);
-			expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+			expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 			const raw = stored();
 			expect(raw).not.toBeNull();
 			const size = new TextEncoder().encode(raw ?? "").byteLength;

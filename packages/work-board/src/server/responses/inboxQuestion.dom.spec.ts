@@ -67,12 +67,12 @@ it.live("records a recommended option from the item page and updates the live In
 	expect(response.body).toContain("Keep local files");
 });
 
-it.live("keeps the remembered author visible across questions and response details collapsed with one visible answer box", function* () {
+it.live("keeps the remembered author under More across questions with one visible answer box", function* () {
 	yield* open();
 	expect(page.document.querySelector('[data-key="response-details"]')?.hasAttribute("open")).toBe(false);
 	const textareas = [...page.document.querySelectorAll("#response-form textarea")];
 	expect(textareas.filter((field) => !field.closest("details"))).toHaveLength(1);
-	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
+	expect(page.document.querySelector('[name="author"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	for (const name of ["type", "supersedes"]) {
 		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	}

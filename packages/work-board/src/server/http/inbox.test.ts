@@ -86,7 +86,7 @@ it.live("serves the Inbox count on reader pages and exposes waiting work in Over
 	const question = (yield* rawGet(board, "/question.md")).body;
 	expect(question).toContain("Keep local files · Recommended");
 	expect(question).toContain('data-choice="option-1"');
-	expect(question).toContain("Read-only mode");
+	expect(question).toContain("Read-only. Restart with --responses to enable answers.");
 	expect(question).toContain('href="/_board/library"');
 	expect(question).not.toContain('<details data-key="fleet-records">');
 });

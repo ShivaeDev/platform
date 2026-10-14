@@ -13,10 +13,13 @@ export function releaseReceipts(state: EngineState, attempt: Attempt) {
 	}
 	return state.sessions.reconcile({ operationId: attempt.operationId, sessionId: attempt.sessionId }).pipe(
 		Effect.map((receipt) => [receipt]),
-		Effect.catch((error) =>
-			error.terminalReceipts !== undefined && error.terminalReceipts.length > 0
-				? Effect.succeed(error.terminalReceipts)
-				: Effect.fail(new ServiceUnavailable({ message: error.message })),
-		),
+		Effect.catch((error) => {
+			if (error.terminalReceipts !== undefined && error.terminalReceipts.length > 0) {
+				return Effect.succeed(error.terminalReceipts);
+			}
+			return error.code === "session-turn-missing" && error.reason === "ambiguous"
+				? Effect.succeed([])
+				: Effect.fail(new ServiceUnavailable({ message: error.message }));
+		}),
 	);
 }

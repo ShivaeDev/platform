@@ -1,7 +1,6 @@
 import { Clock, Effect, Semaphore } from "effect";
-import { failure } from "#providers/codexRpc.ts";
 import type { codexTurns } from "#providers/codexTurns.ts";
-import type { ContinueSession, ReconcileSession, SessionFailure, SessionReceipt } from "#session/schema.ts";
+import { type ContinueSession, type ReconcileSession, SessionFailure, type SessionReceipt } from "#session/schema.ts";
 
 interface Recovery {
 	readonly lock: Semaphore.Semaphore;
@@ -13,11 +12,16 @@ export function recoverTurn(
 	startTurn: (input: ContinueSession) => Effect.Effect<SessionReceipt, SessionFailure>,
 	graceMs?: number,
 ) {
+	function missingTurn() {
+		return new SessionFailure({
+			code: "session-turn-missing",
+			message: "No matching accepted turn is observable; absence does not authorize replay",
+			reason: "ambiguous",
+		});
+	}
 	const operations = new Map<string, Recovery>();
 	function resumeEmptyThread(input: ContinueSession, emptyThread: boolean) {
-		return emptyThread
-			? startTurn(input)
-			: Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
+		return emptyThread ? startTurn(input) : Effect.fail(missingTurn());
 	}
 	const recover = Effect.fn("Codex.recover")(function* (input: ReconcileSession & { readonly sessionId: string }) {
 		const deadline = (yield* Clock.currentTimeMillis) + (graceMs ?? 0);
@@ -29,7 +33,7 @@ export function recoverTurn(
 				return { sessionId: input.sessionId, turnId };
 			}
 			if (graceMs === undefined || input.resume === undefined) {
-				return yield* Effect.fail(failure("ambiguous", "No matching accepted turn is observable; absence does not authorize replay"));
+				return yield* Effect.fail(missingTurn());
 			}
 			const remaining = deadline - (yield* Clock.currentTimeMillis);
 			if (remaining <= 0) {

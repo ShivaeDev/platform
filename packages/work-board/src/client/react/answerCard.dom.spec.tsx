@@ -105,7 +105,6 @@ it("retains an option and free text through a document query refresh and records
 		expect(input.value).toBe("Use the reviewed version.");
 		expect(document.activeElement).toBe(input);
 		expect([input.selectionStart, input.selectionEnd]).toEqual([4, 7]);
-		responseClick("preview");
 		await act(async () => responseClick("submit"));
 		await eventually(() => expect(document.getElementById("response-status")?.textContent).toContain("Saved:"));
 		expect(mutate).toHaveBeenCalledTimes(2);
@@ -162,10 +161,7 @@ it("puts the recommendation and primary PR action above secondary human choices 
 		expect(link?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 		expect(link?.classList.contains("bg-primary")).toBe(true);
 		expect(link?.compareDocumentPosition(card?.querySelector("fieldset") ?? document.body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect([...(card?.querySelectorAll(".question-choice strong") ?? [])].map((label) => label.textContent)).toEqual([
-			"Request changes (retry)",
-			"Release",
-		]);
+		expect([...(card?.querySelectorAll(".question-choice strong") ?? [])].map((label) => label.textContent)).toEqual(["Request changes", "Release"]);
 		expect(card?.querySelector<HTMLInputElement>('[name="author"]')?.value).toBe("Last reviewer");
 		expect(card?.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("false");
 		expect(card?.textContent).not.toContain("Add your local author label.");
@@ -177,6 +173,7 @@ it("puts the recommendation and primary PR action above secondary human choices 
 		expect(card?.textContent).not.toContain("Add your local author label.");
 		await act(async () => card?.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 		await eventually(() => expect(card?.querySelector('[name="author"]')?.getAttribute("aria-invalid")).toBe("true"));
+		await eventually(() => expect(card?.querySelector('details[data-key="response-details"]')).toHaveProperty("open", true));
 		expect(card?.textContent).toContain("Add your local author label.");
 	} finally {
 		await view.unmount();
