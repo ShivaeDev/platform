@@ -5,6 +5,7 @@ import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
+import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { settleMergedDelivery } from "#engine/settleMergedDelivery.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, ChangeResult, WorkResult } from "#policy.ts";
@@ -71,6 +72,13 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 ) {
 	const record = stored.value;
 	const observed = yield* state.integrations.delivery(result).pipe(Effect.result);
+	if (Result.isSuccess(observed) && observed.success !== undefined && !executing(record)) {
+		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
+	}
+	const released = yield* releaseClosedDelivery(state, stored);
+	if (released !== undefined) {
+		return released;
+	}
 	if (Result.isFailure(observed)) {
 		return ["delivering", "needs-human"].includes(record.stage) && !deliveryPending(record)
 			? yield* observeDeliveryFailure(state, stored, result, observed.failure)
@@ -78,9 +86,6 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	if (executing(record)) {
 		return stored;
-	}
-	if (observed.success !== undefined) {
-		return yield* settleMergedDelivery(state, stored, result, observed.success, deliveryPending(record));
 	}
 	if (
 		deliveryPending(record)
@@ -97,4 +102,11 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	yield* validateReview(record, record.review, result.head);
 	yield* validateChecks(record.checks, result.head);
 	return yield* awaitHumanMerge(state, stored, result.head);
+});
+
+const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
+	if (stored.value.stage !== "needs-human" || executing(stored.value)) {
+		return undefined;
+	}
+	return yield* releaseClosedPreparation(state, stored, yield* state.board.get(stored.value.workId));
 });
