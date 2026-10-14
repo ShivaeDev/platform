@@ -15,6 +15,8 @@ export function InboxPage({ data }: { readonly data: InboxProjection }) {
 				<h2>Waiting on you</h2>
 				<InboxContent data={data} />
 			</section>
+			<InboxGroup items={data.resolved} title="Resolved elsewhere" />
+			<InboxGroup items={data.parked} title="Parked" />
 		</>
 	);
 }
@@ -29,7 +31,19 @@ function InboxContent({ data }: { readonly data: InboxProjection }) {
 			</p>
 		);
 	}
-	return data.items.map((item) => <InboxRow item={item} key={item.file} />);
+	return data.items.map((item) => <InboxRow item={item} key={`${item.file}:${item.href}`} />);
+}
+function InboxGroup({ items, title }: { readonly items: InboxProjection["items"]; readonly title: string }) {
+	return items.length > 0 ? (
+		<details className="inbox-group">
+			<summary>
+				{title} ({items.length})
+			</summary>
+			{items.map((item) => (
+				<InboxRow item={item} key={`${item.file}:${item.href}`} />
+			))}
+		</details>
+	) : null;
 }
 function InboxRow({ item }: { readonly item: InboxProjection["items"][number] }) {
 	return (
@@ -39,6 +53,11 @@ function InboxRow({ item }: { readonly item: InboxProjection["items"][number] })
 					<a href={item.href}>{item.title}</a>
 				</h3>
 				<p>{item.reason}</p>
+				{Boolean(item.earlierAsks) && (
+					<p>
+						{item.earlierAsks} earlier {item.earlierAsks === 1 ? "ask" : "asks"}
+					</p>
+				)}
 				{Boolean(item.problem) && (
 					<p className="inbox-problem" role="status">
 						{item.problem} — open the source to resolve it.

@@ -24,19 +24,21 @@ export const WorkProjection = Schema.Struct({
 	validBoard: Schema.Boolean,
 });
 export type WorkProjection = typeof WorkProjection.Type;
+const InboxItem = Schema.Struct({
+	earlierAsks: Schema.optional(Schema.Number),
+	file: Schema.String,
+	href: Schema.String,
+	id: Schema.String,
+	modified: Schema.optional(Schema.Number),
+	problem: Schema.optional(Schema.String),
+	reason: Schema.String,
+	title: Schema.String,
+});
 export const InboxProjection = Schema.Struct({
 	complete: Schema.Boolean,
-	items: Schema.Array(
-		Schema.Struct({
-			file: Schema.String,
-			href: Schema.String,
-			id: Schema.String,
-			modified: Schema.optional(Schema.Number),
-			problem: Schema.optional(Schema.String),
-			reason: Schema.String,
-			title: Schema.String,
-		}),
-	),
+	items: Schema.Array(InboxItem),
+	parked: Schema.Array(InboxItem),
+	resolved: Schema.Array(InboxItem),
 	sourceIssues: Schema.Boolean,
 });
 export type InboxProjection = typeof InboxProjection.Type;

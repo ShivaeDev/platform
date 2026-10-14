@@ -123,6 +123,8 @@
 			"import": "./dist/attention/RequestReceipt.js",
 			"default": "./dist/attention/RequestReceipt.js"
 		},
+		"./attention/requestInbox.ts": null,
+		"./attention/status.ts": null,
 		"./diagnostics/*.ts": {
 			"types": "./dist/server/diagnostics/*.d.ts",
 			"source": "./src/server/diagnostics/*.ts",

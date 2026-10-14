@@ -3,6 +3,7 @@ import { NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { BoardProjection, InboxProjection, OverviewProjection, WorkProjection } from "#browser/views/schema.ts";
 import { stateOf } from "#browser/views/state.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
+import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
 import { boardOf, countsOf } from "#server/render/board.ts";
@@ -49,9 +50,15 @@ export function projectionQueries({ index, document }: { readonly index: Handler
 	};
 }
 function inboxProjection(snapshot: Snapshot): InboxProjection {
+	const requests = requestInbox(snapshot);
+	function project({ document, ...item }: ReturnType<typeof inboxItems>[number]) {
+		return { ...item, file: document.file };
+	}
 	return {
 		complete: snapshot.unavailable.length === 0,
-		items: inboxItems(snapshot).map(({ document, ...item }) => ({ ...item, file: document.file })),
+		items: inboxItems(snapshot).map(project),
+		parked: requests.parked.map(project),
+		resolved: requests.resolved.map(project),
 		sourceIssues: snapshot.model.documents.some((document) => (snapshot.model.diagnostics.get(document.file)?.length ?? 0) > 0),
 	};
 }

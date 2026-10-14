@@ -7,13 +7,14 @@ import { inboxHtml } from "./inboxHtml.ts";
 
 it("collects human-owned next actions, open questions, needs-human work and managed Fleet requests once", () => {
 	const snapshot = inboxSnapshot();
-	expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.fleet", "task.review", "question.storage", "decision.delivery"]);
+	expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.review", "question.storage", "task.fleet"]);
 	const html = inboxHtml(snapshot);
 	expect(html.match(/>Waiting on you</gu)).toHaveLength(1);
 	expect(html).toContain("Casey: Review the keyboard evidence");
 	expect(html).toContain("A question needs your answer");
 	expect(html).toContain('href="/_board/respond?item=question.storage&amp;request=answer"');
-	expect(html).toContain("Fleet needs a person: Confirm the deployment target");
+	expect(html).toContain("Deployment is blocked");
+	expect(html.match(/class="inbox-row"/gu)).toHaveLength(3);
 	expect(html).toContain("Managed decision: Delivery needs approval");
 	expect(html).toContain('data-modified="3000"');
 });
