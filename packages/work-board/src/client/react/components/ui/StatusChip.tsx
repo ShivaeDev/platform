@@ -1,24 +1,9 @@
 import { cva } from "class-variance-authority";
-import { Ban, Check, Circle, CircleHelp, CirclePause, Clock, Inbox, LoaderCircle, MessageCircle, Users } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "#client/react/lib/cn.ts";
 import { Badge } from "./Badge.tsx";
+import { statusPresentation } from "./statusPresentation.ts";
 
-const statuses = {
-	active: { icon: LoaderCircle, token: "agent-working" },
-	"agent-working": { icon: LoaderCircle, token: "agent-working" },
-	blocked: { icon: Ban, token: "blocked" },
-	deferred: { icon: CirclePause, token: "deferred" },
-	done: { icon: Check, token: "done" },
-	"in-progress": { icon: LoaderCircle, token: "agent-working" },
-	"needs-human": { icon: MessageCircle, token: "needs-you" },
-	"needs-you": { icon: MessageCircle, token: "needs-you" },
-	planned: { icon: Circle, token: "deferred" },
-	received: { icon: Inbox, token: "deferred" },
-	running: { icon: LoaderCircle, token: "agent-working" },
-	superseded: { icon: Clock, token: "deferred" },
-	"waiting-on-agents": { icon: Users, token: "waiting-on-agents" },
-} as const;
 const colors = cva("", {
 	variants: {
 		status: {
@@ -31,11 +16,8 @@ const colors = cva("", {
 		},
 	},
 });
-function known(status: string): status is keyof typeof statuses {
-	return Object.hasOwn(statuses, status);
-}
 export function StatusChip({ status, className, ...props }: ComponentProps<"span"> & { readonly status: string | undefined }) {
-	const value = status && known(status) ? statuses[status] : ({ icon: CircleHelp, token: "deferred" } as const);
+	const value = statusPresentation(status);
 	const Icon = value.icon;
 	return (
 		<Badge className={cn(colors({ status: value.token }), className)} data-status-token={value.token} variant="outline" {...props}>

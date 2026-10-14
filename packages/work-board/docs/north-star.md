@@ -20,7 +20,7 @@ A handoff preserves reviewed direction in another readable file. A copied pointe
 
 Returned work needs the same discipline. An authored result and its evidence are claims to inspect. Human direction belongs to the exact report bytes and source path that prompted it; a later edit must not inherit an earlier acceptance. A report iteration can receive human acceptance while a criterion still lacks evidence. The board must keep those facts visible rather than compute a convenient overall success state.
 
-Goal progress is shown as counts of linked work by authored status, and as criteria with their linked work and recorded evidence. Missing status stays not recorded; a goal without linked work stays unlinked. Progress is never a computed overall success state or completion percentage.
+Goal progress is shown as counts of linked work by authored status, and as criteria with their linked work and recorded evidence. Missing status stays not recorded; a goal without linked work stays unlinked. The goal page puts those counts, criteria and linked work before the authored prose, with an outline rail for reading. Each implementing item appears once in the work table; untargeted criteria say “not linked”. Fleet stages and PRs remain separate from authored status and criterion evidence. Progress is never a computed overall success state or completion percentage.
 
 ## What good looks like
 

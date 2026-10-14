@@ -1,8 +1,9 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
 import { DocumentPage } from "./DocumentPage.tsx";
+import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
-export function WorkDetail({ data }: { readonly data: WorkProjection }) {
+export function WorkDetail({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const { state, selected } = data;
 	if (!state.item) {
 		return null;
@@ -28,7 +29,7 @@ export function WorkDetail({ data }: { readonly data: WorkProjection }) {
 					</p>
 				</>
 			) : (
-				<DocumentPage document={selected} key={selected.identity ?? selected.file} />
+				<DocumentPage api={api} document={selected} key={selected.identity ?? selected.file} />
 			)}
 		</aside>
 	);

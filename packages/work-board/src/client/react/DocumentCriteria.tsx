@@ -25,11 +25,11 @@ function Criterion({ document, index }: { readonly document: Document; readonly 
 	return (
 		<li id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
 			<code>{criterion.id}</code>: {criterion.text}
-			<Claims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
+			<CriterionClaims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
 		</li>
 	);
 }
-function Claims({ document, id, valid }: { readonly document: Document; readonly id: string; readonly valid: boolean }) {
+export function CriterionClaims({ document, id, valid }: { readonly document: Document; readonly id: string; readonly valid: boolean }) {
 	const claims = document.reading?.claims[id] ?? [];
 	if (!valid) {
 		return <p>Evidence association requires unique item/criterion IDs and a readable workspace. Acceptance is not established.</p>;

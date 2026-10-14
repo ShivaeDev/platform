@@ -1,11 +1,12 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
+import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
 import { WorkControls } from "./WorkControls.tsx";
 import { WorkDetail } from "./WorkDetail.tsx";
 import { WorkResults } from "./WorkResults.tsx";
 import { WorkTools } from "./WorkTools.tsx";
-export function WorkPage({ data }: { readonly data: WorkProjection }) {
+export function WorkPage({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const { state } = data;
 	const source = `/_board/item/${encodeURIComponent(state.board)}/`;
 	return (
@@ -19,7 +20,7 @@ export function WorkPage({ data }: { readonly data: WorkProjection }) {
 			<WorkTools state={state} />
 			<WorkControls data={data} key={viewUrl(state)} />
 			{data.validBoard ? (
-				<WorkContent data={data} />
+				<WorkContent api={api} data={data} />
 			) : (
 				<p className="empty">
 					{state.board} is missing, has a duplicate ID, or is not a declared board. Choose another board or open its{" "}
@@ -29,7 +30,7 @@ export function WorkPage({ data }: { readonly data: WorkProjection }) {
 		</>
 	);
 }
-function WorkContent({ data }: { readonly data: WorkProjection }) {
+function WorkContent({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const issues = data.issues.map((issue) => <li key={issue}>{issue}</li>);
 	return (
 		<>
@@ -52,7 +53,7 @@ function WorkContent({ data }: { readonly data: WorkProjection }) {
 					)}
 					<WorkResults data={data} />
 				</section>
-				<WorkDetail data={data} />
+				<WorkDetail api={api} data={data} />
 			</div>
 		</>
 	);

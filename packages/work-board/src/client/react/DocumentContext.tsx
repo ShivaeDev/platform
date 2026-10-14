@@ -46,7 +46,7 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 	return (
 		<aside
 			aria-label="Item context"
-			className="item-context min-w-0 self-start rounded-lg border border-border p-4 text-sm lg:col-start-2 lg:row-start-2"
+			className="item-context row-start-3 min-w-0 self-start rounded-lg border border-border p-4 text-sm lg:col-start-2 lg:row-start-2"
 			data-key="item-context"
 			ref={contextRef}
 		>

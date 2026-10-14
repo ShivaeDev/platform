@@ -38,6 +38,7 @@ const components: Components = {
 
 export interface DocumentViewProps {
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
+	readonly content?: ReactNode;
 	readonly context?: ReactNode;
 	readonly document: Document;
 	readonly idPrefix?: string;
@@ -46,16 +47,22 @@ export interface DocumentViewProps {
 
 const LayoutContext = createContext<{
 	readonly context: ReactNode;
+	readonly content: ReactNode;
 	readonly introduction: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
 }>({
+	content: null,
 	context: null,
 	file: "",
 	identified: false,
 	introduction: null,
 });
-const layoutComponents: Components = { ...components, header: LayoutHeader };
+const layoutComponents: Components = { ...components, article: LayoutArticle, header: LayoutHeader };
+function LayoutArticle({ node, children, ...props }: React.ComponentProps<"article"> & import("react-markdown").ExtraProps) {
+	const { content } = useContext(LayoutContext);
+	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
+}
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
 	const { context, introduction, file, identified } = useContext(LayoutContext);
 	const header = createElement("header", props, children);
@@ -74,7 +81,7 @@ function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, introduction, board }: DocumentViewProps) {
+export function DocumentView({ document, idPrefix = "", context, content, introduction, board }: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -101,7 +108,7 @@ export function DocumentView({ document, idPrefix = "", context, introduction, b
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
+				{ value: { content, context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
 				createElement(
 					MarkdownHooks,
 					{
