@@ -36,7 +36,7 @@ function details(root: Element) {
 	});
 }
 function inForm() {
-	return document.activeElement?.closest("#response-form, #handoff-form");
+	return document.activeElement?.closest("[data-response-form], #response-form, #handoff-form");
 }
 export function captureReading(): ReadingState | undefined {
 	const root = document.getElementById("doc");
@@ -116,6 +116,10 @@ export function scrollToPassage(hash: string) {
 		if (parent instanceof HTMLDetailsElement) {
 			parent.open = true;
 		}
+	}
+	if (target.matches('[id^="answer-card-"]')) {
+		const header = target.closest(".document-layout")?.querySelector(".item-introduction");
+		target.style.scrollMarginTop = `${(header?.getBoundingClientRect().height ?? 0) + 16}px`;
 	}
 	target.scrollIntoView();
 	target.focus({ preventScroll: true });

@@ -46,17 +46,17 @@ function preview() {
 	page.document.getElementById("response-preview")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true }));
 }
 
-it.live("renders safe rich context and enables one batch only when every prompt has a choice or human text", function* () {
+it.live("keeps authored markup outside answer controls and records one batch when every prompt has a choice or human text", function* () {
 	yield* open();
 	expect(page.document.querySelectorAll("fieldset[data-prompt]")).toHaveLength(2);
 	expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
-	expect(page.document.querySelector("#forged")).toBeNull();
-	expect(page.document.querySelector(".response-context strong")?.textContent).toBe("reasoning");
+	expect(page.document.querySelector(".answer-cards #forged")).toBeNull();
+	expect(page.document.querySelector("article.doc strong")?.textContent).toBe("reasoning");
 	yield* Effect.promise(() => waitFor(() => expect(page.mermaid.calls.length).toBeGreaterThan(0)));
 	text('[name="author"]', "maintainer");
 	yield* formEvent(page, () => choice("history"));
 	yield* formEvent(page, () => preview());
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	text('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
 	yield* formEvent(page, () => preview());
 	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);

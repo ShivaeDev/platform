@@ -1,40 +1,62 @@
-import type { Document } from "#browser/document/schema.ts";
-import { fileUrl } from "#files/url.ts";
+import type { Document, DocumentRequest } from "#browser/document/schema.ts";
+import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
+import { AnswerContext } from "./AnswerContext.tsx";
 import { AnswerForm } from "./AnswerForm.tsx";
 import { ResponseHistory } from "./ResponseHistory.tsx";
+import { ResponseMarkdown } from "./ResponseMarkdown.tsx";
+
 export function AnswerPanel({ document: data }: { readonly document: Document }) {
-	const request = data.requests.find((entry) => entry.id === "answer");
-	const preview = request?.preview;
-	const unavailable = request?.unavailable ?? request?.promptUnavailable;
-	const open = !["closed", "done", "completed", "cancelled", "canceled", "resolved", "released"].includes(
-		data.metadata.status?.trim().toLowerCase() ?? "",
+	const requests = data.requests.filter(
+		(request) => request.open || (request.id === "answer" && data.metadata.kind === "question" && data.metadata.question === undefined),
 	);
-	let title = "Answer unavailable";
-	if (!open) {
-		title = "Question closed";
-	} else if (preview && !unavailable) {
-		title = "Answer this question";
-	}
+	return requests.length > 0 ? (
+		<div className="answer-cards col-span-full space-y-4">
+			{requests.map((request) => (
+				<AnswerCard document={data} key={request.id} request={request} />
+			))}
+		</div>
+	) : null;
+}
+function AnswerCard({ document: data, request }: { readonly document: Document; readonly request: DocumentRequest }) {
+	const preview = request.preview;
+	const unavailable = request.unavailable ?? request.promptUnavailable;
+	const closed = request.sourceOpen === false;
 	return (
-		<section className="response-panel">
-			<h2>{title}</h2>
-			{!open && <p role="status">This question is closed. Recorded answers remain below.</p>}
+		<section
+			aria-labelledby={`answer-title-${request.id}`}
+			className="response-panel rounded-lg border border-border bg-card p-4"
+			id={`answer-card-${request.id}`}
+			tabIndex={-1}
+		>
+			<h2 id={`answer-title-${request.id}`}>{cardTitle(request, closed)}</h2>
+			{!(request.open || unavailable) && (
+				<p role="status">
+					{closed ? "This question is closed. Recorded answers remain below." : "Answer unavailable. Check the source diagnostics."}
+				</p>
+			)}
 			{Boolean(unavailable) && <p role="status">{unavailable}</p>}
-			{open && preview !== undefined && request !== undefined && !unavailable && (
+			{request.open && preview !== undefined && (
 				<>
-					<p>{preview.reason}</p>
-					<p>
-						<a href={fileUrl(preview.source)}>Source: {preview.source}</a> · Reviewed SHA-256: <code>{preview.reviewedRevision}</code>
-					</p>
-					<p>An answer removes this question from the Inbox for this source revision.</p>
-					<details>
-						<summary>Exact source being reviewed</summary>
-						<pre>{preview.context}</pre>
-					</details>
-					<AnswerForm document={data} preview={preview} request={request} />
+					<AnswerContext preview={preview} />
+					<div className="answer-reason">
+						<ResponseMarkdown file={data.file} source={reasonMarkdown(preview.reason)} />
+					</div>
 				</>
 			)}
-			{!request?.unavailable && <ResponseHistory request={request} />}
+			{request.open && preview && !unavailable && <AnswerForm document={data} preview={preview} request={request} />}
+			{!request.unavailable && (
+				<ResponseHistory
+					id={data.requests.filter((entry) => entry.open).length > 1 ? `response-history-${request.id}` : undefined}
+					request={request}
+				/>
+			)}
 		</section>
 	);
+}
+
+function cardTitle(request: DocumentRequest, closed: boolean) {
+	if (request.open) {
+		return `Answer: ${request.title ?? "this question"}`;
+	}
+	return closed ? "Question closed" : "Answer unavailable";
 }

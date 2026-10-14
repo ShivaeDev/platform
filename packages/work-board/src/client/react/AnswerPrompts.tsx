@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer } from "#browser/responses/schema.ts";
@@ -14,13 +14,24 @@ interface PromptProps {
 	readonly form: Model;
 	readonly onEdit: (index: number, answer: PromptAnswer) => void;
 	readonly prompts: readonly Prompt[];
+	readonly showErrors: boolean;
 }
 export function AnswerPrompts(props: PromptProps) {
 	return props.prompts.map((prompt, index) => <PromptField {...props} index={index} key={prompt.id} prompt={prompt} />);
 }
-function PromptField({ document, prompt, index, answers, form, onEdit }: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
+function PromptField({
+	document,
+	prompt,
+	index,
+	answers,
+	form,
+	onEdit,
+	showErrors,
+}: PromptProps & { readonly prompt: Prompt; readonly index: number }) {
+	const errorId = useId();
 	const answer = answers[index] ?? { prompt: prompt.id, selected: [], text: "" };
-	const error = useAtomValue(form.errorAt(["answers", index, "text"]));
+	const validation = useAtomValue(form.errorAt(["answers", index, "text"]));
+	const error = showErrors ? validation : undefined;
 	const ref = useRef<HTMLTextAreaElement>(null);
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const choices = document.metadata.options;
@@ -60,7 +71,6 @@ function PromptField({ document, prompt, index, answers, form, onEdit }: PromptP
 						choice={choice}
 						choose={choose}
 						document={document}
-						index={index}
 						key={option.id}
 						option={option}
 						prompt={prompt}
@@ -75,7 +85,7 @@ function PromptField({ document, prompt, index, answers, form, onEdit }: PromptP
 			<label>
 				{choices ? "Another answer / additional text" : "Additional text / another answer"}
 				<textarea
-					aria-describedby={`answer-${index}-error`}
+					aria-describedby={`${errorId}-error`}
 					aria-invalid={Boolean(error)}
 					data-answer-text
 					maxLength={8192}
@@ -84,7 +94,7 @@ function PromptField({ document, prompt, index, answers, form, onEdit }: PromptP
 					rows={choices ? 4 : 3}
 					value={answer.text}
 				/>
-				<span className="response-field-error" hidden={!error} id={`answer-${index}-error`}>
+				<span className="response-field-error" hidden={!error} id={`${errorId}-error`}>
 					{message}
 				</span>
 			</label>

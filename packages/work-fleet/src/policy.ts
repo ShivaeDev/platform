@@ -99,6 +99,7 @@ export interface FleetConfiguration {
 	readonly deliveryBacklog?: number;
 	readonly executionConcurrency?: number;
 	readonly launch?: LaunchSettings;
+	readonly localOnlyBoardPath?: string;
 	readonly now: () => number;
 	readonly operationId: () => string;
 	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };

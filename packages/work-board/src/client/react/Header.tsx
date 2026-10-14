@@ -48,7 +48,7 @@ export function Header({
 				<PanelLeft aria-hidden="true" />
 				<span className="hidden sm:inline">Files</span>
 			</Button>
-			<Breadcrumbs file={main.file} />
+			<Breadcrumbs file={main.title ?? main.file} />
 			<a
 				aria-current={main.view === "inbox" ? "page" : undefined}
 				aria-label="Inbox"

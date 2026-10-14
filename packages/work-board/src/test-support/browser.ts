@@ -48,11 +48,15 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const mermaidRequests: string[] = [];
 	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve() };
 	const streams: RpcStream[] = [];
+	const response = yield* rawGet(board, path);
+	const resolved = new URL(response.location ?? path, board.url);
+	const activePath = resolved.pathname + resolved.search;
+	const html = response.location ? (yield* rawGet(board, activePath)).body : response.body;
 	const theme = yield* rawGet(board, THEME_ROUTE);
 	const browser = new Browser({
 		settings: {
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: pageFetch({ mermaidRequests, pageRequests, path, streams, theme }) },
+			fetch: { interceptor: pageFetch({ mermaidRequests, pageRequests, path: activePath, streams, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
@@ -60,9 +64,8 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const window = page.mainFrame.window;
 	const mermaid: MermaidControl = { calls: [], configs: [], gate: Promise.resolve() };
 	Object.assign(window, { mermaidStub: mermaid });
-	page.url = `${board.url}${path}`;
+	page.url = resolved.href;
 	yield* Effect.addFinalizer(() => Effect.promise(close));
-	const html = (yield* rawGet(board, path)).body;
 	const prepared = beforeScripts(window, mermaid);
 	if (Effect.isEffect(prepared)) {
 		yield* prepared;

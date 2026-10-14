@@ -36,6 +36,10 @@ function preview() {
 it.live("names missing prompts and author beside their controls and clears each corrected warning without losing answers", function* () {
 	yield* open();
 	const status = page.document.getElementById("response-status");
+	expect(status?.textContent).not.toContain("Add your local author label.");
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
 	expect(status?.textContent).toContain("Question 1 · display; Question 2 · checks");
 	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
 	const display = answer("display", "Retain the complete history.");
@@ -43,7 +47,7 @@ it.live("names missing prompts and author beside their controls and clears each 
 	yield* formEvent(page, () => preview());
 	expect(status?.textContent).toContain("Add your local author label.");
 	expect(page.document.querySelector('[name="author"] + .response-field-error')?.textContent).toBe("Add your local author label.");
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	yield* formEvent(page, () =>
 		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
 	);

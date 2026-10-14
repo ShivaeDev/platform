@@ -20,7 +20,7 @@ export function scheduleReading(
 		}
 		restored = true;
 		document.removeEventListener("board-reading-ready", restore);
-		if (focus && !document.activeElement?.closest("#response-form, #handoff-form")) {
+		if (focus && !document.activeElement?.closest("[data-response-form], #response-form, #handoff-form")) {
 			doc.focus({ preventScroll: true });
 		}
 		const passage = hash ? `#${hash}` : "";

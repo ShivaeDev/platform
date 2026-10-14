@@ -1,4 +1,5 @@
 import type { Document } from "#browser/document/schema.ts";
+import { fileUrl } from "#files/url.ts";
 import { keyed } from "./keyed.ts";
 import { Reference } from "./Reference.tsx";
 export function DocumentAttention({ document }: { readonly document: Document }) {
@@ -28,6 +29,9 @@ function Request({ document, index }: { readonly document: Document; readonly in
 		document.metadata.attention?.filter((entry) => entry.id === request.id).length === 1
 			? `attention-request-${request.id}`
 			: `attention-record-${index}`;
+	const respond = document.requests.some((entry) => entry.id === request.id && entry.open)
+		? `#answer-card-${request.id}`
+		: `/_board/respond?item=${encodeURIComponent(document.metadata.id ?? "")}&request=${encodeURIComponent(request.id)}`;
 	const targets = request.unblocks.map((target, targetIndex) => (
 		<span key={target}>
 			{targetIndex > 0 && ", "}
@@ -49,22 +53,20 @@ function Request({ document, index }: { readonly document: Document; readonly in
 					</p>
 				</>
 			)}
-			<p>{request.reason}</p>
+			{!document.requests.some((entry) => entry.id === request.id && entry.open) && <p>{request.reason}</p>}
 			<p>Response needed from: {request.responseFrom.join(", ")}</p>
 			<p>Recorded to unblock: {targets}</p>
 			<p>
 				{receipt === undefined && (
 					<>
-						<a href={`/_board/respond?item=${encodeURIComponent(document.metadata.id ?? "")}&request=${encodeURIComponent(request.id)}`}>
-							Respond to this request
-						</a>{" "}
-						·{" "}
+						<a href={respond}>Respond to this request</a> ·{" "}
 					</>
 				)}
 				<a href={`/_board/item/${encodeURIComponent(document.metadata.id ?? "")}/`}>Reviewed item</a>
 			</p>
 			<p>
-				Source: {document.file}:{document.reading?.lines[`attention.${index}`] ?? document.reading?.lines.attention ?? 2}
+				Source: {/[a-f\d]{64}/iu.test(document.file) ? <a href={fileUrl(document.file)}>Open source file</a> : document.file}:
+				{document.reading?.lines[`attention.${index}`] ?? document.reading?.lines.attention ?? 2}
 			</p>
 		</li>
 	);

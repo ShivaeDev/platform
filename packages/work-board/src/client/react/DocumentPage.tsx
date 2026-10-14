@@ -7,16 +7,12 @@ import { ItemSummary } from "./ItemSummary.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	return (
-		<>
-			<DocumentView
-				content={api && document.metadata.kind === "project" ? <GoalPage api={api} document={document} /> : undefined}
-				context={<DocumentContext document={document} />}
-				document={document}
-				introduction={<ItemSummary document={document} />}
-			/>
-			{document.metadata.kind === "question" && document.metadata.question === undefined && document.identity !== undefined && (
-				<AnswerPanel document={document} />
-			)}
-		</>
+		<DocumentView
+			answer={<AnswerPanel document={document} />}
+			content={api && document.metadata.kind === "project" ? <GoalPage api={api} document={document} /> : undefined}
+			context={<DocumentContext document={document} />}
+			document={document}
+			introduction={<ItemSummary document={document} />}
+		/>
 	);
 }

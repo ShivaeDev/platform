@@ -116,9 +116,8 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 		page.document.querySelector(".inbox-row a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-form")).not.toBeNull()));
-	expect(page.window.location.pathname).toBe("/_board/respond");
-	expect(new URL(page.window.location.href).searchParams.get("item")).toBe("question.storage");
-	expect(new URL(page.window.location.href).searchParams.get("request")).toBe("answer");
+	expect(page.window.location.pathname).toBe("/_board/item/question.storage/");
+	expect(page.window.location.hash).toBe("#answer-card-answer");
 	const location = page.window.location.href;
 	notes.write("question.md", inboxQuestion.replace("status: open", "status: closed"));
 	yield* Effect.promise(() =>
@@ -134,7 +133,7 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 		page.document.getElementById("inbox-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("inbox")));
-	expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0)));
 });
 
 it.live("updates both Inbox counts when a question closes while an unrelated document stays mounted", function* () {

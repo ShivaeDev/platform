@@ -207,3 +207,25 @@
 		@apply opacity-100;
 	}
 }
+
+.document-layout:has(> .answer-cards) > .answer-cards {
+	grid-row-start: 2;
+}
+.document-layout:has(> .answer-cards) > :is(article, .board) {
+	grid-row-start: 3;
+}
+.document-layout:has(> .answer-cards) > aside {
+	grid-row-start: 4;
+}
+
+@media (min-width: 1024px) {
+	.document-layout:has(> .answer-cards) > :is(aside, article, .board) {
+		grid-row-start: 3;
+	}
+}
+
+.answer-cards > .response-panel {
+	max-width: 72ch;
+	padding: 1rem;
+	margin: 0;
+}

@@ -37,6 +37,7 @@ const components: Components = {
 };
 
 export interface DocumentViewProps {
+	readonly answer?: ReactNode;
 	readonly board?: readonly { readonly count: number; readonly title: string }[];
 	readonly content?: ReactNode;
 	readonly context?: ReactNode;
@@ -46,12 +47,14 @@ export interface DocumentViewProps {
 }
 
 const LayoutContext = createContext<{
+	readonly answer: ReactNode;
 	readonly context: ReactNode;
 	readonly content: ReactNode;
 	readonly introduction: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
 }>({
+	answer: null,
 	content: null,
 	context: null,
 	file: "",
@@ -64,7 +67,7 @@ function LayoutArticle({ node, children, ...props }: React.ComponentProps<"artic
 	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
 }
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
-	const { context, introduction, file, identified } = useContext(LayoutContext);
+	const { answer, context, introduction, file, identified } = useContext(LayoutContext);
 	const header = createElement("header", props, children);
 	if (!props.className?.split(" ").includes("item-introduction")) {
 		return header;
@@ -78,10 +81,11 @@ function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<
 			Children.count(children) > 0 ? children : createElement("h1", { className: "font-mono" }, file),
 			introduction,
 		),
+		answer,
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, content, introduction, board }: DocumentViewProps) {
+export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer }: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -108,7 +112,7 @@ export function DocumentView({ document, idPrefix = "", context, content, introd
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { content, context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
+				{ value: { answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
 				createElement(
 					MarkdownHooks,
 					{

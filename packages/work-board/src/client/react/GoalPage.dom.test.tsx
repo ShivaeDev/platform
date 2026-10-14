@@ -10,8 +10,13 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 it.live.each(["executing", "reviewing", "needs-human"] as const)(
 	"counts Fleet %s work as in progress and keeps each linked row in one group",
 	function* (stage) {
+		const files = { ...goalPageFixture() };
+		files["goal.md"] = (files["goal.md"] ?? "").replace(
+			"owner: agent",
+			"owner: agent\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Review the goal\n   unblocks: [project.example]",
+		);
 		const view = yield* Effect.promise(() =>
-			renderBoard(goalPageFixture(), (api) => (
+			renderBoard(files, (api) => (
 				<FleetItemsContext.Provider value={goalFleetFixture(stage)}>
 					<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
 				</FleetItemsContext.Provider>
@@ -19,6 +24,7 @@ it.live.each(["executing", "reviewing", "needs-human"] as const)(
 		);
 		try {
 			yield* Effect.promise(() => eventually(() => expect(view.container.querySelectorAll("[data-goal-item]")).toHaveLength(5)));
+			expect(view.container.querySelector(".item-introduction")?.nextElementSibling?.className).toContain("answer-cards");
 			const counts = Object.fromEntries(
 				[...view.container.querySelectorAll<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [
 					segment.dataset.status,
