@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 - 2026-10-14
+
+### Changed
+
+- New applications start on Platform 0.8.0 and Better Auth 1.7.7.
+
+### Fixed
+
+- New applications pin happy-dom 20.14.6, which fixes a cookie scope forgery vulnerability. The template still pinned 20.11.2.
+
 ## 0.2.0 - 2026-10-13
 
 ### Changed

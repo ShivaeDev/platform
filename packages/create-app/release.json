@@ -1,10 +1,10 @@
 {
-	"date": "2026-10-13",
+	"date": "2026-10-14",
 	"fragments": [
 		{
-			"name": "effect-4-stable.md",
-			"text": "### Changed\n\n- New applications start on Effect 4.0.4 and Vitest 5.0.3.\n"
+			"name": "platform-0-8-starter.md",
+			"text": "### Changed\n\n- New applications start on Platform 0.8.0 and Better Auth 1.7.7.\n\n### Fixed\n\n- New applications pin happy-dom 20.14.6, which fixes a cookie scope forgery vulnerability. The template still pinned 20.11.2.\n"
 		}
 	],
-	"version": "0.2.0"
+	"version": "0.2.1"
 }
