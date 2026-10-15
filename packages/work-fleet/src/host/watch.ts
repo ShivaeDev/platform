@@ -1,6 +1,7 @@
 import { Console, Deferred, Effect, Stream } from "effect";
 import { waitingOwner } from "#attention.ts";
 import { follow } from "#host/follow.ts";
+import { type FollowState, followOutcome, unrecognizedState } from "#host/followState.ts";
 import type { WaitOptions } from "#host/wait.ts";
 import { type State, settled, WAIT_EXIT } from "#host/waitOutcome.ts";
 
@@ -26,7 +27,7 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 				pending ??= new Set(states.map((state) => state.workId));
 				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
 					const outcome = outcomeFor(state);
-					if (outcome !== undefined && !(options.follow && initialSnapshot && state.stage !== "needs-human")) {
+					if (outcome !== undefined && !(options.follow && initialSnapshot && state.stage !== "needs-human" && !unrecognizedState(state))) {
 						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
 					}
 				}
@@ -48,13 +49,16 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 
 function transitionOutcome() {
 	const previous = new Map<string, string>();
-	return (state: typeof State.Type) => {
-		const outcome = settled(state.workId, state);
+	return (state: FollowState) => {
+		const outcome = followOutcome(state);
 		if (outcome === undefined) {
 			previous.delete(state.workId);
 			return undefined;
 		}
-		const key = state.stage === "needs-human" ? JSON.stringify([state.decision?.id, state.decision?.code, outcome.summary]) : state.stage;
+		const key =
+			state.stage === "needs-human"
+				? JSON.stringify([state.decision?.id, state.decision?.code, outcome.summary])
+				: JSON.stringify([state.stage, outcome.summary]);
 		if (previous.get(state.workId) === key) {
 			return undefined;
 		}

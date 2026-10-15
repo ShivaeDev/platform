@@ -1,6 +1,7 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { authoredQuestion, openItem } from "#server/attention/inbox.ts";
+import { attentionRequests } from "#server/attention/requests.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
@@ -10,6 +11,21 @@ import type { Snapshot } from "#server/search/snapshot.ts";
 import { requestTitle } from "./requestTitle.ts";
 
 export function documentRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
+	const own = sourceRequests(document, source, snapshot);
+	const item = document.parsed.fields.id;
+	const linked = attentionRequests(snapshot).entries.flatMap((entry) => {
+		if (entry.document.file === document.file || !entry.request.unblocks.some((target) => target.split("#")[0] === item)) {
+			return [];
+		}
+		const context = (entry.document.parsed.raw ?? "") + entry.document.parsed.body;
+		return sourceRequests(entry.document, context, snapshot)
+			.filter((request) => request.open && request.id === entry.request.id)
+			.map((request) => ({ ...request, id: `${entry.itemId}/${request.id}` }));
+	});
+	return [...own, ...linked];
+}
+
+function sourceRequests(document: MetadataDocument, source: string, snapshot: Snapshot): readonly DocumentRequest[] {
 	const item = document.parsed.fields.id;
 	if (!item) {
 		return [];
@@ -32,6 +48,8 @@ export function documentRequests(document: MetadataDocument, source: string, sna
 		const request = {
 			id,
 			open: active !== undefined,
+			options: document.parsed.fields.options,
+			recommended: document.parsed.fields.recommended,
 			sourceOpen: requestOpenInSource(document, id),
 			title: requestTitle(document, snapshot, id),
 			...(active ? { preview } : {}),

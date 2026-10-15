@@ -60,11 +60,12 @@ export const readyDecisionFixture = {
 ::::question{id="fleet-action" select="one"}
 ### How should Fleet proceed?
 :::option{id="retry"}
-Retry after the blocker is resolved.
+### Request changes
+Fleet keeps the branch and PR and works on your answer
 :::
 :::option{id="release"}
 ### Release
-Safely release this work's ownership.
+Fleet stops and hands the work back
 :::
 ::::
 `,

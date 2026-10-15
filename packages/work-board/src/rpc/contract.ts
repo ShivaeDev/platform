@@ -5,7 +5,8 @@ import { query, stream } from "@shivaedev/effect-contract/operation.ts";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
-import { Navigation } from "#browser/navigation/schema.ts";
+import { Navigation } from "#browser/Navigation.ts";
+import { Library, LibraryInput } from "#browser/navigation/library.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
@@ -74,9 +75,15 @@ const ReadResult = query("result", {
 	rejections: documentRejections,
 	success: ResultProjection,
 });
+const ReadLibrary = query("library", {
+	payload: LibraryInput,
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: Library,
+});
 const ReadNavigation = query("navigation", {
 	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
-	reads: () => [workspace.list, navigation.list],
+	reads: () => [workspace.list, navigation.list, index.list],
 	rejections: { InternalServerError },
 	success: Navigation,
 });
@@ -113,6 +120,7 @@ export const workContract = contract("work-board", {
 		ReadHandoff,
 		ReadResult,
 		ReadNavigation,
+		ReadLibrary,
 		ReadSearch,
 		ReadHistory,
 		ReadWatcher,

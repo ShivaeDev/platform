@@ -6,6 +6,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { held, type OpenPage, openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
 import { FILES, settle, waitFor } from "#test/live.ts";
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";
 import { rpcCall, rpcFailure } from "#test/rpc.ts";
@@ -91,7 +92,7 @@ describe("document navigation", () => {
 	effectApp("opens templates through native navigation without losing the current reading page", function* () {
 		yield* open();
 		page.document.body.dataset.visit = "kept";
-		click("#start-open");
+		followLink(page, "/_board/start");
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Project and report templates")));
 		expect(title()).toBe("Project and report templates");
@@ -111,7 +112,7 @@ describe("document navigation", () => {
 			throw new Error("Missing text");
 		}
 		page.window.getSelection()?.setBaseAndExtent(text, 0, text, 5);
-		click('#files a[href="/flow.md"]');
+		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
@@ -132,7 +133,7 @@ describe("document navigation", () => {
 		click("#favorite-toggle");
 		yield* Effect.promise(frame);
 		expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
-		click('#files a[href="/flow.md"]');
+		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
@@ -141,7 +142,11 @@ describe("document navigation", () => {
 		expect(saved.recents.map((item: { file: string }) => item.file)).toEqual(["flow.md", "plan.md"]);
 		notes.write("flow.md", "# New flow\n\nUpdated evidence.");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.title).toBe("New flow · Work Board")));
-		expect(page.document.querySelector('#files a[aria-current="page"]')?.getAttribute("title")).toBe("New flow");
+		yield* Effect.promise(() =>
+			waitFor(() =>
+				expect(page.document.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.getAttribute("title")).toBe("New flow"),
+			),
+		);
 	});
 
 	effectApp.each([undefined, 503, "network"] as const)("ignores an old page refresh after newer navigation (%s)", function* (failWith) {
@@ -152,7 +157,7 @@ describe("document navigation", () => {
 		page.pageRequests.failWith = failWith;
 		page.streams[0]?.emit("change");
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.count).toBe(reads + 1)));
-		click('#files a[href="/flow.md"]');
+		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
@@ -167,10 +172,11 @@ describe("document navigation", () => {
 		yield* open();
 		click("#favorite-toggle");
 		yield* Effect.promise(frame);
-		click('#files a[href="/flow.md"]');
+		followLink(page, "/flow.md");
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => settle());
 		yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
+		click("#library-open");
 		rmSync(join(notes.root, "plan.md"));
 		yield* Effect.promise(() =>
 			waitFor(() => expect(page.document.querySelector('#reading-library a[href="/plan.md"]')?.textContent).toContain("missing")),
@@ -195,8 +201,8 @@ effectApp("restores this workspace's library and tab reading record while ignori
 		);
 	});
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true)));
-	expect(page.document.querySelector('#reading-library a[href="/flow.md"]')?.textContent).toBe("Flow");
-	expect(page.document.querySelector('#reading-library a[href="/twins.md"]')).toBe(null);
+	expect(page.document.querySelector('section[aria-label="Pinned"] a[href="/flow.md"]')?.textContent).toBe("Flow");
+	expect(page.document.querySelector('section[aria-label="Pinned"] a[href="/twins.md"]')).toBe(null);
 });
 
 effectApp("keeps favorites usable across document navigation when browser storage is blocked", function* () {
@@ -211,10 +217,10 @@ effectApp("keeps favorites usable across document navigation when browser storag
 	click("#favorite-toggle");
 	yield* Effect.promise(frame);
 	expect(page.document.getElementById("favorite-toggle")?.getAttribute("aria-pressed")).toBe("true");
-	click('#files a[href="/flow.md"]');
+	followLink(page, "/flow.md");
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
-	expect(page.document.querySelector('#reading-library a[href="/plan.md"]')?.textContent).toBe("Plan");
+	expect(page.document.querySelector('section[aria-label="Pinned"] a[href="/plan.md"]')?.textContent).toBe("Plan");
 	expect(page.document.querySelector(".library-status")?.textContent).toContain("this page only");
 });
 
@@ -223,11 +229,11 @@ effectApp("retains reading history when the selected file is opened again", func
 		window.history.replaceState({ workBoard: { id: "selected-file" } }, "");
 	});
 	page.document.querySelector("article details")?.setAttribute("open", "");
-	click('#files a[href="/plan.md"]');
+	followLink(page, "/plan.md");
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => settle());
 	expect(page.window.history.state).toMatchObject({ workBoard: { id: "selected-file" } });
-	click('#files a[href="/flow.md"]');
+	followLink(page, "/flow.md");
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 	page.window.history.back();
@@ -248,14 +254,14 @@ effectApp("retries the same route after a navigation request fails", function* (
 		};
 	});
 	fail = true;
-	click('#files a[href="/flow.md"]');
+	followLink(page, "/flow.md");
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toContain("Could not open")));
 	expect(title()).toBeUndefined();
 	expect(page.window.location.pathname).toBe("/flow.md");
 	expect(page.document.getElementById("doc")?.textContent).toContain("This document could not be opened");
 	fail = false;
-	click('#files a[href="/flow.md"]');
+	followLink(page, "/flow.md");
 	yield* Effect.promise(frame);
 	yield* Effect.promise(() => waitFor(() => expect(title()).toBe("Flow")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("navigation-status")?.textContent).toBe("")));

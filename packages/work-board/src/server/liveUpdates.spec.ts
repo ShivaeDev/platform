@@ -4,7 +4,7 @@ import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, type EventStream, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import { changesUntil, type EventStream, rpcPaths, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -71,7 +71,7 @@ describe("live updates", () => {
 		expect(page).toContain(
 			'<header class="item-introduction"><h1 id="heading-idea" tabindex="-1">Idea<a aria-label="Link to Idea" class="heading-anchor" href="#heading-idea"></a></h1>',
 		);
-		expect(page).toContain('<a href="/later/idea.md" aria-current="page">idea</a>');
+		expect(yield* rpcPaths(board)).toContain("/later/idea.md");
 		yield* events.close();
 	});
 
@@ -153,8 +153,8 @@ describe("a folder whose own name starts with a dot", () => {
 	effectDottedBoard("lists, serves and watches it, and still skips dot folders and node_modules inside it", function* () {
 		const home = yield* Effect.promise(async () => (await fetch(dotBoard.url)).text());
 		expect(home).toContain("<span><b>1</b> to do</span>");
-		expect(home).toContain('<a href="/notes/log.md">log</a>');
-		expect(home).not.toContain(">x<");
+		expect(yield* rpcPaths(dotBoard)).toContain("/notes/log.md");
+		expect(yield* rpcPaths(dotBoard)).toEqual(["/notes/log.md", "/plan.md"]);
 		expect(yield* Effect.promise(async () => (await fetch(`${dotBoard.url}/notes/log.md`)).text())).toContain(
 			'<header class="item-introduction"><h1 id="heading-log" tabindex="-1">Log<a aria-label="Link to Log" class="heading-anchor" href="#heading-log"></a></h1>',
 		);

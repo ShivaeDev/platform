@@ -1,19 +1,13 @@
 import { parse } from "yaml";
-import type { Diagnostic, ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
+import type { ParsedMetadata } from "@shivaedev/work-board/integration/board.ts";
 
 const APPROVAL = "fleet";
 const LAUNCH = "fleet-launch";
 const DELIVERABLE = "fleet-deliverable";
-const FIELDS: ReadonlySet<string | undefined> = new Set([APPROVAL, LAUNCH, DELIVERABLE]);
 const parsedFields = new WeakMap<ParsedMetadata, ReadonlyMap<string, unknown>>();
 
-// Board core reports addon fields as unknown; Fleet owns these and interprets them itself.
-export function boardDiagnostics(parsed: ParsedMetadata): readonly Diagnostic[] {
-	return parsed.diagnostics.filter((diagnostic) => !FIELDS.has(diagnostic.field));
-}
-
 function fleetField(parsed: ParsedMetadata, field: string): unknown {
-	if (parsed.raw === undefined || !parsed.diagnostics.some((diagnostic) => diagnostic.field === field)) {
+	if (parsed.raw === undefined || parsed.lines[field] === undefined || parsed.diagnostics.some((diagnostic) => diagnostic.field === undefined)) {
 		return undefined;
 	}
 	const cached = parsedFields.get(parsed);

@@ -5,7 +5,7 @@ import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker } from "#test/recoverySteps.ts";
 
 const failures = [
-	{ code: "session-unavailable", message: "No matching accepted turn is observable; absence does not authorize replay" },
+	{ code: "session-turn-missing", message: "No matching accepted turn is observable; absence does not authorize replay" },
 	{ code: "session-unavailable", message: "Codex CLI could not refresh the login" },
 	{ code: "session-unavailable", message: "Codex CLI could not refresh the login; sign in with the Codex CLI" },
 	{ code: "session-unavailable", message: "Codex CLI login refresh timed out" },
@@ -30,7 +30,7 @@ const failures = [
 	{ code: "session-unavailable", message: "Invalid Codex endpoint" },
 	{ code: "session-unavailable", message: "Lost thread acknowledgement cannot be reconciled by this Codex protocol; retain reservation" },
 	{ code: "duplicate-turns", message: "Multiple Codex turns match one operation; retain reservation" },
-	{ code: "session-unavailable", message: "The acknowledged Codex turn is not observable" },
+	{ code: "session-turn-missing", message: "The acknowledged Codex turn is not observable" },
 	{ code: "session-unavailable", message: "Work cwd differs from the configured Codex Cloud workspace cwd" },
 ] as const;
 
@@ -44,7 +44,10 @@ export function recoveryProviderCases(): readonly RecoveryCase[] {
 			options: {
 				decorateTransport: (transport) => ({
 					...transport,
-					observe: (receipt) => (restored ? transport.observe(receipt) : Effect.fail(new SessionFailure({ code, message, reason: "unavailable" }))),
+					observe: (receipt) =>
+						restored
+							? transport.observe(receipt)
+							: Effect.fail(new SessionFailure({ code, message, reason: code === "session-turn-missing" ? "ambiguous" : "unavailable" })),
 				}),
 			},
 			progress: (_ctx, before, after) => {

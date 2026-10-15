@@ -3,7 +3,15 @@ import { RequestReceipt } from "#attention/RequestReceipt.ts";
 
 const Link = Schema.Struct({ href: Schema.optional(Schema.String), label: Schema.String });
 export const ReadingContext = Schema.Struct({
-	backlinks: Schema.Array(Schema.Struct({ href: Schema.String, kind: Schema.String, label: Schema.String })),
+	backlinks: Schema.Array(
+		Schema.Struct({
+			href: Schema.String,
+			kind: Schema.String,
+			label: Schema.String,
+			status: Schema.optional(Schema.String),
+			title: Schema.optional(Schema.String),
+		}),
+	),
 	board: Schema.Boolean,
 	claims: Schema.Record(Schema.String, Schema.Array(Link)),
 	evidenceSources: Schema.Array(Schema.Struct({ href: Schema.optional(Schema.String), problem: Schema.String })),

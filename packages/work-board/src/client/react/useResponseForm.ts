@@ -11,7 +11,7 @@ import { authorLabel } from "#client/responses/authorLabel.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
 import { responsePreview } from "#client/responses/preview.ts";
 import { retainContext } from "#client/responses/retainContext.ts";
-import { responseFeedback, responseReadiness, responseSummary } from "#client/responses/summary.ts";
+import { responseFeedback, responseSummary } from "#client/responses/summary.ts";
 import { sourceChanged } from "#client/sourceChanged.ts";
 import { createResponse } from "./createResponse.ts";
 
@@ -29,7 +29,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const [initial] = useState<ResponseInput>(() => ({
 		answerContext: undefined,
 		answers: prompts.length > 0 ? prompts.map((prompt) => ({ prompt: prompt.id, selected: [], text: "" })) : undefined,
-		author: label.read(""),
+		author: label.read("") || "maintainer",
 		body: "",
 		id: "",
 		question: "",
@@ -51,7 +51,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const values = useAtomRef(form.values);
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
-			form.receive({ ...initial, author: label.read("") });
+			form.receive({ ...initial, author: label.read("") || "maintainer" });
 			if (created.dirty) {
 				retainContext(form, created.created.value);
 			}
@@ -120,7 +120,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		setPreview(undefined);
 		setStatus("Draft cleared. Saved responses are unchanged.");
 	}
-	const valid = Schema.is(schema)(values);
 	const previewed = preview !== undefined && same && Equal.equals(preview, values);
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
@@ -128,6 +127,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		attempt: () => {
 			setAttempted(true);
 			showPreview();
+			return Schema.is(schema)(form.values.value);
 		},
 		attempted,
 		clear,
@@ -140,9 +140,6 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		preview: previewed ? responsePreview(values, source.id, prompts) : undefined,
 		recovery: recoveryText(recovery),
 		showPreview,
-		status: [stale ? sourceChanged() : "", responseFeedback(status, outcome, summary, responseReadiness(valid, previewed, attempted))]
-			.filter(Boolean)
-			.join(" "),
-		valid,
+		status: [stale ? sourceChanged() : "", responseFeedback(status, outcome, summary)].filter(Boolean).join(" "),
 	};
 }

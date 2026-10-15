@@ -19,6 +19,11 @@ export function AnswerPanel({ document: data }: { readonly document: Document })
 }
 function AnswerCard({ document: data, request }: { readonly document: Document; readonly request: DocumentRequest }) {
 	const preview = request.preview;
+	const source = {
+		...data,
+		file: preview?.source ?? data.file,
+		metadata: { ...data.metadata, options: request.options, recommended: request.recommended },
+	};
 	const unavailable = request.unavailable ?? request.promptUnavailable;
 	const closed = request.sourceOpen === false;
 	return (
@@ -39,11 +44,11 @@ function AnswerCard({ document: data, request }: { readonly document: Document; 
 				<>
 					<AnswerContext preview={preview} />
 					<div className="answer-reason">
-						<ResponseMarkdown file={data.file} source={reasonMarkdown(preview.reason)} />
+						<ResponseMarkdown file={source.file} source={reasonMarkdown(preview.reason)} />
 					</div>
 				</>
 			)}
-			{request.open && preview && !unavailable && <AnswerForm document={data} preview={preview} request={request} />}
+			{request.open && preview && !unavailable && <AnswerForm document={source} preview={preview} request={request} />}
 			{!request.unavailable && (
 				<ResponseHistory
 					id={data.requests.filter((entry) => entry.open).length > 1 ? `response-history-${request.id}` : undefined}

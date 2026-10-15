@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { backfillDecisionCodes } from "#storage/backfillDecisionCodes.ts";
 import { modelTableColumns, modelTables } from "#storage/modelTables.ts";
+import { pruneEmptyCycles } from "#storage/pruneEmptyCycles.ts";
 import { recordTimeColumns } from "#storage/recordTimes.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
@@ -51,6 +52,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 						}
 					}),
 					"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
+					"10_prune_empty_cycles": pruneEmptyCycles(namespace),
 				}),
 	});
 });

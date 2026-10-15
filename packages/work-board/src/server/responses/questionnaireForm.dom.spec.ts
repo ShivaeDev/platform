@@ -80,5 +80,9 @@ it.live("retains human text but clears selections when the template changes, exp
 	expect(page.document.querySelectorAll("input:checked")).toHaveLength(0);
 	expect(page.document.querySelector('[data-prompt="display"] textarea')).toHaveProperty("value", "Keep this rationale.");
 	expect(page.document.getElementById("response-draft-recovery")?.textContent).toContain("history");
-	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+	expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
+	yield* formEvent(page, () =>
+		page.document.getElementById("response-form")?.dispatchEvent(new page.window.Event("submit", { bubbles: true, cancelable: true })),
+	);
+	expect(page.document.getElementById("response-status")?.textContent).toContain("Unanswered prompts: Question 2 · checks.");
 });

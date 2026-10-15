@@ -39,12 +39,7 @@ function Criterion({ document, items, index, progress }: Props & { readonly inde
 			<h3 className="!mt-0">{criterion.text}</h3>
 			{counts && Object.keys(counts).length > 0 && <GoalProgressSummary counts={counts} />}
 			<LinkedItems items={work} />
-			<CriterionClaims
-				document={document}
-				id={criterion.id}
-				quiet
-				valid={Boolean(document.identity) && document.unavailable.length === 0 && unique}
-			/>
+			<CriterionClaims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
 		</section>
 	);
 }

@@ -66,13 +66,13 @@ export function readDocument({ changes, home, index, root, writable }: DocumentO
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}
 		const questionActions = yield* readingActions(document, source, writable, identity);
-		const reading = readingContext(document, model, file.path === home);
+		const titles = new Map(current.snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
+		const reading = readingContext(document, model, file.path === home, titles);
 		const targets = documentTargets(
 			document,
 			model,
 			Object.values(reading.receipts).map((receipt) => receipt.question),
 		);
-		const titles = new Map(current.snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 		const referenceDetails = Object.fromEntries(
 			Object.keys(targets.references).flatMap((target) => {
 				const referenced = model.ids.get(target.split("#")[0] ?? "")?.[0];

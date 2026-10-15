@@ -8,9 +8,11 @@ interface Controls {
 	readonly options: readonly { readonly value: string; readonly label: string }[];
 	readonly value: string;
 }
-export function SegmentedBar(props: Controls | { readonly label: string; readonly counts: Readonly<Record<string, number>> }) {
+export function SegmentedBar(
+	props: Controls | { readonly label: string; readonly counts: Readonly<Record<string, number>>; readonly size?: "small" | "large" },
+) {
 	if ("counts" in props) {
-		return <StatusSegments counts={props.counts} label={props.label} />;
+		return <StatusSegments counts={props.counts} label={props.label} large={props.size === "large"} />;
 	}
 	return <SegmentedControls {...props} />;
 }

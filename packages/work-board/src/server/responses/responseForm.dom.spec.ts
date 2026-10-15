@@ -59,13 +59,13 @@ it.live(
 		yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		notes.write("other.md", "# Unrelated source addition");
-		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("files")?.textContent).toContain("other")));
+		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library2")));
 		expect(page.document.querySelector('[name="body"]')).toBe(body);
 		expect(body.value).toBe("Keep my conditions.");
 		notes.write("item.md", source.replace("The exact reviewed proposal.", "Changed reviewed proposal."));
 		yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-status")?.textContent).toContain("Source changed")));
 		expect(page.document.getElementsByTagName("textarea")[0]?.value).toBe("Keep my conditions.");
-		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(true);
+		expect(page.document.getElementById("response-submit")?.hasAttribute("disabled")).toBe(false);
 	},
 );
 
