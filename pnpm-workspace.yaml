@@ -21,7 +21,7 @@ catalog:
   clsx: 2.1.1
   tailwind-merge: 3.7.0
   class-variance-authority: 0.7.1
-  lucide-react: 1.52.0
+  lucide-react: 1.53.0
   "@biomejs/biome": 2.5.15
   "@effect/vitest": 4.0.4
   "@effect/atom-react": 4.0.4
