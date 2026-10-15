@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
+import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import { localOnlyCriteria } from "#engine/localOnlyCriteria.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -18,7 +19,12 @@ export function makeLaunch(state: EngineState) {
 		input: Versioned<FleetRecord>,
 		role: "worker" | "repair",
 		prompt: string,
-		continuation?: { readonly sessionId: string; readonly responses: readonly DecisionResponse[]; readonly stallRecovery?: Attempt["stallRecovery"] },
+		continuation?: {
+			readonly sessionId: string;
+			readonly responses: readonly DecisionResponse[];
+			readonly stallRecovery?: Attempt["stallRecovery"];
+			readonly observationRetries?: number;
+		},
 	) {
 		const stored = input;
 		const work = yield* board.get(stored.value.workId, { fresh: true });
@@ -57,6 +63,7 @@ export function makeLaunch(state: EngineState) {
 		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
 			checkFailures,
+			observationRetries: launchObservationRetries(stored.value, continuation?.observationRetries),
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
 			providerFailures: stored.value.launchRetry?.rejections,
