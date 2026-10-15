@@ -8,7 +8,7 @@ import { FILES, settle, waitFor } from "#test/live.ts";
 import { type RpcRequest, rpcCall, rpcFailure } from "#test/rpc.ts";
 
 const routes = [
-	{ kind: "board", url: "/" },
+	{ kind: "board", url: "/board.md" },
 	{ kind: "work", url: "/_board/work?view=table" },
 	{ kind: "overview", url: "/_board/overview" },
 	{ kind: "inbox", url: "/_board/inbox" },

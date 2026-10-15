@@ -2,10 +2,10 @@ import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { RouterShell } from "#client/react/loadBoardPage.ts";
 import { currentEntry, navigationFailure, readingKey, sameReadingLocation } from "#client/react/navigationLocation.ts";
-import { pageQuery } from "#client/react/pageQuery.ts";
 import { readerLink } from "#client/react/readerLink.ts";
 import { readingEntry, readingHistory } from "#client/react/readingHistory.ts";
 import { captureReading } from "#client/react/readingState.ts";
+import { retryPage } from "#client/react/retryPage.ts";
 import { scheduleReading } from "#client/react/scheduleReading.ts";
 
 export function useBoardNavigation(shell: RouterShell) {
@@ -63,16 +63,7 @@ export function useBoardNavigation(shell: RouterShell) {
 			save();
 			document.dispatchEvent(new Event("board-navigate"));
 			const url = target.pathname + target.search + target.hash;
-			if (url === router.state.location.href && Number(document.getElementById("doc")?.dataset.status ?? 200) >= 400) {
-				const doc = document.getElementById("doc");
-				shell.registry.refresh(
-					pageQuery(
-						shell.api,
-						doc?.dataset.projection ?? "document",
-						target.pathname + target.search,
-						doc?.querySelector<HTMLElement>("[data-baseline]")?.dataset.baseline || null,
-					),
-				);
+			if (url === router.state.location.href && retryPage(shell.api, shell.registry, target.pathname + target.search)) {
 				await router.invalidate();
 			} else if (url !== router.state.location.href) {
 				await router.navigate({ to: url });

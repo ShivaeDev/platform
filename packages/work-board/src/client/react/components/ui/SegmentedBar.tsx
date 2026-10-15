@@ -2,21 +2,25 @@ import { cn } from "#client/react/lib/cn.ts";
 import { Button } from "./Button.tsx";
 import { StatusSegments } from "./StatusSegments.tsx";
 
-interface Controls {
+interface Selection {
 	readonly label: string;
 	readonly onValueChange: (value: string) => void;
 	readonly options: readonly { readonly value: string; readonly label: string }[];
 	readonly value: string;
 }
-export function SegmentedBar(
-	props: Controls | { readonly label: string; readonly counts: Readonly<Record<string, number>>; readonly size?: "small" | "large" },
-) {
-	if ("counts" in props) {
-		return <StatusSegments counts={props.counts} label={props.label} large={props.size === "large"} />;
-	}
-	return <SegmentedControls {...props} />;
+interface Counts {
+	readonly counts: Readonly<Record<string, number>>;
+	readonly label: string;
+	readonly size?: "small" | "large";
 }
-function SegmentedControls({ label, value, options, onValueChange }: Controls) {
+export function SegmentedBar(props: Selection | Counts) {
+	return "counts" in props ? (
+		<StatusSegments counts={props.counts} label={props.label} large={props.size === "large"} />
+	) : (
+		<SelectionBar {...props} />
+	);
+}
+function SelectionBar({ label, value, options, onValueChange }: Selection) {
 	return (
 		<fieldset aria-label={label} className="inline-flex gap-1 rounded-lg bg-muted p-1">
 			{options.map((option) => (

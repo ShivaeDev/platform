@@ -36,7 +36,7 @@ for (const observationDelay of [0, 299_000]) {
 	});
 }
 
-it.effect("an unrelated rejection on an idle thread does not authorize resubmission", function* () {
+it.effect("an invalid request does not check contention or resubmit", function* () {
 	const methods: string[] = [];
 	const rpc: CodexRequest = (method) =>
 		Effect.suspend(() => {
@@ -47,5 +47,5 @@ it.effect("an unrelated rejection on an idle thread does not authorize resubmiss
 		});
 	const error = yield* startCodexTurn(rpc, codexTurns(rpc).waitUntilIdle)("thread", { threadId: "thread" }).pipe(Effect.flip);
 	expect(error.code).toBe("session-rejected");
-	expect(methods).toEqual(["turn/start", "thread/turns/list"]);
+	expect(methods).toEqual(["turn/start"]);
 });

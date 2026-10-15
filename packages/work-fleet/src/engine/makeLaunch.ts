@@ -52,7 +52,7 @@ export function makeLaunch(state: EngineState) {
 			sessionId,
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
-		const workerPrompt = launchPrompt(stored.value, prompt, retryPrompt, yield* policyGuidance(policy, "worker"));
+		const workerPrompt = answeredPrompt(stored.value, prompt, retryPrompt, yield* policyGuidance(policy, "worker"));
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,
@@ -86,6 +86,7 @@ export function makeLaunch(state: EngineState) {
 				mergeAreasReleased: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
+				pendingAnswers: undefined,
 				stage: "executing",
 			},
 			{ quota, role: launchRole },
@@ -102,4 +103,9 @@ export function makeLaunch(state: EngineState) {
 export function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
 	const queuedPrompt = retryPrompt ?? prompt;
 	return withWorkerGuidance(record.deliverable === "report" && retryPrompt === undefined ? reportPrompt(queuedPrompt) : queuedPrompt, guidance);
+}
+
+function answeredPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string) {
+	const queuedPrompt = [retryPrompt ?? prompt, ...(record.pendingAnswers ?? [])].join("\n\n");
+	return launchPrompt(record, queuedPrompt, retryPrompt === undefined ? undefined : queuedPrompt, guidance);
 }

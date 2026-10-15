@@ -1,8 +1,8 @@
 import type { Cause } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import type { BrowserClient } from "#client/client.ts";
 import { resolvedDocumentFailure } from "#client/page/resolvedDocumentFailure.ts";
-import { pageQuery } from "./pageQuery.ts";
+import { pageQueries } from "./pageQueries.ts";
+import type { ShellApi } from "./ShellApi.ts";
 
 function health(value: { readonly _tag: string; readonly waiting: boolean; readonly cause?: Cause.Cause<unknown> }) {
 	return {
@@ -10,6 +10,10 @@ function health(value: { readonly _tag: string; readonly waiting: boolean; reado
 		pending: value.waiting || value._tag === "Initial",
 	};
 }
-export function activeRead(client: BrowserClient, kind: string, url: string, baseline: string | null) {
-	return pageQuery(client.api, kind, url, baseline).pipe(Atom.map(health));
+export function activeRead(api: ShellApi, kind: string, url: string, baseline: string | null) {
+	const queries = pageQueries(api, kind, url, baseline);
+	return Atom.make((get) => {
+		const readings = queries.map((query) => health(get(query)));
+		return { failed: readings.some((reading) => reading.failed), pending: readings.some((reading) => reading.pending) };
+	});
 }

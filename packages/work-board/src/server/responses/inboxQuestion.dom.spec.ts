@@ -127,7 +127,7 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 	);
 	expect(page.window.location.href).toBe(location);
 	yield* formEvent(page, () =>
-		page.document.getElementById("inbox-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
+		page.document.getElementById("inbox-topbar")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("inbox")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0)));

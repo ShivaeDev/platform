@@ -4,6 +4,8 @@ Work Board is a local, file-backed workspace for a person and their agents to un
 
 The [roadmap](roadmap.md) owns implementation status, acceptance gaps and open maintainer decisions. The [README](../README.md) teaches current use. The [experience design](experience.md) and [interactive prototype](mockups/index.html) illustrate the product direction with fictional data. The [delivery requirements](delivery/README.md) define bounded steps and how to verify them, without keeping a second status list.
 
+Today is the first screen. It puts the human’s live asks and answers beside compact goal progress. In progress names the work Fleet holds, its stage and its recorded PR; the preview stays short and links to Now for the full view. Goal cards show the next action in at most two lines and done work against all linked work, with criteria and evidence behind a closed disclosure. Agent asks, resolved work and parked work remain in Inbox. Configured home Markdown remains reachable as Workspace notes. Narrow screens read summary, human asks, in-progress work and goals in order; wide screens put goals beside the asks and in-progress work.
+
 ## The problem
 
 Agents can produce plans, code, reports and questions faster than a person can read them. A terminal shows activity; a chat holds a conversation; neither makes it easy to return to a project and identify the judgment that matters. Evidence gets detached from the result it supports, and the difference between a completed run and an accepted piece of work disappears.

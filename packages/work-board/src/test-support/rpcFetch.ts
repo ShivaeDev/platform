@@ -21,14 +21,17 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 	if (call.tag === "work-board.library") {
 		return path === "/_board/library";
 	}
+	if (call.tag === "work-board.fleetItems") {
+		return path === "/";
+	}
 	if (call.tag === "work-board.goals") {
-		return path === "/_board/goals";
+		return path === "/_board/goals" || path === "/";
 	}
 	if (call.tag === "work-board.start") {
 		return path === "/_board/start";
 	}
 	if (call.tag === "work-board.inbox") {
-		return path === "/_board/inbox";
+		return path === "/_board/inbox" || path === "/";
 	}
 	if (call.tag === "work-board.overview") {
 		return path === "/_board/overview";

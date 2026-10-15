@@ -96,7 +96,7 @@ it.live("updates Respond context while retaining answer text, node and caret", f
 		yield* Effect.promise(() => view.unmount());
 	}
 });
-it.live("shows empty workspace templates at the root through the typed Start query", function* () {
+it.live("shows Today and getting-started guidance for an empty workspace", function* () {
 	let page: unknown;
 	const view = yield* Effect.promise(() =>
 		renderBoard({}, (api, registry) => {
@@ -107,7 +107,7 @@ it.live("shows empty workspace templates at the root through the typed Start que
 		}),
 	);
 	try {
-		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("h1")?.textContent).toBe("Start your local workspace")));
+		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("h1")?.textContent).toBe("Today")));
 		expect(page).not.toHaveBeenCalled();
 	} finally {
 		yield* Effect.promise(() => view.unmount());

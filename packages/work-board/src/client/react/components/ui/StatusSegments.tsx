@@ -1,3 +1,4 @@
+import { cn } from "#client/react/lib/cn.ts";
 import { StatusChip } from "./StatusChip.tsx";
 import { statusPresentation } from "./statusPresentation.ts";
 
@@ -19,18 +20,19 @@ export function StatusSegments({
 	readonly large?: boolean;
 }) {
 	const entries = Object.entries(counts).sort(([a], [b]) => a.localeCompare(b));
+	const segments = large ? entries : entries.filter(([, count]) => count > 0);
 	const description = entries.map(([status, count]) => `${status}: ${count}`).join(", ") || "No linked work";
 	return (
 		<section aria-label={label} className={large ? "space-y-3" : undefined} data-goal-counts={large ? true : undefined}>
 			<div
 				aria-label={`${label}: ${description}`}
-				className={large ? "flex h-8 overflow-hidden rounded-lg bg-muted" : "my-1 flex h-1.5 w-full overflow-hidden rounded-full bg-muted"}
+				className={large ? "flex h-8 overflow-hidden rounded-lg bg-muted" : "flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-muted"}
 				role="img"
 				title={description}
 			>
-				{entries.map(([status, count]) => (
+				{segments.map(([status, count]) => (
 					<span
-						className={`border-background border-r ${colors[statusPresentation(status).token]}`}
+						className={cn(large && "border-background border-r", colors[statusPresentation(status).token])}
 						data-count={count}
 						data-status={status}
 						key={status}

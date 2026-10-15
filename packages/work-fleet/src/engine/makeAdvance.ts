@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { deliverPendingAnswers } from "#engine/deliverPendingAnswers.ts";
 import { makeAdopt } from "#engine/makeAdopt.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
@@ -32,9 +33,20 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 			}
 		}
 		stored = yield* makeObserve(state)(stored);
+		const answered = yield* deliverPendingAnswers(state, launch, stored);
+		if (answered !== undefined) {
+			return answered;
+		}
+		return yield* advanceObserved(state, launch)(stored);
+	});
+}
+
+function advanceObserved(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
+	return Effect.fn("Fleet.advanceObserved")(function* (input: Versioned<FleetRecord>) {
+		let stored = input;
 		stored = yield* makeDeliver(state)(stored);
 		if (stored.value.stage === "needs-human") {
-			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
+			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(stored.value.workId))) ?? stored;
 		}
 		stored = yield* reconcileBrief(state, stored);
 		return yield* advanceExecution(state, launch)(stored);

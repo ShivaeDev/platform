@@ -9,11 +9,11 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 const files = { "home.md": "# Home\n\n## Plans\n", "notes/first.md": "# First\n", "notes/next.md": "---\nid: note.next\n---\n# Next\n" };
 
-const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | "board" | "work" }> = [
+const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | "board" | "work" | "today" }> = [
 	{ kind: "document", url: "/notes/next.md" },
 	{ kind: "document", url: "/_board/item/note.next/" },
 	{ kind: "document", url: "/missing.md" },
-	{ kind: "board", url: "/" },
+	{ kind: "today", url: "/" },
 	{ kind: "board", url: "/home.md" },
 	{ kind: "work", url: "/_board/work?item=note.next&view=board" },
 ];
@@ -35,7 +35,7 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 				);
 			}),
 		);
-		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(1);
+		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
 		expect(view.container.querySelector("#doc h1")?.textContent).toBe("First");
 		yield* Effect.promise(() =>
 			act(async () => {
@@ -44,7 +44,7 @@ it.live.each(routes)("preloads $url through the shared query registry before nav
 		);
 		yield* Effect.promise(() => eventually(() => expect(view.container.querySelector<HTMLElement>("#doc")?.dataset.route).toBe(url)));
 		expect(view.container.querySelector("header")).toBe(header);
-		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(1);
+		expect(reads.filter((read) => read === `document:${kind === "work" ? "/_board/item/note.next/" : url}`)).toHaveLength(kind === "today" ? 0 : 1);
 		expect(view.container.querySelector(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
 		expect(reads).not.toContain(`page:${url}`);
 	} finally {
