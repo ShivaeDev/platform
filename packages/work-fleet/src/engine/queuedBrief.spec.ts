@@ -9,7 +9,7 @@ import { postgresTests } from "#test/postgres.ts";
 import { withFleetBoard } from "#test/withFleetBoard.ts";
 
 for (const rejectedCall of ["session", "turn"] as const) {
-	postgresTests("test")(`a queued initial ${rejectedCall} stops before resubmission when its authored brief changes`, () => {
+	postgresTests("test")(`a queued initial ${rejectedCall} retries the approved edited brief`, () => {
 		let now = 100;
 		let reject = true;
 		const launch = { model: "initial-model" };
@@ -41,14 +41,14 @@ for (const rejectedCall of ["session", "turn"] as const) {
 					yield* fixture.restart(cycle);
 					const accepted = (yield* fleet.get("one")).value;
 					const attempt = accepted.attempts.at(-1);
-					expect(accepted.stage).toBe("needs-human");
-					expect(accepted.decision?.reason).toBe("Board context changed");
-					expect(accepted.boardContext).toBe(source);
+					expect(accepted.stage).toBe("executing");
+					expect(accepted.decision).toBeUndefined();
+					expect(accepted.boardContext).toBe(current);
 					expect(accepted.launchRetry).toBeUndefined();
-					expect(attempt).toEqual(failed);
-					expect(accepted.attempts).toEqual(queued.attempts);
-					expect(fixture.launched).toHaveLength(1);
-					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 1 : 0);
+					expect(attempt).toMatchObject({ prompt: expect.stringContaining(current), settings: failed?.settings, status: "accepted" });
+					expect(accepted.attempts.slice(0, -1)).toEqual(queued.attempts);
+					expect(fixture.launched).toHaveLength(rejectedCall === "session" ? 2 : 1);
+					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 2 : 1);
 				}),
 		);
 	});

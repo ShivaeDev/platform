@@ -8,6 +8,7 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
+import { refreshBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { assessPreparation } from "#preparation/compatibility.ts";
 export function dispatchCommand(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
@@ -15,6 +16,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string) {
 		let stored = yield* load(workId);
 		const work = yield* board.get(workId);
+		stored = yield* refreshBrief(state, stored, work);
 		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
 		if (stored.value.stage !== "prepared") {
 			return stored;

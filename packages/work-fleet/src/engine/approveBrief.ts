@@ -62,6 +62,9 @@ function revisedPrompt(record: FleetRecord, work: BoardWork) {
 }
 
 function resumedStage(record: FleetRecord): FleetRecord["stage"] {
+	if (record.stage === "adopting") {
+		return "adopting";
+	}
 	const latest = record.attempts.at(-1);
 	if (executing(record)) {
 		return latest?.role === "reviewer" ? "reviewing" : "executing";
