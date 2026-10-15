@@ -46,7 +46,7 @@ it.live.each([1440, 390])("keeps primary rows and recent documents independent o
 	yield* open(width);
 	const navigation = element("primary-navigation");
 	const rows = [...navigation.children];
-	expect(rows.map((row) => row.id)).toEqual(["inbox-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
+	expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
 
 	for (let index = 2; index <= 6; index += 1) {
 		followLink(page, `/notes/topic-${index}.md`);

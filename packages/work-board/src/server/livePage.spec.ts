@@ -55,7 +55,7 @@ describe("live page", () => {
 	});
 
 	effectApp("updates the board's counts and the top bar when files change", function* () {
-		yield* open("/");
+		yield* open("/board.md");
 		notes.write("board.md", `${BOARD}\n### \`ops\` Rotate the key\n`);
 		notes.write("later/idea.md", "# Idea\n");
 		yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".counts")?.textContent).toBe("2 to do")));

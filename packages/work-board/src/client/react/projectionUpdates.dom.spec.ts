@@ -11,7 +11,8 @@ function task(title: string) {
 	return `---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# ${title}\n`;
 }
 const routes = [
-	{ file: "home.md", next: HOME.replace("Home board", "Updated board"), selector: ".board-head h1", text: "Updated board", url: "/" },
+	{ file: "task.md", next: task("Updated task"), selector: ".today-row a", text: "Updated task", url: "/" },
+	{ file: "home.md", next: HOME.replace("Home board", "Updated board"), selector: ".board-head h1", text: "Updated board", url: "/home.md" },
 	{ file: "task.md", next: task("Updated task"), selector: ".work-card h3", text: "Updated task", url: "/_board/work?view=board" },
 	{ file: "task.md", next: task("Updated task"), selector: ".work-table tbody th a", text: "Updated task", url: "/_board/work?view=table" },
 	{ file: "task.md", next: task("Updated task"), selector: ".attention-card h3", text: "Updated task", url: "/_board/overview" },

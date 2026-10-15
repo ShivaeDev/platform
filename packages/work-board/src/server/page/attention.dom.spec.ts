@@ -31,7 +31,7 @@ function click(selector: string) {
 }
 
 effectApp("opens the overview from legacy Markdown and preserves queue reading context across source navigation and Back", function* () {
-	page = yield* openPage(board, "/");
+	page = yield* openPage(board, "/legacy.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
 	followLink(page, "/_board/overview");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe("/_board/overview")));

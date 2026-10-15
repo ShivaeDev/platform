@@ -46,7 +46,7 @@ export function LiveControls({
 		document.addEventListener("board-page", sync);
 		return () => document.removeEventListener("board-page", sync);
 	}, [current]);
-	const atom = useMemo(() => (page ? activeRead(client, page.kind, page.url, page.baseline) : opening), [client, page]);
+	const atom = useMemo(() => (page ? activeRead(client.api, page.kind, page.url, page.baseline) : opening), [client, page]);
 	const reading = useAtomValue(atom);
 	const displayed = liveStatus({
 		connection: status.connection,

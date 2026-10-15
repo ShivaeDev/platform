@@ -32,7 +32,7 @@ it.live("ignores a delayed older search even when its transport ignores cancella
 	board = yield* startBoard(notes.root);
 	const delayed = held();
 	let requested = false;
-	page = yield* openPage(board, "/", (window) => {
+	page = yield* openPage(board, "/note.md", (window) => {
 		const original = window.fetch.bind(window);
 		window.fetch = async (url, options) => {
 			const call = await rpcCall(window, url, options);
@@ -67,7 +67,7 @@ it.live("reports search failures, allows retry, and renders snippets as text", f
 	notes = folder({ "note.md": "# Plan" });
 	board = yield* startBoard(notes.root);
 	let failed = true;
-	page = yield* openPage(board, "/", (window) => {
+	page = yield* openPage(board, "/note.md", (window) => {
 		const original = window.fetch.bind(window);
 		window.fetch = async (url, options) => {
 			const call = await rpcCall(window, url, options);

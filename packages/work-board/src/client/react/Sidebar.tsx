@@ -34,7 +34,7 @@ export function Sidebar({
 	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
 	const goals = Option.getOrUndefined(query.data)?.goals;
 	const destinations = [
-		{ count: data?.inboxCount, href: "/_board/inbox", id: "inbox-open", label: "Today", view: "inbox" },
+		{ count: data?.inboxCount, href: "/", id: "home-open", label: "Today", view: "today" },
 		{ count: data?.counts.goals, href: "/_board/goals", id: "goals-open", label: "Goals", view: "goals" },
 		{ count: data?.counts.now, href: "/_board/work", id: "work-open", label: "Now", view: "work" },
 		{ count: data?.counts.library, href: "/_board/library", id: "documents-open", label: "Library", view: "library" },
@@ -67,14 +67,18 @@ export function Sidebar({
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(data?.inboxCount ?? "?")} id={shellIds.primaryNavigation}>
 				{destinations.map(({ label, href, view, count, id }) => (
 					<a
-						aria-current={main.view === view ? "page" : undefined}
-						className={cn(buttonVariants({ variant: "ghost" }), "justify-between no-underline", main.view === view && "bg-accent")}
+						aria-current={(view === "today" ? home : main.view === view) ? "page" : undefined}
+						className={cn(
+							buttonVariants({ variant: "ghost" }),
+							"justify-between no-underline",
+							(view === "today" ? home : main.view === view) && "bg-accent",
+						)}
 						href={href}
 						id={id}
 						key={view}
 					>
 						<span>{label}</span>
-						{view === "inbox" ? <InboxCount count={count ?? null} id={shellIds.inboxCount} /> : <Badge>{count ?? "?"}</Badge>}
+						{view === "today" ? <InboxCount count={count ?? null} id={shellIds.inboxCount} /> : <Badge>{count ?? "?"}</Badge>}
 					</a>
 				))}
 			</nav>
@@ -87,7 +91,7 @@ export function Sidebar({
 						<a className="block truncate text-sm" href={`/_board/item/${encodeURIComponent(goal.id)}/`}>
 							{goal.title}
 						</a>
-						<GoalProgress counts={goal.counts} title={goal.title} />
+						<GoalProgress compact counts={goal.counts} title={goal.title} />
 					</div>
 				))}
 			</section>

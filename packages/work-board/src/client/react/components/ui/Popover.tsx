@@ -8,12 +8,14 @@ export function Popover({
 	children,
 	className,
 	triggerId,
+	triggerClassName,
 }: {
 	readonly label: string;
 	readonly trigger: ReactNode;
 	readonly children: ReactNode;
 	readonly className?: string;
 	readonly triggerId?: string;
+	readonly triggerClassName?: string;
 }) {
 	const id = useId();
 	const [open, setOpen] = useState(false);
@@ -58,6 +60,7 @@ export function Popover({
 				aria-expanded={open}
 				aria-haspopup="dialog"
 				aria-label={label}
+				className={triggerClassName}
 				id={triggerId}
 				onClick={() => setOpen(!open)}
 				ref={buttonRef}

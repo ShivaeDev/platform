@@ -10,7 +10,7 @@ let page: OpenPage;
 
 const setupBoard = Effect.gen(function* () {
 	workspace = yield* visualWorkspace();
-	page = yield* openPage(workspace.board);
+	page = yield* openPage(workspace.board, "/nested/home.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("live")?.textContent).toBe("live")));
 });
 

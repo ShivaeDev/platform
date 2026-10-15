@@ -40,6 +40,8 @@ it("bounds document shell links with 1,500 files and shows titled pinned, goal a
 				document.querySelector('section[aria-label="Active goals"] [role="img"][aria-label^="Example goal"]')?.getAttribute("aria-label"),
 			).toContain("done: 2"),
 		);
+		expect(document.querySelector('section[aria-label="Active goals"]')?.textContent).toContain("2/5");
+		expect(document.querySelectorAll('section[aria-label="Active goals"] [data-status-token]')).toHaveLength(0);
 		expect(document.querySelector("#files")).toBeNull();
 		expect(document.querySelectorAll("a").length).toBeLessThan(100);
 		const navigation = view.registry.get(navigationQuery(view.api));
