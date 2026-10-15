@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { launchInput } from "#engine/launchInput.ts";
+import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
 import { localOnlyCriteria } from "#engine/localOnlyCriteria.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -62,7 +63,7 @@ export function makeLaunch(state: EngineState) {
 		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
 			checkFailures,
-			observationRetries: continuation?.observationRetries,
+			observationRetries: launchObservationRetries(stored.value, continuation?.observationRetries),
 			operationId: policy.operationId(),
 			prompt: workerPrompt,
 			providerFailures: stored.value.launchRetry?.rejections,
