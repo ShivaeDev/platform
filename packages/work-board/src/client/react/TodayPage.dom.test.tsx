@@ -66,7 +66,7 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 	}
 });
 
-it("records an inline option with the response command and removes its ask on query refresh", async () => {
+it("opens compact answer controls, records an option and removes its ask on query refresh", async () => {
 	const files = todayFixture();
 	const source = files["unaddressed.md"] ?? "";
 	const revision = revisionOf(source);
@@ -111,6 +111,19 @@ it("records an inline option with the response command and removes its ask on qu
 		await eventually(() =>
 			expect(view.container.querySelector("[aria-label='Options for question.storage'] button")?.textContent).toBe("Keep local files · Recommended"),
 		);
+		const entry = view.container.querySelector("[data-attention-id='question.storage']");
+		const trigger = entry?.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]');
+		const dialog = entry?.querySelector<HTMLElement>('[role="dialog"]');
+		expect(dialog?.hidden).toBe(true);
+		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+		act(() => trigger?.click());
+		await eventually(() => expect(dialog?.hidden).toBe(false));
+		expect(document.activeElement?.textContent).toBe("Keep local files · Recommended");
+		act(() => document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })));
+		expect(dialog?.hidden).toBe(true);
+		expect(document.activeElement).toBe(trigger);
+		act(() => trigger?.click());
+		expect(dialog?.hidden).toBe(false);
 		expect(view.container.querySelectorAll("[data-attention-id='question.storage']")).toHaveLength(1);
 		await act(async () => view.container.querySelector<HTMLButtonElement>("[aria-label='Options for question.storage'] button")?.click());
 		await eventually(() =>

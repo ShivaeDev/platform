@@ -9,6 +9,7 @@ import { optionLabel } from "#browser/responses/cardContext.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { documentQuery, navigationQuery, routeQueryOptions } from "#client/page/routeQuery.ts";
 import { Button } from "#client/react/components/ui/Button.tsx";
+import { Popover } from "#client/react/components/ui/Popover.tsx";
 import { authorLabel } from "#client/responses/authorLabel.ts";
 import { fileUrl } from "#files/url.ts";
 import { createResponse } from "./createResponse.ts";
@@ -20,13 +21,23 @@ export function TodayOptions({ api, item }: { readonly api: ShellApi; readonly i
 	const requestId = new URL(item.href, "http://127.0.0.1").searchParams.get("request");
 	const request = data?.requests.find((entry) => entry.id === requestId && entry.open);
 	return data
+		&& !item.problem
 		&& request?.preview
 		&& !request.unavailable
 		&& !request.promptUnavailable
 		&& request.prompts?.length === 1
 		&& request.prompts[0]?.mode === "one" ? (
-		<InlineOptions api={api} document={data} key={request.preview.reviewedRevision} request={request} />
-	) : null;
+		<Popover label={`Answer ${item.title}`} trigger="Answer" triggerClassName="h-8 w-auto px-1 text-xs">
+			<a className="mb-3 block text-xs" href={item.href}>
+				Open full question
+			</a>
+			<InlineOptions api={api} document={data} key={request.preview.reviewedRevision} request={request} />
+		</Popover>
+	) : (
+		<a aria-label={`Answer ${item.title}`} className="shrink-0 text-xs" href={item.href}>
+			Answer
+		</a>
+	);
 }
 
 function InlineOptions({ api, document: data, request }: { readonly api: ShellApi; readonly document: Document; readonly request: DocumentRequest }) {

@@ -12,9 +12,8 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 	return data.you.length > 0 ? (
 		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
 			{data.you.map((item) => (
-				<li data-attention-id={item.id} key={`${item.file}:${item.href}`}>
-					<TodayRow item={item} />
-					{!item.problem && <TodayOptions api={api} item={item} />}
+				<li className="h-12 max-h-12" data-attention-id={item.id} key={`${item.file}:${item.href}`}>
+					<TodayRow api={api} item={item} />
 				</li>
 			))}
 		</ul>
@@ -44,9 +43,9 @@ export function TodayGroup({ items, title }: { readonly items: readonly Item[]; 
 	);
 }
 
-function TodayRow({ item }: { readonly item: Item }) {
+function TodayRow({ api, item }: { readonly api: ShellApi; readonly item: Item }) {
 	return (
-		<div className="today-row flex h-12 max-h-12 min-w-0 items-center gap-2 px-2" data-attention-row>
+		<div className="today-row flex h-full min-w-0 items-center gap-2 px-2" data-attention-row>
 			<StatusChip
 				aria-label="Needs you"
 				className="shrink-0 max-sm:size-6 max-sm:justify-center max-sm:gap-0 max-sm:px-1 max-sm:text-[0px] max-sm:[&_svg]:shrink-0"
@@ -70,9 +69,7 @@ function TodayRow({ item }: { readonly item: Item }) {
 			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
 				{item.modified === undefined ? "Age ?" : <Age modified={item.modified} short />}
 			</span>
-			<a aria-label={`Answer ${item.title}`} className="shrink-0 text-xs" href={item.href}>
-				Answer
-			</a>
+			<TodayOptions api={api} item={item} />
 		</div>
 	);
 }
