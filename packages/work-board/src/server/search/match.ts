@@ -7,9 +7,9 @@ function normalize(text: string): string {
 
 function resultType(entry: Entry): number {
 	if (entry.kind === "document" && entry.itemKind) {
-		return entry.record ? 1 : 0;
+		return 0;
 	}
-	return entry.record ? 3 : 2;
+	return entry.record ? 2 : 1;
 }
 
 function relevance(entry: Entry, terms: readonly string[], phrase: string, text: string) {

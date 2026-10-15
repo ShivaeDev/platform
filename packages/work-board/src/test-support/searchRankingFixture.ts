@@ -66,7 +66,7 @@ export function fleetRankingFixture() {
 }
 export function fleetItemRankingFixture() {
 	const { files, modified } = fleetRankingFixture();
-	const decision = inboxFixture()["responses/decision.md"] ?? "";
+	const decision = (inboxFixture()["responses/decision.md"] ?? "").replace("kind: decision", "kind: decision\nstatus: active");
 	return {
 		files: {
 			...files,

@@ -73,8 +73,13 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 		type("workspace");
 		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Open workspace"));
 		expect(rows().findIndex((row) => row.querySelector("strong")?.textContent === "A calmer workspace")).toBeGreaterThan(0);
-		type("project.workspace");
-		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Go to A calmer workspace"));
+		for (const query of ["project.workspace", "calmer"]) {
+			type(query);
+			await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Go to A calmer workspace"));
+			const destinations = rows().map((row) => row.getAttribute("href"));
+			expect(new Set(destinations).size).toBe(destinations.length);
+			expect(destinations.filter((href) => href === "/_board/item/project.workspace/")).toHaveLength(1);
+		}
 		type("Library");
 		await eventually(() => expect(rows()[0]?.getAttribute("href")).toBe("/_board/library"));
 		type("theme");

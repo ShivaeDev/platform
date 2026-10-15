@@ -4,17 +4,17 @@ import { fixtureSnapshot } from "#test/fixtureSnapshot.ts";
 import { fleetItemRankingFixture, identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
 import { searchMatch } from "./match.ts";
 
-it.live("ranks opted-in Fleet decision items after ordinary work but before every heading or passage", function* () {
+it.live("ranks all items by status, title/ID relevance and recency before every heading or passage", function* () {
 	const { files, modified } = fleetItemRankingFixture();
 	const snapshot = yield* fixtureSnapshot(files, undefined, modified);
 	const results = searchMatch(snapshot.entries, "records: watch", snapshot.modified).results;
 	expect(results.slice(0, 4).map((entry) => [entry.kind, entry.id])).toEqual([
-		["document", "task.review"],
-		["document", "task.watch-done"],
 		["document", "decision.watch"],
 		["document", "decision.policy"],
+		["document", "task.review"],
+		["document", "task.watch-done"],
 	]);
-	expect(results[3]?.snippet).toBe("The watch needs a policy.");
+	expect(results[1]?.snippet).toBe("The watch needs a policy.");
 	expect(results.slice(4).every((entry) => entry.kind !== "document" || !entry.itemKind)).toBe(true);
 	expect(results.some((entry) => entry.kind === "heading" && !entry.record)).toBe(true);
 	expect(results.some((entry) => entry.kind === "passage" && !entry.record)).toBe(true);

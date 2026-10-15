@@ -31,7 +31,20 @@ export function SearchPalette({
 	const goals = useQuery(api.goals.query());
 	const commands = matchingCommands(Option.getOrUndefined(goals.data)?.goals ?? [], text);
 	const editing = input.trim() !== text;
-	const items = editing ? [] : [...commands, ...(text && data ? data.results : [])];
+	const destinations = new Set<string>();
+	const items = editing
+		? []
+		: [...commands, ...(text && data ? data.results : [])].filter((item: SearchItem) => {
+				const destination = item.href ?? item.command;
+				if (!destination) {
+					return true;
+				}
+				if (destinations.has(destination)) {
+					return false;
+				}
+				destinations.add(destination);
+				return true;
+			});
 	useEffect(() => {
 		setSelected((current) => Math.min(current, Math.max(0, items.length - 1)));
 	}, [items.length]);
