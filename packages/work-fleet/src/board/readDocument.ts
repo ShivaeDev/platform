@@ -1,6 +1,5 @@
 import { Effect, FileSystem } from "effect";
 import { board as boardApi } from "@shivaedev/work-board/integration/board.ts";
-import { boardDiagnostics } from "#board/fleetField.ts";
 import { STATUS_MARKER } from "#board/statusMarkdown.ts";
 import { BoardFailure } from "#policy.ts";
 
@@ -21,7 +20,7 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 		return { document: undefined, problem: undefined };
 	}
 	const parsed = boardApi.metadataParse(source);
-	const diagnostics = boardDiagnostics(parsed);
+	const diagnostics = parsed.diagnostics;
 	return {
 		document: { file, parsed, source },
 		problem:
