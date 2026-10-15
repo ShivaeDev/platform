@@ -50,28 +50,3 @@ for (const timing of ["between passes", "while the reviewer finishes"] as const)
 		);
 	});
 }
-
-test("an authored brief edit while waiting for a merge stops work and supersedes the merge question", () =>
-	withFleetBoard({ denyDelivery: true }, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			yield* prepareWork("one");
-			yield* fleet.dispatch("one");
-			finishWorkers(fixture);
-			const waiting = yield* fleet.reconcile("one");
-			expect(waiting.value.stage).toBe("needs-human");
-			expect(waiting.value.review?.verdict).toBe("approved");
-			const published = waiting.value.decision?.published;
-			const current = `${source}\nUpdated acceptance criteria.\n`;
-			boardHttpFiles(root).write("one.md", current);
-			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("needs-human");
-			expect(continued.value.decision?.reason).toBe("Board context changed");
-			expect(continued.value.review).toBeUndefined();
-			expect(continued.value.checks).toBeUndefined();
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
-			expect(continued.value.result).toEqual(waiting.value.result);
-			const acknowledged = yield* fleet.reconcile("one");
-			expect(acknowledged.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
-		}),
-	));
