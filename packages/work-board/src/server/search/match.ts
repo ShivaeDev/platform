@@ -6,10 +6,10 @@ function normalize(text: string): string {
 }
 
 function resultType(entry: Entry): number {
-	if (entry.record) {
-		return 2;
+	if (entry.kind === "document" && entry.itemKind) {
+		return entry.record ? 1 : 0;
 	}
-	return entry.kind === "document" && entry.itemKind ? 0 : 1;
+	return entry.record ? 3 : 2;
 }
 
 function relevance(entry: Entry, terms: readonly string[], phrase: string, text: string) {
@@ -27,7 +27,7 @@ export function searchMatch(entries: readonly Entry[], query: string, modified: 
 	if (terms.length === 0) {
 		return { results: [], total: 0 };
 	}
-	const items = new Map(entries.filter((entry) => entry.kind === "document" && entry.itemKind && !entry.record).map((entry) => [entry.file, entry]));
+	const items = new Map(entries.filter((entry) => entry.kind === "document" && entry.itemKind).map((entry) => [entry.file, entry]));
 	const matches = entries
 		.flatMap((entry, order) => {
 			const text = normalize(entry.text);

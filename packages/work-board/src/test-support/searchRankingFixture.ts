@@ -1,3 +1,5 @@
+import { inboxFixture } from "./inboxFixture.ts";
+
 export function searchRankingFixture() {
 	function task(status: string, title: string, body = "") {
 		return `---\nkind: task\nstatus: ${status}\n---\n# ${title}\n\n${body}\n`;
@@ -60,5 +62,19 @@ export function fleetRankingFixture() {
 			["responses/fleet-report.md", 5000],
 			["responses/fleet-report.2026-10-15.md", 6000],
 		]),
+	};
+}
+export function fleetItemRankingFixture() {
+	const { files, modified } = fleetRankingFixture();
+	const decision = inboxFixture()["responses/decision.md"] ?? "";
+	return {
+		files: {
+			...files,
+			"decision-body.md":
+				decision.replace("decision.delivery", "decision.policy").replace("Fleet delivery decision", "Review policy")
+				+ "\nThe watch needs a policy.\n",
+			"decision-title.md": decision.replace("decision.delivery", "decision.watch").replace("Fleet delivery decision", "Watch decision"),
+		},
+		modified: new Map([...modified, ["decision-title.md", 500], ["decision-body.md", 10_000]]),
 	};
 }
