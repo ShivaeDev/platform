@@ -9,7 +9,8 @@ import type { ShellApi } from "./ShellApi.ts";
 export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
 	const headingId = useId();
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
-	const goal = Option.getOrUndefined(progress.data)?.goals.find((entry) => entry.id === document.identity);
+	const data = Option.getOrUndefined(progress.data);
+	const goal = data?.goals.find((entry) => entry.id === document.identity) ?? data?.closedGoals.find((entry) => entry.id === document.identity);
 	return (
 		<section aria-labelledby={headingId} className="document-lead col-span-full max-w-[68ch] space-y-4" data-goal-section="progress">
 			<h2 className="font-semibold text-xl" id={headingId}>
@@ -23,7 +24,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 					<GoalProgressSummary bar counts={goal.counts} />
 				</>
 			) : (
-				<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified open projects."}</p>
+				<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified projects."}</p>
 			)}
 			{Option.isSome(progress.cause) && <p role="status">Goal progress refresh failed.</p>}
 		</section>

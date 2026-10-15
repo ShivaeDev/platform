@@ -20,6 +20,18 @@ it.live("counts linked work, criterion claims and eligible Inbox asks through th
 	const release = client.registry.mount(atom);
 	const result = yield* Effect.promise(() => client.read(atom));
 	expect(result).toEqual({
+		closedGoals: [
+			{
+				counts: { done: 0, "in progress": 0, planned: 0 },
+				criteria: [],
+				id: "project.closed",
+				linked: 0,
+				openAsks: 1,
+				status: "completed",
+				title: "Closed goal",
+				unlinked: true,
+			},
+		],
 		goals: [
 			{
 				counts: { done: 0, "in progress": 0, planned: 0 },
@@ -64,5 +76,19 @@ it.live("counts linked work, criterion claims and eligible Inbox asks through th
 			});
 		}),
 	);
+	notes.write("goal.md", goalsFixture()["goal.md"]?.replace("status: planned", "status: completed") ?? "");
+	yield* Effect.promise(() =>
+		waitFor(() => {
+			const updated = client.registry.get(atom);
+			expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual(["project.empty"]);
+			expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
+				done: 2,
+				"in progress": 1,
+				planned: 2,
+			});
+		}),
+	);
+	const navigation = yield* Effect.promise(() => client.read(client.api.navigation.query({ current: "/goal.md" })));
+	expect(navigation.counts.goals).toBe(1);
 	release();
 });

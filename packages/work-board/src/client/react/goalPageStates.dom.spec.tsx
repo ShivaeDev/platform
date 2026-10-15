@@ -2,7 +2,9 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/testing.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
+import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import { routeQueryOptions } from "#client/page/routeQuery.ts";
+import { closedGoalPageFixture, goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
 import { renderBoard } from "#test/react.tsx";
 import { DocumentMain } from "./DocumentMain.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
@@ -62,27 +64,38 @@ it.live("shows zero open asks and keeps untargeted criteria quiet", function* ()
 	}
 });
 
-it.live("keeps closed projects outside the open-goals query and still shows criteria and work", function* () {
+it.live.each(["completed", "closed"])("shows query-derived goal and criterion counts for a %s project", function* (status) {
+	let readProgress: () => GoalsProjection | undefined = () => undefined;
 	const view = yield* Effect.promise(() =>
-		renderBoard(
-			{
-				...goalPageFixture(),
-				"closed-result.md":
-					"---\nid: result.closed\nkind: result\nstatus: done\nrelationships:\n - kind: implements\n   target: project.closed\n---\n# Closed result",
-			},
-			(api) => <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />,
-		),
+		renderBoard(closedGoalPageFixture(status), (api, registry) => {
+			const query = api.goals.query(undefined, routeQueryOptions);
+			readProgress = () => {
+				const result = registry.get(query);
+				return result._tag === "Success" ? result.value : undefined;
+			};
+			return <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />;
+		}),
 	);
 	try {
 		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(view.container.querySelector('[data-goal-section="progress"]')?.textContent).toContain(
-					"Progress is available for uniquely identified open projects.",
-				),
-			),
+			eventually(() => expect(view.container.querySelector('[data-goal-section="progress"]')?.textContent).toContain("6 linked items")),
 		);
-		expect(view.container.querySelector('[data-goal-section="criteria"]')).not.toBeNull();
-		expect(view.container.querySelector('[data-goal-section="work"]')).not.toBeNull();
+		const data = readProgress();
+		const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
+		expect(data?.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
+		expect(goal?.counts).toEqual({ done: 2, "in progress": 1, planned: 3 });
+		const counts = Object.fromEntries(
+			[...view.container.querySelectorAll<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [
+				segment.dataset.status,
+				Number(segment.dataset.count),
+			]),
+		);
+		expect(counts).toEqual(goal?.counts);
+		expect(view.container.querySelector("[data-goal-open-asks]")?.textContent).toBe(`${goal?.openAsks} open asks`);
+		expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 1, planned: 1 });
+		expect(view.container.querySelector("#criterion-first [data-criterion-progress]")?.textContent).toBe("1 done · 1 in progress · 1 planned");
+		expect(view.container.querySelector("#criterion-second")?.textContent).toBe("Second criterion");
+		expect(view.container.querySelectorAll("[data-goal-item]")).toHaveLength(goal?.linked ?? 0);
 		expect(view.container.querySelectorAll('[data-goal-item="result.closed"]')).toHaveLength(1);
 		expect(view.container.querySelector('[data-goal-item="result.closed"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe(
 			"Done",

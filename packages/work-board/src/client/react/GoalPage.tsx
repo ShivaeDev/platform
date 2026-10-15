@@ -10,7 +10,7 @@ import type { ShellApi } from "./ShellApi.ts";
 export function GoalPage({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const data = Option.getOrUndefined(progress.data);
-	const goal = data?.goals.find((entry) => entry.id === document.identity);
+	const goal = data?.goals.find((entry) => entry.id === document.identity) ?? data?.closedGoals.find((entry) => entry.id === document.identity);
 	const items = data?.items.filter((item) => targetsGoal(item, document.identity ?? ""));
 	return (
 		<div className="goal-page space-y-6">

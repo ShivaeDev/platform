@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
-import { inboxCount } from "#server/navigation/model.ts";
+import { inboxCount, navigationData } from "#server/navigation/model.ts";
 import { closedInboxFixture } from "#test/closedInboxFixture.ts";
+import { closedGoalPageFixture, goalFleetFixture } from "#test/goalPageFixture.ts";
 import { inboxSnapshot } from "#test/inboxFixture.ts";
 import { goals } from "./goals.ts";
 
@@ -22,3 +23,19 @@ it("counts only eligible active Inbox rows for linked work, never more than the 
 	expect(goal?.openAsks).toBeLessThanOrEqual(inboxCount(snapshot) ?? 0);
 	expect(goals({ ...snapshot, unavailable: ["missing.md"] }).goals[0]?.openAsks).toBe(0);
 });
+
+it.each(["closed", "done", "superseded", "completed", "cancelled", "canceled", "resolved", "released"])(
+	"provides Fleet-aware progress for %s projects without adding them to active-goal navigation",
+	(status) => {
+		const snapshot = inboxSnapshot(closedGoalPageFixture(status));
+		const data = goals(snapshot, goalFleetFixture());
+		const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
+		expect(goal?.status).toBe(status);
+		expect(goal?.counts).toEqual({ done: 3, "in progress": 1, planned: 2 });
+		expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 1, planned: 0 });
+		expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, planned: 0 });
+		expect(goal?.linked).toBe(6);
+		expect(data.goals.map((entry) => entry.id)).toEqual(["project.empty", "project.example"]);
+		expect(navigationData([], "", undefined, snapshot).counts.goals).toBe(2);
+	},
+);

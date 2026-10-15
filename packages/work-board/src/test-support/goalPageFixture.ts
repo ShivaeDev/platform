@@ -12,6 +12,23 @@ export function goalPageFixture(): Readonly<Record<string, string>> {
 	};
 }
 
+export function closedGoalPageFixture(status = "completed"): Readonly<Record<string, string>> {
+	const files = goalPageFixture();
+	const linked = Object.fromEntries(
+		Object.entries(files).map(([file, source]) => [file, source.replaceAll("target: project.example", "target: project.closed")]),
+	);
+	return {
+		...linked,
+		"closed-result.md":
+			"---\nid: result.closed\nkind: result\nstatus: done\nrelationships:\n - kind: implements\n   target: project.closed#first\n - kind: implements\n   target: project.closed\n---\n# Closed result",
+		"closed.md": (files["goal.md"] ?? "")
+			.replace("id: project.example", "id: project.closed")
+			.replace("status: planned", `status: ${status}`)
+			.replace("# Example goal", "# Closed goal"),
+		"first.md": (linked["first.md"] ?? "").replace("status: planned", "status: in-progress"),
+	};
+}
+
 export function goalFleetFixture(
 	stage: "executing" | "reviewing" | "needs-human" = "executing",
 ): Extract<FleetItemsProjection, { readonly state: "ready" }> {

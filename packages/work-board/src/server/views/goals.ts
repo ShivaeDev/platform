@@ -20,42 +20,42 @@ export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsPr
 	const items = itemsOf(snapshot);
 	const claims = snapshot.documents.flatMap((document) => document.parsed.fields.evidence ?? []);
 	const asks = inboxItems(snapshot);
-	return {
-		goals: items
-			.filter((item) => item.document.parsed.fields.kind === "project" && openItem(item.document))
-			.sort((a, b) => a.id.localeCompare(b.id))
-			.map(({ id, title, document }) => {
-				const fields = document.parsed.fields;
-				const linked = items.filter((item) =>
-					item.document.parsed.fields.relationships?.some(
-						(link) => link.kind === "implements" && (link.target === id || link.target.startsWith(`${id}#`)),
-					),
+	const projects = items.filter((item) => item.document.parsed.fields.kind === "project").sort((a, b) => a.id.localeCompare(b.id));
+	function toGoal({ id, title, document }: Item) {
+		const fields = document.parsed.fields;
+		const linked = items.filter((item) =>
+			item.document.parsed.fields.relationships?.some(
+				(link) => link.kind === "implements" && (link.target === id || link.target.startsWith(`${id}#`)),
+			),
+		);
+		const unblocks = new Set([id, ...linked.map((item) => item.id)]);
+		return {
+			counts: countsOf(linked, fleet),
+			criteria: (fields.criteria ?? []).map((criterion) => {
+				const target = `${id}#${criterion.id}`;
+				const work = linked.filter((item) =>
+					item.document.parsed.fields.relationships?.some((link) => link.kind === "implements" && link.target === target),
 				);
-				const unblocks = new Set([id, ...linked.map((item) => item.id)]);
 				return {
-					counts: countsOf(linked, fleet),
-					criteria: (fields.criteria ?? []).map((criterion) => {
-						const target = `${id}#${criterion.id}`;
-						const work = linked.filter((item) =>
-							item.document.parsed.fields.relationships?.some((link) => link.kind === "implements" && link.target === target),
-						);
-						return {
-							...criterion,
-							counts: countsOf(work, fleet),
-							evidence: claims.filter((claim) => claim.criterion === target).length,
-							linked: work.length,
-						};
-					}),
-					id,
-					linked: linked.length,
-					nextAction: fields.nextAction,
-					openAsks: asks.filter((ask) => ask.unblocks.some((target) => unblocks.has(target.split("#")[0] ?? ""))).length,
-					owner: fields.owner,
-					status: fields.status,
-					title,
-					unlinked: linked.length === 0,
+					...criterion,
+					counts: countsOf(work, fleet),
+					evidence: claims.filter((claim) => claim.criterion === target).length,
+					linked: work.length,
 				};
 			}),
+			id,
+			linked: linked.length,
+			nextAction: fields.nextAction,
+			openAsks: asks.filter((ask) => ask.unblocks.some((target) => unblocks.has(target.split("#")[0] ?? ""))).length,
+			owner: fields.owner,
+			status: fields.status,
+			title,
+			unlinked: linked.length === 0,
+		};
+	}
+	return {
+		closedGoals: projects.filter((item) => !openItem(item.document)).map(toGoal),
+		goals: projects.filter((item) => openItem(item.document)).map(toGoal),
 		items: items
 			.filter((item) => item.document.parsed.fields.relationships?.some((link) => link.kind === "implements"))
 			.map(({ document, id, title }) => ({ file: document.file, id, metadata: document.parsed.fields, title })),
