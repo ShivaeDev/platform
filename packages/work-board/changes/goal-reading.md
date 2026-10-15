@@ -5,3 +5,7 @@
 ### Changed
 
 - Goal and criterion `counts` now always contain `done`, `"in progress"` and `planned`, including zeros. Held Fleet stages override authored status; released stages fall back to authored status. Deferred and unrecorded work count as planned. `goals(snapshot, fleet?)` accepts an optional Fleet projection. Internal Inbox rows retain their `unblocks` targets for goal-specific counts; browser Inbox projections keep their existing shape.
+
+### Fixed
+
+- Goal criteria and linked-work tables include every identified implementing item, including results, decisions, questions and responses. The goals query returns these items alongside its counts, including links to closed projects.

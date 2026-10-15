@@ -1,8 +1,8 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { goalWorkGroup } from "#browser/views/goalWorkState.ts";
-import type { WorkProjection } from "#browser/views/schema.ts";
 
-export type GoalWorkItem = WorkProjection["items"][number];
+export type GoalWorkItem = GoalsProjection["items"][number];
 export const goalGroups = ["In progress", "Planned", "Done", "Deferred"] as const;
 type FleetReady = Extract<FleetItemsProjection, { readonly state: "ready" }>;
 export type GoalRun = FleetReady["items"][number] | FleetReady["completed"][number];

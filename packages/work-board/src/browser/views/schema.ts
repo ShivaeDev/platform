@@ -4,7 +4,7 @@ import { Metadata } from "#metadata/schema.ts";
 import { State } from "./state.ts";
 
 const Link = Schema.Struct({ href: Schema.optional(Schema.String), label: Schema.String });
-const WorkItem = Schema.Struct({
+export const WorkItem = Schema.Struct({
 	file: Schema.String,
 	fleetApproved: Schema.optional(Schema.Boolean),
 	id: Schema.String,

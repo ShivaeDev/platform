@@ -64,7 +64,14 @@ it.live("shows zero open asks and keeps untargeted criteria quiet", function* ()
 
 it.live("keeps closed projects outside the open-goals query and still shows criteria and work", function* () {
 	const view = yield* Effect.promise(() =>
-		renderBoard(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />),
+		renderBoard(
+			{
+				...goalPageFixture(),
+				"closed-result.md":
+					"---\nid: result.closed\nkind: result\nstatus: done\nrelationships:\n - kind: implements\n   target: project.closed\n---\n# Closed result",
+			},
+			(api) => <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />,
+		),
 	);
 	try {
 		yield* Effect.promise(() =>
@@ -76,6 +83,10 @@ it.live("keeps closed projects outside the open-goals query and still shows crit
 		);
 		expect(view.container.querySelector('[data-goal-section="criteria"]')).not.toBeNull();
 		expect(view.container.querySelector('[data-goal-section="work"]')).not.toBeNull();
+		expect(view.container.querySelectorAll('[data-goal-item="result.closed"]')).toHaveLength(1);
+		expect(view.container.querySelector('[data-goal-item="result.closed"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe(
+			"Done",
+		);
 	} finally {
 		yield* Effect.promise(() => view.unmount());
 	}

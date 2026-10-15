@@ -9,15 +9,14 @@ import type { ShellApi } from "./ShellApi.ts";
 
 export function GoalPage({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
-	const work = useQuery(api.work.query({ url: "/_board/work" }, routeQueryOptions), { keepPreviousData: true });
-	const goal = Option.getOrUndefined(progress.data)?.goals.find((entry) => entry.id === document.identity);
-	const data = Option.getOrUndefined(work.data);
-	const items = data ? [...data.items, ...data.boards].filter((item) => targetsGoal(item, document.identity ?? "")) : undefined;
+	const data = Option.getOrUndefined(progress.data);
+	const goal = data?.goals.find((entry) => entry.id === document.identity);
+	const items = data?.items.filter((item) => targetsGoal(item, document.identity ?? ""));
 	return (
 		<div className="goal-page space-y-6">
 			<GoalCriteria document={document} items={items} progress={goal?.criteria} />
-			{items ? <GoalWorkTable items={items} /> : <p role="status">{work.pending ? "Loading linked work…" : "Linked work unavailable."}</p>}
-			{Option.isSome(work.cause) && <p role="status">Linked work refresh failed.</p>}
+			{items ? <GoalWorkTable items={items} /> : <p role="status">{progress.pending ? "Loading linked work…" : "Linked work unavailable."}</p>}
+			{Option.isSome(progress.cause) && <p role="status">Linked work refresh failed.</p>}
 		</div>
 	);
 }

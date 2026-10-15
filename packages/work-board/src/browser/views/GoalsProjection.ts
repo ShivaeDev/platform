@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { WorkItem } from "./schema.ts";
 
 const Counts = Schema.Struct({ done: Schema.Number, "in progress": Schema.Number, planned: Schema.Number });
 const Criterion = Schema.Struct({ counts: Counts, evidence: Schema.Number, id: Schema.String, linked: Schema.Number, text: Schema.String });
@@ -17,5 +18,6 @@ export const GoalsProjection = Schema.Struct({
 			unlinked: Schema.Boolean,
 		}),
 	),
+	items: Schema.Array(WorkItem),
 });
 export type GoalsProjection = typeof GoalsProjection.Type;

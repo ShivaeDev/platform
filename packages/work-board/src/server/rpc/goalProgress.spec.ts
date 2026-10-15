@@ -47,7 +47,12 @@ it.live("counts linked work, criterion claims and eligible Inbox asks through th
 				unlinked: false,
 			},
 		],
+		items: expect.arrayContaining([
+			expect.objectContaining({ file: "first.md", id: "task.first", title: "First task" }),
+			expect.objectContaining({ file: "fifth.md", id: "task.fifth", title: "Fifth task" }),
+		]),
 	});
+	expect(result.items).toHaveLength(5);
 	notes.write("fifth.md", goalsFixture()["fifth.md"]?.replace("kind: task", "kind: task\nstatus: In Review") ?? "");
 	yield* Effect.promise(() =>
 		waitFor(() => {

@@ -56,5 +56,8 @@ export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsPr
 					unlinked: linked.length === 0,
 				};
 			}),
+		items: items
+			.filter((item) => item.document.parsed.fields.relationships?.some((link) => link.kind === "implements"))
+			.map(({ document, id, title }) => ({ file: document.file, id, metadata: document.parsed.fields, title })),
 	};
 }
