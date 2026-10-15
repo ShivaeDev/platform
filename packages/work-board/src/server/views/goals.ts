@@ -1,21 +1,25 @@
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { openItem } from "#server/attention/inbox.ts";
+import { goalWorkGroup } from "#browser/views/goalWorkState.ts";
+import { inboxItems, openItem } from "#server/attention/inbox.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { type Item, itemsOf } from "./items.ts";
 
-function countsOf(items: readonly Item[]): Readonly<Record<string, number>> {
-	const counts = new Map<string, number>();
+function countsOf(items: readonly Item[], fleet: FleetItemsProjection | undefined) {
+	const counts = { done: 0, "in progress": 0, planned: 0 };
+	const runs = fleet?.state === "ready" ? [...fleet.items, ...fleet.completed] : [];
 	for (const item of items) {
-		const status = item.document.parsed.fields.status ?? "not recorded";
-		counts.set(status, (counts.get(status) ?? 0) + 1);
+		const group = goalWorkGroup(item.document.parsed.fields.status, runs.find((run) => run.workId === item.id)?.stage);
+		const status = { Deferred: "planned", Done: "done", "In progress": "in progress", Planned: "planned" } as const;
+		counts[status[group]] += 1;
 	}
-	return Object.fromEntries(counts);
+	return counts;
 }
 
-export function goals(snapshot: Snapshot): GoalsProjection {
+export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsProjection {
 	const items = itemsOf(snapshot);
 	const claims = snapshot.documents.flatMap((document) => document.parsed.fields.evidence ?? []);
-	const asks = snapshot.documents.flatMap((document) => document.parsed.fields.attention?.filter((ask) => ask.state === "open") ?? []);
+	const asks = inboxItems(snapshot);
 	return {
 		goals: items
 			.filter((item) => item.document.parsed.fields.kind === "project" && openItem(item.document))
@@ -29,7 +33,7 @@ export function goals(snapshot: Snapshot): GoalsProjection {
 				);
 				const unblocks = new Set([id, ...linked.map((item) => item.id)]);
 				return {
-					counts: countsOf(linked),
+					counts: countsOf(linked, fleet),
 					criteria: (fields.criteria ?? []).map((criterion) => {
 						const target = `${id}#${criterion.id}`;
 						const work = linked.filter((item) =>
@@ -37,7 +41,7 @@ export function goals(snapshot: Snapshot): GoalsProjection {
 						);
 						return {
 							...criterion,
-							counts: countsOf(work),
+							counts: countsOf(work, fleet),
 							evidence: claims.filter((claim) => claim.criterion === target).length,
 							linked: work.length,
 						};

@@ -1,4 +1,5 @@
 import { useContext, useId } from "react";
+import { goalState } from "#browser/views/goalWorkState.ts";
 import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { type GoalWorkItem, goalGroup, goalGroups, goalRun } from "./goalWork.ts";
@@ -76,14 +77,6 @@ export function GoalWorkLink({ item }: { readonly item: GoalWorkItem }) {
 export function GoalWorkStatus({ item }: { readonly item: GoalWorkItem }) {
 	const fleet = useContext(FleetItemsContext);
 	const run = goalRun(item, fleet);
-	return (
-		<span className="inline-flex flex-wrap items-center gap-1">
-			<StatusChip className="whitespace-nowrap" status={item.metadata.status} />
-			{run && (
-				<span className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground text-xs" data-goal-fleet-stage>
-					Fleet <StatusChip status={run.stage} />
-				</span>
-			)}
-		</span>
-	);
+	const state = goalState(item.metadata.status, run?.stage);
+	return state ? <StatusChip className="whitespace-nowrap" status={state} /> : null;
 }

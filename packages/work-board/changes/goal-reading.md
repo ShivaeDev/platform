@@ -1,3 +1,7 @@
 ### Added
 
-- Project pages open with the goals query's status counts and open-ask count before open answer cards, followed by criteria with query counts, linked work and recorded evidence before the authored Markdown. Untargeted criteria say "not linked". Empty work groups and absent evidence stay quiet; work links and rows show authored status alongside known Fleet stages, including released, and leave absent PRs blank.
+- Project pages open with the goals query's done, in progress and planned counts and Inbox-aligned open-ask count before answer cards, followed by criteria with progress, linked work and recorded evidence before authored Markdown. Empty work groups, untargeted criteria labels and absent evidence stay quiet. Each work row has one held Fleet stage or authored status chip; missing status and PR stay blank.
+
+### Changed
+
+- Goal and criterion `counts` now always contain `done`, `"in progress"` and `planned`, including zeros. Held Fleet stages override authored status; released stages fall back to authored status. Deferred and unrecorded work count as planned. `goals(snapshot, fleet?)` accepts an optional Fleet projection. Internal Inbox rows retain their `unblocks` targets for goal-specific counts; browser Inbox projections keep their existing shape.

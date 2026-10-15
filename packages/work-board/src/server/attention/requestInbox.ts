@@ -30,6 +30,7 @@ export function requestInbox(snapshot: Snapshot) {
 			reason: entry.request.managed ? `Managed decision: ${entry.request.reason}` : entry.request.reason,
 			responseFrom: entry.request.responseFrom,
 			title: (target ? titles.get(target.file) : undefined) ?? entry.title,
+			unblocks: entry.request.unblocks,
 		};
 	}
 	const resolved: ReturnType<typeof row>[] = [];

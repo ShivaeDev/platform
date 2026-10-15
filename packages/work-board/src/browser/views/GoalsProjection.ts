@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-const Counts = Schema.Record(Schema.String, Schema.Number);
+const Counts = Schema.Struct({ done: Schema.Number, "in progress": Schema.Number, planned: Schema.Number });
 const Criterion = Schema.Struct({ counts: Counts, evidence: Schema.Number, id: Schema.String, linked: Schema.Number, text: Schema.String });
 export const GoalsProjection = Schema.Struct({
 	goals: Schema.Array(

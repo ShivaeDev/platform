@@ -12,7 +12,9 @@ export function goalPageFixture(): Readonly<Record<string, string>> {
 	};
 }
 
-export function goalFleetFixture(stage: "executing" | "reviewing" | "needs-human" = "executing"): FleetItemsProjection {
+export function goalFleetFixture(
+	stage: "executing" | "reviewing" | "needs-human" = "executing",
+): Extract<FleetItemsProjection, { readonly state: "ready" }> {
 	return {
 		completed: [{ completedAt: 0, document: null, stage: "completed", stageEnteredAt: 0, updatedAt: 0, workId: "task.second" }],
 		items: [

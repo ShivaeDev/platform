@@ -37,7 +37,7 @@ function Criterion({ document, items, index, progress }: Props & { readonly inde
 	return (
 		<section className="rounded-lg border p-4" id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
 			<h3 className="!mt-0">{criterion.text}</h3>
-			{counts && Object.keys(counts).length > 0 && <GoalProgressSummary counts={counts} />}
+			{counts && Object.values(counts).some((count) => count > 0) && <GoalProgressSummary counts={counts} />}
 			<LinkedItems items={work} />
 			<CriterionClaims document={document} id={criterion.id} valid={Boolean(document.identity) && document.unavailable.length === 0 && unique} />
 		</section>
@@ -47,9 +47,7 @@ function LinkedItems({ items }: { readonly items: readonly GoalWorkItem[] | unde
 	if (!items) {
 		return <p>Linked work unavailable.</p>;
 	}
-	return items.length === 0 ? (
-		<p>not linked</p>
-	) : (
+	return items.length === 0 ? null : (
 		<ul>
 			{items.map((item) => (
 				<li key={item.id}>
