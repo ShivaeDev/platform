@@ -2,6 +2,7 @@ import { Clock, Effect, Result } from "effect";
 import { TurnResponse } from "#providers/codexProtocol.ts";
 import { decode } from "#providers/codexRpc.ts";
 import { type CodexRequest, codexTurns } from "#providers/codexTurns.ts";
+import { genericRejection } from "#providers/genericRejection.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { busyThread, transientFailure } from "#session/transientFailure.ts";
 
@@ -15,8 +16,9 @@ const contentionState = Effect.fn("Codex.contentionState")(function* (
 		return undefined;
 	}
 	if (
-		(transientFailure(error) && !busyThread(error))
-		|| /credential|api key|unauthorized|unauthenticated|authentication|forbidden|policy|permission denied|access denied/iu.test(error.message)
+		genericRejection(error)
+		|| (transientFailure(error) && !busyThread(error))
+		|| /credential|api key|unauthorized|unauthenticated|authentication|forbidden|policy|permission|access denied|invalid|quota/iu.test(error.message)
 	) {
 		return undefined;
 	}

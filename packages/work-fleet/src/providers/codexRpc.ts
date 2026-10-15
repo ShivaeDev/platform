@@ -1,6 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schedule, Schema } from "effect";
 import { capacity } from "#providers/capacity.ts";
 import { Envelope } from "#providers/codexProtocol.ts";
+import { genericRejection } from "#providers/genericRejection.ts";
 import { SessionFailure } from "#session/schema.ts";
 
 type Resume = (result: Effect.Effect<unknown, SessionFailure>) => void;
@@ -128,6 +129,7 @@ export function request(connection: CodexConnection, timeoutMs: number, method: 
 		Effect.catchTag("TimeoutError", () =>
 			Effect.fail(failure(mutation ? "ambiguous" : "unavailable", "Codex request timed out; preserve submission ownership")),
 		),
+		Effect.retry({ schedule: Schedule.exponential("30 seconds"), times: 2, while: genericRejection }),
 	);
 }
 export function decode<A, TEncoded>(schema: Schema.Codec<A, TEncoded>, value: unknown) {
