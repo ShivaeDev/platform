@@ -13,7 +13,6 @@ export function SearchPalette({
 	close,
 	appearance,
 	toggleSidebar,
-	openLibrary,
 	input,
 	setInput,
 }: {
@@ -21,7 +20,6 @@ export function SearchPalette({
 	readonly close: () => void;
 	readonly appearance: AppearanceControls;
 	readonly toggleSidebar: () => void;
-	readonly openLibrary: (() => void) | undefined;
 	readonly input: string;
 	readonly setInput: (input: string) => void;
 }) {
@@ -48,11 +46,6 @@ export function SearchPalette({
 		document.getElementById(`search-result-${selected}`)?.scrollIntoView({ block: "nearest" });
 	}, [selected]);
 	function activate(item: SearchItem) {
-		if (item.command === "library") {
-			close();
-			openLibrary?.();
-			return;
-		}
 		activateAppearance(item.command, appearance, toggleSidebar);
 		if (!item.command) {
 			ref.current?.closest("dialog")?.close("navigate");

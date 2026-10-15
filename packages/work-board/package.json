@@ -318,10 +318,10 @@
 			"default": "./dist/browser/document/schema.js"
 		},
 		"./browser/navigation/schema.ts": {
-			"types": "./dist/browser/navigation/schema.d.ts",
-			"source": "./src/browser/navigation/schema.ts",
-			"import": "./dist/browser/navigation/schema.js",
-			"default": "./dist/browser/navigation/schema.js"
+			"types": "./dist/browser/Navigation.d.ts",
+			"source": "./src/browser/Navigation.ts",
+			"import": "./dist/browser/Navigation.js",
+			"default": "./dist/browser/Navigation.js"
 		},
 		"./browser/navigation/html.ts": {
 			"types": "./dist/browser/navigation/html.d.ts",
@@ -440,7 +440,10 @@
 		"./page/formReadingScript.ts": null,
 		"./page/diagrams.ts": null,
 		"./page/client.ts": null,
-		"./views/savedScript.ts": null
+		"./views/savedScript.ts": null,
+		"./document/answerBody.ts": null,
+		"./document/answerCardsHtml.ts": null,
+		"./document/requestTitle.ts": null
 	},
 	"bin": {
 		"work-board": "./dist/server/cli.js"

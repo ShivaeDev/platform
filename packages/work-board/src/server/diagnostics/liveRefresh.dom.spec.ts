@@ -5,6 +5,7 @@ import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { health, syntheticSources } from "#test/diagnostics.ts";
+import { followLink } from "#test/followLink.ts";
 import { waitFor } from "#test/live.ts";
 
 let notes: Folder;
@@ -46,7 +47,7 @@ it.live("navigates from the fixed sidebar, polls native page reads, pauses, resu
 	notes.write("fleet/health.json", JSON.stringify({ ...health, running: 6 }));
 	poll();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('[data-source="fleet"]')?.textContent).toContain("6 / 8")));
-	page.document.querySelector('#files a[href="/home.md"]')?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+	followLink(page, "/home.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.window.location.pathname).toBe("/home.md")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".diagnostics")).toBeNull()));
 	poll();

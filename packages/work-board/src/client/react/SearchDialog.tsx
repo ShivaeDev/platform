@@ -11,7 +11,6 @@ export function SearchDialog({
 	close,
 	appearance,
 	toggleSidebar,
-	openLibrary,
 	returnFocus,
 }: {
 	readonly api: ShellApi;
@@ -19,7 +18,6 @@ export function SearchDialog({
 	readonly close: () => void;
 	readonly appearance: AppearanceControls;
 	readonly toggleSidebar: () => void;
-	readonly openLibrary?: () => void;
 	readonly returnFocus?: HTMLElement | undefined;
 }) {
 	const [input, setInput] = useState("");
@@ -40,15 +38,7 @@ export function SearchDialog({
 				</button>
 			</div>
 			{open ? (
-				<SearchPalette
-					api={api}
-					appearance={appearance}
-					close={close}
-					input={input}
-					openLibrary={openLibrary}
-					setInput={setInput}
-					toggleSidebar={toggleSidebar}
-				/>
+				<SearchPalette api={api} appearance={appearance} close={close} input={input} setInput={setInput} toggleSidebar={toggleSidebar} />
 			) : null}
 		</Modal>
 	);

@@ -1,8 +1,11 @@
 import { Effect } from "effect";
 import { escapeHtml } from "#browser/escapeHtml.ts";
+import { cardContext } from "#browser/responses/cardContext.ts";
+import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { QuestionPreview, RecordedResponse } from "#browser/responses/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
+import { renderMarkdown } from "#server/render/markdown.ts";
 import { historyHtml } from "./historyHtml.ts";
 import { templateHtml } from "./templateHtml.ts";
 
@@ -10,6 +13,7 @@ export const composerHtml = Effect.fn("WorkBoard.composerHtml")(function* (
 	q: QuestionPreview,
 	records: readonly RecordedResponse[],
 	enabled: boolean,
+	card?: { readonly title: string },
 ) {
 	const template = yield* templateHtml(q.context, q.request, q.source);
 	const standalone = metadataParse(q.context).fields.kind === "question";
@@ -19,7 +23,31 @@ export const composerHtml = Effect.fn("WorkBoard.composerHtml")(function* (
 				`<option value="${escapeHtml(record.id)}">${escapeHtml(record.id)} · ${escapeHtml(record.response.author)} · ${record.response.reviewedRevision.slice(0, 12)}</option>`,
 		)
 		.join("");
+	const heading = responseHeading(q, standalone, card);
+	const presentation = cardContext(q.context);
+	const recommendation = card ? yield* renderMarkdown(presentation.recommendation, { file: q.source }) : "";
+	const links = card
+		? presentation.links.map((link) => `<a class="answer-link" href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a>`).join(" ")
+		: "";
+	const reason = yield* renderMarkdown(reasonMarkdown(q.reason), { file: q.source });
+	const source = card
+		? ""
+		: `<p><a href="${fileUrl(q.source)}">Source: ${escapeHtml(q.source)}</a> · Reviewed SHA-256: <code>${q.reviewedRevision}</code></p>`;
+	const level = headingLevel(standalone, card);
+	const context = level === "2" ? "" : `<section class="response-context">${template.background}</section>`;
+	const exact = card ? "" : `<details><summary>Exact source being reviewed</summary><pre>${escapeHtml(q.context)}</pre></details>`;
 	const body = `<label>${template.hasPrompts ? "Overall response / next action (optional)" : "Your response"}<textarea name="body" rows="4" maxlength="32768" ${template.hasPrompts ? "" : "required"}></textarea></label>`;
-	const details = `<details data-key="response-details"><summary>Response details</summary><label>Response kind <select name="type"><option value="answer">Answer (including no)</option><option value="clarify">Ask back / clarify</option><option value="not_now">Not now</option></select></label>${standalone && template.hasPrompts ? body : ""}<label>Supersedes an earlier response (optional)<select name="supersedes"><option value="">Adds feedback; does not supersede</option>${prior}</select></label></details>`;
-	return `<section class="response-panel"><h${standalone ? "2" : "1"}>${standalone ? "Answer this question" : `Respond to ${escapeHtml(q.item)} / ${escapeHtml(q.request)}`}</h${standalone ? "2" : "1"}><p>${escapeHtml(q.reason)}</p><p><a href="${fileUrl(q.source)}">Source: ${escapeHtml(q.source)}</a> · Reviewed SHA-256: <code>${q.reviewedRevision}</code></p><p>${standalone ? "An answer removes this question from the Inbox for this source revision." : "Saved replies are authored feedback. They do not close the request or establish acceptance."}</p>${standalone ? "" : `<section class="response-context">${template.background}</section>`}<details><summary>Exact source being reviewed</summary><pre>${escapeHtml(q.context)}</pre></details><form novalidate id="response-form" data-question="${q.id}" data-writable="${enabled}" data-item="${escapeHtml(q.item)}" data-request="${escapeHtml(q.request)}" data-revision="${q.reviewedRevision}"><label>Local author label <input name="author" maxlength="200" required autocomplete="nickname"></label>${template.controls}${standalone && template.hasPrompts ? "" : body}${details}<pre id="response-draft-recovery" hidden></pre><p>Submit the whole packet together. Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft. Saved responses are Markdown files in responses/.</p><button id="response-preview" type="button" disabled>Preview Markdown</button><pre id="response-preview-content" hidden></pre><button id="response-submit" type="submit" disabled>Record response</button><button id="response-clear" type="button" disabled>Clear draft</button><p id="response-status" role="status">${enabled ? "JavaScript is required to record a response." : "Read-only mode. Restart with --responses to explicitly enable local writes."}</p></form>${yield* historyHtml(q, records)}</section>`;
+	const author = '<label>Local author label <input name="author" value="maintainer" maxlength="200" required autocomplete="nickname"></label>';
+	const details = `<details data-key="response-details"><summary>More</summary>${author}<label>Response kind <select name="type"><option value="answer">Answer (including no)</option><option value="clarify">Ask back / clarify</option><option value="not_now">Not now</option></select></label>${template.hasPrompts ? body : ""}<label>Supersedes an earlier response (optional)<select name="supersedes"><option value="">Adds feedback; does not supersede</option>${prior}</select></label><pre id="response-draft-recovery" hidden></pre><p>Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft. Saved responses are Markdown files in responses/.</p><button id="response-preview" type="button" disabled>Preview Markdown</button><pre id="response-preview-content" hidden></pre><button id="response-clear" type="button" disabled>Clear draft</button></details>`;
+	return `<section class="response-panel"${card ? ` id="answer-card-${escapeHtml(q.request)}" tabindex="-1"` : ""}><h${level}>${heading}</h${level}>${recommendation}${links}${reason}${source}<p>${standalone ? "An answer removes this question from the Inbox for this source revision." : "Saved replies are authored feedback. They do not close the request or establish acceptance."}</p>${context}${exact}<form novalidate id="response-form" data-question="${q.id}" data-writable="${enabled}" data-item="${escapeHtml(q.item)}" data-request="${escapeHtml(q.request)}" data-revision="${q.reviewedRevision}">${template.controls}${template.hasPrompts ? "" : body}<button id="response-submit" type="submit" disabled>Record</button>${details}<p id="response-status" role="status">${enabled ? "JavaScript is required to record a response." : "Read-only. Restart with --responses to enable answers."}</p></form>${yield* historyHtml(q, records)}</section>`;
 });
+
+function responseHeading(q: QuestionPreview, standalone: boolean, card: { readonly title: string } | undefined) {
+	if (card) {
+		return `Answer: ${escapeHtml(card.title)}`;
+	}
+	return standalone ? "Answer this question" : `Respond to ${escapeHtml(q.item)} / ${escapeHtml(q.request)}`;
+}
+function headingLevel(standalone: boolean, card: { readonly title: string } | undefined) {
+	return standalone || card !== undefined ? "2" : "1";
+}

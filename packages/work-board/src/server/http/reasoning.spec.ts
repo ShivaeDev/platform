@@ -43,7 +43,8 @@ effectApp("associates criterion claims across source files without turning missi
 	const task = yield* rawGet(board, "/_board/item/work.search/");
 	expect(task.body).toContain("2 recorded claims, not verified acceptance");
 	expect(task.body).toContain('href="/_board/item/result.search/#recorded-evidence-0"');
-	expect(task.body).toContain("No recorded evidence naming this criterion");
+	expect(task.body).toContain("1 of 2 criteria have recorded evidence");
+	expect(task.body).not.toContain("No recorded evidence naming this criterion");
 	const result = yield* rawGet(board, "/_board/item/result.search/#recorded-evidence-0");
 	expect(result.body).toContain('id="recorded-evidence-0" tabindex="-1"');
 	expect(result.body).toContain("results/search.md:13");

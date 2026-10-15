@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
 import { baselineJson } from "#test/historyFixture.ts";
 import { historyObservation } from "#test/historyObservation.ts";
 import { waitFor } from "#test/live.ts";
@@ -133,7 +134,7 @@ effectApp("discards expired or corrupt history even on an ordinary workspace vis
 	yield* Effect.promise(() => waitFor(() => expect(page.window.localStorage.getItem(key())).toBeNull()));
 	expect(page.window.localStorage.getItem("work-board:changes:other-workspace")).toBe("untouched");
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
-	click("#changes-open");
+	followLink(page, "/_board/changes");
 	yield* ready();
 	expect(text()).toContain("expired after 30 days");
 	page.window.localStorage.setItem(key(), "broken");

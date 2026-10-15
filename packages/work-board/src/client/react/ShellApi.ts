@@ -8,6 +8,7 @@ export interface ShellApi {
 	readonly handoff: Pick<BrowserClient["api"]["handoff"], "query">;
 	readonly history: Pick<BrowserClient["api"]["history"], "query">;
 	readonly inbox: Pick<BrowserClient["api"]["inbox"], "query">;
+	readonly library: Pick<BrowserClient["api"]["library"], "query">;
 	readonly navigation: Pick<BrowserClient["api"]["navigation"], "query">;
 	readonly overview: Pick<BrowserClient["api"]["overview"], "query">;
 	readonly respond: Pick<BrowserClient["api"]["respond"], "query">;

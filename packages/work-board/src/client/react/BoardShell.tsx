@@ -10,7 +10,7 @@ import { FleetMain } from "./FleetMain.tsx";
 import { Header } from "./Header.tsx";
 import { HistoryRetention } from "./HistoryRetention.tsx";
 import { LiveControls } from "./LiveControls.tsx";
-import { bootstrapPage, type MainLocation } from "./mainLocation.ts";
+import { bootstrapPage, displayedLocation, type MainLocation, sameMainLocation } from "./mainLocation.ts";
 import { ReadingLibrary } from "./ReadingLibrary.tsx";
 import { SearchDialog } from "./SearchDialog.tsx";
 import type { ShellApi } from "./ShellApi.ts";
@@ -40,7 +40,7 @@ export function BoardShell(options: ShellOptions) {
 	const location = useRouterState({ select: (state) => state.location });
 	const [main, setMain] = useState<MainLocation>(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
-		return { file: doc?.dataset.file ?? "", view: doc?.dataset.view ?? "" };
+		return displayedLocation(doc);
 	});
 	const [bootstrapHome] = useState(() => {
 		const doc = bootstrapPage(initial).getElementById("doc");
@@ -48,10 +48,7 @@ export function BoardShell(options: ShellOptions) {
 	});
 	const query = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const data = Option.getOrUndefined(query.data);
-	const onPage = useCallback(
-		(next: MainLocation) => setMain((previous) => (previous.file === next.file && previous.view === next.view ? previous : next)),
-		[],
-	);
+	const onPage = useCallback((next: MainLocation) => setMain((previous) => (sameMainLocation(previous, next) ? previous : next)), []);
 	useEffect(() => {
 		function start() {
 			const doc = document.getElementById("doc");
@@ -72,7 +69,7 @@ export function BoardShell(options: ShellOptions) {
 		function sync() {
 			const doc = document.getElementById("doc");
 			if (doc) {
-				onPage({ file: doc.dataset.file ?? "", view: doc.dataset.view ?? "" });
+				onPage(displayedLocation(doc));
 			}
 		}
 		document.addEventListener("board-page", sync);
@@ -97,7 +94,7 @@ export function BoardShell(options: ShellOptions) {
 	);
 	return (
 		<AgeTicker>
-			<ReadingLibrary close={() => setLibraryOpen(false)} data={data} open={libraryOpen}>
+			<ReadingLibrary api={api} close={() => setLibraryOpen(false)} open={libraryOpen}>
 				<a className="skip" href="#doc">
 					Skip to content
 				</a>
@@ -106,7 +103,7 @@ export function BoardShell(options: ShellOptions) {
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>
-					<Sidebar controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
+					<Sidebar api={api} controls={sidebar} data={data} home={location.pathname === "/"} main={main} openLibrary={() => setLibraryOpen(true)} />
 					<button
 						aria-label="Close files"
 						className="fixed inset-0 z-30 hidden border-0 bg-black/45 p-0 data-[open=true]:block md:hidden"
@@ -138,7 +135,6 @@ export function BoardShell(options: ShellOptions) {
 					appearance={appearance}
 					close={search.close}
 					open={search.open}
-					openLibrary={() => setLibraryOpen(true)}
 					returnFocus={search.returnFocus}
 					toggleSidebar={sidebar.toggle}
 				/>

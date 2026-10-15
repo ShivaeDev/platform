@@ -37,9 +37,11 @@ it.live.each(["/notes/task.md", "/_board/item/task.fixture/"])(
 			expect(view.container.querySelector("main")?.dataset.identity).toBe("task.fixture");
 			expect(view.container.querySelector(".item-introduction h1")?.id).toBe("heading-task");
 			expect(view.container.querySelector("#heading-details-2")).not.toBeNull();
-			expect(view.container.querySelector("#attention-request-direction")?.textContent).toContain("Choose a direction");
+			expect(view.container.querySelector(".answer-reason")?.textContent).toContain("Choose a direction");
 			expect(view.container.querySelector("#criterion-proof a")?.getAttribute("href")).toBe("/_board/item/result.fixture/#recorded-evidence-0");
-			expect(view.container.querySelector(".work-context")?.textContent).toContain("result.md");
+			const backlink = view.container.querySelector('.work-context a[href="/_board/item/result.fixture/"]');
+			expect(backlink?.textContent).toBe("Result");
+			expect(backlink?.getAttribute("title")).toMatch(/^result\.md:\d+$/u);
 			expect(view.container.querySelector(".item-summary")?.textContent).toContain("Read the evidence");
 			for (const query of queries) {
 				expect(query).not.toHaveBeenCalled();

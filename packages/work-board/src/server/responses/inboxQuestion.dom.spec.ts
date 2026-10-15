@@ -7,6 +7,7 @@ import { metadataParse } from "#server/metadata/parse.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
 import { enterField } from "#test/enterField.ts";
+import { followLink } from "#test/followLink.ts";
 import { formEvent } from "#test/formEvent.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { waitFor } from "#test/live.ts";
@@ -66,22 +67,18 @@ it.live("records a recommended option from the item page and updates the live In
 	expect(response.body).toContain("Keep local files");
 });
 
-it.live("keeps the remembered author visible across questions and response details collapsed with one visible answer box", function* () {
+it.live("keeps the remembered author under More across questions with one visible answer box", function* () {
 	yield* open();
 	expect(page.document.querySelector('[data-key="response-details"]')?.hasAttribute("open")).toBe(false);
 	const textareas = [...page.document.querySelectorAll("#response-form textarea")];
 	expect(textareas.filter((field) => !field.closest("details"))).toHaveLength(1);
-	expect(page.document.querySelector('[name="author"]')?.closest("details")).toBeNull();
+	expect(page.document.querySelector('[name="author"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	for (const name of ["type", "supersedes"]) {
 		expect(page.document.querySelector(`[name="${name}"]`)?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 	}
 	notes.write("other.md", inboxQuestion.replace("question.storage", "question.backup"));
-	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector('#files a[href="/other.md"]')).not.toBeNull()));
-	yield* formEvent(page, () =>
-		page.document
-			.querySelector('#files a[href="/other.md"]')
-			?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
-	);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library3")));
+	yield* formEvent(page, () => followLink(page, "/other.md"));
 	yield* Effect.promise(() =>
 		waitFor(() => expect(page.document.getElementById("response-form")?.getAttribute("data-item")).toBe("question.backup")),
 	);
@@ -116,9 +113,8 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 		page.document.querySelector(".inbox-row a")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("response-form")).not.toBeNull()));
-	expect(page.window.location.pathname).toBe("/_board/respond");
-	expect(new URL(page.window.location.href).searchParams.get("item")).toBe("question.storage");
-	expect(new URL(page.window.location.href).searchParams.get("request")).toBe("answer");
+	expect(page.window.location.pathname).toBe("/_board/item/question.storage/");
+	expect(page.window.location.hash).toBe("#answer-card-answer");
 	const location = page.window.location.href;
 	notes.write("question.md", inboxQuestion.replace("status: open", "status: closed"));
 	yield* Effect.promise(() =>
@@ -134,7 +130,7 @@ it.live("opens a question through native Inbox navigation and refreshes a closed
 		page.document.getElementById("inbox-open")?.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, cancelable: true })),
 	);
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("inbox")));
-	expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0);
+	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelectorAll(".inbox-row")).toHaveLength(0)));
 });
 
 it.live("updates both Inbox counts when a question closes while an unrelated document stays mounted", function* () {

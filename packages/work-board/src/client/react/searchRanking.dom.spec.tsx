@@ -18,7 +18,6 @@ it("shows open watch work before newer done matches in the palette", async () =>
 				appearance={{ change: vi.fn(), closed: false, density: "comfortable", notice: "", theme: "light" }}
 				close={vi.fn()}
 				open
-				openLibrary={vi.fn()}
 				toggleSidebar={vi.fn()}
 			/>
 		),

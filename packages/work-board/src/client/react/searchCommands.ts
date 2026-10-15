@@ -15,9 +15,9 @@ export interface SearchItem {
 export const searchCommands: readonly SearchItem[] = [
 	{ href: "/", kind: "command", title: "Open workspace" },
 	{ href: "/_board/inbox", kind: "command", title: "Go to Today" },
-	{ href: "/_board/work?view=table&q=project", kind: "command", title: "Go to Goals" },
-	{ href: "/_board/work?view=board&status=value%3Aactive", kind: "command", title: "Go to Now" },
-	{ command: "library", kind: "command", title: "Go to Library" },
+	{ href: "/_board/goals", kind: "command", title: "Go to Goals" },
+	{ href: "/_board/work?view=board", kind: "command", title: "Go to Now" },
+	{ href: "/_board/library", kind: "command", title: "Go to Library" },
 	{ href: "/_board/diagnostics", kind: "command", title: "Go to System" },
 	{ command: "sidebar-toggle", kind: "command", title: "Show or hide files" },
 	{ command: "density", kind: "command", title: "Toggle compact density" },

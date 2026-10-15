@@ -3,7 +3,10 @@ import type { HttpServerRequest } from "effect/http";
 import { escapeHtml } from "#browser/escapeHtml.ts";
 import { authoredQuestion } from "#server/attention/inbox.ts";
 import { currentDocument } from "#server/currentDocument.ts";
-import { documentBody } from "#server/document/body.ts";
+import { answerBody } from "#server/document/answerBody.ts";
+import { answerCardsHtml } from "#server/document/answerCardsHtml.ts";
+import { documentRequests } from "#server/document/requests.ts";
+import { requestTitle } from "#server/document/requestTitle.ts";
 import type { Changes } from "#server/files/changes.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
@@ -59,13 +62,15 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 			return Option.none();
 		}
 		const actions = yield* readingActions(document, source, options.writable === true, identity);
-		const prose = documentBody(document);
+		const requests = documentRequests(document, source, current);
+		const prose = answerBody(document, requests);
+		const cards = yield* answerCardsHtml(requests, options.writable === true);
 		const html =
 			file.path === options.home
 				? yield* boardHtml(boardOf(prose), file.path, file.modified, metadata, actions)
-				: yield* documentHtml(prose, file, metadata, itemIntroduction(parsed), actions);
+				: yield* documentHtml(prose, file, metadata, itemIntroduction(parsed), actions, cards);
 		const question = identity && authoredQuestion({ file: file.path, parsed });
-		const answer = question ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, options.writable === true) : "";
+		const answer = question && !cards ? yield* authoredQuestionHtml({ file: file.path, parsed }, source, options.writable === true) : "";
 		return Option.some({ html: html + answer, identity });
 	});
 	return Effect.fn("WorkBoard.page")(function* (request: HttpServerRequest.HttpServerRequest, resolved?: string, expectedIdentity?: string) {
@@ -75,7 +80,9 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 		const snapshot = yield* index;
 		const nav = navHtml(files, requested, options.home, snapshot);
 		function layout(content: string, identity?: string) {
-			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity, false, snapshot);
+			const source = snapshot.documents.find((document) => document.file === requested);
+			const title = source?.parsed.fields.attention?.some((entry) => entry.managed) ? requestTitle(source, snapshot) : undefined;
+			return shell(requested, nav, content, changes.realRoot, requested === options.home, identity, false, snapshot, title);
 		}
 		function missing() {
 			return respond(

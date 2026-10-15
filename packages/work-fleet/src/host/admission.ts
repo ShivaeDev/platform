@@ -52,10 +52,12 @@ const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork)
 			);
 });
 
+function unlaunched(record: FleetRecord) {
+	return record.stage === "prepared" && record.attempts.length === 0;
+}
+
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
-	return (
-		record.stage === "prepared" && record.attempts.length === 0 && !briefChanged(record, work) && record.preparation.baseRevision !== main.revision
-	);
+	return unlaunched(record) && (briefChanged(record, work) || record.preparation.baseRevision !== main.revision);
 }
 
 export type Approval = "board" | "explicit";
@@ -121,7 +123,7 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	}
 	yield* (yield* MainSource).refresh;
 	const existing = (yield* fleet.list()).find(({ value }) => value.workId === workId)?.value;
-	if (existing === undefined || ["completed", "released"].includes(existing.stage) || !briefChanged(existing, work)) {
+	if (existing === undefined || ["completed", "released"].includes(existing.stage) || unlaunched(existing) || !briefChanged(existing, work)) {
 		yield* prepareApproved(host, work, existing, "explicit");
 	}
 	return yield* fleet.dispatch(workId, launchPrompt(host, work));

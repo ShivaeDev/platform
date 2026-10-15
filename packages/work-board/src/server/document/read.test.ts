@@ -33,7 +33,8 @@ it.live.each(["", "/"])(
 		yield* open();
 		const result = yield* Effect.promise(() => client.run(client.api.document.run({ url: `/_board/item/investigation.choices${slash}` })));
 		expect(Schema.is(Schema.toType(Document))(result)).toBe(true);
-		expect(result.source).toContain("::::question");
+		expect(result.source).not.toContain("::::question");
+		expect(result.requests[0]?.prompts?.[0]?.source).toContain("How should replies appear?");
 		expect(result.source).not.toContain("id: investigation.choices");
 		expect(result.metadata.kind).toBe("investigation");
 		expect(result.identity).toBe("investigation.choices");

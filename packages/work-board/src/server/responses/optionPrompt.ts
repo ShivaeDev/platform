@@ -3,7 +3,7 @@ import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { Metadata } from "#metadata/schema.ts";
 
 export function optionPrompt(fields: Metadata): Prompt | undefined {
-	if (fields.kind !== "question" || fields.question || fields.options === undefined) {
+	if (!["question", "decision"].includes(fields.kind ?? "") || fields.question || fields.options === undefined) {
 		return undefined;
 	}
 	if (new Set(fields.options.map((option) => option.label)).size !== fields.options.length) {

@@ -9,7 +9,6 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 it("offers go-to views and open goals, ranks a matching command first and shows work metadata", async () => {
-	const openLibrary = vi.fn();
 	const change = vi.fn();
 	const view = await renderBoard(paletteFixture(), (api) => (
 		<SearchDialog
@@ -17,7 +16,6 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 			appearance={{ change, closed: false, density: "comfortable", notice: "", theme: "light" }}
 			close={vi.fn()}
 			open
-			openLibrary={openLibrary}
 			toggleSidebar={vi.fn()}
 		/>
 	));
@@ -39,9 +37,10 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 		await eventually(() => expect(rows().map((row) => row.querySelector("strong")?.textContent)).toContain("Go to A calmer workspace"));
 		for (const [title, href] of [
 			["Go to Today", "/_board/inbox"],
-			["Go to Goals", "/_board/work?view=table&q=project"],
-			["Go to Now", "/_board/work?view=board&status=value%3Aactive"],
+			["Go to Goals", "/_board/goals"],
+			["Go to Now", "/_board/work?view=board"],
 			["Go to System", "/_board/diagnostics"],
+			["Go to Library", "/_board/library"],
 			["Go to A calmer workspace", "/_board/item/project.workspace/"],
 		]) {
 			expect(
@@ -63,9 +62,7 @@ it("offers go-to views and open goals, ranks a matching command first and shows 
 		type("project.workspace");
 		await eventually(() => expect(rows()[0]?.querySelector("strong")?.textContent).toBe("Go to A calmer workspace"));
 		type("Library");
-		await eventually(() => expect(rows()[0]?.dataset.command).toBe("library"));
-		act(() => input.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" })));
-		expect(openLibrary).toHaveBeenCalledOnce();
+		await eventually(() => expect(rows()[0]?.getAttribute("href")).toBe("/_board/library"));
 		type("theme");
 		await eventually(() => expect(rows()[0]?.dataset.command).toBe("theme"));
 		act(() => rows()[0]?.click());

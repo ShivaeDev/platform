@@ -13,7 +13,7 @@ let client: ReturnType<typeof browserClient>;
 afterEach(() => {
 	notes?.remove();
 });
-it.live("returns an empty tree with a known zero Inbox count for an empty workspace", function* () {
+it.live("returns empty destination counts with a known zero Inbox count for an empty workspace", function* () {
 	notes = folder({});
 	board = yield* startBoard(notes.root);
 	client = yield* Effect.acquireRelease(
@@ -21,9 +21,8 @@ it.live("returns an empty tree with a known zero Inbox count for an empty worksp
 		(resource) => Effect.sync(() => resource.registry.dispose()),
 	);
 	expect(yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })))).toEqual({
+		counts: { goals: 0, library: 0, now: 0, system: 0 },
 		inboxCount: 0,
-		records: { active: false, count: 0, files: [] },
-		tree: { active: false, count: 0, files: [], folders: [], name: "", path: "" },
 	});
 });
 it.live("retains listed files with an unknown Inbox count when a source cannot be indexed", function* () {
@@ -37,14 +36,7 @@ it.live("retains listed files with an unknown Inbox count when a source cannot b
 	try {
 		const data = yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "note.md" })));
 		expect(data.inboxCount).toBeNull();
-		expect(data.tree).toMatchObject({
-			active: true,
-			count: 2,
-			files: [
-				{ current: true, path: "note.md" },
-				{ current: false, path: "question.md" },
-			],
-		});
+		expect(data.counts.library).toBe(2);
 	} finally {
 		chmodSync(join(notes.root, "note.md"), 0o644);
 	}

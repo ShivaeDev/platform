@@ -4,7 +4,6 @@ import { it } from "@shivaedev/effect-test/it.ts";
 import { browserClient } from "#client/client.ts";
 import { type Folder, folder, type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
-import { renderRemaining } from "#test/remainingRendering.tsx";
 
 let notes: Folder;
 let board: RunningBoard;
@@ -39,11 +38,10 @@ it.live.each([true, false])("filters managed=%s and registered questions without
 			"/_board/work?view=table",
 		]) {
 			const response = yield* rawGet(board, path);
-			expect(response.status).toBe(200);
-			const origin = board.url;
-			const content = path.startsWith("/_board/respond") ? yield* Effect.promise(() => renderRemaining(origin, path)) : response.body;
+			expect(response.status).toBe(path.startsWith("/_board/respond") ? 302 : 200);
+			const content = response.location ? (yield* rawGet(board, response.location)).body : response.body;
 			expect(content).toContain("Question for orchestrator");
-			expect(response.body).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="2 waiting">2</span>');
+			expect(content).toContain('id="inbox-topbar-count" class="inbox-count" aria-label="2 waiting">2</span>');
 		}
 	} finally {
 		client.registry.dispose();

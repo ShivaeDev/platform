@@ -8,6 +8,11 @@ export function DiagnosticsPage({ data: { sources: data, now } }: { readonly dat
 	return (
 		<div className="diagnostics">
 			<h1>Diagnostics</h1>
+			<nav aria-label="System views" className="my-4 flex flex-wrap gap-4">
+				<a href="/_board/overview">Overview</a>
+				<a href="/_board/changes">Changes</a>
+				<a href="/_board/start">Getting started</a>
+			</nav>
 			<p>Agent usage and Fleet health. Refreshes every 15 seconds while this view is visible; Pause updates holds the current view.</p>
 			<div className="diagnostics-grid">
 				<Card

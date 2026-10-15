@@ -57,7 +57,7 @@ it("retains an answer when a live update remounts the same item and request", as
 		await unmount(view);
 	}
 });
-it("retains an answer and requires a fresh preview when its source revision changes", async () => {
+it("retains an answer and refreshes its optional preview when its source revision changes", async () => {
 	const view = await render(answerDraft());
 	try {
 		editAnswer();
@@ -69,7 +69,7 @@ it("retains an answer and requires a fresh preview when its source revision chan
 		expect(answerInput("body").value).toBe("Direction in progress");
 		expect(document.getElementById("response-status")?.textContent).toContain("Source changed");
 		expect(document.getElementById("response-status")?.textContent).not.toContain("Preview ready");
-		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 		responseClick("preview");
 		expect(document.getElementById("response-preview-content")?.textContent).toContain("b".repeat(64));
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
@@ -134,7 +134,7 @@ it("retains the body and caret while a refreshed request gains or loses question
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 		await view.render(answerDraft(answerPreview));
 		responseClick("preview");
-		expect(document.getElementById("response-submit")).toHaveProperty("disabled", true);
+		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);
 		answerInput("body", "A complete response");
 		responseClick("preview");
 		expect(document.getElementById("response-submit")).toHaveProperty("disabled", false);

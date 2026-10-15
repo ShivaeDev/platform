@@ -1,14 +1,15 @@
 import { Effect, type FileSystem, type Path, type Scope } from "effect";
-import { HttpRouter, type HttpServerRequest, type HttpServerResponse } from "effect/http";
+import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
 import { loopbackOnly } from "@shivaedev/platform/rpc-server/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
 import type { BoardOptions } from "#server/board.ts";
 import type { boardRuntime } from "#server/boardRuntime.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
+import { identityUrl } from "#server/metadata/links.ts";
 import { navHtml } from "#server/page/nav.ts";
 import { shell } from "#server/page/shell.ts";
 import type { Highlighter } from "#server/render/Highlighter.ts";
-import type { Responses } from "#server/responses/service.ts";
+import { Responses } from "#server/responses/service.ts";
 import { ASSET_HANDLERS, MERMAID_ROUTE, mermaidFile } from "./assets.ts";
 import { attachment } from "./attachment.ts";
 import { identity } from "./identity.ts";
@@ -43,12 +44,20 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 				yield* serve(route, asset);
 			}
 			yield* serve(MERMAID_ROUTE, mermaidFile(mermaid));
-			for (const view of ["changes", "diagnostics", "start", "respond", "handoff", "result"] as const) {
+			yield* serve("/_board/respond", (request) =>
+				Effect.gen(function* () {
+					const params = new URL(request.url, "http://127.0.0.1").searchParams;
+					const service = yield* Responses;
+					const preview = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
+					return HttpServerResponse.redirect(`${identityUrl(preview.item)}#answer-card-${encodeURIComponent(preview.request)}`);
+				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
+			);
+			for (const view of ["changes", "diagnostics", "start", "handoff", "result", "library", "goals"] as const) {
 				yield* serve(`/_board/${view}`, () =>
 					Effect.gen(function* () {
 						const snapshot = yield* index;
 						const nav = navHtml(yield* changes.files, "", home, snapshot);
-						return respond(shell(view, nav, "", changes.realRoot, false, undefined, view === "respond" ? "response" : view, snapshot), "text/html");
+						return respond(shell(view, nav, "", changes.realRoot, false, undefined, view, snapshot), "text/html");
 					}),
 				);
 			}

@@ -1,4 +1,4 @@
-import type { Navigation } from "#browser/navigation/schema.ts";
+import type { Navigation } from "#browser/Navigation.ts";
 import { fileUrl } from "#files/url.ts";
 export function projectionRoute(pathname: string, home: Navigation["home"]) {
 	if (pathname === "/_board/work") {

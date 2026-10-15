@@ -1,5 +1,6 @@
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
+import { AnswerMore } from "./AnswerMore.tsx";
 import { AnswerPrompts } from "./AnswerPrompts.tsx";
 import { FormField } from "./FormField.tsx";
 import { shellIds } from "./shellIds.ts";
@@ -15,6 +16,9 @@ export function AnswerForm(props: AnswerProps) {
 	return <AnswerSession key={JSON.stringify([props.preview.item, props.preview.request, Boolean(props.request.prompts?.length)])} {...props} />;
 }
 function AnswerSession({ document: data, request, preview }: AnswerProps) {
+	function id(value: string) {
+		return data.requests.filter((entry) => entry.open).length > 1 ? `${value}-${request.id}` : value;
+	}
 	const prompts = request.prompts ?? [];
 	const state = useResponseForm(preview, prompts);
 	const focus = useFormFocus(state.draft.key);
@@ -27,6 +31,7 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			name="body"
 			required={prompts.length === 0}
 			rows={4}
+			showErrors={state.attempted}
 		/>
 	);
 	const writableStatus = typeof window === "undefined" ? "JavaScript is required to record a response." : state.status;
@@ -36,68 +41,47 @@ function AnswerSession({ document: data, request, preview }: AnswerProps) {
 			data-item={preview.item}
 			data-question={preview.id}
 			data-request={preview.request}
+			data-response-form
 			data-revision={preview.reviewedRevision}
 			data-writable={data.writable}
-			id={shellIds.responseForm}
+			id={id(shellIds.responseForm)}
 			noValidate
 			onChange={state.edit}
 			onInput={state.edit}
 			onSubmit={(event) => {
 				event.preventDefault();
-				if (!state.valid) {
-					event.currentTarget.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+				const valid = state.attempt();
+				if (!valid) {
+					const target = event.currentTarget;
+					requestAnimationFrame(() => {
+						const invalid = target.querySelector<HTMLElement>('[aria-invalid="true"]');
+						const more = invalid?.closest("details");
+						if (more) {
+							more.open = true;
+						}
+						invalid?.focus();
+					});
 				}
-				if (data.writable && state.preview && state.valid && !state.created.saving) {
+				if (data.writable && valid && !state.created.saving) {
 					state.created.save();
 				}
 			}}
 		>
-			<FormField autoComplete="nickname" form={form} label="Local author label" maxLength={200} name="author" required />
-			<AnswerPrompts answers={state.answers ?? []} document={data} form={form} onEdit={state.editAnswers} prompts={prompts} />
-			{(prompts.length === 0 || data.metadata.kind !== "question") && body}
-			<details data-key="response-details">
-				<summary>Response details</summary>
-				<FormField form={form} label="Response kind" name="type">
-					<option value="answer">Answer (including no)</option>
-					<option value="clarify">Ask back / clarify</option>
-					<option value="not_now">Not now</option>
-				</FormField>
-				{prompts.length > 0 && data.metadata.kind === "question" && body}
-				<FormField form={form} label="Supersedes an earlier response (optional)" name="supersedes">
-					<option value="">Adds feedback; does not supersede</option>
-					{request.responses?.map((record) => (
-						<option key={record.id} value={record.id}>
-							{record.id} · {record.response.author} · {record.response.reviewedRevision.slice(0, 12)}
-						</option>
-					))}
-				</FormField>
-			</details>
-			<pre hidden={!state.recovery} id={shellIds.responseDraftRecovery}>
-				{state.recovery}
-			</pre>
-			<p>
-				Submit the whole packet together. Drafts stay in this browser for seven days after the last edit, with a 256 KiB limit per draft. Saved
-				responses are Markdown files in responses/.
-			</p>
-			<button
-				disabled={typeof window === "undefined" || state.created.saving}
-				id={shellIds.responsePreview}
-				onClick={state.showPreview}
-				type="button"
-			>
-				Preview Markdown
+			<AnswerPrompts
+				answers={state.answers ?? []}
+				document={data}
+				form={form}
+				onEdit={state.editAnswers}
+				prompts={prompts}
+				showErrors={state.attempted}
+			/>
+			{prompts.length === 0 && body}
+			<button disabled={!data.writable || state.created.saving} id={id(shellIds.responseSubmit)} type="submit">
+				Record
 			</button>
-			<pre hidden={!state.preview} id={shellIds.responsePreviewContent}>
-				{state.preview}
-			</pre>
-			<button disabled={!(data.writable && state.preview && state.valid) || state.created.saving} id={shellIds.responseSubmit} type="submit">
-				Record response
-			</button>
-			<button disabled={typeof window === "undefined" || state.created.saving} id={shellIds.responseClear} onClick={state.clear} type="button">
-				Clear draft
-			</button>
-			<p data-outcome={state.outcome} id={shellIds.responseStatus} role="status">
-				{data.writable ? writableStatus : `${state.status} Read-only mode. Restart with --responses to explicitly enable local writes.`}
+			<AnswerMore body={prompts.length > 0 ? body : undefined} id={id} request={request} state={state} />
+			<p data-outcome={state.outcome} id={id(shellIds.responseStatus)} role="status">
+				{data.writable ? writableStatus : `${state.status} Read-only. Restart with --responses to enable answers.`.trim()}
 			</p>
 		</form>
 	);

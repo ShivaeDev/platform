@@ -7,6 +7,7 @@ import { workRpcs } from "#rpc/contract.ts";
 import { DocumentRejection, ResponseRejection } from "#rpc/rejections.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
 import { historyResponse } from "#server/history/response.ts";
+import { libraryData } from "#server/navigation/libraryData.ts";
 import { navigationData } from "#server/navigation/model.ts";
 import { Responses } from "#server/responses/service.ts";
 import { searchMatch } from "#server/search/match.ts";
@@ -47,6 +48,10 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 					return historyResponse(baseline, now, snapshot);
 				}).pipe(readBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),
+			"work-board.library": (input) =>
+				Effect.gen(function* () {
+					return libraryData(yield* changes.files, yield* index, input);
+				}).pipe(readBoundary),
 			"work-board.navigation": ({ current }) =>
 				Effect.gen(function* () {
 					return navigationData(yield* changes.files, current, home, yield* index);
