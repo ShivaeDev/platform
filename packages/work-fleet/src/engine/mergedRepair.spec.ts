@@ -12,7 +12,7 @@ const test = postgresTests("test");
 
 for (const failedChecks of [false, true]) {
 	for (const execution of ["completed", "failed", "interrupted"] as const) {
-		test(`a merged PR with ${failedChecks ? "failing checks" : "changes requested"} releases after its repair turn is ${execution}`, () =>
+		test(`a merged PR with ${failedChecks ? "failing checks" : "changes requested"} and queued guidance releases after its repair turn is ${execution}`, () =>
 			mergedRepair(failedChecks, execution));
 	}
 }
@@ -29,8 +29,13 @@ function mergedRepair(failedChecks: boolean, execution: "completed" | "failed" |
 					const repairing = yield* fleet.reconcile("one");
 					expect(repairing.value.stage).toBe("executing");
 					expect(repairing.value.review?.verdict).toBe(failedChecks ? "approved" : "changes");
+					const guidance = "Keep the requested repair focused.";
+					yield* fleet.queueAnswer("one", guidance);
+					const launches = [...fixture.settings];
 					github.state.status = "MERGED";
-					expect(executing((yield* fleet.reconcile("one")).value)).toBe(true);
+					const active = yield* fleet.reconcile("one");
+					expect(executing(active.value)).toBe(true);
+					expect(active.value.pendingAnswers).toEqual([guidance]);
 					const receipt = repairing.value.attempts.at(-1)?.receipt ?? (yield* Effect.die("Missing repair receipt"));
 					fixture.observations.set(receipt.turnId, { execution, output: "", provisioning: "ready", receipt });
 					const released = yield* fleet.reconcile("one");
@@ -41,6 +46,8 @@ function mergedRepair(failedChecks: boolean, execution: "completed" | "failed" |
 					expect(executing(released.value)).toBe(false);
 					expect(fixture.launched).toHaveLength(2);
 					expect(released.value.attempts).toHaveLength(3);
+					expect((yield* fleet.reconcile("one")).version).toBe(released.version);
+					expect(fixture.settings).toEqual(launches);
 				}),
 			);
 		}),

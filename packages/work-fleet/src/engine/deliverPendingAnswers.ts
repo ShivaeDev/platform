@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { makeDeliver } from "#engine/makeDeliver.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
@@ -13,8 +14,12 @@ export const deliverPendingAnswers = Effect.fn("Fleet.deliverPendingAnswers")(fu
 	if ((stored.value.pendingAnswers?.length ?? 0) === 0 || executing(stored.value) || ["completed", "released"].includes(stored.value.stage)) {
 		return undefined;
 	}
-	const current = yield* reconcileBrief(state, stored);
-	return yield* launch(current, "repair", deliveryPrompt(current.value, current.value.boardRevision !== stored.value.boardRevision));
+	const delivered = yield* makeDeliver(state)(stored);
+	if (["completed", "released"].includes(delivered.value.stage)) {
+		return delivered;
+	}
+	const current = yield* reconcileBrief(state, delivered);
+	return yield* launch(current, "repair", deliveryPrompt(current.value, current.value.boardRevision !== delivered.value.boardRevision));
 });
 
 function deliveryPrompt(record: FleetRecord, briefChanged: boolean) {
