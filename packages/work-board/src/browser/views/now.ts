@@ -26,17 +26,11 @@ export function laneOf(metadata: Metadata, fleet: FleetWork | undefined, approve
 	if (metadata.kind !== "task" || metadata.requestReceipt) {
 		return undefined;
 	}
-	if (fleet && ["adopting", "executing", "reviewing", "repairing", "validating", "delivering"].includes(fleet.stage)) {
-		return stages[fleet.stage];
-	}
-	if (["superseded", "deferred", "cancelled", "canceled"].includes(metadata.status ?? "")) {
-		return undefined;
-	}
-	if (["done", "completed"].includes(metadata.status ?? "") && fleet?.stage !== "completed") {
-		return undefined;
-	}
 	if (fleet) {
 		return stages[fleet.stage];
+	}
+	if (["superseded", "deferred", "cancelled", "canceled", "done", "completed"].includes(metadata.status ?? "")) {
+		return undefined;
 	}
 	return authoredLane(metadata.status, approved);
 }

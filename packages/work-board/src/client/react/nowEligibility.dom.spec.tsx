@@ -24,20 +24,11 @@ it.each([true, false])("keeps goals and projects outside Now with Fleet ready=%s
 	}
 });
 
-it.each(["prepared", "needs-human"] as const)("excludes inactive tasks despite Fleet %s", async (stage) => {
+it("excludes inactive authored tasks without a Fleet item", async () => {
 	const data = nowWork(8);
 	const statuses = ["superseded", "deferred", "done", "cancelled", "canceled", "completed", "planned", "active"];
-	const rows = data.rows.map((item, index) => ({ ...item, metadata: { ...item.metadata, status: statuses[index] } }));
-	const fleet = nowFleet(8);
-	if (fleet.state !== "ready") {
-		throw new Error("Missing Fleet fixture");
-	}
-	const items = rows.map((item) => ({ document: null, stage, stageEnteredAt: null, updatedAt: null, workId: item.id }));
-	const view = await render(
-		<FleetItemsContext.Provider value={{ ...fleet, completed: [], items }}>
-			<WorkNow data={{ ...data, rows }} />
-		</FleetItemsContext.Provider>,
-	);
+	const rows = data.rows.map((item, index) => ({ ...item, fleetApproved: true, metadata: { ...item.metadata, status: statuses[index] } }));
+	const view = await render(<WorkNow data={{ ...data, rows }} />);
 	try {
 		expect([...view.container.querySelectorAll("[data-item]")].map((card) => card.getAttribute("data-item"))).toEqual(["task-6", "task-7"]);
 	} finally {

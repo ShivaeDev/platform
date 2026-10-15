@@ -5,6 +5,8 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 it.each([
+	["prepared", "Queued"],
+	["needs-human", "Waiting on a person"],
 	["adopting", "Executing"],
 	["executing", "Executing"],
 	["reviewing", "Reviewing"],
@@ -28,7 +30,7 @@ it.each([
 			const card = column?.querySelector(`[data-item="${row.id}"]`);
 			expect(card?.querySelector("h3")?.textContent).toBe(row.title);
 			expect(card?.querySelectorAll("[data-status-token]")).toHaveLength(1);
-			expect(card?.querySelector("[data-status-token]")?.textContent).toBe(stage);
+			expect(card?.querySelector("[data-status-token]")?.textContent).toBe(stage === "needs-human" ? "needs-you" : stage);
 		}
 		expect(view.container.querySelector(".work-total")?.textContent).toContain("6 shown");
 	} finally {
