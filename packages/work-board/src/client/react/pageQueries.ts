@@ -10,7 +10,11 @@ export function pageQueries(
 	baseline: string | null,
 ): readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] {
 	if (kind === "today") {
-		return [api.inbox.query(undefined, routeQueryOptions), api.goals.query(undefined, routeQueryOptions)];
+		return [
+			api.inbox.query(undefined, routeQueryOptions),
+			api.goals.query(undefined, routeQueryOptions),
+			api.fleetItems.query(undefined, routeQueryOptions),
+		];
 	}
 	if (kind === "library") {
 		return [api.library.query({}, routeQueryOptions)];

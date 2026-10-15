@@ -3,15 +3,20 @@ import { useQuery } from "@shivaedev/effect-react/result-state.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { navigationQuery, routeQueryOptions } from "#client/page/routeQuery.ts";
 import { fileUrl } from "#files/url.ts";
+import { inProgressItems } from "./inProgressItems.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { TodayGoals } from "./TodayGoals.tsx";
-import { TodayGroup, TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayNeeds } from "./TodayNeeds.tsx";
+import { TodayProgress } from "./TodayProgress.tsx";
 
-const todayIds = { agents: "waiting-agents", goals: "today-goals", needs: "needs-you" };
+const todayIds = { goals: "today-goals", needs: "needs-you", progress: "in-progress" };
 
 export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data: InboxProjection }) {
 	const query = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
 	const goals = Option.getOrUndefined(query.data);
+	const fleetQuery = useQuery(api.fleetItems.query(undefined, routeQueryOptions), { keepPreviousData: true });
+	const fleet = Option.getOrUndefined(fleetQuery.data);
+	const progress = inProgressItems(fleet);
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
 	return (
@@ -27,7 +32,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 			<nav aria-label="Today summary" className="today-strip flex items-center gap-1 whitespace-nowrap text-xs tabular-nums sm:gap-2 sm:text-sm">
 				<a href={`#${todayIds.needs}`}>{data.complete ? data.you.length : "?"} need you</a>
 				<span aria-hidden="true">·</span>
-				<a href={`#${todayIds.agents}`}>{data.complete ? data.agents.length : "?"} waiting on agents</a>
+				<a href={`#${todayIds.progress}`}>{progress?.length ?? "?"} in progress</a>
 				<span aria-hidden="true">·</span>
 				<a href={`#${todayIds.goals}`}>{goals?.goals.length ?? "?"} active goals</a>
 			</nav>
@@ -40,16 +45,15 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 							Getting started
 						</a>
 					)}
-					<TodayGroup items={data.resolved} title="Resolved elsewhere" />
-					<TodayGroup items={data.parked} title="Parked" />
 				</section>
-				<section className="min-w-0 xl:col-start-2 xl:row-span-2" id={todayIds.goals}>
+				<section className="min-w-0 xl:col-start-1" id={todayIds.progress}>
+					<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
+					<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
+				</section>
+				<section className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1" id={todayIds.goals}>
 					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
 					{goals ? <TodayGoals data={goals} /> : <p role="status">{Option.isSome(query.cause) ? "Goals unavailable." : "Loading goals…"}</p>}
 					{goals && Option.isSome(query.cause) && <p role="status">Goal refresh failed. Displayed goals are retained.</p>}
-				</section>
-				<section className="min-w-0 xl:col-start-1" id={todayIds.agents}>
-					<TodayGroup items={data.agents} title="Waiting on agents" />
 				</section>
 			</div>
 		</div>

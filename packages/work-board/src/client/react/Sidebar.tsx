@@ -91,7 +91,7 @@ export function Sidebar({
 						<a className="block truncate text-sm" href={`/_board/item/${encodeURIComponent(goal.id)}/`}>
 							{goal.title}
 						</a>
-						<GoalProgress counts={goal.counts} title={goal.title} />
+						<GoalProgress compact counts={goal.counts} title={goal.title} />
 					</div>
 				))}
 			</section>

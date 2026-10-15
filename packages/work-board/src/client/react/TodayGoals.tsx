@@ -1,5 +1,5 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { SegmentedBar } from "#client/react/components/ui/SegmentedBar.tsx";
+import { GoalProgress } from "./GoalProgress.tsx";
 
 export function TodayGoals({ data }: { readonly data: GoalsProjection }) {
 	return data.goals.length > 0 ? (
@@ -14,17 +14,19 @@ export function TodayGoals({ data }: { readonly data: GoalsProjection }) {
 }
 function GoalCard({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
 	return (
-		<article className="today-goal rounded-lg border border-border bg-card p-4" data-goal-id={goal.id}>
-			<h3 className="m-0 font-semibold text-base">
+		<article className="today-goal rounded-lg border border-border bg-card p-3" data-goal-id={goal.id}>
+			<h3 className="m-0 font-semibold text-sm">
 				<a href={`/_board/item/${encodeURIComponent(goal.id)}/`}>{goal.title}</a>
 			</h3>
-			<p className="my-2 line-clamp-2 text-muted-foreground text-sm">{goal.nextAction ?? "Next action not recorded"}</p>
-			<SegmentedBar counts={goal.counts} label={`Linked items for ${goal.title}`} />
-			<ul aria-label={`Criteria for ${goal.title}`} className="m-0 mt-3 list-none space-y-2 p-0 text-sm">
-				{goal.criteria.map((criterion) => (
-					<CriterionRow criterion={criterion} goal={goal.id} key={criterion.id} />
-				))}
-			</ul>
+			<GoalProgress counts={goal.counts} title={goal.title} />
+			<details className="mt-2">
+				<summary className="cursor-pointer text-muted-foreground text-xs">Criteria</summary>
+				<ul aria-label={`Criteria for ${goal.title}`} className="m-0 mt-3 list-none space-y-2 p-0 text-sm">
+					{goal.criteria.map((criterion) => (
+						<CriterionRow criterion={criterion} goal={goal.id} key={criterion.id} />
+					))}
+				</ul>
+			</details>
 		</article>
 	);
 }
@@ -37,7 +39,7 @@ function CriterionRow({ criterion, goal }: { readonly criterion: GoalsProjection
 			<div className="min-w-0">
 				<a href={`/_board/item/${encodeURIComponent(goal)}/#criterion-${encodeURIComponent(criterion.id)}`}>{criterion.text}</a>
 				<p className="m-0 text-muted-foreground text-xs tabular-nums">
-					{criterion.linked > 0 ? `${criterion.linked} linked · ${criterion.evidence} with evidence` : "not linked"}
+					{criterion.linked} linked · {criterion.evidence} with evidence
 				</p>
 			</div>
 		</li>

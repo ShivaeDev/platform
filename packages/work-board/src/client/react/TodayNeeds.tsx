@@ -22,27 +22,6 @@ export function TodayNeeds({ api, data }: { readonly api: ShellApi; readonly dat
 	);
 }
 
-export function TodayGroup({ items, title }: { readonly items: readonly Item[]; readonly title: string }) {
-	return (
-		<details className="today-group mt-3 rounded-lg border border-border px-3 py-2">
-			<summary className="cursor-pointer text-muted-foreground text-sm">
-				{title} ({items.length})
-			</summary>
-			<ul className="m-0 list-none divide-y p-0">
-				{items.map((item) => (
-					<li className="py-2 text-sm" key={`${item.file}:${item.href}`}>
-						<a href={item.href}>{item.title}</a>
-						<p className="m-0 text-muted-foreground text-xs">{item.reason}</p>
-						{item.responseFrom !== undefined && (
-							<p className="m-0 text-muted-foreground text-xs">Response needed from: {item.responseFrom.join(", ")}</p>
-						)}
-					</li>
-				))}
-			</ul>
-		</details>
-	);
-}
-
 function TodayRow({ api, item }: { readonly api: ShellApi; readonly item: Item }) {
 	return (
 		<div className="today-row flex h-full min-w-0 items-center gap-2 px-2" data-attention-row>
