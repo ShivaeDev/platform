@@ -27,3 +27,16 @@ export function searchRankingFixture() {
 		]),
 	};
 }
+
+export function identityRankingFixture(titleStatus: string, passageStatus: string) {
+	return {
+		files: {
+			"passage.md": `---\nid: task.notes\nkind: task\nstatus: ${passageStatus}\n---\n# Captured notes\n\nThe inbox and task.inbox need another look.\n`,
+			"task.md": `---\nid: task.inbox\nkind: task\nstatus: ${titleStatus}\n---\n# Inbox triage\n`,
+		},
+		modified: new Map([
+			["passage.md", 10_000],
+			["task.md", 1000],
+		]),
+	};
+}

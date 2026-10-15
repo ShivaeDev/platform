@@ -4,4 +4,4 @@
 
 ### Fixed
 
-- Search ranks open work before closed and deferred work, then title and ID matches before body matches and recently changed sources before older ones, excludes Fleet records unless the query starts with `records:`, and omits structured metadata from snippets.
+- Search ranks title and ID matches before body matches regardless of status, then open work before closed and deferred work and recently changed sources before older ones, excludes Fleet records unless the query starts with `records:`, and omits structured metadata from snippets.
