@@ -71,6 +71,7 @@ export const answerCommand = Command.make(
 	Effect.fn("WorkFleetCli.answer")(function* (input) {
 		const text = yield* answerText(Option.getOrUndefined(input.args[1]));
 		const value = yield* daemonRequest(input.port, (client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }));
-		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+		const detail = (value.pendingAnswers?.length ?? 0) > 0 ? "queued for the next turn" : value.blocker;
+		yield* Console.log(`${value.workId} ${value.stage}${detail === undefined ? "" : `: ${detail}`}`);
 	}),
 ).pipe(Command.withDescription("Answer the waiting worker question or Fleet decision; read text from stdin if omitted, or use --release"));

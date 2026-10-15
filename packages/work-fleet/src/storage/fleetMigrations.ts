@@ -13,6 +13,7 @@ export const fleetMigrationColumns = {
 	[releaseReasonColumn.name]: releaseReasonColumn.kind,
 	...recordTimeColumns,
 	integrationRetry: "json",
+	pendingAnswers: "json",
 } as const;
 
 export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function* (namespace: string, legacyOnly = false) {
@@ -53,6 +54,7 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					}),
 					"9_integration_retry": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("integrationRetry")} text`,
 					"10_prune_empty_cycles": pruneEmptyCycles(namespace),
+					"11_pending_answers": sql`alter table ${sql(`${namespace}_records`)} add column ${sql("pendingAnswers")} text`,
 				}),
 	});
 });
