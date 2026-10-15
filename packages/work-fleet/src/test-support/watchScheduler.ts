@@ -11,6 +11,7 @@ import { engineProvider } from "#test/engineProvider.ts";
 import { type HostFixture, task } from "#test/fleetHost.ts";
 import { untilOutput, withFollower } from "#test/follower.ts";
 import { mainObservation } from "#test/preparation.ts";
+import { readDaemonLayer } from "#test/readDaemon.ts";
 import { answerReport } from "#test/report.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
@@ -40,7 +41,10 @@ export const watchScheduler = Effect.fn("WatchSchedulerTest.watchScheduler")(fun
 	const context = yield* Layer.build(Layer.fresh(daemonLayer(fixture.host, parts, 0)));
 	const url = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);
 	const client = yield* daemonClient(url);
-	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, port: Number(new URL(url).port) }, (follower) =>
+	const reader = yield* Layer.build(Layer.fresh(readDaemonLayer(fixture.host, parts, 0)));
+	const readUrl = HttpServer.formatAddress(Context.get(reader, HttpServer.HttpServer).address);
+	const readClient = yield* daemonClient(readUrl);
+	yield* withFollower(fixture.configFile, "watch", ids, { follow: true, port: Number(new URL(readUrl).port) }, (follower) =>
 		Effect.gen(function* () {
 			yield* untilOutput(follower, "connected needs-human (waiting on orchestrator): Watch connected\n");
 			expect(provider.starts).toHaveLength(0);
@@ -73,6 +77,8 @@ export const watchScheduler = Effect.fn("WatchSchedulerTest.watchScheduler")(fun
 				answerReport(fixture.host.boardDir, decision, "retry");
 			}
 			yield* until(() => client("fleet.get", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
+			expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("needs-human");
+			expect((yield* readClient("fleet.get", { workId: "one" })).decision?.code).toBe("reviewed-pr-ready");
 			yield* untilOutput(follower, "one needs-human (waiting on maintainer): Reviewed PR is ready to merge\n").pipe(Effect.timeout("5 seconds"));
 			expect(reviews).toEqual(["head-one-0"]);
 			expect((yield* client("fleet.get", { workId: "one" })).review).toMatchObject({ head: "head-one-0", verdict: "approved" });
