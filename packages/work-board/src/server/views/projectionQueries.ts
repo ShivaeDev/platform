@@ -9,6 +9,7 @@ import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
 import { boardOf, countsOf } from "#server/render/board.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { fleetApproval } from "./fleetApproval.ts";
 import type { Item } from "./items.ts";
 import { projectItems } from "./projection.ts";
 
@@ -31,7 +32,14 @@ export function projectionQueries({ index, document }: { readonly index: Handler
 						.map((entry) => [entry.id, entry.reason]),
 				);
 				function toItem({ document: source, id, title }: Item) {
-					return { file: source.file, id, metadata: source.parsed.fields, title, waiting: waiting.get(id) };
+					return {
+						file: source.file,
+						fleetApproved: fleetApproval(source.parsed),
+						id,
+						metadata: source.parsed.fields,
+						title,
+						waiting: waiting.get(id),
+					};
 				}
 				const selected = projection.selected ? yield* read(identityUrl(projection.selected.id)) : undefined;
 				return {

@@ -33,7 +33,8 @@ it("keeps waiting cards in their recorded status columns and shows only a linked
 	expect(cards).toContain('aria-label="planned"');
 	expect(cards).toContain('aria-label="needs-human"');
 	expect(cards).not.toContain('aria-label="Waiting on you"');
-	expect(cards).toContain('class="waiting-badge"');
+	expect(cards).toContain('data-status-token="needs-you"');
+	expect(cards.match(/data-status-token=/gu)).toHaveLength(4);
 	const overview = overviewHtml(snapshot);
 	expect(overview).toContain("3 waiting");
 	expect(overview).toContain('href="/_board/inbox">Open Inbox');
