@@ -44,6 +44,7 @@ export interface DocumentViewProps {
 	readonly document: Document;
 	readonly idPrefix?: string;
 	readonly introduction?: ReactNode;
+	readonly lead?: ReactNode;
 }
 
 const LayoutContext = createContext<{
@@ -51,6 +52,7 @@ const LayoutContext = createContext<{
 	readonly context: ReactNode;
 	readonly content: ReactNode;
 	readonly introduction: ReactNode;
+	readonly lead: ReactNode;
 	readonly file: string;
 	readonly identified: boolean;
 }>({
@@ -60,6 +62,7 @@ const LayoutContext = createContext<{
 	file: "",
 	identified: false,
 	introduction: null,
+	lead: null,
 });
 const layoutComponents: Components = { ...components, article: LayoutArticle, header: LayoutHeader };
 function LayoutArticle({ node, children, ...props }: React.ComponentProps<"article"> & import("react-markdown").ExtraProps) {
@@ -67,7 +70,7 @@ function LayoutArticle({ node, children, ...props }: React.ComponentProps<"artic
 	return createElement("article", props, node?.properties.dataSource === undefined ? null : content, children);
 }
 function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<"header"> & import("react-markdown").ExtraProps) {
-	const { answer, context, introduction, file, identified } = useContext(LayoutContext);
+	const { answer, context, introduction, lead, file, identified } = useContext(LayoutContext);
 	const header = createElement("header", props, children);
 	if (!props.className?.split(" ").includes("item-introduction")) {
 		return header;
@@ -81,11 +84,12 @@ function LayoutHeader({ node: _node, children, ...props }: React.ComponentProps<
 			Children.count(children) > 0 ? children : createElement("h1", { className: "font-mono" }, file),
 			introduction,
 		),
+		lead,
 		answer,
 		context,
 	);
 }
-export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer }: DocumentViewProps) {
+export function DocumentView({ document, idPrefix = "", context, content, introduction, board, answer, lead }: DocumentViewProps) {
 	const layout = context !== undefined;
 	const identity = document.identity ?? document.file;
 	const states = useMemo(() => ({ identity, values: new Map<string, boolean>() }), [identity]);
@@ -112,7 +116,7 @@ export function DocumentView({ document, idPrefix = "", context, content, introd
 			{ key: states.identity, value: states.values },
 			createElement(
 				LayoutContext.Provider,
-				{ value: { answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction } },
+				{ value: { answer, content, context, file: document.file, identified: Boolean(document.metadata.id), introduction, lead } },
 				createElement(
 					MarkdownHooks,
 					{

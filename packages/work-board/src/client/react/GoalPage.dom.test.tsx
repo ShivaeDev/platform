@@ -34,7 +34,13 @@ it.live.each(["executing", "reviewing", "needs-human"] as const)(
 		);
 		try {
 			yield* Effect.promise(() => eventually(() => expect(view.container.querySelectorAll("[data-goal-item]")).toHaveLength(5)));
-			expect(view.container.querySelector(".item-introduction")?.nextElementSibling?.className).toContain("answer-cards");
+			const header = view.container.querySelector(".item-introduction");
+			const progress = view.container.querySelector('[data-goal-section="progress"]');
+			const answers = view.container.querySelector(".answer-cards");
+			expect(header?.nextElementSibling).toBe(progress);
+			expect(progress?.nextElementSibling).toBe(answers);
+			expect(answers).not.toBeNull();
+			expect(answers?.compareDocumentPosition(view.container.querySelector("article.doc") ?? document.body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 			yield* Effect.promise(() => eventually(() => expect(view.container.querySelector("[data-goal-open-asks]")).not.toBeNull()));
 			const goal = readProgress()?.goals.find((entry) => entry.id === "project.example");
 			if (!goal) {
@@ -50,7 +56,8 @@ it.live.each(["executing", "reviewing", "needs-human"] as const)(
 			expect(counts).toEqual(goal.counts);
 			expect(view.container.querySelector('[data-goal-section="progress"]')?.textContent).toContain("5 linked items");
 			expect(view.container.querySelector("[data-goal-open-asks]")?.textContent).toBe(`${goal.openAsks} open asks`);
-			expect(view.container.querySelector(".goal-page")?.textContent).not.toMatch(/%|No recorded evidence naming/u);
+			expect(progress?.textContent).not.toContain("%");
+			expect(view.container.querySelector(".goal-page")?.textContent).not.toContain("No recorded evidence naming");
 			for (const [status, count] of Object.entries(counts)) {
 				const legend = [...view.container.querySelectorAll("[data-goal-counts] li")].find(
 					(entry) => entry.querySelector("[data-status-token]")?.textContent === status,
@@ -92,7 +99,10 @@ it.live.each(["executing", "reviewing", "needs-human"] as const)(
 			expect(view.container.querySelector<HTMLDetailsElement>('[data-goal-group="Done"]')?.open).toBe(false);
 			expect(view.container.querySelector("article.doc")?.firstElementChild?.className).toContain("goal-page");
 			yield* Effect.promise(() =>
-				eventually(() => expect(view.container.querySelector('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull()),
+				eventually(() => {
+					expect(view.container.querySelector('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull();
+					expect(view.container.querySelector(`.document-outline a[href="#${progress?.querySelector("h2")?.id}"]`)).not.toBeNull();
+				}),
 			);
 		} finally {
 			yield* Effect.promise(() => view.unmount());

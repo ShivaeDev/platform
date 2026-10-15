@@ -4,6 +4,7 @@ import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { DocumentCriteria } from "./DocumentCriteria.tsx";
 import { GoalPage } from "./GoalPage.tsx";
+import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
 import { ItemSummary } from "./ItemSummary.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
@@ -15,6 +16,7 @@ export function DocumentPage({ document, api }: { readonly document: Document; r
 			context={<DocumentContext document={document} />}
 			document={document}
 			introduction={<ItemSummary document={document} />}
+			lead={api && document.metadata.kind === "project" ? <GoalProgressHeader api={api} document={document} /> : undefined}
 		/>
 	);
 }

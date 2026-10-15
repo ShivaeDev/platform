@@ -14,7 +14,8 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 			const entries = [
 				...(contextRef.current
 					?.closest("main")
-					?.querySelectorAll<HTMLElement>(".item-introduction h1, :is(article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)") ?? []),
+					?.querySelectorAll<HTMLElement>(".item-introduction h1, :is(.document-lead, article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)")
+					?? []),
 			]
 				.filter((heading) => heading.id)
 				.map((heading) => ({ depth: Number(heading.tagName.slice(1)), id: heading.id, title: heading.textContent?.replace(/#$/u, "") ?? "" }));
@@ -31,8 +32,10 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 			return;
 		}
 		const count =
-			context.closest("main")?.querySelectorAll(".item-introduction h1[id], :is(article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)[id]")
-				.length ?? 0;
+			context
+				.closest("main")
+				?.querySelectorAll(".item-introduction h1[id], :is(.document-lead, article.doc, .document-layout > .board) :is(h1,h2,h3,h4,h5,h6)[id]").length
+			?? 0;
 		if (count !== headings.length) {
 			return;
 		}
