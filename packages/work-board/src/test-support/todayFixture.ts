@@ -10,7 +10,7 @@ export function todayFixture(): Record<string, string> {
 			["alpha", "beta"].flatMap((name) => [
 				[
 					`goals/${name}.md`,
-					`---\nid: project.${name}\nkind: project\nstatus: active\ncriteria:\n${Array.from({ length: 30 }, (_, index) => ` - id: proof-${index}\n   text: Evidence criterion ${index}`).join("\n")}\n---\n# ${name === "alpha" ? "First" : "Second"} active goal\n`,
+					`---\nid: project.${name}\nkind: project\nstatus: active\nnext_action: Review ${name} delivery evidence with the maintainer and verify every linked task before choosing the next step. Record the remaining questions and arrange a follow-up review once the evidence is complete.\ncriteria:\n${Array.from({ length: 30 }, (_, index) => ` - id: proof-${index}\n   text: Evidence criterion ${index}`).join("\n")}\n---\n# ${name === "alpha" ? "First" : "Second"} active goal\n`,
 				],
 				...["done", "active"].map((status) => [
 					`goals/${name}-${status}.md`,

@@ -48,6 +48,17 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 		expect([...view.container.querySelectorAll("[data-goal-id]")].map((card) => card.getAttribute("data-goal-id"))).toEqual(
 			goals.goals.map((goal) => goal.id),
 		);
+		expect(view.container.querySelectorAll("[data-goal-next-action]")).toHaveLength(3);
+		for (const goal of goals.goals) {
+			const next = view.container.querySelector(`[data-goal-id='${goal.id}'] [data-goal-next-action]`);
+			if (goal.nextAction) {
+				expect(next?.textContent).toBe(goal.nextAction);
+				expect(next?.getAttribute("title")).toBe(goal.nextAction);
+				expect(next?.classList.contains("line-clamp-2")).toBe(true);
+			} else {
+				expect(next).toBeNull();
+			}
+		}
 		expect(view.container.querySelector(".today-strip")?.textContent).toBe(
 			`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals`,
 		);

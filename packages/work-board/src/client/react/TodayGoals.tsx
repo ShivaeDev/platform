@@ -18,6 +18,11 @@ function GoalCard({ goal }: { readonly goal: GoalsProjection["goals"][number] })
 			<h3 className="m-0 font-semibold text-sm">
 				<a href={`/_board/item/${encodeURIComponent(goal.id)}/`}>{goal.title}</a>
 			</h3>
+			{goal.nextAction ? (
+				<p className="m-0 mt-1 line-clamp-2 text-muted-foreground text-xs" data-goal-next-action="" title={goal.nextAction}>
+					{goal.nextAction}
+				</p>
+			) : null}
 			<GoalProgress counts={goal.counts} title={goal.title} />
 			<details className="mt-2">
 				<summary className="cursor-pointer text-muted-foreground text-xs">Criteria</summary>
