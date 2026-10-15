@@ -4,6 +4,7 @@ import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
 import { waitFor } from "#test/live.ts";
 
 let notes: Folder;
@@ -32,13 +33,13 @@ function click(selector: string) {
 effectApp("opens the overview from legacy Markdown and preserves queue reading context across source navigation and Back", function* () {
 	page = yield* openPage(board, "/legacy.md");
 	yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
-	click("#overview-open");
+	followLink(page, "/_board/overview");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe("/_board/overview")));
-	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBe("page");
+	expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("overview");
 	page.document.querySelector(".view-issues")?.setAttribute("open", "");
 	click('[data-request="keyboard-review"] h3 a');
 	yield* Effect.promise(() => waitFor(() => expect(page.document.activeElement?.id).toBe("attention-request-keyboard-review")));
-	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBeNull();
+	expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBeNull();
 	expect(page.document.getElementById("attention-request-keyboard-review")?.textContent).toContain("maintainer, agent-navigation");
 	expect(page.document.querySelector(".work-meta")?.closest("[hidden]") === null).toBe(true);
 	click('#attention-request-keyboard-review a[href="/_board/item/work.search/#criterion-keyboard"]');
@@ -48,7 +49,7 @@ effectApp("opens the overview from legacy Markdown and preserves queue reading c
 	page.window.history.back();
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.getAttribute("data-route")).toBe("/_board/overview")));
 	yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector(".view-issues")?.hasAttribute("open")).toBe(true)));
-	expect(page.document.getElementById("overview-open")?.getAttribute("aria-current")).toBe("page");
+	expect(page.document.getElementById("doc")?.getAttribute("data-view")).toBe("overview");
 });
 
 effectApp("updates explicit open requests in place and keeps issue disclosure open during source edits", function* () {

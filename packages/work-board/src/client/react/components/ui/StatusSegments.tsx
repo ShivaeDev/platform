@@ -2,9 +2,10 @@ import { StatusChip } from "./StatusChip.tsx";
 
 export function StatusSegments({ label, counts }: { readonly label: string; readonly counts: Readonly<Record<string, number>> }) {
 	const segments = Object.entries(counts).filter(([, count]) => count > 0);
+	const description = segments.map(([status, count]) => `${status}: ${count}`).join(", ");
 	return segments.length > 0 ? (
 		<figure aria-label={label} className="m-0">
-			<div aria-hidden="true" className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-muted">
+			<div aria-label={`${label}: ${description}`} className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-muted" role="img">
 				{segments.map(([status, count]) => (
 					<span className={color(status)} key={status} style={{ flexGrow: count }} />
 				))}

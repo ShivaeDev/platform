@@ -36,13 +36,9 @@ it.live("keeps unrelated documents intact and catches up paused source changes w
 	yield* open();
 	const paragraph = page.document.querySelector("#doc p");
 	const count = page.pageRequests.count;
-	const modified = page.document.querySelector('#files a[href="/other.md"] + [data-modified]')?.getAttribute("data-modified");
-	notes.write("other.md", "# Other changed");
-	yield* Effect.promise(() =>
-		waitFor(() =>
-			expect(page.document.querySelector('#files a[href="/other.md"] + [data-modified]')?.getAttribute("data-modified")).not.toBe(modified),
-		),
-	);
+	notes.write("added.md", "# Another document");
+	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("documents-open")?.textContent).toBe("Library3")));
+
 	expect(page.pageRequests.count).toBe(count);
 	expect(page.document.querySelector("#doc p")).toBe(paragraph);
 	page.document.querySelector(".board-head > details")?.setAttribute("open", "");

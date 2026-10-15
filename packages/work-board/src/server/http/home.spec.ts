@@ -5,6 +5,7 @@ import { afterEach, describe, expect } from "vitest";
 import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { homeLinks } from "#test/homeLinks.ts";
+import { rpcNavigation } from "#test/nativeRpc.ts";
 
 let notes: Folder;
 let outside: Folder;
@@ -56,7 +57,7 @@ describe("the home file", () => {
 			board = yield* startBoard(notes.root, "upper.md");
 			const html = yield* Effect.promise(async () => (await get("/")).text());
 			expect(html).toContain("<span><b>1</b> doing</span>");
-			expect(html).toContain('<a href="/Upper.md" aria-current="page">Upper</a>');
+			expect((yield* rpcNavigation(board)).home?.file).toBe("Upper.md");
 		} else {
 			expect(yield* Effect.flip(startBoard(notes.root, "upper.md"))).toMatchObject({
 				message: expect.stringContaining("The home file upper.md is not a markdown file in"),
@@ -70,7 +71,7 @@ describe("the home file", () => {
 		homeLinks.aliases(notes.root);
 		if (existsSync(join(notes.root, "PLAN.md"))) {
 			board = yield* startBoard(notes.root, "PLAN.md");
-			expect(yield* Effect.promise(async () => (await get("/")).text())).toContain('<a href="/plan.md" aria-current="page">plan</a>');
+			expect((yield* rpcNavigation(board)).home?.file).toBe("plan.md");
 		} else {
 			expect(yield* Effect.flip(startBoard(notes.root, "PLAN.md"))).toMatchObject({
 				message: expect.stringContaining("The home file PLAN.md is not a markdown file in"),
@@ -83,7 +84,7 @@ describe("the home file", () => {
 		yield* board.stop();
 		homeLinks.nestedAlias(notes.root);
 		board = yield* startBoard(notes.root, ".drafts/plan-copy.md");
-		expect(yield* Effect.promise(async () => (await get("/")).text())).toContain('<a href="/plan.md" aria-current="page">plan</a>');
+		expect((yield* rpcNavigation(board)).home?.file).toBe("plan.md");
 	});
 
 	effectApp("must exist, or the board does not start", function* () {

@@ -2,7 +2,7 @@ import { Effect, Stream } from "effect";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/integration/diagnostics.ts";
 import { type FleetError, isFleetError } from "#errors.ts";
 import { daemonClient, daemonError } from "#host/daemonClient.ts";
-import type { State } from "#host/waitOutcome.ts";
+import { decodeFollowState, type FollowState } from "#host/followState.ts";
 
 const { DAEMON_PORT } = diagnosticsApi;
 
@@ -18,9 +18,10 @@ export function follow(options: FollowOptions, workIds: readonly string[]) {
 	let ids = workIds;
 	let connected = false;
 	let failures = 0;
-	function connect(): Stream.Stream<readonly (typeof State.Type)[], FleetError> {
+	function connect(): Stream.Stream<readonly FollowState[], FleetError> {
 		return Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.follow", { follow: options.follow, workIds: ids })))).pipe(
 			Stream.scoped,
+			Stream.map((states) => states.map(decodeFollowState)),
 			Stream.map((states) => {
 				if (!(options.follow || connected) && ids.length === 0) {
 					ids = states.map((state) => state.workId);

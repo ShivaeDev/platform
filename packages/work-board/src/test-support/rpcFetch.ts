@@ -18,6 +18,12 @@ function pageRead(call: RpcRequest | undefined, path: string) {
 	if (call.tag === "work-board.diagnostics") {
 		return path === "/_board/diagnostics";
 	}
+	if (call.tag === "work-board.library") {
+		return path === "/_board/library";
+	}
+	if (call.tag === "work-board.goals") {
+		return path === "/_board/goals";
+	}
 	if (call.tag === "work-board.start") {
 		return path === "/_board/start";
 	}

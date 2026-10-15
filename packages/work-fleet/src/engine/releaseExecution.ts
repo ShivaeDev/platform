@@ -30,8 +30,18 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 		const observations: SessionObservation[] = [];
 		for (const receipt of receipts) {
 			yield* validateReceipt(receipt, { sessionId: acknowledged.sessionId }).pipe(Effect.mapError(observationFailure));
-			const observation = yield* state.sessions.observe(receipt).pipe(Effect.mapError(observationFailure));
-			observations.push(observation);
+			const observation = yield* state.sessions
+				.observe(receipt)
+				.pipe(
+					Effect.catch((error) =>
+						receipts.length === 1 && error.code === "session-turn-missing" && error.reason === "ambiguous"
+							? Effect.succeed(undefined)
+							: Effect.fail(observationFailure(error)),
+					),
+				);
+			if (observation !== undefined) {
+				observations.push(observation);
+			}
 		}
 		if (observations.some((item) => ["accepted", "running"].includes(item.execution))) {
 			return yield* new Forbidden({ message: "Confirm terminal execution before releasing ownership" });
@@ -42,6 +52,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 				? {
 						...saved,
 						output: observations.length === 1 ? observation?.output : undefined,
+						sessionUnusable: observations.length === 0 || saved.sessionUnusable,
 						status: observations.length === 1 ? (observation?.execution ?? "interrupted") : ("failed" as const),
 					}
 				: saved,

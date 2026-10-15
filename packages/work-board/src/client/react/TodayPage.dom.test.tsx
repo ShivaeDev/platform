@@ -35,6 +35,7 @@ it("opens Today with the exact human lane and one honest card per goal, retainin
 	);
 	try {
 		await eventually(() => expect(view.container.querySelector("#doc h1")?.textContent).toBe("Today"));
+		expect(view.container.querySelector('#primary-navigation [aria-current="page"]')?.getAttribute("href")).toBe("/");
 		if (!api) {
 			throw new Error("Missing fixture API");
 		}

@@ -8,9 +8,10 @@ import type { EngineState } from "#engine/makeState.ts";
 import type { PrepareWork } from "#fleet.ts";
 import { executing, type FleetCycleSnapshot, type FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
+import type { Versioned } from "#storage/model.ts";
 
 export function prepareCommand(state: EngineState) {
-	const { store, board, policy, save } = state;
+	const { store, board, save } = state;
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
 		if (!work.approved) {
@@ -35,19 +36,33 @@ export function prepareCommand(state: EngineState) {
 			stage: "prepared",
 			workId: work.workId,
 		};
-		let existing = yield* store.load(work.workId);
+		const existing = yield* store.load(work.workId);
 		if (existing === undefined) {
 			return yield* store.insert(current);
 		}
-		existing = yield* ensurePublication(state)(existing);
-		yield* renewable(existing.value, work);
-		existing = yield* inspectRenewal(state)(existing, work);
-		if (existing.value.result?.kind === "change" && existing.value.outcome === undefined) {
-			yield* store.reserveForeign(existing.value.result.pr, { backlog: true, executing: false });
+		if (unusedPreparation(existing.value)) {
+			return yield* save(existing, { ...current, history: existing.value.history });
 		}
-		return yield* save(existing, { ...current, history: [...(existing.value.history ?? []), snapshot(existing.value, policy.now())] });
+		return yield* renewPreparation(state, existing, current, work);
 	});
 }
+function unusedPreparation(record: FleetRecord): boolean {
+	return record.stage === "prepared" && record.attempts.length === 0 && record.decision === undefined && (record.responses?.length ?? 0) === 0;
+}
+const renewPreparation = Effect.fn("Fleet.renewPreparation")(function* (
+	state: EngineState,
+	input: Versioned<FleetRecord>,
+	current: FleetRecord,
+	work: BoardWork,
+) {
+	let existing = yield* ensurePublication(state)(input);
+	yield* renewable(existing.value, work);
+	existing = yield* inspectRenewal(state)(existing, work);
+	if (existing.value.result?.kind === "change" && existing.value.outcome === undefined) {
+		yield* state.store.reserveForeign(existing.value.result.pr, { backlog: true, executing: false });
+	}
+	return yield* state.save(existing, { ...current, history: [...(existing.value.history ?? []), snapshot(existing.value, state.policy.now())] });
+});
 const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, work: BoardWork) {
 	if (record.decision !== undefined && record.decision.published === undefined) {
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile the decision publication receipt before renewing preparation" }));

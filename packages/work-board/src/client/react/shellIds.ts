@@ -88,5 +88,4 @@ export const shellIds = {
 	workResults: "work-results",
 	workSort: "work-sort",
 	workStatus: "work-status",
-	workspaceNotesOpen: "workspace-notes-open",
 } as const;

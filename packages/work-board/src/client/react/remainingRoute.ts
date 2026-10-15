@@ -1,5 +1,9 @@
 export function remainingRoute(pathname: string) {
 	switch (pathname) {
+		case "/_board/library":
+			return "library";
+		case "/_board/goals":
+			return "goals";
 		case "/_board/changes":
 			return "changes";
 		case "/_board/diagnostics":

@@ -52,7 +52,7 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 					return HttpServerResponse.redirect(`${identityUrl(preview.item)}#answer-card-${encodeURIComponent(preview.request)}`);
 				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
 			);
-			for (const view of ["changes", "diagnostics", "start", "handoff", "result"] as const) {
+			for (const view of ["changes", "diagnostics", "start", "handoff", "result", "library", "goals"] as const) {
 				yield* serve(`/_board/${view}`, () =>
 					Effect.gen(function* () {
 						const snapshot = yield* index;

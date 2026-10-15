@@ -3,6 +3,7 @@ import { afterEach, expect } from "vitest";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { type Folder, folder, type RunningBoard, startBoard } from "#test/board.ts";
 import { type OpenPage, openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
 import { waitFor } from "#test/live.ts";
 import { sidebarWorkspace } from "#test/sidebarFixture.ts";
 
@@ -41,31 +42,22 @@ function click(selector: string) {
 	found.dispatchEvent(new page.window.MouseEvent("click", { bubbles: true, button: 0, cancelable: true }));
 }
 
-it.live.each([1440, 390])("keeps primary rows and the tree independent of five visits at %ipx", function* (width) {
+it.live.each([1440, 390])("keeps primary rows and recent documents independent of five visits at %ipx", function* (width) {
 	yield* open(width);
 	const navigation = element("primary-navigation");
 	const rows = [...navigation.children];
-	expect(rows.map((row) => row.id)).toEqual([
-		"home-open",
-		"workspace-notes-open",
-		"inbox-open",
-		"overview-open",
-		"work-open",
-		"changes-open",
-		"diagnostics-open",
-	]);
-	const files = element("files");
+	expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "documents-open", "diagnostics-open"]);
+
 	for (let index = 2; index <= 6; index += 1) {
-		click(`#files a[href="/notes/topic-${index}.md"]`);
+		followLink(page, `/notes/topic-${index}.md`);
 		yield* Effect.promise(frame);
 		yield* Effect.promise(() => waitFor(() => expect(element("doc").dataset.file).toBe(`notes/topic-${index}.md`)));
 		expect([...navigation.children]).toEqual(rows);
-		expect(element("files")).toBe(files);
-		expect(files.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(`/notes/topic-${index}.md`);
+		expect(page.document.querySelector('section[aria-label="Recent"] a[aria-current="page"]')?.getAttribute("href")).toBe(`/notes/topic-${index}.md`);
 		expect(element("library-dialog").hasAttribute("open")).toBe(false);
 	}
 	expect(element("sidebar").contains(element("reading-library"))).toBe(false);
-	expect(files.classList.contains("overflow-y-auto")).toBe(true);
+	expect(page.document.querySelectorAll('section[aria-label="Recent"] a')).toHaveLength(5);
 	if (width === 390) {
 		click("#sidebar-toggle");
 		yield* Effect.promise(frame);
@@ -111,21 +103,6 @@ it.live("dismisses the narrow drawer with Escape or outside tap and restores foc
 	page.window.innerWidth = 390;
 	page.window.dispatchEvent(new page.window.Event("resize"));
 	yield* Effect.promise(() => waitFor(() => expect(sidebar.hidden).toBe(true)));
-});
-
-it.live("scrolls the project tree to reveal the selected file after navigation", function* () {
-	yield* open(1440);
-	const files = element("files");
-	function rect(top: number, bottom: number) {
-		return new page.window.DOMRect(0, top, 240, bottom - top);
-	}
-	files.getBoundingClientRect = () => rect(0, 100);
-	page.window.HTMLAnchorElement.prototype.getBoundingClientRect = () => rect(400 - files.scrollTop, 420 - files.scrollTop);
-	files.scrollTop = 0;
-	click('#files a[href="/notes/topic-6.md"]');
-	yield* Effect.promise(frame);
-	yield* Effect.promise(() => waitFor(() => expect(element("doc").dataset.file).toBe("notes/topic-6.md")));
-	yield* Effect.promise(() => waitFor(() => expect(files.scrollTop).toBe(320)));
 });
 
 function frame() {

@@ -106,6 +106,7 @@ export function fleetRecords(model: MetadataModel): ReadonlySet<string> {
 		[
 			...decisions,
 			...questions,
+			...model.documents.filter((document) => document.parsed.fields.requestReceipt !== undefined),
 			...model.documents.filter((document) => document.parsed.fields.response && questionIds.has(document.parsed.fields.response.question)),
 		].map((document) => document.file),
 	);

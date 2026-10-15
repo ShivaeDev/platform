@@ -78,7 +78,7 @@ effectApp("replaces an active item with a conflict explanation rather than retai
 	notes.write("duplicate.md", "---\nid: work.search\n---\n# Duplicate");
 	yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("doc")?.textContent).toContain("No document was selected")));
 	expect(page.document.getElementById("doc")?.getAttribute("data-identity")).toBeNull();
-	expect(page.document.querySelector('a[href="/duplicate.md"]')).not.toBeNull();
+	expect(page.document.querySelector('a[href="/_board/library"]')).not.toBeNull();
 });
 
 effectApp("keeps focus on a criterion opened through search within the active item", function* () {

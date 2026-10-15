@@ -1,6 +1,5 @@
 import * as Schema from "effect/Schema";
 import { AttentionOwner, waitingOwner } from "#attention.ts";
-import { DecisionCode } from "#DecisionCode.ts";
 
 export const WAIT_EXIT = { completed: 0, error: 1, released: 3, timeout: 4, waitingDecision: 2 } as const;
 
@@ -16,7 +15,7 @@ export const WaitState = Schema.Struct({
 	decision: Schema.optional(
 		Schema.Struct({
 			attentionOwner: Schema.optional(AttentionOwner),
-			code: Schema.optional(DecisionCode),
+			code: Schema.optional(Schema.String),
 			id: Schema.optional(Schema.String),
 			reason: Schema.String,
 		}),
