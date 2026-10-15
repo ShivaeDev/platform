@@ -1,9 +1,7 @@
 import { Effect } from "effect";
 import { briefChanged } from "#engine/boardBrief.ts";
-import { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
-import { obtainReview } from "#engine/obtainReview.ts";
-import { retryPrompt } from "#engine/retryPrompt.ts";
+import { resumeAttempt } from "#engine/resumeAttempt.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -73,21 +71,7 @@ function saveRecovery(state: EngineState, stored: Versioned<FleetRecord>, attemp
 }
 
 const resumeStalled = Effect.fn("Fleet.resumeStalled")(function* (state: EngineState, stored: Versioned<FleetRecord>, attempt: Attempt) {
-	const sessionId = attempt.receipt?.sessionId;
-	if (sessionId === undefined) {
-		return stored;
-	}
-	const stallRecovery = { count: 2, lastActionAt: state.policy.now() };
-	const prompt = retryPrompt(stored.value, attempt);
-	if (attempt.role === "reviewer") {
-		const work = yield* state.board.get(stored.value.workId);
-		if (stored.value.result === undefined) {
-			return stored;
-		}
-		yield* obtainReview(state)(stored, work, stored.value.result, { prompt: attempt.prompt ?? prompt, sessionId, stallRecovery });
-		return yield* state.load(stored.value.workId);
-	}
-	return yield* makeLaunch(state)(stored, attempt.role, prompt, { responses: stored.value.responses ?? [], sessionId, stallRecovery });
+	return yield* resumeAttempt(state, stored, attempt, { stallRecovery: { count: 2, lastActionAt: state.policy.now() } });
 });
 
 function stalled(attempt: Attempt, now: number, minutes: number) {

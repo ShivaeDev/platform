@@ -8,7 +8,7 @@ import { withFailureContext } from "#engine/failureContext.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
 import { Fleet } from "#fleet.ts";
-import type { FleetHost, HostFailure } from "#host/config.ts";
+import { type FleetHost, HostFailure } from "#host/config.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { githubResult } from "#host/githubResult.ts";
@@ -82,9 +82,26 @@ export function hostPolicy(host: FleetHost) {
 
 export function hostSql(host: FleetHost) {
 	return appDatabase({
-		config: { applicationName: "work-fleet", databaseUrl: Redacted.make(host.databaseUrl), maxConnections: host.maxConnections },
+		config: {
+			applicationName: "work-fleet",
+			changes: { channel: `${host.namespace}_changes` },
+			databaseUrl: Redacted.make(host.databaseUrl),
+			maxConnections: host.maxConnections,
+		},
 		migrations: { loader: fleetMigrations(host.namespace), table: `${host.namespace}_migrations` },
-	});
+	}).pipe(
+		Layer.provide(
+			Layer.effectDiscard(
+				Effect.gen(function* () {
+					if (host.maxConnections < 2) {
+						return yield* Effect.fail(
+							new HostFailure({ message: "Fleet database.maxConnections must be at least 2 for queries and the change listener" }),
+						);
+					}
+				}),
+			),
+		),
+	);
 }
 
 export function fleetHostLayer<TProvider, TMain>(

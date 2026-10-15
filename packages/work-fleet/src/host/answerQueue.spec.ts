@@ -103,3 +103,26 @@ test("answer during the initial worker turn queues multiple messages in order an
 			fixture.parts,
 		),
 	));
+
+test("queued guidance uses the current approved brief when the active turn ends", () =>
+	withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
+		withReadDaemon(
+			fixture.host,
+			(port) =>
+				Effect.gen(function* () {
+					const client = yield* daemonClient(port);
+					const started = yield* client("daemon.dispatch", { workId: "one" });
+					yield* client("daemon.answer", { text: TEXT, workId: "one" });
+					const current = task("one", "approved", "Use the revised acceptance criteria.");
+					fixture.write("one.md", current);
+					finishWorkers(fixture.provider);
+					const next = yield* client("fleet.reconcile", { workId: "one" });
+					expect(next.stage).toBe("executing");
+					expect(next.boardRevision).not.toBe(started.boardRevision);
+					expect(next.attempts.at(-1)?.prompt).toContain(current);
+					expect(next.attempts.at(-1)?.prompt).toContain(TEXT);
+					expect(next.pendingAnswers).toBeUndefined();
+				}),
+			fixture.parts,
+		),
+	));

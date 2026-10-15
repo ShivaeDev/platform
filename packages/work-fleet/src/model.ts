@@ -7,6 +7,8 @@ import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
 	checkFailures: Schema.optional(Schema.Array(Schema.String)),
+	missingSince: Schema.optional(Schema.Number),
+	observationRetries: Schema.optional(Schema.Number),
 	operationId: Schema.String,
 	output: Schema.optional(Schema.String),
 	progress: Schema.optional(Schema.Struct({ at: Schema.Number, signature: Schema.String })),

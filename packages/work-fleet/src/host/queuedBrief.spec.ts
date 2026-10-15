@@ -12,7 +12,7 @@ import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 
 for (const rejectedCall of ["session", "turn"] as const) {
-	postgresTests("live")(`host admission stops a queued initial ${rejectedCall} after an authored brief edit`, () => {
+	postgresTests("live")(`host admission refreshes a queued initial ${rejectedCall} after an approved brief edit`, () => {
 		let now = 100;
 		let reject = true;
 		const launch = { model: "initial-model" };
@@ -47,23 +47,23 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				expect(yield* admitApproved(fixture.host)).toEqual([]);
 				expect((yield* fleet.get("one")).value).toEqual(queued);
 				yield* cycle;
-				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
+				expect((yield* fleet.get("one")).value.decision).toBeUndefined();
 				expect(provider.launched).toHaveLength(1);
 				now = 30_100;
 				yield* admitApproved(fixture.host);
-				expect((yield* fleet.get("one")).value.decision?.reason).toBe("Board context changed");
+				expect((yield* fleet.get("one")).value.decision).toBeUndefined();
 				yield* cycle;
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("needs-human");
-				expect(accepted.decision?.reason).toBe("Board context changed");
-				expect(accepted.boardContext).toBe(source);
+				expect(accepted.stage).toBe("executing");
+				expect(accepted.decision).toBeUndefined();
+				expect(accepted.boardContext).toBe(current);
 				expect(accepted.launchRetry).toBeUndefined();
-				expect(accepted.attempts).toEqual(queued.attempts);
+				expect(accepted.attempts.slice(0, -1)).toEqual(queued.attempts);
 				expect(accepted.history ?? []).toEqual(queued.history ?? []);
-				expect(attempt).toEqual(failed);
-				expect(provider.launched).toHaveLength(1);
-				expect(provider.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 1 : 0);
+				expect(attempt).toMatchObject({ prompt: expect.stringContaining(current), settings: failed?.settings, status: "accepted" });
+				expect(provider.launched).toHaveLength(rejectedCall === "session" ? 2 : 1);
+				expect(provider.settings.filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 2 : 1);
 			}).pipe(
 				Effect.provide(
 					hostLayer(fixture.host, {

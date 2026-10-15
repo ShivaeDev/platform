@@ -11,7 +11,7 @@ import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 
 postgresTests("live")(
-	"closed and open tasks release lost recorded turns without starting or resuming a turn",
+	"closed and open tasks release legacy lost recorded turns without starting or resuming a turn",
 	() =>
 		withHost({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, {}, (fixture) => {
 			const missing = missingTurnTransport();

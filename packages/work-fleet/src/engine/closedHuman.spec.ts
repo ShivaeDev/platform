@@ -11,7 +11,7 @@ const test = postgresTests("test");
 
 for (const status of ["done", "superseded", "deferred"]) {
 	for (const lostAcknowledgement of [false, true]) {
-		test(`a lost turn with ${lostAcknowledgement ? "a missing" : "a recorded"} receipt releases when its Board status is ${status}`, () => {
+		test(`a legacy lost turn with ${lostAcknowledgement ? "a missing" : "a recorded"} receipt releases when its Board status is ${status}`, () => {
 			const missing = missingTurnTransport();
 			return withEngine({ decorateTransport: missing.decorate, lostAcknowledgement }, (fixture) =>
 				Effect.gen(function* () {

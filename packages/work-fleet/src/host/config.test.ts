@@ -1,9 +1,10 @@
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { it } from "@shivaedev/effect-test/it.ts";
 import { loadHost } from "#host/config.ts";
+import { hostSql } from "#host/runtime.ts";
 import { hostBoard } from "#test/fleetHost.ts";
 
 describe("work-fleet host configuration", () => {
@@ -46,6 +47,14 @@ describe("work-fleet host configuration", () => {
 		const override = join(hostBoard('{ "provider": "local", "concurrency": 7, "namespace": "fleet_override" }'), "fleet.config.json");
 		const host = yield* loadHost(hostBoard('{ "provider": "cloud" }'), override).pipe(Effect.provide(NodeServices.layer));
 		expect(host).toMatchObject({ concurrency: 7, namespace: "fleet_override", provider: "local" });
+	});
+	it.effect("a one-connection pool fails before acquiring the change listener", function* () {
+		const host = yield* loadHost(hostBoard('{ "provider": "local", "database": { "maxConnections": 1 } }')).pipe(Effect.provide(NodeServices.layer));
+		const failure = yield* Layer.build(hostSql(host)).pipe(Effect.scoped, Effect.flip);
+		expect(failure).toMatchObject({
+			_tag: "HostFailure",
+			message: "Fleet database.maxConnections must be at least 2 for queries and the change listener",
+		});
 	});
 	it.effect("selects GitHub result adoption explicitly", function* () {
 		const host = yield* loadHost(hostBoard('{ "provider": "local", "result": "github" }')).pipe(Effect.provide(NodeServices.layer));

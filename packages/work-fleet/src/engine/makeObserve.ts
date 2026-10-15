@@ -4,6 +4,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { observedAttempt } from "#engine/observedAttempt.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { recoverStall } from "#engine/recoverStall.ts";
+import { recoverUnobservable } from "#engine/recoverUnobservable.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
@@ -104,7 +105,7 @@ const advanceObservation = Effect.fn("Fleet.advanceObservation")(function* (
 	const attempt = stored.value.attempts.find(
 		(entry) => entry.receipt?.turnId === observation.receipt.turnId && entry.receipt.sessionId === observation.receipt.sessionId,
 	);
-	const recovered = yield* recoverStall(state, stored, attempt);
+	const recovered = (yield* recoverUnobservable(state, stored, attempt)) ?? (yield* recoverStall(state, stored, attempt));
 	if (recovered !== undefined) {
 		return recovered;
 	}
