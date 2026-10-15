@@ -1,3 +1,3 @@
 ### Added
 
-- Project pages show Fleet-aware done, in-progress and planned counts, the same split per criterion, recorded evidence and linked work before the authored Markdown. Empty work groups and absent criterion evidence stay quiet; work rows use one current state and leave absent PRs blank.
+- Project pages show the goals query's status counts and open-ask count, criteria with query counts, linked work and recorded evidence before the authored Markdown. Untargeted criteria say "not linked". Empty work groups and absent evidence stay quiet; work links and rows show authored status alongside known Fleet stages, including released, and leave absent PRs blank.

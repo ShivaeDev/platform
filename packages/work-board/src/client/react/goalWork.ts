@@ -9,9 +9,6 @@ export type GoalRun = FleetReady["items"][number] | FleetReady["completed"][numb
 export function goalRun(item: GoalWorkItem, fleet: FleetItemsProjection | undefined): GoalRun | undefined {
 	return fleet?.state === "ready" ? [...fleet.items, ...fleet.completed].find((entry) => entry.workId === item.id) : undefined;
 }
-export function goalState(item: GoalWorkItem, run: GoalRun | undefined) {
-	return run !== undefined && run.stage !== "released" ? run.stage : item.metadata.status;
-}
 export function goalGroup(item: GoalWorkItem, run: GoalRun | undefined): (typeof goalGroups)[number] {
 	if (run !== undefined && run.stage !== "released") {
 		if (run.stage === "completed") {
@@ -36,19 +33,4 @@ export function targetsGoal(item: GoalWorkItem, id: string, criterion?: string) 
 		(link) =>
 			link.kind === "implements" && (criterion ? link.target === `${id}#${criterion}` : link.target === id || link.target.startsWith(`${id}#`)),
 	);
-}
-
-export function goalCounts(items: readonly GoalWorkItem[], fleet: FleetItemsProjection | undefined) {
-	const counts = { done: 0, "in progress": 0, planned: 0 };
-	for (const item of items) {
-		const group = goalGroup(item, goalRun(item, fleet));
-		if (group === "Done") {
-			counts.done += 1;
-		} else if (group === "Active") {
-			counts["in progress"] += 1;
-		} else {
-			counts.planned += 1;
-		}
-	}
-	return counts;
 }

@@ -24,15 +24,17 @@ export function GoalPage({ api, document }: { readonly api: ShellApi; readonly d
 				</h2>
 				{goal ? (
 					<>
-						<p>{goal.linked} linked items</p>
-						{items ? <GoalProgressSummary bar items={items} /> : <p role="status">Loading linked work progress…</p>}
+						<p>
+							{goal.linked} linked items · <span data-goal-open-asks>{goal.openAsks} open asks</span>
+						</p>
+						<GoalProgressSummary bar counts={goal.counts} />
 					</>
 				) : (
 					<p role="status">{progress.pending ? "Loading goal progress…" : "Progress is available for uniquely identified open projects."}</p>
 				)}
 				{Option.isSome(progress.cause) && <p role="status">Goal progress refresh failed.</p>}
 			</section>
-			<GoalCriteria document={document} items={items} />
+			<GoalCriteria document={document} items={items} progress={goal?.criteria} />
 			{items ? <GoalWorkTable items={items} /> : <p role="status">{work.pending ? "Loading linked work…" : "Linked work unavailable."}</p>}
 			{Option.isSome(work.cause) && <p role="status">Linked work refresh failed.</p>}
 		</div>

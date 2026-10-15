@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { Document } from "#browser/document/schema.ts";
+import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { CriterionClaims } from "./DocumentCriteria.tsx";
 import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 import { GoalWorkLink, GoalWorkStatus } from "./GoalWorkTable.tsx";
@@ -9,8 +10,9 @@ import { keyed } from "./keyed.ts";
 interface Props {
 	readonly document: Document;
 	readonly items: readonly GoalWorkItem[] | undefined;
+	readonly progress: GoalsProjection["goals"][number]["criteria"] | undefined;
 }
-export function GoalCriteria({ document, items }: Props) {
+export function GoalCriteria({ document, items, progress }: Props) {
 	const headingId = useId();
 	const criteria = document.metadata.criteria ?? [];
 	return (
@@ -18,23 +20,24 @@ export function GoalCriteria({ document, items }: Props) {
 			<h2 id={headingId}>Criteria and recorded evidence</h2>
 			{criteria.length === 0 && <p>No criteria recorded.</p>}
 			{keyed(criteria, (criterion) => criterion.id).map(({ key, index }) => (
-				<Criterion document={document} index={index} items={items} key={key} />
+				<Criterion document={document} index={index} items={items} key={key} progress={progress} />
 			))}
 		</section>
 	);
 }
-function Criterion({ document, items, index }: Props & { readonly index: number }) {
+function Criterion({ document, items, index, progress }: Props & { readonly index: number }) {
 	const criteria = document.metadata.criteria ?? [];
 	const criterion = criteria[index];
 	if (!criterion) {
 		return null;
 	}
 	const unique = criteria.filter((entry) => entry.id === criterion.id).length === 1;
+	const counts = progress?.find((entry) => entry.id === criterion.id)?.counts;
 	const work = items?.filter((item) => targetsGoal(item, document.identity ?? "", criterion.id));
 	return (
 		<section className="rounded-lg border p-4" id={unique ? `criterion-${criterion.id}` : undefined} tabIndex={-1}>
 			<h3 className="!mt-0">{criterion.text}</h3>
-			{work !== undefined && work.length > 0 && <GoalProgressSummary items={work} />}
+			{counts && Object.keys(counts).length > 0 && <GoalProgressSummary counts={counts} />}
 			<LinkedItems items={work} />
 			<CriterionClaims
 				document={document}
@@ -49,7 +52,9 @@ function LinkedItems({ items }: { readonly items: readonly GoalWorkItem[] | unde
 	if (!items) {
 		return <p>Linked work unavailable.</p>;
 	}
-	return items.length === 0 ? null : (
+	return items.length === 0 ? (
+		<p>not linked</p>
+	) : (
 		<ul>
 			{items.map((item) => (
 				<li key={item.id}>

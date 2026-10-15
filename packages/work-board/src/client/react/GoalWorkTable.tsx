@@ -1,7 +1,7 @@
 import { useContext, useId } from "react";
 import { StatusChip } from "#client/react/components/ui/StatusChip.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { type GoalWorkItem, goalGroup, goalGroups, goalRun, goalState } from "./goalWork.ts";
+import { type GoalWorkItem, goalGroup, goalGroups, goalRun } from "./goalWork.ts";
 
 export function GoalWorkTable({ items }: { readonly items: readonly GoalWorkItem[] }) {
 	const headingId = useId();
@@ -41,7 +41,9 @@ function WorkGroup({ group, items }: { readonly group: string; readonly items: r
 					<tr>
 						<th scope="col">Work</th>
 						<th scope="col">State</th>
-						<th scope="col">PR</th>
+						<th className="whitespace-nowrap" scope="col">
+							PR
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -62,9 +64,9 @@ function WorkRow({ item }: { readonly item: GoalWorkItem }) {
 				<GoalWorkLink item={item} />
 			</th>
 			<td>
-				<StatusChip className="whitespace-nowrap" status={goalState(item, run)} />
+				<GoalWorkStatus item={item} />
 			</td>
-			<td>{run?.prUrl ? <a href={run.prUrl}>PR</a> : null}</td>
+			<td className="whitespace-nowrap">{run?.prUrl ? <a href={run.prUrl}>PR</a> : null}</td>
 		</tr>
 	);
 }
@@ -74,5 +76,14 @@ export function GoalWorkLink({ item }: { readonly item: GoalWorkItem }) {
 export function GoalWorkStatus({ item }: { readonly item: GoalWorkItem }) {
 	const fleet = useContext(FleetItemsContext);
 	const run = goalRun(item, fleet);
-	return <StatusChip className="whitespace-nowrap" status={goalState(item, run)} />;
+	return (
+		<span className="inline-flex flex-wrap items-center gap-1">
+			<StatusChip className="whitespace-nowrap" status={item.metadata.status} />
+			{run && (
+				<span className="inline-flex items-center gap-1 whitespace-nowrap text-muted-foreground text-xs" data-goal-fleet-stage>
+					Fleet <StatusChip status={run.stage} />
+				</span>
+			)}
+		</span>
+	);
 }
