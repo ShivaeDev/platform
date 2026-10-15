@@ -1,0 +1,29 @@
+export function searchRankingFixture() {
+	function task(status: string, title: string, body = "") {
+		return `---\nkind: task\nstatus: ${status}\n---\n# ${title}\n\n${body}\n`;
+	}
+	return {
+		files: {
+			"active.md": task("active", "Active watch"),
+			"deferred.md": task("deferred", "Deferred watch"),
+			"done-body.md": task("done", "Finished", "The watch is complete."),
+			"done.md": task("done", "Done watch"),
+			"held.md": task("fleet-held", "Held watch"),
+			"needs-you.md": task("needs-you", "Watch needs you"),
+			"open-body.md": task("planned", "Keep reviews visible", "The watch keeps running."),
+			"planned.md": task("planned", "A running watch sees reviews finish"),
+			"superseded.md": task("superseded", "Superseded watch"),
+		},
+		modified: new Map([
+			["active.md", 2000],
+			["deferred.md", 8000],
+			["done-body.md", 10_000],
+			["done.md", 9000],
+			["held.md", 1000],
+			["needs-you.md", 3000],
+			["open-body.md", 6000],
+			["planned.md", 4000],
+			["superseded.md", 7000],
+		]),
+	};
+}

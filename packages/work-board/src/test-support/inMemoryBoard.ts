@@ -11,6 +11,7 @@ import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 export interface BoardFixtureOptions {
 	readonly beforeRead?: (kind: "document" | "page", url: string) => Effect.Effect<void>;
 	readonly home: string | undefined;
+	readonly modified?: ReadonlyMap<string, number>;
 }
 
 const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
@@ -24,12 +25,12 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 			const home = configuration ? configuration.home : Object.keys(files)[0];
 			const changes: Changes = {
 				events: yield* Effect.acquireRelease(PubSub.unbounded<Change>(), PubSub.shutdown),
-				files: Effect.sync(() => Object.keys(files).map((file) => ({ modified: 0, path: file }))),
+				files: Effect.sync(() => Object.keys(files).map((file) => ({ modified: configuration?.modified?.get(file) ?? 0, path: file }))),
 				realRoot: "/board",
 				revision: Effect.succeed(0),
 				watching: yield* Ref.make(false),
 			};
-			const options = { changes, enabled: false, index: fixtureSnapshot(files, home), root: "/board" };
+			const options = { changes, enabled: false, index: fixtureSnapshot(files, home, configuration?.modified), root: "/board" };
 			const services = yield* Layer.build(
 				Layer.mergeAll(Responses.layer, HandoffsService.layer, missingDiagnostics).pipe(Layer.provide(Layer.succeed(ResponseConfig, options))),
 			);

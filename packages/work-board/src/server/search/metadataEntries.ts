@@ -1,5 +1,6 @@
 import { fileUrl } from "#files/url.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
+import { closedItem, deferredItem } from "#server/attention/status.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { attentionEntries } from "./attentionEntries.ts";
@@ -50,10 +51,12 @@ export function metadataEntries(
 		}
 	}
 	return enriched.map((entry) => {
-		const fields = sources.get(entry.file)?.parsed.fields;
+		const document = sources.get(entry.file);
+		const fields = document?.parsed.fields;
 		return {
 			...entry,
 			id: fields?.id,
+			inactive: document ? closedItem(document) || deferredItem(document) : false,
 			itemKind: fields?.kind,
 			record: records.has(entry.file) || Boolean(fields?.question || fields?.response || fields?.requestReceipt),
 			status: fields?.status,
